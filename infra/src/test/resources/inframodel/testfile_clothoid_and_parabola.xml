@@ -1,0 +1,575 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<LandXML xmlns="http://www.inframodel.fi/inframodel" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.inframodel.fi/inframodel https://buildingsmart.fi/infra/schema/4.0.3/inframodel.xsd"
+         date="2022-11-01" time="14:15:16" version="1.2" language="finnish" readOnly="false">
+  <FeatureDictionary name="inframodel" version="4.0.3">
+    <DocFileRef name="Inframodel extensions"
+                location="https://buildingsmart.fi/infra/inframodel/pages/extensions.html"/>
+  </FeatureDictionary>
+  <Units>
+    <Metric areaUnit="squareMeter" linearUnit="meter" volumeUnit="cubicMeter" temperatureUnit="celsius"
+            pressureUnit="HPA" diameterUnit="meter" widthUnit="meter" heightUnit="meter"
+            velocityUnit="kilometersPerHour" angularUnit="grads" directionUnit="grads"
+            elevationUnit="meter"></Metric>
+  </Units>
+  <CoordinateSystem name="KKJ / Finland zone 2" rotationAngle="0" epsgCode="2392"/>
+  <Project name="TEST_Clothoid_and_parabola" desc="Test IM - clothoid and parabola">
+    <Feature code="IM_codings" source="inframodel" name="classcodings">
+      <Property label="terrainCoding" value="InfraBIM"></Property>
+      <Property label="infraCoding" value="InfraBIM"></Property>
+    </Feature>
+  </Project>
+  <Application name="Geoviite Test" desc="Geoviite test data"
+               manufacturer="Geoviite test" manufacturerURL="http://vayla.fi" version="1.2.3">
+    <Author createdBy="Geoviite" createdByEmail="geoviite-test@geoviite-test.fi" company="Geoviite"
+            companyURL="vayla.fi" timeStamp="2022-11-01T14:15:16"></Author>
+  </Application>
+  <Alignments name="001" desc="Test alignment" state="proposed">
+    <Alignment name="1" desc="1" oID="1" state="proposed" staStart="0.000000" length="18901.845000">
+      <CoordGeom>
+        <Line dir="238.048438" length="772.019000" staStart="0.000000" name="SA" oID="1">
+          <Start>6664178.112000 2501278.511000</Start>
+          <End>6663539.920000 2500844.086000</End>
+        </Line>
+        <Spiral staStart="772.019503" length="180.000000" radiusStart="INF" radiusEnd="802.000000" rot="cw"
+                spiType="clothoid" constant="379.947000" dirStart="238.048438" dirEnd="245.192550" name="CA1"
+                oID="2">
+          <Start>6663539.920000 2500844.086000</Start>
+          <PI>6663440.653644 2500776.514186</PI>
+          <End>6663395.095000 2500737.364500</End>
+        </Spiral>
+        <Curve rot="cw" length="125.744000" radius="802.000000" chord="125.615211" staStart="952.019000"
+               name="KA" oID="3">
+          <Start>6663395.095000 2500737.364500</Start>
+          <Center>6663917.795000 2500129.097000</Center>
+          <End>6663306.527500 2500648.286000</End>
+        </Curve>
+        <Spiral staStart="1077.763237" length="178.000000" radiusStart="802.000000" radiusEnd="INF" rot="cw"
+                spiType="clothoid" constant="377.831000" dirStart="255.173986" dirEnd="262.238719" name="CA2"
+                oID="4">
+          <Start>6663306.527500 2500648.286000</Start>
+          <PI>6663268.073339 2500603.011996</PI>
+          <End>6663201.697000 2500504.550000</End>
+        </Spiral>
+        <Line dir="262.238719" length="1517.069000" staStart="1255.763000" name="S" oID="5">
+          <Start>6663201.697000 2500504.550000</Start>
+          <End>6662353.689000 2499246.623000</End>
+        </Line>
+        <Spiral staStart="2772.831858" length="132.000000" radiusStart="INF" radiusEnd="1070.000000" rot="ccw"
+                spiType="clothoid" constant="375.819000" dirStart="262.238719" dirEnd="258.311905" name="C11"
+                oID="6">
+          <Start>6662353.689000 2499246.623000</Start>
+          <PI>6662304.489068 2499173.640314</PI>
+          <End>6662277.682000 2499138.729000</End>
+        </Spiral>
+        <Curve rot="ccw" length="37.654000" radius="1070.000000" chord="37.651564" staStart="2904.832000"
+               name="K1" oID="7">
+          <Start>6662277.682000 2499138.729000</Start>
+          <Center>6661429.013000 2499790.389000</Center>
+          <End>6662254.229000 2499109.274000</End>
+        </Curve>
+        <Spiral staStart="2942.485061" length="135.000000" radiusStart="1070.000000" radiusEnd="INF" rot="ccw"
+                spiType="clothoid" constant="380.066000" dirStart="256.071626" dirEnd="252.055567" name="C12"
+                oID="8">
+          <Start>6662254.229000 2499109.274000</Start>
+          <PI>6662225.572484 2499074.554762</PI>
+          <End>6662164.008500 2499008.881000</End>
+        </Spiral>
+        <Line dir="252.055567" length="157.779000" staStart="3077.486000" name="S2" oID="9">
+          <Start>6662164.008500 2499008.881000</Start>
+          <End>6662056.102000 2498893.771000</End>
+        </Line>
+        <Spiral staStart="3235.264721" length="174.000000" radiusStart="INF" radiusEnd="806.000000" rot="cw"
+                spiType="clothoid" constant="374.492000" dirStart="252.055567" dirEnd="258.927270" name="C21"
+                oID="10">
+          <Start>6662056.102000 2498893.771000</Start>
+          <PI>6661976.721885 2498809.091769</PI>
+          <End>6661941.804000 2498762.696000</End>
+        </Spiral>
+        <Curve rot="cw" length="204.018000" radius="806.000000" chord="203.473678" staStart="3409.265000"
+               name="K2" oID="11">
+          <Start>6661941.804000 2498762.696000</Start>
+          <Center>6662585.797000 2498278.021000</Center>
+          <End>6661840.948000 2498585.977000</End>
+        </Curve>
+        <Spiral staStart="3613.282843" length="174.000000" radiusStart="806.000000" radiusEnd="INF" rot="cw"
+                spiType="clothoid" constant="374.492000" dirStart="275.041617" dirEnd="281.913319" name="C22"
+                oID="12">
+          <Start>6661840.948000 2498585.977000</Start>
+          <PI>6661818.761763 2498532.315493</PI>
+          <End>6661786.228000 2498420.900000</End>
+        </Spiral>
+        <Line dir="281.913319" length="105.651000" staStart="3787.283000" name="S3" oID="13">
+          <Start>6661786.228000 2498420.900000</Start>
+          <End>6661756.614000 2498319.485000</End>
+        </Line>
+        <Spiral staStart="3892.933326" length="166.000000" radiusStart="INF" radiusEnd="805.000000" rot="ccw"
+                spiType="clothoid" constant="365.554000" dirStart="281.913319" dirEnd="275.349413" name="C31"
+                oID="14">
+          <Start>6661756.614000 2498319.485000</Start>
+          <PI>6661725.576307 2498213.192969</PI>
+          <End>6661704.662000 2498161.907000</End>
+        </Spiral>
+        <Curve rot="ccw" length="80.612000" radius="805.000000" chord="80.578788" staStart="4058.934000"
+               name="K3" oID="15">
+          <Start>6661704.662000 2498161.907000</Start>
+          <Center>6660959.259000 2498465.881000</Center>
+          <End>6661670.539000 2498088.910000</End>
+        </Curve>
+        <Spiral staStart="4139.546653" length="166.000000" radiusStart="805.000000" radiusEnd="INF" rot="ccw"
+                spiType="clothoid" constant="365.554000" dirStart="268.974337" dirEnd="262.410431" name="C32"
+                oID="16">
+          <Start>6661670.539000 2498088.910000</Start>
+          <PI>6661644.600959 2498039.969282</PI>
+          <End>6661582.954000 2497947.988500</End>
+        </Spiral>
+        <Line dir="262.410431" length="121.133000" staStart="4305.546000" name="S4" oID="17">
+          <Start>6661582.954000 2497947.988500</Start>
+          <End>6661515.514000 2497847.364500</End>
+        </Line>
+        <Spiral staStart="4426.679575" length="48.000000" radiusStart="INF" radiusEnd="2930.000000" rot="ccw"
+                spiType="clothoid" constant="375.020000" dirStart="262.410431" dirEnd="261.888967" name="C41"
+                oID="18">
+          <Start>6661515.514000 2497847.364500</Start>
+          <PI>6661497.697437 2497820.781171</PI>
+          <End>6661488.682000 2497807.565000</End>
+        </Spiral>
+        <Curve rot="ccw" length="265.937000" radius="2930.000000" chord="265.846437" staStart="4474.679000"
+               name="K4" oID="19">
+          <Start>6661488.682000 2497807.565000</Start>
+          <Center>6659068.212000 2499458.693000</Center>
+          <End>6661329.062000 2497594.972000</End>
+        </Curve>
+        <Spiral staStart="4740.616500" length="48.000000" radiusStart="2930.000000" radiusEnd="INF" rot="ccw"
+                spiType="clothoid" constant="375.020000" dirStart="256.110777" dirEnd="255.589314" name="C42"
+                oID="20">
+          <Start>6661329.062000 2497594.972000</Start>
+          <PI>6661318.926629 2497582.676943</PI>
+          <End>6661298.328000 2497558.102000</End>
+        </Spiral>
+        <Line dir="255.589313" length="82.174000" staStart="4788.616000" name="S5" oID="21">
+          <Start>6661298.328000 2497558.102000</Start>
+          <End>6661245.541000 2497495.124500</End>
+        </Line>
+        <Spiral staStart="4870.790405" length="118.000000" radiusStart="INF" radiusEnd="799.500000" rot="cw"
+                spiType="clothoid" constant="307.150000" dirStart="255.589313" dirEnd="260.287320" name="C51"
+                oID="22">
+          <Start>6661245.541000 2497495.124500</Start>
+          <PI>6661194.994952 2497434.821155</PI>
+          <End>6661172.005000 2497402.876000</End>
+        </Spiral>
+        <Curve rot="cw" length="586.657000" radius="799.500000" chord="573.583408" staStart="4988.790000"
+               name="K5" oID="23">
+          <Start>6661172.005000 2497402.876000</Start>
+          <Center>6661820.928000 2496935.866000</Center>
+          <End>6661026.258500 2496848.118500</End>
+        </Curve>
+        <Spiral staStart="5575.447043" length="115.000000" radiusStart="799.500000" radiusEnd="INF" rot="cw"
+                spiType="clothoid" constant="303.220000" dirStart="307.001174" dirEnd="311.579740" name="C52"
+                oID="24">
+          <Start>6661026.258500 2496848.118500</Start>
+          <PI>6661030.467604 2496809.999354</PI>
+          <End>6661044.340000 2496734.576000</End>
+        </Spiral>
+        <Line dir="311.579740" length="24.772000" staStart="5690.447000" name="S" oID="25">
+          <Start>6661044.340000 2496734.576000</Start>
+          <End>6661048.821000 2496710.213000</End>
+        </Line>
+        <Line dir="311.579740" length="16.615000" staStart="5715.218660" name="V001" oID="26">
+          <Start>6661048.821000 2496710.213000</Start>
+          <End>6661051.827000 2496693.872000</End>
+        </Line>
+        <Line dir="311.579740" length="17.815000" staStart="5731.834183" name="V001" oID="27">
+          <Start>6661051.827000 2496693.872000</Start>
+          <End>6661055.049000 2496676.351000</End>
+        </Line>
+        <Line dir="311.579740" length="46.442000" staStart="5749.648789" name="S" oID="28">
+          <Start>6661055.049000 2496676.351000</Start>
+          <End>6661063.450000 2496630.675000</End>
+        </Line>
+        <Spiral staStart="5796.091155" length="96.000000" radiusStart="INF" radiusEnd="888.000000" rot="cw"
+                spiType="clothoid" constant="291.973000" dirStart="311.579740" dirEnd="315.020928" name="C61"
+                oID="29">
+          <Start>6661063.450000 2496630.675000</Start>
+          <PI>6661075.028932 2496567.721063</PI>
+          <End>6661082.511500 2496536.599000</End>
+        </Spiral>
+        <Curve rot="cw" length="95.175000" radius="888.000000" chord="95.129710" staStart="5892.091000"
+               name="K6" oID="30">
+          <Start>6661082.511500 2496536.599000</Start>
+          <Center>6661945.908000 2496744.182000</Center>
+          <End>6661109.672000 2496445.429000</End>
+        </Curve>
+        <Spiral staStart="5987.265893" length="96.000000" radiusStart="888.000000" radiusEnd="INF" rot="cw"
+                spiType="clothoid" constant="291.973000" dirStart="321.844178" dirEnd="325.285366" name="C62"
+                oID="31">
+          <Start>6661109.672000 2496445.429000</Start>
+          <PI>6661120.442182 2496415.282350</PI>
+          <End>6661145.201000 2496356.259000</End>
+        </Spiral>
+        <Line dir="325.285366" length="66.255000" staStart="6083.266000" name="S" oID="32">
+          <Start>6661145.201000 2496356.259000</Start>
+          <End>6661170.830000 2496295.162000</End>
+        </Line>
+        <Line dir="325.285366" length="17.815000" staStart="6149.520728" name="V002" oID="33">
+          <Start>6661170.830000 2496295.162000</Start>
+          <End>6661177.721000 2496278.734000</End>
+        </Line>
+        <Line dir="325.285366" length="16.615000" staStart="6167.335743" name="V002" oID="34">
+          <Start>6661177.721000 2496278.734000</Start>
+          <End>6661184.148000 2496263.412000</End>
+        </Line>
+        <Line dir="325.285366" length="28.819000" staStart="6183.951355" name="S" oID="35">
+          <Start>6661184.148000 2496263.412000</Start>
+          <End>6661195.296000 2496236.836000</End>
+        </Line>
+        <Spiral staStart="6212.770467" length="115.000000" radiusStart="INF" radiusEnd="799.000000" rot="ccw"
+                spiType="clothoid" constant="303.125000" dirStart="325.285366" dirEnd="320.703935" name="C71"
+                oID="36">
+          <Start>6661195.296000 2496236.836000</Start>
+          <PI>6661224.960158 2496166.118650</PI>
+          <End>6661237.214500 2496129.776000</End>
+        </Spiral>
+        <Curve rot="ccw" length="196.429000" radius="799.000000" chord="195.934041" staStart="6327.770000"
+               name="K7" oID="37">
+          <Start>6661237.214500 2496129.776000</Start>
+          <Center>6660480.097000 2495874.484000</Center>
+          <End>6661276.581500 2495937.837500</End>
+        </Curve>
+        <Spiral staStart="6524.198043" length="115.000000" radiusStart="799.000000" radiusEnd="INF" rot="ccw"
+                spiType="clothoid" constant="303.125000" dirStart="305.053069" dirEnd="300.471638" name="C72"
+                oID="38">
+          <Start>6661276.581500 2495937.837500</Start>
+          <PI>6661279.621811 2495899.614074</PI>
+          <End>6661280.190000 2495822.921000</End>
+        </Spiral>
+        <Line dir="300.471638" length="61.009000" staStart="6639.199000" name="S" oID="39">
+          <Start>6661280.190000 2495822.921000</Start>
+          <End>6661280.642000 2495761.914000</End>
+        </Line>
+        <Spiral staStart="6700.207675" length="105.000000" radiusStart="INF" radiusEnd="893.000000" rot="ccw"
+                spiType="clothoid" constant="306.211000" dirStart="300.471638" dirEnd="296.728913" name="C81"
+                oID="40">
+          <Start>6661280.642000 2495761.914000</Start>
+          <PI>6661281.160743 2495691.894932</PI>
+          <End>6661279.363000 2495656.938000</End>
+        </Spiral>
+        <Curve rot="ccw" length="79.278000" radius="893.000000" chord="79.252180" staStart="6805.208000"
+               name="K8" oID="41">
+          <Start>6661279.363000 2495656.938000</Start>
+          <Center>6660387.542000 2495702.802000</Center>
+          <End>6661271.784500 2495578.049000</End>
+        </Curve>
+        <Spiral staStart="6884.486234" length="96.000000" radiusStart="893.000000" radiusEnd="INF" rot="ccw"
+                spiType="clothoid" constant="292.793000" dirStart="291.077159" dirEnd="287.655238" name="C82"
+                oID="42">
+          <Start>6661271.784500 2495578.049000</Start>
+          <PI>6661267.313528 2495546.359023</PI>
+          <End>6661254.978000 2495483.544000</End>
+        </Spiral>
+        <Spiral staStart="6980.486000" length="105.000000" radiusStart="INF" radiusEnd="999.000000" rot="cw"
+                spiType="clothoid" constant="323.875000" dirStart="287.655239" dirEnd="291.000839" name="C91"
+                oID="43">
+          <Start>6661254.978000 2495483.544000</Start>
+          <PI>6661241.487912 2495414.849720</PI>
+          <End>6661236.555000 2495380.186000</End>
+        </Spiral>
+        <Curve rot="cw" length="393.263000" radius="999.000000" chord="390.729487" staStart="7085.486000"
+               name="K9" oID="44">
+          <Start>6661236.555000 2495380.186000</Start>
+          <Center>6662225.590000 2495239.439000</Center>
+          <End>6661258.218000 2494990.057500</End>
+        </Curve>
+        <Spiral staStart="7478.750322" length="130.000000" radiusStart="999.000000" radiusEnd="INF" rot="cw"
+                spiType="clothoid" constant="360.375000" dirStart="316.061810" dirEnd="320.203980" name="C92"
+                oID="45">
+          <Start>6661258.218000 2494990.057500</Start>
+          <PI>6661269.040276 2494948.076772</PI>
+          <End>6661296.091000 2494865.722000</End>
+        </Spiral>
+        <Line dir="320.203980" length="1171.047000" staStart="7608.749000" name="S" oID="46">
+          <Start>6661296.091000 2494865.722000</Start>
+          <End>6661661.531000 2493753.155000</End>
+        </Line>
+        <Spiral staStart="8779.796273" length="100.000000" radiusStart="INF" radiusEnd="1392.000000" rot="ccw"
+                spiType="clothoid" constant="373.095000" dirStart="320.203980" dirEnd="317.917271" name="C101"
+                oID="47">
+          <Start>6661661.531000 2493753.155000</Start>
+          <PI>6661682.338064 2493689.808785</PI>
+          <End>6661691.596000 2493657.787500</End>
+        </Spiral>
+        <Curve rot="ccw" length="198.528000" radius="1392.000000" chord="198.359813" staStart="8879.796000"
+               name="K10" oID="48">
+          <Start>6661691.596000 2493657.787500</Start>
+          <Center>6660354.364000 2493271.169000</Center>
+          <End>6661732.972000 2493463.791000</End>
+        </Curve>
+        <Spiral staStart="9078.323695" length="100.000000" radiusStart="1392.000000" radiusEnd="INF" rot="ccw"
+                spiType="clothoid" constant="373.095000" dirStart="308.837763" dirEnd="306.551054" name="C102"
+                oID="49">
+          <Start>6661732.972000 2493463.791000</Start>
+          <PI>6661737.586121 2493430.767413</PI>
+          <End>6661744.434000 2493364.456000</End>
+        </Spiral>
+        <Line dir="306.551054" length="67.493000" staStart="9178.324000" name="S" oID="50">
+          <Start>6661744.434000 2493364.456000</Start>
+          <End>6661751.367000 2493297.320000</End>
+        </Line>
+        <Spiral staStart="9245.817029" length="97.000000" radiusStart="INF" radiusEnd="1509.000000" rot="ccw"
+                spiType="clothoid" constant="382.587000" dirStart="306.551054" dirEnd="304.504927" name="C111"
+                oID="51">
+          <Start>6661751.367000 2493297.320000</Start>
+          <PI>6661758.008745 2493233.004688</PI>
+          <End>6661760.296000 2493200.736000</End>
+        </Spiral>
+        <Curve rot="ccw" length="37.104000" radius="1509.000000" chord="37.103394" staStart="9342.817000"
+               name="K11" oID="52">
+          <Start>6661760.296000 2493200.736000</Start>
+          <Center>6660255.073000 2493094.043000</Center>
+          <End>6661762.464000 2493163.696000</End>
+        </Curve>
+        <Spiral staStart="9379.920932" length="97.000000" radiusStart="1509.000000" radiusEnd="INF" rot="ccw"
+                spiType="clothoid" constant="382.587000" dirStart="302.939564" dirEnd="300.893437" name="C112"
+                oID="53">
+          <Start>6661762.464000 2493163.696000</Start>
+          <PI>6661763.956376 2493131.398678</PI>
+          <End>6661764.864000 2493066.730000</End>
+        </Spiral>
+        <Line dir="300.893436" length="1414.102000" staStart="9476.921000" name="S" oID="54">
+          <Start>6661764.864000 2493066.730000</Start>
+          <End>6661784.709000 2491652.767000</End>
+        </Line>
+        <Spiral staStart="10891.023250" length="113.000000" radiusStart="INF" radiusEnd="1996.000000" rot="cw"
+                spiType="clothoid" constant="474.919000" dirStart="300.893436" dirEnd="302.695491" name="C121"
+                oID="55">
+          <Start>6661784.709000 2491652.767000</Start>
+          <PI>6661785.766096 2491577.448364</PI>
+          <End>6661787.361000 2491539.802500</End>
+        </Spiral>
+        <Curve rot="cw" length="151.935000" radius="1996.000000" chord="151.898226" staStart="11004.023000"
+               name="K12" oID="56">
+          <Start>6661787.361000 2491539.802500</Start>
+          <Center>6663781.572000 2491624.290000</Center>
+          <End>6661799.561000 2491388.395000</End>
+        </Curve>
+        <Spiral staStart="11155.958703" length="115.000000" radiusStart="1996.000000" radiusEnd="INF" rot="cw"
+                spiType="clothoid" constant="479.103000" dirStart="307.541435" dirEnd="309.375385" name="C122"
+                oID="57">
+          <Start>6661799.561000 2491388.395000</Start>
+          <PI>6661804.091934 2491350.325630</PI>
+          <End>6661815.342000 2491274.487000</End>
+        </Spiral>
+        <Line dir="309.375385" length="1924.182000" staStart="11270.958000" name="S" oID="58">
+          <Start>6661815.342000 2491274.487000</Start>
+          <End>6662097.689000 2489371.133000</End>
+        </Line>
+        <Spiral staStart="13195.139972" length="110.000000" radiusStart="INF" radiusEnd="3600.000000" rot="cw"
+                spiType="clothoid" constant="629.285000" dirStart="309.375385" dirEnd="310.347999" name="C131"
+                oID="59">
+          <Start>6662097.689000 2489371.133000</Start>
+          <PI>6662108.447273 2489298.609635</PI>
+          <End>6662114.384000 2489262.408500</End>
+        </Spiral>
+        <Curve rot="cw" length="1754.469000" radius="3600.000000" chord="1737.157348" staStart="13305.140000"
+               name="K13" oID="60">
+          <Start>6662114.384000 2489262.408500</Start>
+          <Center>6665666.930000 2489845.001000</Center>
+          <End>6662800.808000 2487666.621000</End>
+        </Curve>
+        <Spiral staStart="15059.609454" length="100.000000" radiusStart="3600.000000" radiusEnd="INF" rot="cw"
+                spiType="clothoid" constant="600.000000" dirStart="341.373829" dirEnd="342.258023" name="C132"
+                oID="61">
+          <Start>6662800.808000 2487666.621000</Start>
+          <PI>6662820.961093 2487640.105321</PI>
+          <End>6662862.053000 2487587.571000</End>
+        </Spiral>
+        <Line dir="342.258023" length="178.873000" staStart="15159.609000" name="S" oID="62">
+          <Start>6662862.053000 2487587.571000</Start>
+          <End>6662972.257000 2487446.679000</End>
+        </Line>
+        <Spiral staStart="15338.481797" length="240.000000" radiusStart="INF" radiusEnd="1201.600000" rot="ccw"
+                spiType="biquadraticParabola" dirStart="342.258023" dirEnd="335.932477" name="Q141" oID="63">
+          <Start>6662972.257000 2487446.679000</Start>
+          <PI>6663076.915369 2487312.877559</PI>
+          <End>6663114.501000 2487253.513000</End>
+        </Spiral>
+        <Curve rot="ccw" length="731.420000" radius="1201.600000" chord="720.180382" staStart="15578.482000"
+               name="K14" oID="64">
+          <Start>6663114.501000 2487253.513000</Start>
+          <Center>6662099.274000 2486610.740000</Center>
+          <End>6663299.696500 2486557.551500</End>
+        </Curve>
+        <Spiral staStart="16309.902194" length="240.000000" radiusStart="1201.600000" radiusEnd="INF" rot="ccw"
+                spiType="biquadraticParabola" dirStart="297.181105" dirEnd="290.855559" name="Q142" oID="65">
+          <Start>6663299.696500 2486557.551500</Start>
+          <PI>6663296.586256 2486487.355598</PI>
+          <End>6663272.270000 2486319.236000</End>
+        </Spiral>
+        <Line dir="290.855559" length="281.316000" staStart="16549.902000" name="S" oID="66">
+          <Start>6663272.270000 2486319.236000</Start>
+          <End>6663232.000000 2486040.817000</End>
+        </Line>
+        <Spiral staStart="16831.218214" length="162.000000" radiusStart="INF" radiusEnd="1244.000000" rot="ccw"
+                spiType="biquadraticParabola" dirStart="290.855559" dirEnd="286.719333" name="Q151" oID="67">
+          <Start>6663232.000000 2486040.817000</Start>
+          <PI>6663215.579067 2485927.284700</PI>
+          <End>6663205.778000 2485880.986000</End>
+        </Spiral>
+        <Curve rot="ccw" length="67.719000" radius="1244.000000" chord="67.710170" staStart="16993.218000"
+               name="K15" oID="68">
+          <Start>6663205.778000 2485880.986000</Start>
+          <Center>6661988.749000 2486138.621000</Center>
+          <End>6663189.957500 2485815.150000</End>
+        </Curve>
+        <Spiral staStart="17060.936164" length="162.000000" radiusStart="1244.000000" radiusEnd="INF" rot="ccw"
+                spiType="biquadraticParabola" dirStart="283.253815" dirEnd="279.117589" name="Q152" oID="69">
+          <Start>6663189.957500 2485815.150000</Start>
+          <PI>6663177.650782 2485769.449114</PI>
+          <End>6663140.695000 2485660.856000</End>
+        </Spiral>
+        <Spiral staStart="17222.937000" length="100.000000" radiusStart="INF" radiusEnd="2559.000000" rot="cw"
+                spiType="biquadraticParabola" dirStart="279.117589" dirEnd="280.361230" name="Q161" oID="70">
+          <Start>6663140.695000 2485660.856000</Start>
+          <PI>6663117.876008 2485593.803287</PI>
+          <End>6663109.018500 2485566.007000</End>
+        </Spiral>
+        <Curve rot="cw" length="413.492000" radius="2559.000000" chord="413.042870" staStart="17322.937000"
+               name="K16" oID="71">
+          <Start>6663109.018500 2485566.007000</Start>
+          <Center>6665547.219000 2484789.055000</Center>
+          <End>6663015.781500 2485163.625000</End>
+        </Curve>
+        <Spiral staStart="17736.429646" length="103.000000" radiusStart="2559.000000" radiusEnd="981.000000"
+                rot="cw" spiType="clothoid" constant="404.795000" dirStart="290.647958" dirEnd="295.271250"
+                name="C162" oID="72">
+          <Start>6663015.781500 2485163.625000</Start>
+          <PI>6663007.121175 2485105.096417</PI>
+          <End>6663003.865000 2485061.340000</End>
+        </Spiral>
+        <Curve rot="cw" length="73.316000" radius="981.000000" chord="73.298929" staStart="17839.429000"
+               name="K17" oID="73">
+          <Start>6663003.865000 2485061.340000</Start>
+          <Center>6663982.160000 2484988.539000</Center>
+          <End>6663001.160000 2484988.091000</End>
+        </Curve>
+        <Spiral staStart="17912.744734" length="168.000000" radiusStart="981.000000" radiusEnd="INF" rot="cw"
+                spiType="biquadraticParabola" dirStart="300.029098" dirEnd="305.459945" name="Q172" oID="74">
+          <Start>6663001.160000 2484988.091000</Start>
+          <PI>6663001.182460 2484938.952506</PI>
+          <End>6663011.370000 2484820.459000</End>
+        </Spiral>
+        <Spiral staStart="18080.745000" length="157.000000" radiusStart="INF" radiusEnd="1002.000000" rot="ccw"
+                spiType="biquadraticParabola" dirStart="305.459945" dirEnd="300.488045" name="Q181" oID="75">
+          <Start>6663011.370000 2484820.459000</Start>
+          <PI>6663020.892197 2484709.704245</PI>
+          <End>6663021.244000 2484663.815000</End>
+        </Spiral>
+        <Curve rot="ccw" length="126.214000" radius="1002.000000" chord="126.130423" staStart="18237.745000"
+               name="K18" oID="76">
+          <Start>6663021.244000 2484663.815000</Start>
+          <Center>6662019.273000 2484656.134000</Center>
+          <End>6663014.270500 2484537.877500</End>
+        </Curve>
+        <Spiral staStart="18363.959255" length="170.000000" radiusStart="1002.000000" radiusEnd="INF" rot="ccw"
+                spiType="biquadraticParabola" dirStart="292.469064" dirEnd="287.088369" name="Q182" oID="77">
+          <Start>6663014.270500 2484537.877500</Start>
+          <PI>6663008.403867 2484488.516084</PI>
+          <End>6662984.160000 2484370.623000</End>
+        </Spiral>
+        <Line dir="287.088369" length="20.873000" staStart="18533.959000" name="S" oID="78">
+          <Start>6662984.160000 2484370.623000</Start>
+          <End>6662979.956000 2484350.178000</End>
+        </Line>
+        <Line dir="287.088369" length="347.013000" staStart="18554.831749" name="S15" oID="79">
+          <Start>6662979.956000 2484350.178000</Start>
+          <End>6662910.058000 2484010.278000</End>
+        </Line>
+      </CoordGeom>
+      <Cant name="1" desc="1" gauge="1.524" rotationPoint="insideRail">
+        <CantStation station="772.019000" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="952.019000" appliedCant="0.150000" curvature="cw"/>
+        <CantStation station="1077.763000" appliedCant="0.150000" curvature="cw"/>
+        <CantStation station="1255.763000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="2772.832000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="2904.832000" appliedCant="0.110000" curvature="ccw"/>
+        <CantStation station="2942.486000" appliedCant="0.110000" curvature="ccw"/>
+        <CantStation station="3077.486000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="3235.265000" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="3409.265000" appliedCant="0.135000" curvature="cw"/>
+        <CantStation station="3613.283000" appliedCant="0.135000" curvature="cw"/>
+        <CantStation station="3787.283000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="3892.934000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="4058.934000" appliedCant="0.135000" curvature="ccw"/>
+        <CantStation station="4139.546000" appliedCant="0.135000" curvature="ccw"/>
+        <CantStation station="4305.546000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="4426.679000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="4474.679000" appliedCant="0.040000" curvature="ccw"/>
+        <CantStation station="4740.616000" appliedCant="0.040000" curvature="ccw"/>
+        <CantStation station="4788.616000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="4870.790000" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="4988.790000" appliedCant="0.120000" curvature="cw"/>
+        <CantStation station="5575.447000" appliedCant="0.120000" curvature="cw"/>
+        <CantStation station="5690.447000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="5796.091000" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="5892.091000" appliedCant="0.100000" curvature="cw"/>
+        <CantStation station="5987.266000" appliedCant="0.100000" curvature="cw"/>
+        <CantStation station="6083.266000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="6212.770000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="6327.770000" appliedCant="0.120000" curvature="ccw"/>
+        <CantStation station="6524.199000" appliedCant="0.120000" curvature="ccw"/>
+        <CantStation station="6639.199000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="6700.208000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="6805.208000" appliedCant="0.100000" curvature="ccw"/>
+        <CantStation station="6884.486000" appliedCant="0.100000" curvature="ccw"/>
+        <CantStation station="6980.486000" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="7085.486000" appliedCant="0.100000" curvature="cw"/>
+        <CantStation station="7478.749000" appliedCant="0.100000" curvature="cw"/>
+        <CantStation station="7608.749000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="8779.796000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="8879.796000" appliedCant="0.085000" curvature="ccw"/>
+        <CantStation station="9078.324000" appliedCant="0.085000" curvature="ccw"/>
+        <CantStation station="9178.324000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="9245.817000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="9342.817000" appliedCant="0.085000" curvature="ccw"/>
+        <CantStation station="9379.921000" appliedCant="0.085000" curvature="ccw"/>
+        <CantStation station="9476.921000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="10891.023000" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="11004.023000" appliedCant="0.085000" curvature="cw"/>
+        <CantStation station="11155.958000" appliedCant="0.085000" curvature="cw"/>
+        <CantStation station="11270.958000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="13195.140000" appliedCant="0.000000" curvature="cw"/>
+        <CantStation station="13305.140000" appliedCant="0.045000" curvature="cw"/>
+        <CantStation station="15059.609000" appliedCant="0.045000" curvature="cw"/>
+        <CantStation station="15159.609000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="15338.482000" appliedCant="0.000000" curvature="ccw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="15578.482000" appliedCant="0.150000" curvature="ccw"/>
+        <CantStation station="16309.902000" appliedCant="0.150000" curvature="ccw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="16549.902000" appliedCant="0.000000" curvature="ccw"/>
+        <CantStation station="16831.218000" appliedCant="0.000000" curvature="ccw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="16993.218000" appliedCant="0.135000" curvature="ccw"/>
+        <CantStation station="17060.937000" appliedCant="0.135000" curvature="ccw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="17222.937000" appliedCant="0.000000" curvature="cw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="17322.937000" appliedCant="0.075000" curvature="cw"/>
+        <CantStation station="17736.429000" appliedCant="0.075000" curvature="cw"/>
+        <CantStation station="17839.429000" appliedCant="0.150000" curvature="cw"/>
+        <CantStation station="17912.745000" appliedCant="0.150000" curvature="cw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="18080.745000" appliedCant="0.000000" curvature="ccw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="18237.745000" appliedCant="0.140000" curvature="ccw"/>
+        <CantStation station="18363.959000" appliedCant="0.140000" curvature="ccw"
+                     transitionType="biquadraticParabola"/>
+        <CantStation station="18533.959000" appliedCant="0.000000" curvature="ccw"/>
+      </Cant>
+      <Feature source="inframodel" code="IM_coding">
+        <Property label="terrainCoding" value="111"/>
+        <Property label="terrainCodingDesc" value="Pituusmittausraide"/>
+      </Feature>
+    </Alignment>
+  </Alignments>
+</LandXML>

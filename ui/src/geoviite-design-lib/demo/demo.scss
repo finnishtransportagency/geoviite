@@ -1,0 +1,26 @@
+@import '../../vayla-design-lib/colors';
+
+.geoviite-design-demo {
+    padding: 0 20px 20px;
+    background: $color-white-dark;
+    overflow: auto;
+
+    table {
+        border-spacing: 0;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+
+        th {
+            padding: 5px;
+            text-align: left;
+            font-weight: normal;
+            border: 1px solid $color-white-darker;
+        }
+
+        td {
+            padding: 20px;
+            text-align: center;
+            border: 1px solid $color-white-darker;
+        }
+    }
+}

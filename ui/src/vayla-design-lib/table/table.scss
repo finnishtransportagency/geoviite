@@ -1,0 +1,103 @@
+@import '../colors';
+@import '../typography';
+@import '../transitions';
+
+$table-cell-padding: 10px 16px;
+
+.table {
+    border-spacing: 0;
+    border-collapse: collapse;
+
+    > thead > tr,
+    > .table__thead > .table__tr {
+        // Heading row
+
+        > th,
+        > .table__th {
+            // Heading cell
+            @include typography-table-heading;
+            background: $color-white-dark;
+            padding: $table-cell-padding;
+            text-align: left;
+            white-space: nowrap;
+
+            &.table__th--clickable {
+                cursor: pointer;
+                transition: all $transitions-speed-fast;
+
+                &:hover {
+                    background: $color-white-darker;
+                }
+            }
+        }
+    }
+
+    > tbody > tr,
+    > .table__tbody > .table__tr {
+        // Body row
+
+        > td,
+        > .table__td {
+            // Body cell
+            @include typography-body;
+            padding: $table-cell-padding;
+            background: $color-white-default;
+            text-align: left;
+            vertical-align: top;
+            border-bottom: 1px solid $color-white-dark;
+
+            &.table__td--number {
+                text-align: right;
+            }
+
+            &.table__td--narrow {
+                padding-left: 4px;
+                padding-right: 4px;
+            }
+
+            &.table__td--nowrap {
+                white-space: nowrap;
+            }
+
+            &.table__td--has-stretched-container {
+                position: relative;
+            }
+        }
+    }
+}
+
+.table--wide {
+    width: 100%;
+}
+
+.table__th-content {
+    display: flex;
+    align-content: center;
+}
+
+.table__th-children {
+    zoom: 1;
+}
+
+.table__th-icons {
+    margin-left: 8px;
+}
+
+.table__td-stretched-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    display: flex; // stretch child element
+    justify-content: center;
+}
+
+// This violates BEM rules a bit as these styles are set to child component,
+// but this only applies when using a special TD variant and therefore can be seen as
+// a part of the API of this table component.
+.table__td-stretched-container > * {
+    padding-top: 12px;
+    flex: 1;
+    text-align: center;
+}

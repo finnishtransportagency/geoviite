@@ -1,0 +1,9 @@
+package fi.fta.geoviite.infra.common
+
+enum class MeasurementMethod {
+    VERIFIED_DESIGNED_GEOMETRY,
+    OFFICIALLY_MEASURED_GEODETICALLY,
+    TRACK_INSPECTION,
+    DIGITIZED_AERIAL_IMAGE,
+    UNVERIFIED_DESIGNED_GEOMETRY,
+}

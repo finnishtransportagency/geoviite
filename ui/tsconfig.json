@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "resolveJsonModule": true,
+    "outDir": "./dist/",
+    "sourceMap": true,
+    "noImplicitAny": true,
+    "module": "commonjs",
+    "lib": ["DOM", "ES6", "DOM.Iterable", "ScriptHost", "ES2019.array"],
+    "target": "es5",
+    "jsx": "react",
+    "strictNullChecks": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "baseUrl": "./",
+    "paths": {
+      "*": [
+        "./src/*"
+      ],
+    }
+  },
+  "include": [
+    "./src/**/*",
+    "index.d.ts"
+  ]
+}

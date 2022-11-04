@@ -1,0 +1,131 @@
+@import '../colors';
+@import '../typography';
+@import '../transitions';
+
+.radio {
+    cursor: pointer;
+}
+
+.radio__input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.radio__visualization {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 20px;
+    height: 20px;
+    background: $color-white-default;
+    border: 1px solid $color-blue-default;
+    border-radius: 50%;
+
+    transition: all $transitions-speed-fast;
+}
+
+.radio__checked-marker {
+    opacity: 0;
+    width: 12px;
+    height: 12px;
+    background: $color-blue-default;
+    border-radius: 50%;
+}
+
+.radio__input:checked + .radio__visualization {
+    .radio__checked-marker {
+        opacity: 1;
+    }
+}
+
+.radio--touched .radio__input:checked + .radio__visualization .radio__checked-marker {
+    animation: pop $transitions-speed-fast;
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(0);
+    }
+
+    85% {
+        transform: scale(1.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.radio__label-text {
+    @include typography-body;
+    margin-left: 8px;
+}
+
+// Hover state
+
+.radio:hover,
+.radio--hover {
+    .radio__visualization {
+        background: $color-blue-lighter;
+    }
+
+    .radio__input:checked + .radio__visualization {
+        background: $color-blue-lighter;
+        border-color: $color-blue-default;
+
+        .radio__checked-marker {
+            opacity: 1;
+        }
+    }
+}
+
+// Focus state
+
+.radio--focus,
+.radio__input:focus + {
+    .radio__visualization {
+        background: $color-blue-lighter;
+        border-style: dashed;
+    }
+}
+
+.radio--focus .radio__input:checked,
+.radio__input:focus.radio__input:checked {
+    & + .radio__visualization {
+        border-style: dashed;
+        background: $color-blue-lighter;
+        border-color: $color-blue-default;
+
+        .radio__checked-marker {
+            opacity: 1;
+        }
+    }
+}
+
+// Disabled state
+
+.radio--disabled {
+    cursor: default;
+}
+
+.radio--disabled,
+.radio__input:disabled {
+    & + .radio__visualization {
+        border: 1px solid $color-white-darker;
+        background: $color-white-default;
+    }
+}
+
+.radio--disabled .radio__input:checked,
+.radio__input:disabled.radio__input:checked {
+    & + .radio__visualization {
+        border: 1px solid $color-white-darker;
+        background: $color-white-default;
+
+        .radio__checked-marker {
+            background: $color-white-darker;
+        }
+    }
+}

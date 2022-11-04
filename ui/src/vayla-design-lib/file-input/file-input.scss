@@ -1,0 +1,23 @@
+@import '../typography';
+
+.file-input {
+    @include typography-body;
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden; // hide overflowing file input
+}
+
+.file-input__file-input {
+    font-size: 0; // make invisible input button as small as possible
+    width: 100%;
+    padding: 0 0;
+    margin: 0 0;
+    opacity: 0;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -25px; // move hidden input button away to keep pointer cursor
+    bottom: 0;
+    cursor: pointer;
+}

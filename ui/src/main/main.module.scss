@@ -1,0 +1,25 @@
+@import '../vayla-design-lib/colors';
+
+body,
+html {
+    margin: 0;
+    padding: 0;
+}
+
+.main {
+    background-color: $color-white-dark;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+.main__content {
+    background-color: $color-white-default;
+    flex: 1;
+
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    overflow: auto;
+}

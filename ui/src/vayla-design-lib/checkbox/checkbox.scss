@@ -1,0 +1,130 @@
+@import '../colors';
+@import '../typography';
+@import '../transitions';
+
+.checkbox {
+    cursor: pointer;
+}
+
+.checkbox__input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.checkbox__visualization {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 20px;
+    height: 20px;
+    background: $color-white-default;
+    border: 1px solid $color-blue-default;
+    border-radius: 4px;
+
+    transition: all $transitions-speed-fast;
+}
+
+.checkbox__checked-icon {
+    opacity: 0;
+}
+
+.checkbox__input:checked + .checkbox__visualization {
+    background: $color-blue-default;
+
+    .checkbox__checked-icon {
+        opacity: 1;
+        fill: $color-white-default;
+    }
+}
+
+.checkbox--touched .checkbox__input:checked + .checkbox__visualization .checkbox__checked-icon {
+    animation: pop $transitions-speed-fast;
+}
+
+@keyframes pop {
+    0% {
+        transform: scale(0);
+    }
+
+    85% {
+        transform: scale(1.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.checkbox__label-text {
+    @include typography-body;
+    margin-left: 8px;
+}
+
+// Hover state
+
+.checkbox:hover,
+.checkbox--hover {
+    .checkbox__visualization {
+        background: $color-blue-lighter;
+    }
+
+    .checkbox__input:checked + .checkbox__visualization {
+        background: $color-blue-light;
+        border-color: $color-blue-light;
+
+        .checkbox__checked-icon {
+            opacity: 1;
+            fill: $color-white-default;
+        }
+    }
+}
+
+// Focus state
+
+.checkbox--focus,
+.checkbox__input:focus + {
+    .checkbox__visualization {
+        background: $color-blue-lighter;
+        border-style: dashed;
+    }
+}
+
+.checkbox--focus .checkbox__input:checked + .checkbox__visualization,
+.checkbox__input:focus.checkbox__input:checked + .checkbox__visualization {
+    border-style: dashed;
+    background: $color-blue-light;
+    border-color: $color-blue-default;
+
+    .checkbox__checked-icon {
+        opacity: 1;
+        fill: $color-white-default;
+    }
+}
+
+// Disabled state
+
+.checkbox--disabled {
+    cursor: default;
+}
+
+.checkbox--disabled,
+.checkbox__input:disabled {
+    & + .checkbox__visualization {
+        border: 1px solid $color-white-darker;
+        background: $color-white-default;
+    }
+}
+
+.checkbox--disabled .checkbox__input:checked,
+.checkbox__input:disabled.checkbox__input:checked {
+    & + .checkbox__visualization {
+        border: 1px solid $color-white-darker;
+        background: $color-white-darker;
+
+        .checkbox__checked-icon {
+            fill: $color-white-default;
+        }
+    }
+}

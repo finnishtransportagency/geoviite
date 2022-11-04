@@ -1,0 +1,26 @@
+@import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/colors';
+@import '../geoviite-colors';
+
+.linking-status-label {
+    @include typography-sub-heading;
+    display: inline-flex;
+    align-items: center;
+    user-select: none;
+    padding-left: 8px;
+    padding-right: 8px;
+
+    &--linked {
+        background-color: $color-green-lighter;
+        border-color: rgba(0, 0, 0, 0.5);
+    }
+
+    &--unlinked {
+        background-color: $color-red-lighter;
+        border-color: rgba(0, 0, 0, 0.5);
+    }
+
+    &--clickable {
+        cursor: pointer;
+    }
+}

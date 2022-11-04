@@ -1,0 +1,18 @@
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
+
+.frontpage {
+    background: $color-white-dark;
+
+    &__card {
+        width: 416px;
+    }
+
+    &__photo {
+        flex: 1;
+        background-image: url('../geoviite-design-lib/frontpage-background.jpeg');
+        background-size: cover;
+        background-position: center bottom;
+    }
+}

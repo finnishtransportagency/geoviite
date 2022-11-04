@@ -1,0 +1,24 @@
+@import '../colors';
+
+.accordion-toggle {
+    display: inline-flex;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 50%;
+    height: 20px;
+    width: 20px;
+    min-width: 20px;
+    background-color: $color-blue-lighter;
+    justify-content: center;
+    align-items: center;
+    transition: transform 150ms;
+
+    &--open {
+        transform: rotate(90deg);
+    }
+    &--disabled {
+        background-color: $color-white-darker;
+        cursor: default;
+    }
+
+}

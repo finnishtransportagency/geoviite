@@ -1,0 +1,286 @@
+import * as React from 'react';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { ItemCollections, Selection } from 'selection/selection-model';
+import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
+import {
+    getKmPost,
+    getLocationTrack,
+    getLocationTracksBySearchTerm,
+    getSwitch,
+} from 'track-layout/track-layout-api';
+import {
+    LayoutKmPost,
+    LayoutKmPostId,
+    LayoutLocationTrack,
+    LayoutSwitch,
+    LayoutSwitchId,
+    LayoutTrackNumberId,
+    LocationTrackId,
+} from 'track-layout/track-layout-model';
+import { debounceAsync } from 'utils/async-utils';
+import { isNullOrBlank } from 'utils/string-utils';
+import { BoundingBox } from 'model/geometry';
+import { useTranslation } from 'react-i18next';
+import { PublishType } from 'common/common-model';
+import styles from './tool-bar.scss';
+import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
+import { ChangeTimes } from 'track-layout/track-layout-store';
+import {
+    updateKmPostChangeTime,
+    updateLocationTrackChangeTime,
+    updateReferenceLineChangeTime,
+    updateTrackNumberChangeTime,
+} from 'common/change-time-api';
+import { SwitchEditDialog } from 'tool-panel/switch/dialog/switch-edit-dialog';
+import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
+import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
+import { Menu } from 'vayla-design-lib/menu/menu';
+
+export type ToolbarParams = {
+    selection: Selection;
+    onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
+    onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
+    onSelectSwitch: (s: LayoutSwitch) => void;
+    onSelectKmPost: (kmPost: LayoutKmPost) => void;
+    onMapSettingsVisibilityChange: (visible: boolean) => void;
+    onPublishTypeChange: (publishType: PublishType) => void;
+    onOpenPreview: () => void;
+    settingsVisible: boolean;
+    showArea: (area: BoundingBox) => void;
+    publishType: PublishType;
+    changeTimes: ChangeTimes;
+    onStopLinking: () => void;
+};
+
+type LocationTrackItemValue = {
+    locationTrack: LayoutLocationTrack;
+    type: 'locationTrackSearchItem';
+};
+
+type SearchItemValue = LocationTrackItemValue;
+
+export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
+    const { t } = useTranslation();
+    const selectedItems = props.selection.selectedItems;
+    const _hasActiveElement = hasActiveMapElement(selectedItems); // Will be used later
+    const [showAddMenu, setShowAddMenu] = React.useState(false);
+    const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
+    const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
+    const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
+    const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
+
+    enum NewMenuItems {
+        'trackNumber' = 1,
+        'locationTrack' = 2,
+        'switch' = 3,
+        'kmPost' = 4,
+    }
+
+    const newMenuItems = [
+        { value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number') },
+        { value: NewMenuItems.locationTrack, name: t('tool-bar.new-location-track') },
+        { value: NewMenuItems.switch, name: t('tool-bar.new-switch') },
+        { value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post') },
+    ];
+
+    const handleNewMenuItemChange = (item: NewMenuItems) => {
+        showAddDialog(item);
+    };
+
+    function getOptions(searchTerm: string): Promise<Item<SearchItemValue>[]> {
+        if (isNullOrBlank(searchTerm)) {
+            return Promise.resolve([]);
+        }
+
+        return Promise.all([getLocationTracksBySearchTerm(searchTerm, props.publishType, 10)]).then(
+            (result) => {
+                const locationTracks = result[0];
+                return locationTracks.map((locationTrack) => ({
+                    name: `${locationTrack.name}, ${locationTrack.description}`,
+                    value: {
+                        type: 'locationTrackSearchItem',
+                        locationTrack: locationTrack,
+                    },
+                }));
+            },
+        );
+    }
+
+    // Use debounced function to collect keystrokes before triggering a search
+    const debouncedGetOptions = debounceAsync(getOptions, 250);
+    // Use memoized function to make debouncing functionality to work when re-rendering
+    const memoizedDebouncedGetOptions = React.useCallback(debouncedGetOptions, []);
+
+    function onItemSelected(item: SearchItemValue | undefined) {
+        switch (item?.type) {
+            case 'locationTrackSearchItem':
+                item.locationTrack.boundingBox && props.showArea(item.locationTrack.boundingBox);
+                props.onSelectLocationTrack(item.locationTrack.id);
+                break;
+        }
+    }
+
+    function showAddDialog(dialog: NewMenuItems) {
+        switch (dialog) {
+            case NewMenuItems.trackNumber:
+                setShowAddTrackNumberDialog(true);
+                break;
+            case NewMenuItems.locationTrack:
+                setShowAddLocationTrackDialog(true);
+                break;
+            case NewMenuItems.switch:
+                setShowAddSwitchDialog(true);
+                break;
+            case NewMenuItems.kmPost:
+                setShowAddKmPostDialog(true);
+        }
+
+        setShowAddMenu(false);
+    }
+
+    function handleTrackNumberSave(id: LayoutTrackNumberId) {
+        updateReferenceLineChangeTime().then(() =>
+            updateTrackNumberChangeTime().then(() => props.onSelectTrackNumber(id)),
+        );
+    }
+
+    function handleLocationTrackInsert(id: LocationTrackId) {
+        updateLocationTrackChangeTime().then((ts) => {
+            getLocationTrack(id, 'DRAFT', ts).then((locationTrack) => {
+                props.onSelectLocationTrack(locationTrack.id);
+            });
+
+            setShowAddLocationTrackDialog(false);
+        });
+    }
+
+    function handleSwitchInsert(switchId: LayoutSwitchId) {
+        getSwitch(switchId, 'DRAFT').then((s) => {
+            props.onSelectSwitch(s);
+        });
+
+        setShowAddSwitchDialog(false);
+    }
+
+    function handleKmPostInsert(id: LayoutKmPostId) {
+        updateKmPostChangeTime().then((kp) => {
+            getKmPost(id, 'DRAFT', kp).then((kmPost) => {
+                props.onSelectKmPost(kmPost);
+            });
+            setShowAddKmPostDialog(false);
+        });
+
+        setShowAddKmPostDialog(false);
+    }
+
+    function moveToOfficialPublishType() {
+        props.onPublishTypeChange('OFFICIAL');
+        setShowAddMenu(false);
+    }
+
+    function openPreviewAndStopLinking() {
+        props.onOpenPreview();
+        props.onStopLinking();
+    }
+
+    return (
+        <div className={`tool-bar tool-bar--${props.publishType.toLowerCase()}`}>
+            <div className={styles['tool-bar__left-section']}>
+                <Dropdown
+                    placeholder={t('tool-bar.search')}
+                    options={memoizedDebouncedGetOptions}
+                    searchable
+                    onChange={onItemSelected}
+                    canUnselect={true}
+                    size={DropdownSize.STRETCH}
+                    wideList
+                    qaId="search-box"
+                />
+                <Button
+                    variant={ButtonVariant.SECONDARY}
+                    icon={Icons.Layers}
+                    isPressed={props.settingsVisible}
+                    onClick={() => props.onMapSettingsVisibilityChange(!props.settingsVisible)}
+                    qa-id="map-layers-button"
+                />
+                <div className={styles['tool-bar__new-menu-button']}>
+                    <Button
+                        variant={ButtonVariant.SECONDARY}
+                        icon={Icons.Append}
+                        disabled={props.publishType !== 'DRAFT'}
+                        onClick={() => setShowAddMenu(!showAddMenu)}
+                    />
+                    {showAddMenu && (
+                        <div className={styles['tool-bar__new-menu']}>
+                            <Menu
+                                items={newMenuItems}
+                                onChange={(item) => item && handleNewMenuItemChange(item)}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className={styles['tool-bar__middle-section']}>
+                {props.publishType === 'DRAFT' && t('tool-bar.draft-mode.title')}
+            </div>
+
+            <div className={styles['tool-bar__right-section']}>
+                {props.publishType === 'OFFICIAL' && (
+                    <Button
+                        variant={ButtonVariant.PRIMARY}
+                        onClick={() => props.onPublishTypeChange('DRAFT')}>
+                        {t('tool-bar.draft-mode.enable')}
+                    </Button>
+                )}
+                {props.publishType === 'DRAFT' && (
+                    <React.Fragment>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            onClick={() => moveToOfficialPublishType()}>
+                            {t('tool-bar.draft-mode.disable')}
+                        </Button>
+                        <Button
+                            icon={Icons.VectorRight}
+                            variant={ButtonVariant.PRIMARY}
+                            onClick={() => openPreviewAndStopLinking()}>
+                            {t('tool-bar.preview-mode.enable')}
+                        </Button>
+                    </React.Fragment>
+                )}
+            </div>
+            {showAddTrackNumberDialog && (
+                <TrackNumberEditDialogContainer
+                    onClose={() => setShowAddTrackNumberDialog(false)}
+                    onSave={handleTrackNumberSave}
+                />
+            )}
+            {showAddLocationTrackDialog && (
+                <LocationTrackEditDialog
+                    onClose={() => setShowAddLocationTrackDialog(false)}
+                    onInsert={handleLocationTrackInsert}
+                    locationTrackChangeTime={props.changeTimes.layoutLocationTrack}
+                />
+            )}
+
+            {showAddSwitchDialog && (
+                <SwitchEditDialog
+                    onClose={() => setShowAddSwitchDialog(false)}
+                    onInsert={handleSwitchInsert}
+                />
+            )}
+
+            {showAddKmPostDialog && (
+                <KmPostEditDialog
+                    onClose={() => setShowAddKmPostDialog(false)}
+                    onInsert={handleKmPostInsert}
+                />
+            )}
+        </div>
+    );
+};
+
+function hasActiveMapElement(selectedItems: ItemCollections): boolean {
+    return Object.values(selectedItems).some((items) => items.length > 0);
+}

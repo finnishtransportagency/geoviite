@@ -1,0 +1,166 @@
+@import '../typography';
+@import '../utils';
+@import '../colors';
+@import '../size';
+
+$text-area-input-height: 6em;
+$text-area-input-padding-side: 12px;
+$text-area-input-border-default: 1px;
+$text-area-input-border-thick: 2px;
+
+@mixin text-area-border($color, $width, $has-icon) {
+    border: $width solid $color;
+    $border-width-diff: $width - $text-area-input-border-default;
+
+    @if ($has-icon) {
+        padding: (8px - $border-width-diff)
+            (32px - $border-width-diff)
+            8px
+            (12px - $border-width-diff);
+    } @else {
+        padding: (8px - $border-width-diff) (12px - $border-width-diff);
+    }
+}
+
+.text-area {
+    @include component-base;
+    position: relative;
+    display: inline-flex;
+}
+
+.text-area__input {
+    zoom: 1;
+}
+
+.text-area__icon {
+    position: absolute;
+    display: flex;
+    align-items: start;
+    justify-content: end;
+    right: 12px;
+    top: 12px;
+    fill: $color-black-light;
+}
+
+.text-area__input-element {
+    @include typography-input;
+
+    height: $text-area-input-height;
+
+    color: $color-black-default;
+    background: $color-white-default;
+
+    outline: none;
+    @include text-area-border(
+        $color: $color-black-lighter,
+        $width: $text-area-input-border-default,
+        $has-icon: false
+    );
+    border-radius: 4px;
+}
+
+.text-area--with-icon .text-area__input-element {
+    padding-right: 32px;
+}
+
+.text-area--wide {
+    display: flex;
+
+    .text-area__input {
+        flex: 1;
+        display: flex;
+    }
+
+    .text-area__input-element {
+        flex: 1;
+    }
+}
+
+// Hover
+
+.text-area:hover:not(.text-area--disabled) {
+    .text-area__input-element {
+        @include text-area-border(
+            $color: $color-black-lighter,
+            $width: $text-area-input-border-thick,
+            $has-icon: false
+        );
+    }
+
+    &.text-area--with-icon .text-area__input-element {
+        @include text-area-border(
+            $color: $color-black-lighter,
+            $width: $text-area-input-border-thick,
+            $has-icon: true
+        );
+    }
+}
+
+// Focus
+
+.text-area--focus {
+    .text-area__input-element {
+        @include text-area-border(
+            $color: $color-blue-dark,
+            $width: $text-area-input-border-thick,
+            $has-icon: false
+        );
+    }
+
+    &.text-area--with-icon .text-area__input-element {
+        @include text-area-border(
+            $color: $color-blue-dark,
+            $width: $text-area-input-border-thick,
+            $has-icon: true
+        );
+    }
+}
+
+// Error
+
+.text-area--has-error {
+    .text-area__input-element {
+        @include text-area-border(
+            $color: $color-red-dark,
+            $width: $text-area-input-border-thick,
+            $has-icon: false
+        );
+    }
+
+    &.text-area--with-icon .text-area__input-element {
+        @include text-area-border(
+            $color: $color-red-dark,
+            $width: $text-area-input-border-thick,
+            $has-icon: true
+        );
+    }
+
+    .text-area__icon {
+        fill: $color-red-dark;
+    }
+}
+
+// Disabled
+
+.text-area--disabled {
+    .text-area__icon {
+        fill: $color-black-lighter;
+    }
+
+    .text-area__input-element {
+        @include text-area-border(
+            $color: $color-white-darker,
+            $width: $text-area-input-border-default,
+            $has-icon: false
+        );
+        color: $color-black-lighter;
+    }
+
+    &.text-area--with-icon .text-area__input-element {
+        @include text-area-border(
+            $color: $color-white-darker,
+            $width: $text-area-input-border-default,
+            $has-icon: true
+        );
+    }
+}

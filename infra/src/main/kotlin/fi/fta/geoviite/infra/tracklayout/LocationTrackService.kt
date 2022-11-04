@@ -1,0 +1,313 @@
+package fi.fta.geoviite.infra.tracklayout
+
+import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DataType.STORED
+import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.util.RowVersion
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+
+@Service
+class LocationTrackService(
+    dao: LocationTrackDao,
+    private val alignmentService: LayoutAlignmentService,
+    private val addressPointService: AddressPointService,
+    private val switchService: LayoutSwitchService,
+    private val alignmentDao: LayoutAlignmentDao,
+) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
+
+    @Transactional
+    fun insert(request: LocationTrackSaveRequest): RowVersion<LocationTrack> {
+        logger.serviceCall("insert", "request" to request)
+        val (alignment, alignmentVersion) = alignmentService.newEmpty()
+        val locationTrack = LocationTrack(
+            alignmentVersion = alignmentVersion,
+            name = request.name,
+            description = request.description,
+            type = request.type,
+            state = request.state,
+            externalId = null,
+            trackNumberId = request.trackNumberId,
+            sourceId = null,
+            length = alignment.length,
+            segmentCount = alignment.segments.size,
+            boundingBox = alignment.boundingBox,
+            duplicateOf = request.duplicateOf,
+            topologicalConnectivity = request.topologicalConnectivity,
+        )
+        return saveDraftInternal(locationTrack)
+    }
+
+    @Transactional
+    fun update(id: IntId<LocationTrack>, request: LocationTrackSaveRequest): RowVersion<LocationTrack> {
+        logger.serviceCall("update", "id" to id, "request" to request)
+        val original = getInternalOrThrow(DRAFT, id)
+        val locationTrack = original.copy(
+            name = request.name,
+            description = request.description,
+            type = request.type,
+            state = request.state,
+            trackNumberId = request.trackNumberId,
+            alignmentVersion = updatedAlignmentVersion(original),
+            duplicateOf = request.duplicateOf,
+            topologicalConnectivity = request.topologicalConnectivity,
+        )
+        return saveDraftInternal(locationTrack)
+    }
+
+    @Transactional
+    override fun saveDraft(draft: LocationTrack): RowVersion<LocationTrack> = super.saveDraft(
+        draft.copy(
+            alignmentVersion = updatedAlignmentVersion(draft)
+        )
+    )
+
+    private fun updatedAlignmentVersion(track: LocationTrack) =
+        // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
+        if (track.dataType == TEMP || track.draft == null) alignmentService.duplicateOrNew(track.alignmentVersion)
+        else track.alignmentVersion
+
+    @Transactional
+    fun saveDraft(draft: LocationTrack, alignment: LayoutAlignment): RowVersion<LocationTrack> {
+        logger.serviceCall("save", "locationTrack" to draft.id, "alignment" to alignment.id)
+        val alignmentVersion =
+            // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
+            if (draft.dataType == TEMP || draft.draft == null) {
+                alignmentService.saveAsNew(alignment)
+            }
+            // Otherwise update -> should have alignment already
+            else if (draft.alignmentVersion == null) {
+                throw IllegalStateException("DB Location track should have an alignment")
+            }
+            // Ensure that we update the correct one.
+            else if (draft.alignmentVersion.id != alignment.id) {
+                alignmentService.save(alignment.copy(id = draft.alignmentVersion.id, dataType = STORED))
+            } else {
+                alignmentService.save(alignment)
+            }
+        return saveDraftInternal(draft.copy(alignmentVersion = alignmentVersion))
+    }
+
+    @Transactional
+    fun updateExternalId(id: IntId<LocationTrack>, oid: Oid<LocationTrack>): RowVersion<LocationTrack> {
+        logger.serviceCall("updateExternalIdForLocationTrack", "id" to id, "oid" to oid)
+        val original = getInternalOrThrow(DRAFT, id)
+        return saveDraftInternal(original.copy(
+            externalId = oid,
+            alignmentVersion = updatedAlignmentVersion(original),
+        ))
+    }
+
+    @Transactional
+    override fun publish(id: IntId<LocationTrack>): RowVersion<LocationTrack> {
+        logger.serviceCall("publish", "id" to id)
+        val versions = dao.fetchVersionPair(id)
+        val oldDraft = versions.draft?.let(dao::fetch) ?: throw IllegalStateException("Draft doesn't exist")
+        val oldOfficial = versions.official?.let(dao::fetch)
+        val publishedVersion = publishInternal(versions)
+        if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
+            // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
+            oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)
+        }
+        return publishedVersion
+    }
+
+    @Transactional
+    override fun deleteUnpublishedDraft(id: IntId<LocationTrack>): RowVersion<LocationTrack> {
+        val draft = getInternalOrThrow(DRAFT, id)
+        val deletedVersion = super.deleteUnpublishedDraft(id)
+        draft.alignmentVersion?.id?.let(alignmentDao::delete)
+        return deletedVersion
+    }
+
+    override fun createDraft(item: LocationTrack) = draft(item)
+
+    override fun createPublished(item: LocationTrack) = published(item)
+
+    fun listNonLinked(): List<LocationTrack> {
+        logger.serviceCall("listNonLinked")
+        return listInternal(DRAFT).filter { a -> a.segmentCount == 0 }
+    }
+
+    fun list(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
+        logger.serviceCall("list", "publishType" to publishType, "bbox" to bbox)
+        return listInternal(publishType).filter { tn -> bbox.intersects(tn.boundingBox) }
+    }
+
+    fun list(
+        publishType: PublishType,
+        searchTerm: String,
+        limit: Int?,
+    ): List<LocationTrack> {
+        logger.serviceCall(
+            "list",
+            "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
+        )
+        return listInternal(publishType)
+            .filter { locationTrack ->
+                locationTrack.name.contains(searchTerm, true)
+                        || locationTrack.description.contains(searchTerm, true)
+                        || locationTrack.id.toString() == searchTerm
+                        || locationTrack.externalId.toString() == searchTerm
+            }
+            .let { list -> if (limit != null) list.take(limit) else list }
+    }
+
+    fun listNear(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
+        logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
+        return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch).filter(LocationTrack::exists)
+    }
+
+    fun getStartAndEnd(
+        publishType: PublishType,
+        locationTrackId: IntId<LocationTrack>,
+    ): LocationTrackStartAndEnd? {
+        logger.serviceCall(
+            "getStartAndEnd",
+            "publishType" to publishType, "locationTrackId" to locationTrackId
+        )
+        return addressPointService.getTrackGeocodingData(publishType, locationTrackId)?.let { data ->
+            val locationTrack = data.locationTrack
+            val segments = data.alignment.segments
+
+            val startAddress = data.context.toAddressPoint(segments.first().points.first())
+            val endAddress = data.context.toAddressPoint(segments.last().points.last())
+
+            val startSwitchName = if (locationTrack.startPoint is EndPointSwitch)
+                getSwitchNameForSegment(publishType, segments.first()) else null
+            val endSwitchName = if (locationTrack.endPoint is EndPointSwitch)
+                getSwitchNameForSegment(publishType, segments.last()) else null
+
+            val startAlignmentName =
+                if (locationTrack.startPoint is EndPointLocationTrack)
+                    getInternal(publishType, locationTrack.startPoint.locationTrackId)?.name
+                else null
+            val endAlignmentName =
+                if (locationTrack.endPoint is EndPointLocationTrack)
+                    getInternal(publishType, locationTrack.endPoint.locationTrackId)?.name
+                else null
+
+            LocationTrackStartAndEnd(
+                start = RefinedAlignmentEndPoint(
+                    startAddress?.first,
+                    locationTrack.startPoint,
+                    startSwitchName,
+                    startAlignmentName
+                ),
+                end = RefinedAlignmentEndPoint(
+                    endAddress?.first,
+                    locationTrack.endPoint,
+                    endSwitchName,
+                    endAlignmentName
+                )
+            )
+        }
+    }
+
+    override fun listInternal(publishType: PublishType) =
+        dao.fetchVersions(publishType)
+            .map(dao::fetch)
+            .filter(LocationTrack::exists)
+
+
+    fun getSwitchNameForSegment(publishType: PublishType, segment: LayoutSegment): SwitchName? {
+        return segment.switchId
+            .takeIf { switchId -> switchId is IntId }
+            ?.let { switchId -> switchService.getOrThrow(publishType, switchId as IntId) }
+            ?.let { switch -> if (switch.exists) switch.name else null }
+    }
+
+    fun listWithAlignments(publishType: PublishType): List<Pair<LocationTrack, LayoutAlignment>> {
+        logger.serviceCall("listWithAlignments", "publishType" to publishType)
+        return dao.fetchVersions(publishType).map(::getWithAlignmentInternal)
+    }
+
+    fun listWithAlignments(
+        publishType: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        logger.serviceCall(
+            "listWithAlignments",
+            "publishType" to publishType, "trackNumberId" to trackNumberId
+        )
+        return dao.fetchVersions(publishType, trackNumberId).map(::getWithAlignmentInternal)
+    }
+
+    fun getWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+        logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
+        return dao.fetchVersionOrThrow(id, publishType).let(::getWithAlignmentInternal)
+    }
+
+    fun fetchWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
+        logger.serviceCall("fetchWithAlignment", "publishType" to publishType, "id" to id)
+        return dao.fetchVersion(id, publishType)?.let(::getWithAlignmentInternal)
+    }
+
+    fun getWithAlignment(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+        logger.serviceCall("getWithAlignment", "version" to version)
+        return getWithAlignmentInternal(version)
+    }
+
+    fun listNearWithAlignments(
+        publishType: PublishType,
+        bbox: BoundingBox,
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        logger.serviceCall(
+            "listNearWithAlignments",
+            "publishType" to publishType, "bbox" to bbox
+        )
+        return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
+    }
+
+    private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+        val locationTrack = dao.fetch(version)
+        val alignment = alignmentDao.fetch(
+            locationTrack.alignmentVersion
+                ?: throw IllegalStateException("LocationTrack in DB must have an alignment")
+        )
+        return locationTrack to alignment
+    }
+
+    fun getSwitchIdsByAddressKilometers(
+        locationTrackId: IntId<LocationTrack>,
+        kmNumbers: Set<KmNumber>,
+        publishType: PublishType,
+        geocodingContext: GeocodingContext
+    ): List<IntId<TrackLayoutSwitch>> {
+        val (_, alignment) = getWithAlignment(publishType, locationTrackId)
+
+        return getSwitchIdsByAddressKilometers(
+            alignment,
+            kmNumbers,
+            geocodingContext
+        )
+    }
+
+    fun getSwitchIdsByAddressKilometers(
+        alignment: LayoutAlignment,
+        kmNumbers: Set<KmNumber>,
+        geocodingContext: GeocodingContext
+    ): List<IntId<TrackLayoutSwitch>> {
+        return alignment.segments.mapNotNull { segment ->
+            val address = if (segment.startJointNumber != null)
+                geocodingContext.getAddress(segment.points.first())?.first
+            else if (segment.endJointNumber != null)
+                geocodingContext.getAddress(segment.points.last())?.first
+            else
+                null
+
+            if (address != null && kmNumbers.contains(address.kmNumber))
+                segment.switchId as IntId<TrackLayoutSwitch>
+            else
+                null
+        }.distinct()
+    }
+
+    fun getDuplicates(duplicateOf: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
+        return dao.fetchDuplicates(duplicateOf, publishType)
+    }
+}

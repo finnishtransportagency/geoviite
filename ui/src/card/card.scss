@@ -1,0 +1,17 @@
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/shadows';
+@import '../vayla-design-lib/layers';
+
+$card-margin: 32px 25px;
+$card-padding: 24px 20px;
+
+.card {
+    @include shadow-4dp;
+
+    margin: $card-margin;
+    padding: $card-padding;
+    border: 1px solid $color-white-dark;
+    border-radius: 4px;
+    background: $color-white-default;
+}

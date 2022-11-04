@@ -1,0 +1,18 @@
+<svg width="31" height="14" viewBox="0 0 31 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M17 1L25.48 9.48L29 1H17Z" fill="black" stroke="black" stroke-miterlimit="10"/>
+  <path d="M17 1L26.9 10.9" stroke="black" stroke-miterlimit="10"/>
+  <path d="M15 1H31" stroke="black" stroke-miterlimit="10"/>
+  <path d="M8 5V13" stroke="black" stroke-miterlimit="10" stroke-linecap="round"/>
+  <path d="M8 9L12 13" stroke="black" stroke-linecap="round" stroke-linejoin="bevel"/>
+  <path d="M12 5L8 9" stroke="black" stroke-linecap="round" stroke-linejoin="bevel"/>
+  <path d="M3 5C3.53043 5 4.03914 5.21071 4.41421 5.58579C4.78929 5.96086 5 6.46957 5 7" stroke="black"
+        stroke-linecap="round" stroke-linejoin="bevel"/>
+  <path d="M1 11C1 11.5304 1.21071 12.0391 1.58579 12.4142C1.96086 12.7893 2.46957 13 3 13" stroke="black"
+        stroke-linecap="round" stroke-linejoin="bevel"/>
+  <path d="M5 11C5 10.4696 4.78929 9.96086 4.41421 9.58578C4.03914 9.21071 3.53043 9 3 9C2.46957 9 1.96086 8.78929 1.58579 8.41421C1.21071 8.03914 1 7.53043 1 7"
+        stroke="black" stroke-linecap="round" stroke-linejoin="bevel"/>
+  <path d="M1 7C1 6.46957 1.21071 5.96086 1.58579 5.58579C1.96086 5.21071 2.46957 5 3 5" stroke="black"
+        stroke-linecap="round" stroke-linejoin="bevel"/>
+  <path d="M3 13C3.53043 13 4.03914 12.7893 4.41421 12.4142C4.78929 12.0391 5 11.5304 5 11" stroke="black"
+        stroke-linecap="round" stroke-linejoin="bevel"/>
+</svg>

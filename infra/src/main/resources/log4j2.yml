@@ -1,0 +1,20 @@
+Configuration:
+  name: Default
+
+  Properties:
+    Property:
+      name: log-path
+      value: "logs"
+
+  Appenders:
+    Console:
+      name: Console_Appender
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "%clr{%d{yyyy-MM-dd HH:mm:ss.SSS}}{faint} %clr{-%5p}%clr{${PID:- }}{magenta} %clr{---}{faint} %clr{[%15.15t]}{faint} %clr{%-30.40c{1.}}{cyan} %clr{:}{faint} %clr{%X{correlationId}}{yellow} %clr{%X{user}}{red} %clr{%X{role}}{red} %m%n%wEx"
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        - ref: Console_Appender

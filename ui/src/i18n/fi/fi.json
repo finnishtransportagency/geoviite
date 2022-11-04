@@ -1,0 +1,177 @@
+{
+    "error": {
+        "linking": {
+            "generic": "Linkityksessä tapahtui virhe",
+            "alignment-geometry": "Uudessa geometriassa on epäjatkuvuuskohtia",
+            "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
+            "save-alignment": "Raiteen tallennus epäonnistui",
+            "save-switch": "Vaihteen tallennus epäonnistui"
+        },
+        "input": {
+            "generic": "Tarkasta syötekentät ja yritä uudestaan",
+            "validation": {
+                "Oid": "OID on virheellinen",
+                "Srid": "SRID (EPSG-koodi) on virheellinen",
+                "VerticalCoordinateSystem": "Korkeusjärjestelmän määritys on virheellinen",
+                "Code": "Kentän sisältö on virheellinen",
+                "FreeText": "Tekstikentän sisältö on virheellinen",
+                "ProjectName": "Projektin nimi on virheellinen",
+                "MetaDataName": "Suunnitelman metatiedon nimi on virheellinen",
+                "AlignmentName": "Sijaintiraiteen tunnus on virheellinen",
+                "SwitchName": "Vaihteen tunnus on virheellinen",
+                "TrackNumber": "Ratanumeron tunnus on virheellinen",
+                "KmNumber": "Tasakilometripisteen tunnus on virheellinen",
+                "FileName": "Tiedoston nimessä on virhe",
+                "AngularUnit": "Suuntakulmien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
+                "LinearUnit": "Pituuksien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
+                "InfraModelProfileElement": "Pystygeometrian (ProfAlign) elementin tyyppi tuntematon",
+                "CantRotationPoint": "Kallistuskulman kiertopisteen arvo on virheellinen",
+                "CantTransitionType": "Kallistuskulman siirtymän tyyppi on virheellinen",
+                "SwitchHand": "Vaihteen kätisyyden arvo on virheellinen",
+                "Point": "X/Y -pistearvon formaatti on virheellinen"
+            }
+        },
+        "deleting": {
+            "generic": "Poistamisessa tapahtui virhe"
+        },
+        "unauthorized": "Käyttöoikeudet eivät riitä toiminnon suorittamiseen",
+        "infra-model": {
+            "request-failed": "Pyyntö taustapalvelimelle epäonnistui",
+            "parsing": {
+                "generic": "Tiedoston jäsentäminen epäonnistui",
+                "missing-section": {
+                    "coordinate-system": "Koordinaattijärjestelmän tiedot (CoordinateSystem-elementti) puuttuu",
+                    "units": "Yksikkötiedot (Units-elementti) puuttuu",
+                    "author": "Suunnitelman laatijan tiedot (Author-elementti) puuttuu",
+                    "application": "Sovelluksen tiedot (Application-elementti) puuttuu",
+                    "project": "Projektin tiedot (Project-elementti) puuttuu",
+                    "alignment-group": "Keskilinjojen ryhmä (AlignmentGroup) puuttuu tai ei ole yksiselitteinen",
+                    "prof-align": "Keskilinjan pystygeometrialta (Profile) puuttuu geometria (ProfAlign-elementti)"
+                }
+            },
+            "transformation": {
+                "srid-missing": "Suunnitelmaa ei voida esittää kartalla, koska koordinaattijärjestelmää \"{{coordinateSystemName}}\" ei osata muuntaa kartan järjestelmään TM35FIN (EPSG:3067)",
+                "bounds-resolution-failed": "Suunnitelmaa ei voida esittää kartalla, koska sisältö ei ole koordinaattijärjestelmän \"{{coordinateSystemName}} ({{srid}}) rajoissa",
+                "bounds-outside-finland": "Suunnitelmaa ei voida esittää kartalla, koska koordinaatit ovat Suomen ulkopuolella (tulkittuna koordinaattijärjestelmässä \"{{coordinateSystemName}} ({{srid}}))",
+                "coordinate-transformation-failed": "Suunnitelmaa ei voida esittää kartalla, koska sen koordinaattien muunnos järjestelmästä \"{{coordinateSystemName}}\" ({{srid}}) kartan järjestelmään TM35FIN (EPSG:3067) epäonnistui",
+                "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
+            }
+        },
+        "entity_not_found": "Tietoa ei löydy"
+    },
+    "unauthorized-request": {
+        "title": "Istunto on vanhentunut.",
+        "button": "Lataa sivu uudestaan"
+    },
+    "button": {
+        "return": "Poistu",
+        "cancel": "Peruuta",
+        "save": "Tallenna",
+        "delete": "Poista",
+        "ok": "OK",
+        "continue": "Jatka",
+        "yes": "Kyllä"
+    },
+    "critical-warnings-dialog": {
+        "title": "Haluatko varmasti tallentaa?",
+        "sub-title": "Seuraavat kriittiset tiedot puuttuvat",
+        "oid": "Projektin OID",
+        "trackNumberId": "Ratanumero",
+        "planPhase": "Suunnitteluvaihe",
+        "decisionPhase": "Vaiheen tarkennus",
+        "measurementMethod": "Laatu",
+        "coordinateSystemSrid": "Koordinaattijärjestelmä",
+        "verticalCoordinateSystem": "Korkeusjärjestelmä",
+        "error-message": "Tiedostossa on virheitä"
+    },
+    "yes": "Kyllä",
+    "no": "Ei",
+    "test": {
+        "text": "testi suomeksi",
+        "title": "otsikko suomeksi",
+        "description": {
+            "part1": "Osa 1",
+            "part2": "Osa 2"
+        }
+    },
+    "reference-line": "Pituusmittauslinja",
+    "enum": {
+        "plan-phase": {
+            "RAILWAY_PLAN": "Ratasuunnitelma, RaS",
+            "RAILWAY_CONSTRUCTION_PLAN": "Rakentamissuunnitelma, RS",
+            "RENOVATION_PLAN": "Peruskorjaus",
+            "ENHANCED_RENOVATION_PLAN": "Perusparannus/ rakenteen parantaminen",
+            "MAINTENANCE": "Kunnossapitovaihe",
+            "NEW_INVESTMENT": "Uusinvestointi",
+            "REMOVED_FROM_USE": "Poistettu käytöstä",
+            "UNKNOWN": "Ei tiedossa"
+        },
+        "plan-decision": {
+            "APPROVED_PLAN": "Suunniteltu",
+            "UNDER_CONSTRUCTION": "Toteutuksessa",
+            "IN_USE": "Valmis",
+            "UNKNOWN": "Ei tiedossa"
+        },
+        "plan-source": {
+            "GEOVIITE": "Geoviite",
+            "GEOMETRIAPALVELU": "Geometriapalvelu",
+            "PAIKANNUSPALVELU": "Paikannuspalvelu"
+        },
+        "measurement-method": {
+            "VERIFIED_DESIGNED_GEOMETRY": "Suunnitelma",
+            "OFFICIALLY_MEASURED_GEODETICALLY": "Geodeettisesti mitattu",
+            "TRACK_INSPECTION": "Radantarkastusvaunu",
+            "DIGITIZED_AERIAL_IMAGE": "Digitoitu ilmakuvasta",
+            "UNVERIFIED_DESIGNED_GEOMETRY": "Epäluotettava suunnitelma",
+            "UNKNOWN": "Ei tiedossa"
+        },
+        "switch-hand": {
+            "LEFT": "Vasen",
+            "RIGHT": "Oikea",
+            "NONE": "Ei käsisyyttä",
+            "UNKNOWN": "Kätisyyttä ei löydy"
+        },
+        "location-track-type": {
+            "MAIN": "Pääraide",
+            "SIDE": "Sivuraide",
+            "TRAP": "Turvaraide",
+            "CHORD": "Kujaraide",
+            "UNKNOWN": "Ei tiedossa"
+        },
+        "topological-connectivity-type": {
+            "NONE": "Ei kytketty",
+            "START": "Raiteen alku",
+            "END": "Raiteen loppu",
+            "START_AND_END": "Raiteen alku ja loppu"
+        },
+        "alignment-end-type": {
+            "SWITCH": "Vaihde",
+            "LOCATION_TRACK": "Jatkuu toisena raiteena",
+            "ENDPOINT": "Raide päättyy",
+            "UNKNOWN": "Ei asetettu"
+        },
+        "layout-state": {
+            "IN_USE": "Käytössä",
+            "NOT_IN_USE": "Käytöstä poistettu",
+            "PLANNED": "Suunniteltu",
+            "DELETED": "Poistettu",
+            "UNKNOWN": "Tilaa ei löydy"
+        },
+        "layout-state-category": {
+            "FUTURE_EXISTING": "Tuleva kohde",
+            "EXISTING": "Olemassa oleva kohde",
+            "NOT_EXISTING": "Poistunut kohde",
+            "UNKNOWN": "Ei tiedossa"
+        },
+        "ratko-push-error-type": {
+            "PROPERTIES": "ominaisuustietojen",
+            "LOCATION": "sijainnin",
+            "GEOMETRY": "geometrian"
+        },
+        "ratko-push-error-operation": {
+            "CREATE": "luonti",
+            "UPDATE": "päivitys",
+            "DELETE": "poisto"
+        }
+    }
+}

@@ -1,0 +1,159 @@
+{
+    "preview-view": {
+        "title": "Muutokset paikannuspohjaan ja rekisteriin",
+        "subtitle": "Valitse mitkä muutokset halutaan julkaista",
+        "map-crop": "Rajaa kartalta",
+        "track-address-changes": "Rataosoitemuutokset",
+        "track-number": "Ratanumero {{number}} {{disabled}}",
+        "disabled-message": "(Rataosoitemuutoksia ei voi laskea)",
+        "location-tracks": "Sijaintiraiteet",
+        "switches": "Vaihteet",
+        "calculated-changes-text": "Ratanumerolle {{number}} on tullut sijaintimuutoksia. Pituusmittauslinjan muuttumisen myötä rataosoitteet päivittyvät seuraaville kohteille.",
+        "no-calculated-changes-text": "Ei rataosoitemuutoksia"
+    },
+    "preview-footer": {
+        "reject-changes": "Hylkää muutokset",
+        "publish-changes": "Julkaise",
+        "publish-tracklayout": "Julkaistava paikannuspohja"
+    },
+    "preview-toolbar": {
+        "title": "ESIKATSELUTILA",
+        "return-to-draft": "Palaa luonnostilaan"
+    },
+    "publish": {
+        "publish-confirm": {
+            "title": "Julkaisu",
+            "description": "Julkaisun jälkeen Geoviite lähettää tiedot Ratkoon",
+            "cancel": "Peruuta",
+            "confirm": "Julkaise"
+        },
+        "revert-confirm": {
+            "title": "Hylkää muutokset?",
+            "description": "Haluatko varmasti hylätä kaikki luonnostilassa tehdyt muutokset?",
+            "cancel": "Peruuta",
+            "confirm": "Hylkää kaikki"
+        },
+        "publish-success": "Muutokset julkaistu paikannuspohjaan",
+        "revert-success": "Luonnosmuutokset peruttu",
+        "track-numbers": "Ratanumeroita",
+        "km-posts": "Tasakilometripisteitä",
+        "reference-lines": "Pituusmittauslinjoja",
+        "location-tracks": "Sijaintiraiteita",
+        "switches": "Vaihteita"
+    },
+    "validation": {
+        "layout": {
+            "track-number": {
+                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
+                "state": {
+                    "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
+                },
+                "location-track": {
+                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia raiteita: {{0}}",
+                    "not-published": "Ratanumeron sijaintiraiteilla ({{0}}) on julkaisemattomia muutoksia"
+                },
+                "km-post": {
+                    "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia tasakilometripisteitä: {{0}}",
+                    "not-published": "Ratanumeron tasakilometripisteillä ({{0}}) on julkaisemattomia muutoksia"
+                }
+            },
+            "km-post": {
+                "not-draft": "Virhe julkaisun sisällössä: julkaistava tasakilometripiste ei ole luonnos",
+                "state": {
+                    "PLANNED": "Tasakilometripiste on tilassa \"Suunniteltu\""
+                },
+                "no-location": "Tasakilometripisteelle ei ole linkitetty sijaintia.",
+                "track-number": {
+                    "null": "Tasakilometripisteelle ei ole asetettu ratanumeroa",
+                    "not-official": "Tasakilometripiste viittaa ratanumeron {{0}} luonnosriviin",
+                    "not-published": "Tasakilometripiste viittaa julkaisemattomaan ratanumeroon {{0}}",
+                    "state": {
+                        "PLANNED": "Tasakilometripiste viittaa ratanumeroon {{0}} joka on tilassa \"Suunniteltu\"",
+                        "DELETED": "Tasakilometripiste viittaa ratanumeroon {{0}} joka on tilassa \"Poistettu\""
+                    }
+                }
+            },
+            "reference-line": {
+                "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
+                "track-number": {
+                    "null": "Pituusmittauslinjalle ei ole asetettu ratanumeroa",
+                    "not-official": "Pituusmittauslinja viittaa ratanumeron {{0}} luonnosriviin",
+                    "not-published": "Pituusmittauslinja viittaa julkaisemattomaan ratanumeroon {{0}}",
+                    "state": {
+                        "PLANNED": "Pituusmittauslinjan ratanumero {{0}} on tilassa \"Suunniteltu\"",
+                        "DELETED": "Pituusmittauslinjan ratanumero {{0}} on tilassa \"Poistettu\""
+                    }
+                },
+                "empty-segments": "Pituusmittauslinjalla ei ole geometriaa",
+                "points": {
+                    "not-continuous": "Pituusmittauslinjan pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
+                }
+            },
+            "location-track": {
+                "no-context": "Sijaintiraiteelle ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
+                "duplicate-of": {
+                    "state": {
+                        "PLANNED": "Raiteen duplikaatti {{0}} on tilassa \"Suunniteltu\". Duplikaattitietoa ei tarvita.",
+                        "DELETED": "Raiteen duplikaatti {{0}} on poistettu. Duplikaattitietoa ei enää tarvita."
+                    },
+                    "not-official": "Raide viittaa duplikaattiraiteen {{0}} luonnosriviin",
+                    "not-published": "Raide viittaa julkaisemattomaan duplikaattiraiteeseen {{0}}"
+                },
+                "empty-segments": "Sijaintiraiteella ei ole geometriaa",
+                "points": {
+                    "not-continuous": "Sijaintiraiteen pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
+                },
+                "not-draft": "Virhe julkaisun sisällössä: julkaistava sijaintiraide ei ole luonnos",
+                "state": {
+                    "PLANNED": "Sijaintiraide on tilassa \"Suunniteltu\""
+                },
+                "track-number": {
+                    "null": "Sijaintiraiteelle ei ole asetettu ratanumeroa",
+                    "not-official": "Sijaintiraide viittaa ratanumeron {{0}} luonnosriviin",
+                    "not-published": "Sijaintiraide viittaa julkaisemattomaan ratanumeroon {{0}}",
+                    "state": {
+                        "PLANNED": "Sijaintiraide viittaa ratanumeroon {{0}} joka on tilassa \"Suunniteltu\"",
+                        "DELETED": "Sijaintiraide viittaa ratanumeroon {{0}} joka on tilassa \"Poistettu\""
+                    }
+                },
+                "switch": {
+                    "not-official": "Sijaintiraide viittaa vaihteen {{0}} luonnosriviin",
+                    "not-published": "Sijaintiraide viittaa julkaisemattomaan luonnosvaihteeseen {{0}}",
+                    "state-category": {
+                        "FUTURE_EXISTING": "Sijaintiraide viittaa vaihteeseen {{0}}, joka on tilakategoriassa \"Tuleva kohde\"",
+                        "NOT_EXISTING": "Sijaintiraide viittaa vaihteeseen {{0}}, joka on tilakategoriassa \"Poistunut kohde\""
+                    },
+                    "alignment-not-continuous": "Sijaintiraide on kytketty vaihteelle {{0}} useammasta kuin yhdestä kohtaa",
+                    "joint-location-mismatch": "Sijaintiraiteen ja vaihteen {{0}} vaihdepisteiden sijainnit eivät vastaa toisiaan",
+                    "wrong-joint-sequence": "Sijaintiraiteen vaihdepisteet ({{2}}) vaihteella {{0}} ({{1}}) eivät vastaa vaihderakenteen linjoja"
+                }
+            },
+            "switch": {
+                "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",
+                "state-category": {
+                    "FUTURE_EXISTING": "Vaihde on tilakategoriassa \"Tulevaksi kohteeksi\""
+                },
+                "location-track": {
+                    "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen poistamattomia raiteita: {{0}}",
+                    "not-published": "Vaihteen kaikki sijaintiraiteet eivät ole julkaistuja: {{0}}",
+                    "not-continuous": "Sama raide ({{0}}) on kytketty vaihteeseen eri kohdista",
+                    "joint-location-mismatch": "Vaihteen ja sijaintiraiteen vaihdepisteiden sijainnit eivät kohtaa: {{0}}",
+                    "wrong-joint-sequence": "Kaikki vaihteeseen kytketyt raiteet ({{0}}) eivät vastaa vaihderakenteen linjoja",
+                    "unlinked": "Jotkut vaihteen linjoista ({{0}}) eivät ole kytkettynä mihinkään sijaintiraiteiseen"
+                }
+            },
+            "geocoding": {
+                "sharp-angle": "Sijaintiraiteen {{1}} tasametripisteet menevät taaksepäin, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",
+                "stretched-meters": "Sijaintiraiteen {{1}} metrivälit ovat liian pitkiä, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",
+                "not-continuous": "Sijaintiraiteen {{1}} osoitteet eivät ole jatkuvia, koska kulma ratanumeron {{0}} pituusmittauslinjaan eroaa liikaa. Rataosoitevälit: {{2}}",
+                "start-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen alkua",
+                "end-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen loppua",
+                "km-posts-rejected": "Tasakilometripisteitä ({{1}}) ei voitu sijoittaa ratanumeron {{0}} pituusmittauslinjalle",
+                "km-posts-invalid": "Ratanumeron {{0}} tasakilometripisteet ({{1}}) ovat väärässä järjestyksessä",
+                "km-posts-far-from-line": "Ratanumeron {{0}} tasakilometripisteet ({{1}}) sijaitsevat kaukana pituusmittauslinjasta"
+            }
+        }
+    }
+}

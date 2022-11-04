@@ -1,0 +1,14 @@
+{
+    "map-layer-settings": {
+        "layout": "Paikannuspohja",
+        "geometry": "Geometriat",
+        "debug": "Debug-työkalut"
+    },
+    "map-view": {
+        "cluster-overlay-title": "Klusteripiste",
+        "cluster-overlay-choose-both": "Valitse molemmat",
+        "cluster-overlay-remove-both": "Poista valinnat",
+        "cluster-overlay-choose-geometry": "Valitse suunnitelman piste",
+        "cluster-overlay-choose-layout": "Valitse paikannuspohjan piste"
+    }
+}

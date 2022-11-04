@@ -1,0 +1,93 @@
+@import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/colors';
+
+.track-number-infobox__link-reference-line-guide {
+    @include typography-caption-strong;
+
+    margin: 0;
+    padding: 7px 0;
+}
+
+.geometry-reference-line-infobox {
+    &__linked-status {
+        .infobox__field-label {
+            line-height: 24px;
+        }
+    }
+
+    &__not-linked-text,
+    &__linked-text {
+        padding: 4px 8px;
+    }
+
+    &__not-linked-text {
+        background-color: $color-red-lighter;
+    }
+
+    &__linked-text {
+        background-color: $color-green-lighter;
+    }
+
+    &__linking-container {
+        padding: 8px 0 8px 4px;
+    }
+
+    &__info-text {
+        padding: 10px 0;
+    }
+
+    &__search-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 4px;
+        justify-content: end;
+    }
+
+    &__alignments-container {
+        border: 1px solid $color-white-darker;
+        border-radius: 4px;
+        padding: 10px 20px 10px 12px;
+
+        max-height: 200px;
+        overflow: auto;
+        list-style: none;
+        margin: 0;
+    }
+
+    &__alignment {
+        display: flex;
+        align-items: center;
+        padding: 4px 0;
+        cursor: pointer;
+
+        .alignment-badge {
+            margin-right: 8px;
+        }
+
+        .icon {
+            fill: $color-black-light;
+        }
+
+        & > *:not(:last-child) {
+            margin-right: 12px;
+        }
+    }
+
+    &__connection-points {
+        padding: 10px 0;
+    }
+
+    &__zoom-warning {
+        display: flex;
+        align-items: center;
+        background-color: $color-lemon-light;
+        padding: 10px 16px 10px 26px;
+        margin: 0 -16px 0 -20px;
+        font-size: 12px;
+
+        .icon {
+            fill: $color-black-lighter;
+            margin-right: 12px;
+        }
+    }
+}

@@ -1,0 +1,160 @@
+@import '../colors';
+@import '../utils';
+@import '../transitions';
+@import '../typography';
+
+$switch-width: 40px;
+$switch-height: 20px;
+$switch-thumb-size: 16px;
+$switch-border-width: 1px;
+
+$switch-thumb-clearance: ($switch-height - $switch-thumb-size) * 0.5 - $switch-border-width;
+$switch-thumb-movement: $switch-width - $switch-thumb-size - $switch-border-width * 2 -
+    $switch-thumb-clearance * 2;
+$switch-transition-speed: $transitions-speed-fast;
+$switch-thumb-pressed-width: 20px;
+
+.switch {
+    @include component-base;
+    @include no-visuals;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.switch__checkbox {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+
+.switch__track {
+    display: inline-flex;
+    align-items: center;
+    padding: $switch-thumb-clearance;
+    width: $switch-width;
+    height: $switch-height;
+    border-radius: $switch-height;
+    border: $switch-border-width solid $color-blue-default;
+    background: $color-white-default;
+    transition: all $switch-transition-speed;
+}
+
+.switch__thumb {
+    display: inline-block;
+    width: $switch-thumb-size;
+    height: $switch-thumb-size;
+    background: $color-blue-default;
+    border-radius: $switch-thumb-size * 0.5;
+    transition: all $switch-transition-speed;
+}
+
+@mixin switch-track--checked {
+    background: $color-blue-default;
+
+    .switch__thumb {
+        background: $color-white-default;
+        transform: translateX($switch-thumb-movement);
+    }
+}
+
+@mixin switch-track--hover($checked: false) {
+    @if ($checked) {
+        background: $color-blue-light;
+    } @else {
+        background: $color-blue-lighter;
+    }
+}
+
+@mixin switch-track--focused($checked: false) {
+    border-style: dashed;
+    @if ($checked) {
+        background: $color-blue-light;
+    } @else {
+        background: $color-blue-lighter;
+    }
+}
+
+@mixin switch-track--pressed($checked: false) {
+    .switch__thumb {
+        width: $switch-thumb-pressed-width;
+
+        @if ($checked) {
+            transform: translateX(
+                $switch-thumb-movement - ($switch-thumb-pressed-width - $switch-thumb-size)
+            );
+        }
+    }
+}
+
+@mixin switch-track--disabled($checked: false) {
+    @if ($checked) {
+        background: $color-white-darker;
+        border-color: $color-white-darker;
+
+        .switch__thumb {
+            background: $color-white-default;
+        }
+    } @else {
+        background: $color-white-default;
+        border-color: $color-white-darker;
+
+        .switch__thumb {
+            background: $color-white-darker;
+        }
+    }
+}
+
+.switch__checkbox:checked + .switch__track {
+    @include switch-track--checked();
+}
+
+.switch:hover:not(.switch--disabled) .switch__track {
+    @include switch-track--hover();
+}
+
+.switch--hover:not(.switch--disabled),
+.switch:hover:not(.switch--disabled) {
+    .switch__checkbox:checked + .switch__track {
+        @include switch-track--hover($checked: true);
+    }
+}
+
+.switch:not(.switch--disabled) {
+    .switch__checkbox:focus + .switch__track {
+        @include switch-track--focused();
+    }
+
+    .switch__checkbox:focus.switch__checkbox:checked + .switch__track {
+        @include switch-track--focused($checked: true);
+    }
+
+    .switch__checkbox:active + .switch__track {
+        @include switch-track--pressed();
+    }
+
+    .switch__checkbox:active.switch__checkbox:checked + .switch__track {
+        @include switch-track--pressed($checked: true);
+    }
+}
+
+.switch--disabled {
+    cursor: default;
+}
+
+.switch--disabled .switch__track {
+    @include switch-track--disabled();
+}
+
+.switch--disabled .switch__checkbox:checked + .switch__track {
+    @include switch-track--disabled($checked: true);
+}
+
+// Embedding label content into switch might be unrecommended way to layout
+// labels, but as it could be handy in some situations, let it live for now.
+.switch--has-label .switch__label {
+    display: inline-block;
+    margin-left: 10px;
+    @include typography-body;
+}

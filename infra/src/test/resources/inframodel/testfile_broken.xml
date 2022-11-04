@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LandXML xmlns="http://www.inframodel.fi/inframodel" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.inframodel.fi/inframodel http://www.inframodel.fi/schemas/3.0.1/inframodel.xsd"
+         date="2016-11-07" time="12:05:37" version="1.2" language="finnish" readOnly="false">
+  <Rikki/>
+</LandXML>

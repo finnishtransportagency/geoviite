@@ -1,0 +1,69 @@
+@import '../../vayla-design-lib/colors';
+@import '../../vayla-design-lib/typography';
+
+$accordion-right-padding: 20px;
+
+.accordion__subheader {
+    padding-left: 2px;
+    padding-top: 3px;
+    font-size: 10px;
+    color: $color-black-lighter;
+}
+
+.geometry-plan-panel {
+    > .accordion > .accordion__header {
+        padding-left: 20px;
+        padding-right: $accordion-right-padding;
+    }
+
+    &__alignments {
+        .accordion__header {
+            padding-left: 36px;
+            padding-right: $accordion-right-padding;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+    }
+
+    &__alignment,
+    &__switch,
+    &__kmpost,
+    &__no-entities {
+        padding: 4px $accordion-right-padding 4px 52px;
+        display: flex;
+        align-items: center;
+        transition: background-color 150ms;
+
+        &--selected {
+            background-color: $color-blue-lighter;
+        }
+    }
+
+    &__no-entities {
+        @include typography-body-small;
+        margin-bottom: 4px;
+    }
+
+    &__alignment-visibility,
+    &__switch-visibility,
+    &__kmpost-visibility {
+        cursor: pointer;
+        margin-left: auto;
+        transition: fill 150ms;
+        fill: $color-white-darker;
+        height: 20px;
+
+        &--visible {
+            fill: $color-blue-default;
+        }
+    }
+}
+
+.geometry-plan-panel__list-item-main-content {
+    flex: 1;
+    cursor: pointer;
+}

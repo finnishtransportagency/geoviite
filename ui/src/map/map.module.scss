@@ -1,0 +1,205 @@
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/menu/menu';
+@import '../geoviite-design-lib/geoviite-colors';
+
+$font-family: 'Open Sans';
+
+// Export colors to use e.g. in map canvas
+:export {
+    boundingBoxColor: $color-red-default;
+    boundingBoxBackground: rgba($color-white-default, 0.2);
+    boundingBoxText: $color-black-default;
+    fontFamily: $font-family;
+}
+
+//Linking layer
+:export {
+    linkingPointStrokeColor: $color-white-default;
+    unselectedAlignmentInterval: $color-white-darker;
+    selectedLayoutAlignmentInterval: $color-geoviite-blue;
+    selectedGeometryAlignmentInterval: $color-red-dark;
+
+    clusterPointTextColor: $color-white-default;
+    clusterPointStrokeColor: $color-white-default;
+    clusterPointFillColor: $color-white-darker;
+
+    locationTrackEndPoint: $color-red-default;
+    locationTrackEndPointInnerCircle: $color-red-darker;
+    locationTrackEndPointCross: $color-white-default;
+}
+
+// Alignment styling
+:export {
+    unlinkedGeometryAlignment: $color-red-light;
+    selectedUnlinkedGeometryAlignment: $color-red-dark;
+
+    linkedGeometryAlignment: $color-green-light;
+    selectedLinkedGeometryAlignment: $color-green-dark;
+
+    alignmentBackground: $color-white-default;
+
+    alignmentColor: rgba($color-black-default, 0.8);
+    alignmentHighlightColor: $color-geoviite-blue;
+}
+
+// Track number styling
+:export {
+    tracknumber: {
+        @include typography-body-strong;
+    }
+    trackNumber-background: $color-black-default;
+    trackNumber-background-near: $color-white-default;
+    trackNumber-background-selected: $color-geoviite-blue;
+    trackNumber-background-border: $color-black-lighter;
+    trackNumber-color: $color-white-default;
+    trackNumber-color-near: $color-black-default;
+}
+
+// Km post styling
+:export {
+    kmpost: {
+        @include typography-body-strong;
+    }
+    kmPost-text: $color-black-default;
+    kmPost-background: rgba($color-white-default, 0.6);
+    geometry-not-linked-kmPost-background: rgba($color-red-lighter, 0.6);
+    geometry-linked-kmPost-background: rgba($color-green-lighter, 0.6);
+    selected-kmPost-dot-background: $color-geoviite-blue;
+    selected-kmPost-dot-border: rgba($color-black-default, 0.2);
+    selected-kmPost-background: $color-white-default;
+    selected-not-linked-geometry-kmPost-background: $color-red-lighter;
+    selected-linked-geometry-kmPost-background: $color-green-lighter;
+    selected-kmPost-border-color: rgba($color-black-default, 0.6);
+}
+
+// Switch styling
+:export {
+    switchTextColor: $color-black-default;
+    switchBackground: $color-black-lighter;
+
+    switchLabelBackground: $color-geoviite-cadmium-lighter;
+    switchLabelBorder: rgba($color-black-default, 0.5);
+
+    switchIconBackground: $color-geoviite-cadmium;
+    switchIconBorder: rgba($color-black-default, 0.5);
+
+    switchJointBackground: $color-geoviite-cadmium;
+    switchJointBorder: rgba($color-black-default, 0.5);
+    switchJointText: $color-black-default;
+
+    switchMainJointBackground: $color-geoviite-blue;
+    switchMainJointBorder: scale-color($color-geoviite-blue, $lightness: -40%);
+    switchMainJointText: $color-white-default;
+
+    switchLinkedColor: $color-green-default;
+    switchLinkedColorStroke: $color-green-dark;
+    switchUnlinkedColor: $color-red-default;
+    switchUnlinkedColorStroke: $color-red-dark;
+    linkedSwitchLabelBackground: $color-green-lighter;
+    linkedSwitchLabelBorder: rgba($color-black-default, 0.5);
+    notLinkedSwitchLabelBackground: $color-red-lighter;
+    notLinkedSwitchLabelBorder: rgba($color-black-default, 0.5);
+}
+
+.map {
+    position: relative;
+    color: $color-black-default;
+    flex: 1;
+    max-height: 90vh;
+}
+
+.map__ol-map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+
+.map__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+}
+
+.map__tooltip-anchor {
+    position: absolute;
+}
+
+.map__tooltip {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    background: $color-white-default;
+    box-shadow: 0 0 10px rgba($color-black-default, 0.2);
+}
+
+.map__tooltip-item {
+    white-space: nowrap;
+}
+
+.map__tools {
+    position: absolute;
+    top: 5px;
+    left: 0;
+    right: 0;
+    z-index: 10;
+
+    display: inline-flex;
+    justify-content: center;
+}
+
+.map__tool {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: $color-black-default;
+    background: $color-white-default;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    margin: 2px;
+}
+
+.map__tool--active {
+    color: $color-white-default;
+    background: $color-geoviite-blue;
+}
+
+.map .ol-scale-line {
+    left: auto;
+    right: 18px;
+    background-color: rgba($color-white-default, 0.6);
+
+    .ol-scale-line-inner {
+        @include typography-body-strong;
+
+        $map-scale-line-color: $color-black-light;
+        color: $map-scale-line-color;
+
+        border: 2px solid $map-scale-line-color;
+        border-top: none;
+        border-bottom-left-radius: 2px;
+        border-bottom-right-radius: 2px;
+    }
+}
+
+.map__popup-menu {
+    @extend .menu;
+    background: $color-blue-darker;
+}
+
+.map__popup-item {
+    @extend .menu__item;
+    background: $color-blue-darker;
+    color: $color-white-default;
+    border-bottom-color: $color-black-lighter;
+
+    &:hover {
+        background: $color-blue-dark;
+    }
+}

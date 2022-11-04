@@ -1,0 +1,57 @@
+spring:
+  security:
+    filter:
+      # Set security filter to be after our own request filter that sets authorization
+      order: 2
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: org.postgresql.Driver
+    url: "jdbc:postgresql://${DB_URL}"
+    username: "${DB_USERNAME}"
+    password: "${DB_PASSWORD}"
+    hikari:
+      minimum-idle: 20
+      auto-commit: true
+      maximum-pool-size: 20
+      connection-timeout: 10000
+      leak-detection-threshold: 60000
+      validation-timeout: 5000
+  flyway:
+    clean-disabled: true
+    clean-on-validation-error: false
+    locations: classpath:db/migration/**/*.sql,classpath:fi/fta/geoviite/infra/dataImport
+    url: "${spring.datasource.url}"
+    user: "${spring.datasource.username}"
+    password: "${spring.datasource.password}"
+    schemas: flyway,postgis,common,geometry,layout,publication,integrations
+    lock-retry-count: 900
+
+geoviite:
+  cloudfront:
+    key-pair-id: "${CLOUDFRONT_KEY_PAIR_ID:}"
+    private-key: "${CLOUDFRONT_PRIVATE_KEY:}"
+    distribution-name: "${CLOUDFRONT_DNS_NAME:}"
+  cache:
+    enabled: true
+    preload: true
+  scheduler-lock:
+    enabled: true
+  data:
+    csv-path: "${DATA_CSV_PATH:}"
+    im-path: "${DATA_IM_PATH:}"
+    import: true
+  jwt:
+    validation:
+      enabled: true
+      jwks-url: "${AUTH_JWKS_URL:}"
+      elb-jwt-key-url: "${AUTH_ELB_JWT_KEY_URL:}"
+  ratko:
+    enabled: "${RATKO_ENABLED:false}"
+    url: "${RATKO_URL:}"
+    username: "${RATKO_USERNAME:}"
+    password: "${RATKO_PASSWORD:}"

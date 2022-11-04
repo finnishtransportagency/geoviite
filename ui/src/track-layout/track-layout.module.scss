@@ -1,0 +1,42 @@
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/layers';
+@import '../geoviite-design-lib/geoviite-colors';
+
+.track-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 336px auto 336px;
+    grid-template-rows: 50px;
+    column-gap: 0;
+    background: $color-white-default;
+}
+
+.track-layout__map {
+    position: relative;
+    flex: 1;
+    display: flex;
+    grid-column: 2;
+}
+
+.track-layout__map-settings {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    z-index: $layer-popup;
+}
+
+.track-layout__tool-panel {
+    @include shadow-8dp;
+
+    overflow: auto;
+    grid-column: 3;
+    padding-bottom: 64px;
+}
+
+.track-layout__navi {
+    @include shadow-8dp;
+
+    overflow: auto;
+}

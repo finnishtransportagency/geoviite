@@ -1,0 +1,9 @@
+package fi.fta.geoviite.infra.common
+
+enum class LocationAccuracy {
+    DESIGNED_GEOLOCATION,
+    OFFICIALLY_MEASURED_GEODETICALLY,
+    MEASURED_GEODETICALLY,
+    DIGITIZED_AERIAL_IMAGE,
+    GEOMETRY_CALCULATED,
+}

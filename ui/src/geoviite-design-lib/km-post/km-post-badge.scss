@@ -1,0 +1,45 @@
+@import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/colors';
+@import '../geoviite-colors';
+
+.km-post-badge {
+    @include typography-body-strong-extra-small;
+    display: inline-flex;
+    align-items: center;
+    background-color: $color-white-default;
+    border: 1px solid rgba($color-black-default, 0.6);
+    border-radius: 2px;
+    user-select: none;
+    padding: 3px 6px;
+    height: 16px;
+    line-height: normal;
+
+    &--linked {
+        background-color: $color-green-lighter;
+        border-color: rgba($color-black-default, 0.5);
+    }
+
+    &--unlinked {
+        background-color: $color-red-lighter;
+        border-color: rgba($color-black-default, 0.5);
+    }
+
+    &--selected {
+        border-color: $color-geoviite-blue;
+        color: $color-geoviite-blue;
+    }
+
+    &--disabled {
+        background-color: $color-white-dark;
+        border-color: rgba($color-black-default, 0.3);
+        color: $color-black-light;
+    }
+
+    &--clickable {
+        cursor: pointer;
+    }
+
+    .icon {
+        margin-right: 4px;
+    }
+}

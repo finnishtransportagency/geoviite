@@ -1,0 +1,15 @@
+@import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/colors';
+
+.location-track-infobox__link-alignment-guide {
+    @include typography-caption-strong;
+
+    margin: 0;
+    padding: 7px 0;
+}
+
+.location-track-infobox-duplicate-of__ul {
+    list-style-type: none; /* Remove bullets */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margins */
+}

@@ -1,0 +1,49 @@
+-- with
+--   plan_details as (
+--     select
+--       plan.id,
+--       plan.source,
+--       plan.measurement_method as method,
+--       cast(extract(year from plan.plan_time at time zone 'Europe/Helsinki') as int) as year,
+--       plan_file.name as file_name,
+--       plan.track_number_id,
+--       plan.track_number_description,
+--       translate(string_agg(distinct alignment.name, ',' order by alignment.name), 'ÄÖÅäöå', '') as alignments,
+--       translate(string_agg(distinct switch.name, ',' order by switch.name), 'ÄÖÅäöå', '') as switches,
+--       translate(string_agg(distinct km_post.description, ',' order by km_post.description), 'ÄÖÅäöå', '') as km_posts
+--
+--       from geometry.plan
+--         left join geometry.plan_file on plan.id = plan_file.plan_id
+--         left join geometry.alignment on alignment.plan_id = plan.id
+--         left join geometry.switch on switch.plan_id = plan.id
+--         left join geometry.km_post on km_post.plan_id = plan.id
+--
+--       group by plan.id, plan_file.id
+--   ),
+--   plan_links as (
+--     select
+--       gp.id as gp_id,
+--       pp.id as pp_id
+--       from plan_details gp
+--         left join plan_details pp
+--                   on pp.source = 'PAIKANNUSPALVELU'
+--                     and gp.file_name = pp.file_name
+--                     and gp.track_number_id = pp.track_number_id
+--                     and gp.alignments = pp.alignments
+--                     and gp.switches = pp.switches
+--                     and gp.km_posts = pp.km_posts
+--       where gp.source = 'GEOMETRIAPALVELU'
+--   )
+-- select * from plan_links;
+-- update geometry.plan
+-- set linked_as_plan_id = plan_links.pp_id
+-- from plan_links
+-- where plan.id = plan_links.gp_id
+--   and plan.source = 'GEOMETRIAPALVELU'
+--   and (
+--       (plan.linked_as_plan_id is null) != (plan_links.pp_id is null)
+--     or plan.linked_as_plan_id is not null and plan_links.pp_id is not null and plan.linked_as_plan_id != plan_links.pp_id
+--   )
+-- ;
+
+update geometry.plan set linked_as_plan_id = null where linked_as_plan_id is not null;

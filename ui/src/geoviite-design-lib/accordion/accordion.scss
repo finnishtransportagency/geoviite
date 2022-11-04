@@ -1,0 +1,49 @@
+@import '../../vayla-design-lib/colors';
+@import '../../vayla-design-lib/typography';
+
+.accordion {
+    &__header {
+        @include typography-body;
+
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        padding: 4px 0;
+        margin: 0;
+
+        &--selected {
+            background-color: $color-blue-lighter;
+        }
+
+        .accordion-toggle {
+            margin-right: 12px;
+        }
+    }
+
+    &__header-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        &--clickable {
+            cursor: pointer;
+        }
+    }
+
+    &__body {
+        padding-left: 16px;
+    }
+
+    &__visibility {
+        cursor: pointer;
+        margin-left: auto;
+        transition: fill 150ms;
+        fill: $color-white-darker;
+        height: 20px;
+        padding-left: 4px;
+
+        &--visible {
+            fill: $color-blue-default;
+        }
+    }
+}

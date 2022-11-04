@@ -1,0 +1,14 @@
+@import '../typography';
+
+.heading {
+    @include typography-heading;
+    margin: 5px 0 10px;
+}
+
+.heading--small {
+    @include typography-heading-small;
+}
+
+.heading--sub {
+    @include typography-sub-heading;
+}

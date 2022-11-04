@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: "jdbc:postgresql://${DB_URL:localhost:5435/geoviite}"
+    username: "${DB_USERNAME:dev-geouser}"
+    password: "${DB_PASSWORD:dev-geouser-password}"
+logging:
+  level:
+    fi:
+      fta:
+        geoviite: #debug
+
+geoviite:
+  data:
+    csv-path: "${DATA_CSV_PATH:../ratko-export/exported-csv/dev}"
+    im-path: "${DATA_IM_PATH:../../InfraModelImport}"

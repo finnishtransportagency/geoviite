@@ -1,0 +1,36 @@
+@import '../colors';
+@import '../shadows';
+@import '../typography';
+@import '../transitions';
+
+.menu {
+    @include typography-body;
+    @include shadow-8dp;
+    background: $color-white-default;
+    border-radius: 4px;
+}
+
+.menu__item {
+    height: 36px;
+    color: $color-black-default;
+    fill: $color-white-default;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    box-sizing: border-box;
+    border-bottom: 0.5px solid $color-white-darker;
+    padding: 0 24px 0 12px;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+        background: $color-blue-lighter;
+    }
+}
+
+.menu__item--selected {
+    .menu__item {
+        background: $color-blue-lighter;
+        color: $color-black-default;
+    }
+}

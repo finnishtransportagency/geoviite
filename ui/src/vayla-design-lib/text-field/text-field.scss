@@ -1,0 +1,182 @@
+@import '../typography';
+@import '../utils';
+@import '../colors';
+@import '../size';
+
+$text-field-input-height: $input-height;
+$text-field-input-padding-side: 12px;
+$text-field-input-border-default: 1px;
+$text-field-input-border-thick: 2px;
+$text-field-input-border-error: 1.5px;
+
+@mixin text-field-border($color, $width, $has-icon) {
+    border: $width solid $color;
+    $border-width-diff: $width - $text-field-input-border-default;
+
+    @if ($has-icon) {
+        padding: 8px (12px - $border-width-diff) 8px (32px - $border-width-diff);
+    } @else {
+        padding: 8px (12px - $border-width-diff);
+    }
+}
+
+.text-field {
+    @include component-base;
+    position: relative;
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.text-field__input {
+    zoom: 1;
+}
+
+.text-field__icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    left: 8px;
+    top: 8px;
+    width: 20px;
+    height: 20px;
+    fill: $color-black-light;
+}
+
+.text-field__input-element {
+    @include typography-input;
+
+    height: $text-field-input-height;
+
+    color: $color-black-default;
+    background: $color-white-default;
+
+    outline: none;
+    @include text-field-border(
+        $color: $color-black-lighter,
+        $width: $text-field-input-border-default,
+        $has-icon: false
+    );
+    border-radius: 4px;
+}
+
+.text-field--attach-left .text-field__input-element {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    margin-left: -0.5px;
+}
+
+.text-field--attach-right .text-field__input-element {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+    margin-right: -0.5px;
+}
+
+.text-field--with-icon .text-field__input-element {
+    padding-left: 32px;
+}
+
+.text-field--wide {
+    display: flex;
+
+    .text-field__input {
+        flex: 1;
+        display: flex;
+    }
+
+    .text-field__input-element {
+        flex: 1;
+    }
+}
+
+// Hover
+
+.text-field:hover:not(.text-field--disabled) {
+    .text-field__input-element {
+        @include text-field-border(
+            $color: $color-black-lighter,
+            $width: $text-field-input-border-thick,
+            $has-icon: false
+        );
+    }
+
+    &.text-field--with-icon .text-field__input-element {
+        @include text-field-border(
+            $color: $color-black-lighter,
+            $width: $text-field-input-border-thick,
+            $has-icon: true
+        );
+    }
+}
+
+// Focus
+
+.text-field--focus {
+    .text-field__input-element {
+        @include text-field-border(
+            $color: $color-blue-dark,
+            $width: $text-field-input-border-thick,
+            $has-icon: false
+        );
+    }
+
+    &.text-field--with-icon .text-field__input-element {
+        @include text-field-border(
+            $color: $color-blue-dark,
+            $width: $text-field-input-border-thick,
+            $has-icon: true
+        );
+    }
+}
+
+// Error
+
+.text-field--has-error {
+    .text-field__input-element {
+        color: $color-red-dark;
+        @include text-field-border(
+            $color: $color-red-dark,
+            $width: $text-field-input-border-error,
+            $has-icon: false
+        );
+    }
+
+    &.text-field--with-icon .text-field__input-element {
+        @include text-field-border(
+            $color: $color-red-dark,
+            $width: $text-field-input-border-error,
+            $has-icon: true
+        );
+    }
+}
+
+// Disabled
+
+.text-field--disabled {
+    .text-field__icon {
+        fill: $color-black-lighter;
+    }
+
+    .text-field__input-element {
+        @include text-field-border(
+            $color: $color-white-darker,
+            $width: $text-field-input-border-default,
+            $has-icon: false
+        );
+        color: $color-black-lighter;
+    }
+
+    &.text-field--with-icon .text-field__input-element {
+        @include text-field-border(
+            $color: $color-white-darker,
+            $width: $text-field-input-border-default,
+            $has-icon: true
+        );
+    }
+}
+
+.text-field.text-field--no-border .text-field__input-element {
+    // Use transparent border color here so that border width keeps the same
+    // and therefore no need to adjust paddings by each state.
+    border-color: transparent;
+}

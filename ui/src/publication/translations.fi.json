@@ -1,0 +1,34 @@
+{
+    "publication-table": {
+        "change-target": "Muutoskohde",
+        "track-number-short": "Ratanro",
+        "status": "Tila",
+        "changes": "Muutokset",
+        "modified-moment": "Muokattu",
+        "draft-date": "Luonnos tehty",
+        "track-number-long": "Ratanumero",
+        "exported-to-ratko": "Viety ratkoon",
+        "location-track": "Sijaintiraide",
+        "reference-line": "Pituusmittauslinja",
+        "switch": "Vaihde",
+        "km-post": "Tasakilometripiste",
+        "errors-status-text": "virheitä ({{0}} kpl)",
+        "warnings-status-text": "varoituksia ({{0}} kpl)",
+        "errors-group-title": "Virheitä",
+        "warnings-group-title": "Varoituksia"
+    },
+    "publication-card": {
+        "latest": "Viimeisimmät",
+        "show-more": "Näytä lisää",
+        "show-less": "Näytä vähemmän"
+    },
+    "publishing": {
+        "publish-issues": "Ongelmat Ratko-integraatiossa",
+        "publish-to-ratko": "Vie Ratkoon",
+        "publish-issue": "Vienti epäonnistui",
+        "not-published": "Ei viety Ratkoon",
+        "waiting": "Odottaa vientiä Ratkoon",
+        "in-progress": "Ratkoon vienti käynnissä",
+        "publish-confirmation": "Geoviite lähettää kaikki odottavat julkaisupaketit Ratkoon."
+    }
+}

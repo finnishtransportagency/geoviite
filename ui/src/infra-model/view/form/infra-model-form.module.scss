@@ -1,0 +1,120 @@
+@import '../../../vayla-design-lib/colors';
+@import '../../../vayla-design-lib/shadows';
+@import '../../../vayla-design-lib/typography';
+@import '../../../geoviite-design-lib/geoviite-colors';
+
+.infra-model-upload {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 500px auto;
+    grid-template-rows: 50px;
+    column-gap: 0;
+    background: $color-white-default;
+
+    .div__heading--small {
+        font-size: 15px;
+        color: $color-red-default;
+    }
+
+    .div__heading--medium {
+        font-size: 20px;
+    }
+    .text-area {
+        .text-area__input-element {
+            height: 35px;
+        }
+    }
+}
+
+.infra-model-upload__tool-bar {
+    @include shadow-4dp;
+
+    grid-column: 1 / -1;
+    display: flex;
+    background: $color-white-dark;
+    z-index: 1;
+
+    > * {
+        margin-left: 1em;
+        grid-column-gap: 1em;
+        display: flex;
+        flex: 1;
+        align-items: center;
+    }
+}
+
+.infra-model-upload__tool-bar-left-section {
+}
+
+.infra-model-upload__tool-bar-middle-section {
+}
+
+.infra-model-upload__map-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    grid-column: 2;
+}
+
+.infra-model-upload__error-photo {
+    flex: 1;
+    background-image: url('../../../geoviite-design-lib/IM-download-failed.jpg');
+    background-size: cover;
+    background-position: center bottom;
+}
+
+.infra-model-upload__form-column {
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+
+    .infra-model-upload__file-info-container {
+        padding: 0 30px;
+    }
+
+    .infra-model-upload__form-container {
+        flex: 1;
+        overflow: auto;
+        padding: 0 30px;
+    }
+
+    .infra-model-upload__buttons-container {
+        @include shadow-8dp;
+        display: grid;
+        grid-auto-flow: column;
+        grid-gap: 20px;
+        justify-content: center;
+        padding: 20px 0;
+    }
+}
+
+.infra-model-upload__form {
+    display: grid;
+    grid-gap: 10px;
+}
+
+.infra-model-upload__form-formgroups {
+    display: grid;
+    grid-gap: 20px;
+}
+
+.infra-model-upload__validation-errors {
+    fill: $color-red-dark;
+}
+
+.infra-model-upload__add-track-number {
+    zoom: 1;
+}
+
+.infra-model-upload__date-selection {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-gap: 1px;
+    padding: 1px;
+}
+
+.infra-model-text-field--has-error {
+    color: $color-red-dark;
+}
+

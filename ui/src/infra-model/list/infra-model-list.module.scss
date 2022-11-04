@@ -1,0 +1,100 @@
+@import '../../vayla-design-lib/colors';
+
+.infra-model-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    // Limit view width to screen width, in this way the toolbar section will stay
+    // in screen even if the table gets wider than the screen
+    max-width: 100vw;
+    box-sizing: border-box;
+}
+
+.infra-model-list__search-form {
+    margin-bottom: 10px;
+}
+
+.infra-model-list__search-result {
+    flex: 1;
+    display: flex;
+}
+
+.infra-model-list-search-result {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.infra-model-list-search-result__status-row {
+    display: flex;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+.infra-model-list-search-result__count {
+    flex: 1;
+    & > * {
+        margin-right: 6px;
+    }
+}
+
+.infra-model-list-search-result__plan {
+    cursor: pointer;
+
+    &:hover {
+        > td,
+        .table__td {
+            background-color: $color-blue-lighter;
+        }
+    }
+}
+
+.infra-model-list-search-result__plan-paikannuspalvelu {
+    color: $color-red-darker;
+    font-size: 12px;
+}
+
+.tag {
+    display: inline-block;
+    margin: 2px;
+    border-radius: 4px;
+    background: $color-white-darker;
+    padding: 4px;
+    height: 15px;
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 10px;
+}
+
+.infra-model-search-form {
+    display: flex;
+    align-items: flex-end;
+}
+
+.infra-model-search-form__auto-complete {
+    width: 300px;
+}
+
+.infra-model-search-form__last {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.infra-model-search-form__sources-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-right: 24px;
+    > * {
+        font-size: 8px;
+        margin-top: 4px;
+    }
+}
+
+$reactSelectOptionLimitStep: 5;
+$reactSelectOptionLimitMax: 20;
+:export {
+    reactSelectOptionLimitStep: $reactSelectOptionLimitStep;
+    reactSelectOptionLimitMax: $reactSelectOptionLimitMax;
+}

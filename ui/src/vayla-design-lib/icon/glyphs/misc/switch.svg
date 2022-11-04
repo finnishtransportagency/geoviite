@@ -1,0 +1,9 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <mask id="mask_switch" mask-type="alpha" maskUnits="userSpaceOnUse" x="0" y="3" width="24" height="18">
+    <path fill-rule="evenodd" clip-rule="evenodd"
+          d="M19 18.9998L12.7 12.6998L20.7 4.6998L19.3 3.2998L3.6 18.9998H0V20.9998H24V18.9998H19Z" fill="white"/>
+  </mask>
+  <g mask="url(#mask_switch)">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M0 24.0006H24V0H0V24.0006Z" fill="black"/>
+  </g>
+</svg>

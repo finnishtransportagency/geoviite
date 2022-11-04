@@ -1,0 +1,20 @@
+@import '../../vayla-design-lib/colors';
+
+.breadcrumb {
+    display: inline-flex;
+    padding: 10px 0;
+}
+
+.breadcrumb__item {
+    color: $color-black-light;
+}
+
+.breadcrumb__item--has-action {
+    color: $color-blue-dark;
+    cursor: pointer;
+}
+
+.breadcrumb__item:not(:last-child):after {
+    content: '>';
+    padding: 0 5px;
+}

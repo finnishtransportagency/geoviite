@@ -1,0 +1,30 @@
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
+
+.calculated-changes-view {
+    &__title {
+        @include typography-heading-small
+    }
+
+    .accordion__header-title {
+        @include typography-sub-heading;
+    }
+
+    ul {
+        padding-inline-start: 1em;
+    }
+
+
+    &__location_tracks, &__switches {
+        margin-bottom: 6px;
+
+        ul {
+            padding-top: 3px;
+        }
+
+        li {
+            padding: 3px 0
+        }
+    }
+}

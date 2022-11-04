@@ -1,0 +1,47 @@
+import * as React from 'react';
+import {
+    PublicationListingItem,
+    RatkoAssetType,
+    RatkoPushErrorAsset,
+    RatkoPushStatus,
+} from 'publication/publication-model';
+import styles from 'publication/ratko-push-error.scss';
+import { useLoader } from 'utils/react-utils';
+import { getRatkoPushError } from 'publication/ratko-api';
+import { useTranslation } from 'react-i18next';
+
+type RatkoPushErrorDetailsProps = {
+    latestFailure: PublicationListingItem;
+};
+
+const assetTypeAndName = (errorAsset: RatkoPushErrorAsset) => {
+    switch (errorAsset.assetType) {
+        case RatkoAssetType.LOCATION_TRACK:
+            return `Sijaintiraiteen ${errorAsset.asset.name}`;
+        case RatkoAssetType.TRACK_NUMBER:
+            return `Ratanumeron ${errorAsset.asset.number}`;
+        case RatkoAssetType.SWITCH:
+            return `Vaihteen ${errorAsset.asset.name}`;
+    }
+};
+
+export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({ latestFailure }) => {
+    const { t } = useTranslation();
+    const error = useLoader(() => getRatkoPushError(latestFailure.id), [latestFailure]);
+
+    if (!error) {
+        return <React.Fragment />;
+    }
+
+    return (
+        <div className={styles['ratko-push-error']}>
+            {error
+                ? `${assetTypeAndName(error)} ${t(
+                      `enum.ratko-push-error-type.${error.ratkoPushErrorType}`,
+                  )} ${t(`enum.ratko-push-error-operation.${error.operation}`)} epäonnistui`
+                : latestFailure && latestFailure.status === RatkoPushStatus.CONNECTION_ISSUE
+                ? `Yhteysvirhe Ratko-viennissä`
+                : ''}
+        </div>
+    );
+};

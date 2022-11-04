@@ -1,0 +1,22 @@
+{
+    "missing-location-track-end-point-dialog": {
+        "title": "Lisää päätepiste raiteelle "
+    },
+    "switch-suggestion-creator-dialog": {
+        "title": "Vaihteen linkityksen lähtötiedot",
+        "info-msg": "Kerro lisää vaihteesta. Antamiesi tietojen perusteella Geoviite voi tehdä ehdotuksen.",
+        "switch-alignments": "Vaihteen linjat",
+        "switch-type": "Vaihdetyyppi",
+        "location-track-going-through": "Linjan läpi kulkeva raide",
+        "start-linking": "Aloita linkitys",
+        "failed-to-create-suggestion": "Ehdotusta ei voida muodostaa annetuilla lähtötiedoilla! Huomioithan raiteen kulkusuunnan vaihteessa. Kulkusuunnan voi vaihtaa klikkaamalla ikonia vaihteen linjan vieressä."
+    },
+    "continuous-track-suggestion-dialog-title": "Valitse jatkuva raide",
+    "continuous-track-suggestion-no-track-found": "Jatkuvia raiteita ei löytynyt",
+    "publish-type-dialog-title": "Muutoksia voi tehdä vain luonnostilassa",
+    "publish-type-dialog-message": "Siirrytäänkö luonnostilaan?",
+    "publish-type-dialog-button-cancel": "Peruuta",
+    "publish-type-dialog-button-continue": "Siirry luonnostilaan",
+    "end-point-type-update-succeeded": "Päätepisteen tyypin päivitys onnistui",
+    "end-point-type-update-failed": "Päätepisteen tyypin päivitys epäonnistui"
+}

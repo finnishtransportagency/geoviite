@@ -1,0 +1,70 @@
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/colors';
+
+$appbar-height: 48px;
+
+.app-bar {
+    display: flex;
+    color: $color-white-default;
+    align-items: center;
+    background-color: $color-blue-darker;
+    max-height: $appbar-height;
+    justify-content: space-between;
+    padding-left: 16px;
+
+    &__logo {
+        margin-right: 12px;
+        border-radius: 50%;
+        width: $appbar-height - 6;
+        height: $appbar-height - 6;
+    }
+
+    &__vayla-logo {
+        height: $appbar-height - 20;
+        margin-right: 12px;
+    }
+
+    &__title {
+        @include typography-body;
+        font-size: 20px;
+
+        display: flex;
+        align-items: center;
+        user-select: none;
+    }
+
+    &__user {
+        @include typography-body;
+        font-size: 8px;
+    }
+
+    &__links {
+        list-style: none;
+        display: flex;
+        padding: 0;
+        margin: 0 24px;
+    }
+
+    &__link {
+        @include typography-body-strong;
+
+        display: inline-block;
+        line-height: $appbar-height;
+        height: $appbar-height - 4px;
+        padding: 0 12px;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        transition: border-bottom-color 160ms cubic-bezier(0.61, 1, 0.88, 1);
+        border-bottom: 4px solid transparent;
+
+        &:hover {
+            color: $color-blue-light;
+        }
+
+        &--active {
+            color: $color-blue-light;
+            border-bottom-color: $color-blue-light;
+        }
+    }
+}

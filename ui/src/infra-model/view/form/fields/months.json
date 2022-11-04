@@ -1,0 +1,50 @@
+[
+    {
+        "name": "tammikuu",
+        "value": 0
+    },
+    {
+        "name": "helmikuu",
+        "value": 1
+    },
+    {
+        "name": "maaliskuu",
+        "value": 2
+    },
+    {
+        "name": "huhtikuu",
+        "value": 3
+    },
+    {
+        "name": "toukokuu",
+        "value": 4
+    },
+    {
+        "name": "kesäkuu",
+        "value": 5
+    },
+    {
+        "name": "heinäkuu",
+        "value": 6
+    },
+    {
+        "name": "elokuu",
+        "value": 7
+    },
+    {
+        "name": "syyskuu",
+        "value": 8
+    },
+    {
+        "name": "lokakuu",
+        "value": 9
+    },
+    {
+        "name": "marraskuu",
+        "value": 10
+    },
+    {
+        "name": "joulukuu",
+        "value": 11
+    }
+]

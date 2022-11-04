@@ -1,0 +1,76 @@
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
+
+.preview-view {
+    flex: 1;
+    display: grid;
+    grid-template-columns: auto 40%;
+    grid-template-rows: 50px auto 70px;
+    column-gap: 0;
+    background: $color-white-default;
+}
+
+.preview-tool-bar {
+    @include shadow-4dp;
+
+    padding-left: 24px;
+    grid-column: 1 / -1;
+    display: flex;
+    background: $color-white-dark;
+    z-index: 1;
+
+    &__title {
+        @include typography-sub-heading;
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    &__right-section {
+        margin-right: 1em;
+        display: flex;
+        align-items: center;
+    }
+}
+
+.preview-view__changes {
+    padding: 0 24px 24px 24px;
+    overflow-y: scroll;
+
+    &-title {
+        align-items: center;
+        justify-content: space-between;
+        display: flex;
+
+        h3 {
+            @include typography-heading-small;
+        }
+
+        h4 {
+            @include typography-body-small;
+        }
+    }
+}
+
+.preview-footer {
+    @include shadow-8dp;
+    grid-column: 1/-1;
+    display: grid;
+    grid-template-columns: auto 33%;
+
+    &__action-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        button {
+            margin-right: 24px;
+        }
+    }
+
+    &__map-toggle {
+        display: flex;
+        align-items: center;
+    }
+}

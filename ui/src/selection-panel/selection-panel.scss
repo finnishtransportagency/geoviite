@@ -1,0 +1,40 @@
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/colors';
+
+.selection-panel {
+    overflow: hidden auto;
+
+    > section {
+        margin-bottom: 16px;
+    }
+
+    &__title {
+        @include typography-heading;
+        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+
+        font-size: 14px;
+        text-transform: uppercase;
+        padding: 12px 0 8px 20px;
+        background-color: $color-white-dark;
+        color: $color-black-default;
+        margin: 0 0 12px 0;
+    }
+
+    &__subtitle {
+        color: $color-black-lighter;
+        font-size: 14px;
+        margin: 0 0 0 15px;
+    }
+
+    &__content {
+        padding: 0 16px;
+
+        &--unpadded {
+            padding: 0;
+        }
+
+        .accordion__body {
+            padding-left: 0;
+        }
+    }
+}

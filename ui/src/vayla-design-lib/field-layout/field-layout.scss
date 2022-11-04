@@ -1,0 +1,37 @@
+@import '../colors';
+@import '../typography';
+
+.field-layout {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.field-layout__label {
+    @include typography-caption-strong;
+    color: $color-black-light;
+    padding: 3px 0;
+}
+
+.field-layout--has-error .field-layout__label {
+    color: $color-red-dark;
+}
+
+.field-layout__value {
+    zoom: 1;
+}
+
+.field-layout__help {
+    @include typography-caption;
+    color: $color-black-light;
+    padding: 3px 0;
+}
+.field-layout__errors {
+    display: flex;
+    flex-direction: column;
+}
+
+.field-layout__error {
+    @include typography-body-small;
+    color: $color-red-dark;
+}

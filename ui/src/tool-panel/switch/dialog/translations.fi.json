@@ -1,0 +1,35 @@
+{
+    "switch-dialog": {
+        "title-new": "Uusi vaihde",
+        "basic-info-heading": "Perustiedot",
+        "switch-name": "Vaihdetunnus",
+        "state-category": "Tilakategoria",
+        "switch-type": "Vaihdetyyppi",
+        "switch-type-name": "Nimi",
+        "handedness": "Kätisyys",
+        "extra-info-heading": "Lisätiedot",
+        "owner": "Omistaja",
+        "info-from-linking": "Linkityksestä tulevat tiedot",
+        "track-location": "Rataosoite (km + m)",
+        "coordinate-system": "Koordinaattijärjestelmä",
+        "coordinates": "Koordinaatit (x, y)",
+        "right": "Oikea",
+        "left": "Vasen",
+        "new-switch-added": "Uusi vaihde lisätty rekisteriin",
+        "adding-switch-failed": "Vaihteen lisäys epäonnistui",
+        "name-max-limit": "Vaihdetunnus voi olla korkeintaan 20 merkkiä pitkä",
+        "validation-error-mandatory-field": "Pakollinen kenttä",
+        "invalid-name": "Virheellinen vaihdetunnus",
+        "title-edit": "Muokkaa vaihteen tietoja",
+        "modified-successfully": "Vaihteen tiedot päivitetty",
+        "modify-failed": "Vaihteen päivittäminen epäonnistui",
+        "deleted-confirmation-title": "Sijaintivaihteen poistaminen paikannuspohjasta",
+        "deleted-category-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
+        "confirm-switch-delete": "Vaihteen linkitykset sijaintiraiteisiin puretaan poistettaessa. Haluatko poistaa vaihteen paikannuspohjasta?"
+    },
+    "switch-delete-dialog": {
+        "title": "Poistetaanko luonnos?",
+        "guide": "Tätä vaihdetta ei ole vielä julkaistu Ratkoon, joten voit poistaa sen kokonaan. Poiston jälkeen et voi enää palauttaa vaihdetta.",
+        "success": "Vaihde poistettu."
+    }
+}

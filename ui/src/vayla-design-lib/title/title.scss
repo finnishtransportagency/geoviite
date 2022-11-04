@@ -1,0 +1,6 @@
+@import '../typography';
+
+.title {
+    @include typography-title;
+    margin: 5px 0 10px;
+}

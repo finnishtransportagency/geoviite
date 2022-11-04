@@ -1,0 +1,5 @@
+@import 'vayla-design-lib/typography.scss';
+
+body {
+    @include typography-body;
+}

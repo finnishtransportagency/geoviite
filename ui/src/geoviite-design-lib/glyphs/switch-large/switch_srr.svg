@@ -1,0 +1,12 @@
+<svg width="140" height="40" viewBox="0 0 140 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <line y1="1.5" x2="140" y2="1.5" stroke="black"/>
+  <line y1="37.5" x2="140" y2="37.5" stroke="black"/>
+  <path d="M14.6431 37L124.156 2.00001" stroke="black"/>
+  <path d="M124.35 37L14.6432 2" stroke="black"/>
+  <path d="M45 27L71 19.0312L45 12V27Z" fill="black"/>
+  <path d="M93 12L69 19.9687L93 27L93 12Z" fill="black"/>
+  <path d="M43.9444 28L9 38H46L43.9444 28Z" fill="black"/>
+  <path d="M95.2571 11L130 1L92 1L95.2571 11Z" fill="black"/>
+  <path d="M95.1765 28L130 38H93L95.1765 28Z" fill="black"/>
+  <path d="M43.9189 11L9 0.999996L47 1L43.9189 11Z" fill="black"/>
+</svg>

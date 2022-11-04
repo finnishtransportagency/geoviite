@@ -1,0 +1,35 @@
+@import '../../vayla-design-lib/colors';
+@import '../../vayla-design-lib/shadows';
+@import '../../vayla-design-lib/typography';
+
+.map-layer-settings {
+    @include shadow-4dp;
+    padding: 16px;
+    border-radius: 6px;
+    background: $color-white-dark;
+}
+
+.map-layer-settings > *:not(:last-child) {
+    margin-bottom: 16px;
+}
+
+.map-layer-settings__title {
+    @include typography-sub-heading;
+    color: $color-black-lighter;
+}
+
+.layer-visibility-setting {
+    display: flex;
+    align-items: center;
+    user-select: none;
+    cursor: pointer;
+
+    &--indented {
+        margin-left: 16px;
+    }
+}
+
+.layer-visibility-setting__label {
+    flex: 1;
+    margin-left: 8px;
+}

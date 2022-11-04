@@ -1,0 +1,40 @@
+@import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/colors';
+@import '../../geoviite-design-lib/geoviite-colors';
+
+.alignment-badge {
+    @include typography-body-strong;
+    font-size: 10px;
+    line-height: 10px;
+    color: $color-white-default;
+    background-color: $color-black-light;
+
+    display: inline-block;
+    padding: 5px 6px;
+    border-radius: 2px;
+    user-select: none;
+
+    &--reference {
+        background-color: $color-black-lighter;
+    }
+
+    &--linked {
+        background-color: $color-green-default;
+    }
+
+    &--unlinked {
+        background-color: $color-red-default;
+    }
+
+    &--selected {
+        background-color: $color-geoviite-blue;
+    }
+
+    &--disabled {
+        background-color: $color-white-darker;
+    }
+
+    &--clickable {
+        cursor: pointer;
+    }
+}

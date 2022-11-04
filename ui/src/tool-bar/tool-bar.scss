@@ -1,0 +1,50 @@
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
+@import '../vayla-design-lib/typography';
+
+.tool-bar {
+    @include shadow-4dp;
+
+    padding: 0 6px;
+    grid-column: 1 / -1;
+    display: flex;
+    background: $color-white-dark;
+    z-index: 1;
+
+    &--draft {
+        background: $color-blue-lighter;
+    }
+
+    &__left-section, &__middle-section, &__right-section {
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    &__left-section, &__right-section {
+        grid-column-gap: 6px;
+    }
+
+    &__left-section .dropdown {
+        width: 330px
+    }
+
+    &__middle-section {
+        @include typography-heading-small;
+        color: $color-blue-dark;
+        justify-content: center;
+    }
+
+    &__right-section {
+        justify-content: flex-end;
+    }
+
+    &__new-menu-button {
+        position: relative;
+    }
+
+    &__new-menu {
+        padding-top: 5px;
+        position: absolute;
+    }
+}

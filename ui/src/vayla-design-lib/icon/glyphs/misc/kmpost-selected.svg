@@ -1,0 +1,11 @@
+<svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="5.5" cy="5.5" r="5" fill="white" stroke="#004D99"/>
+  <mask id="mask_km_post" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="11" height="11">
+    <circle cx="5.5" cy="5.5" r="5.5" fill="white"/>
+  </mask>
+  <g mask="url(#mask_km_post)">
+    <rect y="5.5" width="5.5" height="5.5" fill="#0381FF"/>
+    <rect x="5.5" width="5.5" height="5.5" fill="#0381FF"/>
+  </g>
+  <circle cx="5.5" cy="5.5" r="5" stroke="#0381FF"/>
+</svg>

@@ -1,0 +1,57 @@
+package fi.fta.geoviite.infra.ratko
+
+import fi.fta.geoviite.infra.logging.integrationCall
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.web.reactive.function.client.ClientRequest
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction
+import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Mono
+
+
+@Configuration
+@ConditionalOnProperty(prefix = "geoviite.ratko", name = ["enabled"], havingValue = "true")
+class RatkoClientConfiguration @Autowired constructor(
+    @Value("\${geoviite.ratko.url:}") private val ratkoBaseUrl: String,
+    @Value("\${geoviite.ratko.username:}") private val basicAuthUsername: String,
+    @Value("\${geoviite.ratko.password:}") private val basicAuthPassword: String,
+) {
+
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    @Bean
+    fun webClient(): WebClient {
+        val webClientBuilder = WebClient.builder()
+            .baseUrl(ratkoBaseUrl)
+            .filter(logRequest())
+            .filter(logResponse())
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+
+        if (basicAuthUsername.isNotBlank() && basicAuthPassword.isNotBlank()) {
+            webClientBuilder.defaultHeaders { header -> header.setBasicAuth(basicAuthUsername, basicAuthPassword) }
+        }
+
+        return webClientBuilder.build()
+    }
+
+    private fun logRequest(): ExchangeFilterFunction {
+        return ExchangeFilterFunction.ofRequestProcessor { clientRequest: ClientRequest ->
+            logger.integrationCall(clientRequest)
+            Mono.just(clientRequest)
+        }
+    }
+
+    private fun logResponse(): ExchangeFilterFunction {
+        return ExchangeFilterFunction.ofResponseProcessor { clientResponse ->
+            logger.integrationCall(clientResponse)
+            Mono.just(clientResponse)
+        }
+    }
+}

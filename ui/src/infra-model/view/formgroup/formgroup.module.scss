@@ -1,0 +1,62 @@
+@import '../../../vayla-design-lib/typography';
+@import '../../../vayla-design-lib/colors';
+@import '../../../vayla-design-lib/shadows';
+
+.formgroup {
+    display: flex;
+    flex-direction: column;
+
+    &__title {
+        @include typography-heading-small;
+        padding: 5px 0;
+        border-bottom: 1px solid $color-white-darker;
+    }
+
+    &__content {
+        margin: 0;
+        padding: 0 0 10px 0;
+    }
+
+    &__field {
+        display: flex;
+        padding: 5px 0;
+        min-height: 20px;
+        border-bottom: 1px solid $color-white-darker;
+    }
+
+    &__field-label {
+        @include typography-caption;
+        color: $color-black-light;
+        display: flex;
+        align-items: start;
+        width: 50%;
+        max-width: 120px;
+    }
+
+    &__field-value {
+        @include typography-body;
+        flex: 1;
+        align-items: start;
+        margin-left: 24px;
+    }
+
+    &__edit-icon {
+        padding: 0 5px;
+        cursor: pointer;
+        margin-right: 20px;
+    }
+
+    &__text {
+        display: flex;
+        margin-bottom: 12px;
+        align-items: center;
+
+        & > * {
+            margin-right: 10px;
+        }
+    }
+
+    &__row {
+        margin-bottom: 12px;
+    }
+}

@@ -1,0 +1,9 @@
+<svg width="140" height="40" viewBox="0 0 140 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="scale(1,-1) translate(0, -40)">
+    <line y1="19.5" x2="140" y2="19.5" stroke="black"/>
+    <line x1="49.1279" y1="19.5166" x2="117.128" y2="37.5166" stroke="black"/>
+    <line x1="76.4104" y1="19.519" x2="139.864" y2="1.51898" stroke="black"/>
+    <path d="M93 19H47L90.9677 31L93 19Z" fill="black"/>
+    <path d="M117 20H74L115.517 8L117 20Z" fill="black"/>
+  </g>
+</svg>

@@ -1,0 +1,39 @@
+package fi.fta.geoviite.infra.integration
+
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.tracklayout.Draftable
+import java.time.Instant
+
+enum class RatkoPushErrorType { PROPERTIES, LOCATION, GEOMETRY }
+enum class RatkoOperation { CREATE, UPDATE, DELETE }
+enum class RatkoAssetType { TRACK_NUMBER, LOCATION_TRACK, SWITCH }
+
+data class RatkoPush(
+    val id: IntId<RatkoPush>,
+    val startTime: Instant,
+    val endTime: Instant?,
+    val status: RatkoPushStatus,
+)
+
+data class RatkoPushError<T>(
+    val ratkoPushId: IntId<RatkoPush>,
+    val ratkoPushErrorType: RatkoPushErrorType,
+    val operation: RatkoOperation,
+    val assetId: IntId<T>,
+    val assetType: RatkoAssetType,
+)
+
+data class RatkoPushErrorWithAsset(
+    val ratkoPushId: IntId<RatkoPush>,
+    val ratkoPushErrorType: RatkoPushErrorType,
+    val operation: RatkoOperation,
+    val assetType: RatkoAssetType,
+    val asset: Draftable<*>
+)
+
+enum class RatkoPushStatus {
+    IN_PROGRESS,
+    SUCCESSFUL,
+    FAILED,
+    CONNECTION_ISSUE,
+}

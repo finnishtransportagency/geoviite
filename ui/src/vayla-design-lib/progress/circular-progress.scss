@@ -1,0 +1,18 @@
+.circular-progress {
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 2px dotted;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,72 @@
+@import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/colors';
+
+.publication-list-item {
+    @include typography-body-strong;
+    margin-bottom: 12px;
+    display: flex;
+
+    &__status {
+        border-radius: 4px;
+        width: 8px;
+        height: 8px;
+        margin-right: 12px;
+
+        &--waiting {
+            @extend .publication-list-item__status;
+            background: $lemon-default;
+        }
+
+        &--in-progress {
+            @extend .publication-list-item__status;
+
+            background: $color-blue-default;
+        }
+    }
+
+    > div {
+        margin-top: auto;
+        margin-bottom: auto;
+    }
+
+    &__text {
+        white-space: pre;
+    }
+
+    &__track-numbers {
+        margin-left: 6px;
+        display: inline-flex;
+        flex-flow: wrap;
+        height: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        > span {
+            margin-left: 8px;
+        }
+    }
+
+    &__issue {
+        margin-left: auto;
+        padding-left: 6px;
+        white-space: pre;
+
+        &--info {
+            fill: $color-black-lighter;
+        }
+
+        &--error {
+            fill: $color-red-default;
+        }
+    }
+}
+
+.publication-list__more {
+    transition: 300ms;
+    display: inline-block;
+    margin-right: 9px;
+
+    &--open {
+        transform: rotate(180deg);
+    }
+}

@@ -1,0 +1,11 @@
+@mixin component-base {
+    box-sizing: border-box;
+    * {
+        box-sizing: inherit;
+    }
+}
+
+@mixin no-visuals {
+    background: none;
+    border: none;
+}
