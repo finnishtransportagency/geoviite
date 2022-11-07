@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.EndPointType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
@@ -1149,6 +1150,72 @@ class SwitchLinkingTest {
         orientation: Double = 0.0
     ): List<LocationTrack> {
         return listOf()
+    }
+
+    @Test
+    fun cropAlignmentPointsShouldFindPointsInArea() {
+        val bbox = BoundingBox(
+            -2.0..3.0,
+            -10.0..10.0
+        )
+        val locationTrackInArea = locationTrackAndAlignment(
+            segment(
+                Point(-4.0, 0.0),
+                Point(-3.0, 0.0),
+                Point(-2.0, 0.0)
+            ),
+            segment(
+                Point(-2.0, 0.0),
+                Point(-1.0, 0.0),
+                Point(0.0, 0.0),
+                Point(1.0, 0.0),
+                Point(2.0, 0.0),
+            ),
+            segment(
+                Point(2.0, 0.0),
+                Point(3.0, 0.0),
+                Point(4.0, 0.0),
+                Point(5.0, 0.0),
+            ),
+        )
+        val croppedAlignment = cropPoints(locationTrackInArea.second, bbox)
+
+        assertEquals(2, croppedAlignment.segments.size)
+        assertEquals(Point(-2.0, 0.0), Point(croppedAlignment.allPoints().first()))
+        assertEquals(Point(3.0, 0.0), Point(croppedAlignment.allPoints().last()))
+    }
+
+
+    @Test
+    fun cropAlignmentPointsShouldIgnoreSegmentsThatDoesNotHavePointsInArea() {
+        // Bounding box of a segment intersects with the bounding box, but the segment
+        // does not contain points inside the bounding box. Crop should filter out
+        // all segments/points.
+        //
+        //  \
+        //   \
+        //    \
+        //  □  \
+        //
+        //  □ = bounding box
+        //  \ = alignment
+
+        val bbox = BoundingBox(
+            -5.0..-4.0,
+            4.0..5.0
+        )
+        val locationTrack = locationTrackAndAlignment(
+            segment(
+                points = arrayOf(
+                    Point(-5.0, 0.0),
+                    Point(5.0, 5.0),
+                )
+            ),
+        )
+        val croppedAlignment = cropPoints(locationTrack.second, bbox)
+
+        assertTrue(bbox.intersects(locationTrack.second.segments.first().boundingBox))
+        assertEquals(0, croppedAlignment.segments.size)
     }
 
     @Test

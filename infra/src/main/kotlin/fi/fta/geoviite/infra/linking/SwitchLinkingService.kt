@@ -693,24 +693,55 @@ private fun combineAdjacentSegmentJointNumbers(
     acc
 }
 
-
+/**
+ * Return an alignment with segments that contains points in given bounding box.
+ */
 fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): LayoutAlignment {
-    // Very simple filtering
     val firstMatchingIndex = alignment.segments.indexOfFirst { segment -> bbox.intersects(segment.boundingBox) }
-    val matchingSegments = if (firstMatchingIndex != -1) {
-        val firstMatchingStart = alignment.segments[firstMatchingIndex].start;
-        alignment.segments
-            .drop(firstMatchingIndex)
-            .takeWhile { segment -> bbox.intersects(segment.boundingBox) }
-            .map { segment ->
-                segment.copy(
-                    start = segment.start - firstMatchingStart
-                )
-            }
-    } else listOf()
-    println("Orig segment count ${alignment.segments.size}, filtered count ${matchingSegments.size}")
+
+    val filteredSegments = alignment.segments
+        .mapNotNull { segment ->
+            if (bbox.intersects(segment.boundingBox)) {
+                val firstPointIndex = segment.points.indexOfFirst { point ->
+                    bbox.contains(point)
+                }
+                if (firstPointIndex != -1) {
+                    val firstMatchingPoint = segment.points[firstPointIndex]
+                    val points = segment.points
+                        .drop(firstPointIndex)
+                        .takeWhile { point ->
+                            bbox.contains(point)
+                        }
+                    if (points.size >= 2) {
+                        segment.withPoints(
+                            points,
+                            segment.start + firstMatchingPoint.m
+                        )
+                    } else null
+                } else null
+            } else null
+        }
+    val firstStart = filteredSegments.firstOrNull()?.start ?: 0.0
+    val segmentsForAlignments = filteredSegments.map { segment ->
+        segment.copy(
+            start = segment.start - firstStart
+        )
+    }
+
+//    val matchingSegments = if (firstMatchingIndex != -1) {
+//        val firstMatchingStart = alignment.segments[firstMatchingIndex].start;
+//        alignment.segments
+//            .drop(firstMatchingIndex)
+//            .takeWhile { segment -> bbox.intersects(segment.boundingBox) }
+//            .map { segment ->
+//                segment.copy(
+//                    start = segment.start - firstMatchingStart
+//                )
+//            }
+//    } else listOf()
+    println("Orig segment count ${alignment.segments.size}, filtered count ${segmentsForAlignments.size}")
     return alignment.copy(
-        segments = matchingSegments
+        segments = segmentsForAlignments
     )
 }
 
@@ -718,13 +749,20 @@ data class TrackIntersection(
     val point: IPoint,
     val distance: Double,
     val track1: Pair<LocationTrack, LayoutAlignment>,
-    val track2: Pair<LocationTrack, LayoutAlignment>
+    val track2: Pair<LocationTrack, LayoutAlignment>,
+    val desiredLocation: IPoint
 ) : Comparable<TrackIntersection> {
+    val distanceToDesiredLocation by lazy { lineLength(point, desiredLocation) }
+
     override fun compareTo(other: TrackIntersection): Int {
         return when {
             distance < other.distance -> -1
             distance > other.distance -> 1
-            else -> 0
+            else -> when {
+                distanceToDesiredLocation < other.distanceToDesiredLocation -> -1
+                distanceToDesiredLocation > other.distanceToDesiredLocation -> 1
+                else -> 0
+            }
         }
     }
 
@@ -738,9 +776,12 @@ private fun lines(alignment: LayoutAlignment): List<Line> {
     }
 }
 
+const val MAX_LINE_INTERSERCTION_DISTANCE = 0.5
+
 fun findClosestIntersection(
     track1: Pair<LocationTrack, LayoutAlignment>,
-    track2: Pair<LocationTrack, LayoutAlignment>
+    track2: Pair<LocationTrack, LayoutAlignment>,
+    desiredLocation: IPoint
 ): TrackIntersection? {
     val lines1 = lines(track1.second)
     val lines2 = lines(track2.second)
@@ -750,23 +791,25 @@ fun findClosestIntersection(
             if (intersection != null && intersection.inSegment1 == IntersectType.WITHIN &&
                 intersection.inSegment2 == IntersectType.WITHIN
             ) {
-                return TrackIntersection(
+                TrackIntersection(
                     point = intersection.point,
                     distance = 0.0,
                     track1 = track1,
-                    track2 = track2
+                    track2 = track2,
+                    desiredLocation = desiredLocation
                 )
             } else {
                 val distance1 = pointDistanceToLine(line1.start, line1.end, line2.start)
                 val distance2 = pointDistanceToLine(line1.start, line1.end, line2.end)
                 val minDistance = min(distance1, distance2)
-                if (minDistance < 0.5) {
+                if (minDistance <= MAX_LINE_INTERSERCTION_DISTANCE) {
                     TrackIntersection(
                         point = if (minDistance == distance1) line2.start
                         else line2.end,
                         distance = minDistance,
                         track1 = track1,
-                        track2 = track2
+                        track2 = track2,
+                        desiredLocation = desiredLocation
                     )
                 } else null
             }
@@ -775,11 +818,14 @@ fun findClosestIntersection(
     return intersections.minOrNull()
 }
 
-fun findTrackIntersections(locationTracks: List<Pair<LocationTrack, LayoutAlignment>>): List<TrackIntersection> {
+fun findTrackIntersections(
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    desiredLocation: IPoint
+): List<TrackIntersection> {
     val trackPairs = locationTracks.flatMapIndexed { index, track1 ->
         locationTracks.drop(index + 1).map { track2 -> track1 to track2 }
     }
-    return trackPairs.mapNotNull { (track1, track2) -> findClosestIntersection(track1, track2) }
+    return trackPairs.mapNotNull { (track1, track2) -> findClosestIntersection(track1, track2, desiredLocation) }
 }
 
 fun findFarthestJoint(
@@ -829,9 +875,11 @@ fun findPointsOnTrack(
 ): List<Pair<IPoint, IPoint>> {
     val allPoints = track.second.allPoints()
     val start = allPoints.minByOrNull { point -> lineLength(from, point) }
-        ?: throw IllegalStateException("fail!")
-    if (lineLength(from, start) > 0.5) {
-        throw IllegalStateException("Closest point of alignment is too far from given point!")
+        ?: throw IllegalStateException("There should be points in alignment!")
+    if (lineLength(from, start) > MAX_LINE_INTERSERCTION_DISTANCE * 1.44) {
+        // TODO: Most probably this is a logical error but can also happen if
+        // TODO: points of an alignment are more than 1m away from each other.
+        // TODO: How to react?
     }
     val index = allPoints.indexOf(start)
 
@@ -926,13 +974,13 @@ fun createSuggestedSwitchByPoint(
     switchStructure: SwitchStructure,
     nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>
 ): SuggestedSwitch? {
-    val bboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.25
+    val bboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 2.25
     val bbox = BoundingBox(0.0..bboxSize, 0.0..bboxSize).centerAt(point)
     val croppedTracks = nearbyLocationTracks.map { (locationTrack, alignment) ->
         locationTrack to cropPoints(alignment, bbox)
     }
 
-    val intersections = findTrackIntersections(croppedTracks)
+    val intersections = findTrackIntersections(croppedTracks, point)
 
     val (commonSwitchJoint, switchAlignmentsContainingCommonJoint) = switchStructure.joints.mapNotNull { joint ->
         val alignmentsContainingJoint = switchStructure.alignments.filter { alignment ->
@@ -1008,7 +1056,7 @@ class SwitchLinkingService @Autowired constructor(
 
     fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? {
         val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
-        val switchAreaSize = switchStructure.bbox.width.coerceAtLeast(switchStructure.bbox.height) * 1.0
+        val switchAreaSize = 2.0 // switchStructure.bbox.width.coerceAtLeast(switchStructure.bbox.height) * 1.0
         val switchAreaBbox = BoundingBox(
             Point(0.0, 0.0),
             Point(switchAreaSize, switchAreaSize)

@@ -32,9 +32,9 @@ data class LayoutAlignment(
     init {
         segments.forEachIndexed { index, segment ->
             if (index == 0) {
-               require(segment.start == 0.0) {
-                   "First segment should start at 0.0: alignment=$id firstStart=${segment.start}"
-               }
+                require(segment.start == 0.0) {
+                    "First segment should start at 0.0: alignment=$id firstStart=${segment.start}"
+                }
             } else {
                 val previous = segments[index - 1]
                 require(previous.points.last().isSame(segment.points.first(), LAYOUT_COORDINATE_DELTA)) {
@@ -93,7 +93,7 @@ data class LayoutAlignment(
         else if (distance >= length) end
         else segments
             .findLast { segment -> segment.start <= distance }
-            ?.let { segment -> segment.getPointAtLength(distance-segment.start, snapDistance) }
+            ?.let { segment -> segment.getPointAtLength(distance - segment.start, snapDistance) }
 
     fun findClosestSegmentIndex(target: IPoint): Int? {
         return approximateClosestSegmentIndex(target)?.let { approximation ->
@@ -118,7 +118,11 @@ data class LayoutAlignment(
         return if (segment.source == GENERATED) {
             closestPointProportionOnGeneratedSegment(segmentIndex, target) > 1.0
         } else {
-            closestPointProportionOnLine(segment.points[segment.points.lastIndex - 1], segment.points[segment.points.lastIndex], target) > 1.0
+            closestPointProportionOnLine(
+                segment.points[segment.points.lastIndex - 1],
+                segment.points[segment.points.lastIndex],
+                target
+            ) > 1.0
         }
     }
 
@@ -128,21 +132,22 @@ data class LayoutAlignment(
         val segment = segments[segmentIndex]
         val start = segment.points[0]
         val end = segment.points[segment.points.lastIndex]
-        val prevDir = segments.getOrNull(segmentIndex-1)?.endDirection()
-        val nextDir = segments.getOrNull(segmentIndex+1)?.startDirection()
+        val prevDir = segments.getOrNull(segmentIndex - 1)?.endDirection()
+        val nextDir = segments.getOrNull(segmentIndex + 1)?.startDirection()
         val fakeDir =
             if (prevDir != null && nextDir != null) angleAvgRads(prevDir, nextDir)
             else prevDir ?: nextDir
 
         return if (fakeDir != null) {
             val segmentDir = directionBetweenPoints(start, end)
-            val fakeLineLength = segment.length*cos(angleDiffRads(segmentDir, fakeDir))
+            val fakeLineLength = segment.length * cos(angleDiffRads(segmentDir, fakeDir))
             val fakeEnd = pointInDirection(start, fakeLineLength, fakeDir)
             closestPointProportionOnLine(start, fakeEnd, target)
         } else {
             closestPointProportionOnLine(start, end, target)
         }
     }
+
     /**
      * Note: segment comparison is an approximation:
      * - Basic geometry, not geographic calc but in TM35FIN the difference is small
@@ -192,7 +197,7 @@ data class LayoutSegment(
     val length: Double = points.last().m
 
     fun startDirection() = directionBetweenPoints(points[0], points[1])
-    fun endDirection() = directionBetweenPoints(points[points.lastIndex-1], points[points.lastIndex])
+    fun endDirection() = directionBetweenPoints(points[points.lastIndex - 1], points[points.lastIndex])
 
     init {
         require(points.size >= 2) { "Segment must have at least 2 points (start & end): points=${points.size}" }
@@ -207,7 +212,7 @@ data class LayoutSegment(
                 "There should be no duplicate points: id=$id ${index - 1}=${points[index - 1]} ${index}=${points[index]}"
             }
             require(index == 0 || point.m > points[index - 1].m) {
-                "Segment m-values should be increasing: id=$id ${index-1}=${points[index - 1].m} $index=${point.m}"
+                "Segment m-values should be increasing: id=$id ${index - 1}=${points[index - 1].m} $index=${point.m}"
             }
         }
     }
@@ -216,7 +221,7 @@ data class LayoutSegment(
         if (fromIndex >= toIndex) null
         else withPoints(points.slice(fromIndex..toIndex), newStart)
 
-    private fun withPoints(points: List<LayoutPoint>, newStart: Double): LayoutSegment {
+    fun withPoints(points: List<LayoutPoint>, newStart: Double): LayoutSegment {
         val mOffset = points.first().m
         val newPoints =
             if (mOffset == 0.0) points
@@ -236,7 +241,7 @@ data class LayoutSegment(
                 this to null
             } else {
                 val firstPoints =
-                    if (pointAtM.isSnapped) points.slice(0 .. pointAtM.index)
+                    if (pointAtM.isSnapped) points.slice(0..pointAtM.index)
                     else points.slice(0 until pointAtM.index) + pointAtM.point
                 val secondPoints =
                     if (pointAtM.isSnapped) points.slice(pointAtM.index..points.lastIndex)
@@ -322,10 +327,10 @@ data class LayoutSegment(
             val pointAfter = points[indexAfter]
             points.getOrNull(indexAfter - 1)
                 ?.let { pointBefore ->
-                    if (abs(pointAfter.m-m) < snapDistance) {
+                    if (abs(pointAfter.m - m) < snapDistance) {
                         PointSeekResult(pointAfter, indexAfter, true)
-                    } else if (abs(pointBefore.m-m) < snapDistance) {
-                        PointSeekResult(pointBefore, indexAfter-1, true)
+                    } else if (abs(pointBefore.m - m) < snapDistance) {
+                        PointSeekResult(pointBefore, indexAfter - 1, true)
                     } else {
                         val portion = (m - pointBefore.m) / (pointAfter.m - pointBefore.m)
                         PointSeekResult(interpolate(pointBefore, pointAfter, portion), indexAfter, false)
