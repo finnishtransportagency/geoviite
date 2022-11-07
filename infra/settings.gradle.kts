@@ -1,1 +1,1 @@
-rootProject.name = "infra"
+rootProject.name = "fi.fta.geoviite.infra"
