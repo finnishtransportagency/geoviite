@@ -6,6 +6,7 @@ import { MapViewport, OptionalShownItems } from 'map/map-model';
 import MapView from 'map/map-view';
 import { MapLayersSettings } from 'map/settings/map-layer-settings';
 import {
+    OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
@@ -24,6 +25,7 @@ export type TrackLayoutParams = TrackLayoutState & {
     onSelect: OnSelectFunction;
     onHighlightItems: OnHighlightItemsFunction;
     onHoverLocation: OnHoverLocationFunction;
+    onClickLocation: OnClickLocationFunction;
     onMapSettingsVisibilityChange: (visible: boolean) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
@@ -77,7 +79,7 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
 
             <div className="track-layout__navi">
                 <MapContext.Provider value="trackLayout">
-                    <SelectionPanelContainer />
+                    <SelectionPanelContainer/>
                 </MapContext.Provider>
             </div>
 
@@ -103,6 +105,7 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                     onSelect={props.onSelect}
                     onHighlightItems={props.onHighlightItems}
                     onHoverLocation={props.onHoverLocation}
+                    onClickLocation={props.onClickLocation}
                     onShownLayerItemsChange={props.onShownItemsChange}
                     onSetLayoutClusterLinkPoint={props.onSetLayoutClusterLinkPoint}
                     onSetGeometryClusterLinkPoint={props.onSetGeometryClusterLinkPoint}
@@ -113,11 +116,11 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
 
             <div className="track-layout__tool-panel">
                 <MapContext.Provider value="trackLayout">
-                    <ToolPanelContainer />
+                    <ToolPanelContainer/>
                 </MapContext.Provider>
             </div>
 
-            <SwitchSuggestionCreatorContainer />
+            <SwitchSuggestionCreatorContainer/>
         </div>
     );
 };

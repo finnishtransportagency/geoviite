@@ -129,3 +129,5 @@ export type OnHighlightItemsOptions = {
 export type OnHighlightItemsFunction = (options: OnHighlightItemsOptions) => void;
 
 export type OnHoverLocationFunction = (location: Point) => void;
+
+export type OnClickLocationFunction = (location: Point) => void;

@@ -4,9 +4,12 @@ import fi.fta.geoviite.infra.common.EndPointType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
+import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -1137,6 +1140,37 @@ class SwitchLinkingTest {
         )
 
         assertTrue { updatedAlignment.segments.none { it.switchId == testLayoutSwitchId } }
+    }
+
+
+    fun createLocationTracksBySwitchStructure(
+        switchStructure: SwitchStructure,
+        offset: IPoint = Point.zero(),
+        orientation: Double = 0.0
+    ): List<LocationTrack> {
+        return listOf()
+    }
+
+    @Test
+    fun shouldFindMatchForYVSwitch() {
+        val yvTurnRatio = 1.967 / 34.321 // ~ 0.06
+        val switchStructure = YV60_300_1_9_O()
+        val locationTrack152 = locationTrackAndAlignment(
+            segment(from = point(-200.0, 0.0), to = Point(-100.0, 0.0)),
+            segment(from = Point(-100.0, 0.0), to = Point(100.0, 0.0))
+        )
+        val locationTrack13 = locationTrackAndAlignment(
+            segment(from = Point(0.0, 0.0), to = Point(100.0, -100.0 * yvTurnRatio))
+        )
+        val nearbyPoint = Point(10.0, -1.0)
+
+        val suggestedSwitch = createSuggestedSwitchByPoint(
+            nearbyPoint,
+            switchStructure,
+            listOf(locationTrack152, locationTrack13)
+        )
+
+        assertNotNull(suggestedSwitch)
     }
 }
 
