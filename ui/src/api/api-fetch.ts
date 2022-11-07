@@ -240,7 +240,7 @@ async function executeBodyRequestInternal<Output>(
         ) {
             return executeBodyRequestInternal(fetchFunction, false);
         } else {
-            if (response.status === 401) Snackbar.sessionExpired();
+            if (response.status === 401 && response.headers.get('session-expired')  === true) Snackbar.sessionExpired();
             return err(errorResponse.response);
         }
     }
