@@ -332,6 +332,14 @@ fun convertToRatkoAssetLocations(
                     mapJointNumberToGeometryType(jointChange.number, switchType)
                 )
 
+                checkNotNull(jointChange.locationTrackExternalId) {
+                    "Cannot push switch changes with missing location track oid ${jointChange.locationTrackExternalId}"
+                }
+
+                checkNotNull(jointChange.trackNumberExternalId) {
+                    "Cannot push switch changes with missing route number oid ${jointChange.trackNumberExternalId}"
+                }
+
                 nodeType?.let {
                     RatkoNode(
                         nodeType = nodeType,

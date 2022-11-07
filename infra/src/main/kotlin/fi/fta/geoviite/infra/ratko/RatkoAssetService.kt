@@ -120,6 +120,10 @@ class RatkoAssetService @Autowired constructor(
                                     mapJointNumberToGeometryType(jointChange.number, switchStructure.baseType)
                                 )
 
+                                checkNotNull(jointChange.locationTrackExternalId) {
+                                    "Cannot push switch changes with missing location track oid ${jointChange.locationTrackExternalId}"
+                                }
+
                                 jointChange.locationTrackExternalId.stringValue == node.point.locationtrack?.id
                                         && nodeType == node.nodeType
                             }
@@ -165,8 +169,6 @@ class RatkoAssetService @Autowired constructor(
         switchStructure: SwitchStructure,
     ) {
         if (jointChanges.isNotEmpty()) {
-
-
             val changedSwitchLocations = generateSwitchLocations(jointChanges, switchStructure)
 
             val ratkoSwitchLocations =
