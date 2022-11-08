@@ -5,6 +5,7 @@ import styles from './map-layer-settings.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
+import { EnvRestricted } from 'environment/env-restricted';
 
 export type MapLayersSettingsProps = {
     map: Map;
@@ -117,27 +118,25 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                         />
                     );
                 })}
-            {(location.hostname === 'localhost' || location.hostname === '127.0.0.1') && (
-                <React.Fragment>
-                    <div className={styles['map-layer-settings__title']}>
-                        {t('map-layer-settings.debug')}
-                    </div>
-                    {props.map.mapLayers
-                        .filter((layer) => isDebugLayer(layer))
-                        .map((layer) => {
-                            return (
-                                <LayerVisibilitySetting
-                                    key={layer.id}
-                                    name={layer.name}
-                                    visible={layer.visible}
-                                    onVisibilityChange={(visible) =>
-                                        props.onLayerVisibilityChange(layer.id, visible)
-                                    }
-                                />
-                            );
-                        })}{' '}
-                </React.Fragment>
-            )}
+            <EnvRestricted restrictTo="dev">
+                <div className={styles['map-layer-settings__title']}>
+                    {t('map-layer-settings.debug')}
+                </div>
+                {props.map.mapLayers
+                    .filter((layer) => isDebugLayer(layer))
+                    .map((layer) => {
+                        return (
+                            <LayerVisibilitySetting
+                                key={layer.id}
+                                name={layer.name}
+                                visible={layer.visible}
+                                onVisibilityChange={(visible) =>
+                                    props.onLayerVisibilityChange(layer.id, visible)
+                                }
+                            />
+                        );
+                    })}{' '}
+            </EnvRestricted>
         </div>
     );
 };
