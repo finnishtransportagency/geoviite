@@ -5,6 +5,8 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const LicensePlugin = require('webpack-license-plugin');
+const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 // If non-allowed licenses are found, you may have added a dependency with a new license type.
 // First, ensure it's licensing conditions are compatible with EUPL and our use.
@@ -45,7 +47,7 @@ module.exports = (env) => {
                 '/api': {
                     target: 'http://localhost:8080',
                     logLevel: 'debug',
-                    pathRewrite: { '^/api': '' },
+                    pathRewrite: {'^/api': ''},
                 },
                 '/map': {
                     target: 'http://localhost:8081/geoserver/Geoviite/wms',
@@ -56,7 +58,7 @@ module.exports = (env) => {
                     '/location-map/': {
                         target: 'https://api.testivaylapilvi.fi/rasteripalvelu-mml/',
                         logLevel: 'debug',
-                        pathRewrite: { '^/location-map': '' },
+                        pathRewrite: {'^/location-map': ''},
                         changeOrigin: true,
                         headers: {
                             'X-API-Key': process.env.MML_MAP_API_KEY,
@@ -99,7 +101,7 @@ module.exports = (env) => {
                     test: /\.(sass|scss)$/i,
                     use: [
                         // Creates `style` nodes from JS strings
-                        'style-loader',
+                        MiniCssExtractPlugin.loader,
                         // Generate type definitions from css files to get compiler support
                         '@teamsupercell/typings-for-css-modules-loader',
                         // Translates CSS into CommonJS
@@ -117,21 +119,30 @@ module.exports = (env) => {
                     ],
                 },
                 {
-                    // Do not transform vendor's CSS with CSS-modules
-                    test: /\.css$/,
+                    test: /\.css$/i,
                     include: /node_modules/,
-                    use: [
-                        // Creates `style` nodes from JS strings
-                        'style-loader',
-                        // Translates CSS into CommonJS
-                        'css-loader',
-                    ],
+                    use: [MiniCssExtractPlugin.loader, "css-loader"],
                 },
+
             ],
         },
         plugins: [
             new HtmlWebpackPlugin({
                 template: './src/index.html',
+            }),
+            new MiniCssExtractPlugin({insert: ":last-child(meta)"}),
+            new CspHtmlWebpackPlugin({
+                'base-uri': "'self'",
+                'object-src': "'none'",
+                'script-src': "'self'",
+                'style-src': "'self' https://fonts.googleapis.com/"
+            }, {
+                enabled: true,
+                hashingMethod: 'sha256',
+                nonceEnabled: {
+                    'script-src': true,
+                    'style-src': true
+                }
             }),
             new ESLintWebpackPlugin({
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
