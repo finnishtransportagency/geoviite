@@ -722,7 +722,7 @@ fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): LayoutAlignment {
                 } else null
             } else null
         }
-    
+
     val firstSegmentStart = filteredSegments.firstOrNull()?.start ?: 0.0
     val segmentsForAlignments = filteredSegments.map { segment ->
         segment.copy(
@@ -959,24 +959,6 @@ fun createSuggestedSwitch(
     )
 }
 
-fun getSuggestedSwitchScore(
-    suggestedSwitch: SuggestedSwitch,
-    farthestJoint: SwitchJoint,
-    desiredLocation: IPoint,
-    maxFarthestJointDistance: Double
-): Double {
-    return suggestedSwitch.joints.sumOf { joint ->
-        // Select best of each joint
-        (joint.matches.maxOfOrNull { match ->
-            // Smaller the match distance, better the score
-            max(1.0 - match.distance, 0.0)
-        } ?: 0.0) +
-                if (joint.number == farthestJoint.number) {
-                    (lineLength(joint.location, desiredLocation) / maxFarthestJointDistance) * 0.5
-                } else 0.0
-    }
-}
-
 fun getSharedSwitchJoint(switchStructure: SwitchStructure): Pair<SwitchJoint, List<SwitchAlignment>> {
     val sortedSwitchJoints = switchStructure
         .joints.sortedWith { jointA, jointB ->
@@ -999,6 +981,56 @@ fun getSharedSwitchJoint(switchStructure: SwitchStructure): Pair<SwitchJoint, Li
         ?: throw IllegalStateException("Switch structure ${switchStructure.type} does not contain shared switch joint and that is weird!")
 
     return sharedSwitchJoint to switchAlignmentsContainingCommonJoint
+}
+
+fun getSuggestedSwitchScore(
+    suggestedSwitch: SuggestedSwitch,
+    farthestJoint: SwitchJoint,
+    maxFarthestJointDistance: Double,
+    desiredLocation: IPoint
+): Double {
+    return suggestedSwitch.joints.sumOf { joint ->
+        // Select best of each joint
+        (joint.matches.maxOfOrNull { match ->
+            // Smaller the match distance, better the score
+            max(1.0 - match.distance, 0.0)
+        } ?: 0.0) +
+
+
+                if (joint.number == farthestJoint.number && maxFarthestJointDistance > 0) {
+                    val distanceToFarthestJoint = lineLength(desiredLocation, joint.location)
+                    val maxExtraScore = 0.5
+                    val extraScore = (distanceToFarthestJoint / maxFarthestJointDistance) * maxExtraScore
+                    extraScore
+                } else 0.0
+    }
+}
+
+fun selectBestSuggestedSwitch(
+    suggestedSwitches: List<SuggestedSwitch>,
+    farthestJoint: SwitchJoint,
+    desiredLocation: IPoint
+): SuggestedSwitch? {
+    if (suggestedSwitches.isEmpty()) {
+        return null
+    }
+
+    val maxFarthestJointDistance = suggestedSwitches.maxOf { suggestedSwitch ->
+        suggestedSwitch.joints.maxOf { joint ->
+            if (joint.number == farthestJoint.number) {
+                lineLength(desiredLocation, joint.location)
+            } else 0.0
+        }
+    }
+
+    return suggestedSwitches.maxBy { suggestedSwitch ->
+        getSuggestedSwitchScore(
+            suggestedSwitch,
+            farthestJoint,
+            maxFarthestJointDistance,
+            desiredLocation
+        )
+    }
 }
 
 fun createSuggestedSwitchByPoint(
@@ -1032,18 +1064,7 @@ fun createSuggestedSwitchByPoint(
     }
 
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0]);
-
-    val maxFarthestJointDistance = suggestedSwitches.maxOf { suggestedSwitch ->
-        suggestedSwitch.joints.maxOf { joint ->
-            if (joint.number == farthestJoint.number) {
-                lineLength(point, joint.location)
-            } else 0.0
-        }
-    }
-
-    return suggestedSwitches.maxByOrNull { suggestedSwitch ->
-        getSuggestedSwitchScore(suggestedSwitch, farthestJoint, point, maxFarthestJointDistance)
-    }
+    return selectBestSuggestedSwitch(suggestedSwitches, farthestJoint, point)
 }
 
 
