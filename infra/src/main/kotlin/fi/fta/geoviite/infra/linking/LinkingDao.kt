@@ -268,10 +268,11 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     fun findLocationTracksLinkedToSwitch(switchId: IntId<TrackLayoutSwitch>): List<Pair<IntId<LocationTrack>, Oid<LocationTrack>>> {
         val sql = """ 
-            select distinct(location_track.id, location_track.external_id)
-            from layout.segment 
-              inner join layout.location_track on location_track.alignment_id = segment.alignment_id
-            where switch_id = :switch_id
+            select location_track.id, location_track.external_id
+            from layout.segment
+            inner join layout.location_track on location_track.alignment_id = segment.alignment_id
+            where segment.switch_id = :switch_id
+            group by id
         """.trimIndent()
         val params = mapOf("switch_id" to switchId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
