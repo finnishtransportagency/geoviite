@@ -45,6 +45,7 @@ class InfraModelParsingIT @Autowired constructor(
     private val coordinateSystemNameToSrid = geographyService.getCoordinateSystemNameToSridMapping()
     private val switchStructuresByType = switchStructureDao.fetchSwitchStructures().associateBy { it.type }
     private val switchStructuresById = switchStructureDao.fetchSwitchStructures().associateBy { it.id as IntId }
+    private val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
 
     @Test
     fun censoringAuthorWorks() {
@@ -65,6 +66,7 @@ class InfraModelParsingIT @Autowired constructor(
                 result,
                 coordinateSystemNameToSrid,
                 switchStructuresByType,
+                switchTypeNameAliases,
                 trackNumberDao.getTrackNumberToIdMapping(),
             )
             val errors = validate(converted, featureTypes, switchStructuresById)
@@ -155,6 +157,7 @@ class InfraModelParsingIT @Autowired constructor(
             infraModel,
             coordinateSystemNameToSrid,
             switchStructuresByType,
+            switchTypeNameAliases,
             trackNumberDao.getTrackNumberToIdMapping(),
         )
         val allAlignments = infraModel.alignmentGroups.flatMap { ag -> ag.alignments }
@@ -169,6 +172,7 @@ class InfraModelParsingIT @Autowired constructor(
             TESTFILE_CLOTHOID_AND_PARABOLA,
             coordinateSystemNameToSrid,
             switchStructuresByType,
+            switchTypeNameAliases,
             trackNumberDao.getTrackNumberToIdMapping(),
         )
         val allElements = parsed.alignments.flatMap { a -> a.elements }

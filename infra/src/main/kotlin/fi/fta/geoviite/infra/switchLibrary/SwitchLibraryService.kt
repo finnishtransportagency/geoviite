@@ -45,4 +45,8 @@ class SwitchLibraryService(
 
     fun getSwitchOwner(ownerId: IntId<SwitchOwner>) = getSwitchOwners().find { it.id == ownerId }
 
+    fun getInframodelAliases(): Map<String, String> {
+        logger.serviceCall("getInframodelAliases")
+        return switchStructureDao.getInframodelAliases()
+    }
 }

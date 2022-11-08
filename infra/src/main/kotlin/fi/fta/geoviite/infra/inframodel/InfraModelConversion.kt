@@ -43,6 +43,7 @@ fun toGvtPlan(
     infraModel: InfraModel,
     coordinateSystemNameToSrid: Map<CoordinateSystemName, Srid>,
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
 
@@ -60,7 +61,8 @@ fun toGvtPlan(
     }
 
     val units = parseUnits(coordinateSystem, metricUnits, coordinateSystemNameToSrid)
-    val gvtSwitches = collectGeometrySwitches(switchStructuresByType, infraModel.alignmentGroups)
+    val gvtSwitches =
+        collectGeometrySwitches(switchStructuresByType, switchTypeNameAliases, infraModel.alignmentGroups)
     val trackNumberDescription = infraModel.alignmentGroups.first().name
     val layoutTrackNumberId = tryParseTrackNumber(trackNumberDescription)?.let(trackNumberIdsByNumber::get)
     val alignments = mutableListOf<GeometryAlignment>()
@@ -412,9 +414,14 @@ fun switchTypeHand(switchHand: String): SwitchHand {
         )
 }
 
+fun normalizeSwitchTypeName(switchStructureNameAliases: Map<String, String>, switchTypeName: String): String {
+    val withDecimalComma = switchTypeName.replace('.', ',')
+    return switchStructureNameAliases[withDecimalComma] ?: withDecimalComma
+}
 
 fun collectGeometrySwitches(
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     alignmentGroups: List<InfraModelAlignmentGroup>,
 ): Map<SwitchKey, GeometrySwitch> {
     val tempSwitchAndJoints: List<TempSwitchAndJoints> = alignmentGroups.flatMap { group ->
@@ -433,7 +440,9 @@ fun collectGeometrySwitches(
                 .sortedBy { j -> j.number }
 
             val switchName = verifySameField("Switch name", xmlSwitches, TempSwitch::name, TempSwitch::name)
-            val switchTypeName = verifySameField("Switch typeName", xmlSwitches, TempSwitch::typeName, TempSwitch::name)
+            val switchTypeNameXml =
+                verifySameField("Switch typeName", xmlSwitches, TempSwitch::typeName, TempSwitch::name)
+            val switchTypeName = normalizeSwitchTypeName(switchTypeNameAliases, switchTypeNameXml)
             val switchTypeRequiresHandedness = tryParseSwitchType(switchTypeName)
                 .let { switchType -> if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false }
             val switchTypeHand = verifySameField(
