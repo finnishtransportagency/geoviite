@@ -30,6 +30,9 @@
 - Split packages by domain concepts, not technical ones
   - Good: inframodel, tracklayout, ...
   - Bad: views, database, ...
+- Scripts and readmes `snake_case` 
+- Frontend packages, files and folders `kebab-case`
+- Backend packages `camelCase`
 
 ## Backend Structure
 - Create own package for each domain area / API
