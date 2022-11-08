@@ -136,10 +136,6 @@ module.exports = (env) => {
             new ESLintWebpackPlugin({
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
             }),
-            new webpack.DefinePlugin({
-                GEOVIITE_HASH: JSON.stringify(env.geoviiteHash),
-                GEOVIITE_UI_VERSION: JSON.stringify(env.geoviiteUiVersion),
-            }),
             new LicensePlugin({
                 outputFilename: 'oss-licenses.json',
                 licenseOverrides: licenseOverrides,
