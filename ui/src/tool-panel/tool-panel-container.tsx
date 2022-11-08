@@ -4,8 +4,9 @@ import { MapContext } from 'map/map-store';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
 import { createDelegates } from 'store/store-utils';
-import { SuggestedSwitch } from 'linking/linking-model';
+import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
+import { getSuggestedSwitchByPoint } from 'linking/linking-api';
 
 const ToolPanelContainer: React.FC = () => {
     const context = React.useContext(MapContext);
@@ -36,6 +37,24 @@ const ToolPanelContainer: React.FC = () => {
         });
     }, []);
 
+    const startSwitchPlacing = React.useCallback(function (layoutSwitch: LayoutSwitch) {
+        delegates.startSwitchPlacing(layoutSwitch);
+    }, []);
+
+    React.useEffect(() => {
+        const linkingState = store.linkingState;
+        if (linkingState?.type == LinkingType.PlacingSwitch &&
+            linkingState.location) {
+            getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.switchStructureId)
+                .then((suggestedSwitches) => {
+                    delegates.stopLinking();
+                    if (suggestedSwitches.length) {
+                        startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
+                    }
+                });
+        }
+    }, [store.linkingState]);
+
     return (
         <ToolPanel
             planHeaders={store.selection.selectedItems.geometryPlans}
@@ -57,8 +76,7 @@ const ToolPanelContainer: React.FC = () => {
             onUnselect={delegates.onUnselect}
             setSelectedTabId={delegates.setToolPanelTab}
             selectedTabId={store.selectedToolPanelTabId}
-            clickLocation={store.map.clickLocation}
-            startSwitchLinking={startSwitchLinking}
+            startSwitchPlacing={startSwitchPlacing}
         />
     );
 };

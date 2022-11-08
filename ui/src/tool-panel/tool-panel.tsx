@@ -53,8 +53,7 @@ type ToolPanelProps = {
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     selectedTabId: string | undefined;
     setSelectedTabId: (id: string | undefined) => void;
-    clickLocation: Point | null;
-    startSwitchLinking: (suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch) => void;
+    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
 };
 
 type ToolPanelTab = {
@@ -83,8 +82,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     onUnselect,
     selectedTabId,
     setSelectedTabId,
-    clickLocation,
-    startSwitchLinking,
+    startSwitchPlacing,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -223,8 +221,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         changeTimes={changeTimes}
                         onDataChange={onDataChange}
                         onUnselect={onUnSelectSwitches}
-                        clickLocation={clickLocation}
-                        startSwitchLinking={startSwitchLinking}
+                        placingSwitchLinkingState={linkingState?.type == LinkingType.PlacingSwitch ? linkingState : undefined}
+                        startSwitchPlacing={startSwitchPlacing}
                     />
                 ),
             };

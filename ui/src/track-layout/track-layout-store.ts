@@ -1,12 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Map } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
-import {
-    allSelectableItemTypes,
-    OnSelectOptions,
-    SelectableItemType,
-    Selection,
-} from 'selection/selection-model';
+import { allSelectableItemTypes, OnSelectOptions, SelectableItemType, Selection } from 'selection/selection-model';
 import { wrapReducers } from 'store/store-utils';
 import { initialSelectionState, selectionReducers } from 'selection/selection-store';
 import { linkingReducers } from 'linking/linking-store';
@@ -14,6 +9,7 @@ import { LinkingState, LinkingType } from 'linking/linking-model';
 import { LayoutMode, PublishType, TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
+import { Point } from 'model/geometry';
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
@@ -69,6 +65,8 @@ export function getSelectableItemTypes(
             return ['geometryLinkPoints', 'clusterPoints'];
         case LinkingType.LinkingAlignment:
             return ['layoutLinkPoints', 'clusterPoints'];
+        case LinkingType.PlacingSwitch:
+            return [];
         case LinkingType.LinkingSwitch:
             return ['switches', 'suggestedSwitches'];
         case LinkingType.LinkingKmPost:
@@ -110,6 +108,14 @@ const trackLayoutSlice = createSlice({
         ...wrapReducers((state: TrackLayoutState) => state.map, mapReducers),
         ...wrapReducers((state: TrackLayoutState) => state.selection, selectionReducers),
         ...wrapReducers((state: TrackLayoutState) => state, linkingReducers),
+
+        onClickLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
+            if (state.linkingState?.type == LinkingType.PlacingSwitch) {
+                state.linkingState.location = action.payload;
+            } else {
+                mapReducers.onClickLocation(state.map, action);
+            }
+        },
 
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
@@ -174,8 +180,8 @@ const trackLayoutSlice = createSlice({
             }
         },
         setChangeTimes: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<ChangeTimes>,
+            {changeTimes}: TrackLayoutState,
+            {payload}: PayloadAction<ChangeTimes>,
         ) {
             if (toDate(changeTimes.layoutTrackNumber) < toDate(payload.layoutTrackNumber)) {
                 changeTimes.layoutTrackNumber = payload.layoutTrackNumber;
@@ -197,63 +203,63 @@ const trackLayoutSlice = createSlice({
             }
         },
         setLayoutTrackNumberChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
+            {changeTimes}: TrackLayoutState,
+            {payload}: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutTrackNumber) < toDate(payload))
                 changeTimes.layoutTrackNumber = payload;
         },
         setLayoutLocationTrackChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
+            {changeTimes}: TrackLayoutState,
+            {payload}: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutLocationTrack) < toDate(payload))
                 changeTimes.layoutLocationTrack = payload;
         },
         setLayoutReferenceLineChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
+            {changeTimes}: TrackLayoutState,
+            {payload}: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutReferenceLine) < toDate(payload))
                 changeTimes.layoutReferenceLine = payload;
         },
         setLayoutSwitchChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
+            {changeTimes}: TrackLayoutState,
+            {payload}: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutSwitch) < toDate(payload))
                 changeTimes.layoutSwitch = payload;
         },
         setLayoutKmPostChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
+            {changeTimes}: TrackLayoutState,
+            {payload}: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutKmPost) < toDate(payload))
                 changeTimes.layoutKmPost = payload;
         },
         setGeometryPlanChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
+            {changeTimes}: TrackLayoutState,
+            {payload}: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.geometryPlan) < toDate(payload))
                 changeTimes.geometryPlan = payload;
         },
         onPublishTypeChange: (
             state: TrackLayoutState,
-            { payload: publishType }: PayloadAction<PublishType>,
+            {payload: publishType}: PayloadAction<PublishType>,
         ): void => {
             state.publishType = publishType;
             if (publishType == 'OFFICIAL') linkingReducers.stopLinking(state);
         },
         onLayoutModeChange: (
             state: TrackLayoutState,
-            { payload: layoutMode }: PayloadAction<LayoutMode>,
+            {payload: layoutMode}: PayloadAction<LayoutMode>,
         ): void => {
             state.layoutMode = layoutMode;
         },
         setToolPanelTab: (
             state: TrackLayoutState,
-            { payload }: PayloadAction<string | undefined>,
+            {payload}: PayloadAction<string | undefined>,
         ): void => {
             state.selectedToolPanelTabId = payload;
         },

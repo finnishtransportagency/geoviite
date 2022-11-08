@@ -35,8 +35,8 @@ import { ChangeTimes } from 'track-layout/track-layout-store';
 import { Point } from 'model/geometry';
 import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track-meters';
 import { filterNotEmpty } from 'utils/array-utils';
-import { SuggestedSwitch } from 'linking/linking-model';
-import { getSuggestedSwitchByPoint } from 'linking/linking-api';
+import { PlacingSwitch } from 'linking/linking-model';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -45,8 +45,8 @@ type SwitchInfoboxProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
     onUnselect: (switchId: LayoutSwitchId) => void;
-    clickLocation: Point | null;
-    startSwitchLinking: (suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch) => void
+    placingSwitchLinkingState?: PlacingSwitch;
+    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void
 };
 
 export type SwitchTrackMeter = {
@@ -133,8 +133,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     changeTimes,
     publishType,
     onUnselect,
-    clickLocation,
-    startSwitchLinking,
+    placingSwitchLinkingState,
+    startSwitchPlacing,
 }: SwitchInfoboxProps) => {
     const {t} = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
@@ -175,6 +175,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+    const canStartPlacing = placingSwitchLinkingState == undefined && layoutSwitch != undefined;
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -200,15 +201,9 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         return name ?? '-';
     };
 
-    function tryToStartSwitchLinking() {
-        if (clickLocation && layoutSwitch) {
-            getSuggestedSwitchByPoint(clickLocation, layoutSwitch.switchStructureId)
-                .then((suggestedSwitches) => {
-                    if (suggestedSwitches.length) {
-                        console.log(suggestedSwitches[0]);
-                        startSwitchLinking(suggestedSwitches[0], layoutSwitch);
-                    }
-                });
+    function tryToStartSwitchPlacing() {
+        if (layoutSwitch) {
+            startSwitchPlacing(layoutSwitch);
         }
     }
 
@@ -294,8 +289,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             publishType={publishType}
                         />
                     )}
-                    <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}
-                            onClick={tryToStartSwitchLinking}>{t('tool-panel.switch.layout.start-linking')}</Button>
+                    <InfoboxButtons>
+                        <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}
+                                disabled={!canStartPlacing}
+                                onClick={tryToStartSwitchPlacing}>{t('tool-panel.switch.layout.start-switch-placing')}</Button>
+                    </InfoboxButtons>
+                    {placingSwitchLinkingState &&
+                    <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
+                    }
                 </InfoboxContent>
             </Infobox>
             <Infobox
