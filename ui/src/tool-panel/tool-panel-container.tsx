@@ -4,6 +4,8 @@ import { MapContext } from 'map/map-store';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
 import { createDelegates } from 'store/store-utils';
+import { SuggestedSwitch } from 'linking/linking-model';
+import { LayoutSwitch } from 'track-layout/track-layout-model';
 
 const ToolPanelContainer: React.FC = () => {
     const context = React.useContext(MapContext);
@@ -23,6 +25,16 @@ const ToolPanelContainer: React.FC = () => {
         () => store.selection.selectedItems.switches.map((sw) => sw.id),
         [store.selection.selectedItems.switches],
     );
+
+    const startSwitchLinking = React.useCallback(function (suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch) {
+        delegates.onSelect({
+            suggestedSwitches: [suggestedSwitch],
+        });
+        delegates.startSwitchLinking(suggestedSwitch);
+        delegates.onSelect({
+            switches: [layoutSwitch],
+        });
+    }, []);
 
     return (
         <ToolPanel
@@ -45,6 +57,8 @@ const ToolPanelContainer: React.FC = () => {
             onUnselect={delegates.onUnselect}
             setSelectedTabId={delegates.setToolPanelTab}
             selectedTabId={store.selectedToolPanelTabId}
+            clickLocation={store.map.clickLocation}
+            startSwitchLinking={startSwitchLinking}
         />
     );
 };

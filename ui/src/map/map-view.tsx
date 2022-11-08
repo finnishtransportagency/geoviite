@@ -48,8 +48,6 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { createDebugLayerAdapter, DebugLayerFeatureType } from 'map/layers/debug-layer';
 import { createDebug1mPointsLayerAdapter, Debug1mPointsLayerFeatureType } from './layers/debug-1m-points-layer';
-import { useLoader } from 'utils/react-utils';
-import { getSuggestedSwitchByPoint } from 'linking/linking-api';
 
 declare global {
     interface Window {
@@ -395,29 +393,6 @@ const MapView: React.FC<MapViewProps> = ({
         publishType,
         linkingState,
     ]);
-
-    useLoader(
-        () => {
-            const layoutSwitch = selection.selectedItems.switches[0];
-            console.log('coordinate', map.clickLocation, 'layoutSwitch', layoutSwitch);
-            if (map.clickLocation && layoutSwitch) {
-                getSuggestedSwitchByPoint(
-                    map.clickLocation,
-                    layoutSwitch.switchStructureId,
-                ).then(suggestedSwitches => {
-                    if (suggestedSwitches.length) {
-                        onSelect({
-                            suggestedSwitches: suggestedSwitches.slice(0, 1),
-                        });
-                    }
-                    console.log('Suggested switches:', suggestedSwitches);
-                });
-            }
-            return undefined;
-        },
-        [map.clickLocation],
-    );
-
 
     return (
         <div className={styles.map}>

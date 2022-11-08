@@ -20,10 +20,7 @@ import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
 import SwitchInfobox from 'tool-panel/switch/switch-infobox';
 import GeometrySwitchInfobox from 'tool-panel/switch/geometry-switch-infobox';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
-import {
-    OptionalUnselectableItemCollections,
-    SelectedGeometryItem,
-} from 'selection/selection-model';
+import { OptionalUnselectableItemCollections, SelectedGeometryItem } from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
 import { ChangeTimes } from 'track-layout/track-layout-store';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
@@ -31,12 +28,7 @@ import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import GeometryKmPostInfoboxContainer from 'tool-panel/km-post/geometry-km-post-infobox-container';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
-import {
-    getKmPost,
-    getLocationTrack,
-    getSwitch,
-    getTrackNumbers,
-} from 'track-layout/track-layout-api';
+import { getKmPost, getLocationTrack, getSwitch, getTrackNumbers } from 'track-layout/track-layout-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
 import { useLoader } from 'utils/react-utils';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
@@ -61,6 +53,8 @@ type ToolPanelProps = {
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     selectedTabId: string | undefined;
     setSelectedTabId: (id: string | undefined) => void;
+    clickLocation: Point | null;
+    startSwitchLinking: (suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch) => void;
 };
 
 type ToolPanelTab = {
@@ -89,6 +83,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     onUnselect,
     selectedTabId,
     setSelectedTabId,
+    clickLocation,
+    startSwitchLinking,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -99,7 +95,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     );
 
     const onUnSelectLocationTracks = React.useCallback((track: LayoutLocationTrack) => {
-        onUnselect({ locationTracks: [track.id] });
+        onUnselect({locationTracks: [track.id]});
     }, []);
 
     const onUnSelectSwitches = React.useCallback((switchId: LayoutSwitchId) => {
@@ -149,7 +145,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const trackNumbers = (tracksSwitchesKmPosts && tracksSwitchesKmPosts[3]) || [];
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
-    const visibleByTypeAndPublishType = ({ draftType }: { draftType: DraftType }) =>
+    const visibleByTypeAndPublishType = ({draftType}: { draftType: DraftType }) =>
         publishType === 'DRAFT' || draftType !== 'NEW_DRAFT';
 
     React.useEffect(() => {
@@ -160,7 +156,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             return {
                 id: 'plan-header_' + p.id,
                 title: p.fileName,
-                element: <GeometryPlanInfobox planHeader={p} />,
+                element: <GeometryPlanInfobox planHeader={p}/>,
             };
         });
 
@@ -211,7 +207,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             return {
                 id: 'geometry-km-post_' + k.geometryItem.id,
                 title: k.geometryItem.kmNumber,
-                element: <GeometryKmPostInfoboxContainer geometryKmPost={k} showArea={showArea} />,
+                element: <GeometryKmPostInfoboxContainer geometryKmPost={k} showArea={showArea}/>,
             };
         });
 
@@ -227,6 +223,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         changeTimes={changeTimes}
                         onDataChange={onDataChange}
                         onUnselect={onUnSelectSwitches}
+                        clickLocation={clickLocation}
+                        startSwitchLinking={startSwitchLinking}
                     />
                 ),
             };

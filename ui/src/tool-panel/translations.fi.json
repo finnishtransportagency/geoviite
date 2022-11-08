@@ -76,7 +76,8 @@
                 "joint-number-title": "Vaihteen piste",
                 "location-tracks-end-at-joint-title": "Vaihteelle päättyvä raide",
                 "point": "piste",
-                "unpublished": "Julkaisematon"
+                "unpublished": "Julkaisematon",
+                "start-linking": "Aloita linkitys"
             },
             "geometry": {
                 "geometry-title": "Raidegeometria: vaihde",

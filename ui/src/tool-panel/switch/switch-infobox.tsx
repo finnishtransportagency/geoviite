@@ -35,6 +35,8 @@ import { ChangeTimes } from 'track-layout/track-layout-store';
 import { Point } from 'model/geometry';
 import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track-meters';
 import { filterNotEmpty } from 'utils/array-utils';
+import { SuggestedSwitch } from 'linking/linking-model';
+import { getSuggestedSwitchByPoint } from 'linking/linking-api';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -43,6 +45,8 @@ type SwitchInfoboxProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
     onUnselect: (switchId: LayoutSwitchId) => void;
+    clickLocation: Point | null;
+    startSwitchLinking: (suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch) => void
 };
 
 export type SwitchTrackMeter = {
@@ -129,8 +133,10 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     changeTimes,
     publishType,
     onUnselect,
+    clickLocation,
+    startSwitchLinking,
 }: SwitchInfoboxProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const layoutSwitch = useLoader(
@@ -194,6 +200,18 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         return name ?? '-';
     };
 
+    function tryToStartSwitchLinking() {
+        if (clickLocation && layoutSwitch) {
+            getSuggestedSwitchByPoint(clickLocation, layoutSwitch.switchStructureId)
+                .then((suggestedSwitches) => {
+                    if (suggestedSwitches.length) {
+                        console.log(suggestedSwitches[0]);
+                        startSwitchLinking(suggestedSwitches[0], layoutSwitch);
+                    }
+                });
+        }
+    }
+
     return (
         <React.Fragment>
             {layoutSwitch && (
@@ -226,7 +244,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxField
                             label={t('tool-panel.switch.layout.state-category')}
                             value={
-                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
+                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory}/>
                             }
                             onEdit={openEditSwitchDialog}
                             iconDisabled={isOfficial()}
@@ -249,11 +267,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 <InfoboxContent>
                     <p>{switchStructure ? switchStructure.type : ''}</p>
                     {SwitchImage && (
-                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
+                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT}/>
                     )}
                     <InfoboxField
                         label={t('tool-panel.switch.layout.hand')}
-                        value={switchStructure && <SwitchHand hand={switchStructure.hand} />}
+                        value={switchStructure && <SwitchHand hand={switchStructure.hand}/>}
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.layout.trap-point')}
@@ -276,6 +294,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             publishType={publishType}
                         />
                     )}
+                    <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}
+                            onClick={tryToStartSwitchLinking}>{t('tool-panel.switch.layout.start-linking')}</Button>
                 </InfoboxContent>
             </Infobox>
             <Infobox
