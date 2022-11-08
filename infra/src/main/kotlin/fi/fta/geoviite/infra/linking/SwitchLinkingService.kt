@@ -1114,13 +1114,19 @@ class SwitchLinkingService @Autowired constructor(
     fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? {
         val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
         val alignmentSearchAreaSize = 2.0
-        val switchAreaBbox = BoundingBox(
+        val alignmentSearchArea = BoundingBox(
             Point(0.0, 0.0),
             Point(alignmentSearchAreaSize, alignmentSearchAreaSize)
         ).centerAt(location)
         val nearbyLocationTracks = locationTrackService
-            .listNearWithAlignments(DRAFT, switchAreaBbox)
+            .listNearWithAlignments(DRAFT, alignmentSearchArea)
             .filter { (locationTrack, _) -> locationTrack.state == LayoutState.IN_USE }
+            .filter { (_, alignment) ->
+                alignment.segments.any { segment ->
+                    alignmentSearchArea.intersects(segment.boundingBox) &&
+                            segment.points.any { point -> alignmentSearchArea.contains(point) }
+                }
+            }
 
         return createSuggestedSwitchByPoint(
             location,
