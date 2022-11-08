@@ -15,14 +15,20 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { LayoutMode } from 'common/common-model';
 import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
+import { EnvRestricted } from 'environment/env-restricted';
+import { useTranslation } from 'react-i18next';
 
 type MainProps = {
     layoutMode: LayoutMode;
 };
 
 const Main: React.VFC<MainProps> = (props: MainProps) => {
+    const { t } = useTranslation();
     return (
         <div className={styles.main}>
+            <EnvRestricted restrictTo="test">
+                <div className={styles['main__env-banner']}>{t('environment.test')}</div>
+            </EnvRestricted>
             <AppBar />
             <div className={styles.main__content} qa-id="main-content-container">
                 <Routes>
