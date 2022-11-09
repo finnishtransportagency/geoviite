@@ -31,3 +31,4 @@ If you notice a bug or a security defect, please report it via mail at <TBD: sup
 - Bash
 - 7zip
 - wget (in Mac)
+- 

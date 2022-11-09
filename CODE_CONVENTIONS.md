@@ -6,7 +6,7 @@
 - Review comments can be in a language of your choosing
 
 ## Documentation
-- Use code comments where needed - not by default 
+- Use code comments where needed -- not by default 
   - Don't say in comment what the code says (don't duplicate). This is redundant:
    ```
       // Find the first X from Y, that qualifies Z
@@ -21,15 +21,18 @@
 - Write technical documentation as .md files in the repository
 - Specific instructions for particular tasks can be done as extra README_HOWTO_X.md
   - If it's a CMD instruction, write it in .sh instead. Then you don't need to read it, you can just run it.
-- Other documentation can be collected in confluence. Link to github as needed.
+- Other documentation can be collected in confluence. Link to GitHub as needed.
 
 ## Naming and Packaging
 - Avoid extraneous names that only state the obvious (...Object or ...Class in a classname is silly)
-- Avoid generic names that state nothing at all (Util says nothing - everything is an util). 
+- Avoid generic names that state nothing at all (Util says nothing -- everything is an util). 
   - Instead, group static functions by concept and name that (Clothoid, GeometryValidation, ...)
 - Split packages by domain concepts, not technical ones
   - Good: inframodel, tracklayout, ...
   - Bad: views, database, ...
+- Scripts and readmes `snake_case` 
+- Frontend packages, files and folders `kebab-case`
+- Backend packages `camelCase`
 
 ## Backend Structure
 - Create own package for each domain area / API
@@ -49,7 +52,7 @@
 ### DAO
 - Stores and loads domain model objects
 - The DAOs should be the only classes that know about the database 
-- DAOs should not contain any business logic - they server only to store and load data
+- DAOs should not contain any business logic -- they serve only to store and load data
 
 ### Domain Model
 - Major domain concepts that are shared throughout the application
@@ -79,7 +82,7 @@
 - Conversion logic and customizing
   - Spring exceptions that clearly indicate their nature (API errors like wrong path, etc.) are converted to 4xx errors to client
     - This is especially useful for request arguments: validate the API-function input arguments in their constructors and any failure will automatically fall in this category. *You don't need to implement anything else!*
-    - Customizable in `ErrorHandling.kt` - note that this is by-error-type, so only customize if you know that all exceptions of that type need to be handled in a particular way. For call-site specific logic, use `ClientException`.
+    - Customizable in `ErrorHandling.kt`: note that this is by-error-type, so only customize if you know that all exceptions of that type need to be handled in a particular way. For call-site specific logic, use `ClientException`.
   - Any exception that is defined as a `ClientException` is converted to 4xx errors to client
     - You can inherit this exception (or use generic one) and throw it anywhere in your logic to produce the desired error-response. *You don't need to pass error-info in the return values throughout the call-chain*
     - You can provide ClientException with a localized message key that will be passed to the UI for displaying user-understandable error messages
@@ -94,6 +97,9 @@
 - Favor immutable objects and pure functions where possible
 - Try to "Make illegal states unrepresentable" rather than creating separate validation and checks
   - = Use the type system to define your objects so that they cannot be built with invalid or partial values
+
+### JavaScript/TypeScript
+- For a unified style, use prettier and configure it to format on-save
 
 ### Kotlin
 - Favor named variables in lambdas, rather than using the default "it"
@@ -111,7 +117,7 @@
     - This won't init DB-connections, so running SQL will fail run-time
 - Database tests are written in files ending `...IT.kt`
   - These can use the Spring context to access Controller/Service/DAO classes and use the DB
-  - Test SQL with these - don't mock the DB
+  - Test SQL with these -- don't mock the DB
 - E2E tests are written in files ending `UI.kt`
   - Just like IT-tests, you can use the full Spring context, particularly for initializing data
   - Use Selenium for manipulating the browser
@@ -129,11 +135,11 @@
 - Write SQL in DAO-code used with JDBC
   - Exception: Migrations as separate SQL files for Flyway
   - Keep JDBC params close to the SQL (in the function) rather than separate constants
-- Don't shout keywords - Leave it for the IDE to highlight them
+- Don't shout keywords -- Leave it for the IDE to highlight them
   - Good: `select * from gvt.alignment where ...`
   - Bad: `SELECT * FROM gvt.alignment WHERE ...`
 - Read data from ResultSet by column name, rather than index
   - Good: `jdbcTemplate.query("select id from gvt.alignment") { rs -> rs.getInt("id" ) }`
   - Bad: `jdbcTemplate.query("select id from gvt.alignment") { rs -> rs.getInt(1) }`
-- Pass SQL parameters as named params - don't string-concatenate
+- Pass SQL parameters as named params -- don't string-concatenate
 - Favor `timestamptz` over `timestamp` for sql time stamps

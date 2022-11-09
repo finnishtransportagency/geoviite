@@ -42,9 +42,9 @@ data class SwitchJointChange(
     val address: TrackMeter,
     val point: Point,
     val locationTrackId: IntId<LocationTrack>,
-    val locationTrackExternalId: Oid<LocationTrack>,
+    val locationTrackExternalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val trackNumberExternalId: Oid<TrackLayoutTrackNumber>
+    val trackNumberExternalId: Oid<TrackLayoutTrackNumber>?
 )
 
 data class SwitchChange(
@@ -238,14 +238,6 @@ class CalculatedChangesService(
             currentLocationTrack.trackNumberId
         )
 
-        checkNotNull(currentLocationTrack.externalId) {
-            "Cannot calculate switch changes with missing location track oid $currentLocationTrack"
-        }
-
-        checkNotNull(currentTrackNumber.externalId) {
-            "Cannot calculate switch changes with missing track number oid $currentTrackNumber"
-        }
-
         val currentGeocodingContext = geocodingService.getGeocodingContext(
             currentPublishType,
             currentLocationTrack.trackNumberId
@@ -280,18 +272,6 @@ class CalculatedChangesService(
             switch.joint.number == joint.number
         }.mapNotNull { switch ->
             oldLocationTrack?.let {
-                checkNotNull(oldTrackNumber) {
-                    "Cannot calculate switch changes. Location track with missing track number $oldLocationTrack"
-                }
-
-                checkNotNull(oldLocationTrack.externalId) {
-                    "Cannot calculate switch changes with missing location track oid $oldLocationTrack"
-                }
-
-                checkNotNull(oldTrackNumber.externalId) {
-                    "Cannot calculate switch changes with missing track number oid $oldTrackNumber"
-                }
-
                 SwitchChange(
                     switchId = switch.first,
                     changedJoints = switch.second.map { changeData ->
@@ -303,7 +283,7 @@ class CalculatedChangesService(
                             locationTrackId = oldLocationTrack.id as IntId,
                             locationTrackExternalId = oldLocationTrack.externalId,
                             trackNumberId = oldLocationTrack.trackNumberId,
-                            trackNumberExternalId = oldTrackNumber.externalId
+                            trackNumberExternalId = oldTrackNumber?.externalId
                         )
                     }
                 )
