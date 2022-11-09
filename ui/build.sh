@@ -19,5 +19,5 @@ set -e
 echo "Installing NPM Dependencies..."
 npm ci
 echo "Building frontend..."
-npm run build -- --env geoviiteUiVersion=$BUILD_TIMESTAMP --env geoviiteHash=$2
+npm run build --
 cp ../LICENSE.txt dist/

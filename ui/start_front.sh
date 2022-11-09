@@ -9,4 +9,4 @@ set +e
 nvm use
 set -e
 npm ci
-npm start -- --env geoviiteUiVersion=DEV --env geoviiteHash=hash
+npm start --

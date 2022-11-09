@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styles from './version-holder-view.scss';
+import { getEnvironmentInfo } from 'environment/environment-info';
 
 export const VersionHolderView: React.FC = () => {
     const clearStorage = () => {
@@ -10,9 +11,11 @@ export const VersionHolderView: React.FC = () => {
         }
     };
 
+    const version = getEnvironmentInfo()?.releaseVersion;
+
     return (
         <div className={styles['version-holder-view']} onClick={clearStorage}>
-            {GEOVIITE_UI_VERSION || 'Geoviite'} {(GEOVIITE_HASH || '').substring(0, 8)}
+            {version && version.substring(0, 8)}
         </div>
     );
 };

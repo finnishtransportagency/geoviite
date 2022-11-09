@@ -173,5 +173,8 @@
             "UPDATE": "päivitys",
             "DELETE": "poisto"
         }
+    },
+    "environment": {
+        "test": "Testiympäristö"
     }
 }
