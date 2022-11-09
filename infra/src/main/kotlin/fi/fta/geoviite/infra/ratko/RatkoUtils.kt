@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
@@ -7,6 +8,7 @@ import fi.fta.geoviite.infra.tracklayout.AlignmentAddresses
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.*
 
 private fun sameNodeAddress(node1: RatkoNode?, node2: RatkoNode?): Boolean {
     if (node1 == null || node2 == null) {
@@ -72,6 +74,7 @@ fun asSwitchTypeString(switchType: SwitchType): String {
 }
 
 fun sortByDeletedStateFirst(layoutState: LayoutState) = if (layoutState == LayoutState.DELETED) 0 else 1
+fun sortByNullDuplicateOfFirst(duplicateOf: IntId<LocationTrack>?) = if (duplicateOf == null) 0 else 1
 
 fun sortByDeletedStateFirst(layoutStateCategory: LayoutStateCategory) =
     if (layoutStateCategory == LayoutStateCategory.NOT_EXISTING) 0 else 1
