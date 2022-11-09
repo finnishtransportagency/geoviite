@@ -35,7 +35,7 @@ private const val SCHEMA_LOCATION = "/xml/inframodel.xsd"
 const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
 
-data class ParsingError(private val key: String): ValidationError {
+data class ParsingError(private val key: String) : ValidationError {
     override val errorType = ErrorType.PARSING_ERROR
     override val localizationKey = LocalizationKey(key)
 }
@@ -45,14 +45,15 @@ private val jaxbContext: JAXBContext by lazy { JAXBContext.newInstance(InfraMode
 private val schema: Schema by lazy {
     val language = W3C_XML_SCHEMA_NS_URI
     val factory = SchemaFactory.newInstance(language)
-    factory.newSchema(InfraModel::class.java.getResource(SCHEMA_LOCATION)
-        ?: throw IllegalArgumentException("Failed to load schema from classpath:$SCHEMA_LOCATION")
+    factory.newSchema(
+        InfraModel::class.java.getResource(SCHEMA_LOCATION)
+            ?: throw IllegalArgumentException("Failed to load schema from classpath:$SCHEMA_LOCATION")
     )
 }
 
 val unmarshaller: Unmarshaller by lazy { jaxbContext.createUnmarshaller() }
 
-val marshaller: Marshaller by lazy {  jaxbContext.createMarshaller() }
+val marshaller: Marshaller by lazy { jaxbContext.createMarshaller() }
 
 private val saxParserFactory: SAXParserFactory by lazy {
     val spf = SAXParserFactory.newInstance()
@@ -89,30 +90,51 @@ fun parseGeometryPlan(
     fileName: String = file.name,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, fileToString(file))
-    return parseFromString(imFile, coordinateSystems, switchStructuresByType, trackNumberIdsByNumber) to imFile
+    return parseFromString(
+        imFile,
+        coordinateSystems,
+        switchStructuresByType,
+        switchTypeNameAliases,
+        trackNumberIdsByNumber
+    ) to imFile
 }
 
 fun parseGeometryPlan(
     file: MultipartFile,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file))
-    return parseFromString(imFile, coordinateSystems, switchStructuresByType, trackNumberIdsByNumber) to imFile
+    return parseFromString(
+        imFile,
+        coordinateSystems,
+        switchStructuresByType,
+        switchTypeNameAliases,
+        trackNumberIdsByNumber
+    ) to imFile
 }
 
 fun parseFromClasspath(
     fileName: String,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, classpathResourceToString(fileName))
-    return parseFromString(imFile, coordinateSystems, switchStructuresByType, trackNumberIdsByNumber) to imFile
+    return parseFromString(
+        imFile,
+        coordinateSystems,
+        switchStructuresByType,
+        switchTypeNameAliases,
+        trackNumberIdsByNumber
+    ) to imFile
 }
 
 fun toInfraModelFile(fileName: String, fileContent: String) =
@@ -122,6 +144,7 @@ fun parseFromString(
     file: InfraModelFile,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
     return toGvtPlan(
@@ -129,6 +152,7 @@ fun parseFromString(
         stringToInfraModel(file.content),
         coordinateSystems,
         switchStructuresByType,
+        switchTypeNameAliases,
         trackNumberIdsByNumber,
     )
 }

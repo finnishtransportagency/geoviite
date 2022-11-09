@@ -97,6 +97,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                 val trackNumberDao = LayoutTrackNumberDao(jdbcTemplate)
                 val geometryDao = GeometryDao(jdbcTemplate, kkJtoETRSTriangulationDao)
                 val trackNumberIdsByNumber = trackNumberDao.getTrackNumberToIdMapping()
+                val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
 
                 importWithSubFolders(
                     geometryDao,
@@ -104,6 +105,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     GEOMETRIAPALVELU,
                     csMap,
                     switchStructures,
+                    switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
                     UNVERIFIED_DESIGNED_GEOMETRY,
@@ -114,6 +116,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     PAIKANNUSPALVELU,
                     csMap,
                     switchStructures,
+                    switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
                 )
@@ -145,6 +148,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
         type: PlanSource,
         csMap: Map<CoordinateSystemName, Srid>,
         switchStructures: List<SwitchStructure>,
+        switchTypeNameAliases: Map<String, String>,
         featureTypes: List<FeatureType>,
         trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
         defaultMeasurementMethod: MeasurementMethod? = null,
@@ -169,6 +173,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     "${dirName}${xmlFile.name}",
                     csMap,
                     switchStructuresByType,
+                    switchTypeNameAliases,
                     trackNumberIdsByNumber,
                 ).let { (plan, file) -> (if (metadata == null) plan else setMetadata(plan, metadata)) to file }
                 val validationIssues = validate(plan, featureTypes, switchStructuresById)
