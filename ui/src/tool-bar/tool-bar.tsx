@@ -192,7 +192,6 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     options={memoizedDebouncedGetOptions}
                     searchable
                     onChange={onItemSelected}
-                    canUnselect={true}
                     size={DropdownSize.STRETCH}
                     wideList
                     qaId="search-box"
