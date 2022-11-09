@@ -82,8 +82,8 @@ data class AlignmentCsvMetaData<T>(
     val metadataSrid: Srid?,
 ) {
     init {
-        if (startMeter > endMeter) {
-            LOG.error("Alignment metadata must start before it ends. startMeter > endMeter: $startMeter > $endMeter oid: $metadataOid")
+        require (startMeter < endMeter) {
+            "Alignment metadata must start before it ends: start=$startMeter end=$endMeter alignment=$metadataOid"
         }
     }
 }
@@ -109,25 +109,33 @@ fun createReferenceLineMetadataFromCsv(
     geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
 ): List<AlignmentCsvMetaData<ReferenceLine>> {
     return metadataFile.parseLines { line ->
-        val fileName = line.getNonEmpty(ReferenceLineMetaColumns.FILE_NAME)
-        val alignmentName = line.getNonEmpty(ReferenceLineMetaColumns.ALIGNMENT_NAME)
-        val geometry =
-            if (fileName != null && alignmentName != null) geometryProvider(
-                FileName(fileName),
-                AlignmentName(alignmentName)
-            )
-            else null
+        val alignmentOid = line.getOid<ReferenceLine>(ReferenceLineMetaColumns.ALIGNMENT_EXTERNAL_ID)
+        val startMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_START))
+        val endMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_END))
+        if (startMeter < endMeter) {
+            val fileName = line.getNonEmpty(ReferenceLineMetaColumns.FILE_NAME)
+            val alignmentName = line.getNonEmpty(ReferenceLineMetaColumns.ALIGNMENT_NAME)
+            val geometry =
+                if (fileName != null && alignmentName != null) geometryProvider(
+                    FileName(fileName),
+                    AlignmentName(alignmentName)
+                )
+                else null
 
-        AlignmentCsvMetaData(
-            alignmentOid = Oid(line.get(ReferenceLineMetaColumns.ALIGNMENT_EXTERNAL_ID)),
-            metadataOid = Oid(line.get(ReferenceLineMetaColumns.ALIGNMENT_EXTERNAL_ID)),
-            startMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_START)),
-            endMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_END)),
-            createdYear = line.getInt(ReferenceLineMetaColumns.CREATED_YEAR),
-            geometry = geometry,
-            metadataSrid = line.getNonEmpty(ReferenceLineMetaColumns.ORIGINAL_CRS)
-                ?.let { getEpsgCodeOrNull(it) }
-        )
+            AlignmentCsvMetaData(
+                alignmentOid = alignmentOid,
+                metadataOid = Oid(alignmentOid.stringValue),
+                startMeter = startMeter,
+                endMeter = endMeter,
+                createdYear = line.getInt(ReferenceLineMetaColumns.CREATED_YEAR),
+                geometry = geometry,
+                metadataSrid = line.getNonEmpty(ReferenceLineMetaColumns.ORIGINAL_CRS)
+                    ?.let { getEpsgCodeOrNull(it) }
+            )
+        } else {
+            LOG.warn("Invalid reference line metadata segment (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
+            null
+        }
     }
 }
 
@@ -601,21 +609,30 @@ fun createAlignmentMetadataFromCsv(
     geometryProvider: (fileName: String, alignmentName: String) -> AlignmentImportGeometry?,
 ): List<AlignmentCsvMetaData<LocationTrack>> {
     return metadataFile.parseLines { line ->
-        val fileName = line.getNonEmpty(AlignmentMetaColumns.FILE_NAME)
-        val alignmentName = line.getNonEmpty(AlignmentMetaColumns.ALIGNMENT_NAME)
-        val geometry =
-            if (fileName != null && alignmentName != null) geometryProvider(fileName, alignmentName)
-            else null
-        AlignmentCsvMetaData(
-            alignmentOid = Oid(line.get(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)),
-            metadataOid = Oid(line.get(AlignmentMetaColumns.ASSET_EXTERNAL_ID)),
-            startMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_START)),
-            endMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_END)),
-            createdYear = line.getInt(AlignmentMetaColumns.CREATED_YEAR),
-            geometry = geometry,
-            metadataSrid = line.getNonEmpty(AlignmentMetaColumns.ORIGINAL_CRS)
-                ?.let { getEpsgCodeOrNull(it) }
-        )
+        val alignmentOid = line.getOid<LocationTrack>(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)
+        val metaDataOid = line.getOid<AlignmentCsvMetaData<LocationTrack>>(AlignmentMetaColumns.ASSET_EXTERNAL_ID)
+        val startMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_START))
+        val endMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_END))
+        if (startMeter < endMeter) {
+            val fileName = line.getNonEmpty(AlignmentMetaColumns.FILE_NAME)
+            val alignmentName = line.getNonEmpty(AlignmentMetaColumns.ALIGNMENT_NAME)
+            val geometry =
+                if (fileName != null && alignmentName != null) geometryProvider(fileName, alignmentName)
+                else null
+            AlignmentCsvMetaData(
+                alignmentOid = alignmentOid,
+                metadataOid = metaDataOid,
+                startMeter = startMeter,
+                endMeter = endMeter,
+                createdYear = line.getInt(AlignmentMetaColumns.CREATED_YEAR),
+                geometry = geometry,
+                metadataSrid = line.getNonEmpty(AlignmentMetaColumns.ORIGINAL_CRS)
+                    ?.let { getEpsgCodeOrNull(it) }
+            )
+        } else {
+            LOG.warn("Invalid LocationTrack metadata range (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
+            null
+        }
     }
 }
 
@@ -628,18 +645,11 @@ fun <T> createSegments(
     connectionSegmentIndices: List<Int> = listOf(),
 ): List<LayoutSegment> {
 
-    val elementMetadatas = alignmentMetadata.flatMapIndexed { index, metadata ->
-        val extended =
-            if (index == 0 &&
-                points.first().trackMeter.ceil().isSame(metadata.startMeter.ceil())) {
-                metadata.copy(startMeter = points.first().trackMeter)
-            } else if (index == alignmentMetadata.lastIndex &&
-                points.last().trackMeter.floor().isSame(metadata.endMeter.floor())) {
-                metadata.copy(endMeter = points.last().trackMeter)
-            } else metadata
-        getGeometryElementRanges(points, extended, kkjToEtrsTriangulationTriangles)
+    val elementMetadatas = alignmentMetadata.flatMap { metadata ->
+        getGeometryElementRanges(points, metadata, kkjToEtrsTriangulationTriangles)
     }
-    val metadataSegments = segmentCsvMetadata(points, elementMetadatas, switchLinks)
+    val expandedMetadata = adjustMetadataToSwitchLinks(elementMetadatas, switchLinks)
+    val metadataSegments = segmentCsvMetadata(points, expandedMetadata, switchLinks)
     val segmentedPoints = dividePointsToSegments(points, metadataSegments, HashSet(connectionSegmentIndices))
 
     var start = 0.0
@@ -689,29 +699,6 @@ data class SegmentFullMetaDataRange(
 )
 
 fun emptyCsvMetaData(range: ClosedRange<TrackMeter>) = SegmentCsvMetaDataRange(range, null, null)
-
-/**
- * Moves the start/end of metadata to the location of nearby switch joint,
- * if that joint is close enough.
- */
-fun expandMetadataEndingsBySwitchJointLocations(
-    metadataCollection: List<ElementCsvMetadata>,
-    switchAddressRanges: List<ClosedRange<TrackMeter>>,
-    addressesAreCloseEnough: (metadataAddress: TrackMeter, switchAddress: TrackMeter) -> Boolean
-): List<ElementCsvMetadata> {
-    return metadataCollection.map { metadata ->
-        val start = switchAddressRanges.find { switchKmRange ->
-            addressesAreCloseEnough(metadata.startMeter, switchKmRange.start)
-        }?.start ?: metadata.startMeter
-        val end = switchAddressRanges.find { switchKmRange ->
-            addressesAreCloseEnough(metadata.endMeter, switchKmRange.endInclusive)
-        }?.endInclusive ?: metadata.endMeter
-        metadata.copy(
-            startMeter = start,
-            endMeter = end
-        )
-    }
-}
 
 /**
  * Maps switch links to modified track meter range. E.g. the new range of
@@ -764,29 +751,31 @@ fun getSwitchLinkTrackMeterRanges(
     }.toMap()
 }
 
+fun adjustMetadataToSwitchLinks(
+    metadata: List<ElementCsvMetadata>,
+    switchLinks: List<AlignmentSwitchLink>,
+): List<ElementCsvMetadata> {
+    val allSwitchLinkAddresses = switchLinks.flatMap { sl -> listOf(sl.startMeter, sl.endMeter) }
+    return metadata.mapNotNull { md ->
+        val adjustedStart = getAdjustedAddress(md.startMeter, allSwitchLinkAddresses)
+        val adjustedEnd = getAdjustedAddress(md.endMeter, allSwitchLinkAddresses)
+        if (adjustedStart == md.startMeter && adjustedEnd == md.endMeter) md
+        else if (adjustedStart >= adjustedEnd) null
+        else md.copy(startMeter = adjustedStart, endMeter = adjustedEnd)
+    }
+}
+
+fun getAdjustedAddress(point: TrackMeter, snapPoints: List<TrackMeter>): TrackMeter =
+    snapPoints.find { snap -> point.ceil() == snap.ceil() || point.floor() == snap.floor() } ?: point
+
 fun segmentCsvMetadata(
     points: List<AddressPoint>,
     metadata: List<ElementCsvMetadata>,
     switchLinks: List<AlignmentSwitchLink>,
 ): List<SegmentCsvMetaDataRange> {
-    val expandedMetadata = expandMetadataEndingsBySwitchJointLocations(
-        metadata,
-        switchLinks.map { switchLink ->
-            switchLink.startMeter..switchLink.endMeter
-        }
-    ) { metadataAddress, switchJointAddress ->
-        if (switchJointAddress < metadataAddress) {
-            // check if the metadata address should include previous switch address
-            // e.g. metadata address 001+0752 should be expanded to switch address 001+0751.343
-            metadataAddress.ceil() == switchJointAddress.ceil()
-        } else {
-            // e.g. metadata address 001+0813 should be expanded to switch address 001+0813.512
-            metadataAddress.floor() == switchJointAddress.floor()
-        }
-    }
     val switchLinkByRange = getSwitchLinkTrackMeterRanges(
         switchLinks,
-        expandedMetadata.map { md -> md.startMeter..md.endMeter },
+        metadata.map { md -> md.startMeter..md.endMeter },
         points.first().trackMeter,
         points.last().trackMeter
     )
@@ -799,7 +788,7 @@ fun segmentCsvMetadata(
     var switchIndex = 0
     while (currentMeter < endMeter) {
         while (switchIndex < switchLinkRanges.size && switchLinkRanges[switchIndex].endInclusive <= currentMeter) switchIndex++
-        while (metaDataIndex < expandedMetadata.size && expandedMetadata[metaDataIndex].endMeter <= currentMeter) metaDataIndex++
+        while (metaDataIndex < metadata.size && metadata[metaDataIndex].endMeter <= currentMeter) metaDataIndex++
 
         val nextSwitchRange = switchLinkRanges.getOrNull(switchIndex)
         val nextSwitchMeter = when {
@@ -807,7 +796,7 @@ fun segmentCsvMetadata(
             nextSwitchRange.start > currentMeter -> nextSwitchRange.start
             else -> nextSwitchRange.endInclusive
         }
-        val nextMetadata = expandedMetadata.getOrNull(metaDataIndex)
+        val nextMetadata = metadata.getOrNull(metaDataIndex)
         val nextMetadataMeter = nextMetadata?.getNextMeter(currentMeter)
         val nextMeter = minNonNull(nextSwitchMeter, nextMetadataMeter) ?: endMeter
 
@@ -815,14 +804,15 @@ fun segmentCsvMetadata(
             if (nextSwitchRange != null && nextSwitchRange.contains(currentMeter)) switchLinkByRange[nextSwitchRange]
             else null
 
+        val segmentEndMeter = if (nextMeter > endMeter) endMeter else nextMeter
         segmentRanges.add(
             SegmentCsvMetaDataRange(
-                meters = currentMeter..nextMeter,
-                metadata = expandedMetadata.getOrNull(metaDataIndex)?.takeIf { md -> md.includes(currentMeter) },
+                meters = currentMeter..segmentEndMeter,
+                metadata = metadata.getOrNull(metaDataIndex)?.takeIf { md -> md.includes(currentMeter) },
                 switchLink = switchLinkInCurrentMeter,
             )
         )
-        currentMeter = nextMeter
+        currentMeter = segmentEndMeter
     }
 
     return segmentRanges.flatMap(::breakRangeByKmLimits)
@@ -836,7 +826,9 @@ data class ElementCsvMetadata(
     val geometrySrid: Srid?,
 ) {
     init {
-        if (startMeter > endMeter) LOG.error("Alignment metadata must start before it ends. startMeter > endMeter: $startMeter > $endMeter")
+        require (startMeter < endMeter) {
+            "Element metadata must start before it ends: start=$startMeter end=$endMeter element=$geometryElement"
+        }
     }
 
     fun includes(meter: TrackMeter): Boolean = meter >= startMeter && meter < endMeter
@@ -867,6 +859,12 @@ fun <T> getGeometryElementRanges(
     if (points.size < 2) return listOf(noElementsCsvMetadata(alignment))
 
     try {
+        LOG.debug("Fetching SRID transformation: " +
+                "source=$sourceSrid " +
+                "target=$LAYOUT_SRID " +
+                "alignment=${alignment.alignmentOid} " +
+                "geom=${alignment.geometry.id}"
+        )
         val transform = Transformation(sourceSrid, LAYOUT_SRID, kkjToEtrsTriangulationTriangles)
         val firstElementPoint = transform.transform(elements.first().start)
         val lastElementPoint = transform.transform(elements.last().end)
@@ -923,10 +921,7 @@ fun <T> getGeometryElementRanges(
             result
         }
         validateElementRanges(debugString, alignment.startMeter, alignment.endMeter, mapped)
-        val result = mapped.filterIndexed { i, element ->
-            element.startMeter < element.endMeter && (i == 0 || mapped[i - 1].endMeter <= element.startMeter)
-        }
-        return result.ifEmpty { listOf(noElementsCsvMetadata(alignment)) }
+        return mapped.ifEmpty { listOf(noElementsCsvMetadata(alignment)) }
     } catch (e: CoordinateTransformationException) {
         LOG.error(
             "Failed to link geometry element to layout due to coordinate transformation failure: " +
@@ -952,23 +947,20 @@ fun validateElementRanges(
                     "elements=${elements.map { e -> e.startMeter..e.endMeter to e.geometryElement?.id }}"
         )
         if (elements.first().startMeter != startMeter) {
-            LOG.warn("Gap in metadata range start: rangeStart=$startMeter first=${elements.first().startMeter} $debug")
+            LOG.warn("Gap in element metadata range start: alignmentMetadataStart=$startMeter firstElementMetadataStart=${elements.first().startMeter} $debug")
         }
         var previous = elements.first().startMeter
         for (e in elements) {
             if (previous < e.startMeter) {
-                LOG.warn("Gap between metadata elements: prev=$previous next=${e.startMeter} $debug")
+                LOG.warn("Gap between element metadata: prev=$previous next=${e.startMeter} $debug")
             }
             if (previous > e.startMeter) {
-                throw IllegalStateException("Overlapping elements: prev=$previous next=${e.startMeter} $debug")
-            }
-            if (e.startMeter > e.endMeter) {
-                throw IllegalStateException("Convoluted element: start=${e.startMeter} end=${e.endMeter} $debug")
+                throw IllegalStateException("Overlapping element metadata: prev=$previous next=${e.startMeter} $debug")
             }
             previous = e.endMeter
         }
         if (elements.last().endMeter != endMeter) {
-            LOG.warn("Gap in metadata range end: last=${elements.last().endMeter} rangeEnd=$endMeter $debug")
+            LOG.warn("Gap in element metadata range end: alignmentMetadataEnd=$endMeter lastElementMetadataEnd=${elements.last().endMeter} $debug")
         }
     }
 }
@@ -1069,15 +1061,11 @@ fun validateSegmentRanges(
     end: TrackMeter,
     ranges: List<SegmentCsvMetaDataRange>,
 ) {
-    if (ranges.first().meters.start > start) {
-        LOG.error("Segment ranges don't include first point: range=${ranges.first().meters} start=${start}")
-    } else if (ranges.first().meters.start < start) {
-        LOG.warn("Segment ranges start doesn't match first point: range=${ranges.first().meters} start=${start}")
+    require(ranges.first().meters.start.isSame(start)) {
+        "Segment ranges start doesn't match first point: range=${ranges.first().meters} start=${start}"
     }
-    if (ranges.last().meters.endInclusive < end) {
-        LOG.error("Segment ranges don't include last point: range=${ranges.last().meters} end=${end}")
-    } else if (ranges.last().meters.endInclusive > end) {
-        LOG.warn("Segment ranges end doesn't match last point: range=${ranges.last().meters} end=${end}")
+    require(ranges.last().meters.endInclusive.isSame(end)) {
+        "Segment ranges end doesn't match last point: range=${ranges.last().meters} end=${end}"
     }
 
     ranges.forEachIndexed { index: Int, (range, _) ->
@@ -1095,48 +1083,49 @@ fun <T> validateAlignmentCsvMetaData(
     alignmentEnd: TrackMeter,
     metadata: List<AlignmentCsvMetaData<T>>,
 ): List<AlignmentCsvMetaData<T>> {
-    return metadata
-        // Overlap validation requires metadatas to have at least some semblance of being in order, so
-        // sanity-sort them here by startMeter
-        .mapIndexedNotNull { index, md ->
-            val prev = metadata.getOrNull(index - 1)
-            require(prev == null || prev.startMeter <= md.startMeter) {
-                "Metadata not in order: " +
-                        "oid=${md.alignmentOid} " +
-                        "previous=${prev?.startMeter}..${prev?.endMeter} " +
-                        "next=${md.startMeter}..${md.endMeter}"
-            }
-            if (prev != null && prev.endMeter > md.startMeter)
-                LOG.error("Metadatas overlap: " +
-                        "oid=${md.alignmentOid} " +
-                        "current=${prev.startMeter}..${prev.endMeter} " +
-                        "next=${md.startMeter}..${md.endMeter}"
-                )
-            val result = if (md.startMeter >= md.endMeter) {
-                LOG.warn("Metadata concerns 0 meters: " +
-                        "oid=${md.alignmentOid} " +
-                        "alignment=$alignmentStart..$alignmentEnd " +
-                        "metadata=${md.startMeter}..${md.endMeter}"
-                )
-                null
-            } else if (md.startMeter >= alignmentEnd && md.endMeter <= alignmentStart) {
-                LOG.error("Metadata outside alignment points: " +
-                        "oid=${md.alignmentOid} " +
-                        "alignment=$alignmentStart..$alignmentEnd " +
-                        "metadata=${md.startMeter}..${md.endMeter}"
-                )
-                null
-            } else if (md.startMeter < alignmentStart || md.endMeter > alignmentEnd) {
-                LOG.warn("Metadata start/end out of alignment bounds: " +
-                        "oid=${md.alignmentOid} " +
-                        "alignment=$alignmentStart..$alignmentEnd " +
-                        "metadata=${md.startMeter}..${md.endMeter}"
-                )
-            md.copy(
-                startMeter = maxOf(alignmentStart, md.startMeter),
-                endMeter = minOf(alignmentEnd, md.endMeter),
+    return metadata.mapIndexedNotNull { index, md ->
+        val prev = metadata.getOrNull(index - 1)
+        require(prev == null || prev.startMeter <= md.startMeter) {
+            "Metadata not in order: " +
+                    "oid=${md.alignmentOid} " +
+                    "previous=${prev?.startMeter}..${prev?.endMeter} " +
+                    "next=${md.startMeter}..${md.endMeter}"
+        }
+        if (prev != null && prev.endMeter > md.startMeter)
+            LOG.warn("Metadata overlaps: " +
+                    "oid=${md.alignmentOid} " +
+                    "current=${prev.startMeter}..${prev.endMeter} " +
+                    "next=${md.startMeter}..${md.endMeter}"
             )
-        } else md
+        val result = if (md.startMeter >= alignmentEnd && md.endMeter <= alignmentStart) {
+            LOG.warn("Metadata outside alignment points: " +
+                    "oid=${md.alignmentOid} " +
+                    "alignment=$alignmentStart..$alignmentEnd " +
+                    "metadata=${md.startMeter}..${md.endMeter}"
+            )
+            null
+        } else {
+            val adjustedStart =
+                if (index == 0 && (md.startMeter <= alignmentStart || md.startMeter.ceil() == alignmentStart.ceil())) alignmentStart
+                else if (prev != null && prev.endMeter > md.startMeter) prev.endMeter
+                else md.startMeter
+            val adjustedEnd =
+                if (index == metadata.lastIndex && (md.endMeter >= alignmentEnd || md.endMeter.floor() == alignmentEnd.floor())) alignmentEnd
+                else md.endMeter
+            if (adjustedStart >= adjustedEnd) {
+                LOG.warn("Metadata rejected as it won't have any points left")
+                null
+            } else if (adjustedStart != md.startMeter || adjustedEnd != md.endMeter) {
+                LOG.info("Adjusting alignment metadata start/end: " +
+                        "oid=${md.alignmentOid} " +
+                        "adjusted=${adjustedStart}..${adjustedEnd} " +
+                        "alignment=$alignmentStart..$alignmentEnd " +
+                        "metadata=${md.startMeter}..${md.endMeter} " +
+                        "previousEnd=${prev?.endMeter}"
+                )
+                md.copy(startMeter = adjustedStart, endMeter = adjustedEnd)
+            } else md
+        }
         result
     }
 }
