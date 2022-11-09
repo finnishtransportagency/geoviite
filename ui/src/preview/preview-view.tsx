@@ -15,6 +15,7 @@ import { PreviewToolBar } from 'preview/preview-tool-bar';
 import MapView from 'map/map-view';
 import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
 import {
+    OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
@@ -42,12 +43,13 @@ type PreviewProps = {
     onSelect: OnSelectFunction;
     onHighlightItems: OnHighlightItemsFunction;
     onHoverLocation: OnHoverLocationFunction;
+    onClickLocation: OnClickLocationFunction;
     onShownItemsChange: (shownItems: OptionalShownItems) => void;
     onClosePreview: () => void;
 };
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const previewChanges = useLoader(() => getPublishCandidates(), []);
 
     const [selectedChanges, setSelectedChanges] = React.useState<SelectedChanges>({
@@ -75,7 +77,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
-                <PreviewToolBar onClosePreview={props.onClosePreview} />
+                <PreviewToolBar onClosePreview={props.onClosePreview}/>
                 <div className={styles['preview-view__changes']}>
                     <div className={styles['preview-view__changes-title']}>
                         <div>
@@ -85,16 +87,16 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     {(previewChanges && (
                         <>
                             <section>
-                                <PublicationTable previewChanges={previewChanges} />
+                                <PublicationTable previewChanges={previewChanges}/>
                             </section>
 
                             <h3>{t('preview-view.track-address-changes')}</h3>
                             {calculatedChanges && (
-                                <CalculatedChangesView calculatedChanges={calculatedChanges} />
+                                <CalculatedChangesView calculatedChanges={calculatedChanges}/>
                             )}
-                            {!calculatedChanges && <Spinner />}
+                            {!calculatedChanges && <Spinner/>}
                         </>
-                    )) || <Spinner />}
+                    )) || <Spinner/>}
                 </div>
 
                 <MapView
@@ -106,6 +108,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     onSelect={props.onSelect}
                     onHighlightItems={props.onHighlightItems}
                     onHoverLocation={props.onHoverLocation}
+                    onClickLocation={props.onClickLocation}
                     onShownLayerItemsChange={props.onShownItemsChange}
                 />
 

@@ -3,6 +3,7 @@ import {
     LayoutSegmentId,
     LayoutState,
     LayoutStateCategory,
+    LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -58,6 +59,7 @@ export type LinkingState =
     | LinkingGeometryWithAlignment
     | LinkingGeometryWithEmptyAlignment
     | LinkingAlignment
+    | PlacingSwitch
     | LinkingSwitch
     | LinkingKmPost;
 
@@ -94,7 +96,7 @@ export type LinkInterval = {
     start?: LinkPoint;
     end?: LinkPoint;
 };
-export const emptyLinkInterval = { start: undefined, end: undefined };
+export const emptyLinkInterval = {start: undefined, end: undefined};
 
 type LinkingBaseType = {
     type: LinkingType;
@@ -145,10 +147,17 @@ export type LinkingSwitch = LinkingBaseType & {
     layoutSwitchId?: LayoutSwitchId;
 };
 
+export type PlacingSwitch = LinkingBaseType & {
+    type: LinkingType.PlacingSwitch;
+    layoutSwitch: LayoutSwitch,
+    location?: Point;
+};
+
 export type LinkingKmPost = LinkingBaseType & {
     type: LinkingType.LinkingKmPost;
     geometryKmPostId: GeometryKmPostId;
 };
+
 
 export type KmPostSaveRequest = {
     kmNumber: KmNumber;
@@ -165,6 +174,7 @@ export enum LinkingType {
     LinkingAlignment,
     LinkingGeometryWithEmptyAlignment,
     LinkingSwitch,
+    PlacingSwitch,
     LinkingKmPost,
     UnknownAlignment,
 }

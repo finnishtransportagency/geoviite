@@ -223,6 +223,12 @@ fun referenceLineAndGeocodingContext(
 }
 
 fun locationTrackAndAlignment(
+    vararg segments: LayoutSegment,
+): Pair<LocationTrack, LayoutAlignment> =
+    locationTrackAndAlignment(IntId(0), segments.toList())
+
+
+fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     vararg segments: LayoutSegment,
 ): Pair<LocationTrack, LayoutAlignment> =
@@ -570,7 +576,7 @@ fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double)
 )
 
 fun segment(from: IPoint, to: IPoint): LayoutSegment {
-    val middlePoints = (0..lineLength(from, to).toInt())
+    val middlePoints = (1..lineLength(from, to).toInt() - 1)
         .map { i -> (from + (to - from).normalized() * i.toDouble()) }
     return segment(toTrackLayoutPoints(to3DMPoints((listOf(from) + middlePoints + listOf(to)).distinct())))
 }

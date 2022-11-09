@@ -10,6 +10,7 @@ import {
     API_URI,
     deleteAdt,
     deleteIgnoreError,
+    getIgnoreError,
     getThrowError,
     postAdt,
     postIgnoreError,
@@ -44,14 +45,15 @@ import {
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
-import { PublishType, RowVersion } from 'common/common-model';
+import { PublishType, RowVersion, SwitchStructureId } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 import { GeometryAlignmentId, GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
-import { BoundingBox } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
+import { filterNotEmpty } from 'utils/array-utils';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -287,6 +289,26 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
     );
 }
 
+export async function getSuggestedSwitchByPoint(point: Point, switchStructureId: SwitchStructureId): Promise<SuggestedSwitch[]> {
+    const params = queryParams({
+        location: pointString(point),
+        switchStructureId: switchStructureId,
+    });
+    return getIgnoreError<SuggestedSwitch[]>(`${LINKING_URI}/suggested-switch${params}`)
+        .then((suggestedSwitches) => {
+                return (suggestedSwitches || [])
+                    .filter(filterNotEmpty)
+                    .map((suggestedSwitch) => {
+                        return {
+                            ...suggestedSwitch,
+                            id: getSuggestedSwitchId(suggestedSwitch),
+                        };
+                    });
+            },
+        );
+}
+
+
 export async function linkSwitch(params: SwitchLinkingParameters): Promise<string> {
     const result = await postIgnoreError<SwitchLinkingParameters, string>(
         `${LINKING_URI}/switch-linking`,
@@ -332,7 +354,7 @@ export async function createSuggestedSwitch(
         params,
     ).then((switches) => {
         const s = switches && switches[0];
-        return s ? { ...s, id: getSuggestedSwitchId(s) } : null;
+        return s ? {...s, id: getSuggestedSwitchId(s)} : null;
     });
 }
 

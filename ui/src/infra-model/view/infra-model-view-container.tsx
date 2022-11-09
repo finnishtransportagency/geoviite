@@ -3,15 +3,10 @@ import { InfraModelRootState, TrackLayoutAppDispatch } from 'store/store';
 import { actionCreators } from '../infra-model-store';
 import { createDelegates } from 'store/store-utils';
 import { InfraModelView } from 'infra-model/view/infra-model-view';
-import {
-    GeometryElement,
-    GeometryElementId,
-    GeometrySwitch,
-    GeometrySwitchId,
-} from 'geometry/geometry-model';
+import { GeometryElement, GeometryElementId, GeometrySwitch, GeometrySwitchId } from 'geometry/geometry-model';
 import { getGeometryElementFromPlan, getGeometrySwitchFromPlan } from 'geometry/geometry-utils';
 
-function mapStateToProps({ infraModel }: InfraModelRootState) {
+function mapStateToProps({infraModel}: InfraModelRootState) {
     return {
         ...infraModel,
         getGeometryElement: async (
@@ -40,6 +35,7 @@ function mapDispatchToProps(dispatch: TrackLayoutAppDispatch) {
         onSelect: delegates.onSelect,
         onHighlightItems: delegates.onHighlightItems,
         onHoverLocation: delegates.onHoverLocation,
+        onClickLocation: delegates.onClickLocation,
         onViewportChange: delegates.onViewportChange,
         onInfraModelViewChange: delegates.onViewChange,
         onCommitField: delegates.onCommitField,

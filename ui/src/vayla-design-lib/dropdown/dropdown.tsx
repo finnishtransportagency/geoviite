@@ -65,17 +65,18 @@ export const Dropdown = function <TItemValue>({
     const inputRef = React.useRef<HTMLInputElement>(null);
     const listRef = React.useRef<HTMLUListElement>(null);
     const focusedOptionRef = React.useRef<HTMLLIElement>(null);
+    const optionsIsFunc = props.options && !isOptionsArray(props.options);
     const [options, setOptions] = React.useState<Item<TItemValue>[] | undefined>(
         props.options && isOptionsArray(props.options) ? props.options : undefined,
     );
-    const [lastSearch] = React.useState<{ searchId: number }>({ searchId: searchSequence });
+    const [lastSearch] = React.useState<{ searchId: number }>({searchId: searchSequence});
     const [isLoading, setIsLoading] = React.useState(false);
     const [open, setOpen] = React.useState(false);
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [optionFocusIndex, setOptionFocusIndex] = React.useState(0);
     const filteredOptions = getFilteredOptions();
-    const showEmptyOption = props.canUnselect && !searchTerm && props.value;
+    const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
     const qaId = props.qaId;
 
     let isMouseDown = false;
@@ -274,13 +275,13 @@ export const Dropdown = function <TItemValue>({
     // Handle clicks out of this dropdown -> close list
     React.useEffect(() => {
         if (open) {
-            const onClickHandler = function(this: Document, ev: MouseEvent): void {
+            const onClickHandler = function (this: Document, ev: MouseEvent): void {
                 if (wrapperRef.current && !wrapperRef.current.contains(ev.target as Node)) {
                     closeList();
                     removeListener();
                 }
             };
-            const removeListener = function() {
+            const removeListener = function () {
                 document.removeEventListener('click', onClickHandler);
             };
             document.addEventListener('click', onClickHandler);
@@ -318,8 +319,8 @@ export const Dropdown = function <TItemValue>({
         setOptionFocusIndex(
             options
                 ? Math.max(
-                    0,
-                    options.findIndex((option) => option.value == props.value),
+                0,
+                options.findIndex((option) => option.value == props.value),
                 )
                 : 0,
         );
@@ -376,7 +377,7 @@ export const Dropdown = function <TItemValue>({
                                 title={props.unselectText || 'Ei valittu'}
                                 ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>
-                                    <Icons.Selected size={IconSize.SMALL} />
+                                    <Icons.Selected size={IconSize.SMALL}/>
                                 </span>
                                 <span className={styles['dropdown__list-item-text']}>
                                     {props.unselectText || 'Ei valittu'}
@@ -392,7 +393,7 @@ export const Dropdown = function <TItemValue>({
                                 aria-disabled={!!item.disabled}
                                 ref={optionFocusIndex == index ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>
-                                    <Icons.Selected size={IconSize.SMALL} />
+                                    <Icons.Selected size={IconSize.SMALL}/>
                                 </span>
                                 <span className={styles['dropdown__list-item-text']}>
                                     {item.name}
@@ -417,7 +418,7 @@ export const Dropdown = function <TItemValue>({
                                     styles['dropdown__list-item--loading'],
                                 )}>
                                 Ladataan
-                                <span className={styles['dropdown__loading-indicator']} />
+                                <span className={styles['dropdown__loading-indicator']}/>
                             </li>
                         )}
                     </ul>

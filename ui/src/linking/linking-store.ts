@@ -15,7 +15,7 @@ import {
     LinkPoint,
     SuggestedSwitch,
 } from 'linking/linking-model';
-import { LayoutSwitchId, MapAlignment } from 'track-layout/track-layout-model';
+import { LayoutSwitch, LayoutSwitchId, MapAlignment } from 'track-layout/track-layout-model';
 import { createEndLinkPoints } from 'track-layout/track-layout-api';
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
@@ -23,7 +23,7 @@ import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
 export const linkingReducers = {
     startAlignmentLinking: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<GeometryPreliminaryLinkingParameters>,
+        {payload}: PayloadAction<GeometryPreliminaryLinkingParameters>,
     ): void => {
         state.publishType = 'DRAFT';
         state.selection.selectedItems.clusterPoints = [];
@@ -47,7 +47,7 @@ export const linkingReducers = {
     },
     lockAlignmentSelection: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<GeometryLinkingAlignmentLockParameters>,
+        {payload}: PayloadAction<GeometryLinkingAlignmentLockParameters>,
     ) => {
         if (
             state.linkingState?.state === 'preliminary' &&
@@ -77,7 +77,7 @@ export const linkingReducers = {
     },
     setLayoutLinkPoint: function (
         state: TrackLayoutState,
-        { payload: linkPoint }: PayloadAction<LinkPoint>,
+        {payload: linkPoint}: PayloadAction<LinkPoint>,
     ): void {
         if (
             state.linkingState?.type == LinkingType.LinkingAlignment ||
@@ -93,7 +93,7 @@ export const linkingReducers = {
     },
     setGeometryLinkPoint: function (
         state: TrackLayoutState,
-        { payload: linkPoint }: PayloadAction<LinkPoint>,
+        {payload: linkPoint}: PayloadAction<LinkPoint>,
     ): void {
         if (
             state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment ||
@@ -109,7 +109,7 @@ export const linkingReducers = {
     },
     setLayoutClusterLinkPoint: function (
         state: TrackLayoutState,
-        { payload: linkPoint }: PayloadAction<LinkPoint>,
+        {payload: linkPoint}: PayloadAction<LinkPoint>,
     ): void {
         if (
             state.linkingState?.type == LinkingType.LinkingAlignment ||
@@ -126,7 +126,7 @@ export const linkingReducers = {
     },
     setGeometryClusterLinkPoint: function (
         state: TrackLayoutState,
-        { payload: linkPoint }: PayloadAction<LinkPoint>,
+        {payload: linkPoint}: PayloadAction<LinkPoint>,
     ): void {
         if (
             state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment ||
@@ -143,7 +143,7 @@ export const linkingReducers = {
     },
     removeGeometryLinkPoint: function (
         state: TrackLayoutState,
-        { payload: linkPoint }: PayloadAction<LinkPoint>,
+        {payload: linkPoint}: PayloadAction<LinkPoint>,
     ): void {
         if (
             (state.linkingState?.type == LinkingType.LinkingGeometryWithAlignment ||
@@ -161,7 +161,7 @@ export const linkingReducers = {
     },
     removeLayoutLinkPoint: function (
         state: TrackLayoutState,
-        { payload: linkPoint }: PayloadAction<LinkPoint>,
+        {payload: linkPoint}: PayloadAction<LinkPoint>,
     ): void {
         if (
             (state.linkingState?.type == LinkingType.LinkingAlignment ||
@@ -180,7 +180,7 @@ export const linkingReducers = {
 
     startAlignmentGeometryChange: (
         state: TrackLayoutState,
-        { payload: alignment }: PayloadAction<MapAlignment>,
+        {payload: alignment}: PayloadAction<MapAlignment>,
     ): void => {
         state.publishType = 'DRAFT';
         state.linkingState = validateLinkingState({
@@ -196,9 +196,19 @@ export const linkingReducers = {
             errors: [],
         });
     },
+    startSwitchPlacing: (state: TrackLayoutState,
+        {payload: layoutSwitch}: PayloadAction<LayoutSwitch>) => {
+        state.linkingState = {
+            type: LinkingType.PlacingSwitch,
+            layoutSwitch: layoutSwitch,
+            location: undefined,
+            state: 'preliminary',
+            errors: [],
+        };
+    },
     startSwitchLinking: (
         state: TrackLayoutState,
-        { payload }: PayloadAction<SuggestedSwitch>,
+        {payload}: PayloadAction<SuggestedSwitch>,
     ): void => {
         state.publishType = 'DRAFT';
         state.linkingState = {
@@ -221,7 +231,7 @@ export const linkingReducers = {
     },
     lockSwitchSelection: (
         state: TrackLayoutState,
-        { payload: switchId }: PayloadAction<LayoutSwitchId | undefined>,
+        {payload: switchId}: PayloadAction<LayoutSwitchId | undefined>,
     ) => {
         if (state.linkingState?.type === LinkingType.LinkingSwitch) {
             state.linkingState = validateLinkingState({
@@ -232,7 +242,7 @@ export const linkingReducers = {
     },
     startKmPostLinking: (
         state: TrackLayoutState,
-        { payload: geometryKmPostId }: PayloadAction<GeometryKmPostId>,
+        {payload: geometryKmPostId}: PayloadAction<GeometryKmPostId>,
     ) => {
         state.publishType = 'DRAFT';
         state.linkingState = {
@@ -262,10 +272,10 @@ export function createUpdatedIntervalRemovePoint(
     const end = interval.end?.alignmentId === removePoint.alignmentId ? interval.end : undefined;
 
     if (start?.id === removePoint.id && end?.id === removePoint.id)
-        return { start: undefined, end: undefined };
-    else if (start?.id === removePoint.id) return { start: end, end: end };
-    else if (end?.id === removePoint.id) return { start: start, end: start };
-    else return { start: undefined, end: undefined };
+        return {start: undefined, end: undefined};
+    else if (start?.id === removePoint.id) return {start: end, end: end};
+    else if (end?.id === removePoint.id) return {start: start, end: start};
+    else return {start: undefined, end: undefined};
 }
 
 export function createUpdatedInterval(
@@ -277,9 +287,9 @@ export function createUpdatedInterval(
     const end = interval.end?.alignmentId === newPoint.alignmentId ? interval.end : undefined;
 
     if (toggleOn && start?.id === newPoint.id && end?.id === newPoint.id)
-        return { start: undefined, end: undefined };
-    else if (toggleOn && start?.id === newPoint.id) return { start: end, end: end };
-    else if (toggleOn && end?.id === newPoint.id) return { start: start, end: start };
+        return {start: undefined, end: undefined};
+    else if (toggleOn && start?.id === newPoint.id) return {start: end, end: end};
+    else if (toggleOn && end?.id === newPoint.id) return {start: start, end: start};
     else {
         const startDiff = start ? Math.abs(start.ordering - newPoint.ordering) : -1;
         const endDiff = end ? Math.abs(end.ordering - newPoint.ordering) : -1;

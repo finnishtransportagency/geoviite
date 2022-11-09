@@ -1,6 +1,7 @@
 import OlMap from 'ol/Map';
 import { OlLayerAdapter } from 'map/layers/layer-model';
 import {
+    OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
@@ -12,6 +13,7 @@ export type MapToolActivateOptions = {
     onSelect: OnSelectFunction;
     onHighlightItems: OnHighlightItemsFunction;
     onHoverLocation: OnHoverLocationFunction;
+    onClickLocation: OnClickLocationFunction;
 };
 
 export type MapTool = {

@@ -35,6 +35,8 @@ import { ChangeTimes } from 'track-layout/track-layout-store';
 import { Point } from 'model/geometry';
 import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track-meters';
 import { filterNotEmpty } from 'utils/array-utils';
+import { PlacingSwitch } from 'linking/linking-model';
+import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -43,6 +45,8 @@ type SwitchInfoboxProps = {
     changeTimes: ChangeTimes;
     publishType: PublishType;
     onUnselect: (switchId: LayoutSwitchId) => void;
+    placingSwitchLinkingState?: PlacingSwitch;
+    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void
 };
 
 export type SwitchTrackMeter = {
@@ -129,8 +133,10 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     changeTimes,
     publishType,
     onUnselect,
+    placingSwitchLinkingState,
+    startSwitchPlacing,
 }: SwitchInfoboxProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const layoutSwitch = useLoader(
@@ -169,6 +175,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+    const canStartPlacing = placingSwitchLinkingState == undefined && layoutSwitch != undefined;
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -193,6 +200,12 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         const name = switchOwners?.find((o) => o.id == ownerId)?.name;
         return name ?? '-';
     };
+
+    function tryToStartSwitchPlacing() {
+        if (layoutSwitch) {
+            startSwitchPlacing(layoutSwitch);
+        }
+    }
 
     return (
         <React.Fragment>
@@ -226,7 +239,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxField
                             label={t('tool-panel.switch.layout.state-category')}
                             value={
-                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
+                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory}/>
                             }
                             onEdit={openEditSwitchDialog}
                             iconDisabled={isOfficial()}
@@ -249,11 +262,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 <InfoboxContent>
                     <p>{switchStructure ? switchStructure.type : ''}</p>
                     {SwitchImage && (
-                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
+                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT}/>
                     )}
                     <InfoboxField
                         label={t('tool-panel.switch.layout.hand')}
-                        value={switchStructure && <SwitchHand hand={switchStructure.hand} />}
+                        value={switchStructure && <SwitchHand hand={switchStructure.hand}/>}
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.layout.trap-point')}
@@ -276,6 +289,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             publishType={publishType}
                         />
                     )}
+                    <InfoboxButtons>
+                        <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}
+                                disabled={!canStartPlacing}
+                                onClick={tryToStartSwitchPlacing}>{t('tool-panel.switch.layout.start-switch-placing')}</Button>
+                    </InfoboxButtons>
+                    {placingSwitchLinkingState &&
+                    <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
+                    }
                 </InfoboxContent>
             </Infobox>
             <Infobox
