@@ -257,9 +257,13 @@ data class SwitchStructure(
         )
     }
 
-    fun getJointLocation(jointNumber: JointNumber): Point {
-        return joints.find { joint -> joint.number == jointNumber }?.location
+    fun getJoint(jointNumber: JointNumber): SwitchJoint {
+        return joints.find { joint -> joint.number == jointNumber }
             ?: throw IllegalArgumentException("Joint number $jointNumber does not exist in switch $type!")
+    }
+
+    fun getJointLocation(jointNumber: JointNumber): Point {
+        return getJoint(jointNumber).location
     }
 }
 

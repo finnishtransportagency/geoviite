@@ -134,6 +134,7 @@ export type Map = {
     settingsVisible: boolean;
     shownItems: ShownItems;
     hoveredLocation: Point | null;
+    clickLocation: Point | null;
 };
 
 export type MapTile = {

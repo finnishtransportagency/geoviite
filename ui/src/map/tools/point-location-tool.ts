@@ -18,10 +18,20 @@ export const pointLocationTool: MapTool = {
                 maxWait: 100,
             },
         );
+        const clickEvent = map.on('click', (e) => {
+                options.onClickLocation(
+                    {
+                        x: e.coordinate[0],
+                        y: e.coordinate[1],
+                    },
+                );
+            },
+        );
         const pointerMoveEvent = map.on('pointermove', debouncedMoveHandlerPointLocation);
 
         // Return function to clean up this tool
         return () => {
+            map.un('click', clickEvent.listener);
             map.un('pointermove', pointerMoveEvent.listener);
         };
     },

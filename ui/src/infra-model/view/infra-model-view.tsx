@@ -27,6 +27,7 @@ import {
     GeometrySwitchId,
 } from 'geometry/geometry-model';
 import {
+    OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
@@ -54,6 +55,7 @@ export type InfraModelViewProps = InfraModelState & {
     onPlanFetchReady: (plan: OnPlanFetchReady) => void;
     onViewportChange: (viewport: MapViewport) => void;
     onHoverLocation: OnHoverLocationFunction;
+    onClickLocation: OnClickLocationFunction;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
@@ -117,7 +119,7 @@ const getValidationResponseGeometryPlan = async (
 };
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
     const [file, setFile] = React.useState<File>();
     const [loadingInProgress, setLoadingInProgress] = React.useState(false);
@@ -164,8 +166,8 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             props.viewType === InfraModelViewType.UPLOAD
                 ? await getValidationResponseForFile(file, props.overrideInfraModelParameters)
                 : await getValidationResponseGeometryPlan(
-                    (props.plan as GeometryPlan).id,
-                    props.overrideInfraModelParameters,
+                (props.plan as GeometryPlan).id,
+                props.overrideInfraModelParameters,
                 );
 
         setInfraModelValidationResponse(response);
@@ -190,12 +192,12 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
 
     const getFieldValidationErrors = () => {
         return props.validationErrors.filter((error) => error.type === ValidationErrorType.ERROR);
-    }
+    };
 
     const getVisibleErrors = () => {
-        const fieldValidationErrors = getFieldValidationErrors().map(error => t(`im-form.${error.reason}`))
-        return fieldValidationErrors.length > 0 ? fieldValidationErrors.join(', ') : ''
-    }
+        const fieldValidationErrors = getFieldValidationErrors().map(error => t(`im-form.${error.reason}`));
+        return fieldValidationErrors.length > 0 ? fieldValidationErrors.join(', ') : '';
+    };
 
     React.useEffect(() => {
         props.onPlanUpdate();
@@ -298,9 +300,10 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         changeTimes={props.changeTimes}
                         onHighlightItems={props.onHighlightItems}
                         onHoverLocation={props.onHoverLocation}
+                        onClickLocation={props.onClickLocation}
                     />
                 )}
-                {showMap === false && <div className={styles['infra-model-upload__error-photo']} />}
+                {showMap === false && <div className={styles['infra-model-upload__error-photo']}/>}
             </div>
             {showCriticalWarning && (
                 <div>
@@ -332,7 +335,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 </li>
                             ))}
                             {props.planLayout != null ||
-                                `${t('im-form.critical-warnings-dialog.error-message')}`}
+                            `${t('im-form.critical-warnings-dialog.error-message')}`}
                         </ul>
                     </Dialog>
                 </div>
@@ -344,9 +347,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         onClose={() => setShowFileHandlingFailed(false)}>
                         <div>
                             {fileHandlingFailedErrors &&
-                                fileHandlingFailedErrors.map((error) => (
-                                    <div key={error}>{t(error)}</div>
-                                ))}
+                            fileHandlingFailedErrors.map((error) => (
+                                <div key={error}>{t(error)}</div>
+                            ))}
                         </div>
                     </Dialog>
                 </div>

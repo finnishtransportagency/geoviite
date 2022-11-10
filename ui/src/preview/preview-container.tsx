@@ -17,6 +17,7 @@ export const PreviewContainer: React.FC = () => {
         onSelect: delegates.onSelect,
         onHighlightItems: delegates.onHighlightItems,
         onHoverLocation: delegates.onHoverLocation,
+        onClickLocation: delegates.onClickLocation,
         onShownItemsChange: delegates.onShownItemsChange,
         onClosePreview: () => delegates.onLayoutModeChange('DEFAULT'),
     };

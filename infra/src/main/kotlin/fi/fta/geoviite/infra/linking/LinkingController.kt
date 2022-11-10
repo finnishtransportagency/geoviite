@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.RowVersion
 import org.slf4j.Logger
@@ -217,11 +218,22 @@ class LinkingController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/suggested-switch")
+    @GetMapping("/suggested-switch", params = ["bbox"])
     fun getSuggestedSwitches(@RequestParam("bbox") bbox: BoundingBox): List<SuggestedSwitch> {
         logger.apiCall("getSuggestedSwitches", "bbox" to bbox)
         return switchLinkingService.getSuggestedSwitches(bbox)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/suggested-switch", params = ["location", "switchStructureId"])
+    fun getSuggestedSwitches(
+        @RequestParam("location") location: Point,
+        @RequestParam("switchStructureId") switchStructureId: IntId<SwitchStructure>
+    ): List<SuggestedSwitch?> {
+        logger.apiCall("getSuggestedSwitche", "location" to location, "switchStructureId" to switchStructureId)
+        return listOf(switchLinkingService.getSuggestedSwitch(location, switchStructureId))
+    }
+
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/suggested-switch")
