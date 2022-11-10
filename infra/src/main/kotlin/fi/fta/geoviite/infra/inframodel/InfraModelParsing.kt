@@ -174,7 +174,6 @@ fun getEncoding(xmlByteStream: ByteArray): Charset {
         val xmlStreamReader: XMLStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(stream)
         val fileEncoding = xmlStreamReader.encoding
         val encodingFromXMLDeclaration = xmlStreamReader.characterEncodingScheme
-        println("Encoding: file=$fileEncoding fromDeclare=$encodingFromXMLDeclaration")
         return (encodingFromXMLDeclaration ?: fileEncoding)?.let { name ->
             xmlCharsets.find { cs -> cs.name() == name }
         } ?: StandardCharsets.UTF_8
