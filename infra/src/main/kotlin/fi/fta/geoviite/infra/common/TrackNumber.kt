@@ -25,12 +25,3 @@ class StringToTrackNumberConverter : Converter<String, TrackNumber> {
 class TrackNumberToStringConverter : Converter<TrackNumber, String> {
     override fun convert(source: TrackNumber): String = source.value
 }
-
-fun tryParseTrackNumber(value: String): TrackNumber? =
-    try {
-        val separatorIndex = value.indexOf("/")
-        val stringValue = if (separatorIndex > 0) value.substring(0, separatorIndex) else value
-        TrackNumber(stringValue)
-    } catch (e: Exception) {
-        null
-    }
