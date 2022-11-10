@@ -20,11 +20,15 @@ import jakarta.xml.bind.Unmarshaller
 import org.springframework.http.MediaType
 import org.springframework.web.multipart.MultipartFile
 import org.xml.sax.InputSource
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.StringReader
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
 import javax.xml.parsers.SAXParserFactory
+import javax.xml.stream.XMLInputFactory
+import javax.xml.stream.XMLStreamReader
 import javax.xml.transform.sax.SAXSource
 import javax.xml.validation.Schema
 import javax.xml.validation.SchemaFactory
@@ -68,7 +72,7 @@ private val saxParserFactory: SAXParserFactory by lazy {
     // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
 
     // Disable DTDs
-    spf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+    spf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
 
     // Disable XXE
     spf.setFeature("http://xml.org/sax/features/external-general-entities", false)
@@ -157,6 +161,26 @@ fun parseFromString(
     )
 }
 
+val xmlCharsets = listOf(
+    StandardCharsets.UTF_8,
+    StandardCharsets.UTF_16,
+    StandardCharsets.UTF_16BE,
+    StandardCharsets.UTF_16LE,
+    StandardCharsets.US_ASCII,
+    StandardCharsets.ISO_8859_1,
+)
+fun getEncoding(xmlByteStream: ByteArray): Charset {
+    ByteArrayInputStream(xmlByteStream).use { stream ->
+        val xmlStreamReader: XMLStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(stream)
+        val fileEncoding = xmlStreamReader.encoding
+        val encodingFromXMLDeclaration = xmlStreamReader.characterEncodingScheme
+        println("Encoding: file=$fileEncoding fromDeclare=$encodingFromXMLDeclaration")
+        return (encodingFromXMLDeclaration ?: fileEncoding)?.let { name ->
+            xmlCharsets.find { cs -> cs.name() == name }
+        } ?: StandardCharsets.UTF_8
+    }
+}
+
 fun stringToInfraModel(xmlString: String): InfraModel =
     try {
         unmarshaller.unmarshal(toSaxSource(xmlString)) as InfraModel
@@ -171,15 +195,19 @@ fun stringToInfraModel(xmlString: String): InfraModel =
 fun classpathResourceToString(fileName: String): String {
     val resource = InfraModel::class.java.getResource(fileName)
         ?: throw InframodelParsingException("Resource not found: $fileName")
-    return checkUTF8BOM(resource.readText())
+    return resource.readText()
 }
 
 fun fileToString(file: MultipartFile): String {
-    return checkUTF8BOM(String(file.bytes, StandardCharsets.UTF_8))
+    return xmlBytesToString(file.bytes)
 }
 
 fun fileToString(file: File): String {
-    return checkUTF8BOM(String(file.readBytes(), StandardCharsets.UTF_8))
+    return xmlBytesToString(file.readBytes())
+}
+
+fun xmlBytesToString(bytes: ByteArray): String {
+    return checkUTF8BOM(String(bytes, getEncoding(bytes)))
 }
 
 fun checkUTF8BOM(content: String): String {

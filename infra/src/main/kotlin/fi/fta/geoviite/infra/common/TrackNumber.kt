@@ -29,7 +29,8 @@ class TrackNumberToStringConverter : Converter<TrackNumber, String> {
 fun tryParseTrackNumber(value: String): TrackNumber? =
     try {
         val separatorIndex = value.indexOf("/")
-        if (separatorIndex > 0) TrackNumber(value.substring(0, separatorIndex)) else TrackNumber(value)
-    } catch (e: IllegalArgumentException) {
+        val stringValue = if (separatorIndex > 0) value.substring(0, separatorIndex) else value
+        TrackNumber(stringValue)
+    } catch (e: Exception) {
         null
     }
