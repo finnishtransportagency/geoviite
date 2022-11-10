@@ -194,7 +194,7 @@ fun stringToInfraModel(xmlString: String): InfraModel =
 fun classpathResourceToString(fileName: String): String {
     val resource = InfraModel::class.java.getResource(fileName)
         ?: throw InframodelParsingException("Resource not found: $fileName")
-    return resource.readText()
+    return xmlBytesToString(resource.readBytes())
 }
 
 fun fileToString(file: MultipartFile): String {
