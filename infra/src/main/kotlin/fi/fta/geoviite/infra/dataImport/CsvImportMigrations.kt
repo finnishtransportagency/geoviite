@@ -235,11 +235,14 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
             KKJtoETRSTriangulationDao(jdbcTemplate)
         )
         val geometryProvider = { fileName: FileName, alignmentName: AlignmentName ->
-            fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)
+            val match = fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)
                 ?: normalizeAlignmentName(alignmentName)?.let { normalized ->
                     fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, normalized)
                 }
-
+            if (match == null) {
+                logger.warn("Didn't find geometry alignment: file=$fileName alignment=$alignmentName")
+            }
+            match
         }
         return createAlignmentMetadataFromCsv(alignmentCsvMetadata, geometryProvider)
     }
@@ -299,7 +302,6 @@ private fun fetchAlignmentGeometry(
         )
         alignments.first()
     } else {
-        logger.warn("Didn't find geometry alignment: file=$fileName alignment=$alignmentName")
         null
     }
 }
