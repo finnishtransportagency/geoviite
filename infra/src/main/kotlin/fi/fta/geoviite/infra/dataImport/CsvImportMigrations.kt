@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryUnits
-import fi.fta.geoviite.infra.inframodel.tryParseAlignmentName
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwnerDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
@@ -90,6 +89,7 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
     }
 
     override fun migrate(jdbcTemplate: NamedParameterJdbcTemplate) {
+        val metadataDao = InitAlignmentMetadataDao(jdbcTemplate)
         val trackNumberDao = LayoutTrackNumberDao(jdbcTemplate)
         val trackNumbers = trackNumberDao.fetchExternalIdToIdMapping()
         val referenceLineDao = ReferenceLineDao(jdbcTemplate)
@@ -98,7 +98,11 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
         if (trackNumbers.isEmpty()) {
             throw IllegalStateException("No track numbers in DB -> cannot import reference lines")
         }
-        val metadata = getCsvMetaData(jdbcTemplate)
+        val metadataList = getCsvMetaData(jdbcTemplate)
+        val metadataIds = metadataDao.insertMetadata(metadataList)
+        val metadata = metadataList
+            .mapIndexed { index, md -> md.copy(id = metadataIds[index]) }
+            .groupBy { am -> am.alignmentOid }
 
         val kkjToEtrsTriangulationNetwork = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
 
@@ -110,10 +114,13 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
                     metadata,
                     trackNumbers,
                     kkjToEtrsTriangulationNetwork
-                ).forEach { (referenceLine, alignment) ->
+                ).forEach { csvReferenceLine ->
                     measureAndCollect("insert") {
-                        val alignmentVersion = alignmentDao.insert(alignment)
-                        referenceLineDao.insert(referenceLine.copy(alignmentVersion = alignmentVersion))
+                        val alignmentVersion = alignmentDao.insert(csvReferenceLine.alignment)
+                        metadataDao.linkMetadata(alignmentVersion.id, csvReferenceLine.segmentMetadataIds)
+                        referenceLineDao.insert(
+                            csvReferenceLine.referenceLine.copy(alignmentVersion = alignmentVersion)
+                        )
                     }
                     count++
                 }
@@ -126,7 +133,7 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
 
     private fun getCsvMetaData(
         jdbcTemplate: NamedParameterJdbcTemplate,
-    ): Map<Oid<ReferenceLine>, List<AlignmentCsvMetaData<ReferenceLine>>> {
+    ): List<AlignmentCsvMetaData<ReferenceLine>> {
         val geometryDao = GeometryDao(
             jdbcTemplate,
             KKJtoETRSTriangulationDao(jdbcTemplate)
@@ -135,7 +142,6 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
             fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)
         }
         return createReferenceLineMetadataFromCsv(referenceLineMetadata, geometryProvider)
-            .groupBy { am -> am.alignmentOid }
     }
 }
 
@@ -153,6 +159,7 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
     }
 
     override fun migrate(jdbcTemplate: NamedParameterJdbcTemplate) {
+        val metadataDao = InitAlignmentMetadataDao(jdbcTemplate)
         val trackNumberDao = LayoutTrackNumberDao(jdbcTemplate)
         val locationTrackDao = LocationTrackDao(jdbcTemplate)
         val alignmentDao = LayoutAlignmentDao(jdbcTemplate)
@@ -160,10 +167,16 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
         val kkJtoETRSTriangulationDao = KKJtoETRSTriangulationDao(jdbcTemplate)
         val switchStructureDao = SwitchStructureDao(jdbcTemplate)
         val trackNumbers = trackNumberDao.fetchExternalIdToIdMapping()
+
         if (trackNumbers.isEmpty()) {
             throw IllegalStateException("No track numbers in DB -> cannot import location tracks")
         }
-        val metadata = getCsvMetaData(jdbcTemplate)
+        val metadataList = getCsvMetaData(jdbcTemplate)
+        val metadataIds = metadataDao.insertMetadata(metadataList)
+        val metadata = metadataList
+            .mapIndexed { index, md -> md.copy(id = metadataIds[index]) }
+            .groupBy { am -> am.alignmentOid }
+
         val switchLinks = getSwitchLinks(
             switchDao.getExternalIdMappingOfExistingSwitches(),
             switchStructureDao.fetchSwitchStructures().associateBy { ss -> ss.id as IntId },
@@ -172,34 +185,30 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
 
         alignments.use { alignments ->
             var count = 0
-            var insertedTrackIds = mutableMapOf<Oid<LocationTrack>, IntId<LocationTrack>>()
+            val insertedTrackIds = mutableMapOf<Oid<LocationTrack>, IntId<LocationTrack>>()
             measureAndCollect("total") {
-                createLocationTracksFromCsv(
+                val tracks = createLocationTracksFromCsv(
                     alignments,
                     metadata,
                     switchLinks,
                     trackNumbers,
                     kkjToEtrsTriangulationNetwork
                 )
-                    .forEach { csvLocationTrack ->
-                        measureAndCollect("insert") {
-                            val alignmentVersion = alignmentDao.insert(csvLocationTrack.layoutAlignment)
-                            val duplicateOfId = csvLocationTrack.duplicateOfExternalId?.let { oid -> insertedTrackIds[oid] }
-                            val rowVersion =
-                                locationTrackDao.insert(
-                                    csvLocationTrack.locationTrack.copy(
-                                        alignmentVersion = alignmentVersion,
-                                        duplicateOf = duplicateOfId
-                                    )
-                                )
-                            insertedTrackIds.put(
-                                csvLocationTrack.locationTrack.externalId
-                                    ?: throw IllegalStateException("imported locationtracks must have external id"),
-                                rowVersion.id
-                            )
-                            count++
-                        }
-                    }
+                tracks.forEach { csvLocationTrack -> measureAndCollect("insert") {
+                    val alignmentVersion = alignmentDao.insert(csvLocationTrack.layoutAlignment)
+                    metadataDao.linkMetadata(alignmentVersion.id, csvLocationTrack.segmentMetadataIds)
+                    val duplicateOfId = csvLocationTrack.duplicateOfExternalId?.let { oid -> insertedTrackIds[oid] }
+                    val rowVersion = locationTrackDao.insert(
+                        csvLocationTrack.locationTrack.copy(
+                            alignmentVersion = alignmentVersion,
+                            duplicateOf = duplicateOfId,
+                        )
+                    )
+                    val extId = csvLocationTrack.locationTrack.externalId
+                        ?: throw IllegalStateException("Imported LocationTracks must have an external id")
+                    insertedTrackIds[extId] = rowVersion.id
+                    count++
+                } }
                 logger.info("Imported LocationTracks: count=$count timings=${resetCollected()}")
             }
         }
@@ -220,73 +229,77 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
 
     private fun getCsvMetaData(
         jdbcTemplate: NamedParameterJdbcTemplate,
-    ): Map<Oid<LocationTrack>, List<AlignmentCsvMetaData<LocationTrack>>> {
+    ): List<AlignmentCsvMetaData<LocationTrack>> {
         val geometryDao = GeometryDao(
             jdbcTemplate,
             KKJtoETRSTriangulationDao(jdbcTemplate)
         )
-        val geometryProvider = { fileName: String, alignmentName: String ->
-            tryParseAlignmentName(alignmentName)?.let { a ->
-                fetchAlignmentGeometry(jdbcTemplate, geometryDao, FileName(fileName), a)
-            }
+        val geometryProvider = { fileName: FileName, alignmentName: AlignmentName ->
+            fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)
+                ?: normalizeAlignmentName(alignmentName)?.let { normalized ->
+                    fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, normalized)
+                }
+
         }
         return createAlignmentMetadataFromCsv(alignmentCsvMetadata, geometryProvider)
-            .groupBy { am -> am.alignmentOid }
     }
 }
 
-    private fun fetchAlignmentGeometry(
-        jdbcTemplate: NamedParameterJdbcTemplate,
-        geometryDao: GeometryDao,
-        fileName: FileName,
-        alignmentName: AlignmentName,
-    ): AlignmentImportGeometry? {
-        val sql = """
-            select 
-              alignment.id,
-              plan.srid,
-              plan.vertical_coordinate_system, 
-              plan.direction_unit, 
-              plan.linear_unit
-            from geometry.alignment
-              inner join geometry.plan on alignment.plan_id = plan.id
-              inner join geometry.plan_file on plan.id = plan_file.plan_id
-            where plan_file.name like :file_name_matcher 
-              and alignment.name = :alignment_name
-              and plan.source = 'PAIKANNUSPALVELU'
-        """.trimIndent()
-        val params = mapOf(
-            "file_name_matcher" to "${fileName.value}.xml",
-            "alignment_name" to alignmentName.value,
+private fun normalizeAlignmentName(name: AlignmentName): AlignmentName? =
+    if (name.value.length < 3 && name.value.all(Char::isDigit)) {
+        AlignmentName(name.value.padStart(3, '0'))
+    } else null
+
+private fun fetchAlignmentGeometry(
+    jdbcTemplate: NamedParameterJdbcTemplate,
+    geometryDao: GeometryDao,
+    fileName: FileName,
+    alignmentName: AlignmentName,
+): AlignmentImportGeometry? {
+    val sql = """
+        select 
+          alignment.id,
+          plan.srid,
+          plan.vertical_coordinate_system, 
+          plan.direction_unit, 
+          plan.linear_unit
+        from geometry.alignment
+          inner join geometry.plan on alignment.plan_id = plan.id
+          inner join geometry.plan_file on plan.id = plan_file.plan_id
+        where plan_file.name like :file_name_matcher 
+          and alignment.name = :alignment_name
+          and plan.source = 'PAIKANNUSPALVELU'
+    """.trimIndent()
+    val params = mapOf(
+        "file_name_matcher" to "${fileName.value}.xml",
+        "alignment_name" to alignmentName.value,
+    )
+    val alignments = jdbcTemplate.query(sql, params) { rs, _ ->
+        val alignmentId: IntId<GeometryAlignment> = rs.getIntId("id")
+        val units = GeometryUnits(
+            coordinateSystemSrid = rs.getSridOrNull("srid"),
+            coordinateSystemName = null,
+            verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
+            directionUnit = rs.getEnum("direction_unit"),
+            linearUnit = rs.getEnum("linear_unit"),
         )
-        val alignments = jdbcTemplate.query(sql, params) { rs, _ ->
-            val alignmentId: IntId<GeometryAlignment> = rs.getIntId("id")
-            val units = GeometryUnits(
-                coordinateSystemSrid = rs.getSridOrNull("srid"),
-                coordinateSystemName = null,
-                verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
-                directionUnit = rs.getEnum("direction_unit"),
-                linearUnit = rs.getEnum("linear_unit"),
-            )
-            AlignmentImportGeometry(
-                id = alignmentId,
-                coordinateSystemSrid = units.coordinateSystemSrid,
-                elements = geometryDao.fetchElements(alignmentId, units),
-            )
-        }
-        return if (alignments.size == 1) {
-            logger.debug("Found metadata alignment: file=$fileName alignment=$alignmentName")
-            alignments.first()
-        } else if (alignments.size > 1) {
-            logger.warn(
-                "Found multiple geometry alignments for one metadata (picking first): " +
-                        "file=$fileName alignment=$alignmentName count=${alignments.size}"
-            )
-            alignments.first()
-        } else {
-            logger.warn("Didn't find geometry alignment: file=$fileName alignment=$alignmentName")
-            null
-        }
+        AlignmentImportGeometry(
+            id = alignmentId,
+            coordinateSystemSrid = units.coordinateSystemSrid,
+            elements = geometryDao.fetchElements(alignmentId, units),
+        )
     }
-
-
+    return if (alignments.size == 1) {
+        logger.debug("Found metadata alignment: file=$fileName alignment=$alignmentName")
+        alignments.first()
+    } else if (alignments.size > 1) {
+        logger.warn(
+            "Found multiple geometry alignments for one metadata (picking first): " +
+                    "file=$fileName alignment=$alignmentName count=${alignments.size}"
+        )
+        alignments.first()
+    } else {
+        logger.warn("Didn't find geometry alignment: file=$fileName alignment=$alignmentName")
+        null
+    }
+}

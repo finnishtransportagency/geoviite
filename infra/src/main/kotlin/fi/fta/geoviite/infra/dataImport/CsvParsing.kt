@@ -74,13 +74,18 @@ enum class ReferenceLineColumns {
 
 data class AlignmentCsvMetaData<T>(
     val alignmentOid: Oid<T>,
-    val metadataOid: Oid<AlignmentCsvMetaData<T>>,
+    val metadataOid: Oid<AlignmentCsvMetaData<T>>?,
     val startMeter: TrackMeter,
     val endMeter: TrackMeter,
     val createdYear: Int,
     val geometry: AlignmentImportGeometry?,
-    val metadataSrid: Srid?,
+    val originalCrs: String,
+    val measurementMethod: String,
+    val fileName: FileName,
+    val planAlignmentName: AlignmentName,
+    val id: IntId<AlignmentCsvMetaData<T>>? = null,
 ) {
+
     init {
         require (startMeter < endMeter) {
             "Alignment metadata must start before it ends: start=$startMeter end=$endMeter alignment=$metadataOid"
@@ -91,6 +96,7 @@ data class AlignmentCsvMetaData<T>(
 
 enum class ReferenceLineMetaColumns {
     ALIGNMENT_EXTERNAL_ID,
+    @Suppress("unused")
     ASSET_EXTERNAL_ID,
     TRACK_ADDRESS_START,
     TRACK_ADDRESS_END,
@@ -101,9 +107,6 @@ enum class ReferenceLineMetaColumns {
     ORIGINAL_CRS,
 }
 
-fun getEpsgCodeOrNull(str: String) =
-    if (str.startsWith("EPSG:")) Srid(str.substring(5).toInt()) else null
-
 fun createReferenceLineMetadataFromCsv(
     metadataFile: CsvFile<ReferenceLineMetaColumns>,
     geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
@@ -113,24 +116,20 @@ fun createReferenceLineMetadataFromCsv(
         val startMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_START))
         val endMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_END))
         if (startMeter < endMeter) {
-            val fileName = line.getNonEmpty(ReferenceLineMetaColumns.FILE_NAME)
-            val alignmentName = line.getNonEmpty(ReferenceLineMetaColumns.ALIGNMENT_NAME)
-            val geometry =
-                if (fileName != null && alignmentName != null) geometryProvider(
-                    FileName(fileName),
-                    AlignmentName(alignmentName)
-                )
-                else null
-
+            val fileName = line.get(ReferenceLineMetaColumns.FILE_NAME).let(::FileName)
+            val alignmentName = line.get(ReferenceLineMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
+            val geometry = geometryProvider(fileName, alignmentName)
             AlignmentCsvMetaData(
                 alignmentOid = alignmentOid,
-                metadataOid = Oid(alignmentOid.stringValue),
+                metadataOid = null,
                 startMeter = startMeter,
                 endMeter = endMeter,
                 createdYear = line.getInt(ReferenceLineMetaColumns.CREATED_YEAR),
                 geometry = geometry,
-                metadataSrid = line.getNonEmpty(ReferenceLineMetaColumns.ORIGINAL_CRS)
-                    ?.let { getEpsgCodeOrNull(it) }
+                originalCrs = line.get(ReferenceLineMetaColumns.ORIGINAL_CRS),
+                measurementMethod = line.get(ReferenceLineMetaColumns.MEASUREMENT_METHOD),
+                fileName = fileName,
+                planAlignmentName = alignmentName,
             )
         } else {
             LOG.warn("Invalid reference line metadata segment (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
@@ -153,12 +152,18 @@ enum class LocationTrackColumns {
     TOPOLOGICAL_CONNECTIVITY
 }
 
+data class CsvReferenceLine(
+    val referenceLine: ReferenceLine,
+    val alignment: LayoutAlignment,
+    val segmentMetadataIds: List<IntId<AlignmentCsvMetaData<ReferenceLine>>?>,
+)
+
 fun createReferenceLinesFromCsv(
     file: CsvFile<ReferenceLineColumns>,
     metadataMap: Map<Oid<ReferenceLine>, List<AlignmentCsvMetaData<ReferenceLine>>>,
     trackNumbers: Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>,
     kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>
-): Sequence<Pair<ReferenceLine, LayoutAlignment>> {
+): Sequence<CsvReferenceLine> {
     return file.parseLinesStreaming { line ->
         val resolution = line.getInt(ReferenceLineColumns.RESOLUTION)
         val trackNumberExtId = Oid<TrackLayoutTrackNumber>(line.get(ReferenceLineColumns.TRACK_NUMBER_EXTERNAL_ID))
@@ -179,7 +184,7 @@ fun createReferenceLinesFromCsv(
             val segmentRanges = measureAndCollect("parsing->combineMetadataToSegments") {
                 combineMetadataToSegments(listOf(), metadata, points, kkjToEtrsTriangulationTriangles)
             }
-            val segments = measureAndCollect("parsing->createSegments") {
+            val (segments, metadataIds) = measureAndCollect("parsing->createSegments") {
                 createSegments(segmentRanges, points, resolution, connectionSegmentIndices)
             }
             val alignment = LayoutAlignment(segments, sourceId = null)
@@ -192,7 +197,7 @@ fun createReferenceLinesFromCsv(
                 segmentCount = alignment.segments.size,
                 boundingBox = alignment.boundingBox,
             )
-            referenceLine to alignment
+            CsvReferenceLine(referenceLine, alignment, metadataIds)
         }
     }
 }
@@ -206,6 +211,7 @@ data class AlignmentImportGeometry(
 data class CsvLocationTrack(
     val locationTrack: LocationTrack,
     val layoutAlignment: LayoutAlignment,
+    val segmentMetadataIds: List<IntId<AlignmentCsvMetaData<LocationTrack>>?>,
     val duplicateOfExternalId: Oid<LocationTrack>?,
 )
 
@@ -238,7 +244,7 @@ fun createLocationTracksFromCsv(
             val segmentRanges = measureAndCollect("parsing->combineMetadataToSegments") {
                 combineMetadataToSegments(switchLinks, metadata, points, kkjToEtrsTriangulationTriangles)
             }
-            val segments = measureAndCollect("parsing->createSegments") {
+            val (segments, metadataIds) = measureAndCollect("parsing->createSegments") {
                 createSegments(segmentRanges, points, resolution, connectionSegmentIndices)
             }
             val alignment = LayoutAlignment(segments, sourceId = null)
@@ -262,6 +268,7 @@ fun createLocationTracksFromCsv(
             CsvLocationTrack(
                 locationTrack = track,
                 layoutAlignment = alignment,
+                segmentMetadataIds = metadataIds,
                 duplicateOfExternalId = line.getOidOrNull(LocationTrackColumns.DUPLICATE_OF_EXTERNAL_ID)
             )
         }
@@ -595,6 +602,7 @@ enum class AlignmentMetaColumns {
     TRACK_ADDRESS_START,
     TRACK_ADDRESS_END,
     CREATED_YEAR,
+    MEASUREMENT_METHOD,
     FILE_NAME,
     ALIGNMENT_NAME,
     ORIGINAL_CRS,
@@ -602,7 +610,7 @@ enum class AlignmentMetaColumns {
 
 fun createAlignmentMetadataFromCsv(
     metadataFile: CsvFile<AlignmentMetaColumns>,
-    geometryProvider: (fileName: String, alignmentName: String) -> AlignmentImportGeometry?,
+    geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
 ): List<AlignmentCsvMetaData<LocationTrack>> {
     return metadataFile.parseLines { line ->
         val alignmentOid = line.getOid<LocationTrack>(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)
@@ -610,11 +618,9 @@ fun createAlignmentMetadataFromCsv(
         val startMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_START))
         val endMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_END))
         if (startMeter < endMeter) {
-            val fileName = line.getNonEmpty(AlignmentMetaColumns.FILE_NAME)
-            val alignmentName = line.getNonEmpty(AlignmentMetaColumns.ALIGNMENT_NAME)
-            val geometry =
-                if (fileName != null && alignmentName != null) geometryProvider(fileName, alignmentName)
-                else null
+            val fileName = line.get(AlignmentMetaColumns.FILE_NAME).let(::FileName)
+            val alignmentName = line.get(AlignmentMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
+            val geometry = geometryProvider(fileName, alignmentName)
             AlignmentCsvMetaData(
                 alignmentOid = alignmentOid,
                 metadataOid = metaDataOid,
@@ -622,8 +628,10 @@ fun createAlignmentMetadataFromCsv(
                 endMeter = endMeter,
                 createdYear = line.getInt(AlignmentMetaColumns.CREATED_YEAR),
                 geometry = geometry,
-                metadataSrid = line.getNonEmpty(AlignmentMetaColumns.ORIGINAL_CRS)
-                    ?.let { getEpsgCodeOrNull(it) }
+                originalCrs = line.get(AlignmentMetaColumns.ORIGINAL_CRS),
+                measurementMethod = line.get(AlignmentMetaColumns.MEASUREMENT_METHOD),
+                fileName = fileName,
+                planAlignmentName = alignmentName,
             )
         } else {
             LOG.warn("Invalid LocationTrack metadata range (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
@@ -638,7 +646,7 @@ fun <T> combineMetadataToSegments(
     alignmentMetadata: List<AlignmentCsvMetaData<T>> = listOf(),
     points: List<AddressPoint>,
     kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>,
-): List<SegmentCsvMetaDataRange> {
+): List<SegmentCsvMetaDataRange<T>> {
     val adjustedAlignmentMetadata = validateAndAdjustAlignmentCsvMetaData(
         points.first().trackMeter,
         points.last().trackMeter,
@@ -651,24 +659,24 @@ fun <T> combineMetadataToSegments(
     return segmentCsvMetadata(points, expandedMetadata, switchLinks)
 }
 
-fun createSegments(
-    segmentRanges: List<SegmentCsvMetaDataRange>,
+fun <T> createSegments(
+    segmentRanges: List<SegmentCsvMetaDataRange<T>>,
     points: List<AddressPoint>,
     resolution: Int,
     connectionSegmentIndices: List<Int>,
-): List<LayoutSegment> {
+): Pair<List<LayoutSegment>, List<IntId<AlignmentCsvMetaData<T>>?>> {
     val segmentedPoints = dividePointsToSegments(points, segmentRanges, HashSet(connectionSegmentIndices))
     var start = 0.0
-    return segmentedPoints.map { (segmentPoints, metadata) ->
-        val segment = createLayoutSegment(segmentPoints, metadata, start, resolution)
+    return segmentedPoints.map { (segmentPoints, metadataRange) ->
+        val segment = createLayoutSegment(segmentPoints, metadataRange, start, resolution)
         start += segment.length
         segment
-    }
+    } to segmentedPoints.map { (_, metadataRange) -> metadataRange.metadata.metadata?.metadataId }
 }
 
-fun createLayoutSegment(
+fun <T> createLayoutSegment(
     segmentPoints: List<Point3DM>,
-    range: SegmentFullMetaDataRange,
+    range: SegmentFullMetaDataRange<T>,
     startLength: Double,
     resolution: Int,
 ): LayoutSegment {
@@ -691,20 +699,21 @@ fun createLayoutSegment(
     )
 }
 
-data class SegmentCsvMetaDataRange(
+data class SegmentCsvMetaDataRange<T>(
     val meters: ClosedRange<TrackMeter>,
-    val metadata: ElementCsvMetadata?,
+    val metadata: ElementCsvMetadata<T>?,
     val switchLink: AlignmentSwitchLink?,
 ) {
     fun isBefore(meter: TrackMeter) = meter >= meters.endInclusive
 }
 
-data class SegmentFullMetaDataRange(
-    val metadata: SegmentCsvMetaDataRange,
+data class SegmentFullMetaDataRange<T>(
+    val metadata: SegmentCsvMetaDataRange<T>,
     val connectionSegment: Boolean,
 )
 
-fun emptyCsvMetaData(range: ClosedRange<TrackMeter>) = SegmentCsvMetaDataRange(range, null, null)
+fun <T> emptyCsvMetaData(range: ClosedRange<TrackMeter>) =
+    SegmentCsvMetaDataRange<T>(range, null, null)
 
 /**
  * Maps switch links to modified track meter range. E.g. the new range of
@@ -757,10 +766,10 @@ fun getSwitchLinkTrackMeterRanges(
     }.toMap()
 }
 
-fun adjustMetadataToSwitchLinks(
-    metadata: List<ElementCsvMetadata>,
+fun <T> adjustMetadataToSwitchLinks(
+    metadata: List<ElementCsvMetadata<T>>,
     switchLinks: List<AlignmentSwitchLink>,
-): List<ElementCsvMetadata> {
+): List<ElementCsvMetadata<T>> {
     val allSwitchLinkAddresses = switchLinks.flatMap { sl -> listOf(sl.startMeter, sl.endMeter) }
     return metadata.mapNotNull { md ->
         val adjustedStart = getAdjustedAddress(md.startMeter, allSwitchLinkAddresses)
@@ -774,11 +783,11 @@ fun adjustMetadataToSwitchLinks(
 fun getAdjustedAddress(point: TrackMeter, snapPoints: List<TrackMeter>): TrackMeter =
     snapPoints.find { snap -> point.ceil() == snap.ceil() || point.floor() == snap.floor() } ?: point
 
-fun segmentCsvMetadata(
+fun <T> segmentCsvMetadata(
     points: List<AddressPoint>,
-    metadata: List<ElementCsvMetadata>,
+    metadata: List<ElementCsvMetadata<T>>,
     switchLinks: List<AlignmentSwitchLink>,
-): List<SegmentCsvMetaDataRange> {
+): List<SegmentCsvMetaDataRange<T>> {
     val switchLinkByRange = getSwitchLinkTrackMeterRanges(
         switchLinks,
         metadata.map { md -> md.startMeter..md.endMeter },
@@ -786,7 +795,7 @@ fun segmentCsvMetadata(
         points.last().trackMeter
     )
     val switchLinkRanges = switchLinkByRange.keys.sortedBy { it.start }
-    val segmentRanges: MutableList<SegmentCsvMetaDataRange> = mutableListOf()
+    val segmentRanges: MutableList<SegmentCsvMetaDataRange<T>> = mutableListOf()
     var currentMeter = points.first().trackMeter
     val endMeter = points.last().trackMeter
 
@@ -824,7 +833,8 @@ fun segmentCsvMetadata(
     return segmentRanges.flatMap(::breakRangeByKmLimits)
 }
 
-data class ElementCsvMetadata(
+data class ElementCsvMetadata<T>(
+    val metadataId: IntId<AlignmentCsvMetaData<T>>,
     val startMeter: TrackMeter,
     val endMeter: TrackMeter,
     val createdYear: Int,
@@ -844,10 +854,12 @@ data class ElementCsvMetadata(
         else null
 }
 
-fun <T> noElementsCsvMetadata(alignment: AlignmentCsvMetaData<T>) = ElementCsvMetadata(
-    startMeter = alignment.startMeter,
-    endMeter = alignment.endMeter,
-    createdYear = alignment.createdYear,
+fun <T> noElementsCsvMetadata(alignmentMetaData: AlignmentCsvMetaData<T>) = ElementCsvMetadata(
+    metadataId = alignmentMetaData.id
+        ?: throw IllegalArgumentException("Alignment metadata needs to have an ID"),
+    startMeter = alignmentMetaData.startMeter,
+    endMeter = alignmentMetaData.endMeter,
+    createdYear = alignmentMetaData.createdYear,
     geometryElement = null,
     geometrySrid = null,
 )
@@ -856,7 +868,7 @@ fun <T> getGeometryElementRanges(
     allPoints: List<AddressPoint>,
     alignment: AlignmentCsvMetaData<T>,
     kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>
-): List<ElementCsvMetadata> {
+): List<ElementCsvMetadata<T>> {
     val planSrid = alignment.geometry?.coordinateSystemSrid
     val elements = alignment.geometry?.elements ?: return listOf(noElementsCsvMetadata(alignment))
     val sourceSrid = planSrid ?: return listOf(noElementsCsvMetadata(alignment))
@@ -915,6 +927,8 @@ fun <T> getGeometryElementRanges(
             } else {
                 lastPickedIndex = end.index
                 ElementCsvMetadata(
+                    metadataId = alignment.id
+                        ?: throw IllegalArgumentException("Alignment metadata needs to have an ID"),
                     startMeter = start.trackMeter,
                     endMeter = end.trackMeter,
                     createdYear = alignment.createdYear,
@@ -939,11 +953,11 @@ fun <T> getGeometryElementRanges(
     }
 }
 
-fun validateElementRanges(
+fun <T> validateElementRanges(
     debug: String,
     startMeter: TrackMeter,
     endMeter: TrackMeter,
-    elements: List<ElementCsvMetadata>,
+    elements: List<ElementCsvMetadata<T>>,
 ) {
     if (elements.isEmpty()) {
         LOG.error("Geometry element mapping failed - no elements found: $debug")
@@ -998,8 +1012,8 @@ private fun findPoint(points: List<AddressPoint>, target: Point, startIndex: Int
 // Calculating real distances would be too slow, but an approximation is enough here
 private fun distance(source: IPoint, target: IPoint) = lineLength(source, target)
 
-fun breakRangeByKmLimits(range: SegmentCsvMetaDataRange): List<SegmentCsvMetaDataRange> {
-    val ranges: MutableList<SegmentCsvMetaDataRange> = mutableListOf()
+fun <T> breakRangeByKmLimits(range: SegmentCsvMetaDataRange<T>): List<SegmentCsvMetaDataRange<T>> {
+    val ranges: MutableList<SegmentCsvMetaDataRange<T>> = mutableListOf()
     var start = range.meters.start
     while (isMultiKm(start, range.meters.endInclusive)) {
         val end = TrackMeter(
@@ -1018,17 +1032,17 @@ fun isMultiKm(start: TrackMeter, end: TrackMeter): Boolean {
     return kmDiff > 1 || (kmDiff > 0 && end.meters > BigDecimal.ZERO)
 }
 
-fun dividePointsToSegments(
+fun <T> dividePointsToSegments(
     points: List<AddressPoint>,
-    segmentRanges: List<SegmentCsvMetaDataRange>,
+    segmentRanges: List<SegmentCsvMetaDataRange<T>>,
     connectionSegmentIndices: Set<Int>,
-): List<Pair<List<Point3DM>, SegmentFullMetaDataRange>> {
+): List<Pair<List<Point3DM>, SegmentFullMetaDataRange<T>>> {
 
     validateSegmentRanges(points.first().trackMeter, points.last().trackMeter, segmentRanges)
 
     var currentPoints: MutableList<Point3DM> = mutableListOf()
     var rangeIndex = 0
-    val segments: MutableList<Pair<List<Point3DM>, SegmentFullMetaDataRange>> = mutableListOf()
+    val segments: MutableList<Pair<List<Point3DM>, SegmentFullMetaDataRange<T>>> = mutableListOf()
 
     points.forEachIndexed { pointIndex, (point, trackMeter) ->
         require(rangeIndex <= segmentRanges.size) { "Segment point distribution over-indexed" }
@@ -1046,7 +1060,9 @@ fun dividePointsToSegments(
                 || connectionSegmentIndices.contains(pointIndex + 1)
 
         if (rangeEnd) {
-            if (currentPoints.isNotEmpty()) segments.add(currentPoints to SegmentFullMetaDataRange(currentRange, connectionSegment))
+            if (currentPoints.isNotEmpty()) segments.add(
+                currentPoints to SegmentFullMetaDataRange(currentRange, connectionSegment)
+            )
             currentPoints = if (pointIndex == points.lastIndex) mutableListOf() else mutableListOf(point)
         }
 
@@ -1062,10 +1078,10 @@ fun dividePointsToSegments(
     return segments
 }
 
-fun validateSegmentRanges(
+fun <T> validateSegmentRanges(
     start: TrackMeter,
     end: TrackMeter,
-    ranges: List<SegmentCsvMetaDataRange>,
+    ranges: List<SegmentCsvMetaDataRange<T>>,
 ) {
     require(ranges.first().meters.start.isSame(start)) {
         "Segment ranges start doesn't match first point: range=${ranges.first().meters} start=${start}"
