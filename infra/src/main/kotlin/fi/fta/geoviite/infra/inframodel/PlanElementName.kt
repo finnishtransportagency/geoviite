@@ -8,7 +8,7 @@ import org.springframework.core.convert.converter.Converter
 
 val elementNameLength = 0..100
 
-val elementNameRegex = Regex("^[A-Za-zÄÖÅäöå0-9 \\-+_/]*\$")
+val elementNameRegex = Regex("^[A-Za-zÄÖÅäöå0-9 \\-+_/!?]*\$")
 
 data class PlanElementName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(val value: String)
     : CharSequence by value {

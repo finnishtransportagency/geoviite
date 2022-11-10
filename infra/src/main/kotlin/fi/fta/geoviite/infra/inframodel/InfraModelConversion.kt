@@ -617,13 +617,9 @@ fun tryParseKmNumber(text: String): KmNumber? =
     }
 
 fun tryParseMetaDataName(text: String): MetaDataName? = tryParseText(text, ::MetaDataName)
-fun tryParseAlignmentName(text: String): AlignmentName? =
-    tryParseText(text.replace(Regex("[?!]"), " ").trim(), ::AlignmentName)
-
+fun tryParseAlignmentName(text: String): AlignmentName? = tryParseText(text, ::AlignmentName)
 fun tryParseSwitchName(text: String): SwitchName? = tryParseText(text, ::SwitchName)
-
-fun tryParsePlanElementName(text: String): PlanElementName? =
-    tryParseText(text.replace(Regex("[?!]"), ""), ::PlanElementName)
+fun tryParsePlanElementName(text: String): PlanElementName? = tryParseText(text, ::PlanElementName)
 
 fun emptyName() = PlanElementName("")
 fun tryParseFreeText(text: String): FreeText? = tryParseText(text, ::FreeText)
