@@ -88,7 +88,9 @@ class RatkoService @Autowired constructor(
 
             val publishes = ratkoPushDao.fetchUnpublishedLayoutPublishes()
             if (publishes.isNotEmpty()) {
-                pushChanges(userName, publishes)
+                if (ratkoClient.ratkoIsOnline()) {
+                    pushChanges(userName, publishes)
+                }
             }
         }
     }
