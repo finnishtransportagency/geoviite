@@ -448,7 +448,7 @@ fun collectGeometrySwitches(
             val switchTypeNameXml =
                 verifySameField("Switch typeName", xmlSwitches, TempSwitch::typeName, TempSwitch::name)
             val switchTypeName = normalizeSwitchTypeName(switchTypeNameAliases, switchTypeNameXml)
-            val switchTypeRequiresHandedness = tryParseSwitchType(switchTypeName)
+            val switchTypeRequiresHandedness = tryParseSwitchType(switchTypeName, logger)
                 .let { switchType -> if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false }
             val switchTypeHand = verifySameField(
                 "Switch hand",
@@ -465,7 +465,7 @@ fun collectGeometrySwitches(
                 else "$switchTypeName-${it.abbreviation}"
             }
 
-            val switchType = tryParseSwitchType(fullSwitchTypeName)
+            val switchType = tryParseSwitchType(fullSwitchTypeName, logger)
             val switchStructure = switchType?.let { type -> switchStructuresByType[type] }
 
             if (switchType == null) {
