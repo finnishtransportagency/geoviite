@@ -196,7 +196,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     type SearchItemValue = LocationTrackItemValue;
 
-    function getOptions(searchTerm: string): Promise<Item<SearchItemValue>[]> {
+    function getLocationTrackOptions(searchTerm: string): Promise<Item<SearchItemValue>[]> {
         if (isNullOrBlank(searchTerm)) {
             return Promise.resolve([]);
         }
@@ -223,9 +223,17 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     }
 
     // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetOptions = debounceAsync(getOptions, 250);
+    const debouncedGetLocationTrackOptions = debounceAsync(getLocationTrackOptions, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
-    const memoizedDebouncedGetOptions = React.useCallback(debouncedGetOptions, []);
+    const getDuplicateTrackOptions = React.useCallback(searchTerm =>
+        debouncedGetLocationTrackOptions(searchTerm).then(locationTrackItems =>
+            locationTrackItems.filter(locationTrackItem => {
+                    const locationTrack = locationTrackItem.value.locationTrack;
+                    return locationTrack.id !== props.locationTrack?.id && locationTrack.duplicateOf === null
+                },
+            ),
+        ), [props.locationTrack?.id],
+    );
 
     function onDuplicateTrackSelected(duplicateTrack: SearchItemValue | undefined) {
         updateProp('duplicateOf', duplicateTrack?.locationTrack?.id ?? null);
@@ -385,7 +393,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         })}
                                         getName={(item) => item.locationTrack.name}
                                         placeholder={t('location-track-dialog.search')}
-                                        options={memoizedDebouncedGetOptions}
+                                        options={getDuplicateTrackOptions}
                                         searchable
                                         onChange={onDuplicateTrackSelected}
                                         onBlur={() => stateActions.onCommitField('duplicateOf')}
