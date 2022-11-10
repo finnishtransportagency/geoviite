@@ -390,6 +390,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         onChange={onDuplicateTrackSelected}
                                         onBlur={() => stateActions.onCommitField('duplicateOf')}
                                         canUnselect={true}
+                                        unselectText={t('location-track-dialog.not-a-duplicate')}
                                         wideList
                                         wide
                                     />

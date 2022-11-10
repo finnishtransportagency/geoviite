@@ -22,6 +22,7 @@
         "invalid-description": "Kuvauksen tulee olla 4-256 merkkiä pitkä",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
         "duplicate-of": "Duplikaatti raiteelle",
+        "not-a-duplicate": "Ei duplikaatti",
         "search": "Hae...",
         "topological-connectivity": "Topologinen kytkeytyminen"
     },
