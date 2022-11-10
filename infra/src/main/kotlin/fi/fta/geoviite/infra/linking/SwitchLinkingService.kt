@@ -548,9 +548,21 @@ private fun filterMatchingJointsBySwitchAlignment(
 
     val switchStructureJointNumbers = switchStructure.alignments
         .firstOrNull { alignment ->
-            //Switch alignment is determined by "etujatkos" and "takajatkos"
-            locationTrackSwitchJoints.any { joint -> joint.jointNumber == alignment.jointNumbers.first() } &&
-                    locationTrackSwitchJoints.any { joint -> joint.jointNumber == alignment.jointNumbers.last() }
+            val frontJoint = alignment.jointNumbers.first()
+            val backJoint = alignment.jointNumbers.last()
+            val presentationJoint = switchStructure.presentationJointNumber
+            val hasFrontJoint =
+                locationTrackSwitchJoints.any { joint -> joint.jointNumber == frontJoint }
+            val hasBackJoint =
+                locationTrackSwitchJoints.any { joint -> joint.jointNumber == backJoint }
+            val hasSeparatePresentationJoint =
+                presentationJoint != frontJoint &&
+                        presentationJoint != backJoint &&
+                        alignment.jointNumbers.any { jointNumber -> jointNumber == presentationJoint } &&
+                        locationTrackSwitchJoints.any { joint -> joint.jointNumber == presentationJoint }
+
+            // Alignment must contain at least two of these ("etujatkos, "takajatkos", presentation joint)
+            listOf(hasFrontJoint, hasBackJoint, hasSeparatePresentationJoint).count { it } >= 2
         }?.jointNumbers
 
     return locationTrackSwitchJoints.filter { joint ->
