@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.PlanSource.GEOMETRIAPALVELU
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.geometry.validate
+import fi.fta.geoviite.infra.inframodel.fileToString
 import fi.fta.geoviite.infra.inframodel.parseGeometryPlan
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
@@ -28,7 +29,7 @@ import fi.fta.geoviite.infra.util.resetCollected
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context
 import org.flywaydb.core.internal.resolver.ChecksumCalculator
-import org.flywaydb.core.internal.resource.filesystem.FileSystemResource
+import org.flywaydb.core.internal.resource.StringResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataAccessException
@@ -39,7 +40,6 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import kotlin.text.Charsets.UTF_8
 
 const val IM_ORIGINAL_FILES_FOLDER = "geometriatietopalvelu"
 const val IM_LAYOUT_FILES_FOLDER = "paikannuspalvelu"
@@ -252,10 +252,9 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
     private fun calculateChecksum(file: File): Int {
         return try {
-            ChecksumCalculator.calculate(FileSystemResource(null, file.path, UTF_8, false))
+            ChecksumCalculator.calculate(StringResource(fileToString(file)))
         } catch (e: Exception) {
-            // Typically caused by non- UTF-8 encoding, many of which claim to be UTF-8 even though they're not.
-            logger.warn("Checksum calculation failed: path=${file.absolutePath} error=$e")
+            logger.error("Checksum calculation failed: path=${file.absolutePath} error=$e")
             -1
         }
     }
