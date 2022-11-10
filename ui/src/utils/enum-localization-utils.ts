@@ -56,6 +56,7 @@ export const ratkoPushErrorTypes: { value: RatkoPushErrorType; name: string }[] 
     { value: 'PROPERTIES', name: i18n.t('enum.ratko-push-error-type.PROPERTIES') },
     { value: 'LOCATION', name: i18n.t('enum.ratko-push-error-type.LOCATION') },
     { value: 'GEOMETRY', name: i18n.t('enum.ratko-push-error-type.GEOMETRY') },
+    { value: 'STATE', name: i18n.t('enum.ratko-push-error-type.STATE') },
 ];
 
 export const ratkoPushErrorOperations: { value: RatkoPushErrorOperation; name: string }[] = [
