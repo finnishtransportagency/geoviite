@@ -41,6 +41,7 @@ export type LocationTrackDialogProps = {
     onUnselect?: () => void;
     locationTrackChangeTime: TimeStamp;
     existingDuplicateTrack?: LayoutLocationTrack | undefined;
+    duplicatesExist?: boolean
 };
 
 export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
@@ -381,7 +382,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('description')}
                         />
 
-                        {selectedDuplicateTrackName && (
+                        {props.duplicatesExist || (
                             <FieldLayout
                                 label={`${t('location-track-dialog.duplicate-of')}`}
                                 value={
