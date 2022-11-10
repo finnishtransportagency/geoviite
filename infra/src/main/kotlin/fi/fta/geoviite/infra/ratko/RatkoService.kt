@@ -116,13 +116,13 @@ class RatkoService @Autowired constructor(
             try {
                 ratkoRouteNumberService.forceRedraw(pushedRouteNumberOids.map { RatkoOid(it) })
             } catch (_: Exception) {
-                logger.info("Failed to push M values for route numbers $pushedRouteNumberOids")
+                logger.warn("Failed to push M values for route numbers $pushedRouteNumberOids")
             }
 
             try {
                 ratkoLocationTrackService.forceRedraw(pushedLocationTrackOids.map { RatkoOid(it) })
             } catch (_: Exception) {
-                logger.info("Failed to push M values for location tracks $pushedLocationTrackOids")
+                logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
             }
 
             ratkoPushDao.finishPushing(

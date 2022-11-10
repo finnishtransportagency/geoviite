@@ -192,7 +192,8 @@ class RatkoAssetService @Autowired constructor(
         ratkoClient.updateAssetProperties(switchOid, updatedRatkoSwitch.properties)
 
         if (updatedRatkoSwitch.state != currentRatkoSwitch.state) {
-            ratkoClient.updateAssetState(switchOid, updatedRatkoSwitch.state)
+            logger.warn("Switch ($switchOid) state has changed but was not pushed to Ratko. State changed from ${currentRatkoSwitch.state} to ${updatedRatkoSwitch.state}")
+            //ratkoClient.updateAssetState(switchOid, updatedRatkoSwitch.state)
         }
     }
 
