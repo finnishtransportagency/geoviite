@@ -179,7 +179,27 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         return version
     }
 
-    private fun insertJoints(switchStructureId: RowVersion<SwitchStructure>, joints: List<SwitchJoint>) {
+    @Transactional
+    fun insertInframodelAlias(alias: String, type: String) {
+        val sql = """
+            insert into common.inframodel_switch_type_name_alias (alias, type)
+            values (:alias, :type)
+        """.trimIndent()
+        jdbcTemplate.setUser()
+        val params = mapOf("alias" to alias, "type" to type)
+        jdbcTemplate.update(sql, params)
+    }
+
+    fun getInframodelAliases(): Map<String, String> {
+        val sql = """
+            select alias, type from common.inframodel_switch_type_name_alias
+        """.trimIndent()
+        return jdbcTemplate.query(sql) { rs, _ ->
+            rs.getString("alias") to rs.getString("type")
+        }.associate { it }
+    }
+
+    fun insertJoints(switchStructureId: RowVersion<SwitchStructure>, joints: List<SwitchJoint>) {
         joints.forEach { joint -> insertJoint(switchStructureId, joint) }
     }
 

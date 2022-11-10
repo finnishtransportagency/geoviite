@@ -36,6 +36,7 @@ class FrozenMigrationsTest @Autowired constructor(
             MigrationFile(fileName = "V01.04__common_coordinate_system.sql", checksum = 1752767082),
             MigrationFile(fileName = "V01.05__common_location_accuracy.sql", checksum = -999072516),
             MigrationFile(fileName = "V01.06__common_vertical_coordinate_system.sql", checksum = 1647683084),
+            MigrationFile(fileName = "V01.03.07__common_inframodel_switch_type_name_alias.sql", checksum = 144978698),
             MigrationFile(fileName = "V01.07.01__common_role.sql", checksum = -410660863),
             MigrationFile(fileName = "V01.07.02__common_privilege.sql", checksum = 899063532),
             MigrationFile(fileName = "V01.07.03__common_role_privilege.sql", checksum = -1711975293),

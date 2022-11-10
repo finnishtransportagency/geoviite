@@ -20,11 +20,15 @@ import jakarta.xml.bind.Unmarshaller
 import org.springframework.http.MediaType
 import org.springframework.web.multipart.MultipartFile
 import org.xml.sax.InputSource
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.StringReader
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
 import javax.xml.parsers.SAXParserFactory
+import javax.xml.stream.XMLInputFactory
+import javax.xml.stream.XMLStreamReader
 import javax.xml.transform.sax.SAXSource
 import javax.xml.validation.Schema
 import javax.xml.validation.SchemaFactory
@@ -35,7 +39,7 @@ private const val SCHEMA_LOCATION = "/xml/inframodel.xsd"
 const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
 
-data class ParsingError(private val key: String): ValidationError {
+data class ParsingError(private val key: String) : ValidationError {
     override val errorType = ErrorType.PARSING_ERROR
     override val localizationKey = LocalizationKey(key)
 }
@@ -45,14 +49,15 @@ private val jaxbContext: JAXBContext by lazy { JAXBContext.newInstance(InfraMode
 private val schema: Schema by lazy {
     val language = W3C_XML_SCHEMA_NS_URI
     val factory = SchemaFactory.newInstance(language)
-    factory.newSchema(InfraModel::class.java.getResource(SCHEMA_LOCATION)
-        ?: throw IllegalArgumentException("Failed to load schema from classpath:$SCHEMA_LOCATION")
+    factory.newSchema(
+        InfraModel::class.java.getResource(SCHEMA_LOCATION)
+            ?: throw IllegalArgumentException("Failed to load schema from classpath:$SCHEMA_LOCATION")
     )
 }
 
 val unmarshaller: Unmarshaller by lazy { jaxbContext.createUnmarshaller() }
 
-val marshaller: Marshaller by lazy {  jaxbContext.createMarshaller() }
+val marshaller: Marshaller by lazy { jaxbContext.createMarshaller() }
 
 private val saxParserFactory: SAXParserFactory by lazy {
     val spf = SAXParserFactory.newInstance()
@@ -67,7 +72,7 @@ private val saxParserFactory: SAXParserFactory by lazy {
     // https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html
 
     // Disable DTDs
-    spf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+    spf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
 
     // Disable XXE
     spf.setFeature("http://xml.org/sax/features/external-general-entities", false)
@@ -89,30 +94,51 @@ fun parseGeometryPlan(
     fileName: String = file.name,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, fileToString(file))
-    return parseFromString(imFile, coordinateSystems, switchStructuresByType, trackNumberIdsByNumber) to imFile
+    return parseFromString(
+        imFile,
+        coordinateSystems,
+        switchStructuresByType,
+        switchTypeNameAliases,
+        trackNumberIdsByNumber
+    ) to imFile
 }
 
 fun parseGeometryPlan(
     file: MultipartFile,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file))
-    return parseFromString(imFile, coordinateSystems, switchStructuresByType, trackNumberIdsByNumber) to imFile
+    return parseFromString(
+        imFile,
+        coordinateSystems,
+        switchStructuresByType,
+        switchTypeNameAliases,
+        trackNumberIdsByNumber
+    ) to imFile
 }
 
 fun parseFromClasspath(
     fileName: String,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, classpathResourceToString(fileName))
-    return parseFromString(imFile, coordinateSystems, switchStructuresByType, trackNumberIdsByNumber) to imFile
+    return parseFromString(
+        imFile,
+        coordinateSystems,
+        switchStructuresByType,
+        switchTypeNameAliases,
+        trackNumberIdsByNumber
+    ) to imFile
 }
 
 fun toInfraModelFile(fileName: String, fileContent: String) =
@@ -122,6 +148,7 @@ fun parseFromString(
     file: InfraModelFile,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
     return toGvtPlan(
@@ -129,8 +156,28 @@ fun parseFromString(
         stringToInfraModel(file.content),
         coordinateSystems,
         switchStructuresByType,
+        switchTypeNameAliases,
         trackNumberIdsByNumber,
     )
+}
+
+val xmlCharsets = listOf(
+    StandardCharsets.UTF_8,
+    StandardCharsets.UTF_16,
+    StandardCharsets.UTF_16BE,
+    StandardCharsets.UTF_16LE,
+    StandardCharsets.US_ASCII,
+    StandardCharsets.ISO_8859_1,
+)
+fun getEncoding(xmlByteStream: ByteArray): Charset {
+    ByteArrayInputStream(xmlByteStream).use { stream ->
+        val xmlStreamReader: XMLStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(stream)
+        val fileEncoding = xmlStreamReader.encoding
+        val encodingFromXMLDeclaration = xmlStreamReader.characterEncodingScheme
+        return (encodingFromXMLDeclaration ?: fileEncoding)?.let { name ->
+            xmlCharsets.find { cs -> cs.name() == name }
+        } ?: StandardCharsets.UTF_8
+    }
 }
 
 fun stringToInfraModel(xmlString: String): InfraModel =
@@ -147,15 +194,19 @@ fun stringToInfraModel(xmlString: String): InfraModel =
 fun classpathResourceToString(fileName: String): String {
     val resource = InfraModel::class.java.getResource(fileName)
         ?: throw InframodelParsingException("Resource not found: $fileName")
-    return checkUTF8BOM(resource.readText())
+    return xmlBytesToString(resource.readBytes())
 }
 
 fun fileToString(file: MultipartFile): String {
-    return checkUTF8BOM(String(file.bytes, StandardCharsets.UTF_8))
+    return xmlBytesToString(file.bytes)
 }
 
 fun fileToString(file: File): String {
-    return checkUTF8BOM(String(file.readBytes(), StandardCharsets.UTF_8))
+    return xmlBytesToString(file.readBytes())
+}
+
+fun xmlBytesToString(bytes: ByteArray): String {
+    return checkUTF8BOM(String(bytes, getEncoding(bytes)))
 }
 
 fun checkUTF8BOM(content: String): String {

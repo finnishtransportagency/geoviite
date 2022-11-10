@@ -130,6 +130,12 @@ val switchStructures: List<SwitchStructure> by lazy {
     )
 }
 
+val inframodelAliases = mapOf(
+    "YV54-200(N)-1:9" to "YV54-200N-1:9",
+    "YV60-2500-1:26" to "YV60-5000/2500-1:26",
+    "YV60-3000-1:28" to "YV60-5000/3000-1:28",
+)
+
 @Suppress("unused", "ClassName")
 class V10_03_06__SwitchLibraryDataMigration : BaseJavaMigration() {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -144,6 +150,9 @@ class V10_03_06__SwitchLibraryDataMigration : BaseJavaMigration() {
         )
         val switchStructureDao = SwitchStructureDao(jdbcTemplate)
         switchStructures.forEach(switchStructureDao::insertSwitchStructure)
+        inframodelAliases.forEach { (alias, type) ->
+            switchStructureDao.insertInframodelAlias(alias, type)
+        }
     }
 
     // Increase this manually when switch library data changes

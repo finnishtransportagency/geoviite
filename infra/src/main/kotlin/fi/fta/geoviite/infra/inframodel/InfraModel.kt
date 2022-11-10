@@ -3,7 +3,9 @@ package fi.fta.geoviite.infra.inframodel
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import jakarta.xml.bind.annotation.*
 
-const val XMLNS = "http://www.inframodel.fi/inframodel"
+const val XMLNS_403 = "http://www.inframodel.fi/inframodel"
+const val XMLNS_404 = "http://buildingsmart.fi/inframodel/404"
+const val XMLNS = XMLNS_403
 
 @XmlRootElement(name = "LandXML", namespace = XMLNS)
 @XmlAccessorType(XmlAccessType.FIELD)
