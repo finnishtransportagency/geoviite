@@ -6,9 +6,10 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import kotlin.random.Random
@@ -51,8 +52,8 @@ class CsvParsingTest {
         val start = AddressPoint(point(1), TrackMeter.create("0002+123.123"))
         val end = AddressPoint(point(2), TrackMeter.create("0007+321.345"))
 
-        val segments = segmentCsvMetadata(listOf(start, end), listOf(), listOf())
-        val expected = listOf(
+        val segments = segmentCsvMetadata<LocationTrack>(listOf(start, end), listOf(), listOf())
+        val expected = listOf<SegmentCsvMetaDataRange<LocationTrack>>(
             emptyCsvMetaData(TrackMeter.create("0002+123.123")..TrackMeter.create("0003+0")),
             emptyCsvMetaData(TrackMeter.create("0003+0")..TrackMeter.create("0004+0")),
             emptyCsvMetaData(TrackMeter.create("0004+0")..TrackMeter.create("0005+0")),
@@ -126,8 +127,8 @@ class CsvParsingTest {
         )
         val sl3 = switchLink(3, TrackMeter.create("0006+111.1"), TrackMeter.create("0006+222.2"))
 
-        val segments = segmentCsvMetadata(listOf(start, end), listOf(), listOf(sl1, sl2, sl3))
-        val expected = listOf(
+        val segments = segmentCsvMetadata<LocationTrack>(listOf(start, end), listOf(), listOf(sl1, sl2, sl3))
+        val expected = listOf<SegmentCsvMetaDataRange<LocationTrack>>(
             emptyCsvMetaData(TrackMeter.create("0002+000.0")..TrackMeter.create("0002+123.0")),
             SegmentCsvMetaDataRange(TrackMeter.create("0002+123.0")..TrackMeter.create("0002+223.0"), null, sl1),
             emptyCsvMetaData(TrackMeter.create("0002+223.0")..TrackMeter.create("0003+000")),
@@ -500,11 +501,11 @@ class CsvParsingTest {
             AddressPoint(point(8), TrackMeter.create("0000+30.0")),
             AddressPoint(point(9), TrackMeter.create("0000+31.0")),
         )
-        val md0 = emptyCsvMetaData(TrackMeter.create("0000+0.0")..TrackMeter.create("0000+1.0"))
+        val md0 = emptyCsvMetaData<LocationTrack>(TrackMeter.create("0000+0.0")..TrackMeter.create("0000+1.0"))
         val md1 = someSegmentCsvMetaData(TrackMeter.create("0000+1.0")..TrackMeter.create("0000+10.0"), 1)
         val md2 = someSegmentCsvMetaData(TrackMeter.create("0000+10.0")..TrackMeter.create("0000+20.0"), 2)
         val md3 = someSegmentCsvMetaData(TrackMeter.create("0000+20.0")..TrackMeter.create("0000+30.0"), 3)
-        val md4 = emptyCsvMetaData(TrackMeter.create("0000+30.0")..TrackMeter.create("0000+31.0"))
+        val md4 = emptyCsvMetaData<LocationTrack>(TrackMeter.create("0000+30.0")..TrackMeter.create("0000+31.0"))
         val divided = dividePointsToSegments(points, listOf(md0, md1, md2, md3, md4), setOf())
         assertEquals(
             listOf(
@@ -1028,7 +1029,12 @@ class CsvParsingTest {
         assertEquals(4, points.size)
         assertEquals(listOf(2), connectionSegmentIndices)
 
-        val segments = createSegments(listOf(emptySegmentMetadata(points)), points, 100, connectionSegmentIndices)
+        val (segments, _) = createSegments(
+            listOf(emptySegmentMetadata(points)),
+            points,
+            100,
+            connectionSegmentIndices,
+        )
         assertEquals(3, segments.size)
         assertEquals(GeometrySource.IMPORTED, segments[0].source)
         assertEquals(2, segments[0].points.size)
@@ -1078,7 +1084,7 @@ class CsvParsingTest {
         assertEquals(10, points.size)
         assertEquals(listOf(2, 3, 4, 8), connectionSegmentIndices)
 
-        val segments = createSegments(listOf(emptySegmentMetadata(points)), points, 100, connectionSegmentIndices)
+        val (segments, _) = createSegments(listOf(emptySegmentMetadata(points)), points, 100, connectionSegmentIndices)
         assertEquals(7, segments.size)
         assertEquals(listOf(
             GeometrySource.IMPORTED,
@@ -1109,7 +1115,11 @@ class CsvParsingTest {
     )
 
     private fun emptySegmentMetadata(points: List<AddressPoint>) =
-        SegmentCsvMetaDataRange(points.first().trackMeter..points.last().trackMeter, null, null)
+        SegmentCsvMetaDataRange<LocationTrack>(
+            points.first().trackMeter..points.last().trackMeter,
+            null,
+            null,
+        )
 
     private fun elementCsvMetaData(seed: Int, start: TrackMeter, end: TrackMeter) =
         noElementsCsvMetadata(alignmentCsvMetaData(seed, start, end))
@@ -1118,16 +1128,20 @@ class CsvParsingTest {
         seed: Int,
         start: TrackMeter,
         end: TrackMeter
-    ): AlignmentCsvMetaData<ReferenceLine> {
+    ): AlignmentCsvMetaData<LocationTrack> {
         val rand = Random(seed)
         return AlignmentCsvMetaData(
+            id = IntId(seed),
             alignmentOid = getSomeOid(rand.nextInt()),
             metadataOid = getSomeOid(rand.nextInt()),
             startMeter = start,
             endMeter = end,
             createdYear = rand.nextInt(1950, 2020),
             geometry = null,
-            metadataSrid = null,
+            originalCrs = "OLD_CRS",
+            planAlignmentName = AlignmentName("001"),
+            fileName = FileName("test_file.xml"),
+            measurementMethod = "TEST DATA GENERATION",
         )
     }
 
