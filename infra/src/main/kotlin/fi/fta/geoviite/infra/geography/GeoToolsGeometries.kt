@@ -131,23 +131,21 @@ data class Transformation(
             this(crs(sourceSrid), crs(targetSrid), triangles = triangles)
 
     fun transform(point: IPoint): Point {
-        val transformedPoint: Point
         try {
+            val sourceIsKkj = listOf(KKJ0, KKJ1, KKJ2, KKJ3_YKJ, KKJ4, KKJ5).contains(sourceRef)
             // Intercept transforms from KKJx to ETRS
-            if (triangles.any()
-                && listOf(KKJ0, KKJ1, KKJ2, KKJ3_YKJ, KKJ4, KKJ5).contains(sourceRef)
-                && targetRef == LAYOUT_CRS
-            ) {
+            return if (triangles.any() && sourceIsKkj && targetRef == LAYOUT_CRS) {
                 val ykjPoint = transformKkjToYkjAndNormalizeAxes(point)
                 val triangle = triangles.find { it.intersects(ykjPoint) }
-                requireNotNull(triangle) { "Point was not inside the triangulation network" }
-                transformedPoint = transformYkjPointToEtrs(ykjPoint, triangle)
+                requireNotNull(triangle) {
+                    "Point was not inside the triangulation network: point=$point ykjPoint=$ykjPoint"
+                }
+                transformYkjPointToEtrs(ykjPoint, triangle)
             } else {
                 val jtsPoint = toJtsPoint(point, sourceRef)
                 val jtsPointTransformed = JTS.transform(jtsPoint, math) as org.locationtech.jts.geom.Point
-                transformedPoint = toGvtPoint(jtsPointTransformed, targetRef)
+                toGvtPoint(jtsPointTransformed, targetRef)
             }
-            return transformedPoint
         } catch (e: Exception) {
             throw CoordinateTransformationException(point, e)
         }

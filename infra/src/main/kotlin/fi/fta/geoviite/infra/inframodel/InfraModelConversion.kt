@@ -69,7 +69,9 @@ fun toGvtPlan(
     val kmPosts = mutableListOf<GeometryKmPost>()
 
     infraModel.alignmentGroups.forEach { group ->
-        val trackNumberState = parseOptionalEnum<PlanState>("Track number ${group.name} state", group.state)
+        val trackNumberState = group.state?.let { stateString ->
+            tryParsePlanState("Track number ${group.name} state", stateString)
+        }
 
         alignments.addAll(group.alignments.map { xmlAlignment ->
             toGvtAlignment(
@@ -81,7 +83,9 @@ fun toGvtPlan(
             )
         })
         kmPosts.addAll(group.alignments.flatMap { alignment ->
-            val alignmentState = parseOptionalEnum<PlanState>("Alignment ${alignment.name} state", alignment.state)
+            val alignmentState = alignment.state?.let { stateString ->
+                tryParsePlanState("Alignment ${alignment.name} state", stateString)
+            }
             alignment.staEquations.map { s ->
                 toGvtKmPost(layoutTrackNumberId, s, alignmentState ?: trackNumberState)
             }
@@ -153,7 +157,8 @@ fun toSrid(
     coordinateSystemNameToSrid: Map<CoordinateSystemName, Srid>,
 ): Srid? {
     val code = epsgCode?.let { code -> parseOptionalInt("Coordinate system EPSG code", code) }
-    val parsedSrid = if (code != null && code > 0) Srid(code) else null
+    // Note: EPSG 4022 is just a code for "deprecated" and cannot be used for transformations as such
+    val parsedSrid = if (code != null && code > 0 && code != 4022) Srid(code) else null
     return parsedSrid ?: csName?.let { name -> coordinateSystemNameToSrid[name.uppercase()] }
 }
 
@@ -593,6 +598,10 @@ fun getSwitchKey(element: InfraModelGeometryElement): SwitchKey? =
             SwitchKey(name, typeName, hand)
         }
 
+fun tryParsePlanState(name: String, value: String): PlanState? = tryParseText(value) { v ->
+    parseOptionalEnum<PlanState>(name, v)
+}
+
 fun tryParseTrackNumber(text: String): TrackNumber? =
     if (text == "N/A") null
     else tryParseText(text, ::TrackNumber)
@@ -620,7 +629,6 @@ fun emptyName() = PlanElementName("")
 fun tryParseFreeText(text: String): FreeText? = tryParseText(text, ::FreeText)
 fun tryParseFeatureTypeCode(text: String): FeatureTypeCode? = tryParseText(text, ::FeatureTypeCode)
 fun tryParseGeometrySwitchTypeName(text: String): GeometrySwitchTypeName? = tryParseText(text, ::GeometrySwitchTypeName)
-
 
 data class TempSwitchAndJoints(val tempSwitch: TempSwitch, val joints: List<GeometrySwitchJoint>)
 
