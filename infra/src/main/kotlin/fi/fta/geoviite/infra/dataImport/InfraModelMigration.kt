@@ -3,8 +3,11 @@ package fi.fta.geoviite.infra.dataImport
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryDao
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.MeasurementMethod.*
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.dataImport.InfraModelMetadataColumns.*
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.error.InputValidationException
@@ -290,6 +293,20 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
             )
         }
     }
+
+    private fun tryParseTrackNumber(value: String): TrackNumber? =
+        try {
+            val separatorIndex = value.indexOf("/")
+            val cut =
+                if (separatorIndex > 0) value.substring(0, separatorIndex)
+                else value
+            val normalized =
+                if (value.length < 3 && value.all(Char::isDigit)) cut.padStart(3, '0')
+                else cut
+            TrackNumber(normalized)
+        } catch (e: Exception) {
+            null
+        }
 
     private fun parseLocalDate(dateString: String): LocalDate? =
         if (dateString.length in 4..8 && dateString.all { it.isDigit() }) {
