@@ -93,51 +93,6 @@ data class AlignmentCsvMetaData<T>(
     }
 }
 
-
-enum class ReferenceLineMetaColumns {
-    ALIGNMENT_EXTERNAL_ID,
-    @Suppress("unused")
-    ASSET_EXTERNAL_ID,
-    TRACK_ADDRESS_START,
-    TRACK_ADDRESS_END,
-    CREATED_YEAR,
-    MEASUREMENT_METHOD,
-    FILE_NAME,
-    ALIGNMENT_NAME,
-    ORIGINAL_CRS,
-}
-
-fun createReferenceLineMetadataFromCsv(
-    metadataFile: CsvFile<ReferenceLineMetaColumns>,
-    geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
-): List<AlignmentCsvMetaData<ReferenceLine>> {
-    return metadataFile.parseLines { line ->
-        val alignmentOid = line.getOid<ReferenceLine>(ReferenceLineMetaColumns.ALIGNMENT_EXTERNAL_ID)
-        val startMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_START))
-        val endMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_END))
-        if (startMeter < endMeter) {
-            val fileName = line.get(ReferenceLineMetaColumns.FILE_NAME).let(::FileName)
-            val alignmentName = line.get(ReferenceLineMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
-            val geometry = geometryProvider(fileName, alignmentName)
-            AlignmentCsvMetaData(
-                alignmentOid = alignmentOid,
-                metadataOid = null,
-                startMeter = startMeter,
-                endMeter = endMeter,
-                createdYear = line.getInt(ReferenceLineMetaColumns.CREATED_YEAR),
-                geometry = geometry,
-                originalCrs = line.get(ReferenceLineMetaColumns.ORIGINAL_CRS),
-                measurementMethod = line.get(ReferenceLineMetaColumns.MEASUREMENT_METHOD),
-                fileName = fileName,
-                planAlignmentName = alignmentName,
-            )
-        } else {
-            LOG.warn("Invalid reference line metadata segment (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
-            null
-        }
-    }
-}
-
 enum class LocationTrackColumns {
     EXTERNAL_ID,
     TRACK_NUMBER_EXTERNAL_ID,
@@ -608,35 +563,34 @@ enum class AlignmentMetaColumns {
     ORIGINAL_CRS,
 }
 
-fun createAlignmentMetadataFromCsv(
+inline fun <reified T> createAlignmentMetadataFromCsv(
     metadataFile: CsvFile<AlignmentMetaColumns>,
-    geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
-): List<AlignmentCsvMetaData<LocationTrack>> {
+    crossinline geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
+): List<AlignmentCsvMetaData<T>> {
     return metadataFile.parseLines { line ->
-        val alignmentOid = line.getOid<LocationTrack>(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)
-        val metaDataOid = line.getOid<AlignmentCsvMetaData<LocationTrack>>(AlignmentMetaColumns.ASSET_EXTERNAL_ID)
+        val alignmentOid = line.getOid<T>(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)
+        val metaDataOid = line.getOidOrNull<AlignmentCsvMetaData<T>>(AlignmentMetaColumns.ASSET_EXTERNAL_ID)
         val startMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_START))
         val endMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_END))
-        if (startMeter < endMeter) {
-            val fileName = line.get(AlignmentMetaColumns.FILE_NAME).let(::FileName)
-            val alignmentName = line.get(AlignmentMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
-            val geometry = geometryProvider(fileName, alignmentName)
-            AlignmentCsvMetaData(
-                alignmentOid = alignmentOid,
-                metadataOid = metaDataOid,
-                startMeter = startMeter,
-                endMeter = endMeter,
-                createdYear = line.getInt(AlignmentMetaColumns.CREATED_YEAR),
-                geometry = geometry,
-                originalCrs = line.get(AlignmentMetaColumns.ORIGINAL_CRS),
-                measurementMethod = line.get(AlignmentMetaColumns.MEASUREMENT_METHOD),
-                fileName = fileName,
-                planAlignmentName = alignmentName,
-            )
-        } else {
-            LOG.warn("Invalid LocationTrack metadata range (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
-            null
+        require (startMeter < endMeter) {
+            "Invalid ${T::class.simpleName} metadata range (start >= end): " +
+                    "start=$startMeter end=$endMeter alignment=$alignmentOid metadata=$metaDataOid"
         }
+        val fileName = line.get(AlignmentMetaColumns.FILE_NAME).let(::FileName)
+        val alignmentName = line.get(AlignmentMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
+        val geometry = geometryProvider(fileName, alignmentName)
+        AlignmentCsvMetaData(
+            alignmentOid = alignmentOid,
+            metadataOid = metaDataOid,
+            startMeter = startMeter,
+            endMeter = endMeter,
+            createdYear = line.getInt(AlignmentMetaColumns.CREATED_YEAR),
+            geometry = geometry,
+            originalCrs = line.get(AlignmentMetaColumns.ORIGINAL_CRS),
+            measurementMethod = line.get(AlignmentMetaColumns.MEASUREMENT_METHOD),
+            fileName = fileName,
+            planAlignmentName = alignmentName,
+        )
     }
 }
 
@@ -945,9 +899,11 @@ fun <T> getGeometryElementRanges(
     } catch (e: CoordinateTransformationException) {
         LOG.error(
             "Failed to link geometry element to layout due to coordinate transformation failure: " +
-                    "alignment=${alignment.alignmentOid} meta=${alignment.metadataOid} " +
+                    "alignment=${alignment.alignmentOid} " +
+                    "meta=${alignment.metadataOid} " +
                     "foundAlignment=${alignment.geometry.id} " +
-                    "sourceSrid=$sourceSrid targetSrid=$LAYOUT_SRID", e
+                    "sourceSrid=$sourceSrid " +
+                    "targetSrid=$LAYOUT_SRID", e
         )
         return listOf(noElementsCsvMetadata(alignment))
     }
@@ -960,27 +916,35 @@ fun <T> validateElementRanges(
     elements: List<ElementCsvMetadata<T>>,
 ) {
     if (elements.isEmpty()) {
-        LOG.error("Geometry element mapping failed - no elements found: $debug")
+        LOG.warn("Geometry element mapping failed - no elements found: $debug")
     } else {
         LOG.debug(
             "Geometry elements mapped: $debug" +
                     "elements=${elements.map { e -> e.startMeter..e.endMeter to e.geometryElement?.id }}"
         )
         if (elements.first().startMeter != startMeter) {
-            LOG.warn("Gap in element metadata range start: alignmentMetadataStart=$startMeter firstElementMetadataStart=${elements.first().startMeter} $debug")
+            LOG.warn(
+                "Gap in element metadata range start: $debug " +
+                        "alignmentMetadataStart=$startMeter " +
+                        "firstElementMetadataStart=${elements.first().startMeter} "
+            )
         }
         var previous = elements.first().startMeter
         for (e in elements) {
             if (previous < e.startMeter) {
-                LOG.warn("Gap between element metadata: prev=$previous next=${e.startMeter} $debug")
+                LOG.warn("Gap between element metadata: $debug prev=$previous next=${e.startMeter}")
             }
             if (previous > e.startMeter) {
-                throw IllegalStateException("Overlapping element metadata: prev=$previous next=${e.startMeter} $debug")
+                throw IllegalStateException("Overlapping element metadata: $debug prev=$previous next=${e.startMeter}")
             }
             previous = e.endMeter
         }
         if (elements.last().endMeter != endMeter) {
-            LOG.warn("Gap in element metadata range end: alignmentMetadataEnd=$endMeter lastElementMetadataEnd=${elements.last().endMeter} $debug")
+            LOG.warn(
+                "Gap in element metadata range end: $debug " +
+                        "alignmentMetadataEnd=$endMeter " +
+                        "lastElementMetadataEnd=${elements.last().endMeter} "
+            )
         }
     }
 }
@@ -1182,14 +1146,14 @@ fun createSwitchesFromCsv(
     return switchesFile.parseLines { line ->
         val externalId: Oid<TrackLayoutSwitch> = line.getOid(SwitchColumns.EXTERNAL_ID)
         val typeName = line.get(SwitchColumns.TYPE)
-        val switchTypeRequiresHandedness = tryParseSwitchType(typeName, LOG)
+        val switchTypeRequiresHandedness = tryParseSwitchType(typeName)
             .let { switchType -> if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false }
         val hand = line.getEnumOrNull<SwitchHand>(SwitchColumns.HAND)
         val fullTypeName = hand.let {
             if (it != null && it != SwitchHand.NONE && switchTypeRequiresHandedness) "$typeName-${it.abbreviation}"
             else typeName
         }
-        val switchType = tryParseSwitchType(fullTypeName, LOG)
+        val switchType = tryParseSwitchType(fullTypeName)
         val switchStructure = switchStructuresByType[switchType]
         val name = SwitchName(line.get(SwitchColumns.NAME))
         if (switchStructure == null) {

@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.inframodel.angleBetween
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.util.formatForException
-import org.slf4j.Logger
 import kotlin.math.abs
 
 class InvalidJointsException(
@@ -105,11 +104,10 @@ data class SwitchType @JsonCreator(mode = JsonCreator.Mode.DELEGATING) construct
     override fun toString(): String = typeName
 }
 
-fun tryParseSwitchType(typeName: String, logger: Logger): SwitchType? {
+fun tryParseSwitchType(typeName: String): SwitchType? {
     return try {
         SwitchType(typeName)
     } catch (e: Exception) {
-        logger.warn("Invalid switch type name: ${formatForException(typeName)}")
         null
     }
 }

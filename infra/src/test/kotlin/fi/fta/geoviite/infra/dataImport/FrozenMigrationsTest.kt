@@ -64,7 +64,7 @@ class FrozenMigrationsTest @Autowired constructor(
             MigrationFile(fileName = "V03.04.02__layout_segment.sql", checksum = 190129497),
             MigrationFile(fileName = "V03.05.01__layout_location_track.sql", checksum = -928786530),
             MigrationFile(fileName = "V03.05.02__layout_reference_line.sql", checksum = 1815023431),
-            MigrationFile(fileName = "V04.01.01__layout_initial_import_metadata.sql", checksum = 228791175),
+            MigrationFile(fileName = "V04.01.01__layout_initial_import_metadata.sql", checksum = 51863216),
             MigrationFile(fileName = "V10.01__common_feature_type_values.sql", checksum = 1021841055),
             MigrationFile(fileName = "V10.02__common_coordinate_system_values.sql", checksum = 1382442814),
             MigrationFile(fileName = "V10.03.04__common_switch_owner_values.sql", checksum = 1821224761),
