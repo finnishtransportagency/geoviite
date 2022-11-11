@@ -185,7 +185,10 @@ fun validateDuplicateOfState(
                 duplicateOfLocationTrack.name.value
             )
         },
-    )
+        validateWithParams(duplicateOfLocationTrack.duplicateOf == null) {
+            "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate" to listOf(duplicateOfLocationTrack.name.value)
+        }
+   )
 
 fun validateDraftReferenceLineFields(referenceLine: ReferenceLine): List<PublishValidationError> =
     listOfNotNull(

@@ -610,6 +610,15 @@ class PublishValidationTest {
         )
     }
 
+    @Test
+    fun validationCatchesLoopyDuplicate() {
+        val lt = locationTrack(IntId(0)).copy(duplicateOf = IntId(0))
+        assertContainsError(
+            true, validateDuplicateOfState(lt, lt, listOf(IntId(0))),
+            "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate"
+        )
+    }
+
     private fun editSegment(segmentSwitch: SegmentSwitch, edit: (segment: LayoutSegment) -> LayoutSegment) =
         segmentSwitch.copy(
             segments = segmentSwitch.segments.map(edit),
