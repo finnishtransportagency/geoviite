@@ -82,7 +82,7 @@ class FrozenMigrationsTest @Autowired constructor(
             MigrationFile(fileName = "V15.01.01__finalize_layout_tables.sql", checksum = 340663478),
             MigrationFile(fileName = "V16.01.01__publication.sql", checksum = -257379860),
             MigrationFile(fileName = "V16.02.01__publication_calculated_changes.sql", checksum = 640208248),
-            MigrationFile(fileName = "V17.01.01__integrations_enums.sql", checksum = 1630016370),
+            MigrationFile(fileName = "V17.01.01__integrations_enums.sql", checksum = 332715753),
             MigrationFile(fileName = "V17.01.02__integrations_lock.sql", checksum = -316859793),
             MigrationFile(fileName = "V17.01.03__integrations_ratko_push.sql", checksum = -1142466586),
             MigrationFile(fileName = "V17.01.04__integrations_ratko_push_content.sql", checksum = 485117446),
