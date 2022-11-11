@@ -26,7 +26,8 @@ class InitAlignmentMetadataDao @Autowired constructor(
               plan_file_name,
               plan_alignment_name,
               created_year,
-              original_crs
+              original_crs,
+              geometry_alignment_id
             ) 
             values (
               :alignment_external_id,
@@ -37,7 +38,8 @@ class InitAlignmentMetadataDao @Autowired constructor(
               :plan_file_name,
               :plan_alignment_name,
               :created_year,
-              :original_crs
+              :original_crs,
+              :geometry_alignment_id
             )
             returning id
         """.trimIndent()
@@ -52,6 +54,7 @@ class InitAlignmentMetadataDao @Autowired constructor(
                 "plan_alignment_name" to metadata.planAlignmentName.value,
                 "created_year" to metadata.createdYear,
                 "original_crs" to metadata.originalCrs,
+                "geometry_alignment_id" to metadata.geometry?.id?.intValue,
             )
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId("id") }
                 ?: throw IllegalStateException("Failed to get ID for new metadata row")
