@@ -172,6 +172,11 @@
             "CREATE": "luonti",
             "UPDATE": "päivitys",
             "DELETE": "poisto"
+        },
+        "trap-point": {
+            "Yes": "Kyllä",
+            "No": "Ei",
+            "Unknown": "Ei tiedossa"
         }
     }
 }

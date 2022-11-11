@@ -57,7 +57,7 @@ export function simplifySegments(
     const lengths = segments.map((s) => s.length);
     return {
         id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${segments.length
-            }_${resolution}`,
+        }_${resolution}`,
         resolution: Math.ceil(Math.max(...lengths)),
         pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
         points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
@@ -170,6 +170,35 @@ export type MapAlignment = {
     draftType: DraftType;
     topologicalConnectivity: TopologicalConnectivityType;
 };
+
+export enum TrapPoint {
+    Yes = 1,
+    No,
+    Unknown
+}
+
+export function booleanToTrapPoint(trapPoint: boolean | null): TrapPoint {
+    switch (trapPoint) {
+        case true:
+            return TrapPoint.Yes;
+        case false:
+            return TrapPoint.No;
+        default:
+            return TrapPoint.Unknown;
+    }
+}
+
+export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
+    switch (trapPoint) {
+        case TrapPoint.Yes:
+            return true;
+        case TrapPoint.No:
+            return false;
+        default:
+            return undefined;
+    }
+}
+
 
 export type LayoutSwitchId = string;
 
