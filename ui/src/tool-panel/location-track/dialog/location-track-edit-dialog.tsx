@@ -382,7 +382,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('description')}
                         />
 
-                        {props.duplicatesExist || (
+                        {props.duplicatesExist || props.publishType === undefined || (
                             <FieldLayout
                                 label={`${t('location-track-dialog.duplicate-of')}`}
                                 value={
