@@ -28,7 +28,11 @@ import {
     SegmentDataHolder,
 } from 'map/layers/layer-utils';
 import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
-import { createTrackNumberFeature, DisplayMode, TrackNumberPoint } from 'map/layers/track-number';
+import {
+    createMapAlignmentBadgeFeature,
+    DisplayMode,
+    MapAlignmentBadgePoint,
+} from 'map/layers/track-number';
 import * as Limits from 'map/layers/layer-visibility-limits';
 import {
     getTrackNumberDrawDistance,
@@ -137,7 +141,7 @@ function createFeatures(
         trackNumberDisplayMode !== DisplayMode.NONE &&
         segmentHasTrackNumberLabel
     ) {
-        const trackNumberPoints: TrackNumberPoint[] = [];
+        const badgePoints: MapAlignmentBadgePoint[] = [];
         let length = segment.start % drawDistance;
         const pointLength = segment.length / segment.points.length;
         segment.points.forEach((point, index) => {
@@ -145,7 +149,7 @@ function createFeatures(
                 (length % drawDistance == 0.0 || length >= drawDistance) &&
                 index < segment.points.length - 1
             ) {
-                trackNumberPoints.push({
+                badgePoints.push({
                     point: point,
                     nextPoint: segment.points[index + 1],
                 });
@@ -156,14 +160,14 @@ function createFeatures(
             length += pointLength;
         });
 
-        const trackNumberFeatures: Feature<Point>[] = createTrackNumberFeature(
+        const alignmentBadgeFeatures: Feature<Point>[] = createMapAlignmentBadgeFeature(
             alignment,
-            trackNumberPoints,
+            badgePoints,
             trackNumber,
             selected || highlighted,
             trackNumberDisplayMode,
         );
-        features.push(...trackNumberFeatures);
+        features.push(...alignmentBadgeFeatures);
     }
 
     segmentFeature.set('segment-data', dataHolder);
@@ -299,9 +303,7 @@ function createFeaturesCached(
                           data,
                           !!(selected || isLinking),
                           highlighted,
-                          isReference && trackNumberDisplayMode === DisplayMode.NUMBER
-                              ? DisplayMode.NONE // No need to repeat the track number on all lines
-                              : trackNumberDisplayMode,
+                          trackNumberDisplayMode,
                           trackNumberDrawDistance,
                       );
             featureCache.set(key, features);

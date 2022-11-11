@@ -44,17 +44,17 @@ $font-family: 'Open Sans';
     alignmentHighlightColor: $color-geoviite-blue;
 }
 
-// Track number styling
+// Alignment badge styling
 :export {
-    tracknumber: {
+    alignment-badge: {
         @include typography-body-strong;
     }
-    trackNumber-background: $color-black-default;
-    trackNumber-background-near: $color-white-default;
-    trackNumber-background-selected: $color-geoviite-blue;
-    trackNumber-background-border: $color-black-lighter;
-    trackNumber-color: $color-white-default;
-    trackNumber-color-near: $color-black-default;
+    alignment-badge-background: $color-black-default;
+    alignment-badge-background-near: $color-white-default;
+    alignment-badge-background-selected: $color-geoviite-blue;
+    alignment-badge-background-border: $color-black-lighter;
+    alignment-badge-color: $color-white-default;
+    alignment-badge-color-near: $color-black-default;
 }
 
 // Km post styling
