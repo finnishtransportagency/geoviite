@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.tracklayout.Draftable
 import java.time.Instant
 
-enum class RatkoPushErrorType { PROPERTIES, LOCATION, GEOMETRY }
+enum class RatkoPushErrorType { PROPERTIES, LOCATION, GEOMETRY, STATE }
 enum class RatkoOperation { CREATE, UPDATE, DELETE }
 enum class RatkoAssetType { TRACK_NUMBER, LOCATION_TRACK, SWITCH }
 

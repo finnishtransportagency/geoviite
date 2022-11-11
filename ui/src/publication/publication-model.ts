@@ -31,7 +31,7 @@ export enum DraftChangeType {
     KM_POST = 'KM_POST',
 }
 
-export type RatkoPushErrorType = 'PROPERTIES' | 'GEOMETRY' | 'LOCATION';
+export type RatkoPushErrorType = 'PROPERTIES' | 'GEOMETRY' | 'LOCATION' | 'STATE';
 export type RatkoPushErrorOperation = 'CREATE' | 'DELETE' | 'UPDATE';
 
 export enum RatkoAssetType {

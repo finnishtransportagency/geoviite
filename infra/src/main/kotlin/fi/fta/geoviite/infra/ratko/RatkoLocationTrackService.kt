@@ -37,7 +37,7 @@ class RatkoLocationTrackService @Autowired constructor(
                 locationTrack.externalId?.also { externalId ->
                     try {
                         ratkoClient.getLocationTrack(RatkoOid(externalId))
-                            ?.let { existingLocationTrack: RatkoLocationTrack ->
+                            ?.let { existingLocationTrack ->
                                 if (locationTrack.state == LayoutState.DELETED) {
                                     deleteLocationTrack(locationTrack)
                                 } else {

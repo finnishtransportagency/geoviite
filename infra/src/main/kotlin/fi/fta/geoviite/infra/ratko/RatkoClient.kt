@@ -346,6 +346,8 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             (relation as ObjectNode).remove("validityStart")
         }
 
+        val updatedLocations = mutableListOf<JsonNode>()
+
         switchJsonObject.get("locations")?.forEach { location ->
             (location as ObjectNode).remove("validityStartTime")
             val nodeCollection = location.get("nodecollection") as ObjectNode
@@ -356,9 +358,16 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 (point.get("state") as ObjectNode).get("name").textValue() == RatkoPointStates.VALID.state
             }
 
-            val nodes = nodeCollection.putArray("nodes")
-            validJoints.forEach { node -> nodes.add(node) }
+            if (validJoints.isNotEmpty()) {
+                val nodes = nodeCollection.putArray("nodes")
+                validJoints.forEach { node -> nodes.add(node) }
+
+                updatedLocations.add(location)
+            }
         }
+
+        val locations = switchJsonObject.putArray("locations")
+        updatedLocations.forEach { location -> locations.add(location) }
 
         (switchJsonObject.get("rowMetadata") as ObjectNode).put("sourceName", GEOVIITE_NAME)
 
@@ -369,7 +378,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .uri("/api/assets/v1.2/${assetOid}")
             .bodyValue(switchJsonObject.toString())
             .retrieve()
-            .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.UPDATE)
+            .defaultErrorHandler(RatkoPushErrorType.STATE, RatkoOperation.UPDATE)
             .toBodilessEntity()
             .block()
     }
