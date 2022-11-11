@@ -45,18 +45,24 @@ class LocationTrackService(
     @Transactional
     fun update(id: IntId<LocationTrack>, request: LocationTrackSaveRequest): RowVersion<LocationTrack> {
         logger.serviceCall("update", "id" to id, "request" to request)
-        val original = getInternalOrThrow(DRAFT, id)
-        val locationTrack = original.copy(
+        val (originalTrack, originalAlignment) = getWithAlignment(DRAFT, id)
+        val locationTrack = originalTrack.copy(
             name = request.name,
             description = request.description,
             type = request.type,
             state = request.state,
             trackNumberId = request.trackNumberId,
-            alignmentVersion = updatedAlignmentVersion(original),
             duplicateOf = request.duplicateOf,
             topologicalConnectivity = request.topologicalConnectivity,
         )
-        return saveDraftInternal(locationTrack)
+
+        return if (locationTrack.state == LayoutState.DELETED) {
+            val segmentsWithoutSwitch = originalAlignment.segments.map { segment ->
+                segment.copy(switchId = null, startJointNumber = null, endJointNumber = null)
+            }
+
+            saveDraft(locationTrack, originalAlignment.withSegments(segmentsWithoutSwitch))
+        } else saveDraft(locationTrack)
     }
 
     @Transactional

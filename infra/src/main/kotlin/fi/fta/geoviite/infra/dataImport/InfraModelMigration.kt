@@ -3,8 +3,11 @@ package fi.fta.geoviite.infra.dataImport
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryDao
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.MeasurementMethod.*
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.dataImport.InfraModelMetadataColumns.*
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.error.InputValidationException
@@ -18,6 +21,7 @@ import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.PlanSource.GEOMETRIAPALVELU
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.geometry.validate
+import fi.fta.geoviite.infra.inframodel.fileToString
 import fi.fta.geoviite.infra.inframodel.parseGeometryPlan
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
@@ -28,7 +32,7 @@ import fi.fta.geoviite.infra.util.resetCollected
 import org.flywaydb.core.api.migration.BaseJavaMigration
 import org.flywaydb.core.api.migration.Context
 import org.flywaydb.core.internal.resolver.ChecksumCalculator
-import org.flywaydb.core.internal.resource.filesystem.FileSystemResource
+import org.flywaydb.core.internal.resource.StringResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataAccessException
@@ -39,7 +43,6 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import kotlin.text.Charsets.UTF_8
 
 const val IM_ORIGINAL_FILES_FOLDER = "geometriatietopalvelu"
 const val IM_LAYOUT_FILES_FOLDER = "paikannuspalvelu"
@@ -97,6 +100,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                 val trackNumberDao = LayoutTrackNumberDao(jdbcTemplate)
                 val geometryDao = GeometryDao(jdbcTemplate, kkJtoETRSTriangulationDao)
                 val trackNumberIdsByNumber = trackNumberDao.getTrackNumberToIdMapping()
+                val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
 
                 importWithSubFolders(
                     geometryDao,
@@ -104,6 +108,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     GEOMETRIAPALVELU,
                     csMap,
                     switchStructures,
+                    switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
                     UNVERIFIED_DESIGNED_GEOMETRY,
@@ -114,6 +119,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     PAIKANNUSPALVELU,
                     csMap,
                     switchStructures,
+                    switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
                 )
@@ -145,6 +151,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
         type: PlanSource,
         csMap: Map<CoordinateSystemName, Srid>,
         switchStructures: List<SwitchStructure>,
+        switchTypeNameAliases: Map<String, String>,
         featureTypes: List<FeatureType>,
         trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
         defaultMeasurementMethod: MeasurementMethod? = null,
@@ -169,6 +176,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     "${dirName}${xmlFile.name}",
                     csMap,
                     switchStructuresByType,
+                    switchTypeNameAliases,
                     trackNumberIdsByNumber,
                 ).let { (plan, file) -> (if (metadata == null) plan else setMetadata(plan, metadata)) to file }
                 val validationIssues = validate(plan, featureTypes, switchStructuresById)
@@ -247,10 +255,9 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
     private fun calculateChecksum(file: File): Int {
         return try {
-            ChecksumCalculator.calculate(FileSystemResource(null, file.path, UTF_8, false))
+            ChecksumCalculator.calculate(StringResource(fileToString(file)))
         } catch (e: Exception) {
-            // Typically caused by non- UTF-8 encoding, many of which claim to be UTF-8 even though they're not.
-            logger.warn("Checksum calculation failed: path=${file.absolutePath} error=$e")
+            logger.error("Checksum calculation failed: path=${file.absolutePath} error=$e")
             -1
         }
     }
@@ -286,6 +293,20 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
             )
         }
     }
+
+    private fun tryParseTrackNumber(value: String): TrackNumber? =
+        try {
+            val separatorIndex = value.indexOf("/")
+            val cut =
+                if (separatorIndex > 0) value.substring(0, separatorIndex)
+                else value
+            val normalized =
+                if (value.length < 3 && value.all(Char::isDigit)) cut.padStart(3, '0')
+                else cut
+            TrackNumber(normalized)
+        } catch (e: Exception) {
+            null
+        }
 
     private fun parseLocalDate(dateString: String): LocalDate? =
         if (dateString.length in 4..8 && dateString.all { it.isDigit() }) {

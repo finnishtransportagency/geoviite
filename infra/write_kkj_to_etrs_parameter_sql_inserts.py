@@ -31,7 +31,7 @@ def parse_affine_parameters(df_affine_parameters):
 
 def create_inserts_for_triangle_corner_points(df_vertices):
     print("Creating inserts for kkj_etrs_triangle_corner_point")
-    file = open("V10.04.04__inserts_for_kkj_etrs_triangle_corner_point_table.sql", "w")
+    file = open("V10.05.02__common_inserts_for_kkj_etrs_triangle_corner_point_table.sql", "w")
     insert_str = "insert into common.kkj_etrs_triangle_corner_point(id, coord_kkj, coord_etrs) values"
     file.write(insert_str + "\n")
     value_lines_str = []
@@ -53,7 +53,7 @@ def create_inserts_for_triangle_corner_points(df_vertices):
 
 def create_inserts_for_affine_parameters(df_affine_parameters):
     print("Creating inserts for kkj_etrs_triangulation_network")
-    file = open("V10.04.05__inserts_for_kkj_etrs_triangulation_network.sql", "w")
+    file = open("V10.05.03__common_inserts_for_kkj_etrs_triangulation_network.sql", "w")
     insert_str = "insert into common.kkj_etrs_triangulation_network(coord1_id, coord2_id, coord3_id, a1, a2, delta_e, b1, b2, delta_n) values"
     value_lines_str = []
 

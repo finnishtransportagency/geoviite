@@ -1,4 +1,4 @@
-insert into common.triangulation_network(coord1_id, coord2_id, coord3_id, polygon_original) values
+insert into common.n60_n2000_triangulation_network(coord1_id, coord2_id, coord3_id, polygon_original) values
 ('78237', '74007', '58265L', postgis.st_polygonfromtext('polygon(( 3484614 6708926, 3494484 6710745, 3484700 6719139, 3484614 6708926 ))',2393)),
 ('74007', '58014', '58265L', postgis.st_polygonfromtext('polygon(( 3494484 6710745, 3501204 6716569, 3484700 6719139, 3494484 6710745 ))',2393)),
 ('58265L', '38212', '58014', postgis.st_polygonfromtext('polygon(( 3484700 6719139, 3491869 6730813, 3501204 6716569, 3484700 6719139 ))',2393)),

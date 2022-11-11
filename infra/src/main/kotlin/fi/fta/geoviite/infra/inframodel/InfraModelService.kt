@@ -55,6 +55,7 @@ class InfraModelService @Autowired constructor(
             file,
             geographyService.getCoordinateSystemNameToSridMapping(),
             switchStructuresByType,
+            switchLibraryService.getInframodelAliases(),
             trackNumberIdsByNumber,
         )
     }

@@ -89,8 +89,8 @@ def create_values_for_triangle_corner_points(row, srid):
     point_original = "postgis.st_pointfromtext('point(" + str(row['x']) + " " + str(row['y']) + ")', " + srid + ")"
     return separator.join([coord_id, n60, n2000, point_original])
 
-def create_inserts_for_triangulation_network_table(df_points, df_tri, srid):
-    """Create inserts for common.triangulation_network table.
+def create_inserts_for_n60_n2000_triangulation_network_table(df_points, df_tri, srid):
+    """Create inserts for common.n60_n2000_triangulation_network table.
     Coordinate systems is KKJ/ Finland Uniform Coordinate System (EPSG:2393).
 
     Parameters
@@ -108,9 +108,9 @@ def create_inserts_for_triangulation_network_table(df_points, df_tri, srid):
     """
     print("creating inserts for_triangulation_network_table")
     triangulation_network_file = open(
-        "src/main/resources/db/migration/V10.04.03__inserts_for_triangulation_network_table.sql", "w")
+        "src/main/resources/db/migration/V10.04.03__common_inserts_for_n60_n2000_triangulation_network_table.sql", "w")
 
-    insert_str = "insert into common.triangulation_network(coord1_id, coord2_id, coord3_id, polygon_original) values"
+    insert_str = "insert into common.n60_n2000_triangulation_network(coord1_id, coord2_id, coord3_id, polygon_original) values"
     insert_end = ";"
     triangulation_network_file.write(insert_str + "\n")
 
@@ -132,8 +132,8 @@ def create_inserts_for_triangulation_network_table(df_points, df_tri, srid):
 
 
 
-def create_inserts_for_triangle_corner_point_table(df_points, srid):
-    """Create inserts for common.triangle_corner_point table.
+def create_inserts_for_n60_n2000_triangle_corner_point_table(df_points, srid):
+    """Create inserts for common.n60_n2000_triangle_corner_point table.
     Coordinate system is KKJ/ Finland Uniform Coordinate System (EPSG:2393).
 
     Parameters
@@ -149,8 +149,8 @@ def create_inserts_for_triangle_corner_point_table(df_points, srid):
     """
     print("creating inserts_for_triangle_corner_point_table")
     triangle_corner_point_file = open(
-        "src/main/resources/db/migration/V10.04.02__inserts_for_triangle_corner_point_table.sql", "w")
-    insert_str = "insert into common.triangle_corner_point(coord_id, n60, n2000, point_original) values"
+        "src/main/resources/db/migration/V10.04.02__common_inserts_for_n60_n2000_triangle_corner_point_table.sql", "w")
+    insert_str = "insert into common.n60_n2000_triangle_corner_point(coord_id, n60, n2000, point_original) values"
     insert_end = ";"
 
     triangle_corner_point_file.write(insert_str  + "\n")
@@ -169,8 +169,8 @@ def main():
     df_points = parse_n60_n2000_points(fetch_mml_reference_points_for_height_systems_n60_n2000())
     df_tri = parse_n60_n2000_triangulation_network(fetch_mml_triangulation_network_for_height_systems_n60_n2000())
 
-    create_inserts_for_triangle_corner_point_table(df_points, srid)
-    create_inserts_for_triangulation_network_table(df_points, df_tri, srid)
+    create_inserts_for_n60_n2000_triangle_corner_point_table(df_points, srid)
+    create_inserts_for_n60_n2000_triangulation_network_table(df_points, df_tri, srid)
 
     print("program finished")
 

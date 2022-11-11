@@ -1,4 +1,4 @@
-insert into common.triangle_corner_point(coord_id, n60, n2000, point_original) values
+insert into common.n60_n2000_triangle_corner_point(coord_id, n60, n2000, point_original) values
 ('84', 63.941, 64.1906, postgis.st_pointfromtext('point(3328708 6675826)', 2393)),
 ('127', 114.663, 114.92051, postgis.st_pointfromtext('point(3382462 6727072)', 2393)),
 ('154', 84.01, 84.28757, postgis.st_pointfromtext('point(3364647 6767069)', 2393)),

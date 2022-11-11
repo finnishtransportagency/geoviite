@@ -30,10 +30,10 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
                    postgis.st_x(t3.point_transformed) as x3, 
                    postgis.st_y(t3.point_transformed) as y3,
                    tn.polygon_transformed
-            from common.triangulation_network tn
-            join common.triangle_corner_point t1 on t1.coord_id = tn.coord1_id
-            join common.triangle_corner_point t2 on t2.coord_id = tn.coord2_id
-            join common.triangle_corner_point t3 on t3.coord_id = tn.coord3_id
+            from common.n60_n2000_triangulation_network tn
+            join common.n60_n2000_triangle_corner_point t1 on t1.coord_id = tn.coord1_id
+            join common.n60_n2000_triangle_corner_point t2 on t2.coord_id = tn.coord2_id
+            join common.n60_n2000_triangle_corner_point t3 on t3.coord_id = tn.coord3_id
             where postgis.st_intersects(
               tn.polygon_transformed,
               postgis.st_polygonfromtext(:bounding_polygon, :srid)

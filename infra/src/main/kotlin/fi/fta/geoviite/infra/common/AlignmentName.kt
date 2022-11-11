@@ -8,7 +8,7 @@ import org.springframework.core.convert.converter.Converter
 
 val alignmentNameLength = 1..50
 
-val alignmentNameRegex = Regex("^[A-Za-zÄÖÅäöå0-9 \\-_]+\$")
+val alignmentNameRegex = Regex("^[A-Za-zÄÖÅäöå0-9 \\-_!?]+\$")
 
 data class AlignmentName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(val value: String)
     : Comparable<AlignmentName>, CharSequence by value {
