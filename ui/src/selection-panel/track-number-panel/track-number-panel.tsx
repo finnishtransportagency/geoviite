@@ -46,7 +46,6 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                                 key={trackNumber.id}
                                 onMouseUp={() => onSelectTrackNumber(trackNumber)}>
                                 <Radio
-                                    onClick={() => undefined}
                                     checked={isSelected}
                                     readOnly={true}
                                     name={trackNumber.number}
