@@ -41,6 +41,7 @@ export type LocationTrackDialogProps = {
     onUnselect?: () => void;
     locationTrackChangeTime: TimeStamp;
     existingDuplicateTrack?: LayoutLocationTrack | undefined;
+    duplicatesExist?: boolean
 };
 
 export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
@@ -57,7 +58,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             : undefined;
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
-    const [selectedDuplicateTrackName, setSelectedDuplicateTrackName] = React.useState<string | undefined>(props.existingDuplicateTrack?.name);
+    const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
+        LayoutLocationTrack | undefined
+    >(props.existingDuplicateTrack);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(state.locationTrack?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
@@ -193,7 +196,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     type SearchItemValue = LocationTrackItemValue;
 
-    function getOptions(searchTerm: string): Promise<Item<SearchItemValue>[]> {
+    function getLocationTrackOptions(searchTerm: string): Promise<Item<SearchItemValue>[]> {
         if (isNullOrBlank(searchTerm)) {
             return Promise.resolve([]);
         }
@@ -220,23 +223,21 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     }
 
     // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetOptions = debounceAsync(getOptions, 250);
+    const debouncedGetLocationTrackOptions = debounceAsync(getLocationTrackOptions, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
-    const memoizedDebouncedGetOptions = React.useCallback(debouncedGetOptions, []);
+    const getDuplicateTrackOptions = React.useCallback(searchTerm =>
+        debouncedGetLocationTrackOptions(searchTerm).then(locationTrackItems =>
+            locationTrackItems.filter(locationTrackItem => {
+                    const locationTrack = locationTrackItem.value.locationTrack;
+                    return locationTrack.id !== props.locationTrack?.id && locationTrack.duplicateOf === null
+                },
+            ),
+        ), [props.locationTrack?.id],
+    );
 
-    function onDuplicateTrackNameSelected(duplicateTrackName: SearchItemValue | undefined) {
-        if (duplicateTrackName) {
-            switch (duplicateTrackName?.type) {
-                case 'locationTrackSearchItem':
-                    duplicateTrackName.locationTrack.id &&
-                    updateProp('duplicateOf', duplicateTrackName.locationTrack.id);
-                    setSelectedDuplicateTrackName(duplicateTrackName.locationTrack.name);
-                    break;
-            }
-        } else {
-            updateProp('duplicateOf', null);
-            setSelectedDuplicateTrackName(undefined);
-        }
+    function onDuplicateTrackSelected(duplicateTrack: SearchItemValue | undefined) {
+        updateProp('duplicateOf', duplicateTrack?.locationTrack?.id ?? null);
+        setSelectedDuplicateTrack(duplicateTrack?.locationTrack ?? undefined);
     }
 
     return (
@@ -381,21 +382,23 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('description')}
                         />
 
-                        {selectedDuplicateTrackName && (
+                        {props.duplicatesExist || props.publishType === undefined || (
                             <FieldLayout
                                 label={`${t('location-track-dialog.duplicate-of')}`}
                                 value={
                                     <Dropdown
-                                        placeholder={
-                                            selectedDuplicateTrackName
-                                                ? selectedDuplicateTrackName
-                                                : `${t('location-track-dialog.search')}`
-                                        }
-                                        options={memoizedDebouncedGetOptions}
+                                        value={selectedDuplicateTrack && ({
+                                            type: 'locationTrackSearchItem',
+                                            locationTrack: selectedDuplicateTrack
+                                        })}
+                                        getName={(item) => item.locationTrack.name}
+                                        placeholder={t('location-track-dialog.search')}
+                                        options={getDuplicateTrackOptions}
                                         searchable
-                                        onChange={onDuplicateTrackNameSelected}
+                                        onChange={onDuplicateTrackSelected}
                                         onBlur={() => stateActions.onCommitField('duplicateOf')}
                                         canUnselect={true}
+                                        unselectText={t('location-track-dialog.not-a-duplicate')}
                                         wideList
                                         wide
                                     />
