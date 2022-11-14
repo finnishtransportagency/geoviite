@@ -56,6 +56,8 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
         segmentCount = alignment.segments.size,
         duplicateOf = null,
         topologicalConnectivity = TopologicalConnectivityType.NONE,
+        topologyStartSwitch = null,
+        topologyEndSwitch = null,
     ) to alignment
 }
 

@@ -218,8 +218,10 @@ fun createLocationTracksFromCsv(
                 length = alignment.length,
                 duplicateOf = null,
                 topologicalConnectivity = line.getEnum(LocationTrackColumns.TOPOLOGICAL_CONNECTIVITY),
-
-                )
+                // TODO: GVT-1482
+                topologyStartSwitch = null,
+                topologyEndSwitch = null,
+            )
             CsvLocationTrack(
                 locationTrack = track,
                 layoutAlignment = alignment,

@@ -257,29 +257,30 @@ fun locationTrack(
     state: LayoutState = LayoutState.IN_USE,
     endPoint: EndPoint? = null,
     startPoint: EndPoint? = null,
-    externalId: Oid<LocationTrack>? = Oid(
-        "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
-    )
-) =
-    LocationTrack(
-        name = AlignmentName(name),
-        description = FreeText(description),
-        type = type,
-        state = state,
-        externalId = externalId,
-        trackNumberId = trackNumberId,
-        sourceId = null,
-        boundingBox = alignment?.boundingBox,
-        segmentCount = alignment?.segments?.size ?: 0,
-        length = alignment?.length ?: 0.0,
-        draft = draft,
-        duplicateOf = null,
-        endPoint = endPoint,
-        startPoint = startPoint,
-        topologicalConnectivity = TopologicalConnectivityType.START
+    externalId: Oid<LocationTrack>? = someOid()
+) = LocationTrack(
+    name = AlignmentName(name),
+    description = FreeText(description),
+    type = type,
+    state = state,
+    externalId = externalId,
+    trackNumberId = trackNumberId,
+    sourceId = null,
+    boundingBox = alignment?.boundingBox,
+    segmentCount = alignment?.segments?.size ?: 0,
+    length = alignment?.length ?: 0.0,
+    draft = draft,
+    duplicateOf = null,
+    endPoint = endPoint,
+    startPoint = startPoint,
+    topologicalConnectivity = TopologicalConnectivityType.START,
+    topologyStartSwitch = null,
+    topologyEndSwitch = null,
+).let { lt -> if (id != null) lt.copy(id = id) else lt }
 
-    ).let { lt -> if (id != null) lt.copy(id = id) else lt }
-
+fun <T> someOid() = Oid<T>(
+    "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
+)
 fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
 fun alignment(segments: List<LayoutSegment>) =

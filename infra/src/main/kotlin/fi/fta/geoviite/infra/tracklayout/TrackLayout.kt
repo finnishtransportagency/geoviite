@@ -102,6 +102,11 @@ data class ReferenceLine(
     @JsonIgnore override val draft: Draft<ReferenceLine>? = null,
 ) : Draftable<ReferenceLine>
 
+data class TopologyLocationTrackSwitch(
+    val switchId: IntId<TrackLayoutSwitch>,
+    val jointNumber: JointNumber,
+)
+
 data class LocationTrack(
     val name: AlignmentName,
     val description: FreeText,
@@ -120,6 +125,8 @@ data class LocationTrack(
     val segmentCount: Int,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
+    val topologyStartSwitch: TopologyLocationTrackSwitch?,
+    val topologyEndSwitch: TopologyLocationTrackSwitch?,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val draft: Draft<LocationTrack>? = null,
 ) : Draftable<LocationTrack> {

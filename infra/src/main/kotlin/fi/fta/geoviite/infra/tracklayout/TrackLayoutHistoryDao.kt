@@ -121,6 +121,10 @@ class TrackLayoutHistoryDao(
               a.segment_count,
               duplicate_of_location_track_id,
               topological_connectivity,
+              topology_start_switch_id,
+              topology_start_switch_joint_number,
+              topology_end_switch_id,
+              topology_end_switch_joint_number,
               postgis.st_astext(a.bounding_box) as bounding_box
             from layout.location_track_version
             left join layout.alignment_version a on 
@@ -158,6 +162,16 @@ class TrackLayoutHistoryDao(
                 version = rs.getVersion("version", "version"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 topologicalConnectivity = rs.getEnum("topological_connectivity"),
+                topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")
+                    ?.let { id -> TopologyLocationTrackSwitch(
+                        id,
+                        rs.getJointNumber("topology_start_switch_joint_number"),
+                    ) },
+                topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")
+                    ?.let { id -> TopologyLocationTrackSwitch(
+                        id,
+                        rs.getJointNumber("topology_end_switch_joint_number"),
+                    ) },
             )
         }
         if (locationTrack != null) {

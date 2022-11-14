@@ -38,6 +38,8 @@ class LocationTrackService(
             boundingBox = alignment.boundingBox,
             duplicateOf = request.duplicateOf,
             topologicalConnectivity = request.topologicalConnectivity,
+            topologyStartSwitch = null,
+            topologyEndSwitch = null,
         )
         return saveDraftInternal(locationTrack)
     }
