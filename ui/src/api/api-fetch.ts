@@ -21,7 +21,7 @@ const JSON_HEADERS: HeadersInit = {
 
 const createJsonHeaders = () => {
     const csrfToken = getCsrfCookie();
-    return csrfToken ? { ...JSON_HEADERS, 'X-XSRF-TOKEN': csrfToken } : JSON_HEADERS;
+    return csrfToken ? {...JSON_HEADERS, 'X-XSRF-TOKEN': csrfToken} : JSON_HEADERS;
 };
 
 export type ErrorHandler<T> = (response: ApiErrorResponse) => T;
@@ -240,7 +240,7 @@ async function executeBodyRequestInternal<Output>(
         ) {
             return executeBodyRequestInternal(fetchFunction, false);
         } else {
-            if (response.status === 401 && response.headers.has('session-expired')) Snackbar.sessionExpired();
+            if (response.status === 401 && (response.headers.has('session-expired') || errorResponse.response.localizedMessageKey === TOKEN_EXPIRED)) Snackbar.sessionExpired();
             return err(errorResponse.response);
         }
     }
@@ -254,7 +254,7 @@ async function getFormResponse(
     return await fetch(path, {
         method: method,
         credentials: 'same-origin',
-        headers: { 'X-XSRF-TOKEN': getCsrfCookie() || '' },
+        headers: {'X-XSRF-TOKEN': getCsrfCookie() || ''},
         body: data,
     });
 }
@@ -267,7 +267,7 @@ async function getResponse<Input>(
     return await fetch(path, {
         method: method,
         headers: createJsonHeaders(),
-        ...(data !== undefined && { body: JSON.stringify(data) }),
+        ...(data !== undefined && {body: JSON.stringify(data)}),
     });
 }
 
@@ -289,10 +289,10 @@ async function convertResponseToError(response: Response): Promise<ApiError> {
         contentType === 'application/json'
             ? await response.json()
             : {
-                  messageRows: [await tryToReadText(response)].filter(filterNotEmpty),
-                  correlationId: 'FAILED',
-                  timestamp: dateString || Date(),
-              };
+                messageRows: [await tryToReadText(response)].filter(filterNotEmpty),
+                correlationId: 'FAILED',
+                timestamp: dateString || Date(),
+            };
     return {
         status: response.status,
         response: {
