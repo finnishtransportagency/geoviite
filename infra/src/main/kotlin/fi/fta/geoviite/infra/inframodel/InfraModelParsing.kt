@@ -44,13 +44,13 @@ data class ParsingError(private val key: String) : ValidationError {
     override val localizationKey = LocalizationKey(key)
 }
 
-private val jaxbContext: JAXBContext by lazy { JAXBContext.newInstance(InfraModel::class.java) }
+private val jaxbContext: JAXBContext by lazy { JAXBContext.newInstance(InfraModel403::class.java) } // TODO can this be an interface???
 
 private val schema: Schema by lazy {
     val language = W3C_XML_SCHEMA_NS_URI
     val factory = SchemaFactory.newInstance(language)
     factory.newSchema(
-        InfraModel::class.java.getResource(SCHEMA_LOCATION)
+        InfraModel403::class.java.getResource(SCHEMA_LOCATION) // TODO
             ?: throw IllegalArgumentException("Failed to load schema from classpath:$SCHEMA_LOCATION")
     )
 }
@@ -182,7 +182,7 @@ fun getEncoding(xmlByteStream: ByteArray): Charset {
 
 fun stringToInfraModel(xmlString: String): InfraModel =
     try {
-        unmarshaller.unmarshal(toSaxSource(xmlString)) as InfraModel
+        unmarshaller.unmarshal(toSaxSource(xmlString)) as InfraModel403 // TODO
     } catch (e: UnmarshalException) {
         throw InframodelParsingException(
             message = "Failed to unmarshal XML",
@@ -192,7 +192,7 @@ fun stringToInfraModel(xmlString: String): InfraModel =
     }
 
 fun classpathResourceToString(fileName: String): String {
-    val resource = InfraModel::class.java.getResource(fileName)
+    val resource = InfraModel403::class.java.getResource(fileName) // TODO
         ?: throw InframodelParsingException("Resource not found: $fileName")
     return xmlBytesToString(resource.readBytes())
 }
