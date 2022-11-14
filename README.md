@@ -5,9 +5,6 @@ Geoviite is an application for Finnish Transport Infrastructure Agency. Its user
 - Storing and validating designed plans for railways, roads and waterways from various infrastructure projects
 - Maintaining a nation-wide layout of railways for mapping purposes, using geometric data from the plans
 
-## Install project 
-- README in https://github.com/finnishtransportagency/geoviite-env
-
 ## Modules and related documentation
 - ui: Frontend code
 - infra: Backend services and database initialization
