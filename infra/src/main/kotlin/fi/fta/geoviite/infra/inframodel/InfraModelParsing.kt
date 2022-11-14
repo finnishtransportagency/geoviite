@@ -176,8 +176,8 @@ val xmlCharsets = listOf(
     StandardCharsets.US_ASCII,
     StandardCharsets.ISO_8859_1,
 )
-fun getEncoding(xmlByteStream: ByteArray): Charset {
-    ByteArrayInputStream(xmlByteStream).use { stream ->
+fun getEncoding(bytes: ByteArray): Charset {
+    ByteArrayInputStream(bytes).use { stream ->
         val xmlStreamReader: XMLStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(stream)
         val fileEncoding = xmlStreamReader.encoding
         val encodingFromXMLDeclaration = xmlStreamReader.characterEncodingScheme
