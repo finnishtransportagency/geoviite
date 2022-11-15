@@ -296,7 +296,7 @@ fun toGvtGeometryElement(
                 )
             }
         }
-        else -> throw InframodelParsingException("Invalid element") // TODO
+        else -> throw InframodelParsingException("Invalid element")
     }
 }
 

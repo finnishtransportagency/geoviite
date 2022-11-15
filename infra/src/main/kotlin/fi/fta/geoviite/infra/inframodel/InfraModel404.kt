@@ -1,42 +1,42 @@
 package fi.fta.geoviite.infra.inframodel
+
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import jakarta.xml.bind.annotation.*
 
-const val XMLNS_403 = "http://www.inframodel.fi/inframodel"
-const val XMLNS = XMLNS_403
+const val XMLNS_404 = "http://buildingsmart.fi/inframodel/404"
 
-@XmlRootElement(name = "LandXML", namespace = XMLNS)
+@XmlRootElement(name = "LandXML", namespace = XMLNS_404)
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModel403(
+data class InfraModel404(
     @field:XmlAttribute override val language: String? = null,
 
-    @field:XmlElement(name = "FeatureDictionary", namespace = XMLNS)
-    override val featureDictionary: InfraModelFeatureDictionary403? = null,
-    @field:XmlElement(name = "Units", namespace = XMLNS)
-    override val units: InfraModelUnits403? = null,
-    @field:XmlElement(name = "CoordinateSystem", namespace = XMLNS)
-    override val coordinateSystem: InfraModelCoordinateSystem403? = null,
-    @field:XmlElement(name = "Project", namespace = XMLNS)
-    override val project: InfraModelProject403? = null,
-    @field:XmlElement(name = "Application", namespace = XMLNS)
-    override val application: InfraModelApplication403? = null,
-    @field:XmlElement(name = "Alignments", namespace = XMLNS)
-    override val alignmentGroups: List<InfraModelAlignmentGroup403> = arrayListOf(),
+    @field:XmlElement(name = "FeatureDictionary", namespace = XMLNS_404)
+    override val featureDictionary: InfraModelFeatureDictionary404? = null,
+    @field:XmlElement(name = "Units", namespace = XMLNS_404)
+    override val units: InfraModelUnits404? = null,
+    @field:XmlElement(name = "CoordinateSystem", namespace = XMLNS_404)
+    override val coordinateSystem: InfraModelCoordinateSystem404? = null,
+    @field:XmlElement(name = "Project", namespace = XMLNS_404)
+    override val project: InfraModelProject404? = null,
+    @field:XmlElement(name = "Application", namespace = XMLNS_404)
+    override val application: InfraModelApplication404? = null,
+    @field:XmlElement(name = "Alignments", namespace = XMLNS_404)
+    override val alignmentGroups: List<InfraModelAlignmentGroup404> = arrayListOf(),
 ): InfraModel
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelFeatureDictionary403(
+data class InfraModelFeatureDictionary404(
     @field:XmlAttribute override val name: String = "",
 ):InfraModelFeatureDictionary
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelUnits403(
-    @field:XmlElement(name = "Metric", namespace = XMLNS)
-    override val metric: InfraModelMetric403? = null,
+data class InfraModelUnits404(
+    @field:XmlElement(name = "Metric", namespace = XMLNS_404)
+    override val metric: InfraModelMetric404? = null,
 ):InfraModelUnits
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelMetric403(
+data class InfraModelMetric404(
     @field:XmlAttribute override val linearUnit: String = "",
     @field:XmlAttribute override val areaUnit: String = "",
     @field:XmlAttribute override val volumeUnit: String = "",
@@ -45,24 +45,24 @@ data class InfraModelMetric403(
 ):InfraModelMetric
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelProject403(
+data class InfraModelProject404(
     @field:XmlAttribute override val name: String = "",
     @field:XmlAttribute override val desc: String? = null,
 ):InfraModelProject
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelApplication403(
+data class InfraModelApplication404(
     @field:XmlAttribute override val name: String = "",
     @field:XmlAttribute override val desc: String? = null,
     @field:XmlAttribute override val manufacturer: String = "",
     @field:XmlAttribute override val manufacturerURL: String = "",
     @field:XmlAttribute override val version: String = "",
-    @field:XmlElement(name = "Author", namespace = XMLNS)
-    override val author: InfraModelAuthor403? = null,
+    @field:XmlElement(name = "Author", namespace = XMLNS_404)
+    override val author: InfraModelAuthor404? = null,
 ):InfraModelApplication
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelAuthor403(
+data class InfraModelAuthor404(
     @field:XmlAttribute override val createdBy: String? = null,
     @field:XmlAttribute override val createdByEmail: String? = null,
     @field:XmlAttribute override val company: String? = null,
@@ -71,7 +71,7 @@ data class InfraModelAuthor403(
 ):InfraModelAuthor
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelCoordinateSystem403(
+data class InfraModelCoordinateSystem404(
     @field:XmlAttribute override val name: String = "",
     @field:XmlAttribute override val epsgCode: String = "",
     @field:XmlAttribute override val verticalCoordinateSystemName: String = "",
@@ -79,73 +79,70 @@ data class InfraModelCoordinateSystem403(
 ):InfraModelCoordinateSystem
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelAlignmentGroup403(
+data class InfraModelAlignmentGroup404(
     @field:XmlAttribute override val name: String = "",
     @field:XmlAttribute override val desc: String? = null,
     @field:XmlAttribute override val state: String? = null,
-    @field:XmlElement(name = "Alignment", namespace = XMLNS)
-    override val alignments: List<InfraModelAlignment403> = arrayListOf(),
+    @field:XmlElement(name = "Alignment", namespace = XMLNS_404)
+    override val alignments: List<InfraModelAlignment404> = arrayListOf(),
 ):InfraModelAlignmentGroup
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelAlignment403(
+data class InfraModelAlignment404(
     @field:XmlAttribute override val name: String = "",
     @field:XmlAttribute override val desc: String? = null,
     @field:XmlAttribute override val state: String? = null,
     @field:XmlAttribute override val oid: String? = null,
     @field:XmlAttribute override val staStart: String = "",
 
-    @field:XmlElementWrapper(name = "CoordGeom", namespace = XMLNS)
+    @field:XmlElementWrapper(name = "CoordGeom", namespace = XMLNS_404)
     @field:XmlElements(
-        XmlElement(name = "Line", namespace = XMLNS, type = InfraModelLine403::class),
-        XmlElement(name = "Curve", namespace = XMLNS, type = InfraModelCurve403::class),
-        XmlElement(name = "Spiral", namespace = XMLNS, type = InfraModelSpiral403::class)
+        XmlElement(name = "Line", namespace = XMLNS_404, type = InfraModelLine404::class),
+        XmlElement(name = "Curve", namespace = XMLNS_404, type = InfraModelCurve404::class),
+        XmlElement(name = "Spiral", namespace = XMLNS_404, type = InfraModelSpiral404::class)
     )
     override val elements: List<InfraModelGeometryElement> = arrayListOf(),
 
-    @field:XmlElement(name = "Cant", namespace = XMLNS)
-    override val cant: InfraModelCant403? = null,
+    @field:XmlElement(name = "Cant", namespace = XMLNS_404)
+    override val cant: InfraModelCant404? = null,
 
-    @field:XmlElement(name = "Profile", namespace = XMLNS)
-    override val profile: InfraModelProfile403? = null,
+    @field:XmlElement(name = "Profile", namespace = XMLNS_404)
+    override val profile: InfraModelProfile404? = null,
 
-    @field:XmlElement(name = "Feature", namespace = XMLNS)
-    override val features: List<InfraModelFeature403> = arrayListOf(),
+    @field:XmlElement(name = "Feature", namespace = XMLNS_404)
+    override val features: List<InfraModelFeature404> = arrayListOf(),
 
-    @field:XmlElement(name = "StaEquation", namespace = XMLNS)
-    override val staEquations: List<InfraModelStaEquation403> = arrayListOf(),
+    @field:XmlElement(name = "StaEquation", namespace = XMLNS_404)
+    override val staEquations: List<InfraModelStaEquation404> = arrayListOf(),
 ):InfraModelAlignment
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelStaEquation403(
+data class InfraModelStaEquation404(
     @field:XmlAttribute override val staBack: String = "",
     @field:XmlAttribute override val staAhead: String = "",
     @field:XmlAttribute override val staInternal: String = "",
     @field:XmlAttribute override val desc: String = "",
-    @field:XmlElement(name = "Feature", namespace = XMLNS)
-    override val feature: InfraModelFeature403? = null,
+    @field:XmlElement(name = "Feature", namespace = XMLNS_404)
+    override val feature: InfraModelFeature404? = null,
 ):InfraModelStaEquation
 
-
-
-
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelLine403(
+data class InfraModelLine404(
     @field:XmlAttribute override val name: String? = null,
     @field:XmlAttribute override val staStart: String = "",
     @field:XmlAttribute override val length: String = "",
     @field:XmlAttribute override val oID: String? = null,
 
-    @field:XmlElement(name = "Start", namespace = XMLNS)
+    @field:XmlElement(name = "Start", namespace = XMLNS_404)
     override val start: String = "",
-    @field:XmlElement(name = "End", namespace = XMLNS)
+    @field:XmlElement(name = "End", namespace = XMLNS_404)
     override val end: String = "",
-    @field:XmlElement(name = "Feature", namespace = XMLNS)
-    override val features: List<InfraModelFeature403> = arrayListOf(),
+    @field:XmlElement(name = "Feature", namespace = XMLNS_404)
+    override val features: List<InfraModelFeature404> = arrayListOf(),
 ) : InfraModelLine, InfraModelGeometryElement
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelCurve403(
+data class InfraModelCurve404(
     @field:XmlAttribute override val name: String? = null,
     @field:XmlAttribute override val staStart: String = "",
     @field:XmlAttribute override val length: String = "",
@@ -154,18 +151,18 @@ data class InfraModelCurve403(
     @field:XmlAttribute override val radius: String = "",
     @field:XmlAttribute override val chord: String = "",
 
-    @field:XmlElement(name = "Start", namespace = XMLNS)
+    @field:XmlElement(name = "Start", namespace = XMLNS_404)
     override val start: String = "",
-    @field:XmlElement(name = "Center", namespace = XMLNS)
+    @field:XmlElement(name = "Center", namespace = XMLNS_404)
     override val center: String = "",
-    @field:XmlElement(name = "End", namespace = XMLNS)
+    @field:XmlElement(name = "End", namespace = XMLNS_404)
     override val end: String = "",
-    @field:XmlElement(name = "Feature", namespace = XMLNS)
-    override val features: List<InfraModelFeature403> = arrayListOf(),
+    @field:XmlElement(name = "Feature", namespace = XMLNS_404)
+    override val features: List<InfraModelFeature404> = arrayListOf(),
 ): InfraModelCurve, InfraModelGeometryElement
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelSpiral403(
+data class InfraModelSpiral404(
     @field:XmlAttribute override val name: String? = null,
     @field:XmlAttribute override val staStart: String = "",
     @field:XmlAttribute override val length: String = "",
@@ -178,29 +175,29 @@ data class InfraModelSpiral403(
     @field:XmlAttribute override val radiusEnd: String? = null,
     @field:XmlAttribute override val spiType: String = "",
 
-    @field:XmlElement(name = "Start", namespace = XMLNS)
+    @field:XmlElement(name = "Start", namespace = XMLNS_404)
     override val start: String = "",
-    @field:XmlElement(name = "PI", namespace = XMLNS)
+    @field:XmlElement(name = "PI", namespace = XMLNS_404)
     override val pi: String = "",
-    @field:XmlElement(name = "End", namespace = XMLNS)
+    @field:XmlElement(name = "End", namespace = XMLNS_404)
     override val end: String = "",
-    @field:XmlElement(name = "Feature", namespace = XMLNS)
-    override val features: List<InfraModelFeature403> = arrayListOf(),
+    @field:XmlElement(name = "Feature", namespace = XMLNS_404)
+    override val features: List<InfraModelFeature404> = arrayListOf(),
 ) : InfraModelSpiral, InfraModelGeometryElement
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelCant403(
+data class InfraModelCant404(
     @field:XmlAttribute override val name: String = "",
     @field:XmlAttribute override val desc: String? = null,
     @field:XmlAttribute override val gauge: String = "",
     @field:XmlAttribute override val rotationPoint: String = "",
 
-    @field:XmlElement(name = "CantStation", namespace = XMLNS)
-    override val stations: List<InfraModelCantStation403> = arrayListOf(),
+    @field:XmlElement(name = "CantStation", namespace = XMLNS_404)
+    override val stations: List<InfraModelCantStation404> = arrayListOf(),
 ):InfraModelCant
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelCantStation403(
+data class InfraModelCantStation404(
     @field:XmlAttribute override val station: String = "",
     @field:XmlAttribute override val appliedCant: String = "",
     @field:XmlAttribute override val curvature: String = "",
@@ -208,36 +205,36 @@ data class InfraModelCantStation403(
 ):InfraModelCantStation
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelProfile403(
-    @field:XmlElement(name = "ProfAlign", namespace = XMLNS)
-    override val profAlign: InfraModelProfAlign403? = null,
-    @field:XmlElement(name = "Feature", namespace = XMLNS)
-    override val features: List<InfraModelFeature403> = arrayListOf(),
+data class InfraModelProfile404(
+    @field:XmlElement(name = "ProfAlign", namespace = XMLNS_404)
+    override val profAlign: InfraModelProfAlign404? = null,
+    @field:XmlElement(name = "Feature", namespace = XMLNS_404)
+    override val features: List<InfraModelFeature404> = arrayListOf(),
 ):InfraModelProfile
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelProfAlign403(
+data class InfraModelProfAlign404(
     @field:XmlAttribute override val name: String = "",
 
     @field:XmlElements(
-        XmlElement(name = "PVI", namespace = XMLNS, type = InfraModelPvi403::class),
-        XmlElement(name = "CircCurve", namespace = XMLNS, type = InfraModelCircCurve403::class)
+        XmlElement(name = "PVI", namespace = XMLNS_404, type = InfraModelPvi404::class),
+        XmlElement(name = "CircCurve", namespace = XMLNS_404, type = InfraModelCircCurve404::class)
     )
     override val elements: List<InfraModelProfileElement> = arrayListOf(),
 
-    @field:XmlElement(name = "Feature", namespace = XMLNS)
-    override val features: List<InfraModelFeature403> = arrayListOf(),
+    @field:XmlElement(name = "Feature", namespace = XMLNS_404)
+    override val features: List<InfraModelFeature404> = arrayListOf(),
 ):InfraModelProfAlign
 
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelPvi403(
+data class InfraModelPvi404(
     @field:XmlAttribute override val desc: String? = null,
     @field:XmlValue override val point: String = "",
 ) : InfraModelPvi,InfraModelProfileElement
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelCircCurve403(
+data class InfraModelCircCurve404(
     @field:XmlAttribute override val desc: String? = null,
     @field:XmlAttribute override val length: String = "",
     @field:XmlAttribute override val radius: String = "",
@@ -245,11 +242,11 @@ data class InfraModelCircCurve403(
 ) : InfraModelCircCurve, InfraModelProfileElement
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelFeature403(
+data class InfraModelFeature404(
     @field:XmlAttribute override val code: String = "",
 
-    @field:XmlElement(name = "Property", namespace = XMLNS)
-    override val properties: List<InfraModelProperty403> = arrayListOf(),
+    @field:XmlElement(name = "Property", namespace = XMLNS_404)
+    override val properties: List<InfraModelProperty404> = arrayListOf(),
 ):InfraModelFeature {
     override fun getProperty(label: String): String {
         return properties.find { p -> p.label == label }?.value
@@ -262,7 +259,7 @@ data class InfraModelFeature403(
 }
 
 @XmlAccessorType(XmlAccessType.FIELD)
-data class InfraModelProperty403(
+data class InfraModelProperty404(
     @field:XmlAttribute override val label: String = "",
     @field:XmlAttribute override val value: String = "",
 ):InfraModelProperty
