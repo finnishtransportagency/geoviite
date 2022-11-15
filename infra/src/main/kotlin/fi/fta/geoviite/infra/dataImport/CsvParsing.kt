@@ -32,6 +32,7 @@ const val LAYOUT_METER_LENGTH_WARNING_THRESHOLD = 5.0
 const val MAX_METERS_FILTERED_TIGHT = 100
 const val MAX_METERS_FILTERED_LOOSE = 10000
 const val MAX_IMPORT_POINT_ANGLE_CHANGE = PI / 4
+const val MAX_DISTANCE_TO_MATCH_TRACK_END_POINT = 1.0
 
 enum class KmPostColumns { TRACK_NUMBER_EXTERNAL_ID, NUMBER, GEOMETRY, STATE }
 
@@ -170,6 +171,35 @@ data class CsvLocationTrack(
     val duplicateOfExternalId: Oid<LocationTrack>?,
 )
 
+data class SwitchLinkConnectionPoints (
+    val startOfTrack: List<AlignmentSwitchLink>,
+    val endOfTrack: List<AlignmentSwitchLink>,
+    val withinTrack: List<AlignmentSwitchLink>,
+)
+
+enum class SwitchLinkConnectionPointGroup { START, END, MID }
+
+fun separateOutSwitchLinkConnectionPoints(switchLinks: List<AlignmentSwitchLink>, startPoint: AddressPoint, endPoint: AddressPoint): SwitchLinkConnectionPoints {
+    val groups = switchLinks.groupBy { link ->
+        // check for single-joint links matching getSwitchLinkTrackMeterRanges; sometimes this means that multiple
+        // joints are on the same track meter, but usually that there is only one joint
+        if (!link.startMeter.isSame(link.endMeter)) {
+             SwitchLinkConnectionPointGroup.MID
+        } else {
+            val linkPoint = link.linkPoints[0]
+            if (distance(linkPoint.location, startPoint.point.toPoint()) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT)
+                SwitchLinkConnectionPointGroup.START
+            else if (distance(linkPoint.location, endPoint.point.toPoint()) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT)
+                SwitchLinkConnectionPointGroup.END
+            else SwitchLinkConnectionPointGroup.MID
+        }
+    }
+    return SwitchLinkConnectionPoints(groups[SwitchLinkConnectionPointGroup.START] ?: listOf(),
+        groups[SwitchLinkConnectionPointGroup.END] ?: listOf(),
+        groups[SwitchLinkConnectionPointGroup.MID] ?: listOf()
+    )
+}
+
 fun createLocationTracksFromCsv(
     alignmentsFile: CsvFile<LocationTrackColumns>,
     metadataMap: Map<Oid<LocationTrack>, List<AlignmentCsvMetaData<LocationTrack>>>,
@@ -196,8 +226,9 @@ fun createLocationTracksFromCsv(
             LOG.warn("Cannot create location track as there's no points: locationTrack=$alignmentExtId points=${points.size}")
             null
         } else {
+            val switchLinkGroups = separateOutSwitchLinkConnectionPoints(switchLinks, points.first(), points.last())
             val segmentRanges = measureAndCollect("parsing->combineMetadataToSegments") {
-                combineMetadataToSegments(switchLinks, metadata, points, kkjToEtrsTriangulationTriangles)
+                combineMetadataToSegments(switchLinkGroups.withinTrack, metadata, points, kkjToEtrsTriangulationTriangles)
             }
             val (segments, metadataIds) = measureAndCollect("parsing->createSegments") {
                 createSegments(segmentRanges, points, resolution, connectionSegmentIndices)
@@ -508,24 +539,26 @@ data class AlignmentSwitchLink(
 data class AlignmentSwitchLinkPoint(
     val jointNumber: JointNumber,
     val trackMeter: TrackMeter,
+    val location: Point,
 )
 
-data class SwitchLinkingIds(
+data class SwitchLinkingInfo(
     val switchId: IntId<TrackLayoutSwitch>,
     val switchStructureId: IntId<SwitchStructure>,
+    val joints: Map<JointNumber, Point>,
 )
 
 fun createAlignmentSwitchLinks(
     linkFile: CsvFile<AlignmentSwitchLinkColumns>,
-    switchIds: Map<Oid<TrackLayoutSwitch>, SwitchLinkingIds>,
+    linkingInfos: Map<Oid<TrackLayoutSwitch>, SwitchLinkingInfo>,
     switchStructures: Map<IntId<SwitchStructure>, SwitchStructure>,
 ): List<AlignmentSwitchLink> {
     return linkFile.parseLines { line ->
         val alignmentOid = line.getOid<LocationTrack>(AlignmentSwitchLinkColumns.ALIGNMENT_EXTERNAL_ID)
         val switchOid = line.getOid<TrackLayoutSwitch>(AlignmentSwitchLinkColumns.SWITCH_EXTERNAL_ID)
-        val switchIdPair = switchIds[switchOid] ?: return@parseLines null
-        val switchStructure = switchStructures[switchIdPair.switchStructureId]
-            ?: throw IllegalArgumentException("Switch structure ID ${switchIdPair.switchStructureId} not found")
+        val switchLinkingInfo = linkingInfos[switchOid] ?: return@parseLines null
+        val switchStructure = switchStructures[switchLinkingInfo.switchStructureId]
+            ?: throw IllegalArgumentException("Switch structure ID ${switchLinkingInfo.switchStructureId} not found")
 
         val joints = line.get(AlignmentSwitchLinkColumns.JOINTS)
             .split(",")
@@ -542,11 +575,13 @@ fun createAlignmentSwitchLinks(
         }
         AlignmentSwitchLink(
             alignmentOid = alignmentOid,
-            switchId = switchIdPair.switchId,
+            switchId = switchLinkingInfo.switchId,
             linkPoints = joints.mapIndexed { index, jointNumber ->
                 AlignmentSwitchLinkPoint(
                     jointNumber = jointNumber,
                     trackMeter = trackMeters[index],
+                    location = switchLinkingInfo.joints[jointNumber]
+                        ?: throw IllegalStateException("Switch link joint not in joint table: switch=$switchOid joint=$jointNumber")
                 )
             }
         )
