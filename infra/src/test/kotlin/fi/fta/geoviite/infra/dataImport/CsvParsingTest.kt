@@ -1152,10 +1152,12 @@ class CsvParsingTest {
             AlignmentSwitchLinkPoint(
                 jointNumber = JointNumber(1 + (seed + jointIdx++ % 10)),
                 trackMeter = p,
+                location = null
             )
         }
         return AlignmentSwitchLink(
             alignmentOid = getSomeOid(rand.nextInt()),
+            switchOid = getSomeOid(rand.nextInt()),
             switchId = IntId(rand.nextInt(1..1000)),
             linkPoints = linkPoints,
         )
