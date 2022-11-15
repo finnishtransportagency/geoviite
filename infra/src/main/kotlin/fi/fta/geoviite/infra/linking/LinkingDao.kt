@@ -304,7 +304,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         return jdbcTemplate.query(sql, params) { rs, _ -> LocationTrackIdentifiers(
             id = rs.getIntId("official_id"),
             rowVersion = rs.getRowVersion("row_id", "row_version"),
-            externalId = rs.getOid("external_id"),
+            externalId = rs.getOidOrNull("external_id"),
         ) }
     }
 
