@@ -1166,10 +1166,11 @@ class SwitchLinkingService @Autowired constructor(
                 .distinctBy { t -> t.first.id }
         potentiallyChangedTracks.forEach { (locationTrack, alignment) ->
             val updated = locationTrackService.updateTopology(locationTrack, alignment)
-            if (updated != locationTrack) locationTrackService.saveDraft(locationTrack)
+            if (updated != locationTrack) locationTrackService.saveDraft(updated)
         }
         return switchId
     }
+
     private fun listDraftTracksNearArea(area: BoundingBox?) =
         if (area == null) listOf()
         else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
