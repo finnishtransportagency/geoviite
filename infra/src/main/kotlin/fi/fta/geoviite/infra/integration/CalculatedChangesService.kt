@@ -248,7 +248,15 @@ class CalculatedChangesService(
             else addressChangesService.getGeocodingContextAtMoment(trackNumberId, moment)
         }
 
-        val oldSwitches = oldAlignment?.segments
+        val oldTopologySwitches =
+            if (oldLocationTrack != null && oldAlignment != null && oldGeocodingContext != null)
+                getTopologySwitchJoints(
+                    oldLocationTrack,
+                    oldAlignment
+                ) { point -> oldGeocodingContext.getAddress(point)!!.first }
+            else listOf()
+
+        val oldSwitches = (oldAlignment?.segments
             ?.let { segments ->
                 oldGeocodingContext?.let { context ->
                     getSwitchJointChanges(
@@ -259,14 +267,23 @@ class CalculatedChangesService(
                         else historyDao.getSwitchAtMoment(switchId, moment)
                     }
                 }
-            } ?: emptyList()
+            } ?: emptyList()) +
+                oldTopologySwitches
 
-        val currentSwitches = currentGeocodingContext?.let { context ->
+        val currentTopologySwitches = if (currentGeocodingContext != null)
+            getTopologySwitchJoints(
+                currentLocationTrack,
+                currentAlignment
+            ) { point -> currentGeocodingContext.getAddress(point)!!.first }
+        else listOf()
+
+        val currentSwitches = (currentGeocodingContext?.let { context ->
             getSwitchJointChanges(
                 segments = currentAlignment.segments,
                 geocodingContext = context
             ) { switchId -> switchService.get(currentPublishType, switchId) }
-        } ?: emptyList()
+        } ?: emptyList()) +
+                currentTopologySwitches
 
         val deletedSwitches = findSwitchJointDifferences(oldSwitches, currentSwitches) { switch, joint, _ ->
             switch.joint.number == joint.number
@@ -381,6 +398,45 @@ class CalculatedChangesService(
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, value) -> value.flatten() }
             .toList()
+    }
+
+    private fun getTopologySwitchJoints(
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
+        getAddress: (point: IPoint) -> TrackMeter
+    ): List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>> {
+        return listOfNotNull(
+            locationTrack.topologyStartSwitch?.let {
+                val location = alignment.start
+                if (location != null)
+                    getTopologySwitchJoints(it, Point(location), getAddress(location))
+                else null
+            },
+            locationTrack.topologyEndSwitch?.let {
+                val location = alignment.end
+                if (location != null)
+                    getTopologySwitchJoints(it, Point(location), getAddress(location))
+                else null
+            },
+        )
+    }
+
+    private fun getTopologySwitchJoints(
+        topologySwitch: TopologyLocationTrackSwitch,
+        location: Point,
+        address: TrackMeter
+    ): Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>> {
+        return topologySwitch.switchId to listOf(
+            SwitchJointDataHolder(
+                joint = TrackLayoutSwitchJoint(
+                    number = topologySwitch.jointNumber,
+                    location = location,
+                    locationAccuracy = null
+                ),
+                point = location,
+                address = address
+            )
+        )
     }
 }
 
