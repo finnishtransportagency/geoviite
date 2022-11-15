@@ -369,7 +369,7 @@ fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
             null -> LINEAR
             "biquadraticParabola" -> BIQUADRATIC_PARABOLA
             else -> throw InputValidationException(
-                message = "Unknown XML Cant transition type: ${formatForException(station.transitionType!!)}", // TODO fix non-null asserted call
+                message = "Unknown XML Cant transition type: ${formatForException(station.transitionType as String)}",
                 type = CantTransitionType::class,
             )
         }
