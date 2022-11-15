@@ -7,6 +7,9 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.util.RowVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -58,13 +61,15 @@ class LocationTrackService(
             topologicalConnectivity = request.topologicalConnectivity,
         )
 
-        return if (locationTrack.state == LayoutState.DELETED) {
+        return if (locationTrack.state != LayoutState.DELETED) {
+            saveDraft(updateTopology(locationTrack, originalAlignment))
+        } else {
             val segmentsWithoutSwitch = originalAlignment.segments.map { segment ->
                 segment.copy(switchId = null, startJointNumber = null, endJointNumber = null)
             }
-
-            saveDraft(locationTrack, originalAlignment.withSegments(segmentsWithoutSwitch))
-        } else saveDraft(locationTrack)
+            val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
+            saveDraft(updateTopology(locationTrack, newAlignment), newAlignment)
+        }
     }
 
     @Transactional
@@ -179,38 +184,28 @@ class LocationTrackService(
             "publishType" to publishType, "locationTrackId" to locationTrackId
         )
         return addressPointService.getTrackGeocodingData(publishType, locationTrackId)?.let { data ->
-            val locationTrack = data.locationTrack
             val segments = data.alignment.segments
 
             val startAddress = data.context.toAddressPoint(segments.first().points.first())
             val endAddress = data.context.toAddressPoint(segments.last().points.last())
 
-            val startSwitchName = if (locationTrack.startPoint is EndPointSwitch)
-                getSwitchNameForSegment(publishType, segments.first()) else null
-            val endSwitchName = if (locationTrack.endPoint is EndPointSwitch)
-                getSwitchNameForSegment(publishType, segments.last()) else null
-
-            val startAlignmentName =
-                if (locationTrack.startPoint is EndPointLocationTrack)
-                    getInternal(publishType, locationTrack.startPoint.locationTrackId)?.name
-                else null
-            val endAlignmentName =
-                if (locationTrack.endPoint is EndPointLocationTrack)
-                    getInternal(publishType, locationTrack.endPoint.locationTrackId)?.name
-                else null
-
+            // TODO: GVT-1428 Remove end-point info entirely or show topology connections?
+//            val startSwitch = data.locationTrack.topologyStartSwitch?.switchId?.let { id ->
+//                switchService.get(publishType, id)
+//            }
+//            val endSwitch = data.locationTrack.topologyStartSwitch?.switchId?.let { id ->
+//                switchService.get(publishType, id)
+//            }
             LocationTrackStartAndEnd(
                 start = RefinedAlignmentEndPoint(
                     startAddress?.first,
-                    locationTrack.startPoint,
-                    startSwitchName,
-                    startAlignmentName
+                    null, //startSwitch?.name,
+                    null,
                 ),
                 end = RefinedAlignmentEndPoint(
                     endAddress?.first,
-                    locationTrack.endPoint,
-                    endSwitchName,
-                    endAlignmentName
+                    null, //endSwitch?.name,
+                    null,
                 )
             )
         }
@@ -318,4 +313,86 @@ class LocationTrackService(
     fun getDuplicates(duplicateOf: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
         return dao.fetchDuplicates(duplicateOf, publishType)
     }
+
+    fun updateTopology(
+        track: LocationTrack,
+        alignment: LayoutAlignment,
+    ): LocationTrack {
+        val startPoint = alignment.start ?: return track
+        val endPoint = alignment.end ?: return track
+        val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
+
+        val startSwitch =
+            if (!track.exists) null
+            else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches)
+
+        val endSwitch =
+            if (!track.exists) null
+            else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches)
+
+        return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
+            track
+        } else {
+            track.copy(topologyStartSwitch = startSwitch, topologyEndSwitch = endSwitch)
+        }
+    }
+
+    private fun findBestTopologySwitchMatch(
+        target: IPoint,
+        ownId: DomainId<LocationTrack>,
+        ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    ): TopologyLocationTrackSwitch? {
+        val nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>> = dao
+            .fetchVersionsNear(DRAFT, boundingBoxAroundPoint(target, 1.0))
+            .map { version -> getWithAlignmentInternal(version) }
+            .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.id != ownId && track.exists }
+        return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracks)
+            ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracks)
+    }
 }
+
+
+private fun findBestTopologySwitchFromSegments(
+    target: IPoint,
+    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): TopologyLocationTrackSwitch? = nearbyTracks.flatMap { (_, otherAlignment) ->
+    otherAlignment.segments.flatMap { segment ->
+        if (segment.switchId !is IntId || ownSwitches.contains(segment.switchId)) listOf()
+        else listOfNotNull(
+            segment.startJointNumber?.let { number ->
+                pickIfClose(segment.switchId, number, target, segment.points.first())
+            },
+            segment.endJointNumber?.let { number ->
+                pickIfClose(segment.switchId, number, target, segment.points.last())
+            },
+        )
+    }
+}.minByOrNull { (_, distance) -> distance }?.first
+
+private fun findBestTopologySwitchFromOtherTopology(
+    target: IPoint,
+    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+    nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): TopologyLocationTrackSwitch? = nearbyTracks.flatMap { (otherTrack, otherAlignment) -> listOfNotNull(
+    pickIfClose(otherTrack.topologyStartSwitch, target, otherAlignment.start, ownSwitches),
+    pickIfClose(otherTrack.topologyEndSwitch, target, otherAlignment.end, ownSwitches),
+) }.minByOrNull { (_, distance) -> distance }?.first
+
+private fun pickIfClose(
+    switchId: IntId<TrackLayoutSwitch>,
+    number: JointNumber,
+    target: IPoint,
+    reference: IPoint?,
+) = pickIfClose(TopologyLocationTrackSwitch(switchId, number), target, reference, setOf())
+
+private fun pickIfClose(
+    topologyMatch: TopologyLocationTrackSwitch?,
+    target: IPoint,
+    reference: IPoint?,
+    ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+) = if (reference != null && topologyMatch != null && !ownSwitches.contains(topologyMatch.switchId)) {
+    val distance = lineLength(target, reference)
+    if (distance < 1.0) topologyMatch to distance
+    else null
+} else null

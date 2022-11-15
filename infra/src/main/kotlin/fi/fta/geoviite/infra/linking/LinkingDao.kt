@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -266,18 +267,90 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             }
     }
 
-    fun findLocationTracksLinkedToSwitch(switchId: IntId<TrackLayoutSwitch>): List<Pair<IntId<LocationTrack>, Oid<LocationTrack>>> {
+    data class LocationTrackIdentifiers(
+        val id: IntId<LocationTrack>,
+        val rowVersion: RowVersion<LocationTrack>,
+        val externalId: Oid<LocationTrack>?,
+    )
+    fun findLocationTracksLinkedToSwitch(
+        publicationState: PublishType,
+        switchId: IntId<TrackLayoutSwitch>,
+    ): List<LocationTrackIdentifiers> {
         val sql = """ 
-            select location_track.id, location_track.external_id
+            select 
+              location_track.official_id, 
+              location_track.row_id,
+              location_track.row_version,
+              location_track.external_id
             from layout.segment
-            inner join layout.location_track on location_track.alignment_id = segment.alignment_id
-            where segment.switch_id = :switch_id
-            group by id
+            inner join layout.location_track_publication_view location_track 
+                         on location_track.alignment_id = segment.alignment_id
+            where :publication_state = any(publication_states)
+             and (
+               segment.switch_id = :switch_id
+                 or location_track.topology_start_switch_id = :switch_id
+                 or location_track.topology_end_switch_id = :switch_id
+               )
+            group by 
+              location_track.official_id, 
+              location_track.row_id, 
+              location_track.row_version, 
+              location_track.external_id
         """.trimIndent()
-        val params = mapOf("switch_id" to switchId.intValue)
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId<LocationTrack>("id") to rs.getOid("external_id")
-        }
+        val params = mapOf(
+            "switch_id" to switchId.intValue,
+            "publication_state" to publicationState,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ -> LocationTrackIdentifiers(
+            id = rs.getIntId("official_id"),
+            rowVersion = rs.getRowVersion("row_id", "row_version"),
+            externalId = rs.getOid("external_id"),
+        ) }
     }
 
+    fun getSwitchBoundsFromTracks(
+        publicationState: PublishType,
+        switchId: IntId<TrackLayoutSwitch>,
+    ): BoundingBox {
+        val sql = """ 
+            select 
+               case 
+                 when segment.switch_id = :switch_id and segment.switch_start_joint_number is not null then 1
+                 when location_track.topology_start_switch_id = :switch_id and segment.segment_index = 0 then 1
+                 else 0
+               end as start_is_joint,
+               case 
+                 when segment.switch_id = :switch_id and segment.switch_end_joint_number is not null then 1
+                 when location_track.topology_end_switch_id = :switch_id and segment.segment_index = alignment.segment_count-1 then 1
+                 else 0
+               end as end_is_joint,
+               postgis.st_x(postgis.st_startpoint(segment.geometry)) as start_x,
+               postgis.st_y(postgis.st_startpoint(segment.geometry)) as start_y,
+               postgis.st_x(postgis.st_endpoint(segment.geometry)) as end_x,
+               postgis.st_y(postgis.st_endpoint(segment.geometry)) as end_y
+            from layout.segment
+            inner join layout.alignment on segment.alignment_id = alignment.id
+            inner join layout.location_track_publication_view location_track on location_track.alignment_id = alignment.id
+            where :publication_state = any(publication_states)
+              and (
+                segment.switch_id = :switch_id
+                or (segment.segment_index = 0 and location_track.topology_start_switch_id = :switch_id)
+                or (segment.segment_index = alignment.segment_count-1 and location_track.topology_end_switch_id = :switch_id)
+              )
+        """.trimIndent()
+        val params = mapOf(
+            "switch_id" to switchId.intValue,
+            "publication_state" to publicationState,
+        )
+        val allPoints = jdbcTemplate.query(sql, params) { rs, _ ->
+            val start =
+                if (rs.getBoolean("start_is_joint")) rs.getPoint("start_x", "start_y")
+                else null
+            val end =
+                if (rs.getBoolean("end_is_joint")) rs.getPoint("end_x", "end_y")
+                else null
+            listOfNotNull(start, end)
+        }.flatten()
+        return boundingBoxAroundPoints(allPoints)
+    }
 }

@@ -154,8 +154,6 @@ class TrackLayoutHistoryDao(
                 description = rs.getFreeText("description"),
                 type = rs.getEnum("type"),
                 state = rs.getEnum("state"),
-                startPoint = null,
-                endPoint = null,
                 boundingBox = rs.getBboxOrNull("bounding_box"),
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),

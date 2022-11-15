@@ -87,8 +87,6 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 description = rs.getFreeText("description"),
                 type = rs.getEnum("type"),
                 state = rs.getEnum("state"),
-                startPoint = null,
-                endPoint = null,
                 boundingBox = rs.getBboxOrNull("bounding_box"),
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),
@@ -314,5 +312,4 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             rs.getRowVersion("row_id", "row_version")
         }
     }
-
 }

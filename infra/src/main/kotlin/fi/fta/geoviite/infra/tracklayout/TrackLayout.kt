@@ -116,8 +116,6 @@ data class LocationTrack(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
     override val id: DomainId<LocationTrack> = deriveFromSourceId("LT", sourceId),
-    val startPoint: EndPoint? = null,
-    val endPoint: EndPoint? = null,
     override val dataType: DataType = DataType.TEMP,
     val version: Version = Version.NONE,
     val boundingBox: BoundingBox?,

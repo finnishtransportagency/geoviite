@@ -56,8 +56,9 @@ export function simplifySegments(
 ): MapSegment {
     const lengths = segments.map((s) => s.length);
     return {
-        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${segments.length
-            }_${resolution}`,
+        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${
+            segments.length
+        }_${resolution}`,
         resolution: Math.ceil(Math.max(...lengths)),
         pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
         points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
@@ -136,8 +137,6 @@ export type LayoutLocationTrack = {
     trackNumberId: LayoutTrackNumberId;
     sourceId: GeometryAlignmentId | null;
     id: LocationTrackId;
-    startPoint: LocationTrackEndPoint | null;
-    endPoint: LocationTrackEndPoint | null;
     dataType: DataType;
     version: string;
     boundingBox: BoundingBox | null;
@@ -162,8 +161,6 @@ export type MapAlignment = {
     id: AlignmentId;
     boundingBox: BoundingBox | null;
     length: number;
-    startPoint: LocationTrackEndPoint | null;
-    endPoint: LocationTrackEndPoint | null;
     dataType: DataType;
     segmentCount: number;
     version: string;
@@ -310,8 +307,6 @@ export function toLocationTrack({
     length,
     sourceId,
     segmentCount,
-    startPoint,
-    endPoint,
     version,
     draftType,
     topologicalConnectivity,
@@ -330,8 +325,6 @@ export function toLocationTrack({
             length,
             sourceId,
             segmentCount,
-            startPoint,
-            endPoint,
             version,
             draftType,
             duplicateOf: null,

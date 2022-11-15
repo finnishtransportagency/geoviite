@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.linking.LinkingDao
@@ -30,7 +31,7 @@ class RatkoAssetService @Autowired constructor(
 
     fun pushSwitchChangesToRatko(switchChanges: List<SwitchChange>) {
         switchChanges
-            .map { change -> change to switchService.getOrThrow(PublishType.OFFICIAL, change.switchId) }
+            .map { change -> change to switchService.getOrThrow(OFFICIAL, change.switchId) }
             .sortedBy { sortByDeletedStateFirst(it.second.stateCategory) }
             .forEach { (switchChange, layoutSwitch) ->
                 try {
@@ -106,8 +107,9 @@ class RatkoAssetService @Autowired constructor(
         switchStructure: SwitchStructure,
     ): List<RatkoAssetLocation> {
         return if (existingRatkoLocations.isNotEmpty()) {
-            val linkedLocationTracks =
-                linkingDao.findLocationTracksLinkedToSwitch(switchId).map { it.second }.distinct()
+            val linkedLocationTracks = linkingDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId).map { ids ->
+                ids.externalId ?: throw IllegalStateException("Official LocationTrack must have an external ID")
+            }
 
             existingRatkoLocations
                 .map { location ->

@@ -1,8 +1,16 @@
 import * as React from 'react';
-import { DraftType, LayoutLocationTrack, LayoutState, LayoutSwitch } from 'track-layout/track-layout-model';
+import {
+    DraftType,
+    LayoutLocationTrack,
+    LayoutState,
+    LayoutSwitch,
+} from 'track-layout/track-layout-model';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
-import { LocationTrackBadge, LocationTrackBadgeStatus } from 'geoviite-design-lib/alignment/location-track-badge';
+import {
+    LocationTrackBadge,
+    LocationTrackBadgeStatus,
+} from 'geoviite-design-lib/alignment/location-track-badge';
 
 const layoutLocationTrack: LayoutLocationTrack = {
     id: '',
@@ -16,8 +24,6 @@ const layoutLocationTrack: LayoutLocationTrack = {
     sourceId: '',
     type: null,
     externalId: null,
-    startPoint: null,
-    endPoint: null,
     dataType: 'TEMP',
     version: 'version',
     draftType: 'NEW_DRAFT',

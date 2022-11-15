@@ -138,8 +138,6 @@ fun toTrackLayoutAlignments(
                 id = alignment.id,
                 boundingBox = boundingBoxInLayoutSpace,
                 length = alignment.elements.sumOf(GeometryElement::calculatedLength),
-                startPoint = null,
-                endPoint = null,
                 dataType = DataType.TEMP,
                 segmentCount = alignment.elements.size,
                 version = Version.NONE,

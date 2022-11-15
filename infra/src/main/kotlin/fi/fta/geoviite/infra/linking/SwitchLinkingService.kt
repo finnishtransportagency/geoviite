@@ -438,7 +438,6 @@ fun createSuggestedSwitch(
     return null
 }
 
-
 fun clearSwitchInformationFromSegments(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
@@ -455,23 +454,19 @@ fun clearSwitchInformationFromSegments(
             segment
         }
     }
-    val overrideStartPoint =
-        locationTrack.startPoint is EndPointSwitch && newSegments.first().switchId == null
-    val overrideEndPoint =
-        locationTrack.endPoint is EndPointSwitch && newSegments.last().switchId == null
     val newAlignment = alignment.withSegments(newSegments)
-    return locationTrack.copy(
-        startPoint = if (overrideStartPoint) null else locationTrack.startPoint,
-        endPoint = if (overrideEndPoint) null else locationTrack.endPoint,
-    ) to newAlignment
+    val newLocationTrack = locationTrack.copy(
+        topologyStartSwitch = locationTrack.topologyEndSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
+        topologyEndSwitch = locationTrack.topologyEndSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
+    )
+    return newLocationTrack to newAlignment
 }
 
 fun updateAlignmentSegmentsWithSwitchLinking(
-    locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     layoutSwitchId: IntId<TrackLayoutSwitch>,
     matchingJoints: List<SwitchLinkingJoint>,
-): Pair<LocationTrack, LayoutAlignment> {
+): LayoutAlignment {
     val segmentIndexRange = matchingJoints
         .flatMap { joint -> joint.segments }
         .let { segments ->
@@ -521,18 +516,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
             }
         }
 
-    val newSegments = combineAdjacentSegmentJointNumbers(segmentsWithNewSwitch, layoutSwitchId)
-
-    val newStartPoint = newSegments.first().switchId.let { switchId ->
-        if (switchId != null) EndPointSwitch(switchId as IntId<TrackLayoutSwitch>) else null
-    }
-    val newEndPoint = newSegments.last().switchId.let { switchId ->
-        if (switchId != null) EndPointSwitch(switchId as IntId<TrackLayoutSwitch>) else null
-    }
-    return locationTrack.copy(
-        startPoint = newStartPoint ?: locationTrack.startPoint,
-        endPoint = newEndPoint ?: locationTrack.endPoint,
-    ) to alignment.withSegments(newSegments)
+    return alignment.withSegments(combineAdjacentSegmentJointNumbers(segmentsWithNewSwitch, layoutSwitchId))
 }
 
 private fun filterMatchingJointsBySwitchAlignment(
@@ -1075,7 +1059,7 @@ fun createSuggestedSwitchByPoint(
         suggestedSwitches
     }
 
-    val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0]);
+    val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
     return selectBestSuggestedSwitch(suggestedSwitches, farthestJoint, point)
 }
 
@@ -1172,16 +1156,26 @@ class SwitchLinkingService @Autowired constructor(
 
     @Transactional
     fun saveSwitchLinking(linkingParameters: SwitchLinkingParameters): RowVersion<TrackLayoutSwitch> {
+        val originalArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
         clearSwitchInformationFromSegments(linkingParameters.layoutSwitchId)
         val switchId = updateLayoutSwitch(linkingParameters)
         updateSwitchLinkingIntoSegments(linkingParameters)
+        val updatedArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
+        val potentiallyChangedTracks = (
+                locationTrackService.listNearWithAlignments(DRAFT, originalArea.plus(1.0)) +
+                        locationTrackService.listNearWithAlignments(DRAFT, updatedArea.plus(1.0))
+                ).distinctBy { t -> t.first.id }
+        potentiallyChangedTracks.forEach { (locationTrack, alignment) ->
+            val updated = locationTrackService.updateTopology(locationTrack, alignment)
+            if (updated != locationTrack) locationTrackService.saveDraft(locationTrack)
+        }
         return switchId
     }
 
     private fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
-        linkingDao.findLocationTracksLinkedToSwitch(layoutSwitchId)
-            .forEach { (id, _) ->
-                val (locationTrack, alignment) = locationTrackService.getWithAlignment(DRAFT, id)
+        linkingDao.findLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId)
+            .forEach { ids ->
+                val (locationTrack, alignment) = locationTrackService.getWithAlignment(ids.rowVersion)
                 val (updatedLocationTrack, updatedAlignment) = clearSwitchInformationFromSegments(
                     locationTrack,
                     alignment,
@@ -1259,20 +1253,16 @@ class SwitchLinkingService @Autowired constructor(
             }
             .filter { it.value.isNotEmpty() }
 
-        switchJointsByLocationTrack
-            .map { (locationTrackId, switchJoints) ->
-                val (locationTrack, alignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
-
-                updateAlignmentSegmentsWithSwitchLinking(
-                    locationTrack = locationTrack,
-                    alignment = alignment,
-                    layoutSwitchId = linkingParameters.layoutSwitchId,
-                    matchingJoints = switchJoints,
-                )
-            }
-            .forEach { (locationTrack, alignment) ->
-                locationTrackService.saveDraft(locationTrack, alignment)
-            }
+        switchJointsByLocationTrack.forEach { (locationTrackId, switchJoints) ->
+            val (locationTrack, alignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
+            val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
+                alignment = alignment,
+                layoutSwitchId = linkingParameters.layoutSwitchId,
+                matchingJoints = switchJoints,
+            )
+            val updatedLocationTrack = locationTrackService.updateTopology(locationTrack, updatedAlignment)
+            locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
+        }
     }
 
 
