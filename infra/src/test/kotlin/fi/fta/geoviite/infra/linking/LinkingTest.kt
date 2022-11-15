@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.transformCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DZ
@@ -19,17 +21,6 @@ class LinkingTest {
         val reversedStartPoint = getReversedTrackPointUpdateType(LocationTrackPointUpdateType.START_POINT)
         assertEquals(reversedEndPoint, LocationTrackPointUpdateType.START_POINT)
         assertEquals(reversedStartPoint, LocationTrackPointUpdateType.END_POINT)
-    }
-
-    @Test
-    fun shouldUpdateAlignmentId(){
-        val track = locationTrack(IntId(0))
-        val trackPointUpdateType= LocationTrackPointUpdateType.END_POINT
-        val point = EndPointLocationTrack(locationTrackId = IntId(4466))
-        val updatedTrack = updateLocationTrackTypePoint(track, trackPointUpdateType, point)
-        val expected = IntId<LocationTrack>(4466)
-        val actual =  updatedTrack.endPoint as EndPointLocationTrack
-        assertEquals(expected.intValue, actual.locationTrackId.intValue)
     }
 
     @Test

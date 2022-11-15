@@ -255,8 +255,6 @@ fun locationTrack(
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LayoutState = LayoutState.IN_USE,
-    endPoint: EndPoint? = null,
-    startPoint: EndPoint? = null,
     externalId: Oid<LocationTrack>? = someOid()
 ) = LocationTrack(
     name = AlignmentName(name),
@@ -271,8 +269,6 @@ fun locationTrack(
     length = alignment?.length ?: 0.0,
     draft = draft,
     duplicateOf = null,
-    endPoint = endPoint,
-    startPoint = startPoint,
     topologicalConnectivity = TopologicalConnectivityType.START,
     topologyStartSwitch = null,
     topologyEndSwitch = null,
@@ -334,9 +330,7 @@ fun attachSwitchToStart(
 ): Pair<LocationTrack, LayoutAlignment> {
     if (alignment.segments.count() < 3)
         throw IllegalArgumentException("Alignment must contain at least 3 segments")
-    return locationTrack.copy(
-        startPoint = EndPointSwitch(switchId),
-    ) to alignment.copy(
+    return locationTrack to alignment.copy(
         segments = alignment.segments.mapIndexed { index, segment ->
             when (index) {
                 0 -> segment.copy(
@@ -371,9 +365,7 @@ fun attachSwitchToEnd(
     val segmentCount = alignment.segments.count()
     if (segmentCount < 3)
         throw IllegalArgumentException("Alignment must contain at least 3 segments")
-    return locationTrack.copy(
-        endPoint = EndPointSwitch(switchId),
-    ) to alignment.copy(
+    return locationTrack to alignment.copy(
         segments = alignment.segments.mapIndexed { index, segment ->
             when (index) {
                 segmentCount - 3 -> segment.copy(

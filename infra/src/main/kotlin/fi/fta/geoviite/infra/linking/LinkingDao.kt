@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -299,7 +299,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
-            "publication_state" to publicationState,
+            "publication_state" to publicationState.name,
         )
         return jdbcTemplate.query(sql, params) { rs, _ -> LocationTrackIdentifiers(
             id = rs.getIntId("official_id"),
@@ -311,7 +311,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     fun getSwitchBoundsFromTracks(
         publicationState: PublishType,
         switchId: IntId<TrackLayoutSwitch>,
-    ): BoundingBox {
+    ): BoundingBox? {
         val sql = """ 
             select 
                case 
@@ -340,7 +340,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
-            "publication_state" to publicationState,
+            "publication_state" to publicationState.name,
         )
         val allPoints = jdbcTemplate.query(sql, params) { rs, _ ->
             val start =
@@ -351,6 +351,6 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 else null
             listOfNotNull(start, end)
         }.flatten()
-        return boundingBoxAroundPoints(allPoints)
+        return boundingBoxAroundPointsOrNull(allPoints)
     }
 }

@@ -45,8 +45,6 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
         trackNumberId = IntId(70),
         sourceId = null,
         id = IntId(257),
-        startPoint = null,
-        endPoint = null,
         dataType = DataType.STORED,
         version = Version(1, 1),
         draft = null,

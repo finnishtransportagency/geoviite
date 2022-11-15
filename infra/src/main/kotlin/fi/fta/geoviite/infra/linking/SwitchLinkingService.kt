@@ -456,7 +456,7 @@ fun clearSwitchInformationFromSegments(
     }
     val newAlignment = alignment.withSegments(newSegments)
     val newLocationTrack = locationTrack.copy(
-        topologyStartSwitch = locationTrack.topologyEndSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
+        topologyStartSwitch = locationTrack.topologyStartSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
         topologyEndSwitch = locationTrack.topologyEndSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
     )
     return newLocationTrack to newAlignment
@@ -1161,16 +1161,18 @@ class SwitchLinkingService @Autowired constructor(
         val switchId = updateLayoutSwitch(linkingParameters)
         updateSwitchLinkingIntoSegments(linkingParameters)
         val updatedArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
-        val potentiallyChangedTracks = (
-                locationTrackService.listNearWithAlignments(DRAFT, originalArea.plus(1.0)) +
-                        locationTrackService.listNearWithAlignments(DRAFT, updatedArea.plus(1.0))
-                ).distinctBy { t -> t.first.id }
+        val potentiallyChangedTracks =
+            (listDraftTracksNearArea(originalArea) + listDraftTracksNearArea(updatedArea))
+                .distinctBy { t -> t.first.id }
         potentiallyChangedTracks.forEach { (locationTrack, alignment) ->
             val updated = locationTrackService.updateTopology(locationTrack, alignment)
             if (updated != locationTrack) locationTrackService.saveDraft(locationTrack)
         }
         return switchId
     }
+    private fun listDraftTracksNearArea(area: BoundingBox?) =
+        if (area == null) listOf()
+        else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
 
     private fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
         linkingDao.findLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId)
