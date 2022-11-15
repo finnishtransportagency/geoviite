@@ -181,12 +181,12 @@ enum class SwitchLinkConnectionPointGroup { START, END, MID }
 
 fun separateOutSwitchLinkConnectionPoints(switchLinks: List<AlignmentSwitchLink>, startPoint: AddressPoint, endPoint: AddressPoint): SwitchLinkConnectionPoints {
     val groups = switchLinks.groupBy { link ->
+        val linkPoint = link.linkPoints[0]
         // check for single-joint links matching getSwitchLinkTrackMeterRanges; sometimes this means that multiple
         // joints are on the same track meter, but usually that there is only one joint
-        if (!link.startMeter.isSame(link.endMeter)) {
+        if (!link.startMeter.isSame(link.endMeter) || linkPoint.location == null) {
              SwitchLinkConnectionPointGroup.MID
         } else {
-            val linkPoint = link.linkPoints[0]
             if (distance(linkPoint.location, startPoint.point.toPoint()) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT)
                 SwitchLinkConnectionPointGroup.START
             else if (distance(linkPoint.location, endPoint.point.toPoint()) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT)
@@ -227,6 +227,12 @@ fun createLocationTracksFromCsv(
             null
         } else {
             val switchLinkGroups = separateOutSwitchLinkConnectionPoints(switchLinks, points.first(), points.last())
+            if (switchLinkGroups.startOfTrack.size > 1) {
+                throw IllegalStateException("start of track $trackNumberExtId has ${switchLinkGroups.startOfTrack.size} linked switches")
+            }
+            if (switchLinkGroups.endOfTrack.size > 1) {
+                throw IllegalStateException("end of track $trackNumberExtId has ${switchLinkGroups.endOfTrack.size} linked switches")
+            }
             val segmentRanges = measureAndCollect("parsing->combineMetadataToSegments") {
                 combineMetadataToSegments(switchLinkGroups.withinTrack, metadata, points, kkjToEtrsTriangulationTriangles)
             }
@@ -250,8 +256,10 @@ fun createLocationTracksFromCsv(
                 duplicateOf = null,
                 topologicalConnectivity = line.getEnum(LocationTrackColumns.TOPOLOGICAL_CONNECTIVITY),
                 // TODO: GVT-1482
-                topologyStartSwitch = null,
-                topologyEndSwitch = null,
+                topologyStartSwitch = switchLinkGroups.startOfTrack.firstOrNull()?.let {
+                        link -> TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber) },
+                topologyEndSwitch = switchLinkGroups.endOfTrack.firstOrNull()?.let {
+                        link -> TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber) },
             )
             CsvLocationTrack(
                 locationTrack = track,
@@ -539,7 +547,7 @@ data class AlignmentSwitchLink(
 data class AlignmentSwitchLinkPoint(
     val jointNumber: JointNumber,
     val trackMeter: TrackMeter,
-    val location: Point,
+    val location: Point?,
 )
 
 data class SwitchLinkingInfo(
@@ -577,11 +585,13 @@ fun createAlignmentSwitchLinks(
             alignmentOid = alignmentOid,
             switchId = switchLinkingInfo.switchId,
             linkPoints = joints.mapIndexed { index, jointNumber ->
+                if (switchLinkingInfo.joints[jointNumber] == null) {
+                    LOG.warn("Switch link joint not in joint table: switch=$switchOid joint=$jointNumber")
+                }
                 AlignmentSwitchLinkPoint(
                     jointNumber = jointNumber,
                     trackMeter = trackMeters[index],
                     location = switchLinkingInfo.joints[jointNumber]
-                        ?: throw IllegalStateException("Switch link joint not in joint table: switch=$switchOid joint=$jointNumber")
                 )
             }
         )
