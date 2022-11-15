@@ -172,31 +172,57 @@ data class CsvLocationTrack(
 )
 
 data class SwitchLinkConnectionPoints (
-    val startOfTrack: List<AlignmentSwitchLink>,
-    val endOfTrack: List<AlignmentSwitchLink>,
+    val startOfTrack: TopologyLocationTrackSwitch?,
+    val endOfTrack: TopologyLocationTrackSwitch?,
     val withinTrack: List<AlignmentSwitchLink>,
 )
 
 enum class SwitchLinkConnectionPointGroup { START, END, MID }
 
-fun separateOutSwitchLinkConnectionPoints(switchLinks: List<AlignmentSwitchLink>, startPoint: AddressPoint, endPoint: AddressPoint): SwitchLinkConnectionPoints {
-    val groups = switchLinks.groupBy { link ->
-        val linkPoint = link.linkPoints[0]
-        // check for single-joint links matching getSwitchLinkTrackMeterRanges; sometimes this means that multiple
-        // joints are on the same track meter, but usually that there is only one joint
-        if (!link.startMeter.isSame(link.endMeter) || linkPoint.location == null) {
-             SwitchLinkConnectionPointGroup.MID
-        } else {
-            if (distance(linkPoint.location, startPoint.point.toPoint()) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT)
-                SwitchLinkConnectionPointGroup.START
-            else if (distance(linkPoint.location, endPoint.point.toPoint()) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT)
-                SwitchLinkConnectionPointGroup.END
-            else SwitchLinkConnectionPointGroup.MID
-        }
+fun separateOutClosestToEndpoint(locationTrackId: Oid<LocationTrack>, endPoint: Point, linkableToEnd: MutableList<AlignmentSwitchLink>, min: Boolean): AlignmentSwitchLink? {
+    val withinToleranceToEndPoint = linkableToEnd
+        .filter { link -> distance(endPoint, link.linkPoints[0].location!!) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT }
+    val closestToEndpoint = if (withinToleranceToEndPoint.isNotEmpty()) {
+        if (withinToleranceToEndPoint.size > 1) {
+            LOG.warn("Multiple switch links within tolerance to start point of location track $locationTrackId: ${
+                withinToleranceToEndPoint.joinToString { link -> link.switchOid.stringValue }
+            }")
+            if (min) {
+                withinToleranceToEndPoint.minBy { link -> link.startMeter }
+            } else {
+                withinToleranceToEndPoint.maxBy { link -> link.startMeter }
+            }
+        } else
+            withinToleranceToEndPoint.firstOrNull()
+    } else
+        null
+    if (closestToEndpoint != null) {
+        linkableToEnd.remove(closestToEndpoint)
     }
-    return SwitchLinkConnectionPoints(groups[SwitchLinkConnectionPointGroup.START] ?: listOf(),
-        groups[SwitchLinkConnectionPointGroup.END] ?: listOf(),
-        groups[SwitchLinkConnectionPointGroup.MID] ?: listOf()
+    return closestToEndpoint
+}
+
+fun separateOutSwitchLinkConnectionPoints(locationTrackId: Oid<LocationTrack>, switchLinks: List<AlignmentSwitchLink>, start: AddressPoint, end: AddressPoint): SwitchLinkConnectionPoints {
+    val linkableToEnd: MutableList<AlignmentSwitchLink> = mutableListOf()
+    val notLinkableToEnd: MutableList<AlignmentSwitchLink> = mutableListOf()
+    switchLinks.forEach { link ->
+        (if (!link.startMeter.isSame(link.endMeter) || link.linkPoints[0].location == null) {
+            notLinkableToEnd
+        } else {
+            linkableToEnd
+        }).add(link)
+    }
+    val closestToStart = separateOutClosestToEndpoint(locationTrackId, start.point.toPoint(), linkableToEnd, true)
+    val closestToEnd = separateOutClosestToEndpoint(locationTrackId, end.point.toPoint(), linkableToEnd, true)
+
+    return SwitchLinkConnectionPoints(
+        closestToStart?.let { link ->
+            TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber)
+        },
+        closestToEnd?.let { link ->
+            TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber)
+        },
+        notLinkableToEnd + linkableToEnd
     )
 }
 
@@ -226,13 +252,8 @@ fun createLocationTracksFromCsv(
             LOG.warn("Cannot create location track as there's no points: locationTrack=$alignmentExtId points=${points.size}")
             null
         } else {
-            val switchLinkGroups = separateOutSwitchLinkConnectionPoints(switchLinks, points.first(), points.last())
-            if (switchLinkGroups.startOfTrack.size > 1) {
-                throw IllegalStateException("start of track $trackNumberExtId has ${switchLinkGroups.startOfTrack.size} linked switches")
-            }
-            if (switchLinkGroups.endOfTrack.size > 1) {
-                throw IllegalStateException("end of track $trackNumberExtId has ${switchLinkGroups.endOfTrack.size} linked switches")
-            }
+            val switchLinkGroups = separateOutSwitchLinkConnectionPoints(alignmentExtId, switchLinks, points.first(), points.last())
+
             val segmentRanges = measureAndCollect("parsing->combineMetadataToSegments") {
                 combineMetadataToSegments(switchLinkGroups.withinTrack, metadata, points, kkjToEtrsTriangulationTriangles)
             }
@@ -256,10 +277,8 @@ fun createLocationTracksFromCsv(
                 duplicateOf = null,
                 topologicalConnectivity = line.getEnum(LocationTrackColumns.TOPOLOGICAL_CONNECTIVITY),
                 // TODO: GVT-1482
-                topologyStartSwitch = switchLinkGroups.startOfTrack.firstOrNull()?.let {
-                        link -> TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber) },
-                topologyEndSwitch = switchLinkGroups.endOfTrack.firstOrNull()?.let {
-                        link -> TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber) },
+                topologyStartSwitch = switchLinkGroups.startOfTrack,
+                topologyEndSwitch = switchLinkGroups.endOfTrack,
             )
             CsvLocationTrack(
                 locationTrack = track,
@@ -530,6 +549,7 @@ enum class AlignmentSwitchLinkColumns { ALIGNMENT_EXTERNAL_ID, SWITCH_EXTERNAL_I
 
 data class AlignmentSwitchLink(
     val alignmentOid: Oid<LocationTrack>,
+    val switchOid: Oid<TrackLayoutSwitch>,
     val switchId: IntId<TrackLayoutSwitch>,
     val linkPoints: List<AlignmentSwitchLinkPoint>
 ) {
@@ -583,6 +603,7 @@ fun createAlignmentSwitchLinks(
         }
         AlignmentSwitchLink(
             alignmentOid = alignmentOid,
+            switchOid = switchOid,
             switchId = switchLinkingInfo.switchId,
             linkPoints = joints.mapIndexed { index, jointNumber ->
                 if (switchLinkingInfo.joints[jointNumber] == null) {
