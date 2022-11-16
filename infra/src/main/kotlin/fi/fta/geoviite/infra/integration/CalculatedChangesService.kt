@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -63,6 +64,7 @@ class CalculatedChangesService(
     val addressChangesService: AddressChangesService,
     val locationTrackService: LocationTrackService,
     val switchService: LayoutSwitchService,
+    val switchLibraryService: SwitchLibraryService,
     val trackNumberService: LayoutTrackNumberService,
     val referenceLineService: ReferenceLineService,
     val kmPostService: LayoutKmPostService,
@@ -252,8 +254,14 @@ class CalculatedChangesService(
             if (oldLocationTrack != null && oldAlignment != null && oldGeocodingContext != null)
                 getTopologySwitchJoints(
                     oldLocationTrack,
-                    oldAlignment
-                ) { point -> oldGeocodingContext.getAddress(point)!!.first }
+                    oldAlignment,
+                    getSwitchPresentationJoint = { switchId ->
+                        val switch = if (moment == null) switchService.get(OFFICIAL, switchId)
+                        else historyDao.getSwitchAtMoment(switchId, moment)
+                        switchLibraryService.getSwitchStructure(switch!!.switchStructureId).presentationJointNumber
+                    },
+                    getAddress = { point -> oldGeocodingContext.getAddress(point)!!.first }
+                )
             else listOf()
 
         val oldSwitches = (oldAlignment?.segments
@@ -273,8 +281,12 @@ class CalculatedChangesService(
         val currentTopologySwitches = if (currentGeocodingContext != null)
             getTopologySwitchJoints(
                 currentLocationTrack,
-                currentAlignment
-            ) { point -> currentGeocodingContext.getAddress(point)!!.first }
+                currentAlignment,
+                getSwitchPresentationJoint = { switchId ->
+                    val switch = switchService.get(currentPublishType, switchId)
+                    switchLibraryService.getSwitchStructure(switch!!.switchStructureId).presentationJointNumber
+                },
+                getAddress = { point -> currentGeocodingContext.getAddress(point)!!.first })
         else listOf()
 
         val currentSwitches = (currentGeocodingContext?.let { context ->
@@ -403,22 +415,23 @@ class CalculatedChangesService(
     private fun getTopologySwitchJoints(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
+        getSwitchPresentationJoint: (switchId: IntId<TrackLayoutSwitch>) -> JointNumber,
         getAddress: (point: IPoint) -> TrackMeter
     ): List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>> {
-        return listOfNotNull(
-            locationTrack.topologyStartSwitch?.let {
-                val location = alignment.start
-                if (location != null)
-                    getTopologySwitchJoints(it, Point(location), getAddress(location))
-                else null
-            },
-            locationTrack.topologyEndSwitch?.let {
-                val location = alignment.end
-                if (location != null)
-                    getTopologySwitchJoints(it, Point(location), getAddress(location))
-                else null
-            },
+        val topologySwitchAndLocationPairs = listOf(
+            locationTrack.topologyStartSwitch to alignment.start,
+            locationTrack.topologyEndSwitch to alignment.end
         )
+        return topologySwitchAndLocationPairs.mapNotNull { (topologySwitch, location) ->
+            if (topologySwitch != null && location != null && getSwitchPresentationJoint(topologySwitch.switchId) == topologySwitch.jointNumber)
+                getTopologySwitchJoints(
+                    topologySwitch,
+                    Point(location),
+                    getAddress(location)
+                )
+            else null
+
+        }
     }
 
     private fun getTopologySwitchJoints(

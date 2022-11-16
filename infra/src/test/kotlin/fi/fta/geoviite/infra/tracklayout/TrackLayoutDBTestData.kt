@@ -34,19 +34,21 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
                 switchId = switchId,
                 jointNumber = jointNumber
             )
-        )
+        ),
+        alignment
     )
     locationTrackService.publish(version.id)
     return locationTrackService.getChangeTime()
 }
 
-fun removeTopologyEndSwitchIntoLocationTrackAndUpdate(
+fun removeTopologySwitchesFromLocationTrackAndUpdate(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     locationTrackService: LocationTrackService
 ): Instant {
     val version = locationTrackService.saveDraft(
         locationTrack.copy(
+            topologyStartSwitch = null,
             topologyEndSwitch = null
         ),
         alignment
@@ -69,7 +71,8 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
                 switchId = switchId,
                 jointNumber = jointNumber
             )
-        )
+        ),
+        alignment
     )
     locationTrackService.publish(version.id)
     return locationTrackService.getChangeTime()

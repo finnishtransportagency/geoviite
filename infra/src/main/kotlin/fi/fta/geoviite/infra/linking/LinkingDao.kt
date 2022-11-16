@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -272,9 +269,11 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         val rowVersion: RowVersion<LocationTrack>,
         val externalId: Oid<LocationTrack>?,
     )
+
     fun findLocationTracksLinkedToSwitch(
         publicationState: PublishType,
         switchId: IntId<TrackLayoutSwitch>,
+        topologyJointNumber: JointNumber? = null
     ): List<LocationTrackIdentifiers> {
         val sql = """ 
             select 
@@ -288,8 +287,20 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             where :publication_state = any(publication_states)
              and (
                segment.switch_id = :switch_id
-                 or location_track.topology_start_switch_id = :switch_id
-                 or location_track.topology_end_switch_id = :switch_id
+                 or (
+                  location_track.topology_start_switch_id = :switch_id 
+                  and (
+                    :topology_joint_number::int is null 
+                    or location_track.topology_start_switch_joint_number = :topology_joint_number::int
+                  )
+                 )
+                 or (
+                  location_track.topology_end_switch_id = :switch_id
+                  and (
+                    :topology_joint_number::int is null 
+                    or location_track.topology_end_switch_joint_number = :topology_joint_number::int
+                  )
+                 )
                )
             group by 
               location_track.official_id, 
@@ -300,12 +311,15 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         val params = mapOf(
             "switch_id" to switchId.intValue,
             "publication_state" to publicationState.name,
+            "topology_joint_number" to topologyJointNumber?.intValue
         )
-        return jdbcTemplate.query(sql, params) { rs, _ -> LocationTrackIdentifiers(
-            id = rs.getIntId("official_id"),
-            rowVersion = rs.getRowVersion("row_id", "row_version"),
-            externalId = rs.getOidOrNull("external_id"),
-        ) }
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            LocationTrackIdentifiers(
+                id = rs.getIntId("official_id"),
+                rowVersion = rs.getRowVersion("row_id", "row_version"),
+                externalId = rs.getOidOrNull("external_id"),
+            )
+        }
     }
 
     fun getSwitchBoundsFromTracks(
