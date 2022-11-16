@@ -75,6 +75,7 @@ data class TrackLayoutTrackNumber(
 ) : Draftable<TrackLayoutTrackNumber> {
     @JsonIgnore
     val exists = !state.isRemoved()
+
     init {
         require(description.isNotBlank()) { "TrackNumber should have a non-blank description" }
         require(description.length < 100) { "TrackNumber description too long: ${description.length}>100" }
@@ -107,6 +108,9 @@ data class TopologyLocationTrackSwitch(
     val jointNumber: JointNumber,
 )
 
+data class LocationTrackMeter(val locationTrackId: IntId<LocationTrack>, val trackMeter: TrackMeter)
+
+
 data class LocationTrack(
     val name: AlignmentName,
     val description: FreeText,
@@ -138,6 +142,7 @@ data class LocationTrack(
         }
     }
 }
+
 
 data class TrackLayoutSwitch(
     val name: SwitchName,

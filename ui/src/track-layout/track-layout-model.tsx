@@ -351,3 +351,9 @@ export type LayoutSwitchJointConnection = {
     fallbackMatches: LocationTrackId[];
     locationAccuracy?: LocationAccuracy;
 };
+
+export type SwitchTrackMeter = {
+    name: string;
+    trackMeter: TrackMeter;
+    locationTrackId: LocationTrackId;
+};

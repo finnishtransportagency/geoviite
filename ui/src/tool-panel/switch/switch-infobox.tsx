@@ -6,7 +6,7 @@ import {
     LayoutSwitchId,
     LayoutSwitchJoint,
     LayoutSwitchJointConnection,
-    LocationTrackId,
+    SwitchTrackMeter,
 } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
@@ -26,6 +26,7 @@ import {
     getLocationTrack,
     getSwitch,
     getSwitchJointConnections,
+    getTopologySwitchTrackMeters,
     getTrackAddress,
 } from 'track-layout/track-layout-api';
 import { PublishType, SwitchOwnerId, SwitchStructure, TrackMeter } from 'common/common-model';
@@ -47,12 +48,6 @@ type SwitchInfoboxProps = {
     onUnselect: (switchId: LayoutSwitchId) => void;
     placingSwitchLinkingState?: PlacingSwitch;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void
-};
-
-export type SwitchTrackMeter = {
-    name: string;
-    trackMeter: TrackMeter;
-    locationTrackId: LocationTrackId;
 };
 
 const getPresentationJoint = (
@@ -81,12 +76,12 @@ const mapToSwitchTrackMeter = (
 };
 
 const getSwitchTrackMeter = (
-    id: string,
+    locationTrackId: string,
     publishType: PublishType,
     changeTimes: ChangeTimes,
     presentationJoint: LayoutSwitchJoint,
 ) => {
-    return getLocationTrack(id, publishType, changeTimes.layoutLocationTrack).then((track) =>
+    return getLocationTrack(locationTrackId, publishType, changeTimes.layoutLocationTrack).then((track) =>
         getTrackAddress(track.trackNumberId, publishType, presentationJoint.location).then(
             (trackAddress) =>
                 trackAddress ? mapToSwitchTrackMeter(track, trackAddress) : undefined,
@@ -115,15 +110,36 @@ const getSwitchTrackMeters = (
             ? accurateMatches.map((match) => match.locationTrackId)
             : presentationJointConnection?.fallbackMatches ?? [];
 
-    return (
-        (presentationJoint?.location &&
-            Promise.all(
-                locationTrackIds.map((id) =>
-                    getSwitchTrackMeter(id, publishType, changeTimes, presentationJoint),
-                ),
-            )) ||
-        Promise.resolve([])
-    );
+    const switchTrackMeters = presentationJoint?.location ?
+        Promise.all(
+            locationTrackIds.map((id) =>
+                getSwitchTrackMeter(id, publishType, changeTimes, presentationJoint),
+            ),
+        ).then(result => result.filter(filterNotEmpty))
+        : Promise.resolve([]);
+
+    const topologySwitchTrackMeters = officialSwitch != undefined ?
+        getTopologySwitchTrackMeters(publishType, officialSwitch.id)
+            .then(switchTrackMeters =>
+                Promise.all(
+                    switchTrackMeters.map(switchTrackMeter =>
+                        getLocationTrack(switchTrackMeter.locationTrackId, publishType)
+                            .then(locationTrack => {
+                                const switchTrackMeterWithName: SwitchTrackMeter = {
+                                    ...switchTrackMeter,
+                                    name: locationTrack.name,
+                                };
+                                return switchTrackMeterWithName;
+                            }),
+                    )),
+            ) : Promise.resolve([]);
+
+    return Promise.all(
+        [
+            switchTrackMeters,
+            topologySwitchTrackMeters,
+        ],
+    ).then(result => result.flatMap(trackMeters => trackMeters));
 };
 
 const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
