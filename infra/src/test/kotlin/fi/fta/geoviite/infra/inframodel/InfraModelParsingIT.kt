@@ -140,7 +140,7 @@ class InfraModelParsingIT @Autowired constructor(
 
     @Test
     fun decodeFile1() {
-        // Insert a track number if does not exists already
+        // Insert a track number if it doesn't already exist
         val trackNumber = getOrCreateTrackNumber(TrackNumber("001"))
 
         val xmlString = classpathResourceToString(TESTFILE_SIMPLE)

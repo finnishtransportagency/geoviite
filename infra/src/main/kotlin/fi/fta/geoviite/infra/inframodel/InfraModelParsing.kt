@@ -39,8 +39,6 @@ private const val SCHEMA_LOCATION = "/xml/inframodel.xsd"
 const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
 
-enum class InfraModelType { InfraModel403, InfraModel404 }
-
 data class ParsingError(private val key: String) : ValidationError {
     override val errorType = ErrorType.PARSING_ERROR
     override val localizationKey = LocalizationKey(key)

@@ -296,7 +296,7 @@ fun toGvtGeometryElement(
                 )
             }
         }
-        else -> throw InframodelParsingException("Invalid element")
+        else -> throw InframodelParsingException("Invalid element ${element::class.simpleName}")
     }
 }
 
@@ -361,6 +361,7 @@ fun toGvtCant(cant: InfraModelCant): GeometryCant {
 }
 
 fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
+
     return GeometryCantPoint(
         station = parseBigDecimal("Cant point station", station.station),
         appliedCant = parseBigDecimal("Cant point applied cant", station.appliedCant),
@@ -369,7 +370,7 @@ fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
             null -> LINEAR
             "biquadraticParabola" -> BIQUADRATIC_PARABOLA
             else -> throw InputValidationException(
-                message = "Unknown XML Cant transition type: ${formatForException(station.transitionType as String)}",
+                message = "Unknown XML Cant transition type: ${station.transitionType?.let(::formatForException)}",
                 type = CantTransitionType::class,
             )
         }

@@ -94,24 +94,16 @@ interface InfraModelGeometryElement {
     val features: List<InfraModelFeature>
 }
 
-interface InfraModelLine {
-    val name: String?
-    val staStart: String
-    val length: String
-    val oID: String?
-    val start: String
-    val end: String
-    val features: List<InfraModelFeature>
-}
+interface InfraModelLine: InfraModelGeometryElement
 
-interface InfraModelCurve{
+interface InfraModelCurve: InfraModelGeometryElement {
     val rot: String
     val radius: String
     val chord: String
     val center: String
 }
 
-interface InfraModelSpiral{
+interface InfraModelSpiral: InfraModelGeometryElement {
     val rot: String
     val constant: String?
     val dirStart: String?

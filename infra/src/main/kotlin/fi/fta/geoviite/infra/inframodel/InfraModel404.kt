@@ -139,7 +139,7 @@ data class InfraModelLine404(
     override val end: String = "",
     @field:XmlElement(name = "Feature", namespace = XMLNS_404)
     override val features: List<InfraModelFeature404> = arrayListOf(),
-) : InfraModelLine, InfraModelGeometryElement
+) : InfraModelLine
 
 @XmlAccessorType(XmlAccessType.FIELD)
 data class InfraModelCurve404(
@@ -159,7 +159,7 @@ data class InfraModelCurve404(
     override val end: String = "",
     @field:XmlElement(name = "Feature", namespace = XMLNS_404)
     override val features: List<InfraModelFeature404> = arrayListOf(),
-): InfraModelCurve, InfraModelGeometryElement
+): InfraModelCurve
 
 @XmlAccessorType(XmlAccessType.FIELD)
 data class InfraModelSpiral404(
@@ -183,7 +183,7 @@ data class InfraModelSpiral404(
     override val end: String = "",
     @field:XmlElement(name = "Feature", namespace = XMLNS_404)
     override val features: List<InfraModelFeature404> = arrayListOf(),
-) : InfraModelSpiral, InfraModelGeometryElement
+) : InfraModelSpiral
 
 @XmlAccessorType(XmlAccessType.FIELD)
 data class InfraModelCant404(
