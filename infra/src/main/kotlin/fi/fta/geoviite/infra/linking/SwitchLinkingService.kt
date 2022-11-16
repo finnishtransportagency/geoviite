@@ -1072,6 +1072,7 @@ class SwitchLinkingService @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val geometryDao: GeometryDao,
     private val switchLibraryService: SwitchLibraryService,
+    private val addressPointService: AddressPointService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -1166,24 +1167,70 @@ class SwitchLinkingService @Autowired constructor(
                 .distinctBy { t -> t.first.id }
         potentiallyChangedTracks.forEach { (locationTrack, alignment) ->
             val updated = locationTrackService.updateTopology(locationTrack, alignment)
-            if (updated != locationTrack) locationTrackService.saveDraft(locationTrack)
+            if (updated != locationTrack) locationTrackService.saveDraft(updated)
         }
         return switchId
     }
+
     private fun listDraftTracksNearArea(area: BoundingBox?) =
         if (area == null) listOf()
         else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
 
     private fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
-        linkingDao.findLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId)
-            .forEach { ids ->
-                val (locationTrack, alignment) = locationTrackService.getWithAlignment(ids.rowVersion)
-                val (updatedLocationTrack, updatedAlignment) = clearSwitchInformationFromSegments(
-                    locationTrack,
-                    alignment,
-                    layoutSwitchId,
+        getLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId).forEach { (locationTrack, alignment) ->
+            val (updatedLocationTrack, updatedAlignment) = clearSwitchInformationFromSegments(
+                locationTrack,
+                alignment,
+                layoutSwitchId,
+            )
+            locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
+        }
+    }
+
+    fun getLocationTracksLinkedToSwitch(
+        publicationState: PublishType,
+        layoutSwitchId: IntId<TrackLayoutSwitch>
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        return linkingDao.findLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId)
+            .map { ids ->
+                locationTrackService.getWithAlignment(ids.rowVersion)
+            }
+    }
+
+    fun getTopologySwitchTrackMeters(
+        publicationState: PublishType,
+        layoutSwitchId: IntId<TrackLayoutSwitch>
+    ): List<LocationTrackMeter> {
+        val layoutSwitch = switchService.get(publicationState, layoutSwitchId)
+            ?: return listOf()
+        val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
+        return getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
+            .flatMap { (locationTrack, layoutAlignment) ->
+                val geocodingContext by lazy {
+                    addressPointService.getTrackGeocodingData(
+                        publicationState, locationTrack.id as IntId
+                    )?.context
+                }
+
+                val topologySwitchAndPointPairs = listOf(
+                    locationTrack.topologyStartSwitch to layoutAlignment.start,
+                    locationTrack.topologyEndSwitch to layoutAlignment.end
                 )
-                locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
+
+                topologySwitchAndPointPairs.mapNotNull { (topologySwitch, point) ->
+                    if (point != null &&
+                        topologySwitch?.switchId == layoutSwitchId &&
+                        topologySwitch.jointNumber == switchStructure.presentationJointNumber
+                    )
+                        geocodingContext?.getAddress(point)?.let { (trackMeter, _) ->
+                            LocationTrackMeter(
+                                locationTrackId = locationTrack.id as IntId,
+                                trackMeter = trackMeter
+                            )
+                        }
+                    else null
+
+                }
             }
     }
 

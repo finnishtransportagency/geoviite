@@ -1,11 +1,8 @@
 import * as React from 'react';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import styles from './switch-infobox.scss';
-import { SwitchTrackMeter } from 'tool-panel/switch/switch-infobox';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
+import { SwitchTrackMeter } from 'track-layout/track-layout-model';
 
 type TrackMeterProps = {
     switchTrackMeter: SwitchTrackMeter;
