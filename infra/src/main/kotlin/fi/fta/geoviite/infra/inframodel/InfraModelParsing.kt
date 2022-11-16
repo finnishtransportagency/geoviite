@@ -44,16 +44,22 @@ data class ParsingError(private val key: String) : ValidationError {
     override val localizationKey = LocalizationKey(key)
 }
 
-private val jaxbContext: JAXBContext by lazy { JAXBContext.newInstance(InfraModel::class.java) }
+private val jaxbContext: JAXBContext by lazy {
+    JAXBContext.newInstance(
+        InfraModel403::class.java,
+        InfraModel404::class.java
+    )
+}
 
 private val schema: Schema by lazy {
     val language = W3C_XML_SCHEMA_NS_URI
     val factory = SchemaFactory.newInstance(language)
     factory.newSchema(
-        InfraModel::class.java.getResource(SCHEMA_LOCATION)
+        InfraModel403::class.java.getResource(SCHEMA_LOCATION)
             ?: throw IllegalArgumentException("Failed to load schema from classpath:$SCHEMA_LOCATION")
     )
 }
+
 
 val unmarshaller: Unmarshaller by lazy { jaxbContext.createUnmarshaller() }
 
@@ -98,6 +104,7 @@ fun parseGeometryPlan(
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, fileToString(file))
+
     return parseFromString(
         imFile,
         coordinateSystems,

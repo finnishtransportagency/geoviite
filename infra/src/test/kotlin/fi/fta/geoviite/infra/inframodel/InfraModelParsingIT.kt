@@ -55,7 +55,6 @@ class InfraModelParsingIT @Autowired constructor(
         val censored = censorAuthorIdentifyingInfo(xmlString)
         assertFalse(censored.contains("Geoviite Test Author"))
         assertFalse(censored.contains("example@vayla.fi"))
-
     }
 
     private fun debugParseFile(file: File): GeometryPlan? {
@@ -141,7 +140,7 @@ class InfraModelParsingIT @Autowired constructor(
 
     @Test
     fun decodeFile1() {
-        // Insert a track number if does not exists already
+        // Insert a track number if it doesn't already exist
         val trackNumber = getOrCreateTrackNumber(TrackNumber("001"))
 
         val xmlString = classpathResourceToString(TESTFILE_SIMPLE)
@@ -184,27 +183,27 @@ class InfraModelParsingIT @Autowired constructor(
     }
 
     @Test
-    fun encodeAndDecodeWorks() {
-        val infraModelObject = InfraModel(
+    fun encodeAndDecodeWorks403() {
+        val infraModelObject = InfraModel403(
             language = "finnish",
-            featureDictionary = InfraModelFeatureDictionary("featureDictName"),
-            units = InfraModelUnits(InfraModelMetric("meter", "squareMeter", "cubicMeter", "grads", "radians")),
-            coordinateSystem = InfraModelCoordinateSystem("coordsys", "epsg1234"),
+            featureDictionary = InfraModelFeatureDictionary403("featureDictName"),
+            units = InfraModelUnits403(InfraModelMetric403("meter", "squareMeter", "cubicMeter", "grads", "radians")),
+            coordinateSystem = InfraModelCoordinateSystem403("coordsys", "epsg1234"),
             alignmentGroups = listOf(
-                InfraModelAlignmentGroup(
+                InfraModelAlignmentGroup403(
                     name = "name1",
                     desc = "desc1",
                     state = "proposed",
                     alignments = listOf(
-                        InfraModelAlignment(
+                        InfraModelAlignment403(
                             name = "alignment1",
                             desc = "desc1",
                             state = "proposed",
                             oid = "11",
                             staStart = "0.0",
                             elements = listOf(
-                                InfraModelLine("l1", "o01", "123.123", "10.000", "start start", "end end"),
-                                InfraModelCurve(
+                                InfraModelLine403("l1", "o01", "123.123", "10.000", "start start", "end end"),
+                                InfraModelCurve403(
                                     "c1",
                                     "o11",
                                     "123.124",
@@ -216,7 +215,7 @@ class InfraModelParsingIT @Autowired constructor(
                                     "center center",
                                     "end end"
                                 ),
-                                InfraModelSpiral(
+                                InfraModelSpiral403(
                                     "s1",
                                     "o21",
                                     "123.125",
@@ -232,68 +231,68 @@ class InfraModelParsingIT @Autowired constructor(
                                     "pi pi",
                                     "end end"
                                 ),
-                                InfraModelLine("l2", "o02", "123.126", "13.000", "start start", "end end")
+                                InfraModelLine403("l2", "o02", "123.126", "13.000", "start start", "end end")
                             ),
-                            cant = InfraModelCant(
+                            cant = InfraModelCant403(
                                 "tc", "test cant", "1.01", "insideRail", listOf(
-                                    InfraModelCantStation("12.12", "0.045000", "cw"),
-                                    InfraModelCantStation("123.123", "0.055000", "ccw"),
-                                    InfraModelCantStation("1234.1234", "0.065000", "cw"),
+                                    InfraModelCantStation403("12.12", "0.045000", "cw"),
+                                    InfraModelCantStation403("123.123", "0.055000", "ccw"),
+                                    InfraModelCantStation403("1234.1234", "0.065000", "cw"),
                                 )
                             ),
-                            profile = InfraModelProfile(
-                                InfraModelProfAlign(
+                            profile = InfraModelProfile403(
+                                InfraModelProfAlign403(
                                     "tp",
                                     listOf(
-                                        InfraModelPvi("test start PVI", "100.001"),
-                                        InfraModelCircCurve("test circcurve 1", "12.3", "654321", "123.321 456.654"),
-                                        InfraModelCircCurve("test circcurve 2", "21.3", "123456", "321.123 654.456"),
-                                        InfraModelPvi("test end PVI", "1000.5")
+                                        InfraModelPvi403("test start PVI", "100.001"),
+                                        InfraModelCircCurve403("test circcurve 1", "12.3", "654321", "123.321 456.654"),
+                                        InfraModelCircCurve403("test circcurve 2", "21.3", "123456", "321.123 654.456"),
+                                        InfraModelPvi403("test end PVI", "1000.5")
                                     ),
                                     listOf(
-                                        InfraModelFeature(
+                                        InfraModelFeature403(
                                             "profalignfeature",
-                                            listOf(InfraModelProperty("testprop", "testvalue"))
+                                            listOf(InfraModelProperty403("testprop", "testvalue"))
                                         )
                                     )
                                 ),
                                 listOf(
-                                    InfraModelFeature(
+                                    InfraModelFeature403(
                                         "profilefeature",
-                                        listOf(InfraModelProperty("testprop", "testvalue"))
+                                        listOf(InfraModelProperty403("testprop", "testvalue"))
                                     )
                                 )
                             ),
                             features = listOf(
-                                InfraModelFeature(
+                                InfraModelFeature403(
                                     "alignmentfeature",
-                                    listOf(InfraModelProperty("testprop", "testvalue"))
+                                    listOf(InfraModelProperty403("testprop", "testvalue"))
                                 )
                             ),
                             staEquations = listOf(
-                                InfraModelStaEquation(
+                                InfraModelStaEquation403(
                                     staBack = "1003.440785",
                                     staAhead = "304.954785",
                                     staInternal = "304.954785",
                                     desc = "1",
-                                    InfraModelFeature(
+                                    InfraModelFeature403(
                                         code = "IM_kmPostCoords", listOf(
-                                            InfraModelProperty(label = "northing", value = "6674007.758000"),
-                                            InfraModelProperty(label = "easting", value = "25496599.876000")
+                                            InfraModelProperty403(label = "northing", value = "6674007.758000"),
+                                            InfraModelProperty403(label = "easting", value = "25496599.876000")
                                         )
                                     )
                                 )
                             )
                         ),
-                        InfraModelAlignment(
+                        InfraModelAlignment403(
                             name = "alignment2",
                             desc = "desc2",
                             state = "proposed",
                             oid = "12",
                             staStart = "10.0",
                             elements = listOf(
-                                InfraModelLine("l3", "o03", "123.127", "20.000", "start start", "end end"),
-                                InfraModelCurve(
+                                InfraModelLine403("l3", "o03", "123.127", "20.000", "start start", "end end"),
+                                InfraModelCurve403(
                                     "c2",
                                     "o12",
                                     "123.128",
@@ -305,7 +304,7 @@ class InfraModelParsingIT @Autowired constructor(
                                     "center center",
                                     "end end"
                                 ),
-                                InfraModelSpiral(
+                                InfraModelSpiral403(
                                     "s2",
                                     "o22",
                                     "123.129",
@@ -321,7 +320,7 @@ class InfraModelParsingIT @Autowired constructor(
                                     "pi pi",
                                     "end end"
                                 ),
-                                InfraModelLine("l4", "o04", "123.130", "23.000", "start start", "end end")
+                                InfraModelLine403("l4", "o04", "123.130", "23.000", "start start", "end end")
                             )
                         )
                     )
@@ -348,6 +347,176 @@ class InfraModelParsingIT @Autowired constructor(
         val parsed = unmarshaller.unmarshal(toSaxSource(xmlString)) as InfraModel
         assertEquals(infraModelObject, parsed)
     }
+
+    @Test
+    fun encodeAndDecodeWorks404() {
+        val infraModelObject: InfraModel404 = InfraModel404(
+            language = "finnish",
+            featureDictionary = InfraModelFeatureDictionary404("featureDictName"),
+            units = InfraModelUnits404(InfraModelMetric404("meter", "squareMeter", "cubicMeter", "grads", "radians")),
+            coordinateSystem = InfraModelCoordinateSystem404("coordsys", "epsg1234"),
+            alignmentGroups = listOf(
+                InfraModelAlignmentGroup404(
+                    name = "name1",
+                    desc = "desc1",
+                    state = "proposed",
+                    alignments = listOf(
+                        InfraModelAlignment404(
+                            name = "alignment1",
+                            desc = "desc1",
+                            state = "proposed",
+                            oid = "11",
+                            staStart = "0.0",
+                            elements = listOf(
+                                InfraModelLine404("l1", "o01", "123.123", "10.000", "start start", "end end"),
+                                InfraModelCurve404(
+                                    "c1",
+                                    "o11",
+                                    "123.124",
+                                    "11.000",
+                                    "cw",
+                                    "101.000",
+                                    "1001.000",
+                                    "start start",
+                                    "center center",
+                                    "end end"
+                                ),
+                                InfraModelSpiral404(
+                                    "s1",
+                                    "o21",
+                                    "123.125",
+                                    "12.000",
+                                    "clothoid",
+                                    "ab",
+                                    "2001.000",
+                                    "3001.000",
+                                    "3002.000",
+                                    "4001.000",
+                                    "INF",
+                                    "start start",
+                                    "pi pi",
+                                    "end end"
+                                ),
+                                InfraModelLine404("l2", "o02", "123.126", "13.000", "start start", "end end")
+                            ),
+                            cant = InfraModelCant404(
+                                "tc", "test cant", "1.01", "insideRail", listOf(
+                                    InfraModelCantStation404("12.12", "0.045000", "cw"),
+                                    InfraModelCantStation404("123.123", "0.055000", "ccw"),
+                                    InfraModelCantStation404("1234.1234", "0.065000", "cw"),
+                                )
+                            ),
+                            profile = InfraModelProfile404(
+                                InfraModelProfAlign404(
+                                    "tp",
+                                    listOf(
+                                        InfraModelPvi404("test start PVI", "100.001"),
+                                        InfraModelCircCurve404("test circcurve 1", "12.3", "654321", "123.321 456.654"),
+                                        InfraModelCircCurve404("test circcurve 2", "21.3", "123456", "321.123 654.456"),
+                                        InfraModelPvi404("test end PVI", "1000.5")
+                                    ),
+                                    listOf(
+                                        InfraModelFeature404(
+                                            "profalignfeature",
+                                            listOf(InfraModelProperty404("testprop", "testvalue"))
+                                        )
+                                    )
+                                ),
+                                listOf(
+                                    InfraModelFeature404(
+                                        "profilefeature",
+                                        listOf(InfraModelProperty404("testprop", "testvalue"))
+                                    )
+                                )
+                            ),
+                            features = listOf(
+                                InfraModelFeature404(
+                                    "alignmentfeature",
+                                    listOf(InfraModelProperty404("testprop", "testvalue"))
+                                )
+                            ),
+                            staEquations = listOf(
+                                InfraModelStaEquation404(
+                                    staBack = "1003.440785",
+                                    staAhead = "304.954785",
+                                    staInternal = "304.954785",
+                                    desc = "1",
+                                    InfraModelFeature404(
+                                        code = "IM_kmPostCoords", listOf(
+                                            InfraModelProperty404(label = "northing", value = "6674007.758000"),
+                                            InfraModelProperty404(label = "easting", value = "25496599.876000")
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+                        InfraModelAlignment404(
+                            name = "alignment2",
+                            desc = "desc2",
+                            state = "proposed",
+                            oid = "12",
+                            staStart = "10.0",
+                            elements = listOf(
+                                InfraModelLine404("l3", "o03", "123.127", "20.000", "start start", "end end"),
+                                InfraModelCurve404(
+                                    "c2",
+                                    "o12",
+                                    "123.128",
+                                    "21.000",
+                                    "ccw",
+                                    "101.000",
+                                    "1001.000",
+                                    "start start",
+                                    "center center",
+                                    "end end"
+                                ),
+                                InfraModelSpiral404(
+                                    "s2",
+                                    "o22",
+                                    "123.129",
+                                    "22.000",
+                                    "clothoid",
+                                    "ac",
+                                    "2002.000",
+                                    "3011.000",
+                                    "3012.000",
+                                    "4002.000",
+                                    "INF",
+                                    "start start",
+                                    "pi pi",
+                                    "end end"
+                                ),
+                                InfraModelLine404("l4", "o04", "123.130", "23.000", "start start", "end end")
+                            )
+                        )
+                    )
+                )
+            )
+        )
+        assertEquals("meter", infraModelObject.units?.metric?.linearUnit)
+        val sw = StringWriter()
+        marshaller.marshal(infraModelObject, sw)
+        val xmlString = sw.toString()
+
+        println("xmlString $xmlString")
+
+        assertTrue(xmlString.startsWith("<?xml"))
+        assertTrue(xmlString.contains("LandXML"))
+        assertTrue(xmlString.contains("FeatureDictionary"))
+        assertTrue(xmlString.contains("Units"))
+        assertTrue(xmlString.contains("Metric"))
+        assertTrue(xmlString.contains("CoordinateSystem"))
+        assertTrue(xmlString.contains("Alignments"))
+        assertTrue(xmlString.contains("Alignment"))
+        assertTrue(xmlString.contains("CoordGeom"))
+        assertTrue(xmlString.contains("Line"))
+        assertTrue(xmlString.contains("Curve"))
+        assertTrue(xmlString.contains("Spiral"))
+
+        val parsed = unmarshaller.unmarshal(toSaxSource(xmlString)) as InfraModel
+        assertEquals(infraModelObject, parsed)
+    }
+
 
     private fun assertTrackNumbersMatch(
         infraModelAlignmentGroups: List<InfraModelAlignmentGroup>,
