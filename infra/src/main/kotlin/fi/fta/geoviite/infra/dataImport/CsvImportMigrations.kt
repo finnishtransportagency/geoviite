@@ -165,7 +165,7 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
             .groupBy { am -> am.alignmentOid }
 
         val switchLinks = getSwitchLinks(
-            switchDao.getExternalIdMappingOfExistingSwitches(),
+            switchDao.getLinkingInfoOfExistingSwitches(),
             switchStructureDao.fetchSwitchStructures().associateBy { ss -> ss.id as IntId },
         )
         val kkjToEtrsTriangulationNetwork = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
@@ -204,12 +204,12 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
     override fun getFiles() = listOf(alignments, alignmentCsvMetadata, alignmentSwitchLinks)
 
     private fun getSwitchLinks(
-        idMap: Map<Oid<TrackLayoutSwitch>, SwitchLinkingIds>,
+        linkingInfo: Map<Oid<TrackLayoutSwitch>, SwitchLinkingInfo>,
         switchStructures: Map<IntId<SwitchStructure>, SwitchStructure>,
     ): Map<Oid<LocationTrack>, List<AlignmentSwitchLink>> {
         return createAlignmentSwitchLinks(
             alignmentSwitchLinks,
-            idMap,
+            linkingInfo,
             switchStructures
         ).groupBy { sl -> sl.alignmentOid }
     }

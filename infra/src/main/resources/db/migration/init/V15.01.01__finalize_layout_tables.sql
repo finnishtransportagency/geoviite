@@ -39,7 +39,9 @@ alter table layout.location_track
   add constraint location_track_track_number_id_fkey foreign key (track_number_id) references layout.track_number (id),
   add constraint location_track_alignment_fkey foreign key (alignment_id, alignment_version) references layout.alignment (id, version) deferrable initially deferred,
   add constraint location_track_draft_of_location_track_id_fkey foreign key (draft_of_location_track_id) references layout.location_track (id),
-  add constraint location_track_duplicate_of_location_track_id foreign key (duplicate_of_location_track_id) references layout.location_track (id);
+  add constraint location_track_duplicate_of_location_track_id_fkey foreign key (duplicate_of_location_track_id) references layout.location_track (id),
+  add constraint location_track_topology_start_switch_id_fkey foreign key (topology_start_switch_id) references layout.switch (id),
+  add constraint location_track_topology_end_switch_id_fkey foreign key (topology_end_switch_id) references layout.switch (id);
 select common.add_table_versioning('layout', 'location_track');
 
 alter table layout.reference_line

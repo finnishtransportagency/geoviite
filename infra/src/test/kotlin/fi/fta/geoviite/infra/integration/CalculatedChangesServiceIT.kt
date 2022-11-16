@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -39,7 +40,17 @@ class CalculatedChangesServiceIT @Autowired constructor(
     val layoutKmPostDao: LayoutKmPostDao,
     val switchService: LayoutSwitchService,
     val switchLinkingService: SwitchLinkingService,
-): ITTestBase() {
+    val alignmentDao: LayoutAlignmentDao,
+) : ITTestBase() {
+
+    @BeforeEach
+    fun setup() {
+        locationTrackDao.deleteDrafts()
+        referenceLineDao.deleteDrafts()
+        alignmentDao.deleteOrphanedAlignments()
+        switchDao.deleteDrafts()
+    }
+
     @Test
     fun callingWithoutDataReturnsNoCalculatedChanges() {
         // Insert test data to make sure that there is some data in DB
@@ -142,6 +153,316 @@ class CalculatedChangesServiceIT @Autowired constructor(
             locationTrack3.id as IntId
         )
     }
+
+    @Test
+    fun addingTopologyEndSwitchGeneratesSwitchChanges() {
+        val testData = insertTestData(
+            kmPostData = listOf(
+                KmNumber(0) to Point(0.0, 0.0),
+                KmNumber(1) to Point(1000.0, 0.0)
+            ),
+            locationTrackData = listOf(
+                Line(Point(0.0, 0.0), Point(100.0, 0.0)),
+
+                // tracks for YV switch
+                Line(Point(100.0, 0.0), Point(200.0, 0.0)),
+                Line(Point(100.0, 0.0), Point(200.0, 20.0)),
+            ),
+            switchData = listOf(
+                SwitchData(
+                    Point(100.0, 0.0),
+                    locationTrackIndexA = 1,
+                    locationTrackIndexB = 2
+                )
+            )
+        )
+        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val switch = testData.switches[0]
+
+        // Manually remove topology switch as it is automatically added when creating test data
+        val baseStateMoment = removeTopologySwitchesFromLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            locationTrackService
+        )
+
+        // Set topology switch info
+        addTopologyEndSwitchIntoLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            switch.id as IntId,
+            JointNumber(1),
+            locationTrackService = locationTrackService
+        )
+
+        val changes = calculatedChangesService.getCalculatedChangesSince(
+            trackNumberIds = listOf(),
+            locationTrackIds = listOf(
+                locationTrack1.id as IntId
+            ),
+            switchIds = listOf(
+            ),
+            moment = baseStateMoment
+        )
+
+        assertTrue(changes.trackNumberChanges.isEmpty())
+        assertContains(
+            changes.locationTracksChanges, LocationTrackChange(
+                locationTrackId = locationTrack1.id as IntId,
+                changedKmNumbers = setOf(KmNumber(0)),
+                isStartChanged = false,
+                isEndChanged = true
+            )
+        )
+
+        assertEquals(1, changes.switchChanges.size)
+        changes.switchChanges.forEach { switchChange ->
+            assertEquals(switch.id, switchChange.switchId)
+            assertEquals(1, switchChange.changedJoints.size)
+            switchChange.changedJoints.forEach { joint ->
+                assertEquals(
+                    joint.copy(
+                        number = JointNumber(1),
+                        isRemoved = false,
+                        point = Point(alignment1.end!!),
+                        address = TrackMeter("0", "100.000"),
+                        locationTrackId = locationTrack1.id as IntId,
+                    ),
+                    joint
+                )
+            }
+        }
+    }
+
+
+    @Test
+    fun addingTopologyStartSwitchGeneratesSwitchChanges() {
+        val testData = insertTestData(
+            kmPostData = listOf(
+                KmNumber(0) to Point(0.0, 0.0),
+                KmNumber(1) to Point(1000.0, 0.0)
+            ),
+            locationTrackData = listOf(
+                // NOTICE: This track starts from the switch. It is not aligned properly
+                // but should be OK for this test.
+                Line(Point(100.0, 0.0), Point(150.0, 50.0)),
+
+                // tracks for YV switch
+                Line(Point(100.0, 0.0), Point(200.0, 0.0)),
+                Line(Point(100.0, 0.0), Point(200.0, 20.0)),
+            ),
+            switchData = listOf(
+                SwitchData(
+                    Point(100.0, 0.0),
+                    locationTrackIndexA = 1,
+                    locationTrackIndexB = 2
+                )
+            )
+        )
+        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val switch = testData.switches[0]
+
+        // Manually remove topology switch as it is automatically added when creating test data
+        val baseStateMoment = removeTopologySwitchesFromLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            locationTrackService
+        )
+
+        // Set topology switch info
+        addTopologyStartSwitchIntoLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            switch.id as IntId,
+            JointNumber(1),
+            locationTrackService = locationTrackService
+        )
+
+        val changes = calculatedChangesService.getCalculatedChangesSince(
+            trackNumberIds = listOf(),
+            locationTrackIds = listOf(
+                locationTrack1.id as IntId
+            ),
+            switchIds = listOf(
+            ),
+            moment = baseStateMoment
+        )
+
+        assertTrue(changes.trackNumberChanges.isEmpty())
+        assertContains(
+            changes.locationTracksChanges, LocationTrackChange(
+                locationTrackId = locationTrack1.id as IntId,
+                changedKmNumbers = setOf(KmNumber(0)),
+                isStartChanged = true,
+                isEndChanged = false
+            )
+        )
+
+        assertEquals(1, changes.switchChanges.size)
+        changes.switchChanges.forEach { switchChange ->
+            assertEquals(switch.id, switchChange.switchId)
+            assertEquals(1, switchChange.changedJoints.size)
+            switchChange.changedJoints.forEach { joint ->
+                assertEquals(
+                    joint.copy(
+                        number = JointNumber(1),
+                        isRemoved = false,
+                        point = Point(alignment1.start!!),
+                        address = TrackMeter("0", "100.000"),
+                        locationTrackId = locationTrack1.id as IntId,
+                    ),
+                    joint
+                )
+            }
+        }
+    }
+
+    @Test
+    fun addingNonPresentationPointTopologySwitchesShouldNotGenerateSwitchChanges() {
+        val testData = insertTestData(
+            kmPostData = listOf(
+                KmNumber(0) to Point(0.0, 0.0),
+                KmNumber(1) to Point(1000.0, 0.0)
+            ),
+            locationTrackData = listOf(
+                // NOTICE: This track does not locate near to the switch
+                // but topology switch link is added manually afterwards
+                Line(Point(0.0, 0.0), Point(85.0, 0.0)),
+
+                // tracks for YV switch
+                Line(Point(100.0, 0.0), Point(200.0, 0.0)),
+                Line(Point(100.0, 0.0), Point(200.0, 20.0)),
+            ),
+            switchData = listOf(
+                SwitchData(
+                    Point(100.0, 0.0),
+                    locationTrackIndexA = 1,
+                    locationTrackIndexB = 2
+                )
+            )
+        )
+        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val switch = testData.switches[0]
+
+        // Set topology switch info
+        addTopologyStartSwitchIntoLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            switch.id as IntId,
+            JointNumber(5), // Use non-presentation joint number
+            locationTrackService = locationTrackService
+        )
+        addTopologyEndSwitchIntoLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            switch.id as IntId,
+            JointNumber(3), // Use non-presentation joint number
+            locationTrackService = locationTrackService
+        )
+
+
+        val changes = calculatedChangesService.getCalculatedChangesSince(
+            trackNumberIds = listOf(),
+            locationTrackIds = listOf(
+                locationTrack1.id as IntId
+            ),
+            switchIds = listOf(
+            ),
+            moment = testData.changeTime
+        )
+
+        assertTrue(changes.trackNumberChanges.isEmpty())
+        assertContains(
+            changes.locationTracksChanges, LocationTrackChange(
+                locationTrackId = locationTrack1.id as IntId,
+                changedKmNumbers = setOf(),
+                isStartChanged = false,
+                isEndChanged = false
+            )
+        )
+        assertTrue(changes.switchChanges.isEmpty())
+    }
+
+
+    @Test
+    fun removingTopologyEndSwitchGeneratesSwitchChanges() {
+        val testData = insertTestData(
+            kmPostData = listOf(
+                KmNumber(0) to Point(0.0, 0.0),
+                KmNumber(1) to Point(1000.0, 0.0)
+            ),
+            locationTrackData = listOf(
+                Line(Point(0.0, 0.0), Point(100.0, 0.0)),
+
+                // tracks for YV switch
+                Line(Point(100.0, 0.0), Point(200.0, 0.0)),
+                Line(Point(100.0, 0.0), Point(200.0, 20.0)),
+            ),
+            switchData = listOf(
+                SwitchData(
+                    Point(100.0, 0.0),
+                    locationTrackIndexA = 1,
+                    locationTrackIndexB = 2
+                )
+            )
+        )
+        val (locationTrack1, alignment1) = testData.locationTracksAndAlignments[0]
+        val switch = testData.switches[0]
+
+        // Add a topology switch to generate base state
+        val baseStateMoment = addTopologyEndSwitchIntoLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            switch.id as IntId,
+            JointNumber(1),
+            locationTrackService = locationTrackService
+        )
+
+        // Then remove the topology switch info
+        removeTopologySwitchesFromLocationTrackAndUpdate(
+            locationTrack1,
+            alignment1,
+            locationTrackService = locationTrackService
+        )
+
+        val changes = calculatedChangesService.getCalculatedChangesSince(
+            trackNumberIds = listOf(),
+            locationTrackIds = listOf(
+                locationTrack1.id as IntId
+            ),
+            switchIds = listOf(),
+            moment = baseStateMoment
+        )
+
+        assertTrue(changes.trackNumberChanges.isEmpty())
+        assertContains(
+            changes.locationTracksChanges, LocationTrackChange(
+                locationTrackId = locationTrack1.id as IntId,
+                changedKmNumbers = setOf(),
+                isStartChanged = false,
+                isEndChanged = false
+            )
+        )
+
+        assertEquals(1, changes.switchChanges.size)
+        changes.switchChanges.forEach { switchChange ->
+            assertEquals(switch.id, switchChange.switchId)
+            assertEquals(1, switchChange.changedJoints.size)
+            switchChange.changedJoints.forEach { joint ->
+                assertEquals(
+                    joint.copy(
+                        number = JointNumber(1),
+                        isRemoved = true,
+                        point = Point(alignment1.end!!),
+                        address = TrackMeter("0", "100.000"),
+                        locationTrackId = locationTrack1.id as IntId,
+                    ),
+                    joint
+                )
+            }
+        }
+    }
+
 
     @Test
     fun allChangedLocationTracksExistInSwitchChange() {
@@ -594,15 +915,24 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         }
 
-        val reloadedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
-            locationTrackService.getWithAlignment(PublishType.OFFICIAL, locationTrack.id as IntId<LocationTrack>)
+        val publishedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
+            val id = locationTrack.id as IntId
+            val (edited, editedAlignment) = locationTrackService.getWithAlignment(PublishType.DRAFT, id)
+            if (edited.draft != null) locationTrackService.getWithAlignment(locationTrackService.publish(id))
+            else edited to editedAlignment
+        }
+        val publishedSwitches = switches.map { switch ->
+            val id = switch.id as IntId
+            val edited = switchService.getDraft(id)
+            if (edited.draft != null) switchDao.fetch(switchService.publish(id))
+            else edited
         }
 
         return TestData(
-            reloadedLocationTracksAndAlignments,
+            locationTracksAndAlignments = publishedLocationTracksAndAlignments,
             referenceLineAndAlignment = referenceLine to referenceLineGeometry,
-            kmPosts,
-            switches,
+            kmPosts = kmPosts,
+            switches = publishedSwitches,
             changeTime = listOf(
                 locationTrackService.getChangeTime(),
                 switchService.getChangeTime()
@@ -615,7 +945,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         trackA: Pair<LocationTrack, LayoutAlignment>,
         trackB: Pair<LocationTrack, LayoutAlignment>,
     ): TrackLayoutSwitch {
-        val emptySwitch = switchDao.fetch(
+        val switch = switchDao.fetch(
             switchDao.insert(
                 switch(
                     joints = listOf()
@@ -630,7 +960,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         switchLinkingService.saveSwitchLinking(
             SwitchLinkingParameters(
-                layoutSwitchId = emptySwitch.id as IntId<TrackLayoutSwitch>,
+                layoutSwitchId = switch.id as IntId<TrackLayoutSwitch>,
                 joints = listOf(
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(1),
@@ -687,15 +1017,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     )
                 ),
                 geometrySwitchId = null,
-                switchStructureId = emptySwitch.switchStructureId,
+                switchStructureId = switch.switchStructureId,
             )
         )
-
-        locationTrackService.publish(locationTrackA.id as IntId<LocationTrack>)
-        locationTrackService.publish(locationTrackB.id as IntId<LocationTrack>)
-
-        return switchDao.fetch(switchService.publish(emptySwitch.id as IntId<TrackLayoutSwitch>))
-
+        return switch
     }
 
     private fun assertContainsSwitchJoint152Change(

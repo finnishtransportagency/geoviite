@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -26,6 +27,7 @@ class TrackLayoutController(
     private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
     private val mapAlignmentService: MapAlignmentService,
+    private val switchLinkingService: SwitchLinkingService
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -100,9 +102,11 @@ class TrackLayoutController(
         @RequestParam("offset") offset: Int?,
         @RequestParam("limit") limit: Int?,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getNearbyKmPostsOnTrack",
+        logger.apiCall(
+            "getNearbyKmPostsOnTrack",
             "publishType" to publishType, "trackNumberId" to trackNumberId,
-            "location" to location, "offset" to offset, "limit" to limit)
+            "location" to location, "offset" to offset, "limit" to limit
+        )
         return kmPostService.listNearbyOnTrackPaged(
             publishType = publishType,
             location = location,
@@ -119,8 +123,10 @@ class TrackLayoutController(
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @PathVariable("kmNumber") kmNumber: KmNumber,
     ): Boolean {
-        logger.apiCall("getKmPostOnTrack",
-            "publishType" to publishType, "trackNumberId" to trackNumberId, "kmNumber" to kmNumber)
+        logger.apiCall(
+            "getKmPostOnTrack",
+            "publishType" to publishType, "trackNumberId" to trackNumberId, "kmNumber" to kmNumber
+        )
         return kmPostService.getKmPostExistsAtKmNumber(publishType, trackNumberId, kmNumber)
     }
 
@@ -223,7 +229,8 @@ class TrackLayoutController(
         @RequestParam("type") type: AlignmentFetchType? = null,
         @RequestParam("selectedId") selectedId: IntId<LocationTrack>? = null,
     ): List<MapAlignment<*>> {
-        logger.apiCall("getMapAlignments",
+        logger.apiCall(
+            "getMapAlignments",
             "publishType" to publishType,
             "bbox" to bbox,
             "resolution" to resolution,
@@ -300,8 +307,10 @@ class TrackLayoutController(
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("step") step: Int,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getTrackLayoutKmPosts",
-            "publishType" to publishType, "bbox" to bbox, "step" to step)
+        logger.apiCall(
+            "getTrackLayoutKmPosts",
+            "publishType" to publishType, "bbox" to bbox, "step" to step
+        )
         return kmPostService.list(publishType, bbox, step)
     }
 
@@ -339,9 +348,11 @@ class TrackLayoutController(
         @RequestParam("switchType") switchType: String?,
         @RequestParam("includeSwitchesWithNoJoints") includeSwitchesWithNoJoints: Boolean = false,
     ): List<TrackLayoutSwitch> {
-        logger.apiCall("getTrackLayoutSwitches",
+        logger.apiCall(
+            "getTrackLayoutSwitches",
             "publishType" to publishType, "bbox" to bbox, "name" to name, "offset" to offset,
-            "limit" to limit, "comparisonPoint" to comparisonPoint, "switchType" to switchType)
+            "limit" to limit, "comparisonPoint" to comparisonPoint, "switchType" to switchType
+        )
         val filter = switchService.switchFilter(name, switchType, bbox, includeSwitchesWithNoJoints)
         val switches = switchService.list(publishType, filter)
         return switchService.pageSwitches(switches, offset ?: 0, limit, comparisonPoint)
@@ -358,6 +369,17 @@ class TrackLayoutController(
             ?.let { ResponseEntity(it, HttpStatus.OK) }
             ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/switches/{id}/topology-track-meters")
+    fun getTrackLayoutSwitchTrackMeters(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
+    ): ResponseEntity<List<LocationTrackMeter>> {
+        logger.apiCall("getTrackLayoutSwitchTrackMeters", "id" to id, "publishType" to publishType)
+        return ResponseEntity(switchLinkingService.getTopologySwitchTrackMeters(publishType, id), HttpStatus.OK)
+    }
+
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/switches", params = ["ids"])

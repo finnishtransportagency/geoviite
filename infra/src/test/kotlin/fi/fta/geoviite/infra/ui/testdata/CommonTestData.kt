@@ -97,8 +97,6 @@ fun locationTrack(name: String,
                   basePoint: Point,
                   incrementPoints: List<Point>,
                   description: String = "$name location track description",
-                  endPoint: EndPoint? = null,
-                  startPoint: EndPoint? = null
 ):Pair<LocationTrack, LayoutAlignment> {
 
     val points = pointsFromIncrementList(basePoint, incrementPoints)
@@ -116,8 +114,6 @@ fun locationTrack(name: String,
         description = description,
         type = layoutAlignmentType,
         state = LayoutState.IN_USE,
-        endPoint = endPoint,
-        startPoint = startPoint
     )
     return track to alignment
 }

@@ -15,6 +15,8 @@ import kotlin.test.assertEquals
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class LayoutAlignmentDaoIT @Autowired constructor(
+    private val referenceLineDao: ReferenceLineDao,
+    private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
 ): ITTestBase() {
 
@@ -58,6 +60,35 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         assertFalse(alignmentDao.fetchVersions().any { rv -> rv.id == deletedId })
         assertThrows<NoSuchEntityException> { alignmentDao.fetch(insertedVersion) }
         assertEquals(0, getDbSegmentCount(deletedId))
+    }
+
+    @Test
+    fun deletingOrphanedAlignmentsWorks() {
+        val trackNumberId = getUnusedTrackNumberId()
+
+        val alignmentOrphan = alignment(someSegment())
+        val alignmentLocationTrack = alignment(someSegment())
+        val alignmentReferenceLine= alignment(someSegment())
+
+        val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
+        val locationTrackAlignmentVersion = alignmentDao.insert(alignmentLocationTrack)
+        locationTrackDao.insert(locationTrack(trackNumberId, alignmentLocationTrack)
+            .copy(alignmentVersion = locationTrackAlignmentVersion)
+        )
+        val referenceLineAlignmentVersion = alignmentDao.insert(alignmentReferenceLine)
+        referenceLineDao.insert(referenceLine(trackNumberId, alignmentReferenceLine)
+            .copy(alignmentVersion = referenceLineAlignmentVersion)
+        )
+
+        assertMatches(alignmentOrphan, alignmentDao.fetch(orphanAlignmentVersion))
+        assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
+        assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
+
+        alignmentDao.deleteOrphanedAlignments()
+
+        assertThrows<NoSuchEntityException> { alignmentDao.fetch(orphanAlignmentVersion) }
+        assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
+        assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
     }
 
     @Test

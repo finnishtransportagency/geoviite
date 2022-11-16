@@ -37,6 +37,11 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         return getInternal(publishType, id)
     }
 
+    fun get(rowVersion: RowVersion<ObjectType>): ObjectType {
+        logger.serviceCall("get", "rowVersion" to rowVersion)
+        return dao.fetch(rowVersion)
+    }
+
     fun getOrThrow(publishType: PublishType, id: IntId<ObjectType>): ObjectType {
         logger.serviceCall("get", "publishType" to publishType, "id" to id)
         return getInternalOrThrow(publishType, id)

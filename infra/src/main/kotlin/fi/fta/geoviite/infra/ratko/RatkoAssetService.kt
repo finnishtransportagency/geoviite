@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.linking.LinkingDao
@@ -10,7 +10,9 @@ import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,7 +32,7 @@ class RatkoAssetService @Autowired constructor(
 
     fun pushSwitchChangesToRatko(switchChanges: List<SwitchChange>) {
         switchChanges
-            .map { change -> change to switchService.getOrThrow(PublishType.OFFICIAL, change.switchId) }
+            .map { change -> change to switchService.getOrThrow(OFFICIAL, change.switchId) }
             .sortedBy { sortByDeletedStateFirst(it.second.stateCategory) }
             .forEach { (switchChange, layoutSwitch) ->
                 try {
@@ -107,7 +109,10 @@ class RatkoAssetService @Autowired constructor(
     ): List<RatkoAssetLocation> {
         return if (existingRatkoLocations.isNotEmpty()) {
             val linkedLocationTracks =
-                linkingDao.findLocationTracksLinkedToSwitch(switchId).map { it.second }.distinct()
+                linkingDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId, switchStructure.presentationJointNumber)
+                    .map { ids ->
+                        ids.externalId ?: throw IllegalStateException("Official LocationTrack must have an external ID")
+                    }
 
             existingRatkoLocations
                 .map { location ->

@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.common.EndPointType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -120,45 +119,6 @@ class LinkingController @Autowired constructor(
             "alignmentId" to alignmentId, "interval" to interval
         )
         return linkingService.updateReferenceLineGeometry(alignmentId, interval)
-    }
-
-
-    @PreAuthorize(AUTH_ALL_WRITE)
-    @PutMapping("/location-tracks/{id}/endpoint")
-    fun updateEndPoint(
-        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
-        @RequestBody request: LocationTrackEndPointUpdateRequest,
-    ): IntId<LocationTrack> {
-        logger.apiCall(
-            "updateEndPoint",
-            "locationTrackId" to locationTrackId,
-        )
-        return linkingService.updateEndPoint(
-            locationTrackId,
-            EndPointType.ENDPOINT,
-            request.updateType
-        )
-    }
-
-    @PreAuthorize(AUTH_ALL_WRITE)
-    @PutMapping("/location-tracks/{id}/endpoint-location-track")
-    fun updateEndPointConnectedLocationTrack(
-        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
-        @RequestBody request: LocationTrackEndPointConnectedUpdateRequest,
-    ): IntId<LocationTrack> {
-        logger.apiCall(
-            "updateEndPointConnectedLocationTrack",
-            "locationTrackId" to locationTrackId,
-            "continuousLocationTrackId" to request.connectedLocationTrackId,
-            "locationTrackPointUpdateType" to request.updateType,
-        )
-
-        return linkingService.updateEndPointLocationTrack(
-            locationTrackId,
-            request.connectedLocationTrackId,
-            EndPointType.LOCATION_TRACK,
-            request.updateType,
-        )
     }
 
     @PreAuthorize(AUTH_ALL_READ)

@@ -2,7 +2,7 @@ import React from 'react';
 import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Icons } from 'vayla-design-lib/icon/Icon';
+import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { LocationTrackSaveRequest } from 'linking/linking-model';
@@ -58,9 +58,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             : undefined;
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
-    const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
-        LayoutLocationTrack | undefined
-    >(props.existingDuplicateTrack);
+    const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<LayoutLocationTrack | undefined>(props.existingDuplicateTrack);
     const [nonDraftDeleteConfirmationVisible, setNonDraftDeleteConfirmationVisible] =
         React.useState<boolean>(state.locationTrack?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
@@ -229,7 +227,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         debouncedGetLocationTrackOptions(searchTerm).then(locationTrackItems =>
             locationTrackItems.filter(locationTrackItem => {
                     const locationTrack = locationTrackItem.value.locationTrack;
-                    return locationTrack.id !== props.locationTrack?.id && locationTrack.duplicateOf === null
+                    return locationTrack.id !== props.locationTrack?.id && locationTrack.duplicateOf === null;
                 },
             ),
         ), [props.locationTrack?.id],
@@ -389,7 +387,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     <Dropdown
                                         value={selectedDuplicateTrack && ({
                                             type: 'locationTrackSearchItem',
-                                            locationTrack: selectedDuplicateTrack
+                                            locationTrack: selectedDuplicateTrack,
                                         })}
                                         getName={(item) => item.locationTrack.name}
                                         placeholder={t('location-track-dialog.search')}
@@ -514,11 +512,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     variant={ButtonVariant.SECONDARY}>
                                     {t('button.cancel')}
                                 </Button>
-                                <Button onClick={save}>{t('button.delete')}</Button>
+                                <Button variant={ButtonVariant.PRIMARY_WARNING}
+                                        onClick={save}>{t('button.delete')}</Button>
                             </React.Fragment>
                         }>
                         <div className={'dialog__text'}>
                             {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
+                        </div>
+                        <div className={'dialog__text'} style={{fill: 'rgb(222 53 23)'}}>
+                            <Icons.StatusError color={IconColor.INHERIT}/> {t('location-track-delete-dialog.deleted-location-track-warning')}
                         </div>
                         <div className={'dialog__text'}>
                             {t('location-track-delete-dialog.confirm-location-track-delete')}

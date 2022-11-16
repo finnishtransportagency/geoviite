@@ -75,6 +75,7 @@ data class TrackLayoutTrackNumber(
 ) : Draftable<TrackLayoutTrackNumber> {
     @JsonIgnore
     val exists = !state.isRemoved()
+
     init {
         require(description.isNotBlank()) { "TrackNumber should have a non-blank description" }
         require(description.length < 100) { "TrackNumber description too long: ${description.length}>100" }
@@ -102,6 +103,14 @@ data class ReferenceLine(
     @JsonIgnore override val draft: Draft<ReferenceLine>? = null,
 ) : Draftable<ReferenceLine>
 
+data class TopologyLocationTrackSwitch(
+    val switchId: IntId<TrackLayoutSwitch>,
+    val jointNumber: JointNumber,
+)
+
+data class LocationTrackMeter(val locationTrackId: IntId<LocationTrack>, val trackMeter: TrackMeter)
+
+
 data class LocationTrack(
     val name: AlignmentName,
     val description: FreeText,
@@ -111,8 +120,6 @@ data class LocationTrack(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
     override val id: DomainId<LocationTrack> = deriveFromSourceId("LT", sourceId),
-    val startPoint: EndPoint? = null,
-    val endPoint: EndPoint? = null,
     override val dataType: DataType = DataType.TEMP,
     val version: Version = Version.NONE,
     val boundingBox: BoundingBox?,
@@ -120,6 +127,8 @@ data class LocationTrack(
     val segmentCount: Int,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,
+    val topologyStartSwitch: TopologyLocationTrackSwitch?,
+    val topologyEndSwitch: TopologyLocationTrackSwitch?,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val draft: Draft<LocationTrack>? = null,
 ) : Draftable<LocationTrack> {
@@ -133,6 +142,7 @@ data class LocationTrack(
         }
     }
 }
+
 
 data class TrackLayoutSwitch(
     val name: SwitchName,

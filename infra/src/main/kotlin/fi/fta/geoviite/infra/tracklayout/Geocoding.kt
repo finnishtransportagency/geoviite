@@ -30,19 +30,9 @@ data class AlignmentAddresses(
 
 data class RefinedAlignmentEndPoint(
     val addressPoint: AddressPoint?,
-    val endPoint: EndPoint?,
     val switchName: SwitchName?,
     val alignmentName: AlignmentName?,
-) {
-    init {
-        require(switchName == null || endPoint is EndPointSwitch) {
-            "Switch name can only be set if alignment end point type is SWITCH"
-        }
-        require(alignmentName == null || endPoint is EndPointLocationTrack) {
-            "Alignment name can only be set if alignment end point type is LOCATION_TRACK"
-        }
-    }
-}
+)
 
 data class ReferenceLineStartAndEnd(
     val start: AddressPoint,
