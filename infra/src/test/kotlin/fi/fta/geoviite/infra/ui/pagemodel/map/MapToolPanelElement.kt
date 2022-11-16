@@ -185,7 +185,7 @@ class CreateEditLocationTrackDialog(val editedElement: WebElement): DialogPopUp(
         }
 
         if (isPoistettu) {
-            DialogPopUp().clickPrimaryButton()
+            DialogPopUp().clickPrimaryWarningButton()
         }
 
         val toaster = waitAndGetToasterElement()

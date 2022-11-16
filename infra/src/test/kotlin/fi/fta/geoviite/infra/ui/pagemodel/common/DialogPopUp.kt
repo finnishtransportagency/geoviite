@@ -17,6 +17,13 @@ open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(
         button.click()
     }
 
+    fun clickPrimaryWarningButton() {
+        val button = rootElement.findElement(By.cssSelector("button.button--primary-warning"))
+        logger.info("Click primary warning button ${button.text}")
+        waitUntilElementIsClickable(button)
+        button.click()
+    }
+
     fun clickSecondaryButton() {
         val button = rootElement.findElement(By.cssSelector("button.button--secondary"))
         logger.info("Click secondary button")
