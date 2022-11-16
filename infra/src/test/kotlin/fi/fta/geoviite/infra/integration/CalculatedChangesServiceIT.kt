@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -39,7 +40,17 @@ class CalculatedChangesServiceIT @Autowired constructor(
     val layoutKmPostDao: LayoutKmPostDao,
     val switchService: LayoutSwitchService,
     val switchLinkingService: SwitchLinkingService,
+    val alignmentDao: LayoutAlignmentDao,
 ) : ITTestBase() {
+
+    @BeforeEach
+    fun setup() {
+        locationTrackDao.deleteDrafts()
+        referenceLineDao.deleteDrafts()
+        alignmentDao.deleteOrphanedAlignments()
+        switchDao.deleteDrafts()
+    }
+
     @Test
     fun callingWithoutDataReturnsNoCalculatedChanges() {
         // Insert test data to make sure that there is some data in DB

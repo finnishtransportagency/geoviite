@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -23,14 +24,19 @@ class PublishDaoIT @Autowired constructor(
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
 ): ITTestBase() {
-    @Test
-    fun noPublishCandidatesFoundWithoutDrafts() {
+
+    @BeforeEach
+    fun setup() {
         locationTrackDao.deleteDrafts()
         referenceLineDao.deleteDrafts()
+        alignmentDao.deleteOrphanedAlignments()
         switchDao.deleteDrafts()
         kmPostDao.deleteDrafts()
         trackNumberDao.deleteDrafts()
+    }
 
+    @Test
+    fun noPublishCandidatesFoundWithoutDrafts() {
         assertTrue(publishDao.fetchTrackNumberPublishCandidates().isEmpty())
         assertTrue(publishDao.fetchReferenceLinePublishCandidates().isEmpty())
         assertTrue(publishDao.fetchLocationTrackPublishCandidates().isEmpty())
@@ -40,7 +46,6 @@ class PublishDaoIT @Autowired constructor(
 
     @Test
     fun referenceLinePublishCandidatesAreFound() {
-        referenceLineDao.deleteDrafts()
         val trackNumberId = insertAndCheck(trackNumber(getUnusedTrackNumber())).id as IntId
         val line = insertAndCheck(referenceLine(trackNumberId))
         val draft = insertAndCheck(draft(line).copy(startAddress = TrackMeter("0123", 658.321, 3)))
@@ -52,7 +57,6 @@ class PublishDaoIT @Autowired constructor(
 
     @Test
     fun locationTrackPublishCandidatesAreFound() {
-        locationTrackDao.deleteDrafts()
         val track = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
         val draft = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         val candidates = publishDao.fetchLocationTrackPublishCandidates()
@@ -64,7 +68,6 @@ class PublishDaoIT @Autowired constructor(
 
     @Test
     fun switchPublishCandidatesAreFound() {
-        switchDao.deleteDrafts()
         val switch = insertAndCheck(switch(987))
         val draft = insertAndCheck(draft(switch).copy(name = SwitchName("${switch.name} DRAFT")))
         val candidates = publishDao.fetchSwitchPublishCandidates()

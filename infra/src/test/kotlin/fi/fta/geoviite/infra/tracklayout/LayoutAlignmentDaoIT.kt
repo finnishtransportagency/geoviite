@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.util.RowVersion
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -65,7 +64,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     @Test
     fun deletingOrphanedAlignmentsWorks() {
-        val trackNumberId = getOrCreateTrackNumber(TrackNumber("321")).id as IntId
+        val trackNumberId = getUnusedTrackNumberId()
 
         val alignmentOrphan = alignment(someSegment())
         val alignmentLocationTrack = alignment(someSegment())

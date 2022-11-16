@@ -48,6 +48,9 @@ abstract class ITTestBase {
         op()
     } ?: throw IllegalStateException("Transaction returned nothing")
 
+    fun getUnusedTrackNumberId() =
+        getOrCreateTrackNumber(getUnusedTrackNumber()).id as IntId
+
     fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
         val version = trackNumberDao.findVersions(trackNumber, DRAFT).firstOrNull()
             ?: insertNewTrackNumber(trackNumber, false)

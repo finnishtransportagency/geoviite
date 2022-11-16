@@ -1,12 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
@@ -16,6 +13,7 @@ import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.RowVersion
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -28,8 +26,17 @@ import kotlin.test.assertContains
 @SpringBootTest
 class LocationTrackServiceIT @Autowired constructor(
     private val locationTrackService: LocationTrackService,
+    private val alignmentDao: LayoutAlignmentDao,
     private val switchDao: LayoutSwitchDao,
+    private val switchService: LayoutSwitchService,
 ): ITTestBase() {
+
+    @BeforeEach
+    fun setup() {
+        locationTrackService.deleteDrafts()
+        alignmentDao.deleteOrphanedAlignments()
+        switchService.deleteDrafts()
+    }
 
     @Test
     fun creatingAndDeletingUnpublishedTrackWithAlignmentWorks() {
@@ -284,12 +291,150 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     @Test
-    fun throwsIfFetchingOfficialVersionOfDraftOnlySwitchUsingGetOrThrow() {
+    fun throwsIfFetchingOfficialVersionOfDraftOnlyLocationTrackUsingGetOrThrow() {
         val trackNumber = insertOfficialTrackNumber()
         val draft = createAndVerifyTrack(trackNumber, 35)
 
         assertThrows<NoSuchEntityException> { (locationTrackService.getOrThrow(OFFICIAL, draft.first.id)) }
     }
+
+    @Test
+    fun updateTopologyFindsSwitchStartConnectionInTheMiddleOfAlignment() {
+
+        val trackNumberId = getUnusedTrackNumberId()
+        val switchId = insertAndFetch(switch()).id as IntId
+
+        val referencePoint = Point(497879.651, 7272112.808)
+        val (_, _) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(referencePoint+Point(0.0, 0.0), referencePoint+Point(10.0, 0.0)),
+            segment(
+                referencePoint+Point(10.0, 0.0),
+                referencePoint+Point(20.0, 0.0),
+            ).copy(
+                switchId = switchId,
+                startJointNumber = JointNumber(1),
+                endJointNumber = JointNumber(2),
+            ),
+            segment(referencePoint+Point(20.0, 0.0), referencePoint+Point(30.0, 0.0)),
+        ))
+
+        val (track, alignment) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(
+                referencePoint+Point(10.2, 0.0),
+                referencePoint+Point(10.2, 20.2),
+            )
+        ))
+        assertEquals(null, track.topologyStartSwitch)
+        assertEquals(null, track.topologyEndSwitch)
+        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(1)), updatedTrack.topologyStartSwitch)
+        assertEquals(null, updatedTrack.topologyEndSwitch)
+    }
+
+    @Test
+    fun updateTopologyFindsSwitchEndConnectionInTheMiddleOfAlignment() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val switchId = insertAndFetch(switch()).id as IntId
+
+        val referencePoint = Point(498879.651, 7282112.808)
+        val (_, _) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(referencePoint+Point(0.0, 0.0), referencePoint+Point(10.0, 0.0)),
+            segment(
+                referencePoint+Point(10.0, 0.0),
+                referencePoint+Point(20.0, 0.0),
+            ).copy(
+                switchId = switchId,
+                startJointNumber = JointNumber(1),
+                endJointNumber = JointNumber(2),
+            ),
+            segment(referencePoint+Point(20.0, 0.0), referencePoint+Point(30.0, 0.0)),
+        ))
+
+        val (track, alignment) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(
+                referencePoint+Point(20.2, -20.0),
+                referencePoint+Point(20.2, 0.2),
+            )
+        ))
+        assertEquals(null, track.topologyStartSwitch)
+        assertEquals(null, track.topologyEndSwitch)
+        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        assertEquals(null, updatedTrack.topologyStartSwitch)
+        assertEquals(TopologyLocationTrackSwitch(switchId, JointNumber(2)), updatedTrack.topologyEndSwitch)
+    }
+
+    @Test
+    fun updateTopologyDoesntFindSwitchConnectionForTrackCrossingOverSwitch() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val switchId = insertAndFetch(switch()).id as IntId
+
+        val referencePoint = Point(499879.651, 7292112.808)
+        val (_, _) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(referencePoint+Point(0.0, 0.0), referencePoint+Point(10.0, 0.0)),
+            segment(
+                referencePoint+Point(10.0, 0.0),
+                referencePoint+Point(20.0, 0.0),
+            ).copy(
+                switchId = switchId,
+                startJointNumber = JointNumber(1),
+                endJointNumber = JointNumber(2),
+            ),
+            segment(referencePoint+Point(20.0, 0.0), referencePoint+Point(30.0, 0.0)),
+        ))
+
+        val (track, alignment) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(
+                referencePoint+Point(10.0, -10.0),
+                referencePoint+Point(10.0, 0.0),
+                referencePoint+Point(10.0, 10.0),
+            )
+        ))
+        assertEquals(null, track.topologyStartSwitch)
+        assertEquals(null, track.topologyEndSwitch)
+        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        assertEquals(null, updatedTrack.topologyStartSwitch)
+        assertEquals(null, updatedTrack.topologyEndSwitch)
+    }
+
+    @Test
+    fun updateTopologyDoesntFindSwitchConnectionForTrackFartherAway() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val switchId = insertAndFetch(switch()).id as IntId
+
+        val referencePoint = Point(500879.651, 7302112.808)
+        val (_, _) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(referencePoint+Point(0.0, 0.0), referencePoint+Point(10.0, 0.0)),
+            segment(
+                referencePoint+Point(10.0, 0.0),
+                referencePoint+Point(20.0, 0.0),
+            ).copy(
+                switchId = switchId,
+                startJointNumber = JointNumber(1),
+                endJointNumber = JointNumber(2),
+            ),
+            segment(referencePoint+Point(20.0, 0.0), referencePoint+Point(30.0, 0.0)),
+        ))
+
+        val (track, alignment) = insertAndFetch(locationTrack(trackNumberId), alignment(
+            segment(
+                referencePoint+Point(12.0, 0.0),
+                referencePoint+Point(22.0, 0.0),
+            )
+        ))
+        assertEquals(null, track.topologyStartSwitch)
+        assertEquals(null, track.topologyEndSwitch)
+        val updatedTrack = locationTrackService.updateTopology(track, alignment)
+        assertEquals(null, updatedTrack.topologyStartSwitch)
+        assertEquals(null, updatedTrack.topologyEndSwitch)
+    }
+
+    private fun insertAndFetch(switch: TrackLayoutSwitch) = switchService.get(switchService.saveDraft(switch))
+
+    private fun insertAndFetch(
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
+    ): Pair<LocationTrack, LayoutAlignment> =
+        locationTrackService.getWithAlignment(locationTrackService.saveDraft(locationTrack, alignment))
 
     private fun createPublishedLocationTrack(seed: Int): Pair<RowVersion<LocationTrack>, LocationTrack> {
         val trackNumberId = insertOfficialTrackNumber()
