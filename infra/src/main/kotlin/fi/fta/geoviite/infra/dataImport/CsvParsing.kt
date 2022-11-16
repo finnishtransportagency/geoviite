@@ -751,28 +751,31 @@ fun <T> emptyCsvMetaData(range: ClosedRange<TrackMeter>) =
 fun getSwitchLinkTrackMeterRanges(
     switchLinks: List<AlignmentSwitchLink>,
     metadataRanges: List<ClosedRange<TrackMeter>>,
-    trackStart: TrackMeter,
-    trackEnd: TrackMeter
+    allTrackMeters: List<TrackMeter>,
 ): Map<ClosedRange<TrackMeter>, AlignmentSwitchLink> {
-    val allTrackMeters = switchLinks.flatMap { switchLink ->
+    val trackStart = allTrackMeters.first()
+    val trackEnd = allTrackMeters.last()
+
+    val rangeDelimitingTrackMeters = switchLinks.flatMap { switchLink ->
         listOf(switchLink.startMeter, switchLink.endMeter)
     } + metadataRanges.flatMap { metadataRange ->
         listOf(metadataRange.start, metadataRange.endInclusive)
     }
-    val sortedTrackMeters = allTrackMeters.distinct().sorted()
+    val sortedRangeDelimitingTrackMeters = rangeDelimitingTrackMeters.distinct().sorted()
 
     return switchLinks.flatMap { switchLink ->
         val isSinglePointSwitch = switchLink.startMeter.isSame(switchLink.endMeter)
         if (isSinglePointSwitch) {
-            // Expand a single address to a range from that single point to
-            // the address of the next switch/metadata/end of track.
-            val isLastTrackMeter = switchLink.endMeter.isSame(sortedTrackMeters.last())
+            // We need to come up with a non-empty track meter range to have a segment to link the switch to, but
+            // it's better for the range to be very short rather than possibly stretch for kilometers out to the next
+            // switch or metadata range start/end; so just take the adjacent track meter.
+            val isLastTrackMeter = switchLink.endMeter.isSame(sortedRangeDelimitingTrackMeters.last())
             val range = if (isLastTrackMeter) {
                 val previousTrackMeter =
-                    sortedTrackMeters.findLast { trackMeter -> trackMeter < switchLink.startMeter }
+                    allTrackMeters.findLast { trackMeter -> trackMeter < switchLink.startMeter }
                 (previousTrackMeter ?: trackStart)..switchLink.endMeter
             } else {
-                val nextTrackMeter = sortedTrackMeters.find { trackMeter -> trackMeter > switchLink.endMeter }
+                val nextTrackMeter = allTrackMeters.find { trackMeter -> trackMeter > switchLink.endMeter }
                 switchLink.startMeter..(nextTrackMeter ?: trackEnd)
             }
             listOf(
@@ -815,8 +818,7 @@ fun <T> segmentCsvMetadata(
     val switchLinkByRange = getSwitchLinkTrackMeterRanges(
         switchLinks,
         metadata.map { md -> md.startMeter..md.endMeter },
-        points.first().trackMeter,
-        points.last().trackMeter
+        points.map { point -> point.trackMeter }
     )
     val switchLinkRanges = switchLinkByRange.keys.sortedBy { it.start }
     val segmentRanges: MutableList<SegmentCsvMetaDataRange<T>> = mutableListOf()
