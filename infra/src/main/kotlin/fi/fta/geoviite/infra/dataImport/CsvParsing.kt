@@ -239,7 +239,9 @@ fun createLocationTracksFromCsv(
         val alignmentExtId = Oid<LocationTrack>(line.get(LocationTrackColumns.EXTERNAL_ID))
         val state = enumValueOf<LayoutState>(line.get(LocationTrackColumns.STATE))
         val metadata = metadataMap[alignmentExtId] ?: listOf()
-        val switchLinks = switchLinksMap[alignmentExtId] ?: listOf()
+        val switchLinks =
+            if (state != LayoutState.DELETED && switchLinksMap.containsKey(alignmentExtId)) switchLinksMap[alignmentExtId]!!
+            else listOf()
         val (points, connectionSegmentIndices) = measureAndCollect("parsing->toAddressPoints") {
             toAddressPoints(
                 "locationTrack=$alignmentExtId",
