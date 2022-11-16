@@ -1078,6 +1078,7 @@ fun <T> dividePointsToSegments(
 
     var currentPoints: MutableList<Point3DM> = mutableListOf()
     var rangeIndex = 0
+    var currentRangeStartMeter = points.first().trackMeter
     val segments: MutableList<Pair<List<Point3DM>, SegmentFullMetaDataRange<T>>> = mutableListOf()
 
     points.forEachIndexed { pointIndex, (point, trackMeter) ->
@@ -1097,9 +1098,14 @@ fun <T> dividePointsToSegments(
 
         if (rangeEnd) {
             if (currentPoints.isNotEmpty()) segments.add(
-                currentPoints to SegmentFullMetaDataRange(currentRange, connectionSegment)
+                currentPoints to SegmentFullMetaDataRange(
+                    // re-split the range so it knows about being split by connection segments
+                    currentRange.copy(meters = currentRangeStartMeter..trackMeter),
+                    connectionSegment
+                )
             )
             currentPoints = if (pointIndex == points.lastIndex) mutableListOf() else mutableListOf(point)
+            currentRangeStartMeter = trackMeter
         }
 
         // Skip forward to the next range, if the current one is done
@@ -1110,6 +1116,9 @@ fun <T> dividePointsToSegments(
     require(currentPoints.isEmpty()) {
         "Segment point distribution had points left over: current=$currentPoints ranges=$segmentRanges all=$points"
     }
+
+    // paranoid revalidation to ensure connection segment splitting didn't break things
+    validateSegmentRanges(points.first().trackMeter, points.last().trackMeter, segments.map { s -> s.second.metadata })
 
     return segments
 }
