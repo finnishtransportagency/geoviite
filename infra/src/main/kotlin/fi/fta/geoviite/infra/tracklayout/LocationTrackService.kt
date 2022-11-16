@@ -324,11 +324,11 @@ class LocationTrackService(
 
         val startSwitch =
             if (!track.exists) null
-            else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches)
+            else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, track.topologyStartSwitch)
 
         val endSwitch =
             if (!track.exists) null
-            else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches)
+            else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, track.topologyEndSwitch)
 
         return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
             track
@@ -341,12 +341,17 @@ class LocationTrackService(
         target: IPoint,
         ownId: DomainId<LocationTrack>,
         ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
+        currentTopologySwitch: TopologyLocationTrackSwitch?,
     ): TopologyLocationTrackSwitch? {
         val nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>> = dao
             .fetchVersionsNear(DRAFT, boundingBoxAroundPoint(target, 1.0))
             .map { version -> getWithAlignmentInternal(version) }
             .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.id != ownId && track.exists }
+        val defaultSwitch =
+            if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
+            else currentTopologySwitch
         return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracks)
+            ?: defaultSwitch
             ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracks)
     }
 }
