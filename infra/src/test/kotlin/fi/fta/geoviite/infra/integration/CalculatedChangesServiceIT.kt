@@ -823,15 +823,24 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         }
 
-        val reloadedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
-            locationTrackService.getWithAlignment(PublishType.OFFICIAL, locationTrack.id as IntId<LocationTrack>)
+        val publishedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
+            val id = locationTrack.id as IntId
+            val (edited, editedAlignment) = locationTrackService.getWithAlignment(PublishType.DRAFT, id)
+            if (edited.draft != null) locationTrackService.getWithAlignment(locationTrackService.publish(id))
+            else edited to editedAlignment
+        }
+        val publishedSwitches = switches.map { switch ->
+            val id = switch.id as IntId
+            val edited = switchService.getDraft(id)
+            if (edited.draft != null) switchDao.fetch(switchService.publish(id))
+            else edited
         }
 
         return TestData(
-            reloadedLocationTracksAndAlignments,
+            locationTracksAndAlignments = publishedLocationTracksAndAlignments,
             referenceLineAndAlignment = referenceLine to referenceLineGeometry,
-            kmPosts,
-            switches,
+            kmPosts = kmPosts,
+            switches = publishedSwitches,
             changeTime = listOf(
                 locationTrackService.getChangeTime(),
                 switchService.getChangeTime()
@@ -844,7 +853,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         trackA: Pair<LocationTrack, LayoutAlignment>,
         trackB: Pair<LocationTrack, LayoutAlignment>,
     ): TrackLayoutSwitch {
-        val emptySwitch = switchDao.fetch(
+        val switch = switchDao.fetch(
             switchDao.insert(
                 switch(
                     joints = listOf()
@@ -859,7 +868,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         switchLinkingService.saveSwitchLinking(
             SwitchLinkingParameters(
-                layoutSwitchId = emptySwitch.id as IntId<TrackLayoutSwitch>,
+                layoutSwitchId = switch.id as IntId<TrackLayoutSwitch>,
                 joints = listOf(
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(1),
@@ -916,15 +925,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     )
                 ),
                 geometrySwitchId = null,
-                switchStructureId = emptySwitch.switchStructureId,
+                switchStructureId = switch.switchStructureId,
             )
         )
-
-        locationTrackService.publish(locationTrackA.id as IntId<LocationTrack>)
-        locationTrackService.publish(locationTrackB.id as IntId<LocationTrack>)
-
-        return switchDao.fetch(switchService.publish(emptySwitch.id as IntId<TrackLayoutSwitch>))
-
+        return switch
     }
 
     private fun assertContainsSwitchJoint152Change(
