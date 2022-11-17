@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.dataImport.switchStructures
+import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
