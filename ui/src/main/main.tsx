@@ -17,6 +17,9 @@ import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
 import { useTranslation } from 'react-i18next';
+// fontsource requires fonts to be imported somewhere in code
+import "@fontsource/open-sans/400.css";
+import "@fontsource/open-sans/600.css";
 
 type MainProps = {
     layoutMode: LayoutMode;
