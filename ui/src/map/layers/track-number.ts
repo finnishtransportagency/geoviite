@@ -12,84 +12,83 @@ export enum DisplayMode {
     NAME,
 }
 
-export type TrackNumberPoint = {
+export type MapAlignmentBadgePoint = {
     point: LayoutPoint;
     nextPoint: LayoutPoint;
 };
 
-export function createTrackNumberFeature(
-    referenceLine: MapAlignment,
-    points: TrackNumberPoint[],
+export function createMapAlignmentBadgeFeature(
+    alignment: MapAlignment,
+    points: MapAlignmentBadgePoint[],
     trackNumber: LayoutTrackNumber,
-    referenceLineHighlighted: boolean,
+    lineHighlighted: boolean,
     displayMode: DisplayMode,
 ): Feature<Point>[] {
-    const trackNumberStyle = getTrackNumberStyle(
+    //When zoomed out enough, show track number alignment badges only
+    if (displayMode === DisplayMode.NUMBER && alignment.alignmentType == 'LOCATION_TRACK') {
+        return [];
+    }
+
+    const badgeStyle = getMapAlignmentBadgeStyle(
         trackNumber,
-        referenceLine,
+        alignment,
         displayMode,
-        referenceLineHighlighted,
+        lineHighlighted,
     );
 
     return points.map((numberPoint) => {
-        const trackNumberCoordinate: Coordinate = [numberPoint.point.x, numberPoint.point.y];
-        const trackNumberControlCoordinate: Coordinate = [
-            numberPoint.nextPoint.x,
-            numberPoint.nextPoint.y,
-        ];
-        const labelRotation = calculateTrackNumberLabelRotation(
-            trackNumberCoordinate,
-            trackNumberControlCoordinate,
-        );
+        const coordinate: Coordinate = [numberPoint.point.x, numberPoint.point.y];
+        const controlCoordinate: Coordinate = [numberPoint.nextPoint.x, numberPoint.nextPoint.y];
+        const badgeRotation = calculateBadgeRotation(coordinate, controlCoordinate);
 
-        const trackNumberFeature = new Feature<Point>({
-            geometry: new Point(trackNumberCoordinate),
+        const badgeFeature = new Feature<Point>({
+            geometry: new Point(coordinate),
         });
 
-        trackNumberFeature.setStyle(
+        badgeFeature.setStyle(
             () =>
                 new Style({
                     zIndex: 5,
                     renderer: (coordinates: Coordinate, state: State) => {
                         const ctx = state.context;
-                        ctx.font = `${mapStyles['tracknumber-font-weight']} ${
+                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${
                             state.pixelRatio * 12
-                        }px ${mapStyles['tracknumber-font-family']}`;
+                        }px ${mapStyles['alignment-badge-font-family']}`;
                         const backgroundWidth =
-                            ctx.measureText(trackNumberStyle.text).width + 16 * state.pixelRatio;
+                            ctx.measureText(badgeStyle.text).width + 16 * state.pixelRatio;
                         const backgroundHeight = 14 * state.pixelRatio;
 
                         ctx.save();
                         ctx.beginPath();
 
                         ctx.translate(coordinates[0], coordinates[1]);
-                        ctx.rotate(labelRotation.rotation);
+                        ctx.rotate(badgeRotation.rotation);
                         ctx.translate(-coordinates[0], -coordinates[1]);
 
-                        ctx.fillStyle = trackNumberStyle.background;
+                        ctx.fillStyle = badgeStyle.background;
                         ctx.rect(
-                            coordinates[0] - (labelRotation.drawFromEnd ? backgroundWidth : 0),
+                            coordinates[0] - (badgeRotation.drawFromEnd ? backgroundWidth : 0),
                             coordinates[1] - backgroundHeight / 2,
                             backgroundWidth,
                             backgroundHeight,
                         );
 
                         ctx.fill();
-                        if (trackNumberStyle.backgroundBorder) {
-                            ctx.strokeStyle = trackNumberStyle.backgroundBorder;
+                        if (badgeStyle.backgroundBorder) {
+                            ctx.strokeStyle = badgeStyle.backgroundBorder;
                             ctx.lineWidth = 1;
                             ctx.stroke();
                         }
 
                         ctx.closePath();
 
-                        ctx.fillStyle = trackNumberStyle.color;
+                        ctx.fillStyle = badgeStyle.color;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText(
-                            trackNumberStyle.text,
+                            badgeStyle.text,
                             coordinates[0] +
-                                ((labelRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
+                                ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
                             coordinates[1] + 1 * state.pixelRatio,
                         );
 
@@ -98,12 +97,12 @@ export function createTrackNumberFeature(
                 }),
         );
 
-        trackNumberFeature.set('trackNumber', trackNumber);
-        return trackNumberFeature;
+        badgeFeature.set('mapAlignmentBadge', trackNumber);
+        return badgeFeature;
     });
 }
 
-function calculateTrackNumberLabelRotation(start: Coordinate, end: Coordinate) {
+function calculateBadgeRotation(start: Coordinate, end: Coordinate) {
     const dx = end[0] - start[0];
     const dy = end[1] - start[1];
     const angle = Math.atan2(dy, dx);
@@ -126,11 +125,11 @@ function calculateTrackNumberLabelRotation(start: Coordinate, end: Coordinate) {
     };
 }
 
-function getTrackNumberStyle(
+function getMapAlignmentBadgeStyle(
     trackNumber: LayoutTrackNumber,
-    referenceLine: MapAlignment,
+    alignment: MapAlignment,
     displayMode: DisplayMode,
-    referenceLineHighlighted: boolean,
+    lineHighlighted: boolean,
 ) {
     let text: string;
     let color: string;
@@ -139,21 +138,24 @@ function getTrackNumberStyle(
 
     if (displayMode === DisplayMode.NUMBER) {
         text = trackNumber.number;
-        color = mapStyles['trackNumber-color'];
+        color = mapStyles['alignment-badge-color'];
 
-        background = referenceLineHighlighted
-            ? mapStyles['trackNumber-background-selected']
-            : mapStyles['trackNumber-background'];
+        background = lineHighlighted
+            ? mapStyles['alignment-badge-background-selected']
+            : mapStyles['alignment-badge-background'];
     } else {
-        text = `${trackNumber.number} ${referenceLine.name}`;
+        text =
+            alignment.alignmentType == 'REFERENCE_LINE'
+                ? trackNumber.number
+                : `${trackNumber.number} ${alignment.name}`;
 
-        if (referenceLineHighlighted) {
-            color = mapStyles['trackNumber-color'];
-            background = mapStyles['trackNumber-background-selected'];
+        if (lineHighlighted) {
+            color = mapStyles['alignment-badge-color'];
+            background = mapStyles['alignment-badge-background-selected'];
         } else {
-            backgroundBorder = mapStyles['trackNumber-background-border'];
-            color = mapStyles['trackNumber-color-near'];
-            background = mapStyles['trackNumber-background-near'];
+            backgroundBorder = mapStyles['alignment-badge-background-border'];
+            color = mapStyles['alignment-badge-color-near'];
+            background = mapStyles['alignment-badge-background-near'];
         }
     }
 
