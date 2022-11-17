@@ -317,6 +317,8 @@ class LocationTrackService(
     fun updateTopology(
         track: LocationTrack,
         alignment: LayoutAlignment,
+        startChanged: Boolean = false,
+        endChanged: Boolean = false,
     ): LocationTrack {
         val startPoint = alignment.start ?: return track
         val endPoint = alignment.end ?: return track
@@ -324,10 +326,12 @@ class LocationTrackService(
 
         val startSwitch =
             if (!track.exists) null
+            else if (startChanged) findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, null)
             else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, track.topologyStartSwitch)
 
         val endSwitch =
             if (!track.exists) null
+            else if (endChanged) findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, null)
             else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, track.topologyEndSwitch)
 
         return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {

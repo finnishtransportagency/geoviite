@@ -160,11 +160,25 @@ class LinkingService @Autowired constructor(
         return locationTrackService.saveDraft(newLocationTrack, newAlignment)
     }
 
-    private fun updateTopology(track: LocationTrack, oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
-        if(startOrEndChanges(oldAlignment, newAlignment)) locationTrackService.updateTopology(track, newAlignment)
+    private fun updateTopology(
+        track: LocationTrack,
+        oldAlignment: LayoutAlignment,
+        newAlignment: LayoutAlignment,
+    ): LocationTrack {
+        val startChanged = startChanged(oldAlignment, newAlignment)
+        val endChanged = endChanged(oldAlignment, newAlignment)
+        return if (startChanged || endChanged) locationTrackService.updateTopology(
+            track = track,
+            alignment = newAlignment,
+            startChanged = startChanged,
+            endChanged = endChanged,
+        )
         else track
+    }
 
-    private fun startOrEndChanges(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
+    private fun startChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
+        !equalsXY(oldAlignment.start, newAlignment.start) || !equalsXY(oldAlignment.end, newAlignment.end)
+    private fun endChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
         !equalsXY(oldAlignment.start, newAlignment.start) || !equalsXY(oldAlignment.end, newAlignment.end)
 
     private fun equalsXY(point1: IPoint?, point2: IPoint?) = point1?.x == point2?.x && point1?.y == point2?.y
