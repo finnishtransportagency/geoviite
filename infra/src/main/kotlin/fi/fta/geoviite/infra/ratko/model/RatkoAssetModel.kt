@@ -78,30 +78,52 @@ enum class RatkoAssetGeometryType(@get:JsonValue val value: String) {
     MATH_POINT_AB("MATH_POINT_AB"),
     MATH_POINT_AC("MATH_POINT_AC"),
     MATH_POINT_AD("MATH_POINT_AD"),
+
+    @Suppress("unused")
     CACHE_POINT("CACHE_POINT")
 }
 
 enum class RatkoAssetState(@get:JsonValue val value: String, val category: LayoutStateCategory? = null) {
-    SUGGESTED("SUGGESTED", LayoutStateCategory.FUTURE_EXISTING),
     PLANNED("PLANNED", LayoutStateCategory.FUTURE_EXISTING), // RATAVAGE -prosessin kautta suunniteltu
-    BUILT("BUILT", LayoutStateCategory.EXISTING), // rakennettu
-    IN_TRAFFIC(
-        "IN TRAFFIC",
-        LayoutStateCategory.EXISTING
-    ), // liikennöinti voi alkaa rajoituksin, kunnossapitäjä rakennusurakoitsija
     IN_USE(
         "IN USE",
         LayoutStateCategory.EXISTING
     ), // liikennöinti ilman rajoituksia, kunnossapitäjä kunnossapitourakoitsija
+
+    @Suppress("unused")
+    SUGGESTED("SUGGESTED", LayoutStateCategory.FUTURE_EXISTING),
+
+    @Suppress("unused")
+    BUILT("BUILT", LayoutStateCategory.EXISTING), // rakennettu
+
+    @Suppress("unused")
+    IN_TRAFFIC(
+        "IN TRAFFIC",
+        LayoutStateCategory.EXISTING
+    ), // liikennöinti voi alkaa rajoituksin, kunnossapitäjä rakennusurakoitsija
+
+    @Suppress("unused")
     REPLACED("REPLACED", LayoutStateCategory.NOT_EXISTING),
     NOT_IN_USE("NOT IN USE", LayoutStateCategory.EXISTING), // olemassa, mutta ei käytössä
+
+    @Suppress("unused")
     REMOVED("REMOVED", LayoutStateCategory.NOT_EXISTING), // olemassa, mutta irti radasta
     DELETED("DELETED", LayoutStateCategory.NOT_EXISTING), // purettu maastossa
 
+    @Suppress("unused")
+
     TRANSITION("TRANSITION"),
+
+    @Suppress("unused")
     CANCELED("CANCELED"), // muutospyyntö peruttu
+
+    @Suppress("unused")
     COMPLETED("COMPLETED"), // muutospyyntö käsitelty
+
+    @Suppress("unused")
     REJECTED("REJECTED"), // Hylätyn RYHTI toimenpide-ehdotuksen tai RATKO UI:n kautta tehty muutosilmoitus
+
+    @Suppress("unused")
     OLD("OLD"),
 }
 
