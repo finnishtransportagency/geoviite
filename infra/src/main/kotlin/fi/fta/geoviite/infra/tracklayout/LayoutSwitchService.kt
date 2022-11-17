@@ -49,6 +49,26 @@ class LayoutSwitchService @Autowired constructor(
         return listInternal(publishType).filter { s -> s.exists && filter(s) }
     }
 
+    fun list(
+        publishType: PublishType,
+        searchTerm: String,
+        limit: Int?,
+    ): List<TrackLayoutSwitch> {
+        logger.serviceCall(
+            "list",
+            "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
+        )
+        return dao.fetchVersions(publishType)
+            .map(dao::fetch)
+            .filter { switch ->
+                switch.externalId.toString() == searchTerm ||
+                        switch.exists &&
+                        switch.name.contains(searchTerm, true)
+            }
+            .sortedBy { switch -> switch.name }
+            .let { list -> if (limit != null) list.take(limit) else list }
+    }
+
     fun pageSwitches(
         switches: List<TrackLayoutSwitch>,
         offset: Int,

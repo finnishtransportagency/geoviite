@@ -359,6 +359,18 @@ class TrackLayoutController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/switches", params = ["searchTerm", "limit"])
+    fun searchSwitches(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("searchTerm", required = true) searchTerm: String,
+        @RequestParam("limit", required = true) limit: Int,
+    ): List<TrackLayoutSwitch> {
+        logger.apiCall("searchSwitches", "searchTerm" to searchTerm, "limit" to limit)
+        return switchService.list(publishType, searchTerm, limit)
+    }
+
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/switches/{id}")
     fun getTrackLayoutSwitch(
         @PathVariable("publishType") publishType: PublishType,

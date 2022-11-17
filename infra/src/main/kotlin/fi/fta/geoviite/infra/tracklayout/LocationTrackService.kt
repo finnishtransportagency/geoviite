@@ -160,13 +160,16 @@ class LocationTrackService(
             "list",
             "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
         )
-        return listInternal(publishType)
+        return dao.fetchVersions(publishType)
+            .map(dao::fetch)
             .filter { locationTrack ->
-                locationTrack.name.contains(searchTerm, true)
+                locationTrack.externalId.toString() == searchTerm ||
+                        locationTrack.exists &&
+                        (locationTrack.name.contains(searchTerm, true)
                         || locationTrack.description.contains(searchTerm, true)
-                        || locationTrack.id.toString() == searchTerm
-                        || locationTrack.externalId.toString() == searchTerm
+                                || locationTrack.id.toString() == searchTerm)
             }
+            .sortedBy { locationTrack -> locationTrack.name }
             .let { list -> if (limit != null) list.take(limit) else list }
     }
 
