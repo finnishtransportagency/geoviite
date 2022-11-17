@@ -1098,8 +1098,11 @@ fun <T> dividePointsToSegments(
             if (currentPoints.isNotEmpty()) segments.add(
                 currentPoints to SegmentFullMetaDataRange(
                     // re-split the range so it knows about being split by connection segments
-                    currentRange.copy(meters = currentRangeStartMeter..trackMeter),
-                    connectionSegment
+                    currentRange.copy(
+                        meters = currentRangeStartMeter..trackMeter,
+                        metadata = if (connectionSegment) null else currentRange.metadata,
+                    ),
+                    connectionSegment,
                 )
             )
             currentPoints = if (pointIndex == points.lastIndex) mutableListOf() else mutableListOf(point)
