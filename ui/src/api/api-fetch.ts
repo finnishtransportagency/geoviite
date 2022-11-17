@@ -286,7 +286,7 @@ async function convertResponseToError(response: Response): Promise<ApiError> {
     const contentType = response.headers.get('content-type');
     const dateString = response.headers.get('date');
     const errorResponse: ApiErrorResponse =
-        contentType === 'application/json'
+        contentType && contentType.startsWith('application/json')
             ? await response.json()
             : {
                 messageRows: [await tryToReadText(response)].filter(filterNotEmpty),
