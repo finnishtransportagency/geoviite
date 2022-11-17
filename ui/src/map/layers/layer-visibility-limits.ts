@@ -10,12 +10,16 @@ export const GEOMETRY_TICKS = 5.0;
 // Track numbers
 export const TRACK_NUMER_NAMES = 0.4;
 const TRACK_NUMBER_DRAW_DISTANCES = [
-    [0.1, 40],
-    [0.2, 80],
-    [0.4, 160],
-    [0.8, 160],
-    [1.6, 320],
-    [3.2, 640],
+    [0.1, 30],
+    [0.15, 60],
+    [0.25, 120],
+    [TRACK_NUMER_NAMES, 160],
+    [1, 160],
+    [2, 320],
+    [4, 640],
+    [7, 1280],
+    [11, 2560],
+    [16, 5120],
 ];
 
 export function getTrackNumberDrawDistance(resolution: number): number | null {
