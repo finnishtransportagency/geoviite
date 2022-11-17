@@ -726,6 +726,9 @@ data class SegmentCsvMetaDataRange<T>(
     val metadata: ElementCsvMetadata<T>?,
     val switchLink: AlignmentSwitchLink?,
 ) {
+    init {
+        require(meters.start < meters.endInclusive) { "Cannot create an empty range: $meters" }
+    }
     fun isBefore(meter: TrackMeter) = meter >= meters.endInclusive
 }
 
