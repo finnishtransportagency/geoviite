@@ -1080,6 +1080,8 @@ fun <T> dividePointsToSegments(
     var rangeIndex = 0
     var currentRangeStartMeter = points.first().trackMeter
     val segments: MutableList<Pair<List<Point3DM>, SegmentFullMetaDataRange<T>>> = mutableListOf()
+    // the first point-pair of an alignment is never identified as a connection segment, so false is safe to start with
+    var currentRangeStartWasConnectionSegmentPoint = false
 
     points.forEachIndexed { pointIndex, (point, trackMeter) ->
         require(rangeIndex <= segmentRanges.size) { "Segment point distribution over-indexed" }
@@ -1090,22 +1092,33 @@ fun <T> dividePointsToSegments(
         if (currentPoints.isNotEmpty() || currentRange.meters.contains(trackMeter)) currentPoints.add(point)
 
         // Connection segments are identified by their end point and always exactly one point-pair long
-        val connectionSegment = connectionSegmentIndices.contains(pointIndex)
+        val connectionSegmentStart = connectionSegmentIndices.contains(pointIndex + 1)
+        val connectionSegmentEnd = connectionSegmentIndices.contains(pointIndex)
         val rangeEnd = currentRange.isBefore(trackMeter)
                 || pointIndex == points.lastIndex
-                || connectionSegment
-                || connectionSegmentIndices.contains(pointIndex + 1)
+                || connectionSegmentStart
+                || connectionSegmentEnd
 
         if (rangeEnd) {
-            if (currentPoints.isNotEmpty()) segments.add(
-                currentPoints to SegmentFullMetaDataRange(
-                    // re-split the range so it knows about being split by connection segments
-                    currentRange.copy(meters = currentRangeStartMeter..trackMeter),
-                    connectionSegment
+            if (currentPoints.isNotEmpty()) {
+                val originalMeters = currentRange.meters
+                val startMeter =
+                    if (currentRangeStartWasConnectionSegmentPoint) currentRangeStartMeter else originalMeters.start
+                val endMeter =
+                    if (connectionSegmentStart || connectionSegmentEnd) trackMeter else originalMeters.endInclusive
+
+                segments.add(
+                    currentPoints to SegmentFullMetaDataRange(
+                        // re-split the range so it knows about being split by connection segments
+                        currentRange.copy(meters = startMeter..endMeter),
+                        connectionSegmentEnd
+                    )
                 )
-            )
+            }
+
             currentPoints = if (pointIndex == points.lastIndex) mutableListOf() else mutableListOf(point)
             currentRangeStartMeter = trackMeter
+            currentRangeStartWasConnectionSegmentPoint = connectionSegmentStart || connectionSegmentEnd
         }
 
         // Skip forward to the next range, if the current one is done
@@ -1116,9 +1129,6 @@ fun <T> dividePointsToSegments(
     require(currentPoints.isEmpty()) {
         "Segment point distribution had points left over: current=$currentPoints ranges=$segmentRanges all=$points"
     }
-
-    // paranoid revalidation to ensure connection segment splitting didn't break things
-    validateSegmentRanges(points.first().trackMeter, points.last().trackMeter, segments.map { s -> s.second.metadata })
 
     return segments
 }
