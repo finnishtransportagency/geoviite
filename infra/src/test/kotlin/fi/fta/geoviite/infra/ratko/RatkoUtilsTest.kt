@@ -19,4 +19,15 @@ class RatkoUtilsTest {
         }
     }
 
+    @Test
+    fun `should format unique Ratko switch types from Geoviite types`() {
+        val ratkoTypes = switchStructures.mapNotNull { switchStructure ->
+            // Include non left handed switches only to pick only one of each YV/KV etc. switch type
+            if (switchStructure.type.parts.hand != SwitchHand.LEFT)
+                asSwitchTypeString(switchStructure.type)
+            else null
+        }
+        assertEquals(ratkoTypes, ratkoTypes.distinct())
+    }
+
 }
