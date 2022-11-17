@@ -177,8 +177,6 @@ data class SwitchLinkConnectionPoints (
     val withinTrack: List<AlignmentSwitchLink>,
 )
 
-enum class SwitchLinkConnectionPointGroup { START, END, MID }
-
 fun separateOutClosestToEndpoint(locationTrackId: Oid<LocationTrack>, endPoint: Point, linkableToEnd: MutableList<AlignmentSwitchLink>, min: Boolean): AlignmentSwitchLink? {
     val withinToleranceToEndPoint = linkableToEnd
         .filter { link -> distance(endPoint, link.linkPoints[0].location!!) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT }
@@ -935,12 +933,12 @@ fun <T> getGeometryElementRanges(
             val elementStart = transform.transform(e.start)
             val elementEnd = transform.transform(e.end)
             val start = previousElementEnd ?: findPoint(points, elementStart, lastPickedIndex)
-            val end = if (start != null) findPoint(points, elementEnd, start.index) else null
+            val end = start?.let { s -> findPoint(points, elementEnd, s.index) }
 
-            val result = if (start == null || end == null) {
-                LOG.warn("No elements on alignment: $debugString")
-                null
-            } else if (max(distance(elementStart, elementEnd), 10.0) < min(start.distance, end.distance)) {
+            require(start != null && end != null) {
+                "Failed to find closest points to element ends: start=$start end=$end $debugString"
+            }
+            val result = if (max(distance(elementStart, elementEnd), 10.0) < min(start.distance, end.distance)) {
                 LOG.debug("Ignoring element that's too far from the metadata segment: element=${e.id} $debugString")
                 null // Ignore elements that are too far from the alignment
             } else if (start.trackMeter > end.trackMeter) {
@@ -1110,7 +1108,10 @@ fun <T> dividePointsToSegments(
                 segments.add(
                     currentPoints to SegmentFullMetaDataRange(
                         // re-split the range so it knows about being split by connection segments
-                        currentRange.copy(meters = startMeter..endMeter),
+                        currentRange.copy(
+                            meters = startMeter..endMeter,
+                            metadata = if (connectionSegmentEnd) null else currentRange.metadata,
+                        ),
                         connectionSegmentEnd
                     )
                 )
