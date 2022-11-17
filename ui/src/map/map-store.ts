@@ -82,7 +82,7 @@ export const initialMapState: Map = {
             type: 'switchLinking',
             name: 'Vaihteiden linkitys',
             id: 'switchLinking',
-            visible: true,
+            visible: false,
         },
         {
             type: 'manualSwitchLinking',
