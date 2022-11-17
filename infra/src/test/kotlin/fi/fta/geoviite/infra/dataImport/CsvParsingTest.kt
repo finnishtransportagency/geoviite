@@ -1098,6 +1098,38 @@ class CsvParsingTest {
         assertEquals(listOf(2, 2, 2, 2, 4, 2, 2), segments.map { segment -> segment.points.size })
     }
 
+    @Test
+    fun switchLinkTrackMeterRangesMakesShortSegmentsForSinglePointLinks() {
+        val singlePointLinks = listOf(
+            switchLink(1, TrackMeter(1, 0)),
+            switchLink(2, TrackMeter(1, 999))
+        )
+        val bigMetadataRange = TrackMeter(0, 0)..TrackMeter(1, 999)
+        val allTrackMeters = (0..1).flatMap { km -> (0..999).map { m -> TrackMeter(km, m) } }
+        val ranges = getSwitchLinkTrackMeterRanges(singlePointLinks, listOf(bigMetadataRange), allTrackMeters)
+            .keys.toList()
+        assertEquals(TrackMeter(1, 0)..TrackMeter(1, 1), ranges[0])
+        assertEquals(TrackMeter(1, 998)..TrackMeter(1, 999), ranges[1])
+    }
+
+    @Test
+    fun dividePointsToSegmentsSplitsMetadataRanges() {
+        val basePoint = Point(25.0, 60.0)
+        val (points, _) = toAddressPoints(
+            "foo", 1, (0..5).map { num -> basePoint + Point(num.toDouble(), 0.0) },
+            (0..5).map { s -> TrackMeter(0, s) }
+        )
+        val metadata = someSegmentCsvMetaData(points[0].trackMeter..points[5].trackMeter, 10)
+        val segmentRanges: List<SegmentCsvMetaDataRange<LocationTrack>> = listOf(metadata)
+        // a single connection segment that *ends* at index 2
+        val connectionSegmentIndices = setOf(2)
+
+        val r = dividePointsToSegments(points, segmentRanges, connectionSegmentIndices)
+        assertEquals(TrackMeter(0, 0)..TrackMeter(0, 1), r[0].second.metadata.meters)
+        assertEquals(TrackMeter(0, 1)..TrackMeter(0, 2), r[1].second.metadata.meters)
+        assertEquals(TrackMeter(0, 2)..TrackMeter(0, 5), r[2].second.metadata.meters)
+    }
+
     private fun calculateFilteredIndices(vararg points: IPoint): List<ClosedRange<Int>>? =
         getFilteredIndices(
             logId = "test",
