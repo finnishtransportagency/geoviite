@@ -761,25 +761,29 @@ fun verifySwitchLinksAreAllMapped(
     topologyStart: TopologyLocationTrackSwitch?,
     topologyEnd: TopologyLocationTrackSwitch?,
 ) {
-    switchLinks.forEach { link ->
-        if (topologyStart?.switchId != link.switchId &&
-                    topologyEnd?.switchId != link.switchId &&
-                    alignment.segments.none { segment -> segment.switchId == link.switchId }
-        ) {
-            val segmentsWithSwitches = alignment.segments.filter { s -> s.switchId != null }
-            LOG.warn("Switch linking was not mapped to the location track: " +
-                    "trackOid=${link.alignmentOid} " +
-                    "switchOid=${link.switchOid} " +
-                    "linkJoints=${describePoints(link.linkPoints)} " +
-                    "topologyStart=$topologyStart " +
-                    "topologyEnd=$topologyEnd " +
-                    "segmentsWithSwitches=${
-                        segmentsWithSwitches.joinToString(",") { s ->
-                            "${s.switchId}[${s.startJointNumber}-${s.endJointNumber}]"
-                        }
-                    }"
-            )
-        }
+    val topologyLinks = listOfNotNull(
+        topologyStart?.let { t -> "${t.switchId}/${t.jointNumber}" },
+        topologyEnd?.let { t -> "${t.switchId}/${t.jointNumber}" },
+    )
+    val segmentLinks = alignment.segments.flatMap { s ->
+        if (s.switchId == null) listOf()
+        else listOfNotNull(
+            s.startJointNumber?.let { j -> "${s.switchId}/$j" },
+            s.endJointNumber?.let { j -> "${s.switchId}/$j" },
+        )
+    }
+    val actualLinks = (topologyLinks + segmentLinks).distinct().sorted()
+    val expectedLinks = switchLinks.flatMap { sl ->
+        sl.linkPoints.map { lp -> "${sl.switchId}/${lp.jointNumber}" }
+    }.distinct().sorted()
+    if (expectedLinks != actualLinks) {
+        LOG.warn("Switch linking imperfect: " +
+                "track=${switchLinks.first().alignmentOid} " +
+                "switches=${switchLinks.map { sl -> 
+                    "${sl.switchOid}(${sl.linkPoints.map { lp -> lp.jointNumber }})" 
+                }} " +
+                "expected=$expectedLinks " +
+                "actual=$actualLinks")
     }
 }
 
