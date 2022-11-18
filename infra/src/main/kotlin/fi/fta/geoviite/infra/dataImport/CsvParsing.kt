@@ -261,12 +261,14 @@ fun createLocationTracksFromCsv(
                 createSegments(segmentRanges, points, resolution, connectionSegmentIndices)
             }
             val alignment = LayoutAlignment(segments, sourceId = null)
+            val name = AlignmentName(line.get(LocationTrackColumns.NAME))
+            verifySwitchLinksAreAllMapped(switchLinks, alignment, switchLinkGroups.startOfTrack, switchLinkGroups.endOfTrack)
             val track = LocationTrack(
                 trackNumberId = trackNumbers[trackNumberExtId] ?: throw IllegalStateException(
                     "No TrackNumber found for LocationTrack: track=$alignmentExtId trackNumber=$trackNumberExtId"
                 ),
                 externalId = alignmentExtId,
-                name = AlignmentName(line.get(LocationTrackColumns.NAME)),
+                name = name,
                 description = FreeText(line.get(LocationTrackColumns.DESCRIPTION)),
                 type = line.getEnum(LocationTrackColumns.TYPE),
                 state = state,
@@ -276,7 +278,6 @@ fun createLocationTracksFromCsv(
                 length = alignment.length,
                 duplicateOf = null,
                 topologicalConnectivity = line.getEnum(LocationTrackColumns.TOPOLOGICAL_CONNECTIVITY),
-                // TODO: GVT-1482
                 topologyStartSwitch = switchLinkGroups.startOfTrack,
                 topologyEndSwitch = switchLinkGroups.endOfTrack,
             )
@@ -677,8 +678,113 @@ fun <T> combineMetadataToSegments(
     val elementMetadatas = adjustedAlignmentMetadata.flatMap { metadata ->
         getGeometryElementRanges(points, metadata, kkjToEtrsTriangulationTriangles)
     }
-    val expandedMetadata = adjustMetadataToSwitchLinks(elementMetadatas, switchLinks)
-    return segmentCsvMetadata(points, expandedMetadata, switchLinks)
+    val adjustedSwitchLinks = adjustSwitchLinksToPoints(points, switchLinks)
+    verifyNoOverlappingSwitchLinks(adjustedSwitchLinks)
+    val expandedMetadata = adjustMetadataToSwitchLinks(elementMetadatas, adjustedSwitchLinks)
+    return segmentCsvMetadata(points, expandedMetadata, adjustedSwitchLinks)
+}
+
+fun verifyNoOverlappingSwitchLinks(alignmentSwitchLinks: List<AlignmentSwitchLink>) =
+    alignmentSwitchLinks.forEachIndexed { index, link ->
+        val previous = alignmentSwitchLinks.getOrNull(index-1)
+        require(previous == null || previous.endMeter <= link.startMeter) {
+            "Switch links should not overlap: link=$link previous=$previous"
+        }
+    }
+
+fun adjustSwitchLinksToPoints(
+    points: List<AddressPoint>,
+    switchLinks: List<AlignmentSwitchLink>,
+): List<AlignmentSwitchLink> {
+    val ordered = switchLinks.sortedBy { sl -> sl.startMeter }
+    var nextPointIndex = 0
+    return ordered.mapIndexedNotNull { linkIndex, link ->
+        val newLinkPoints = link.linkPoints
+            .sortedBy { lp -> lp.trackMeter }
+            .mapIndexedNotNull { lpIndex, point ->
+                val (newPointIndex, accurateMatch) =
+                    if (lpIndex == 0) findPoint(points, point.trackMeter, nextPointIndex, true)
+                    else findPoint(points, point.trackMeter, nextPointIndex+1, false)
+                if (newPointIndex == null) {
+                    LOG.warn("Filtering out switch joint: " +
+                            "switch=${link.switchOid} joint=${point.jointNumber}" +
+                            "linkPoint=$point fullLink=$link previous=${switchLinks.getOrNull(linkIndex-1)}")
+                    null
+                } else {
+                    nextPointIndex = newPointIndex
+                    if (accurateMatch) point
+                    else point.copy(trackMeter = points[newPointIndex].trackMeter)
+                }
+            }
+        if (newLinkPoints.isEmpty()) {
+            LOG.warn("Filtering out entire switch: " +
+                    "switch=${link.switchOid} joints=${link.linkPoints.map { p -> p.jointNumber}}" +
+                    "$link previous=${switchLinks.getOrNull(linkIndex-1)}")
+            null
+        } else if (newLinkPoints != link.linkPoints) {
+            LOG.warn("Adjusting switch points to match actual track points: " +
+                    "original=${describePoints(link.linkPoints)} new=${describePoints(newLinkPoints)}")
+            link.copy(linkPoints = newLinkPoints)
+        } else link
+    }
+}
+
+fun describePoints(linkPoints: List<AlignmentSwitchLinkPoint>): String =
+    linkPoints.joinToString(",") { lp -> "${lp.jointNumber}:${lp.trackMeter}" }
+
+fun findPoint(points: List<AddressPoint>, address: TrackMeter, startIndex: Int, preferBackward: Boolean): Pair<Int?, Boolean> {
+    for (idx in startIndex..points.lastIndex) {
+        val currentPoint = points[idx]
+        // Exact match
+        if (currentPoint.trackMeter.isSame(address)) {
+            return idx to true
+        }
+        // We're past the correct point
+        else if (currentPoint.trackMeter > address) {
+            val previousPoint = points.getOrNull(idx-1)
+            return if (previousPoint == null || previousPoint.trackMeter <= address) {
+                // If exact match would be between the points, return one or the other
+                if (preferBackward && idx > startIndex) idx - 1 else idx
+            } else {
+                // The exact match is farther back -> return nothing and filter out the point
+                null
+            } to false
+        }
+    }
+    // Target after the end of points
+    return (if (points.last().trackMeter < address) points.lastIndex else null) to false
+}
+
+fun verifySwitchLinksAreAllMapped(
+    switchLinks: List<AlignmentSwitchLink>,
+    alignment: LayoutAlignment,
+    topologyStart: TopologyLocationTrackSwitch?,
+    topologyEnd: TopologyLocationTrackSwitch?,
+) {
+    val topologyLinks = listOfNotNull(
+        topologyStart?.let { t -> "${t.switchId}/${t.jointNumber}" },
+        topologyEnd?.let { t -> "${t.switchId}/${t.jointNumber}" },
+    )
+    val segmentLinks = alignment.segments.flatMap { s ->
+        if (s.switchId == null) listOf()
+        else listOfNotNull(
+            s.startJointNumber?.let { j -> "${s.switchId}/$j" },
+            s.endJointNumber?.let { j -> "${s.switchId}/$j" },
+        )
+    }
+    val actualLinks = (topologyLinks + segmentLinks).distinct().sorted()
+    val expectedLinks = switchLinks.flatMap { sl ->
+        sl.linkPoints.map { lp -> "${sl.switchId}/${lp.jointNumber}" }
+    }.distinct().sorted()
+    if (expectedLinks != actualLinks) {
+        LOG.warn("Switch linking imperfect: " +
+                "track=${switchLinks.first().alignmentOid} " +
+                "switches=${switchLinks.map { sl -> 
+                    "${sl.switchOid}(${sl.linkPoints.map { lp -> lp.jointNumber }})" 
+                }} " +
+                "expected=$expectedLinks " +
+                "actual=$actualLinks")
+    }
 }
 
 fun <T> createSegments(
