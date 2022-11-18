@@ -107,6 +107,8 @@ export type PublicationDetails = {
     locationTracks: LocationTrackPublishCandidate[];
     switches: SwitchPublishCandidate[];
     kmPosts: KmPostPublishCandidate[];
+    status: RatkoPushStatus | null;
+    ratkoPushTime?: TimeStamp;
 };
 
 export type RatkoPushError = {

@@ -31,7 +31,15 @@ data class Publication(
     val referenceLines: List<ReferenceLinePublishCandidate>,
     val locationTracks: List<LocationTrackPublishCandidate>,
     val switches: List<SwitchPublishCandidate>,
-    val kmPosts: List<KmPostPublishCandidate>
+    val kmPosts: List<KmPostPublishCandidate>,
+    val status: RatkoPushStatus?,
+    val ratkoPushTime: Instant?,
+)
+
+data class PublicationStatusTime(
+    val publishTime: Instant,
+    val status: RatkoPushStatus?,
+    val ratkoPushTime: Instant?,
 )
 
 enum class DraftChangeType {

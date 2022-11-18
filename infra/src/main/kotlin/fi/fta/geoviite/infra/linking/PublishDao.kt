@@ -184,7 +184,7 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             values (current_setting('geoviite.edit_user'), now())
             returning id
         """.trimIndent()
-        val publicationId: IntId<Publication> = jdbcTemplate.queryForObject(sql, mapOf<String,Any>()) { rs, _ ->
+        val publicationId: IntId<Publication> = jdbcTemplate.queryForObject(sql, mapOf<String, Any>()) { rs, _ ->
             rs.getIntId("id")
         } ?: throw IllegalStateException("Failed to generate ID for new publish row")
 
@@ -290,13 +290,29 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         }
     }
 
-    fun fetchPublishTime(publicationId: IntId<Publication>): Instant {
+    fun fetchPublishStatusTime(publicationId: IntId<Publication>): PublicationStatusTime {
         val sql = """
-            select publication_time from publication.publication where id = :id
+            select
+              publication.publication_time,
+              ratko_push.end_time as ratko_push_time,
+              ratko_push.status
+            from publication.publication
+              left join integrations.ratko_push_content
+                on ratko_push_content.publication_id = publication.id
+              left join integrations.ratko_push
+                on ratko_push.id = ratko_push_content.ratko_push_id
+            where publication.id = :id
+            order by ratko_push.id desc
+            limit 1
         """.trimIndent()
-        return getOne(publicationId, jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
-            rs.getInstant("publication_time")
-        }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
+        return getOne(publicationId,
+            jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
+                PublicationStatusTime(
+                    publishTime = rs.getInstant("publication_time"),
+                    status = rs.getEnumOrNull<RatkoPushStatus>("status"),
+                    ratkoPushTime = rs.getInstantOrNull("ratko_push_time")
+                )
+            }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }
 
     fun fetchCalculatedChangesInPublish(publicationId: IntId<Publication>): CalculatedChanges {

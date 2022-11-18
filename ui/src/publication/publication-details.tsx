@@ -1,8 +1,8 @@
 import * as React from 'react';
 import PublicationTable from 'publication/publication-table';
-import { useLoader } from 'utils/react-utils';
 import { getPublication } from 'publication/publication-api';
 import {
+    PublicationDetails,
     PublicationListingItem,
     ratkoPushFailed,
     RatkoPushStatus,
@@ -14,20 +14,41 @@ import RatkoPublishButton from 'publication/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 
-type PublicationDetailsProps = {
+export type PublicationDetailsProps = {
     publication: PublicationListingItem;
     onPublicationUnselected: () => void;
     anyFailed: boolean;
 };
+
 
 const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     publication,
     onPublicationUnselected,
     anyFailed,
 }) => {
+
+    const [publishCandidates, setPublishCandidates] = React.useState<PublicationDetails | null >();
     const { t } = useTranslation();
-    const publicationDetails = useLoader(() => getPublication(publication.id), []);
     const waitingAfterFail = publication.status === null && anyFailed;
+
+    React.useEffect(() => {
+        let cancel = false;
+        function fetchPublications () {
+            getPublication(publication.id).then(result => {
+                if (!cancel) {
+                    setPublishCandidates(result)
+                }
+            });
+        }
+
+        fetchPublications();
+        const intervalTimer = setInterval(fetchPublications, 30000)
+
+        return () => {
+            cancel = true;
+            clearInterval(intervalTimer)
+        };
+    }, []);
 
     return (
         <div className={styles['publication-details__publication']}>
@@ -39,16 +60,16 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                     {t('frontpage.frontpage-link')}
                 </Link>
                 <span style={{ whiteSpace: 'pre' }}>
-                    {' > ' + formatDateFull(publication.publishTime)}
+                    {publishCandidates && ' > ' + formatDateFull(publishCandidates.publishTime)}
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
-                {publicationDetails && (
+                {publishCandidates && (
                     <PublicationTable
-                        previewChanges={publicationDetails}
+                        previewChanges={publishCandidates}
                         ratkoPushDate={
-                            publication.status === RatkoPushStatus.SUCCESSFUL
-                                ? publication.ratkoPushTime
+                            publishCandidates.status === RatkoPushStatus.SUCCESSFUL
+                                ? publishCandidates.ratkoPushTime
                                 : undefined
                         }
                         showRatkoPushDate={true}
