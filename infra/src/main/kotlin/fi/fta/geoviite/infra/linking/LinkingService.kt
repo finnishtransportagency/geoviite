@@ -177,9 +177,10 @@ class LinkingService @Autowired constructor(
     }
 
     private fun startChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
-        !equalsXY(oldAlignment.start, newAlignment.start) || !equalsXY(oldAlignment.end, newAlignment.end)
+        !equalsXY(oldAlignment.start, newAlignment.start)
+
     private fun endChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
-        !equalsXY(oldAlignment.start, newAlignment.start) || !equalsXY(oldAlignment.end, newAlignment.end)
+        !equalsXY(oldAlignment.end, newAlignment.end)
 
     private fun equalsXY(point1: IPoint?, point2: IPoint?) = point1?.x == point2?.x && point1?.y == point2?.y
 
