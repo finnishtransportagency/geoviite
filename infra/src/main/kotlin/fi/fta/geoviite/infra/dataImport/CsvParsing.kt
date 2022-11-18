@@ -237,23 +237,9 @@ fun createLocationTracksFromCsv(
         val alignmentExtId = Oid<LocationTrack>(line.get(LocationTrackColumns.EXTERNAL_ID))
         val state = enumValueOf<LayoutState>(line.get(LocationTrackColumns.STATE))
         val metadata = metadataMap[alignmentExtId] ?: listOf()
-        val alignmentSwitchLinks =
+        val switchLinks =
             if (state != LayoutState.DELETED && switchLinksMap.containsKey(alignmentExtId)) switchLinksMap[alignmentExtId]!!
             else listOf()
-        val switchLinks = alignmentSwitchLinks.filterIndexed { index, link ->
-            val isSinglePoint = link.startMeter == link.endMeter
-            alignmentSwitchLinks.drop(index).all { other ->
-                val doesNotOverlap =
-                    if (isSinglePoint) (link.endMeter < other.startMeter || link.startMeter > other.endMeter)
-                    else (link.endMeter <= other.startMeter || link.startMeter >= other.endMeter)
-                if (link.switchId == other.switchId || doesNotOverlap) {
-                    true
-                } else {
-                    LOG.warn("Filtering out overlapping switch link: filtered=$link other=$other")
-                    false
-                }
-            }
-        }
         val (points, connectionSegmentIndices) = measureAndCollect("parsing->toAddressPoints") {
             toAddressPoints(
                 "locationTrack=$alignmentExtId",
@@ -276,7 +262,7 @@ fun createLocationTracksFromCsv(
             }
             val alignment = LayoutAlignment(segments, sourceId = null)
             val name = AlignmentName(line.get(LocationTrackColumns.NAME))
-            verifySwitchLinksAreAllMapped(name, alignmentExtId, switchLinks, segmentRanges, points, alignment, switchLinkGroups.startOfTrack, switchLinkGroups.endOfTrack)
+            verifySwitchLinksAreAllMapped(switchLinks, alignment, switchLinkGroups.startOfTrack, switchLinkGroups.endOfTrack)
             val track = LocationTrack(
                 trackNumberId = trackNumbers[trackNumberExtId] ?: throw IllegalStateException(
                     "No TrackNumber found for LocationTrack: track=$alignmentExtId trackNumber=$trackNumberExtId"
@@ -693,67 +679,106 @@ fun <T> combineMetadataToSegments(
         getGeometryElementRanges(points, metadata, kkjToEtrsTriangulationTriangles)
     }
     val adjustedSwitchLinks = adjustSwitchLinksToPoints(points, switchLinks)
+    verifyNoOverlappingSwitchLinks(adjustedSwitchLinks)
     val expandedMetadata = adjustMetadataToSwitchLinks(elementMetadatas, adjustedSwitchLinks)
     return segmentCsvMetadata(points, expandedMetadata, adjustedSwitchLinks)
 }
 
+fun verifyNoOverlappingSwitchLinks(alignmentSwitchLinks: List<AlignmentSwitchLink>) =
+    alignmentSwitchLinks.forEachIndexed { index, link ->
+        val previous = alignmentSwitchLinks.getOrNull(index-1)
+        require(previous == null || previous.endMeter <= link.startMeter) {
+            "Switch links should not overlap: link=$link previous=$previous"
+        }
+    }
+
 fun adjustSwitchLinksToPoints(
     points: List<AddressPoint>,
     switchLinks: List<AlignmentSwitchLink>,
-): List<AlignmentSwitchLink> = switchLinks.map { link ->
-    var prevIndex = -1
-    val newLinkPoints = link.linkPoints.mapIndexed { pointIndex, point ->
-        val (newPointIndex, accurateMatch) = findPoint(points, point.trackMeter, prevIndex+1, pointIndex==0)
-        prevIndex = requireNotNull(newPointIndex) {
-            "Could not match switch link start to actual points: link=$link points=$points"
-        }
-        if (accurateMatch) point
-        else point.copy(trackMeter = points[prevIndex].trackMeter)
+): List<AlignmentSwitchLink> {
+    val ordered = switchLinks.sortedBy { sl -> sl.startMeter }
+    var nextPointIndex = 0
+    return ordered.mapIndexedNotNull { linkIndex, link ->
+        val newLinkPoints = link.linkPoints
+            .sortedBy { lp -> lp.trackMeter }
+            .mapIndexedNotNull { lpIndex, point ->
+                val (newPointIndex, accurateMatch) =
+                    if (lpIndex == 0) findPoint(points, point.trackMeter, nextPointIndex, true)
+                    else findPoint(points, point.trackMeter, nextPointIndex+1, false)
+                if (newPointIndex == null) {
+                    LOG.warn("Filtering out switch joint: " +
+                            "switch=${link.switchOid} joint=${point.jointNumber}" +
+                            "linkPoint=$point fullLink=$link previous=${switchLinks.getOrNull(linkIndex-1)}")
+                    null
+                } else {
+                    nextPointIndex = newPointIndex
+                    if (accurateMatch) point
+                    else point.copy(trackMeter = points[newPointIndex].trackMeter)
+                }
+            }
+        if (newLinkPoints.isEmpty()) {
+            LOG.warn("Filtering out entire switch: " +
+                    "switch=${link.switchOid} joints=${link.linkPoints.map { p -> p.jointNumber}}" +
+                    "$link previous=${switchLinks.getOrNull(linkIndex-1)}")
+            null
+        } else if (newLinkPoints != link.linkPoints) {
+            LOG.warn("Adjusting switch points to match actual track points: " +
+                    "original=${describePoints(link.linkPoints)} new=${describePoints(newLinkPoints)}")
+            link.copy(linkPoints = newLinkPoints)
+        } else link
     }
-    if (newLinkPoints != link.linkPoints) link.copy(linkPoints = newLinkPoints)
-    else link
 }
 
+fun describePoints(linkPoints: List<AlignmentSwitchLinkPoint>): String =
+    linkPoints.joinToString(",") { lp -> "${lp.jointNumber}:${lp.trackMeter}" }
+
 fun findPoint(points: List<AddressPoint>, address: TrackMeter, startIndex: Int, preferBackward: Boolean): Pair<Int?, Boolean> {
-    for (i in startIndex..points.lastIndex) {
-        if (points[i].trackMeter.isSame(address)) return i to true
-        else if (points[i].trackMeter > address) {
-            return (if (preferBackward && i > startIndex) i-1 else i) to false
+    for (idx in startIndex..points.lastIndex) {
+        val currentPoint = points[idx]
+        // Exact match
+        if (currentPoint.trackMeter.isSame(address)) {
+            return idx to true
+        }
+        // We're past the correct point
+        else if (currentPoint.trackMeter > address) {
+            val previousPoint = points.getOrNull(idx-1)
+            return if (previousPoint == null || previousPoint.trackMeter <= address) {
+                // If exact match would be between the points, return one or the other
+                if (preferBackward && idx > startIndex) idx - 1 else idx
+            } else {
+                // The exact match is farther back -> return nothing and filter out the point
+                null
+            } to false
         }
     }
-    return (if (points.lastIndex >= startIndex) points.lastIndex else null) to false
+    // Target after the end of points
+    return (if (points.last().trackMeter < address) points.lastIndex else null) to false
 }
 
 fun verifySwitchLinksAreAllMapped(
-    name: AlignmentName,
-    oid: Oid<LocationTrack>,
     switchLinks: List<AlignmentSwitchLink>,
-    segmentRanges: List<SegmentCsvMetaDataRange<*>>,
-    points: List<AddressPoint>,
     alignment: LayoutAlignment,
     topologyStart: TopologyLocationTrackSwitch?,
     topologyEnd: TopologyLocationTrackSwitch?,
 ) {
     switchLinks.forEach { link ->
-        require(
-            topologyStart?.switchId == link.switchId ||
-                    topologyEnd?.switchId == link.switchId ||
-                    alignment.segments.any { segment -> segment.switchId == link.switchId }
+        if (topologyStart?.switchId != link.switchId &&
+                    topologyEnd?.switchId != link.switchId &&
+                    alignment.segments.none { segment -> segment.switchId == link.switchId }
         ) {
             val segmentsWithSwitches = alignment.segments.filter { s -> s.switchId != null }
-            "All switches must be mapped to the location track: " +
-                    "name=$name " +
-                    "oid=$oid " +
-                    "links=$switchLinks " +
+            LOG.warn("Switch linking was not mapped to the location track: " +
+                    "trackOid=${link.alignmentOid} " +
+                    "switchOid=${link.switchOid} " +
+                    "linkJoints=${describePoints(link.linkPoints)} " +
                     "topologyStart=$topologyStart " +
                     "topologyEnd=$topologyEnd " +
                     "segmentsWithSwitches=${
                         segmentsWithSwitches.joinToString(",") { s ->
                             "${s.switchId}[${s.startJointNumber}-${s.endJointNumber}]"
                         }
-                    } " +
-                    "points=$points "+
-                    "segmentRanges=$segmentRanges "
+                    }"
+            )
         }
     }
 }
