@@ -27,7 +27,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     anyFailed,
 }) => {
 
-    const [publishCandidates, setPublishCandidates] = React.useState<PublicationDetails | null >();
+    const [publicationDetails, setPublicationDetails] = React.useState<PublicationDetails | null >();
     const { t } = useTranslation();
     const waitingAfterFail = publication.status === null && anyFailed;
 
@@ -36,7 +36,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
         function fetchPublications () {
             getPublication(publication.id).then(result => {
                 if (!cancel) {
-                    setPublishCandidates(result)
+                    setPublicationDetails(result)
                 }
             });
         }
@@ -60,16 +60,16 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                     {t('frontpage.frontpage-link')}
                 </Link>
                 <span style={{ whiteSpace: 'pre' }}>
-                    {publishCandidates && ' > ' + formatDateFull(publishCandidates.publishTime)}
+                    {publicationDetails && ' > ' + formatDateFull(publicationDetails.publishTime)}
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
-                {publishCandidates && (
+                {publicationDetails && (
                     <PublicationTable
-                        previewChanges={publishCandidates}
+                        previewChanges={publicationDetails}
                         ratkoPushDate={
-                            publishCandidates.status === RatkoPushStatus.SUCCESSFUL
-                                ? publishCandidates.ratkoPushTime
+                            publicationDetails.status === RatkoPushStatus.SUCCESSFUL
+                                ? publicationDetails.ratkoPushTime
                                 : undefined
                         }
                         showRatkoPushDate={true}
