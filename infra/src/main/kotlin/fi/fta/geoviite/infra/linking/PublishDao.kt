@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @Service
 class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
@@ -290,7 +289,7 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         }
     }
 
-    fun fetchPublishStatusTime(publicationId: IntId<Publication>): PublicationStatusTime {
+    fun fetchPublishTime(publicationId: IntId<Publication>): PublicationTime {
         val sql = """
             select
               publication.publication_time,
@@ -302,12 +301,12 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               left join integrations.ratko_push
                 on ratko_push.id = ratko_push_content.ratko_push_id
             where publication.id = :id
-            order by ratko_push.id desc
+            order by ratko_push.end_time desc
             limit 1
         """.trimIndent()
         return getOne(publicationId,
             jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
-                PublicationStatusTime(
+                PublicationTime(
                     publishTime = rs.getInstant("publication_time"),
                     status = rs.getEnumOrNull<RatkoPushStatus>("status"),
                     ratkoPushTime = rs.getInstantOrNull("ratko_push_time")

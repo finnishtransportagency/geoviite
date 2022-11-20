@@ -363,7 +363,7 @@ class PublishService @Autowired constructor(
         publishDao.fetchRatkoPublicationListing()
 
     fun getPublication(id: IntId<Publication>): Publication {
-        val (publishTime, status, pushTime) = publishDao.fetchPublishStatusTime(id)
+        val (publishTime, status, pushTime) = publishDao.fetchPublishTime(id)
         val locationTracks = locationTrackDao.fetchPublicationInformation(id)
         val referenceLines = referenceLineDao.fetchPublicationInformation(id)
         val kmPosts = kmPostDao.fetchPublicationInformation(id)

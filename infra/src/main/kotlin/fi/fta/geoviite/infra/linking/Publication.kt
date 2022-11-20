@@ -36,7 +36,7 @@ data class Publication(
     val ratkoPushTime: Instant?,
 )
 
-data class PublicationStatusTime(
+data class PublicationTime(
     val publishTime: Instant,
     val status: RatkoPushStatus?,
     val ratkoPushTime: Instant?,

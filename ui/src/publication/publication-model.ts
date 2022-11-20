@@ -108,7 +108,7 @@ export type PublicationDetails = {
     switches: SwitchPublishCandidate[];
     kmPosts: KmPostPublishCandidate[];
     status: RatkoPushStatus | null;
-    ratkoPushTime?: TimeStamp;
+    ratkoPushTime?: TimeStamp | null;
 };
 
 export type RatkoPushError = {

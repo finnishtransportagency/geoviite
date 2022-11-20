@@ -28,8 +28,9 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
 }) => {
 
     const [publicationDetails, setPublicationDetails] = React.useState<PublicationDetails | null >();
+    const [waitingAfterFail, setWaitingAfterFail] = React.useState<boolean>();
     const { t } = useTranslation();
-    const waitingAfterFail = publication.status === null && anyFailed;
+
 
     React.useEffect(() => {
         let cancel = false;
@@ -42,7 +43,8 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
         }
 
         fetchPublications();
-        const intervalTimer = setInterval(fetchPublications, 30000)
+        const intervalTimer = setInterval(fetchPublications, 30000);
+        setWaitingAfterFail(publication.status === null && anyFailed);
 
         return () => {
             cancel = true;
@@ -69,7 +71,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                         previewChanges={publicationDetails}
                         ratkoPushDate={
                             publicationDetails.status === RatkoPushStatus.SUCCESSFUL
-                                ? publicationDetails.ratkoPushTime
+                                ? publicationDetails.ratkoPushTime || undefined
                                 : undefined
                         }
                         showRatkoPushDate={true}
