@@ -21,16 +21,21 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
 
-open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, val responseBody: String) : RuntimeException()
+open class RatkoPushException(
+    val type: RatkoPushErrorType,
+    val operation: RatkoOperation,
+    val responseBody: String,
+    cause: Exception? = null,
+) : RuntimeException(cause)
 
 class RatkoSwitchPushException(exception: RatkoPushException, val switch: TrackLayoutSwitch) :
-    RatkoPushException(exception.type, exception.operation, exception.responseBody)
+    RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
 
 class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: LocationTrack) :
-    RatkoPushException(exception.type, exception.operation, exception.responseBody)
+    RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
 
 class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: TrackLayoutTrackNumber) :
-    RatkoPushException(exception.type, exception.operation, exception.responseBody)
+    RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
 
 @Service
 @ConditionalOnBean(RatkoClientConfiguration::class)

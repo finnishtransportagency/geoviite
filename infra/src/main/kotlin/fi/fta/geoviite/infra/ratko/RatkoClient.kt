@@ -97,7 +97,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString))
+                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
             }
             .block()
     }
@@ -116,7 +116,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString))
+                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
             }
             .block()
     }
