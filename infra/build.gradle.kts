@@ -42,8 +42,13 @@ dependencies {
         strictly("[1.3.3,)")
     }
 
+    // CVE-2022-31692, force org.springframework.boot:spring-boot-starter-security to use version 5.7.5 instead of 5.7.4
+    implementation("org.springframework.security", "spring-security-web").version {
+        strictly("[5.7.5,)")
+    }
+
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.328")
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.342")
     implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -74,7 +79,7 @@ dependencies {
     implementation("org.apache.commons:commons-csv:1.9.0")
     implementation("com.auth0:jwks-rsa:0.21.2")
     implementation("com.auth0:java-jwt:4.2.1")
-    implementation("io.netty:netty-resolver-dns-native-macos:4.1.84.Final:osx-aarch_64")
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.85.Final:osx-aarch_64")
     implementation("org.postgresql:postgresql:42.5.0")
     implementation("net.postgis:postgis-jdbc:2021.1.0")
     implementation("jakarta.activation:jakarta.activation-api:2.1.0")
@@ -84,7 +89,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.7.20")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.5.3")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.6.0")
     testImplementation("io.github.bonigarcia:webdrivermanager:5.3.0")
 }
 
