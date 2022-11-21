@@ -27,8 +27,8 @@ import reactor.core.publisher.Mono
 import java.math.RoundingMode
 import java.time.Duration
 
-val defaultRequestTimeout = Duration.ofMinutes(5L)
-val metersCalculationTimeout = Duration.ofMinutes(15L)
+val defaultRequestTimeout: Duration = Duration.ofMinutes(5L)
+val metersCalculationTimeout: Duration = Duration.ofMinutes(15L)
 
 @Service
 @ConditionalOnBean(RatkoClientConfiguration::class)
