@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
+import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
 
 export type PublicationDetailsProps = {
@@ -21,30 +22,18 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     onPublicationUnselected,
     anyFailed,
 }) => {
+
     const [publicationDetails, setPublicationDetails] = React.useState<PublicationDetails | null>();
     const [waitingAfterFail, setWaitingAfterFail] = React.useState<boolean>();
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
-    React.useEffect(() => {
-        let cancel = false;
-
-        function fetchPublications() {
-            getPublication(publication.id).then((result) => {
-                if (!cancel) {
-                    setPublicationDetails(result);
-                }
-            });
-        }
-
-        fetchPublications();
-        const intervalTimer = setInterval(fetchPublications, 30000);
-        setWaitingAfterFail(publication.status === null && anyFailed);
-
-        return () => {
-            cancel = true;
-            clearInterval(intervalTimer);
-        };
-    }, []);
+    useLoaderWithTimer(
+        setPublicationDetails,
+        () => getPublication(publication.id),
+        [],
+        publicationDetails?.status === null,
+        anyFailed,
+        setWaitingAfterFail);
 
     return (
         <div className={styles['publication-details__publication']}>
@@ -109,7 +98,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                             </span>
                         </div>
                     )}
-                    <RatkoPublishButton />
+                    <RatkoPublishButton/>
                 </footer>
             )}
         </div>

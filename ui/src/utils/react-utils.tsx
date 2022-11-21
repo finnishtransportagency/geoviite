@@ -68,6 +68,43 @@ export function useLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
+
+export function useLoaderWithTimer<TEntity>(
+    setEntity: (entity: TEntity | undefined) => void,
+    loadFunc: () => Promise<TEntity> | undefined,
+    deps: unknown[],
+    status?: boolean,
+    anyFailed?: boolean,
+    setWaitingAfterFail?: (status: boolean) => void,
+) {
+
+    React.useEffect(() => {
+        let cancel = false;
+        setEntity(undefined);
+
+        function fetchEntities() {
+            const result = loadFunc();
+            if (result) {
+                result.then((r) => {
+                    if (!cancel) {
+                        setEntity(r);
+                    }
+                });
+            }
+        }
+
+        fetchEntities();
+        const intervalTimer = setInterval(fetchEntities, 30000);
+        if (setWaitingAfterFail && status && anyFailed) {setWaitingAfterFail(status && anyFailed);}
+
+        return () => {
+            cancel = true;
+            clearInterval(intervalTimer);
+        };
+    }, deps);
+}
+
+
 /**
  * Usage:
  *
