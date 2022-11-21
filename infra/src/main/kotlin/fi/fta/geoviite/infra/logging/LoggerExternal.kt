@@ -55,20 +55,9 @@ fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
 fun paramsToLog(params: Array<out Pair<String, *>>): List<String> = params.map { p -> "${p.first}=${p.second}" }
 
 fun Logger.integrationCall(request: ClientRequest) {
-    info(
-        """
-        Sending API request to external service
-        url: ${request.url()}
-        method: ${request.method()}
-        """.trimIndent()
-    )
+    info("Sending API request to external service: ${request.logPrefix()} method=${request.method()} url=${request.url()}")
 }
 
 fun Logger.integrationCall(response: ClientResponse) {
-    info(
-        """
-        External service responded with status code: ${response.statusCode()}
-        """.trimIndent()
-    )
+    info("External service responded: ${response.logPrefix()} status=${response.statusCode()}")
 }
-
