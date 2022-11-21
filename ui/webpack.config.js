@@ -134,14 +134,14 @@ module.exports = (env) => {
             new CspHtmlWebpackPlugin({
                 'base-uri': "'self'",
                 'object-src': "'none'",
-                'script-src': "'self'",
-                'style-src': "'self' https://fonts.googleapis.com/"
+                'img-src': "data: http: https:", // http: is for running locally
+                'default-src': "'self'"
             }, {
                 enabled: true,
                 hashingMethod: 'sha256',
                 nonceEnabled: {
                     'script-src': true,
-                    'style-src': true
+                    'style-src': true,
                 }
             }),
             new ESLintWebpackPlugin({
