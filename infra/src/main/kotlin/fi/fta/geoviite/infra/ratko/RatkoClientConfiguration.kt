@@ -24,7 +24,7 @@ class RatkoClientConfiguration @Autowired constructor(
     @Value("\${geoviite.ratko.password:}") private val basicAuthPassword: String,
 ) {
 
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(RatkoClient::class.java)
 
     @Bean
     fun webClient(): WebClient {

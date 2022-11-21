@@ -25,7 +25,10 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import java.math.RoundingMode
+import java.time.Duration
 
+val defaultRequestTimeout: Duration = Duration.ofMinutes(5L)
+val metersCalculationTimeout: Duration = Duration.ofMinutes(15L)
 
 @Service
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -46,7 +49,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .thenReturn(true)
             .onErrorResume { Mono.just(false) }
-            .block()!!
+            .block(defaultRequestTimeout)!!
     }
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
@@ -60,7 +63,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .uri("/api/locations/v1.1/locationtracks/${locationTrackOid}")
             .retrieve()
             .bodyToMono<String>()
-            .block()
+            .block(defaultRequestTimeout)
             ?.let { response ->
                 ratkoJsonMapper.readTree(response).firstOrNull()?.let { locationTrackJsonNode ->
                     replaceKmM(locationTrackJsonNode.get("nodecollection"))
@@ -80,7 +83,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.UPDATE)
             .toBodilessEntity()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, km: KmNumber?) {
@@ -97,9 +100,9 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString))
+                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
             }
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, km: KmNumber?) {
@@ -116,9 +119,9 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString))
+                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
             }
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun updateRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
@@ -136,7 +139,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
                 .toBodilessEntity()
-                .block()
+                .block(defaultRequestTimeout)
         }
     }
 
@@ -155,7 +158,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
                 .toBodilessEntity()
-                .block()
+                .block(defaultRequestTimeout)
         }
     }
 
@@ -174,7 +177,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
                 .toBodilessEntity()
-                .block()
+                .block(defaultRequestTimeout)
         }
     }
 
@@ -193,7 +196,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
                 .toBodilessEntity()
-                .block()
+                .block(defaultRequestTimeout)
         }
     }
 
@@ -209,7 +212,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .bodyValue(locationTrackOids.map { it.id })
             .retrieve()
             .toBodilessEntity()
-            .block()
+            .block(metersCalculationTimeout)
     }
 
     fun newLocationTrack(locationTrack: RatkoLocationTrack): RatkoOid<RatkoLocationTrack>? {
@@ -222,7 +225,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
             .bodyToMono<RatkoOid<RatkoLocationTrack>>()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {
@@ -239,7 +242,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
             .bodyToMono<List<NewRatkoAssetResponse>>()
-            .block()
+            .block(defaultRequestTimeout)
             ?.firstOrNull()
             ?.let { RatkoOid(it.id) }
     }
@@ -258,7 +261,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.LOCATION, RatkoOperation.UPDATE)
             .toBodilessEntity()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun <T : RatkoAsset> replaceAssetGeoms(assetOid: RatkoOid<T>, geoms: List<RatkoAssetGeometry>) {
@@ -274,7 +277,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
             .toBodilessEntity()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun <T : RatkoAsset> getSwitchAsset(assetOid: RatkoOid<T>): RatkoSwitchAsset? {
@@ -289,7 +292,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode) Mono.empty() else Mono.error(it)
             }
-            .block()
+            .block(defaultRequestTimeout)
             ?.let { response ->
                 ratkoJsonMapper.readTree(response).let { jsonNode ->
                     jsonNode.get("assetGeoms")?.map { asset ->
@@ -326,7 +329,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .uri("/api/assets/v1.2/${assetOid}")
             .retrieve()
             .bodyToMono<String>()
-            .block()
+            .block(defaultRequestTimeout)
 
         val switchJsonObject = ObjectMapper().readTree(responseJson) as ObjectNode
         switchJsonObject.put("state", state.value)
@@ -367,7 +370,10 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         }
 
         val locations = switchJsonObject.putArray("locations")
-        updatedLocations.forEach { location -> locations.add(location) }
+        updatedLocations.forEachIndexed { index, location ->
+            (location as ObjectNode).put("priority", index + 1)
+            locations.add(location)
+        }
 
         (switchJsonObject.get("rowMetadata") as ObjectNode).put("sourceName", GEOVIITE_NAME)
 
@@ -380,7 +386,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.STATE, RatkoOperation.UPDATE)
             .toBodilessEntity()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun <T : RatkoAsset> updateAssetProperties(assetOid: RatkoOid<T>, properties: List<RatkoAssetProperty>) {
@@ -397,7 +403,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.UPDATE)
             .toBodilessEntity()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun getNewLocationTrackOid(): RatkoOid<RatkoLocationTrack>? {
@@ -410,7 +416,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
             .bodyToMono<RatkoOid<RatkoLocationTrack>>()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun getNewRouteNumberOid(): RatkoOid<RatkoRouteNumber>? {
@@ -423,7 +429,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
             .bodyToMono<RatkoOid<RatkoRouteNumber>>()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun getNewSwitchOid(): RatkoOid<RatkoSwitchAsset>? {
@@ -439,7 +445,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
             .bodyToMono<List<RatkoOid<RatkoSwitchAsset>>>()
-            .block()
+            .block(defaultRequestTimeout)
             ?.firstOrNull()
     }
 
@@ -454,7 +460,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode) Mono.empty() else Mono.error(it)
             }
-            .block()
+            .block(defaultRequestTimeout)
             ?.let { response ->
                 ratkoJsonMapper.readTree(response).let { jsonNode ->
                     replaceKmM(jsonNode.get("nodecollection"))
@@ -477,7 +483,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.CREATE)
             .bodyToMono<RatkoOid<RatkoRouteNumber>>()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     fun forceRatkoToRedrawRouteNumber(routeNumberOids: List<RatkoOid<RatkoRouteNumber>>) {
@@ -492,7 +498,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .bodyValue(routeNumberOids.map { it.id })
             .retrieve()
             .toBodilessEntity()
-            .block()
+            .block(metersCalculationTimeout)
     }
 
     fun updateRouteNumber(routeNumber: RatkoRouteNumber) {
@@ -508,7 +514,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .defaultErrorHandler(RatkoPushErrorType.PROPERTIES, RatkoOperation.UPDATE)
             .toBodilessEntity()
-            .block()
+            .block(defaultRequestTimeout)
     }
 
     private fun WebClient.ResponseSpec.defaultErrorHandler(
