@@ -369,6 +369,21 @@ export async function getSwitchesByBoundingBox(
     return await getWithDefault<LayoutSwitch[]>(`${layoutUri(publishType)}/switches${params}`, []);
 }
 
+export async function getSwitchesBySearchTerm(
+    searchTerm: string,
+    publishType: PublishType,
+    limit: number,
+): Promise<LayoutSwitch[]> {
+    const params = queryParams({
+        searchTerm: searchTerm,
+        limit: limit,
+    });
+    return await getWithDefault<LayoutSwitch[]>(
+        `${layoutUri(publishType)}/switches${params}`,
+        [],
+    );
+}
+
 export async function getSwitch(
     switchId: LayoutSwitchId,
     publishType: PublishType,

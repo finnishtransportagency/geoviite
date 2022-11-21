@@ -561,7 +561,7 @@ export function getMapAlignmentBadgeStyle(
         text =
             alignment.alignmentType == 'REFERENCE_LINE'
                 ? trackNumber.number
-                : `${trackNumber.number} | ${alignment.name}`;
+                : `${trackNumber.number} / ${alignment.name}`;
 
         if (lineHighlighted) {
             color = mapStyles['alignment-badge-color'];
