@@ -38,6 +38,7 @@ import styles from 'vayla-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { createClassName } from 'vayla-design-lib/utils';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -169,7 +170,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     : 'track-number-edit.title.create',
             )}
             onClose={onClose}
-            style={{ minWidth: '700px' }}
+            className={dialogStyles['dialog--ultrawide']}
             scrollable={false}
             footerClassName={'dialog-footer'}
             footerContent={
@@ -335,7 +336,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                     title={t('track-number-edit.title.delete-non-draft')}
                     variant={DialogVariant.DARK}
                     allowClose={false}
-                    style={{ minWidth: '300px' }}
+                    className={dialogStyles['dialog--normal']}
                     footerContent={
                         <React.Fragment>
                             <Button

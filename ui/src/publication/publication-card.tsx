@@ -10,6 +10,7 @@ import { PublicationList } from 'publication/publication-list';
 import { ButtonSize } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'publication/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'publication/ratko-push-error';
+import styles from './publication-list.scss';
 
 type PublishListProps = {
     itemClicked: (pub: PublicationListingItem) => void;
@@ -34,7 +35,7 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
             {failures.length > 0 && (
                 <div>
                     <h3>{t('publishing.publish-issues')}</h3>
-                    <div style={{ marginBottom: '12px' }}>
+                    <div className={styles['publication-list__header']}>
                         <RatkoPublishButton size={ButtonSize.SMALL} />
                     </div>
                     {latestFailureWithPushError && (

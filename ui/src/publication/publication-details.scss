@@ -18,6 +18,10 @@
         font-size: 14px;
     }
 
+    &__publication-time {
+        white-space: pre;
+    }
+
     &__publication {
         display: flex;
         flex-direction: column;

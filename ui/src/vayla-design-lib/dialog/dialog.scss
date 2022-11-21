@@ -28,8 +28,6 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
   border-radius: 4px;
   background: $color-white-default;
   min-height: 200px;
-  min-width: 400px;
-  max-width: 330px;
 }
 
 .dialog__header {
@@ -162,4 +160,24 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
   .dialog__content {
     overflow-y: auto;
   }
+}
+
+.dialog--narrow {
+  min-width: 250px;
+  max-width: 250px;
+}
+
+.dialog--normal {
+  min-width: 300px;
+  max-width: 300px;
+}
+
+.dialog--wide {
+  min-width: 380px;
+  max-width: 380px;
+}
+
+.dialog--ultrawide {
+  min-width: 700px;
+  max-width: 700px;
 }

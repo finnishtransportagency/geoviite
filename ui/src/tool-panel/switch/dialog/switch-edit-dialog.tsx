@@ -20,6 +20,7 @@ import { getSwitch } from 'track-layout/track-layout-api';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
 import { createClassName } from 'vayla-design-lib/utils';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -280,7 +281,7 @@ export const SwitchEditDialog = ({
                     isExistingSwitch ? t('switch-dialog.title-edit') : t('switch-dialog.title-new')
                 }
                 onClose={onClose}
-                style={{ minWidth: '700px' }}
+                className={dialogStyles['dialog--ultrawide']}
                 footerClassName={'dialog-footer'}
                 footerContent={
                     <div className={styles['dialog-footer__content-area']}>
@@ -475,7 +476,7 @@ export const SwitchEditDialog = ({
                     title={t('switch-dialog.deleted-confirmation-title')}
                     variant={DialogVariant.DARK}
                     allowClose={false}
-                    style={{ width: 320, minWidth: 320 }}
+                    className={dialogStyles['dialog--normal']}
                     footerContent={
                         <>
                             <Button
