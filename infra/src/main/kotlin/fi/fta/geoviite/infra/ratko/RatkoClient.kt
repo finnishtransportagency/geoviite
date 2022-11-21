@@ -367,7 +367,10 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         }
 
         val locations = switchJsonObject.putArray("locations")
-        updatedLocations.forEach { location -> locations.add(location) }
+        updatedLocations.forEachIndexed { index, location ->
+            (location as ObjectNode).put("priority", index + 1)
+            locations.add(location)
+        }
 
         (switchJsonObject.get("rowMetadata") as ObjectNode).put("sourceName", GEOVIITE_NAME)
 
