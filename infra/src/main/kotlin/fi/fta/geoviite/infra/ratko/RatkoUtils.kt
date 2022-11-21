@@ -1,12 +1,10 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.AlignmentAddresses
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
-import fi.fta.geoviite.infra.tracklayout.LayoutState
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.*
 
 private fun sameNodeAddress(node1: RatkoNode?, node2: RatkoNode?): Boolean {
     if (node1 == null || node2 == null) {
@@ -67,11 +65,23 @@ fun getEndPointNodeCollection(
 
 fun asSwitchTypeString(switchType: SwitchType): String {
     val radius = switchType.parts.curveRadius
-    val curveRadius = if (radius.isEmpty()) "" else "-${radius.joinToString("/")}"
+    val spread = switchType.parts.spread ?: ""
+    val curveRadius = radius
+        .mapIndexed { i, r ->
+
+            //Adds N/P version to the first curve radius
+            if (i == 0) "$r$spread"
+            else "$r"
+        }.let { radii ->
+            if (radii.isEmpty()) ""
+            else "-${radii.joinToString("/")}"
+        }
+
     return "${switchType.parts.baseType}${switchType.parts.railWeight}${curveRadius}-${switchType.parts.ratio}"
 }
 
 fun sortByDeletedStateFirst(layoutState: LayoutState) = if (layoutState == LayoutState.DELETED) 0 else 1
+fun sortByNullDuplicateOfFirst(duplicateOf: IntId<LocationTrack>?) = if (duplicateOf == null) 0 else 1
 
 fun sortByDeletedStateFirst(layoutStateCategory: LayoutStateCategory) =
     if (layoutStateCategory == LayoutStateCategory.NOT_EXISTING) 0 else 1

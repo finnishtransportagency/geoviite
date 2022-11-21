@@ -6,7 +6,7 @@ import org.springframework.core.convert.converter.Converter
 
 val codeRegex = Regex("^[A-Za-z0-9_\\-.]+\$")
 
-val freeTextRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-–+().,'/*<>:!?&]*\$")
+val freeTextRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-–+().,'/*<>:;!?&]*\$")
 
 data class Code @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(val value: String) : Comparable<Code>,
     CharSequence by value {

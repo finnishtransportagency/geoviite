@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.inframodel.angleBetween
-import fi.fta.geoviite.infra.inframodel.logger
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.util.formatForException
 import kotlin.math.abs
@@ -49,7 +48,7 @@ private val SWITCH_TYPE_REGEX = Regex(
     "^" +
             "($SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS)" + // simple type
             "(\\d{2})" + // rail weight
-            "(?:-([\\d/]+)([()A-Z]*))?" + // optional radius of the curve(s) + spread
+            "(?:-([\\d/]+)([()A-Z]*))?" + // optional radius of the curve(s) + spread/tilted
             "-((?:\\dx)?1:[\\w\\d,.\\-/]+?)" + // ratio
             "(?:-($SWITCH_TYPE_HAND_REGEX_OPTIONS))?" + // optional hand
             "$"
@@ -98,7 +97,7 @@ fun parseSwitchType(typeName: String): SwitchTypeParts? {
 }
 
 data class SwitchType @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(val typeName: String) {
-    val parts: SwitchTypeParts = parseSwitchType(typeName)
+    val parts = parseSwitchType(typeName)
         ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
 
     @JsonValue
@@ -109,7 +108,6 @@ fun tryParseSwitchType(typeName: String): SwitchType? {
     return try {
         SwitchType(typeName)
     } catch (e: Exception) {
-        logger.warn("Invalid switch type name: ${formatForException(typeName)}")
         null
     }
 }
@@ -257,9 +255,13 @@ data class SwitchStructure(
         )
     }
 
-    fun getJointLocation(jointNumber: JointNumber): Point {
-        return joints.find { joint -> joint.number == jointNumber }?.location
+    fun getJoint(jointNumber: JointNumber): SwitchJoint {
+        return joints.find { joint -> joint.number == jointNumber }
             ?: throw IllegalArgumentException("Joint number $jointNumber does not exist in switch $type!")
+    }
+
+    fun getJointLocation(jointNumber: JointNumber): Point {
+        return getJoint(jointNumber).location
     }
 }
 

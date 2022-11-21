@@ -2,6 +2,7 @@ import BaseLayer from 'ol/layer/Base';
 import React from 'react';
 import OlMap from 'ol/Map';
 import {
+    OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
@@ -20,10 +21,7 @@ import './layers/km-post-layer'; // Load module to initialize adapter
 import './layers/switch-layer'; // Load module to initialize adapter
 import './layers/plan-area-layer'; // Load module to initialize adapter
 import './layers/linking-layer'; // Load module to initialize adapter
-import {
-    createSwitchLinkingLayerAdapter,
-    SwitchLinkingFeatureType,
-} from './layers/switch-linking-layer'; // Load module to initialize adapter
+import { createSwitchLinkingLayerAdapter, SwitchLinkingFeatureType } from './layers/switch-linking-layer'; // Load module to initialize adapter
 import styles from './map.module.scss';
 import { selectToolBasic } from './tools/select-tool-basic';
 import { selectToolPolygon } from './tools/select-tool-polygon';
@@ -49,10 +47,7 @@ import { useTranslation } from 'react-i18next';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { createDebugLayerAdapter, DebugLayerFeatureType } from 'map/layers/debug-layer';
-import {
-    createDebug1mPointsLayerAdapter,
-    Debug1mPointsLayerFeatureType,
-} from './layers/debug-1m-points-layer';
+import { createDebug1mPointsLayerAdapter, Debug1mPointsLayerFeatureType } from './layers/debug-1m-points-layer';
 
 declare global {
     interface Window {
@@ -69,6 +64,7 @@ type MapViewProps = {
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
     onHoverLocation: OnHoverLocationFunction;
+    onClickLocation: OnClickLocationFunction;
     onViewportUpdate?: (viewport: MapViewport) => void;
     onShownLayerItemsChange?: (items: OptionalShownItems) => void;
     onSetLayoutPoint?: (linkPoint: LinkPoint) => void;
@@ -137,8 +133,8 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
         },
         resolution: view.getResolution() as number,
         area: {
-            x: { min: extent[0], max: extent[2] },
-            y: { min: extent[1], max: extent[3] },
+            x: {min: extent[0], max: extent[2]},
+            y: {min: extent[1], max: extent[3]},
         },
         source: 'Map',
     };
@@ -154,7 +150,7 @@ const MapView: React.FC<MapViewProps> = ({
     onViewportUpdate,
     ...props
 }: MapViewProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap | null>(null);
@@ -168,21 +164,21 @@ const MapView: React.FC<MapViewProps> = ({
             switch (clickType) {
                 case 'all':
                     props.onSetLayoutClusterLinkPoint &&
-                        props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
+                    props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
                     props.onSetGeometryClusterLinkPoint &&
-                        props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
+                    props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
                     break;
                 case 'geometryPoint':
                     props.onSetGeometryClusterLinkPoint &&
-                        props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
+                    props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
                     props.onRemoveLayoutLinkPoint &&
-                        props.onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
+                    props.onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
                     break;
                 case 'layoutPoint':
                     props.onSetLayoutClusterLinkPoint &&
-                        props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
+                    props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
                     props.onRemoveGeometryLinkPoint &&
-                        props.onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
+                    props.onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
                     break;
                 case 'remove':
                     if (props.onRemoveGeometryLinkPoint && props.onRemoveLayoutLinkPoint) {
@@ -201,7 +197,7 @@ const MapView: React.FC<MapViewProps> = ({
         controls.extend([defaultScaleLine]);
         const interactions = defaults();
         //Mouse middle click pan
-        interactions.push(new DragPan({ condition: (event) => event.originalEvent.which == 2 }));
+        interactions.push(new DragPan({condition: (event) => event.originalEvent.which == 2}));
 
         // use in the browser window.map.getPixelFromCoordinate([x,y])
         window.map = new OlMap({
@@ -308,9 +304,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapLayer,
                             mapTiles,
                             olView.getResolution(),
-                            existingOlLayer as VectorLayer<
-                                VectorSource<ManualSwitchLinkingLayerFeatureType>
-                            >,
+                            existingOlLayer as VectorLayer<VectorSource<ManualSwitchLinkingLayerFeatureType>>,
                             selection,
                             publishType,
                         );
@@ -318,9 +312,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'debug1mPoints':
                         layerAdapter = createDebug1mPointsLayerAdapter(
                             mapLayer,
-                            existingOlLayer as VectorLayer<
-                                VectorSource<Debug1mPointsLayerFeatureType>
-                            >,
+                            existingOlLayer as VectorLayer<VectorSource<Debug1mPointsLayerFeatureType>>,
                             selection,
                             publishType,
                             olView.getResolution(),
@@ -367,6 +359,7 @@ const MapView: React.FC<MapViewProps> = ({
             onSelect: onSelect,
             onHighlightItems: props.onHighlightItems,
             onHoverLocation: props.onHoverLocation,
+            onClickLocation: props.onClickLocation,
         };
         const deactivateToolFunc = activeTool?.activate(olMap, layerAdapters, toolActivateOptions);
 
@@ -404,7 +397,7 @@ const MapView: React.FC<MapViewProps> = ({
     return (
         <div className={styles.map}>
             {/* FAKE TOOLS BEGINS */}
-            <div className={styles['map__tools']} style={{ display: 'none' }}>
+            <div className={styles['map__tools']} style={{display: 'none'}}>
                 {mapTools.map((mapTool, index) => {
                     return (
                         <div
@@ -415,14 +408,14 @@ const MapView: React.FC<MapViewProps> = ({
                                 (mapTool == activeTool ? styles['map__tool--active'] : '')
                             }
                             onClick={() => setActiveTool(mapTool)}>
-                            <i className={mapTool.icon} />
+                            <i className={mapTool.icon}/>
                         </div>
                     );
                 })}
             </div>
             {/* FAKE TOOLS ENDS */}
 
-            <div ref={olMapContainer} className={styles['map__ol-map']} />
+            <div ref={olMapContainer} className={styles['map__ol-map']}/>
 
             <div className={styles['map__overlay']}>
                 {/*<MapTooltip map={olMap} layerAdapters={layerAdapters}/>*/}
@@ -455,7 +448,7 @@ const MapView: React.FC<MapViewProps> = ({
                 )}
             </div>
 
-            <LocationHolderView hoveredCoordinate={map.hoveredLocation} />
+            <LocationHolderView hoveredCoordinate={map.hoveredLocation}/>
         </div>
     );
 };

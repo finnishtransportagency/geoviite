@@ -10,8 +10,10 @@ dependency-check/bin/dependency-check.sh \
     --prettyPrint \
     --disableNuspec \
     --disableAssembly \
+    --disableYarnAudit \
     -d nvd \
     --failOnCVSS 1 \
     --scan ../infra \
     --scan ../ui \
     --suppression ./dependency-check-supression.xml
+

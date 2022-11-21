@@ -24,23 +24,30 @@ class RatkoLocationTrackService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun pushLocationTrackChangesToRatko(locationTrackChanges: List<LocationTrackChange>): List<Oid<LocationTrack>> {
+
         return locationTrackChanges
             .map { change -> change to locationTrackService.getOrThrow(PublishType.OFFICIAL, change.locationTrackId) }
-            .sortedBy { sortByDeletedStateFirst(it.second.state) }
+            .sortedWith(
+                compareBy(
+                    { sortByNullDuplicateOfFirst(it.second.duplicateOf) },
+                    { sortByDeletedStateFirst(it.second.state) }
+                )
+            )
             .mapNotNull { (locationTrackChange, locationTrack) ->
                 locationTrack.externalId?.also { externalId ->
                     try {
-                        ratkoClient.getLocationTrack(RatkoOid(externalId))?.let { existingLocationTrack ->
-                            if (locationTrack.state == LayoutState.DELETED) {
-                                deleteLocationTrack(locationTrack)
-                            } else {
-                                updateLocationTrack(
-                                    layoutLocationTrack = locationTrack,
-                                    existingRatkoLocationTrack = existingLocationTrack,
-                                    locationTrackChange = locationTrackChange
-                                )
-                            }
-                        } ?: createLocationTrack(locationTrack)
+                        ratkoClient.getLocationTrack(RatkoOid(externalId))
+                            ?.let { existingLocationTrack ->
+                                if (locationTrack.state == LayoutState.DELETED) {
+                                    deleteLocationTrack(locationTrack)
+                                } else {
+                                    updateLocationTrack(
+                                        layoutLocationTrack = locationTrack,
+                                        existingRatkoLocationTrack = existingLocationTrack,
+                                        locationTrackChange = locationTrackChange
+                                    )
+                                }
+                            } ?: createLocationTrack(locationTrack)
                     } catch (ex: RatkoPushException) {
                         throw RatkoLocationTrackPushException(ex, locationTrack)
                     }

@@ -3,11 +3,13 @@ import { NavLink } from 'react-router-dom';
 import styles from './app-bar.scss';
 import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
 import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
+import { EnvRestricted } from 'environment/env-restricted';
+import { Environment } from 'environment/environment-info';
 
 type Link = {
     link: string;
     name: string;
-    type: string;
+    type: Environment;
 };
 
 const links: Link[] = [
@@ -19,20 +21,7 @@ const links: Link[] = [
     { link: '/localization-demo', name: 'Localization', type: 'dev' },
 ];
 
-function filterLinks(links: Link[], type: string) {
-    return links.filter((link) => type == link.type);
-}
-
 export const AppBar: React.FC = () => {
-    const [navLinks, setNavLinks] = React.useState<Link[]>();
-    React.useEffect(() => {
-        setNavLinks(
-            location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-                ? links
-                : filterLinks(links, 'prod'),
-        );
-    }, []);
-
     return (
         <nav className={styles['app-bar']}>
             <div className={styles['app-bar__title']}>
@@ -40,21 +29,23 @@ export const AppBar: React.FC = () => {
                 <div>Geoviite</div>
             </div>
             <ul className={styles['app-bar__links']}>
-                {navLinks &&
-                    navLinks.map((link) => {
+                {links &&
+                    links.map((link) => {
                         return (
-                            <li key={link.name}>
-                                <NavLink
-                                    to={link.link}
-                                    className={({ isActive }) =>
-                                        `${styles['app-bar__link']} ${
-                                            isActive ? styles['app-bar__link--active'] : ''
-                                        }`
-                                    }
-                                    end>
-                                    {link.name}
-                                </NavLink>
-                            </li>
+                            <EnvRestricted restrictTo={link.type} key={link.name}>
+                                <li>
+                                    <NavLink
+                                        to={link.link}
+                                        className={({ isActive }) =>
+                                            `${styles['app-bar__link']} ${
+                                                isActive ? styles['app-bar__link--active'] : ''
+                                            }`
+                                        }
+                                        end>
+                                        {link.name}
+                                    </NavLink>
+                                </li>
+                            </EnvRestricted>
                         );
                     })}
             </ul>

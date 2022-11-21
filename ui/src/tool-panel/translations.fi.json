@@ -76,7 +76,9 @@
                 "joint-number-title": "Vaihteen piste",
                 "location-tracks-end-at-joint-title": "Vaihteelle päättyvä raide",
                 "point": "piste",
-                "unpublished": "Julkaisematon"
+                "unpublished": "Julkaisematon",
+                "start-switch-placing": "Aloita linkitys",
+                "switch-placing-help": "Klikkaa kartalta sijainti, johon haluat linkittää vaihteen"
             },
             "geometry": {
                 "geometry-title": "Raidegeometria: vaihde",
@@ -174,6 +176,7 @@
             "track-number": "Ratanumero",
             "duplicate-of": "Duplikaatti raiteelle",
             "has-duplicates": "Duplikaattiraiteet",
+            "not-a-duplicate": "Ei duplikaatti",
             "change-info-heading": "Lokitiedot",
             "created": "Luotu",
             "changed": "Muokattu",

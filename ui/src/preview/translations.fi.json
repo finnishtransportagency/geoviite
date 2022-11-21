@@ -99,7 +99,8 @@
                         "DELETED": "Raiteen duplikaatti {{0}} on poistettu. Duplikaattitietoa ei enää tarvita."
                     },
                     "not-official": "Raide viittaa duplikaattiraiteen {{0}} luonnosriviin",
-                    "not-published": "Raide viittaa julkaisemattomaan duplikaattiraiteeseen {{0}}"
+                    "not-published": "Raide viittaa julkaisemattomaan duplikaattiraiteeseen {{0}}",
+                    "duplicate": "Raide on merkitty duplikaatiksi raiteelle {{0}}, joka itse on myös duplikaatti"
                 },
                 "empty-segments": "Sijaintiraiteella ei ole geometriaa",
                 "points": {

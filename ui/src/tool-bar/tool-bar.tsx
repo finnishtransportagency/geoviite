@@ -8,6 +8,7 @@ import {
     getLocationTrack,
     getLocationTracksBySearchTerm,
     getSwitch,
+    getSwitchesBySearchTerm,
 } from 'track-layout/track-layout-api';
 import {
     LayoutKmPost,
@@ -20,7 +21,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { isNullOrBlank } from 'utils/string-utils';
-import { BoundingBox } from 'model/geometry';
+import { BoundingBox, boundingBoxAroundPoints, centerForBoundingBox, expandBoundingBox } from 'model/geometry';
 import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
@@ -58,10 +59,15 @@ type LocationTrackItemValue = {
     type: 'locationTrackSearchItem';
 };
 
-type SearchItemValue = LocationTrackItemValue;
+type SwitchItemValue = {
+    layoutSwitch: LayoutSwitch;
+    type: 'switchSearchItem';
+};
+
+type SearchItemValue = LocationTrackItemValue | SwitchItemValue;
 
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const selectedItems = props.selection.selectedItems;
     const _hasActiveElement = hasActiveMapElement(selectedItems); // Will be used later
     const [showAddMenu, setShowAddMenu] = React.useState(false);
@@ -78,10 +84,10 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     }
 
     const newMenuItems = [
-        { value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number') },
-        { value: NewMenuItems.locationTrack, name: t('tool-bar.new-location-track') },
-        { value: NewMenuItems.switch, name: t('tool-bar.new-switch') },
-        { value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post') },
+        {value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number')},
+        {value: NewMenuItems.locationTrack, name: t('tool-bar.new-location-track')},
+        {value: NewMenuItems.switch, name: t('tool-bar.new-switch')},
+        {value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post')},
     ];
 
     const handleNewMenuItemChange = (item: NewMenuItems) => {
@@ -93,9 +99,8 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
             return Promise.resolve([]);
         }
 
-        return Promise.all([getLocationTracksBySearchTerm(searchTerm, props.publishType, 10)]).then(
-            (result) => {
-                const locationTracks = result[0];
+        const locationTracks: Promise<Item<LocationTrackItemValue>[]> = getLocationTracksBySearchTerm(searchTerm, props.publishType, 10).then(
+            (locationTracks) => {
                 return locationTracks.map((locationTrack) => ({
                     name: `${locationTrack.name}, ${locationTrack.description}`,
                     value: {
@@ -105,6 +110,24 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 }));
             },
         );
+        const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(searchTerm, props.publishType, 10).then(
+            (switches) => {
+                return switches.map((layoutSwitch) => ({
+                    name: `${layoutSwitch.name}`,
+                    value: {
+                        type: 'switchSearchItem',
+                        layoutSwitch: layoutSwitch,
+                    },
+                }));
+            },
+        );
+        return Promise.all([locationTracks, switches]).then(result => {
+            const allItems: Item<SearchItemValue>[] = [
+                ...result[0],
+                ...result[1],
+            ];
+            return allItems;
+        });
     }
 
     // Use debounced function to collect keystrokes before triggering a search
@@ -113,11 +136,20 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     const memoizedDebouncedGetOptions = React.useCallback(debouncedGetOptions, []);
 
     function onItemSelected(item: SearchItemValue | undefined) {
-        switch (item?.type) {
-            case 'locationTrackSearchItem':
-                item.locationTrack.boundingBox && props.showArea(item.locationTrack.boundingBox);
-                props.onSelectLocationTrack(item.locationTrack.id);
-                break;
+        if (item?.type == 'locationTrackSearchItem') {
+            item.locationTrack.boundingBox && props.showArea(item.locationTrack.boundingBox);
+            props.onSelectLocationTrack(item.locationTrack.id);
+        } else if (item?.type == 'switchSearchItem') {
+            if (item.layoutSwitch.joints.length > 0) {
+                const center = centerForBoundingBox(
+                    boundingBoxAroundPoints(
+                        item.layoutSwitch.joints.map(joint => joint.location),
+                    ),
+                );
+                const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
+                props.showArea(bbox);
+            }
+            props.onSelectSwitch(item.layoutSwitch);
         }
     }
 
@@ -192,7 +224,6 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     options={memoizedDebouncedGetOptions}
                     searchable
                     onChange={onItemSelected}
-                    canUnselect={true}
                     size={DropdownSize.STRETCH}
                     wideList
                     qaId="search-box"

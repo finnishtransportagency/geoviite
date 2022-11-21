@@ -43,6 +43,7 @@ fun toGvtPlan(
     infraModel: InfraModel,
     coordinateSystemNameToSrid: Map<CoordinateSystemName, Srid>,
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
 
@@ -60,14 +61,17 @@ fun toGvtPlan(
     }
 
     val units = parseUnits(coordinateSystem, metricUnits, coordinateSystemNameToSrid)
-    val gvtSwitches = collectGeometrySwitches(switchStructuresByType, infraModel.alignmentGroups)
+    val gvtSwitches =
+        collectGeometrySwitches(switchStructuresByType, switchTypeNameAliases, infraModel.alignmentGroups)
     val trackNumberDescription = infraModel.alignmentGroups.first().name
     val layoutTrackNumberId = tryParseTrackNumber(trackNumberDescription)?.let(trackNumberIdsByNumber::get)
     val alignments = mutableListOf<GeometryAlignment>()
     val kmPosts = mutableListOf<GeometryKmPost>()
 
     infraModel.alignmentGroups.forEach { group ->
-        val trackNumberState = parseOptionalEnum<PlanState>("Track number ${group.name} state", group.state)
+        val trackNumberState = group.state?.let { stateString ->
+            tryParsePlanState("Track number ${group.name} state", stateString)
+        }
 
         alignments.addAll(group.alignments.map { xmlAlignment ->
             toGvtAlignment(
@@ -79,7 +83,9 @@ fun toGvtPlan(
             )
         })
         kmPosts.addAll(group.alignments.flatMap { alignment ->
-            val alignmentState = parseOptionalEnum<PlanState>("Alignment ${alignment.name} state", alignment.state)
+            val alignmentState = alignment.state?.let { stateString ->
+                tryParsePlanState("Alignment ${alignment.name} state", stateString)
+            }
             alignment.staEquations.map { s ->
                 toGvtKmPost(layoutTrackNumberId, s, alignmentState ?: trackNumberState)
             }
@@ -151,7 +157,8 @@ fun toSrid(
     coordinateSystemNameToSrid: Map<CoordinateSystemName, Srid>,
 ): Srid? {
     val code = epsgCode?.let { code -> parseOptionalInt("Coordinate system EPSG code", code) }
-    val parsedSrid = if (code != null && code > 0) Srid(code) else null
+    // Note: EPSG 4022 is just a code for "deprecated" and cannot be used for transformations as such
+    val parsedSrid = if (code != null && code > 0 && code != 4022) Srid(code) else null
     return parsedSrid ?: csName?.let { name -> coordinateSystemNameToSrid[name.uppercase()] }
 }
 
@@ -289,6 +296,7 @@ fun toGvtGeometryElement(
                 )
             }
         }
+        else -> throw InframodelParsingException("Invalid element ${element::class.simpleName}")
     }
 }
 
@@ -353,6 +361,7 @@ fun toGvtCant(cant: InfraModelCant): GeometryCant {
 }
 
 fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
+
     return GeometryCantPoint(
         station = parseBigDecimal("Cant point station", station.station),
         appliedCant = parseBigDecimal("Cant point applied cant", station.appliedCant),
@@ -361,7 +370,7 @@ fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
             null -> LINEAR
             "biquadraticParabola" -> BIQUADRATIC_PARABOLA
             else -> throw InputValidationException(
-                message = "Unknown XML Cant transition type: ${formatForException(station.transitionType)}",
+                message = "Unknown XML Cant transition type: ${station.transitionType?.let(::formatForException)}",
                 type = CantTransitionType::class,
             )
         }
@@ -412,9 +421,20 @@ fun switchTypeHand(switchHand: String): SwitchHand {
         )
 }
 
+fun normalizeSwitchTypeName(switchStructureNameAliases: Map<String, String>, switchTypeName: String): String {
+    val withDecimalComma = switchTypeName.replace('.', ',')
+    val withLowerCaseX =
+        if (withDecimalComma.startsWith("RR") || withDecimalComma.startsWith("SRR")) {
+            // RATO4 says this lowercase, for example: RR54-2x1:9. https://www.doria.fi/handle/10024/121411
+            // Sometimes the IM files have uppercase, so fix it for leniency
+            switchTypeName.replace('X', 'x')
+        } else withDecimalComma
+    return switchStructureNameAliases[withLowerCaseX] ?: withLowerCaseX
+}
 
 fun collectGeometrySwitches(
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
+    switchTypeNameAliases: Map<String, String>,
     alignmentGroups: List<InfraModelAlignmentGroup>,
 ): Map<SwitchKey, GeometrySwitch> {
     val tempSwitchAndJoints: List<TempSwitchAndJoints> = alignmentGroups.flatMap { group ->
@@ -433,7 +453,9 @@ fun collectGeometrySwitches(
                 .sortedBy { j -> j.number }
 
             val switchName = verifySameField("Switch name", xmlSwitches, TempSwitch::name, TempSwitch::name)
-            val switchTypeName = verifySameField("Switch typeName", xmlSwitches, TempSwitch::typeName, TempSwitch::name)
+            val switchTypeNameXml =
+                verifySameField("Switch typeName", xmlSwitches, TempSwitch::typeName, TempSwitch::name)
+            val switchTypeName = normalizeSwitchTypeName(switchTypeNameAliases, switchTypeNameXml)
             val switchTypeRequiresHandedness = tryParseSwitchType(switchTypeName)
                 .let { switchType -> if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false }
             val switchTypeHand = verifySameField(
@@ -442,13 +464,9 @@ fun collectGeometrySwitches(
                 TempSwitch::hand,
                 TempSwitch::name
             )
-            val fullSwitchTypeName = switchTypeHand.let {
-                if (switchTypeName.startsWith("RR") || switchTypeName.startsWith("SRR")) {
-                    // RATO4 says this lowercase, for example: RR54-2x1:9. https://www.doria.fi/handle/10024/121411
-                    // Sometimes the IM files have uppercase, so fix it for leniency
-                    switchTypeName.replace('X', 'x')
-                } else if (it == SwitchHand.NONE || !switchTypeRequiresHandedness) switchTypeName
-                else "$switchTypeName-${it.abbreviation}"
+            val fullSwitchTypeName = switchTypeHand.let { hand ->
+                if (hand == SwitchHand.NONE || !switchTypeRequiresHandedness) switchTypeName
+                else "$switchTypeName-${hand.abbreviation}"
             }
 
             val switchType = tryParseSwitchType(fullSwitchTypeName)
@@ -584,6 +602,10 @@ fun getSwitchKey(element: InfraModelGeometryElement): SwitchKey? =
             SwitchKey(name, typeName, hand)
         }
 
+fun tryParsePlanState(name: String, value: String): PlanState? = tryParseText(value) { v ->
+    parseOptionalEnum<PlanState>(name, v)
+}
+
 fun tryParseTrackNumber(text: String): TrackNumber? =
     if (text == "N/A") null
     else tryParseText(text, ::TrackNumber)
@@ -599,19 +621,14 @@ fun tryParseKmNumber(text: String): KmNumber? =
     }
 
 fun tryParseMetaDataName(text: String): MetaDataName? = tryParseText(text, ::MetaDataName)
-fun tryParseAlignmentName(text: String): AlignmentName? =
-    tryParseText(text.replace(Regex("[?!]"), " ").trim(), ::AlignmentName)
-
+fun tryParseAlignmentName(text: String): AlignmentName? = tryParseText(text, ::AlignmentName)
 fun tryParseSwitchName(text: String): SwitchName? = tryParseText(text, ::SwitchName)
-
-fun tryParsePlanElementName(text: String): PlanElementName? =
-    tryParseText(text.replace(Regex("[?!]"), ""), ::PlanElementName)
+fun tryParsePlanElementName(text: String): PlanElementName? = tryParseText(text, ::PlanElementName)
 
 fun emptyName() = PlanElementName("")
 fun tryParseFreeText(text: String): FreeText? = tryParseText(text, ::FreeText)
 fun tryParseFeatureTypeCode(text: String): FeatureTypeCode? = tryParseText(text, ::FeatureTypeCode)
 fun tryParseGeometrySwitchTypeName(text: String): GeometrySwitchTypeName? = tryParseText(text, ::GeometrySwitchTypeName)
-
 
 data class TempSwitchAndJoints(val tempSwitch: TempSwitch, val joints: List<GeometrySwitchJoint>)
 

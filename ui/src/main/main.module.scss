@@ -6,6 +6,19 @@ html {
     padding: 0;
 }
 
+.main__env-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: $pitaya-default;
+    text-transform: uppercase;
+    color: $color-white-default;
+    text-align: center;
+    font-size: 10px;
+    user-select: none;
+}
+
 .main {
     background-color: $color-white-dark;
     height: 100vh;

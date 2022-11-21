@@ -1,12 +1,15 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.EndPointType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
+import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -81,8 +84,7 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -154,8 +156,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -215,8 +216,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -269,8 +269,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -323,8 +322,7 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -387,8 +385,7 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -418,12 +415,36 @@ class SwitchLinkingTest {
     }
 
     @Test
+    fun shouldClearSwitchTopologyLinkingFromLocationTrackStart() {
+        val locationTrackWithStartLink = locationTrack(IntId(1)).copy(
+            topologyStartSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(2)),
+            topologyEndSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(1)),
+        )
+        val (locationTrackWithStartLinkCleared, _) =
+            clearSwitchInformationFromSegments(locationTrackWithStartLink, alignment(someSegment()), testLayoutSwitchId)
+        assertEquals(null, locationTrackWithStartLinkCleared.topologyStartSwitch)
+        assertEquals(locationTrackWithStartLink.topologyEndSwitch, locationTrackWithStartLinkCleared.topologyEndSwitch)
+    }
+
+    @Test
+    fun shouldClearSwitchTopologyLinkingFromLocationTrackEnd() {
+        val locationTrackWithEndLink = locationTrack(IntId(1)).copy(
+            topologyStartSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(2)),
+            topologyEndSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(1)),
+        )
+        val (locationTrackWithEndLinkCleared, _) =
+            clearSwitchInformationFromSegments(locationTrackWithEndLink, alignment(someSegment()), testLayoutSwitchId)
+        assertEquals(null, locationTrackWithEndLinkCleared.topologyEndSwitch)
+        assertEquals(locationTrackWithEndLink.topologyStartSwitch, locationTrackWithEndLinkCleared.topologyStartSwitch)
+    }
+
+    @Test
     fun shouldClearSwitchLinkingInfoFromAlignment() {
         val (origLocationTrack, origAlignment) = locationTrackWithTwoSwitches(
             IntId(0), testLayoutSwitchId, otherLayoutSwitchId, locationTrackId = IntId(0)
         )
 
-        val (clearedLocationTrack, clearedAlignment) = clearSwitchInformationFromSegments(
+        val (_, clearedAlignment) = clearSwitchInformationFromSegments(
             origLocationTrack,
             origAlignment,
             testLayoutSwitchId
@@ -446,9 +467,6 @@ class SwitchLinkingTest {
                 "Segments related to another switch should be untouched"
             )
         }
-
-        assertEquals(null, clearedLocationTrack.startPoint)
-        assertEquals(EndPointType.SWITCH, clearedLocationTrack.endPoint?.type)
     }
 
     @Test
@@ -1129,14 +1147,110 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignment,
             IntId(100),
             linkingJoints,
         )
 
         assertTrue { updatedAlignment.segments.none { it.switchId == testLayoutSwitchId } }
+    }
+
+
+    fun createLocationTracksBySwitchStructure(
+        switchStructure: SwitchStructure,
+        offset: IPoint = Point.zero(),
+        orientation: Double = 0.0
+    ): List<LocationTrack> {
+        return listOf()
+    }
+
+    @Test
+    fun cropAlignmentPointsShouldFindPointsInArea() {
+        val bbox = BoundingBox(
+            -2.0..3.0,
+            -10.0..10.0
+        )
+        val locationTrackInArea = locationTrackAndAlignment(
+            segment(
+                Point(-4.0, 0.0),
+                Point(-3.0, 0.0),
+                Point(-2.0, 0.0)
+            ),
+            segment(
+                Point(-2.0, 0.0),
+                Point(-1.0, 0.0),
+                Point(0.0, 0.0),
+                Point(1.0, 0.0),
+                Point(2.0, 0.0),
+            ),
+            segment(
+                Point(2.0, 0.0),
+                Point(3.0, 0.0),
+                Point(4.0, 0.0),
+                Point(5.0, 0.0),
+            ),
+        )
+        val croppedAlignment = cropPoints(locationTrackInArea.second, bbox)
+
+        assertEquals(2, croppedAlignment.segments.size)
+        assertEquals(Point(-2.0, 0.0), Point(croppedAlignment.allPoints().first()))
+        assertEquals(Point(3.0, 0.0), Point(croppedAlignment.allPoints().last()))
+    }
+
+
+    @Test
+    fun cropAlignmentPointsShouldIgnoreSegmentsThatDoesNotHavePointsInArea() {
+        // Bounding box of a segment intersects with the bounding box, but the segment
+        // does not contain points inside the bounding box. Crop should filter out
+        // all segments/points.
+        //
+        //  \
+        //   \
+        //    \
+        //  □  \
+        //
+        //  □ = bounding box
+        //  \ = alignment
+
+        val bbox = BoundingBox(
+            -5.0..-4.0,
+            4.0..5.0
+        )
+        val locationTrack = locationTrackAndAlignment(
+            segment(
+                points = arrayOf(
+                    Point(-5.0, 0.0),
+                    Point(5.0, 5.0),
+                )
+            ),
+        )
+        val croppedAlignment = cropPoints(locationTrack.second, bbox)
+
+        assertTrue(bbox.intersects(locationTrack.second.segments.first().boundingBox))
+        assertEquals(0, croppedAlignment.segments.size)
+    }
+
+    @Test
+    fun shouldFindMatchForYVSwitch() {
+        val yvTurnRatio = 1.967 / 34.321 // ~ 0.06
+        val switchStructure = YV60_300_1_9_O()
+        val locationTrack152 = locationTrackAndAlignment(
+            segment(from = point(-200.0, 0.0), to = Point(-100.0, 0.0)),
+            segment(from = Point(-100.0, 0.0), to = Point(100.0, 0.0))
+        )
+        val locationTrack13 = locationTrackAndAlignment(
+            segment(from = Point(0.0, 0.0), to = Point(100.0, -100.0 * yvTurnRatio))
+        )
+        val nearbyPoint = Point(10.0, -1.0)
+
+        val suggestedSwitch = createSuggestedSwitchByPoint(
+            nearbyPoint,
+            switchStructure,
+            listOf(locationTrack152, locationTrack13)
+        )
+
+        assertNotNull(suggestedSwitch)
     }
 }
 

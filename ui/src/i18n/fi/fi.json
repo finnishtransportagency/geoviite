@@ -166,12 +166,16 @@
         "ratko-push-error-type": {
             "PROPERTIES": "ominaisuustietojen",
             "LOCATION": "sijainnin",
-            "GEOMETRY": "geometrian"
+            "GEOMETRY": "geometrian",
+            "STATE": "tilan"
         },
         "ratko-push-error-operation": {
             "CREATE": "luonti",
             "UPDATE": "päivitys",
             "DELETE": "poisto"
         }
+    },
+    "environment": {
+        "test": "Testiympäristö"
     }
 }

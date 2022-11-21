@@ -17,11 +17,11 @@ type RatkoPushErrorDetailsProps = {
 const assetTypeAndName = (errorAsset: RatkoPushErrorAsset) => {
     switch (errorAsset.assetType) {
         case RatkoAssetType.LOCATION_TRACK:
-            return `Sijaintiraiteen ${errorAsset.asset.name}`;
+            return `Sijaintiraiteen (${errorAsset.asset.name})`;
         case RatkoAssetType.TRACK_NUMBER:
-            return `Ratanumeron ${errorAsset.asset.number}`;
+            return `Ratanumeron (${errorAsset.asset.number})`;
         case RatkoAssetType.SWITCH:
-            return `Vaihteen ${errorAsset.asset.name}`;
+            return `Vaihteen (${errorAsset.asset.name})`;
     }
 };
 

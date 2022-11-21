@@ -56,7 +56,7 @@ module.exports = (env) => {
                 },
                 ...(process.env.MML_MAP_IN_USE === 'true' && {
                     '/location-map/': {
-                        target: 'https://api.testivaylapilvi.fi/rasteripalvelu-mml/',
+                        target: process.env.MML_MAP_URL,
                         logLevel: 'debug',
                         pathRewrite: {'^/location-map': ''},
                         changeOrigin: true,
@@ -146,10 +146,6 @@ module.exports = (env) => {
             }),
             new ESLintWebpackPlugin({
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
-            }),
-            new webpack.DefinePlugin({
-                GEOVIITE_HASH: JSON.stringify(env.geoviiteHash),
-                GEOVIITE_UI_VERSION: JSON.stringify(env.geoviiteUiVersion),
             }),
             new LicensePlugin({
                 outputFilename: 'oss-licenses.json',

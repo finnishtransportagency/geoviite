@@ -21,4 +21,11 @@
       <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-web@.*$</packageUrl>
       <cve>CVE-2016-1000027</cve>
   </suppress>
+  <suppress>
+    <packageUrl regex="true">^pkg:npm/loader\-utils@.*$</packageUrl>
+    <cve>CVE-2022-37601</cve>
+    <vulnerabilityName>1084924</vulnerabilityName>
+    <vulnerabilityName>CVE-2022-37599</vulnerabilityName>
+    <vulnerabilityName>CVE-2022-37603</vulnerabilityName>
+  </suppress>
 </suppressions>

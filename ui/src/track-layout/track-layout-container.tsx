@@ -15,6 +15,7 @@ export const TrackLayoutContainer: React.FC = () => {
         onSelect: delegates.onSelect,
         onHighlightItems: delegates.onHighlightItems,
         onHoverLocation: delegates.onHoverLocation,
+        onClickLocation: delegates.onClickLocation,
         onMapSettingsVisibilityChange: delegates.onMapSettingsVisibilityChange,
         onPublishTypeChange: delegates.onPublishTypeChange,
         onOpenPreview: () => delegates.onLayoutModeChange('PREVIEW'),

@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import kotlin.math.PI
@@ -186,7 +185,10 @@ fun validateDuplicateOfState(
                 duplicateOfLocationTrack.name.value
             )
         },
-    )
+        validateWithParams(duplicateOfLocationTrack.duplicateOf == null) {
+            "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate" to listOf(duplicateOfLocationTrack.name.value)
+        }
+   )
 
 fun validateDraftReferenceLineFields(referenceLine: ReferenceLine): List<PublishValidationError> =
     listOfNotNull(
@@ -459,7 +461,24 @@ fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<
     }
 
 fun collectJoints(structure: SwitchStructure) =
-    structure.alignments.map(SwitchAlignment::jointNumbers)
+    structure.alignments.flatMap { alignment ->
+        // For RR/KRV/YRV etc. structures partial alignments are also OK (like 1-5 and 5-2)
+        val firstJointNumber = alignment.jointNumbers.first()
+        val lastJointNumber = alignment.jointNumbers.last()
+        val presentationJointIndex =
+            alignment.jointNumbers.indexOfFirst { jointNumber -> jointNumber == structure.presentationJointNumber }
+        val partialAlignments = if (presentationJointIndex != -1 &&
+            firstJointNumber != structure.presentationJointNumber &&
+            lastJointNumber != structure.presentationJointNumber
+        ) {
+            listOf(
+                alignment.jointNumbers.subList(0, presentationJointIndex + 1),
+                alignment.jointNumbers.subList(presentationJointIndex, alignment.jointNumbers.lastIndex + 1)
+            )
+        } else listOf()
+
+        listOf(alignment.jointNumbers) + partialAlignments
+    }
 
 fun collectJoints(track: LocationTrack, segments: List<LayoutSegment>): Pair<LocationTrack, List<JointNumber>> =
     track to collectJoints(segments)

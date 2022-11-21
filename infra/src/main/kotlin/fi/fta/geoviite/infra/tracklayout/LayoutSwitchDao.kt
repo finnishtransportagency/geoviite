@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
-import fi.fta.geoviite.infra.dataImport.SwitchLinkingIds
+import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.SwitchPublishCandidate
@@ -337,21 +337,35 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
-    fun getExternalIdMappingOfExistingSwitches(): Map<Oid<TrackLayoutSwitch>, SwitchLinkingIds> {
+    data class LinkingInfoAggregation (
+        val switchId: IntId<TrackLayoutSwitch>,
+        val switchStructureId: IntId<SwitchStructure>,
+        val jointLocation: Pair<JointNumber, Point>,
+    )
+    fun getLinkingInfoOfExistingSwitches(): Map<Oid<TrackLayoutSwitch>, SwitchLinkingInfo> {
         val sql = """
-          select external_id, id, switch_structure_id
-          from layout.switch 
+          select external_id, id, switch_structure_id, switch_joint.number,
+                 postgis.st_x(switch_joint.location) as location_x, postgis.st_y(location) as location_y
+          from layout.switch
+            join layout.switch_joint on switch.id = switch_joint.switch_id
           where 
-            external_id is not null
+            switch.external_id is not null
             and state_category = 'EXISTING' 
         """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val rows = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             rs.getOid<TrackLayoutSwitch>("external_id") to
-                    SwitchLinkingIds(
+                    LinkingInfoAggregation(
                         rs.getIntId("id"),
                         rs.getIntId("switch_structure_id"),
+                        rs.getJointNumber("number") to rs.getPoint("location_x", "location_y")
                     )
-        }.associate { it }
+        }
+        return rows.groupBy { it.first }.mapValues { entry ->
+            val switches = entry.value
+            val prototype = switches[0].second
+            SwitchLinkingInfo(prototype.switchId, prototype.switchStructureId,
+                switches.map { s -> s.second.jointLocation }.associate { it })
+        }
     }
 
     fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<SwitchPublishCandidate> {

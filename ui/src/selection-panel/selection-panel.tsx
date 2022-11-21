@@ -114,7 +114,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 setTrackNumberFilter([tn]);
             }
         }
-        , []);
+        , [trackNumberFilter]);
 
     const onToggleSwitchSelection = React.useCallback((layoutSwitch: LayoutSwitch) =>
             onSelect({

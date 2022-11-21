@@ -83,8 +83,6 @@ class HelsinkiTestData {
                 trackNumber = trackNumber,
                 basePoint = HKI_BASE_POINT + Point(x = 675.0, y = 410.0 ),
                 incrementPoints = listOf(Point(x = 15.0, y = 90.0), Point(x = 5.0, y = 60.0)),
-                endPoint = EndPointSimple(EndPointType.ENDPOINT),
-                startPoint = EndPointSimple(EndPointType.ENDPOINT)
             )
         }
 
@@ -122,8 +120,6 @@ class HelsinkiTestData {
                 trackNumber = trackNumberId,
                 basePoint = HKI_BASE_POINT + Point(x = 752.0, y = 410.0),
                 incrementPoints = listOf(Point(x = 0.0, y = 150.0)),
-                endPoint = EndPointSimple(EndPointType.ENDPOINT),
-                startPoint = EndPointSimple(EndPointType.ENDPOINT),
             )
         }
 

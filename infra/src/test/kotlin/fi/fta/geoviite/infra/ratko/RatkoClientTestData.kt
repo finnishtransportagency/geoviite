@@ -45,8 +45,6 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
         trackNumberId = IntId(70),
         sourceId = null,
         id = IntId(257),
-        startPoint = null,
-        endPoint = null,
         dataType = DataType.STORED,
         version = Version(1, 1),
         draft = null,
@@ -56,6 +54,8 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
         segmentCount = alignment.segments.size,
         duplicateOf = null,
         topologicalConnectivity = TopologicalConnectivityType.NONE,
+        topologyStartSwitch = null,
+        topologyEndSwitch = null,
     ) to alignment
 }
 
