@@ -43,7 +43,7 @@ export type TrackLayoutParams = TrackLayoutState & {
 
 export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutParams) => {
     return (
-        <div className="track-layout" qa-id="track-layout-content">
+        <div className={styles['track-layout']} qa-id="track-layout-content">
             <ToolBar
                 settingsVisible={props.map.settingsVisible}
                 publishType={props.publishType}
@@ -75,52 +75,54 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                 }}
                 onOpenPreview={props.onOpenPreview}
                 changeTimes={props.changeTimes}
-                onStopLinking={props.onStopLinking}></ToolBar>
+                onStopLinking={props.onStopLinking}
+            />
 
-            <div className="track-layout__navi">
-                <MapContext.Provider value="trackLayout">
-                    <SelectionPanelContainer/>
-                </MapContext.Provider>
+            <div className={styles['track-layout__main-view']}>
+                <div className={styles['track-layout__navi']}>
+                    <MapContext.Provider value="trackLayout">
+                        <SelectionPanelContainer />
+                    </MapContext.Provider>
+                </div>
+
+                <div className={styles['track-layout__map']}>
+                    {props.map.settingsVisible && (
+                        <div className={styles['track-layout__map-settings']}>
+                            <MapLayersSettings
+                                map={props.map}
+                                onTrackNumberVisibilityChange={props.onTrackNumberVisibilityChange}
+                                onLayerVisibilityChange={props.onLayerVisibilityChange}
+                                onClose={() => props.onMapSettingsVisibilityChange(false)}
+                            />
+                        </div>
+                    )}
+
+                    <MapView
+                        map={props.map}
+                        onViewportUpdate={props.onViewportChange}
+                        selection={props.selection}
+                        publishType={props.publishType}
+                        linkingState={props.linkingState}
+                        changeTimes={props.changeTimes}
+                        onSelect={props.onSelect}
+                        onHighlightItems={props.onHighlightItems}
+                        onHoverLocation={props.onHoverLocation}
+                        onClickLocation={props.onClickLocation}
+                        onShownLayerItemsChange={props.onShownItemsChange}
+                        onSetLayoutClusterLinkPoint={props.onSetLayoutClusterLinkPoint}
+                        onSetGeometryClusterLinkPoint={props.onSetGeometryClusterLinkPoint}
+                        onRemoveGeometryLinkPoint={props.onRemoveGeometryLinkPoint}
+                        onRemoveLayoutLinkPoint={props.onRemoveLayoutLinkPoint}
+                    />
+                </div>
+                <div className={styles['track-layout__tool-panel']}>
+                    <MapContext.Provider value="trackLayout">
+                        <ToolPanelContainer />
+                    </MapContext.Provider>
+                </div>
             </div>
 
-            <div className={styles['track-layout__map']}>
-                {props.map.settingsVisible && (
-                    <div className={styles['track-layout__map-settings']}>
-                        <MapLayersSettings
-                            map={props.map}
-                            onTrackNumberVisibilityChange={props.onTrackNumberVisibilityChange}
-                            onLayerVisibilityChange={props.onLayerVisibilityChange}
-                            onClose={() => props.onMapSettingsVisibilityChange(false)}
-                        />
-                    </div>
-                )}
-
-                <MapView
-                    map={props.map}
-                    onViewportUpdate={props.onViewportChange}
-                    selection={props.selection}
-                    publishType={props.publishType}
-                    linkingState={props.linkingState}
-                    changeTimes={props.changeTimes}
-                    onSelect={props.onSelect}
-                    onHighlightItems={props.onHighlightItems}
-                    onHoverLocation={props.onHoverLocation}
-                    onClickLocation={props.onClickLocation}
-                    onShownLayerItemsChange={props.onShownItemsChange}
-                    onSetLayoutClusterLinkPoint={props.onSetLayoutClusterLinkPoint}
-                    onSetGeometryClusterLinkPoint={props.onSetGeometryClusterLinkPoint}
-                    onRemoveGeometryLinkPoint={props.onRemoveGeometryLinkPoint}
-                    onRemoveLayoutLinkPoint={props.onRemoveLayoutLinkPoint}
-                />
-            </div>
-
-            <div className="track-layout__tool-panel">
-                <MapContext.Provider value="trackLayout">
-                    <ToolPanelContainer/>
-                </MapContext.Provider>
-            </div>
-
-            <SwitchSuggestionCreatorContainer/>
+            <SwitchSuggestionCreatorContainer />
         </div>
     );
 };

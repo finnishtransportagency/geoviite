@@ -2,7 +2,6 @@ import * as React from 'react';
 import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
 import { GeometryPlanHeader, GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import styles from './tool-panel.scss';
 import {
     DraftType,
     LayoutKmPost,
@@ -20,7 +19,10 @@ import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
 import SwitchInfobox from 'tool-panel/switch/switch-infobox';
 import GeometrySwitchInfobox from 'tool-panel/switch/geometry-switch-infobox';
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
-import { OptionalUnselectableItemCollections, SelectedGeometryItem } from 'selection/selection-model';
+import {
+    OptionalUnselectableItemCollections,
+    SelectedGeometryItem,
+} from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
 import { ChangeTimes } from 'track-layout/track-layout-store';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
@@ -28,7 +30,12 @@ import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import GeometryKmPostInfoboxContainer from 'tool-panel/km-post/geometry-km-post-infobox-container';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
-import { getKmPost, getLocationTrack, getSwitch, getTrackNumbers } from 'track-layout/track-layout-api';
+import {
+    getKmPost,
+    getLocationTrack,
+    getSwitch,
+    getTrackNumbers,
+} from 'track-layout/track-layout-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
 import { useLoader } from 'utils/react-utils';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
@@ -371,7 +378,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     }
 
     return (
-        <div className={styles['tool-panel']}>
+        <div className="tool-panel">
             {tabs.length > 1 && (
                 <div qa-id="tool-panel-tabs">
                     {tabs.map((t) => {
