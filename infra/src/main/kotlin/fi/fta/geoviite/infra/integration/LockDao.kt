@@ -19,8 +19,8 @@ class LockDao @Autowired constructor(
     fun <R> runWithLock(lockName: DatabaseLock, maxLockDuration: Duration, fn: () -> R): R? {
         val lock = obtainLock(lockName, maxLockDuration)
 
-        if (lock != null) logger.daoCall("Obtained lock $lockName for duration $maxLockDuration")
-        else logger.daoCall("Could not obtain lock $lockName")
+        if (lock == null) logger.daoCall("Could not obtain lock $lockName")
+        else logger.daoCall("Obtained lock $lockName for duration $maxLockDuration")
 
         return lock?.let {
             try {
