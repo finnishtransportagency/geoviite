@@ -137,13 +137,16 @@ module.exports = (env) => {
                 'base-uri': "'self'",
                 'object-src': "'none'",
                 'img-src': "data: http: https:", // http: is for running locally
+                // Remove explicit style-src and favor nonces when react-select can be made to use non-inline styles
+                'style-src': "'unsafe-inline' http: https:",
                 'default-src': "'self'"
             }, {
                 enabled: true,
                 hashingMethod: 'sha256',
                 nonceEnabled: {
                     'script-src': true,
-                    'style-src': true,
+                    // Enable nonce for style-src when react-select can be made to use non-inline styles
+                    'style-src': false,
                 }
             }),
             new ESLintWebpackPlugin({
