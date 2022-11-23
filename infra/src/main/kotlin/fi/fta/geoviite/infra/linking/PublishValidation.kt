@@ -307,6 +307,7 @@ fun validateGeocodingContext(
             .filter { post -> post.location != null }
             .let { rejected ->
                 validateWithParams(rejected.isEmpty()) {
+                    // TODO
                     "$VALIDATION_GEOCODING.km-posts-rejected" to listOf(
                         context.trackNumber.number.value,
                         rejected.joinToString(",") { post -> post.kmNumber.toString() },

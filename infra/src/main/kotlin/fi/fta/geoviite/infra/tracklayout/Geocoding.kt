@@ -146,6 +146,7 @@ data class GeocodingContext(
             referenceLineGeometry.getLengthUntil(location)
                 ?.let { (distance, intersectType) ->
                     if (distance > 0.0 && intersectType == WITHIN) {
+                        // TODO 1490
                         val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtLength(distance)) {
                             "Couldn't resolve distance to point on reference line: not continuous?"
                         }
