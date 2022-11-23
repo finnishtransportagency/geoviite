@@ -90,14 +90,14 @@ const getSwitchTrackMeter = (
 };
 
 const getSwitchTrackMeters = (
-    officialSwitch: LayoutSwitch | undefined,
+    layoutSwitch: LayoutSwitch | undefined,
     switchStructure: SwitchStructure | undefined,
     switchJointConnections: LayoutSwitchJointConnection[] | undefined,
     publishType: PublishType,
     changeTimes: ChangeTimes,
 ): Promise<(SwitchTrackMeter | undefined)[]> => {
     const presentationJoint: LayoutSwitchJoint | undefined = getPresentationJoint(
-        officialSwitch,
+        layoutSwitch,
         switchStructure,
     );
     const presentationJointConnection = getPresentationJointConnection(
@@ -118,8 +118,8 @@ const getSwitchTrackMeters = (
         ).then(result => result.filter(filterNotEmpty))
         : Promise.resolve([]);
 
-    const topologySwitchTrackMeters = officialSwitch != undefined ?
-        getTopologySwitchTrackMeters(publishType, officialSwitch.id)
+    const topologySwitchTrackMeters = layoutSwitch != undefined ?
+        getTopologySwitchTrackMeters(publishType, layoutSwitch.id)
             .then(switchTrackMeters =>
                 Promise.all(
                     switchTrackMeters.map(switchTrackMeter =>
@@ -173,7 +173,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const switchTrackMeters = useLoader(
         () =>
             getSwitchTrackMeters(
-                officialSwitch,
+                layoutSwitch,
                 switchStructure,
                 switchJointConnections,
                 publishType,
