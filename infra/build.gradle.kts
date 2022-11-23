@@ -72,6 +72,7 @@ dependencies {
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
     implementation("org.apache.commons:commons-csv:1.9.0")
+    implementation("commons-io:commons-io:2.11.0")
     implementation("com.auth0:jwks-rsa:0.21.2")
     implementation("com.auth0:java-jwt:4.2.1")
     implementation("io.netty:netty-resolver-dns-native-macos:4.1.85.Final:osx-aarch_64")
