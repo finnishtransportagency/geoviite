@@ -42,11 +42,6 @@ dependencies {
         strictly("[1.3.3,)")
     }
 
-    // CVE-2022-31692, force org.springframework.boot:spring-boot-starter-security to use version 5.7.5 instead of 5.7.4
-    implementation("org.springframework.security", "spring-security-web").version {
-        strictly("[5.7.5,)")
-    }
-
     // Actual deps
     implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.342")
     implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
