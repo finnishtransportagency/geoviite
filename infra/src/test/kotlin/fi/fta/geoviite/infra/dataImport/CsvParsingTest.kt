@@ -46,135 +46,135 @@ class CsvParsingTest {
 
     @Test
     fun segmentingRangesWorksWithoutCsvMetadata() {
-        val start = AddressPoint(point(1), TrackMeter.create("0002+123.123"))
-        val end = AddressPoint(point(2), TrackMeter.create("0007+321.345"))
+        val start = AddressPoint(point(1), TrackMeter("0002+123.123"))
+        val end = AddressPoint(point(2), TrackMeter("0007+321.345"))
 
         val segments = segmentCsvMetadata<LocationTrack>(listOf(start, end), listOf(), listOf())
         val expected = listOf<SegmentCsvMetaDataRange<LocationTrack>>(
-            emptyCsvMetaData(TrackMeter.create("0002+123.123")..TrackMeter.create("0003+0")),
-            emptyCsvMetaData(TrackMeter.create("0003+0")..TrackMeter.create("0004+0")),
-            emptyCsvMetaData(TrackMeter.create("0004+0")..TrackMeter.create("0005+0")),
-            emptyCsvMetaData(TrackMeter.create("0005+0")..TrackMeter.create("0006+0")),
-            emptyCsvMetaData(TrackMeter.create("0006+0")..TrackMeter.create("0007+0")),
-            emptyCsvMetaData(TrackMeter.create("0007+0")..TrackMeter.create("0007+321.345")),
+            emptyCsvMetaData(TrackMeter("0002+123.123")..TrackMeter("0003+0")),
+            emptyCsvMetaData(TrackMeter("0003+0")..TrackMeter("0004+0")),
+            emptyCsvMetaData(TrackMeter("0004+0")..TrackMeter("0005+0")),
+            emptyCsvMetaData(TrackMeter("0005+0")..TrackMeter("0006+0")),
+            emptyCsvMetaData(TrackMeter("0006+0")..TrackMeter("0007+0")),
+            emptyCsvMetaData(TrackMeter("0007+0")..TrackMeter("0007+321.345")),
         )
         assertEquals(expected, segments)
     }
 
     @Test
     fun segmentingRangesWorksWithFullAlignmentCsvMetadata() {
-        val start = AddressPoint(point(1), TrackMeter.create("0002+456.654"))
-        val end = AddressPoint(point(2), TrackMeter.create("0006+111.222"))
+        val start = AddressPoint(point(1), TrackMeter("0002+456.654"))
+        val end = AddressPoint(point(2), TrackMeter("0006+111.222"))
 
-        val md1 = elementCsvMetaData(1, TrackMeter.create("0002+456.654"), TrackMeter.create("0002+963.9"))
-        val md2 = elementCsvMetaData(2, TrackMeter.create("0002+963.9"), TrackMeter.create("0004+111.1"))
-        val md3 = elementCsvMetaData(3, TrackMeter.create("0004+111.1"), TrackMeter.create("0006+111.222"))
+        val md1 = elementCsvMetaData(1, TrackMeter("0002+456.654"), TrackMeter("0002+963.9"))
+        val md2 = elementCsvMetaData(2, TrackMeter("0002+963.9"), TrackMeter("0004+111.1"))
+        val md3 = elementCsvMetaData(3, TrackMeter("0004+111.1"), TrackMeter("0006+111.222"))
 
         val segments = segmentCsvMetadata(listOf(start, end), listOf(md1, md2, md3), listOf())
         val expected = listOf(
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+456.654")..TrackMeter.create("0002+963.9"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+963.9")..TrackMeter.create("0003+0"), md2, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0003+0")..TrackMeter.create("0004+0"), md2, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0004+0")..TrackMeter.create("0004+111.1"), md2, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0004+111.1")..TrackMeter.create("0005+0"), md3, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0005+0")..TrackMeter.create("0006+0"), md3, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0006+0")..TrackMeter.create("0006+111.222"), md3, null),
+            SegmentCsvMetaDataRange(TrackMeter("0002+456.654")..TrackMeter("0002+963.9"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0002+963.9")..TrackMeter("0003+0"), md2, null),
+            SegmentCsvMetaDataRange(TrackMeter("0003+0")..TrackMeter("0004+0"), md2, null),
+            SegmentCsvMetaDataRange(TrackMeter("0004+0")..TrackMeter("0004+111.1"), md2, null),
+            SegmentCsvMetaDataRange(TrackMeter("0004+111.1")..TrackMeter("0005+0"), md3, null),
+            SegmentCsvMetaDataRange(TrackMeter("0005+0")..TrackMeter("0006+0"), md3, null),
+            SegmentCsvMetaDataRange(TrackMeter("0006+0")..TrackMeter("0006+111.222"), md3, null),
         )
         assertEquals(expected, segments)
     }
 
     @Test
     fun segmentingRangesWorksWithPartialAlignmentCsvMetadata() {
-        val start = AddressPoint(point(1), TrackMeter.create("0002+456.654"))
-        val end = AddressPoint(point(2), TrackMeter.create("0007+999.999"))
+        val start = AddressPoint(point(1), TrackMeter("0002+456.654"))
+        val end = AddressPoint(point(2), TrackMeter("0007+999.999"))
 
-        val md1 = elementCsvMetaData(1, TrackMeter.create("0002+963.9"), TrackMeter.create("0003+333.3"))
-        val md2 = elementCsvMetaData(2, TrackMeter.create("0004+444.4"), TrackMeter.create("0004+555.5"))
-        val md3 = elementCsvMetaData(3, TrackMeter.create("0005+555.5"), TrackMeter.create("0006+666.6"))
+        val md1 = elementCsvMetaData(1, TrackMeter("0002+963.9"), TrackMeter("0003+333.3"))
+        val md2 = elementCsvMetaData(2, TrackMeter("0004+444.4"), TrackMeter("0004+555.5"))
+        val md3 = elementCsvMetaData(3, TrackMeter("0005+555.5"), TrackMeter("0006+666.6"))
 
         val segments = segmentCsvMetadata(listOf(start, end), listOf(md1, md2, md3), listOf())
         val expected = listOf(
-            emptyCsvMetaData(TrackMeter.create("0002+456.654")..TrackMeter.create("0002+963.9")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+963.9")..TrackMeter.create("0003+0"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0003+0")..TrackMeter.create("0003+333.3"), md1, null),
-            emptyCsvMetaData(TrackMeter.create("0003+333.3")..TrackMeter.create("0004+0")),
-            emptyCsvMetaData(TrackMeter.create("0004+0")..TrackMeter.create("0004+444.4")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0004+444.4")..TrackMeter.create("0004+555.5"), md2, null),
-            emptyCsvMetaData(TrackMeter.create("0004+555.5")..TrackMeter.create("0005+0")),
-            emptyCsvMetaData(TrackMeter.create("0005+0")..TrackMeter.create("0005+555.5")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0005+555.5")..TrackMeter.create("0006+0"), md3, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0006+0")..TrackMeter.create("0006+666.6"), md3, null),
-            emptyCsvMetaData(TrackMeter.create("0006+666.6")..TrackMeter.create("0007+0")),
-            emptyCsvMetaData(TrackMeter.create("0007+0")..TrackMeter.create("0007+999.999")),
+            emptyCsvMetaData(TrackMeter("0002+456.654")..TrackMeter("0002+963.9")),
+            SegmentCsvMetaDataRange(TrackMeter("0002+963.9")..TrackMeter("0003+0"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0003+0")..TrackMeter("0003+333.3"), md1, null),
+            emptyCsvMetaData(TrackMeter("0003+333.3")..TrackMeter("0004+0")),
+            emptyCsvMetaData(TrackMeter("0004+0")..TrackMeter("0004+444.4")),
+            SegmentCsvMetaDataRange(TrackMeter("0004+444.4")..TrackMeter("0004+555.5"), md2, null),
+            emptyCsvMetaData(TrackMeter("0004+555.5")..TrackMeter("0005+0")),
+            emptyCsvMetaData(TrackMeter("0005+0")..TrackMeter("0005+555.5")),
+            SegmentCsvMetaDataRange(TrackMeter("0005+555.5")..TrackMeter("0006+0"), md3, null),
+            SegmentCsvMetaDataRange(TrackMeter("0006+0")..TrackMeter("0006+666.6"), md3, null),
+            emptyCsvMetaData(TrackMeter("0006+666.6")..TrackMeter("0007+0")),
+            emptyCsvMetaData(TrackMeter("0007+0")..TrackMeter("0007+999.999")),
         )
         assertEquals(expected, segments)
     }
 
     @Test
     fun segmentingRangesWorksWithAlignmentSwitchLinks() {
-        val start = AddressPoint(point(1), TrackMeter.create("0002+000.0"))
-        val end = AddressPoint(point(2), TrackMeter.create("0006+999.999"))
+        val start = AddressPoint(point(1), TrackMeter("0002+000.0"))
+        val end = AddressPoint(point(2), TrackMeter("0006+999.999"))
 
-        val sl1 = switchLink(1, TrackMeter.create("0002+123.0"), TrackMeter.create("0002+223.0"))
+        val sl1 = switchLink(1, TrackMeter("0002+123.0"), TrackMeter("0002+223.0"))
         val sl2 = switchLink(
             2,
-            TrackMeter.create("0003+999.9"),
-            TrackMeter.create("0004+111.1"),
-            TrackMeter.create("0004+555.5"),
+            TrackMeter("0003+999.9"),
+            TrackMeter("0004+111.1"),
+            TrackMeter("0004+555.5"),
         )
-        val sl3 = switchLink(3, TrackMeter.create("0006+111.1"), TrackMeter.create("0006+222.2"))
+        val sl3 = switchLink(3, TrackMeter("0006+111.1"), TrackMeter("0006+222.2"))
 
         val segments = segmentCsvMetadata<LocationTrack>(listOf(start, end), listOf(), listOf(sl1, sl2, sl3))
         val expected = listOf<SegmentCsvMetaDataRange<LocationTrack>>(
-            emptyCsvMetaData(TrackMeter.create("0002+000.0")..TrackMeter.create("0002+123.0")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+123.0")..TrackMeter.create("0002+223.0"), null, sl1),
-            emptyCsvMetaData(TrackMeter.create("0002+223.0")..TrackMeter.create("0003+000")),
-            emptyCsvMetaData(TrackMeter.create("0003+000")..TrackMeter.create("0003+999.9")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0003+999.9")..TrackMeter.create("0004+000"), null, sl2),
-            SegmentCsvMetaDataRange(TrackMeter.create("0004+000")..TrackMeter.create("0004+111.1"), null, sl2),
-            SegmentCsvMetaDataRange(TrackMeter.create("0004+111.1")..TrackMeter.create("0004+555.5"), null, sl2),
-            emptyCsvMetaData(TrackMeter.create("0004+555.5")..TrackMeter.create("0005+000")),
-            emptyCsvMetaData(TrackMeter.create("0005+000")..TrackMeter.create("0006+000")),
-            emptyCsvMetaData(TrackMeter.create("0006+000")..TrackMeter.create("0006+111.1")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0006+111.1")..TrackMeter.create("0006+222.2"), null, sl3),
-            emptyCsvMetaData(TrackMeter.create("0006+222.2")..TrackMeter.create("0006+999.999")),
+            emptyCsvMetaData(TrackMeter("0002+000.0")..TrackMeter("0002+123.0")),
+            SegmentCsvMetaDataRange(TrackMeter("0002+123.0")..TrackMeter("0002+223.0"), null, sl1),
+            emptyCsvMetaData(TrackMeter("0002+223.0")..TrackMeter("0003+000")),
+            emptyCsvMetaData(TrackMeter("0003+000")..TrackMeter("0003+999.9")),
+            SegmentCsvMetaDataRange(TrackMeter("0003+999.9")..TrackMeter("0004+000"), null, sl2),
+            SegmentCsvMetaDataRange(TrackMeter("0004+000")..TrackMeter("0004+111.1"), null, sl2),
+            SegmentCsvMetaDataRange(TrackMeter("0004+111.1")..TrackMeter("0004+555.5"), null, sl2),
+            emptyCsvMetaData(TrackMeter("0004+555.5")..TrackMeter("0005+000")),
+            emptyCsvMetaData(TrackMeter("0005+000")..TrackMeter("0006+000")),
+            emptyCsvMetaData(TrackMeter("0006+000")..TrackMeter("0006+111.1")),
+            SegmentCsvMetaDataRange(TrackMeter("0006+111.1")..TrackMeter("0006+222.2"), null, sl3),
+            emptyCsvMetaData(TrackMeter("0006+222.2")..TrackMeter("0006+999.999")),
         )
         assertEquals(expected, segments)
     }
 
     @Test
     fun segmentingRangesWorksWithFullCsvMetadata() {
-        val start = AddressPoint(point(1), TrackMeter.create("0001+000.000"))
-        val end = AddressPoint(point(2), TrackMeter.create("0003+000.000"))
+        val start = AddressPoint(point(1), TrackMeter("0001+000.000"))
+        val end = AddressPoint(point(2), TrackMeter("0003+000.000"))
 
-        val md1 = elementCsvMetaData(1, TrackMeter.create("0001+100.0"), TrackMeter.create("0002+300.0"))
-        val md2 = elementCsvMetaData(2, TrackMeter.create("0002+950.0"), TrackMeter.create("0003+000.0"))
+        val md1 = elementCsvMetaData(1, TrackMeter("0001+100.0"), TrackMeter("0002+300.0"))
+        val md2 = elementCsvMetaData(2, TrackMeter("0002+950.0"), TrackMeter("0003+000.0"))
 
-        val sl1 = switchLink(3, TrackMeter.create("0001+200.0"), TrackMeter.create("0001+300.0"))
+        val sl1 = switchLink(3, TrackMeter("0001+200.0"), TrackMeter("0001+300.0"))
         val sl2 = switchLink(
             4,
-            TrackMeter.create("0002+100.0"),
-            TrackMeter.create("0002+200.0"),
-            TrackMeter.create("0002+400.0"),
-            TrackMeter.create("0002+500.0"),
+            TrackMeter("0002+100.0"),
+            TrackMeter("0002+200.0"),
+            TrackMeter("0002+400.0"),
+            TrackMeter("0002+500.0"),
         )
-        val sl3 = switchLink(4, TrackMeter.create("0002+800.0"), TrackMeter.create("0002+900.0"))
+        val sl3 = switchLink(4, TrackMeter("0002+800.0"), TrackMeter("0002+900.0"))
 
         val segments = segmentCsvMetadata(listOf(start, end), listOf(md1, md2), listOf(sl1, sl2, sl3))
         val expected = listOf(
-            emptyCsvMetaData(TrackMeter.create("0001+000.000")..TrackMeter.create("0001+100.0")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+100.0")..TrackMeter.create("0001+200.0"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+200.0")..TrackMeter.create("0001+300.0"), md1, sl1),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+300.0")..TrackMeter.create("0002+000"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+000")..TrackMeter.create("0002+100.0"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+100.0")..TrackMeter.create("0002+200.0"), md1, sl2),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+200.0")..TrackMeter.create("0002+300.0"), md1, sl2),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+300.0")..TrackMeter.create("0002+400.0"), null, sl2),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+400.0")..TrackMeter.create("0002+500.0"), null, sl2),
-            emptyCsvMetaData(TrackMeter.create("0002+500.0")..TrackMeter.create("0002+800.0")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+800.0")..TrackMeter.create("0002+900.0"), null, sl3),
-            emptyCsvMetaData(TrackMeter.create("0002+900.0")..TrackMeter.create("0002+950.0")),
-            SegmentCsvMetaDataRange(TrackMeter.create("0002+950.0")..TrackMeter.create("0003+000.0"), md2, null),
+            emptyCsvMetaData(TrackMeter("0001+000.000")..TrackMeter("0001+100.0")),
+            SegmentCsvMetaDataRange(TrackMeter("0001+100.0")..TrackMeter("0001+200.0"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+200.0")..TrackMeter("0001+300.0"), md1, sl1),
+            SegmentCsvMetaDataRange(TrackMeter("0001+300.0")..TrackMeter("0002+000"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0002+000")..TrackMeter("0002+100.0"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0002+100.0")..TrackMeter("0002+200.0"), md1, sl2),
+            SegmentCsvMetaDataRange(TrackMeter("0002+200.0")..TrackMeter("0002+300.0"), md1, sl2),
+            SegmentCsvMetaDataRange(TrackMeter("0002+300.0")..TrackMeter("0002+400.0"), null, sl2),
+            SegmentCsvMetaDataRange(TrackMeter("0002+400.0")..TrackMeter("0002+500.0"), null, sl2),
+            emptyCsvMetaData(TrackMeter("0002+500.0")..TrackMeter("0002+800.0")),
+            SegmentCsvMetaDataRange(TrackMeter("0002+800.0")..TrackMeter("0002+900.0"), null, sl3),
+            emptyCsvMetaData(TrackMeter("0002+900.0")..TrackMeter("0002+950.0")),
+            SegmentCsvMetaDataRange(TrackMeter("0002+950.0")..TrackMeter("0003+000.0"), md2, null),
         )
 
         assertEquals(expected, segments)
@@ -190,19 +190,19 @@ class CsvParsingTest {
         // M1+S1     |---|
         // M1            |---|
         val points = listOf(
-            AddressPoint(point(1), TrackMeter.create("0001+000.5")),
-            AddressPoint(point(2), TrackMeter.create("0001+001.0")),
-            AddressPoint(point(3), TrackMeter.create("0001+002.0")),
-            AddressPoint(point(4), TrackMeter.create("0001+003.0")),
-            AddressPoint(point(6), TrackMeter.create("0001+004.0")),
+            AddressPoint(point(1), TrackMeter("0001+000.5")),
+            AddressPoint(point(2), TrackMeter("0001+001.0")),
+            AddressPoint(point(3), TrackMeter("0001+002.0")),
+            AddressPoint(point(4), TrackMeter("0001+003.0")),
+            AddressPoint(point(6), TrackMeter("0001+004.0")),
         )
 
         val md1 = alignmentCsvMetaData(123, points[1], points[4])
         val expandedMd1 = fullElementCsvMetadata(md1).copy(
-            startMeter = TrackMeter.create("0001+000.5")
+            startMeter = TrackMeter("0001+000.5")
         )
 
-        val sl1 = switchLink(3, TrackMeter.create("0001+000.5"), TrackMeter.create("0001+002.0"))
+        val sl1 = switchLink(3, TrackMeter("0001+000.5"), TrackMeter("0001+002.0"))
 
         val segments = combineMetadataToSegments(
             listOf(sl1),
@@ -211,9 +211,9 @@ class CsvParsingTest {
             listOf(),
         )
         val expected = listOf(
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+000.5")..TrackMeter.create("0001+002.0"), expandedMd1, sl1),
+            SegmentCsvMetaDataRange(TrackMeter("0001+000.5")..TrackMeter("0001+002.0"), expandedMd1, sl1),
             SegmentCsvMetaDataRange(
-                TrackMeter.create("0001+002.0")..TrackMeter.create("0001+004.0"),
+                TrackMeter("0001+002.0")..TrackMeter("0001+004.0"),
                 expandedMd1,
                 null
             ),
@@ -278,25 +278,25 @@ class CsvParsingTest {
         // S2                       |---|
 
         val points = listOf(
-            AddressPoint(point(2), TrackMeter.create("0001+001.0")),
-            AddressPoint(point(3), TrackMeter.create("0001+002.0")),
-            AddressPoint(point(4), TrackMeter.create("0001+003.0")),
-            AddressPoint(point(6), TrackMeter.create("0001+004.0")),
-            AddressPoint(point(1), TrackMeter.create("0001+004.5")),
-            AddressPoint(point(7), TrackMeter.create("0001+005.0")),
-            AddressPoint(point(8), TrackMeter.create("0001+006.0")),
-            AddressPoint(point(9), TrackMeter.create("0001+007.0")),
-            AddressPoint(point(10), TrackMeter.create("0001+007.5")),
-            AddressPoint(point(11), TrackMeter.create("0001+008.0")),
-            AddressPoint(point(12), TrackMeter.create("0001+009.0")),
-            AddressPoint(point(13), TrackMeter.create("0001+009.5")),
+            AddressPoint(point(2), TrackMeter("0001+001.0")),
+            AddressPoint(point(3), TrackMeter("0001+002.0")),
+            AddressPoint(point(4), TrackMeter("0001+003.0")),
+            AddressPoint(point(6), TrackMeter("0001+004.0")),
+            AddressPoint(point(1), TrackMeter("0001+004.5")),
+            AddressPoint(point(7), TrackMeter("0001+005.0")),
+            AddressPoint(point(8), TrackMeter("0001+006.0")),
+            AddressPoint(point(9), TrackMeter("0001+007.0")),
+            AddressPoint(point(10), TrackMeter("0001+007.5")),
+            AddressPoint(point(11), TrackMeter("0001+008.0")),
+            AddressPoint(point(12), TrackMeter("0001+009.0")),
+            AddressPoint(point(13), TrackMeter("0001+009.5")),
         )
 
-        val md1 = elementCsvMetaData(1, TrackMeter.create("0001+001.0"), TrackMeter.create("0001+004.0"))
-        val md2 = elementCsvMetaData(1, TrackMeter.create("0001+004.0"), TrackMeter.create("0001+007.0"))
+        val md1 = elementCsvMetaData(1, TrackMeter("0001+001.0"), TrackMeter("0001+004.0"))
+        val md2 = elementCsvMetaData(1, TrackMeter("0001+004.0"), TrackMeter("0001+007.0"))
 
-        val sl1 = switchLink(3, TrackMeter.create("0001+003.0"), TrackMeter.create("0001+004.5"))
-        val sl2 = switchLink(4, TrackMeter.create("0001+007.5"), TrackMeter.create("0001+009.5"))
+        val sl1 = switchLink(3, TrackMeter("0001+003.0"), TrackMeter("0001+004.5"))
+        val sl2 = switchLink(4, TrackMeter("0001+007.5"), TrackMeter("0001+009.5"))
 
         val expandedMd1 = md1.copy(endMeter = sl1.endMeter)
         val expandedMd2 = md2.copy(startMeter = sl1.endMeter, endMeter = sl2.startMeter)
@@ -331,25 +331,25 @@ class CsvParsingTest {
         // M1            |--|
         // M1+S2            |---|
         val points = listOf(
-            AddressPoint(point(1), TrackMeter.create("0001+000.5")),
-            AddressPoint(point(2), TrackMeter.create("0001+001.0")),
-            AddressPoint(point(3), TrackMeter.create("0001+002.0")),
-            AddressPoint(point(4), TrackMeter.create("0001+003.0")),
-            AddressPoint(point(6), TrackMeter.create("0001+004.0")),
-            AddressPoint(point(7), TrackMeter.create("0001+005.0")),
-            AddressPoint(point(8), TrackMeter.create("0001+006.0")),
-            AddressPoint(point(9), TrackMeter.create("0001+007.0")),
-            AddressPoint(point(10), TrackMeter.create("0001+007.5")),
+            AddressPoint(point(1), TrackMeter("0001+000.5")),
+            AddressPoint(point(2), TrackMeter("0001+001.0")),
+            AddressPoint(point(3), TrackMeter("0001+002.0")),
+            AddressPoint(point(4), TrackMeter("0001+003.0")),
+            AddressPoint(point(6), TrackMeter("0001+004.0")),
+            AddressPoint(point(7), TrackMeter("0001+005.0")),
+            AddressPoint(point(8), TrackMeter("0001+006.0")),
+            AddressPoint(point(9), TrackMeter("0001+007.0")),
+            AddressPoint(point(10), TrackMeter("0001+007.5")),
         )
 
         val md1 = alignmentCsvMetaData(123, points[1], points[7])
         val expandedMd1 = fullElementCsvMetadata(md1).copy(
-            startMeter = TrackMeter.create("0001+000.5"),
-            endMeter = TrackMeter.create("0001+007.5")
+            startMeter = TrackMeter("0001+000.5"),
+            endMeter = TrackMeter("0001+007.5")
         )
 
-        val sl1 = switchLink(1, TrackMeter.create("0001+000.5"), TrackMeter.create("0001+002.0"))
-        val sl2 = switchLink(2, TrackMeter.create("0001+005.0"), TrackMeter.create("0001+007.5"))
+        val sl1 = switchLink(1, TrackMeter("0001+000.5"), TrackMeter("0001+002.0"))
+        val sl2 = switchLink(2, TrackMeter("0001+005.0"), TrackMeter("0001+007.5"))
 
         val segments = combineMetadataToSegments(
             listOf(sl1, sl2),
@@ -358,13 +358,13 @@ class CsvParsingTest {
             listOf(),
         )
         val expected = listOf(
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+000.5")..TrackMeter.create("0001+002.0"), expandedMd1, sl1),
+            SegmentCsvMetaDataRange(TrackMeter("0001+000.5")..TrackMeter("0001+002.0"), expandedMd1, sl1),
             SegmentCsvMetaDataRange(
-                TrackMeter.create("0001+002.0")..TrackMeter.create("0001+005.0"),
+                TrackMeter("0001+002.0")..TrackMeter("0001+005.0"),
                 expandedMd1,
                 null
             ),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+005.0")..TrackMeter.create("0001+007.5"), expandedMd1, sl2),
+            SegmentCsvMetaDataRange(TrackMeter("0001+005.0")..TrackMeter("0001+007.5"), expandedMd1, sl2),
         )
 
         assertEquals(expected, segments)
@@ -382,17 +382,17 @@ class CsvParsingTest {
         // M1          |-----|
 
         val points = listOf(
-            AddressPoint(point(1), TrackMeter.create("0001+000.0")),
-            AddressPoint(point(2), TrackMeter.create("0001+001.0")),
-            AddressPoint(point(3), TrackMeter.create("0001+002.0")),
-            AddressPoint(point(4), TrackMeter.create("0001+003.0")),
-            AddressPoint(point(6), TrackMeter.create("0001+004.0")),
-            AddressPoint(point(7), TrackMeter.create("0001+005.0")),
+            AddressPoint(point(1), TrackMeter("0001+000.0")),
+            AddressPoint(point(2), TrackMeter("0001+001.0")),
+            AddressPoint(point(3), TrackMeter("0001+002.0")),
+            AddressPoint(point(4), TrackMeter("0001+003.0")),
+            AddressPoint(point(6), TrackMeter("0001+004.0")),
+            AddressPoint(point(7), TrackMeter("0001+005.0")),
         )
 
-        val md1 = elementCsvMetaData(1, TrackMeter.create("0001+002.0"), TrackMeter.create("0001+005.0"))
+        val md1 = elementCsvMetaData(1, TrackMeter("0001+002.0"), TrackMeter("0001+005.0"))
 
-        val sl1 = switchLink(1, TrackMeter.create("0001+000.0"))
+        val sl1 = switchLink(1, TrackMeter("0001+000.0"))
 
         val segments = segmentCsvMetadata(
             points,
@@ -400,9 +400,9 @@ class CsvParsingTest {
             listOf(sl1)
         )
         val expected = listOf(
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+000.0")..TrackMeter.create("0001+001.0"), null, sl1),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+001.0")..TrackMeter.create("0001+002.0"), null, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+002.0")..TrackMeter.create("0001+005.0"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+000.0")..TrackMeter("0001+001.0"), null, sl1),
+            SegmentCsvMetaDataRange(TrackMeter("0001+001.0")..TrackMeter("0001+002.0"), null, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+002.0")..TrackMeter("0001+005.0"), md1, null),
         )
 
         assertEquals(expected, segments)
@@ -419,17 +419,17 @@ class CsvParsingTest {
         // -                ||
         // S1                ||
         val points = listOf(
-            AddressPoint(point(1), TrackMeter.create("0001+000.0")),
-            AddressPoint(point(2), TrackMeter.create("0001+001.0")),
-            AddressPoint(point(3), TrackMeter.create("0001+002.0")),
-            AddressPoint(point(4), TrackMeter.create("0001+003.0")),
-            AddressPoint(point(6), TrackMeter.create("0001+004.0")),
-            AddressPoint(point(7), TrackMeter.create("0001+005.0")),
+            AddressPoint(point(1), TrackMeter("0001+000.0")),
+            AddressPoint(point(2), TrackMeter("0001+001.0")),
+            AddressPoint(point(3), TrackMeter("0001+002.0")),
+            AddressPoint(point(4), TrackMeter("0001+003.0")),
+            AddressPoint(point(6), TrackMeter("0001+004.0")),
+            AddressPoint(point(7), TrackMeter("0001+005.0")),
         )
 
-        val md1 = elementCsvMetaData(1, TrackMeter.create("0001+000.0"), TrackMeter.create("0001+003.0"))
+        val md1 = elementCsvMetaData(1, TrackMeter("0001+000.0"), TrackMeter("0001+003.0"))
 
-        val sl1 = switchLink(1, TrackMeter.create("0001+005.0"))
+        val sl1 = switchLink(1, TrackMeter("0001+005.0"))
 
         val segments = segmentCsvMetadata(
             points,
@@ -437,9 +437,9 @@ class CsvParsingTest {
             listOf(sl1)
         )
         val expected = listOf(
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+000.0")..TrackMeter.create("0001+003.0"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+003.0")..TrackMeter.create("0001+004.0"), null, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+004.0")..TrackMeter.create("0001+005.0"), null, sl1),
+            SegmentCsvMetaDataRange(TrackMeter("0001+000.0")..TrackMeter("0001+003.0"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+003.0")..TrackMeter("0001+004.0"), null, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+004.0")..TrackMeter("0001+005.0"), null, sl1),
         )
 
         assertEquals(expected, segments)
@@ -457,19 +457,19 @@ class CsvParsingTest {
         // M1             |-|
         // empty            |--|
         val points = listOf(
-            AddressPoint(point(1), TrackMeter.create("0001+000.0")),
-            AddressPoint(point(2), TrackMeter.create("0001+001.0")),
-            AddressPoint(point(3), TrackMeter.create("0001+002.0")),
-            AddressPoint(point(4), TrackMeter.create("0001+003.0")),
-            AddressPoint(point(6), TrackMeter.create("0001+004.0")),
-            AddressPoint(point(7), TrackMeter.create("0001+005.0")),
-            AddressPoint(point(8), TrackMeter.create("0001+006.0")),
-            AddressPoint(point(9), TrackMeter.create("0001+007.0")),
+            AddressPoint(point(1), TrackMeter("0001+000.0")),
+            AddressPoint(point(2), TrackMeter("0001+001.0")),
+            AddressPoint(point(3), TrackMeter("0001+002.0")),
+            AddressPoint(point(4), TrackMeter("0001+003.0")),
+            AddressPoint(point(6), TrackMeter("0001+004.0")),
+            AddressPoint(point(7), TrackMeter("0001+005.0")),
+            AddressPoint(point(8), TrackMeter("0001+006.0")),
+            AddressPoint(point(9), TrackMeter("0001+007.0")),
         )
 
-        val md1 = elementCsvMetaData(1, TrackMeter.create("0001+000.0"), TrackMeter.create("0001+005.0"))
+        val md1 = elementCsvMetaData(1, TrackMeter("0001+000.0"), TrackMeter("0001+005.0"))
 
-        val sl1 = switchLink(1, TrackMeter.create("0001+003.0"))
+        val sl1 = switchLink(1, TrackMeter("0001+003.0"))
 
         val segments = segmentCsvMetadata(
             points,
@@ -477,10 +477,10 @@ class CsvParsingTest {
             listOf(sl1)
         )
         val expected = listOf(
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+000.0")..TrackMeter.create("0001+003.0"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+003.0")..TrackMeter.create("0001+004.0"), md1, sl1),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+004.0")..TrackMeter.create("0001+005.0"), md1, null),
-            SegmentCsvMetaDataRange(TrackMeter.create("0001+005.0")..TrackMeter.create("0001+007.0"), null, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+000.0")..TrackMeter("0001+003.0"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+003.0")..TrackMeter("0001+004.0"), md1, sl1),
+            SegmentCsvMetaDataRange(TrackMeter("0001+004.0")..TrackMeter("0001+005.0"), md1, null),
+            SegmentCsvMetaDataRange(TrackMeter("0001+005.0")..TrackMeter("0001+007.0"), null, null),
         )
 
         assertEquals(expected, segments)
@@ -490,21 +490,21 @@ class CsvParsingTest {
     @Test
     fun dividePointsToSegmentsWorks() {
         val points = listOf(
-            AddressPoint(point(1), TrackMeter.create("0000+0.0")),
-            AddressPoint(point(2), TrackMeter.create("0000+4.0")),
-            AddressPoint(point(3), TrackMeter.create("0000+9.0")),
-            AddressPoint(point(4), TrackMeter.create("0000+11.0")),
-            AddressPoint(point(5), TrackMeter.create("0000+15.0")),
-            AddressPoint(point(6), TrackMeter.create("0000+20.0")),
-            AddressPoint(point(7), TrackMeter.create("0000+25.0")),
-            AddressPoint(point(8), TrackMeter.create("0000+30.0")),
-            AddressPoint(point(9), TrackMeter.create("0000+31.0")),
+            AddressPoint(point(1), TrackMeter("0000+0.0")),
+            AddressPoint(point(2), TrackMeter("0000+4.0")),
+            AddressPoint(point(3), TrackMeter("0000+9.0")),
+            AddressPoint(point(4), TrackMeter("0000+11.0")),
+            AddressPoint(point(5), TrackMeter("0000+15.0")),
+            AddressPoint(point(6), TrackMeter("0000+20.0")),
+            AddressPoint(point(7), TrackMeter("0000+25.0")),
+            AddressPoint(point(8), TrackMeter("0000+30.0")),
+            AddressPoint(point(9), TrackMeter("0000+31.0")),
         )
-        val md0 = emptyCsvMetaData<LocationTrack>(TrackMeter.create("0000+0.0")..TrackMeter.create("0000+1.0"))
-        val md1 = someSegmentCsvMetaData(TrackMeter.create("0000+1.0")..TrackMeter.create("0000+10.0"), 1)
-        val md2 = someSegmentCsvMetaData(TrackMeter.create("0000+10.0")..TrackMeter.create("0000+20.0"), 2)
-        val md3 = someSegmentCsvMetaData(TrackMeter.create("0000+20.0")..TrackMeter.create("0000+30.0"), 3)
-        val md4 = emptyCsvMetaData<LocationTrack>(TrackMeter.create("0000+30.0")..TrackMeter.create("0000+31.0"))
+        val md0 = emptyCsvMetaData<LocationTrack>(TrackMeter("0000+0.0")..TrackMeter("0000+1.0"))
+        val md1 = someSegmentCsvMetaData(TrackMeter("0000+1.0")..TrackMeter("0000+10.0"), 1)
+        val md2 = someSegmentCsvMetaData(TrackMeter("0000+10.0")..TrackMeter("0000+20.0"), 2)
+        val md3 = someSegmentCsvMetaData(TrackMeter("0000+20.0")..TrackMeter("0000+30.0"), 3)
+        val md4 = emptyCsvMetaData<LocationTrack>(TrackMeter("0000+30.0")..TrackMeter("0000+31.0"))
         val divided = dividePointsToSegments(points, listOf(md0, md1, md2, md3, md4), setOf())
         assertEquals(
             listOf(
@@ -520,20 +520,20 @@ class CsvParsingTest {
     @Test
     fun dividePointSegmentsSkipsOverEmptyRanges() {
         val points = listOf(
-            AddressPoint(point(1), TrackMeter.create("0000+0.0")),
-            AddressPoint(point(2), TrackMeter.create("0000+1.0")),
-            AddressPoint(point(3), TrackMeter.create("0000+2.0")),
-            AddressPoint(point(4), TrackMeter.create("0000+3.0")),
-            AddressPoint(point(5), TrackMeter.create("0000+11.0")),
-            AddressPoint(point(6), TrackMeter.create("0000+12.0")),
-            AddressPoint(point(7), TrackMeter.create("0000+13.0")),
+            AddressPoint(point(1), TrackMeter("0000+0.0")),
+            AddressPoint(point(2), TrackMeter("0000+1.0")),
+            AddressPoint(point(3), TrackMeter("0000+2.0")),
+            AddressPoint(point(4), TrackMeter("0000+3.0")),
+            AddressPoint(point(5), TrackMeter("0000+11.0")),
+            AddressPoint(point(6), TrackMeter("0000+12.0")),
+            AddressPoint(point(7), TrackMeter("0000+13.0")),
         )
 
-        val md1 = someSegmentCsvMetaData(TrackMeter.create("0000+0.0")..TrackMeter.create("0000+3.0"), 1)
-        val mdPartial = someSegmentCsvMetaData(TrackMeter.create("0000+3.0")..TrackMeter.create("0000+5.0"), 2)
-        val mdEmpty1 = someSegmentCsvMetaData(TrackMeter.create("0000+5.0")..TrackMeter.create("0000+8.0"), 3)
-        val mdEmpty2 = someSegmentCsvMetaData(TrackMeter.create("0000+8.0")..TrackMeter.create("0000+10.0"), 4)
-        val md2 = someSegmentCsvMetaData(TrackMeter.create("0000+10.0")..TrackMeter.create("0000+13.0"), 9)
+        val md1 = someSegmentCsvMetaData(TrackMeter("0000+0.0")..TrackMeter("0000+3.0"), 1)
+        val mdPartial = someSegmentCsvMetaData(TrackMeter("0000+3.0")..TrackMeter("0000+5.0"), 2)
+        val mdEmpty1 = someSegmentCsvMetaData(TrackMeter("0000+5.0")..TrackMeter("0000+8.0"), 3)
+        val mdEmpty2 = someSegmentCsvMetaData(TrackMeter("0000+8.0")..TrackMeter("0000+10.0"), 4)
+        val md2 = someSegmentCsvMetaData(TrackMeter("0000+10.0")..TrackMeter("0000+13.0"), 9)
 
         val divided = dividePointsToSegments(points, listOf(md1, mdPartial, mdEmpty1, mdEmpty2, md2), setOf())
         assertEquals(
@@ -1023,7 +1023,7 @@ class CsvParsingTest {
                 basePoint + Point(1.6, 0.5),
                 basePoint + Point(2.6, 0.5)
             ),
-            (0..3).map { s -> TrackMeter.create("0000+$s.0") }
+            (0..3).map { s -> TrackMeter("0000+$s.0") }
         )
         assertEquals(4, points.size)
         assertEquals(listOf(2), connectionSegmentIndices)
@@ -1078,7 +1078,7 @@ class CsvParsingTest {
                 basePoint + Point(5.6, 1.8), // 8
                 basePoint + Point(6.1, 2.2), // 9
             ),
-            (0..10).map { s -> TrackMeter.create("0000+$s.0") }
+            (0..10).map { s -> TrackMeter("0000+$s.0") }
         )
         assertEquals(10, points.size)
         assertEquals(listOf(2, 3, 4, 8), connectionSegmentIndices)

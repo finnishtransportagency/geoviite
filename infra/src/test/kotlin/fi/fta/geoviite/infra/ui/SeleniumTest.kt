@@ -38,7 +38,7 @@ open class SeleniumTest (
 
     init {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Helsinki"))
-        MDC.put(USER_HEADER, uiTestUser.value)
+        MDC.put(USER_HEADER, uiTestUser.toString())
     }
 
     protected fun clearAllTestData() {

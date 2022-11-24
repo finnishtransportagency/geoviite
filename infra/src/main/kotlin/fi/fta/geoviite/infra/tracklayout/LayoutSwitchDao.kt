@@ -158,7 +158,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         jdbcTemplate.setUser()
         val id: RowVersion<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
             sql, mapOf(
-                "external_id" to newItem.externalId?.stringValue,
+                "external_id" to newItem.externalId,
                 "geometry_switch_id" to if (newItem.sourceId is IntId) newItem.sourceId.intValue else null,
                 "name" to newItem.name,
                 "switch_structure_id" to newItem.switchStructureId.intValue,
@@ -195,7 +195,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
-            "external_id" to updatedItem.externalId?.stringValue,
+            "external_id" to updatedItem.externalId,
             "geometry_switch_id" to if (updatedItem.sourceId is IntId<GeometrySwitch>) updatedItem.sourceId.intValue else null,
             "name" to updatedItem.name,
             "switch_structure_id" to updatedItem.switchStructureId.intValue,

@@ -162,7 +162,7 @@ data class LayoutAlignment(
 data class LayoutSegmentMetadata(
     val startPoint: Point,
     val endPoint: Point,
-    val alignmentName: String?,
+    val alignmentName: AlignmentName?,
     val planTime: Instant?,
     val measurementMethod: MeasurementMethod?,
     val fileName: FileName?,

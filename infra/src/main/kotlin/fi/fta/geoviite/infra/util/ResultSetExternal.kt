@@ -101,7 +101,7 @@ fun ResultSet.getKmNumber(name: String): KmNumber {
 }
 
 fun ResultSet.getKmNumberOrNull(name: String): KmNumber? {
-    return getString(name)?.let { n -> parseKmNumber(n) }
+    return getString(name)?.let(::KmNumber)
 }
 
 fun ResultSet.getTrackMeter(name: String): TrackMeter {
@@ -109,7 +109,7 @@ fun ResultSet.getTrackMeter(name: String): TrackMeter {
 }
 
 fun ResultSet.getTrackMeterOrNull(name: String): TrackMeter? {
-    return getString(name)?.let(TrackMeter::create)
+    return getString(name)?.let(::TrackMeter)
 }
 
 fun ResultSet.getJointNumber(name: String): JointNumber {

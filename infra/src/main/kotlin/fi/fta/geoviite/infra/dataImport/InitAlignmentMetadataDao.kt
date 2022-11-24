@@ -45,13 +45,13 @@ class InitAlignmentMetadataDao @Autowired constructor(
         """.trimIndent()
         return metadataList.map { metadata ->
             val params = mapOf(
-                "alignment_external_id" to metadata.alignmentOid.stringValue,
-                "metadata_external_id" to metadata.metadataOid?.stringValue,
+                "alignment_external_id" to metadata.alignmentOid,
+                "metadata_external_id" to metadata.metadataOid,
                 "track_address_start" to metadata.startMeter.format(),
                 "track_address_end" to metadata.endMeter.format(),
                 "measurement_method" to metadata.measurementMethod,
-                "plan_file_name" to metadata.fileName.value,
-                "plan_alignment_name" to metadata.planAlignmentName.value,
+                "plan_file_name" to metadata.fileName,
+                "plan_alignment_name" to metadata.planAlignmentName,
                 "created_year" to metadata.createdYear,
                 "original_crs" to metadata.originalCrs,
                 "geometry_alignment_id" to metadata.geometry?.id?.intValue,

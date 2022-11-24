@@ -65,7 +65,7 @@ class LocationTrackDaoIT @Autowired constructor(
         // If the OID is already in use, remove it
         transactional {
             val deleteSql = "delete from layout.location_track where external_id = :external_id"
-            jdbc.update(deleteSql, mapOf("external_id" to oid.stringValue))
+            jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
         val trackNumberId = insertOfficialTrackNumber()

@@ -2,12 +2,10 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.*
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenExists
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenVisible
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementsWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
-import org.openqa.selenium.devtools.v85.page.Page
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 

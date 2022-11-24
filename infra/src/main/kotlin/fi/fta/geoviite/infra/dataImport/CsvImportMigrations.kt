@@ -237,9 +237,8 @@ private inline fun <reified T> getCsvMetaData(
 }
 
 private fun normalizeAlignmentName(name: AlignmentName): AlignmentName? =
-    if (name.value.length < 3 && name.value.all(Char::isDigit)) {
-        AlignmentName(name.value.padStart(3, '0'))
-    } else null
+    if (name.length < 3 && name.all(Char::isDigit)) name.padStart(3, '0')
+    else null
 
 private fun fetchAlignmentGeometry(
     jdbcTemplate: NamedParameterJdbcTemplate,
@@ -262,8 +261,8 @@ private fun fetchAlignmentGeometry(
           and plan.source = 'PAIKANNUSPALVELU'
     """.trimIndent()
     val params = mapOf(
-        "file_name_matcher" to "${fileName.value}.xml",
-        "alignment_name" to alignmentName.value,
+        "file_name_matcher" to "${fileName}.xml",
+        "alignment_name" to alignmentName,
     )
     val alignments = jdbcTemplate.query(sql, params) { rs, _ ->
         val alignmentId: IntId<GeometryAlignment> = rs.getIntId("id")

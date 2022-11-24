@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Service
 @Service
 class GeographyService(
     private val coordinateSystemDao: CoordinateSystemDao,
-    private val switchStructureDao: SwitchStructureDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
