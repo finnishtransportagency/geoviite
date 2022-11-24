@@ -3,9 +3,10 @@ import Card from 'card/card';
 import PublicationCard from 'publication/publication-card';
 import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
-import { PublicationListingItem, ratkoPushFailed } from 'publication/publication-model';
+import { PublicationListingItem } from 'publication/publication-model';
 import { getPublications } from 'publication/publication-api';
 import { useTranslation } from 'react-i18next';
+import { ratkoPushFailed } from 'ratko/ratko-model';
 
 type FrontPageProps = {
     selectedPublication: PublicationListingItem | undefined;
@@ -21,20 +22,21 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     React.useEffect(() => {
         let cancel = false;
-        function fetchPublications () {
-            getPublications().then(result => {
+
+        function fetchPublications() {
+            getPublications().then((result) => {
                 if (!cancel) {
-                    setPublications(result)
+                    setPublications(result);
                 }
             });
         }
 
         fetchPublications();
-        const intervalTimer = setInterval(fetchPublications, 30000)
+        const intervalTimer = setInterval(fetchPublications, 30000);
 
         return () => {
             cancel = true;
-            clearInterval(intervalTimer)
+            clearInterval(intervalTimer);
         };
     }, []);
 

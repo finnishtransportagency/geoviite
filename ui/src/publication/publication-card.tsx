@@ -1,15 +1,12 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
-import {
-    PublicationListingItem,
-    ratkoPushFailed,
-    RatkoPushStatus,
-} from 'publication/publication-model';
+import { PublicationListingItem } from 'publication/publication-model';
 import { PublicationList } from 'publication/publication-list';
 import { ButtonSize } from 'vayla-design-lib/button/button';
-import RatkoPublishButton from 'publication/ratko-publish-button';
-import { RatkoPushErrorDetails } from 'publication/ratko-push-error';
+import RatkoPublishButton from 'ratko/ratko-publish-button';
+import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
+import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
 
 type PublishListProps = {
     itemClicked: (pub: PublicationListingItem) => void;

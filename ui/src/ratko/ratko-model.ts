@@ -1,0 +1,64 @@
+import {
+    LayoutLocationTrack,
+    LayoutSwitch,
+    LayoutTrackNumber,
+} from 'track-layout/track-layout-model';
+
+export enum RatkoPushStatus {
+    SUCCESSFUL = 'SUCCESSFUL',
+    FAILED = 'FAILED',
+    CONNECTION_ISSUE = 'CONNECTION_ISSUE',
+    IN_PROGRESS = 'IN_PROGRESS',
+    IN_PROGRESS_M_VALUES = 'IN_PROGRESS_M_VALUES',
+}
+
+export function ratkoPushFailed(status: RatkoPushStatus | null) {
+    return status === RatkoPushStatus.FAILED || status === RatkoPushStatus.CONNECTION_ISSUE;
+}
+
+export function ratkoPushInProgress(status: RatkoPushStatus | null) {
+    return (
+        status === RatkoPushStatus.IN_PROGRESS || status === RatkoPushStatus.IN_PROGRESS_M_VALUES
+    );
+}
+
+export type RatkoPushErrorType = 'PROPERTIES' | 'GEOMETRY' | 'LOCATION' | 'STATE';
+
+export type RatkoPushErrorOperation = 'CREATE' | 'DELETE' | 'UPDATE';
+
+export enum RatkoAssetType {
+    TRACK_NUMBER = 'TRACK_NUMBER',
+    LOCATION_TRACK = 'LOCATION_TRACK',
+    SWITCH = 'SWITCH',
+}
+
+export type RatkoPushErrorId = string;
+
+export type RatkoPushId = string;
+
+export type RatkoPushError = {
+    id: RatkoPushErrorId;
+    ratkoPushId: RatkoPushId;
+    ratkoPushErrorType: RatkoPushErrorType;
+    operation: RatkoPushErrorOperation;
+} & RatkoPushErrorAsset;
+
+export type RatkoPushErrorAsset =
+    | RatkoPushErrorTrackNumber
+    | RatkoPushErrorLocationTrack
+    | RatkoPushErrorSwitch;
+
+type RatkoPushErrorLocationTrack = {
+    assetType: RatkoAssetType.LOCATION_TRACK;
+    asset: LayoutLocationTrack;
+};
+
+type RatkoPushErrorTrackNumber = {
+    assetType: RatkoAssetType.TRACK_NUMBER;
+    asset: LayoutTrackNumber;
+};
+
+type RatkoPushErrorSwitch = {
+    assetType: RatkoAssetType.SWITCH;
+    asset: LayoutSwitch;
+};
