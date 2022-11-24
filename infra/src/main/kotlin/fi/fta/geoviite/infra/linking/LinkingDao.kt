@@ -72,7 +72,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             array_agg(distinct location_track.official_id) filter ( where location_track.official_id is not null ) as location_track_ids,
             array_agg(distinct reference_line.official_id) filter ( where reference_line.official_id is not null ) as reference_line_ids  
           from geometry.alignment geometry_alignment
-            left join geometry.element on geometry_alignment.id = element.alignment_id
+            join geometry.element on geometry_alignment.id = element.alignment_id
             left join layout.segment
               on element.alignment_id = segment.geometry_alignment_id
                 and element.element_index = segment.geometry_element_index
