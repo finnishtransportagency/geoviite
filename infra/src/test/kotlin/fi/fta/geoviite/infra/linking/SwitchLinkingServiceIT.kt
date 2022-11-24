@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAligments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -244,6 +245,23 @@ class SwitchLinkingServiceIT @Autowired constructor(
         assertTrue(alignment.segments.none {
             it.endJointNumber == JointNumber(5) || it.startJointNumber == JointNumber(5)
         })
+    }
+
+    @Test
+    fun getSwitchLinksTopologicalConnections() {
+        val switch = switch(123, switchStructure.id as IntId)
+        val switchVersion = switchDao.insert(switch)
+        val joint1Point = switch.getJoint(JointNumber(1))!!.location
+        val (locationTrack, alignment) =
+            locationTrackAndAlignment(getUnusedTrackNumberId(), segment(joint1Point - 1.0, joint1Point))
+        val locationTrackVersion = locationTrackService.saveDraft(locationTrack
+            .copy(topologyEndSwitch = TopologyLocationTrackSwitch(switchVersion.id, JointNumber(1))), alignment)
+        val connections = switchLinkingService.getSwitchJointConnections(PublishType.DRAFT, switchVersion.id)
+
+        Assertions.assertEquals(
+            listOf(TrackLayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
+            connections[0].accurateMatches
+        )
     }
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {

@@ -25,7 +25,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
 
     @Transactional
-    fun fetchSwitchJointConnections(
+    fun fetchSegmentSwitchJointConnections(
         publishType: PublishType,
         switchId: IntId<TrackLayoutSwitch>
     ): List<TrackLayoutSwitchJointConnection> {

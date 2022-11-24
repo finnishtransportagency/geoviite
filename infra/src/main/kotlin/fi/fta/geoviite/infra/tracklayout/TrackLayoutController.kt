@@ -383,17 +383,6 @@ class TrackLayoutController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/switches/{id}/topology-track-meters")
-    fun getTrackLayoutSwitchTrackMeters(
-        @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
-    ): ResponseEntity<List<LocationTrackMeter>> {
-        logger.apiCall("getTrackLayoutSwitchTrackMeters", "id" to id, "publishType" to publishType)
-        return ResponseEntity(switchLinkingService.getTopologySwitchTrackMeters(publishType, id), HttpStatus.OK)
-    }
-
-
-    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/switches", params = ["ids"])
     fun getTrackLayoutSwitches(
         @PathVariable("publishType") publishType: PublishType,
@@ -410,7 +399,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.apiCall("getSwitchJointConnections", "switchId" to id, "publishType" to publishType)
-        return switchService.getSwitchJointConnections(publishType, id)
+        return switchLinkingService.getSwitchJointConnections(publishType, id)
 
     }
 }
