@@ -116,12 +116,13 @@ fun parseGeometryPlan(
 
 fun parseGeometryPlan(
     file: MultipartFile,
+    fileEncodingOverride: Charset?,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file))
+    val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
     return parseFromString(
         imFile,
         coordinateSystems,
@@ -176,14 +177,15 @@ val xmlCharsets = listOf(
     StandardCharsets.US_ASCII,
     StandardCharsets.ISO_8859_1,
 )
+
+fun findXmlCharset(name: String) = xmlCharsets.find { cs -> cs.name() == name }
+
 fun getEncoding(bytes: ByteArray): Charset {
     ByteArrayInputStream(bytes).use { stream ->
         val xmlStreamReader: XMLStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(stream)
         val fileEncoding = xmlStreamReader.encoding
         val encodingFromXMLDeclaration = xmlStreamReader.characterEncodingScheme
-        return (encodingFromXMLDeclaration ?: fileEncoding)?.let { name ->
-            xmlCharsets.find { cs -> cs.name() == name }
-        } ?: StandardCharsets.UTF_8
+        return (encodingFromXMLDeclaration ?: fileEncoding)?.let(::findXmlCharset) ?: StandardCharsets.UTF_8
     }
 }
 
@@ -204,16 +206,16 @@ fun classpathResourceToString(fileName: String): String {
     return xmlBytesToString(resource.readBytes())
 }
 
-fun fileToString(file: MultipartFile): String {
-    return xmlBytesToString(file.bytes)
+fun fileToString(file: MultipartFile, encodingOverride: Charset?): String {
+    return xmlBytesToString(file.bytes, encodingOverride)
 }
 
 fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
 }
 
-fun xmlBytesToString(bytes: ByteArray): String {
-    return checkUTF8BOM(String(bytes, getEncoding(bytes)))
+fun xmlBytesToString(bytes: ByteArray, encodingOverride: Charset? = null): String {
+    return checkUTF8BOM(String(bytes, encodingOverride ?: getEncoding(bytes)))
 }
 
 fun checkUTF8BOM(content: String): String {
