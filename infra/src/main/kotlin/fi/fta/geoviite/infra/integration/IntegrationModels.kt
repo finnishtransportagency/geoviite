@@ -33,6 +33,7 @@ data class RatkoPushErrorWithAsset(
 
 enum class RatkoPushStatus {
     IN_PROGRESS,
+    IN_PROGRESS_M_VALUES,
     SUCCESSFUL,
     FAILED,
     CONNECTION_ISSUE,

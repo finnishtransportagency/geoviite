@@ -61,7 +61,7 @@ type SelectionPanelProps = {
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
 };
 
-const MAX_PLAN_HEADERS = 20;
+const MAX_PLAN_HEADERS = 50;
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
@@ -202,70 +202,70 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                             styles['selection-panel__content--unpadded'],
                         )}>
                         {planHeaders.length == planHeaderCount &&
-                            planHeaders.map((h) => {
-                                return (
-                                    <GeometryPlanPanel
-                                        key={h.id}
-                                        planHeader={h}
-                                        onPlanHeaderSelection={(header) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometryPlans: [header],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        publishType={publishType}
-                                        changeTimes={changeTimes}
-                                        onTogglePlanVisibility={onTogglePlanVisibility}
-                                        onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                                        onToggleAlignmentSelection={(alignment) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometryAlignments: [
-                                                    {
-                                                        geometryItem: alignment,
-                                                        planId: h.id,
-                                                    },
-                                                ],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        onToggleSwitchVisibility={onToggleSwitchVisibility}
-                                        onToggleSwitchSelection={(switchItem) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometrySwitches: [
-                                                    {
-                                                        geometryItem: switchItem,
-                                                        planId: h.id,
-                                                    },
-                                                ],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        onToggleKmPostVisibility={onToggleKmPostVisibility}
-                                        onToggleKmPostSelection={(kmPost) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometryKmPosts: [
-                                                    {
-                                                        geometryItem: kmPost,
-                                                        planId: h.id,
-                                                    },
-                                                ],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        selectedItems={selectedItems}
-                                        selectedPlanLayouts={selectedPlanLayouts}
-                                        togglePlanOpen={togglePlanOpen}
-                                        openedPlanLayouts={openedPlanLayouts}
-                                        togglePlanKmPostsOpen={togglePlanKmPostsOpen}
-                                        togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
-                                        togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                                    />
-                                );
-                            })}
+                        planHeaders.map((h) => {
+                            return (
+                                <GeometryPlanPanel
+                                    key={h.id}
+                                    planHeader={h}
+                                    onPlanHeaderSelection={(header) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometryPlans: [header],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    publishType={publishType}
+                                    changeTimes={changeTimes}
+                                    onTogglePlanVisibility={onTogglePlanVisibility}
+                                    onToggleAlignmentVisibility={onToggleAlignmentVisibility}
+                                    onToggleAlignmentSelection={(alignment) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometryAlignments: [
+                                                {
+                                                    geometryItem: alignment,
+                                                    planId: h.id,
+                                                },
+                                            ],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    onToggleSwitchVisibility={onToggleSwitchVisibility}
+                                    onToggleSwitchSelection={(switchItem) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometrySwitches: [
+                                                {
+                                                    geometryItem: switchItem,
+                                                    planId: h.id,
+                                                },
+                                            ],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    onToggleKmPostVisibility={onToggleKmPostVisibility}
+                                    onToggleKmPostSelection={(kmPost) =>
+                                        onSelect({
+                                            ...createEmptyItemCollections(),
+                                            geometryKmPosts: [
+                                                {
+                                                    geometryItem: kmPost,
+                                                    planId: h.id,
+                                                },
+                                            ],
+                                            isToggle: true,
+                                        })
+                                    }
+                                    selectedItems={selectedItems}
+                                    selectedPlanLayouts={selectedPlanLayouts}
+                                    togglePlanOpen={togglePlanOpen}
+                                    openedPlanLayouts={openedPlanLayouts}
+                                    togglePlanKmPostsOpen={togglePlanKmPostsOpen}
+                                    togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
+                                    togglePlanSwitchesOpen={togglePlanSwitchesOpen}
+                                />
+                            );
+                        })}
                         {planHeaders.length < planHeaderCount && (
                             <span className={styles['selection-panel__subtitle']}>{`${t(
                                 'selection-panel.zoom-closer',

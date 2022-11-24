@@ -135,6 +135,15 @@ class GeographyTest {
         )
     }
 
+    @Test
+    fun pointConversion3067to4326AndBackIsAccurateEnough() {
+        val p3067 = Point(509099.11577, 6711823.23316)
+        val p4326 = transformCoordinate(Srid(3067), Srid(4326), p3067)
+        val p3067v2 = transformCoordinate(Srid(4326), Srid(3067), p4326)
+        assertApproximatelyEquals(Point(x=27.165853988, y=60.542330292), p4326, 0.000000001)
+        assertApproximatelyEquals(p3067, p3067v2, 0.01)
+    }
+
 }
 
 fun assertBoundingBoxApproximatelyEquals(bbox1: BoundingBox, bbox2: BoundingBox, accuracy: Double) {

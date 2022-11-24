@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.Transformation
@@ -9,10 +11,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.angleDiffRads
-import fi.fta.geoviite.infra.math.radsToDegrees
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.RowVersion
 import org.slf4j.Logger
@@ -97,15 +96,6 @@ fun getSwitchId(
     return if (trackPointUpdateType == LocationTrackPointUpdateType.START_POINT) segments.first().switchId else segments.last().switchId
 }
 
-fun updateLocationTrackTypePoint(
-    track: LocationTrack,
-    trackPointUpdateType: LocationTrackPointUpdateType,
-    point: EndPoint
-): LocationTrack {
-    return if (trackPointUpdateType == LocationTrackPointUpdateType.START_POINT) track.copy(startPoint = point)
-    else track.copy(endPoint = point)
-}
-
 @Service
 class LinkingService @Autowired constructor(
     private val geometryService: GeometryService,
@@ -115,7 +105,6 @@ class LinkingService @Autowired constructor(
     private val linkingDao: LinkingDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
 
     fun getSuggestedAlignments(
         locationTrackId: IntId<LocationTrack>,
@@ -128,67 +117,6 @@ class LinkingService @Autowired constructor(
             .filter { (_, second) -> isAlignmentConnected(location, locationTrackPointUpdateType, second, 2.0) }
             .map { (first, _) -> first }
     }
-
-    fun updateEndPointLocationTrack(
-        locationTrackId: IntId<LocationTrack>,
-        connectedLocationTrackId: IntId<LocationTrack>,
-        endPointType: EndPointType,
-        trackPointUpdateType: LocationTrackPointUpdateType,
-    ): IntId<LocationTrack> {
-
-        val (track, alignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
-        val (connectedLocationTrack, connectedAlignment) = locationTrackService.getWithAlignment(
-            DRAFT,
-            connectedLocationTrackId
-        )
-
-        val reversedTrackPointUpdateType = getReversedTrackPointUpdateType(trackPointUpdateType)
-        val switchId = getSwitchId(alignment.segments, trackPointUpdateType)
-        val connectedSwitchId = getSwitchId(connectedAlignment.segments, reversedTrackPointUpdateType)
-
-        val segments = switchId?.let { removeLinkingToSwitchFromSegments(it, alignment.segments) }
-        val connectedSegments =
-            connectedSwitchId?.let { removeLinkingToSwitchFromSegments(it, connectedAlignment.segments) }
-
-        locationTrackService.saveDraft(
-            draft = updateLocationTrackTypePoint(
-                track,
-                trackPointUpdateType,
-                EndPointLocationTrack(connectedLocationTrackId),
-            ),
-            alignment = alignment.copy(segments = segments ?: alignment.segments),
-        )
-
-        locationTrackService.saveDraft(
-            draft = updateLocationTrackTypePoint(
-                track = connectedLocationTrack,
-                trackPointUpdateType = reversedTrackPointUpdateType,
-                point = EndPointLocationTrack(locationTrackId),
-            ),
-            alignment = connectedAlignment.copy(segments = connectedSegments ?: connectedAlignment.segments)
-        )
-
-        return locationTrackId
-    }
-
-
-    fun updateEndPoint(
-        locationTrackId: IntId<LocationTrack>,
-        endPointType: EndPointType,
-        trackPointUpdateType: LocationTrackPointUpdateType,
-    ): IntId<LocationTrack> {
-        val (track, alignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
-        val switchId = getSwitchId(alignment.segments, trackPointUpdateType)
-        val segments = if (switchId != null) removeLinkingToSwitchFromSegments(
-            switchId,
-            alignment.segments
-        ) else alignment.segments
-        return locationTrackService.saveDraft(
-            updateLocationTrackTypePoint(track, trackPointUpdateType, EndPointSimple(type = endPointType)),
-            alignment.copy(segments = segments)
-        ).id
-    }
-
 
     fun saveReferenceLineLinking(linkingParameters: LinkingParameters<ReferenceLine>): RowVersion<ReferenceLine> {
         val referenceLineId = linkingParameters.layoutInterval.alignmentId
@@ -226,17 +154,35 @@ class LinkingService @Autowired constructor(
             layoutAlignment,
             linkingParameters.layoutInterval,
         )
+        val newAlignment = tryCreateLinkedAlignment(layoutAlignment, segments)
+        val newLocationTrack = updateTopology(locationTrack, layoutAlignment, newAlignment)
 
-        val updatedLocationTrackEndPoint = locationTrack.copy(
-            endPoint = if (layoutAlignment.end != segments.last().points.last()) null else locationTrack.endPoint,
-            startPoint = if (layoutAlignment.start != segments.first().points.first()) null else locationTrack.startPoint
-        )
-
-        return locationTrackService.saveDraft(
-            updatedLocationTrackEndPoint,
-            tryCreateLinkedAlignment(layoutAlignment, segments)
-        )
+        return locationTrackService.saveDraft(newLocationTrack, newAlignment)
     }
+
+    private fun updateTopology(
+        track: LocationTrack,
+        oldAlignment: LayoutAlignment,
+        newAlignment: LayoutAlignment,
+    ): LocationTrack {
+        val startChanged = startChanged(oldAlignment, newAlignment)
+        val endChanged = endChanged(oldAlignment, newAlignment)
+        return if (startChanged || endChanged) locationTrackService.updateTopology(
+            track = track,
+            alignment = newAlignment,
+            startChanged = startChanged,
+            endChanged = endChanged,
+        )
+        else track
+    }
+
+    private fun startChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
+        !equalsXY(oldAlignment.start, newAlignment.start)
+
+    private fun endChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
+        !equalsXY(oldAlignment.end, newAlignment.end)
+
+    private fun equalsXY(point1: IPoint?, point2: IPoint?) = point1?.x == point2?.x && point1?.y == point2?.y
 
     fun saveReferenceLineLinking(parameters: EmptyAlignmentLinkingParameters<ReferenceLine>): RowVersion<ReferenceLine> {
         val referenceLineId = parameters.layoutAlignmentId
@@ -267,11 +213,10 @@ class LinkingService @Autowired constructor(
 
         val geometrySegments = createLinkedSegments(parameters.geometryPlanId, parameters.geometryInterval)
         val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
+        val newAlignment = tryCreateLinkedAlignment(layoutAlignment, geometrySegments)
+        val newLocationTrack = updateTopology(locationTrack, layoutAlignment, newAlignment)
 
-        return locationTrackService.saveDraft(
-            locationTrack,
-            tryCreateLinkedAlignment(layoutAlignment, geometrySegments),
-        )
+        return locationTrackService.saveDraft(newLocationTrack, newAlignment)
     }
 
     private fun <T> createLinkedSegments(
@@ -367,29 +312,9 @@ class LinkingService @Autowired constructor(
 
         val (locationTrack, alignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
         val updatedAlignment = cutAlignment(alignment, interval.start, interval.end)
-
-        val updatedLocationTrack = replaceLocationTrackEndPoint(locationTrack, alignment, updatedAlignment)
+        val updatedLocationTrack = updateTopology(locationTrack, alignment, updatedAlignment)
 
         return locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
-    }
-
-    private fun replaceLocationTrackEndPoint(
-        locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
-        newAlignment: LayoutAlignment
-    ): LocationTrack {
-        val startPoint =
-            if (newAlignment.start == alignment.start) locationTrack.startPoint
-            else null
-
-        val endPoint =
-            if (newAlignment.end == alignment.end) locationTrack.endPoint
-            else null
-
-        return locationTrack.copy(
-            startPoint = startPoint,
-            endPoint = endPoint,
-        )
     }
 
     private fun cutAlignment(alignment: LayoutAlignment, from: IntervalLayoutPoint, to: IntervalLayoutPoint) =

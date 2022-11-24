@@ -97,6 +97,9 @@ fun stringToBoundingBox(value: String): BoundingBox {
     return BoundingBox(values[0]..values[1], values[2]..values[3])
 }
 
+fun boundingBoxAroundPoint(point: IPoint, delta: Double) =
+    BoundingBox(point.x-delta..point.x+delta, point.y-delta..point.y+delta)
+
 fun boundingBoxAroundPoints(point1: Point, vararg rest: Point): BoundingBox =
     boundingBoxAroundPointsOrNull(listOf(point1) + rest) ?: throw IllegalStateException("Failed to create bounding box")
 

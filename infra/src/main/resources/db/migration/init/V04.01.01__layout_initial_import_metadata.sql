@@ -9,7 +9,8 @@ create table layout.initial_import_metadata
   plan_file_name        varchar(100) not null,
   plan_alignment_name   varchar(50)  not null,
   created_year          int          not null,
-  original_crs          varchar(10)  not null
+  original_crs          varchar(10)  not null,
+  geometry_alignment_id int          null
 );
 
 comment on table layout.initial_import_metadata is 'Contains original metadata for alignments, from initial data import.';

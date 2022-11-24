@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_LOCATION_TRACK
 import fi.fta.geoviite.infra.linking.LocationTrackPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
@@ -28,8 +31,9 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               name
             from layout.location_track_publication_view
             where duplicate_of_location_track_id = :id
+              and :publishType = any(publication_states)
         """.trimIndent()
-        val params = mapOf("id" to id.intValue)
+        val params = mapOf("id" to id.intValue, "publishType" to publishType.name)
         val locationTracks = jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrackDuplicate(
                 id = rs.getIntId("official_id"),
@@ -63,7 +67,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               length,
               segment_count,            
               duplicate_of_location_track_id,
-              topological_connectivity
+              topological_connectivity,
+              topology_start_switch_id,
+              topology_start_switch_joint_number,
+              topology_end_switch_id,
+              topology_end_switch_joint_number
             from layout.location_track_publication_view
             where row_id = :location_track_id
         """.trimIndent()
@@ -80,17 +88,24 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 description = rs.getFreeText("description"),
                 type = rs.getEnum("type"),
                 state = rs.getEnum("state"),
-                startPoint = null,
-                endPoint = null,
                 boundingBox = rs.getBboxOrNull("bounding_box"),
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),
                 draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
                 version = rs.getVersion("official_version", "draft_version"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                topologicalConnectivity = rs.getEnum("topological_connectivity")
+                topologicalConnectivity = rs.getEnum("topological_connectivity"),
+                topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")
+                    ?.let { id -> TopologyLocationTrackSwitch(
+                        id,
+                        rs.getJointNumber("topology_start_switch_joint_number"),
+                    ) },
+                topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")
+                    ?.let { id -> TopologyLocationTrackSwitch(
+                        id,
+                        rs.getJointNumber("topology_end_switch_joint_number"),
+                    ) },
             )
-
         })
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, locationTrack.id)
         return locationTrack
@@ -111,7 +126,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               draft, 
               draft_of_location_track_id,            
               duplicate_of_location_track_id,
-              topological_connectivity
+              topological_connectivity,
+              topology_start_switch_id,
+              topology_start_switch_joint_number,
+              topology_end_switch_id,
+              topology_end_switch_joint_number
             ) 
             values (
               :track_number_id,
@@ -125,7 +144,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               :draft, 
               :draft_of_location_track_id,            
               :duplicate_of_location_track_id,
-              :topological_connectivity::layout.track_topological_connectivity_type
+              :topological_connectivity::layout.track_topological_connectivity_type,
+              :topology_start_switch_id,
+              :topology_start_switch_joint_number,
+              :topology_end_switch_id,
+              :topology_end_switch_joint_number
             ) 
             returning id, version
         """.trimIndent()
@@ -142,7 +165,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft" to (newItem.draft != null),
             "draft_of_location_track_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
             "duplicate_of_location_track_id" to newItem.duplicateOf?.intValue,
-            "topological_connectivity" to newItem.topologicalConnectivity.name
+            "topological_connectivity" to newItem.topologicalConnectivity.name,
+            "topology_start_switch_id" to newItem.topologyStartSwitch?.switchId?.intValue,
+            "topology_start_switch_joint_number" to newItem.topologyStartSwitch?.jointNumber?.intValue,
+            "topology_end_switch_id" to newItem.topologyEndSwitch?.switchId?.intValue,
+            "topology_end_switch_joint_number" to newItem.topologyEndSwitch?.jointNumber?.intValue
         )
 
         jdbcTemplate.setUser()
@@ -170,7 +197,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               draft = :draft,
               draft_of_location_track_id = :draft_of_location_track_id,
               duplicate_of_location_track_id = :duplicate_of_location_track_id,
-              topological_connectivity = :topological_connectivity::layout.track_topological_connectivity_type
+              topological_connectivity = :topological_connectivity::layout.track_topological_connectivity_type,
+              topology_start_switch_id = :topology_start_switch_id,
+              topology_start_switch_joint_number = :topology_start_switch_joint_number,
+              topology_end_switch_id = :topology_end_switch_id,
+              topology_end_switch_joint_number = :topology_end_switch_joint_number
             where id = :id
             returning id, version 
         """.trimIndent()
@@ -188,7 +219,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft" to (updatedItem.draft != null),
             "draft_of_location_track_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
             "duplicate_of_location_track_id" to updatedItem.duplicateOf?.intValue,
-            "topological_connectivity" to updatedItem.topologicalConnectivity.name
+            "topological_connectivity" to updatedItem.topologicalConnectivity.name,
+            "topology_start_switch_id" to updatedItem.topologyStartSwitch?.switchId?.intValue,
+            "topology_start_switch_joint_number" to updatedItem.topologyStartSwitch?.jointNumber?.intValue,
+            "topology_end_switch_id" to updatedItem.topologyEndSwitch?.switchId?.intValue,
+            "topology_end_switch_joint_number" to updatedItem.topologyEndSwitch?.jointNumber?.intValue,
         )
         jdbcTemplate.setUser()
         val result: RowVersion<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -278,5 +313,4 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             rs.getRowVersion("row_id", "row_version")
         }
     }
-
 }

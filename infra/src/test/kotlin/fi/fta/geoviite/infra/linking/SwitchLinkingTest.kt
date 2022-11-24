@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.EndPointType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
@@ -85,8 +84,7 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -158,8 +156,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -219,8 +216,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -273,8 +269,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -327,8 +322,7 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -391,8 +385,7 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignmentNoSwitchInfo,
             testLayoutSwitchId,
             linkingJoints,
@@ -422,12 +415,36 @@ class SwitchLinkingTest {
     }
 
     @Test
+    fun shouldClearSwitchTopologyLinkingFromLocationTrackStart() {
+        val locationTrackWithStartLink = locationTrack(IntId(1)).copy(
+            topologyStartSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(2)),
+            topologyEndSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(1)),
+        )
+        val (locationTrackWithStartLinkCleared, _) =
+            clearSwitchInformationFromSegments(locationTrackWithStartLink, alignment(someSegment()), testLayoutSwitchId)
+        assertEquals(null, locationTrackWithStartLinkCleared.topologyStartSwitch)
+        assertEquals(locationTrackWithStartLink.topologyEndSwitch, locationTrackWithStartLinkCleared.topologyEndSwitch)
+    }
+
+    @Test
+    fun shouldClearSwitchTopologyLinkingFromLocationTrackEnd() {
+        val locationTrackWithEndLink = locationTrack(IntId(1)).copy(
+            topologyStartSwitch = TopologyLocationTrackSwitch(otherLayoutSwitchId, JointNumber(2)),
+            topologyEndSwitch = TopologyLocationTrackSwitch(testLayoutSwitchId, JointNumber(1)),
+        )
+        val (locationTrackWithEndLinkCleared, _) =
+            clearSwitchInformationFromSegments(locationTrackWithEndLink, alignment(someSegment()), testLayoutSwitchId)
+        assertEquals(null, locationTrackWithEndLinkCleared.topologyEndSwitch)
+        assertEquals(locationTrackWithEndLink.topologyStartSwitch, locationTrackWithEndLinkCleared.topologyStartSwitch)
+    }
+
+    @Test
     fun shouldClearSwitchLinkingInfoFromAlignment() {
         val (origLocationTrack, origAlignment) = locationTrackWithTwoSwitches(
             IntId(0), testLayoutSwitchId, otherLayoutSwitchId, locationTrackId = IntId(0)
         )
 
-        val (clearedLocationTrack, clearedAlignment) = clearSwitchInformationFromSegments(
+        val (_, clearedAlignment) = clearSwitchInformationFromSegments(
             origLocationTrack,
             origAlignment,
             testLayoutSwitchId
@@ -450,9 +467,6 @@ class SwitchLinkingTest {
                 "Segments related to another switch should be untouched"
             )
         }
-
-        assertEquals(null, clearedLocationTrack.startPoint)
-        assertEquals(EndPointType.SWITCH, clearedLocationTrack.endPoint?.type)
     }
 
     @Test
@@ -1133,8 +1147,7 @@ class SwitchLinkingTest {
             )
         )
 
-        val (_, updatedAlignment) = updateAlignmentSegmentsWithSwitchLinking(
-            origLocationTrack,
+        val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
             origAlignment,
             IntId(100),
             linkingJoints,

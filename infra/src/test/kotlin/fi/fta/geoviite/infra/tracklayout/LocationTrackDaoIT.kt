@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
@@ -22,7 +23,6 @@ import org.springframework.test.context.ActiveProfiles
 class LocationTrackDaoIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val locationTrackDao: LocationTrackDao,
-    private val switchDao: LayoutSwitchDao,
 ): ITTestBase() {
 
     @Test

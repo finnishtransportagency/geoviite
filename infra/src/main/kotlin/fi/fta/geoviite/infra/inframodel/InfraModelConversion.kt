@@ -296,6 +296,7 @@ fun toGvtGeometryElement(
                 )
             }
         }
+        else -> throw InframodelParsingException("Invalid element ${element::class.simpleName}")
     }
 }
 
@@ -360,6 +361,7 @@ fun toGvtCant(cant: InfraModelCant): GeometryCant {
 }
 
 fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
+
     return GeometryCantPoint(
         station = parseBigDecimal("Cant point station", station.station),
         appliedCant = parseBigDecimal("Cant point applied cant", station.appliedCant),
@@ -368,7 +370,7 @@ fun toGvtCantPoint(station: InfraModelCantStation): GeometryCantPoint {
             null -> LINEAR
             "biquadraticParabola" -> BIQUADRATIC_PARABOLA
             else -> throw InputValidationException(
-                message = "Unknown XML Cant transition type: ${formatForException(station.transitionType)}",
+                message = "Unknown XML Cant transition type: ${station.transitionType?.let(::formatForException)}",
                 type = CantTransitionType::class,
             )
         }
@@ -421,7 +423,13 @@ fun switchTypeHand(switchHand: String): SwitchHand {
 
 fun normalizeSwitchTypeName(switchStructureNameAliases: Map<String, String>, switchTypeName: String): String {
     val withDecimalComma = switchTypeName.replace('.', ',')
-    return switchStructureNameAliases[withDecimalComma] ?: withDecimalComma
+    val withLowerCaseX =
+        if (withDecimalComma.startsWith("RR") || withDecimalComma.startsWith("SRR")) {
+            // RATO4 says this lowercase, for example: RR54-2x1:9. https://www.doria.fi/handle/10024/121411
+            // Sometimes the IM files have uppercase, so fix it for leniency
+            switchTypeName.replace('X', 'x')
+        } else withDecimalComma
+    return switchStructureNameAliases[withLowerCaseX] ?: withLowerCaseX
 }
 
 fun collectGeometrySwitches(
@@ -448,7 +456,7 @@ fun collectGeometrySwitches(
             val switchTypeNameXml =
                 verifySameField("Switch typeName", xmlSwitches, TempSwitch::typeName, TempSwitch::name)
             val switchTypeName = normalizeSwitchTypeName(switchTypeNameAliases, switchTypeNameXml)
-            val switchTypeRequiresHandedness = tryParseSwitchType(switchTypeName, logger)
+            val switchTypeRequiresHandedness = tryParseSwitchType(switchTypeName)
                 .let { switchType -> if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false }
             val switchTypeHand = verifySameField(
                 "Switch hand",
@@ -456,16 +464,12 @@ fun collectGeometrySwitches(
                 TempSwitch::hand,
                 TempSwitch::name
             )
-            val fullSwitchTypeName = switchTypeHand.let {
-                if (switchTypeName.startsWith("RR") || switchTypeName.startsWith("SRR")) {
-                    // RATO4 says this lowercase, for example: RR54-2x1:9. https://www.doria.fi/handle/10024/121411
-                    // Sometimes the IM files have uppercase, so fix it for leniency
-                    switchTypeName.replace('X', 'x')
-                } else if (it == SwitchHand.NONE || !switchTypeRequiresHandedness) switchTypeName
-                else "$switchTypeName-${it.abbreviation}"
+            val fullSwitchTypeName = switchTypeHand.let { hand ->
+                if (hand == SwitchHand.NONE || !switchTypeRequiresHandedness) switchTypeName
+                else "$switchTypeName-${hand.abbreviation}"
             }
 
-            val switchType = tryParseSwitchType(fullSwitchTypeName, logger)
+            val switchType = tryParseSwitchType(fullSwitchTypeName)
             val switchStructure = switchType?.let { type -> switchStructuresByType[type] }
 
             if (switchType == null) {

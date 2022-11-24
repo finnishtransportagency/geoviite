@@ -85,7 +85,7 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
     }
 
     private val referenceLineMetadata by lazy {
-        CsvFile("$csvFilePath/10-reference-line-meta.csv", ReferenceLineMetaColumns::class)
+        CsvFile("$csvFilePath/10-reference-line-meta.csv", AlignmentMetaColumns::class)
     }
 
     override fun migrate(jdbcTemplate: NamedParameterJdbcTemplate) {
@@ -98,7 +98,7 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
         if (trackNumbers.isEmpty()) {
             throw IllegalStateException("No track numbers in DB -> cannot import reference lines")
         }
-        val metadataList = getCsvMetaData(jdbcTemplate)
+        val metadataList = getCsvMetaData<ReferenceLine>(jdbcTemplate, referenceLineMetadata)
         val metadataIds = metadataDao.insertMetadata(metadataList)
         val metadata = metadataList
             .mapIndexed { index, md -> md.copy(id = metadataIds[index]) }
@@ -130,19 +130,6 @@ class V14_03__Csv_import_reference_lines : CsvMigration() {
     }
 
     override fun getFiles() = listOf(referenceLines, referenceLineMetadata)
-
-    private fun getCsvMetaData(
-        jdbcTemplate: NamedParameterJdbcTemplate,
-    ): List<AlignmentCsvMetaData<ReferenceLine>> {
-        val geometryDao = GeometryDao(
-            jdbcTemplate,
-            KKJtoETRSTriangulationDao(jdbcTemplate)
-        )
-        val geometryProvider = { fileName: FileName, alignmentName: AlignmentName ->
-            fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)
-        }
-        return createReferenceLineMetadataFromCsv(referenceLineMetadata, geometryProvider)
-    }
 }
 
 @Suppress("unused", "ClassName")
@@ -171,14 +158,14 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
         if (trackNumbers.isEmpty()) {
             throw IllegalStateException("No track numbers in DB -> cannot import location tracks")
         }
-        val metadataList = getCsvMetaData(jdbcTemplate)
+        val metadataList = getCsvMetaData<LocationTrack>(jdbcTemplate, alignmentCsvMetadata)
         val metadataIds = metadataDao.insertMetadata(metadataList)
         val metadata = metadataList
             .mapIndexed { index, md -> md.copy(id = metadataIds[index]) }
             .groupBy { am -> am.alignmentOid }
 
         val switchLinks = getSwitchLinks(
-            switchDao.getExternalIdMappingOfExistingSwitches(),
+            switchDao.getLinkingInfoOfExistingSwitches(),
             switchStructureDao.fetchSwitchStructures().associateBy { ss -> ss.id as IntId },
         )
         val kkjToEtrsTriangulationNetwork = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
@@ -217,35 +204,36 @@ class V14_04__Csv_import_location_tracks : CsvMigration() {
     override fun getFiles() = listOf(alignments, alignmentCsvMetadata, alignmentSwitchLinks)
 
     private fun getSwitchLinks(
-        idMap: Map<Oid<TrackLayoutSwitch>, SwitchLinkingIds>,
+        linkingInfo: Map<Oid<TrackLayoutSwitch>, SwitchLinkingInfo>,
         switchStructures: Map<IntId<SwitchStructure>, SwitchStructure>,
     ): Map<Oid<LocationTrack>, List<AlignmentSwitchLink>> {
         return createAlignmentSwitchLinks(
             alignmentSwitchLinks,
-            idMap,
+            linkingInfo,
             switchStructures
         ).groupBy { sl -> sl.alignmentOid }
     }
+}
 
-    private fun getCsvMetaData(
-        jdbcTemplate: NamedParameterJdbcTemplate,
-    ): List<AlignmentCsvMetaData<LocationTrack>> {
-        val geometryDao = GeometryDao(
-            jdbcTemplate,
-            KKJtoETRSTriangulationDao(jdbcTemplate)
-        )
-        val geometryProvider = { fileName: FileName, alignmentName: AlignmentName ->
-            val match = fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)
-                ?: normalizeAlignmentName(alignmentName)?.let { normalized ->
-                    fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, normalized)
-                }
-            if (match == null) {
-                logger.warn("Didn't find geometry alignment: file=$fileName alignment=$alignmentName")
+private inline fun <reified T> getCsvMetaData(
+    jdbcTemplate: NamedParameterJdbcTemplate,
+    file: CsvFile<AlignmentMetaColumns>,
+): List<AlignmentCsvMetaData<T>> {
+    val geometryDao = GeometryDao(
+        jdbcTemplate,
+        KKJtoETRSTriangulationDao(jdbcTemplate)
+    )
+    val geometryProvider = { fileName: FileName, alignmentName: AlignmentName ->
+        val match = fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)
+            ?: normalizeAlignmentName(alignmentName)?.let { normalized ->
+                fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, normalized)
             }
-            match
+        if (match == null) {
+            logger.warn("Didn't find geometry alignment for ${T::class.simpleName}: file=$fileName alignment=$alignmentName")
         }
-        return createAlignmentMetadataFromCsv(alignmentCsvMetadata, geometryProvider)
+        match
     }
+    return createAlignmentMetadataFromCsv(file, geometryProvider)
 }
 
 private fun normalizeAlignmentName(name: AlignmentName): AlignmentName? =

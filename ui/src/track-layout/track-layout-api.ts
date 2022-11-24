@@ -21,10 +21,12 @@ import {
     MapSegment,
     ReferenceLineId,
     ReferenceLineStartAndEndPoints,
+    SwitchTrackMeter,
 } from './track-layout-model';
 import {
     API_URI,
     deleteAdt,
+    getIgnoreError,
     getThrowError,
     getWithDefault,
     postIgnoreError,
@@ -163,7 +165,7 @@ export async function getLinkPointsByTiles(
 
             const uniqueIds = segments.map((s) => s.id);
             const uniqueSegments = segments.filter(
-                ({ id }, index) => !uniqueIds.includes(id, index + 1),
+                ({id}, index) => !uniqueIds.includes(id, index + 1),
             );
 
             return createLinkPoints(alignmentType, alignmentId, uniqueSegments);
@@ -367,6 +369,21 @@ export async function getSwitchesByBoundingBox(
     return await getWithDefault<LayoutSwitch[]>(`${layoutUri(publishType)}/switches${params}`, []);
 }
 
+export async function getSwitchesBySearchTerm(
+    searchTerm: string,
+    publishType: PublishType,
+    limit: number,
+): Promise<LayoutSwitch[]> {
+    const params = queryParams({
+        searchTerm: searchTerm,
+        limit: limit,
+    });
+    return await getWithDefault<LayoutSwitch[]>(
+        `${layoutUri(publishType)}/switches${params}`,
+        [],
+    );
+}
+
 export async function getSwitch(
     switchId: LayoutSwitchId,
     publishType: PublishType,
@@ -386,6 +403,16 @@ export async function getSwitches(
     return switchIds.length > 0
         ? getThrowError<LayoutSwitch[]>(`${layoutUri(publishType)}/switches?ids=${switchIds}`)
         : Promise.resolve([]);
+}
+
+export async function getTopologySwitchTrackMeters(
+    publishType: PublishType,
+    switchId: LayoutSwitchId,
+): Promise<SwitchTrackMeter[]> {
+    const result = await getIgnoreError<SwitchTrackMeter[]>(
+        `${layoutUri(publishType)}/switches/${switchId}/topology-track-meters`,
+    );
+    return result || [];
 }
 
 export async function getKmPost(
@@ -516,8 +543,8 @@ export async function getLocationTrack(
 export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
     return ids.length > 0
         ? getThrowError<LayoutLocationTrack[]>(
-              `${layoutUri(publishType)}/location-tracks?ids=${ids}`,
-          )
+            `${layoutUri(publishType)}/location-tracks?ids=${ids}`,
+        )
         : Promise.resolve([]);
 }
 
@@ -526,7 +553,7 @@ export async function getTrackAddress(
     publishType: PublishType,
     coordinate: Point,
 ): Promise<TrackMeter | undefined> {
-    const params = queryParams({ coordinate: pointString(coordinate) });
+    const params = queryParams({coordinate: pointString(coordinate)});
     return getWithDefault<TrackMeter | undefined>(
         `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
         undefined,
@@ -546,7 +573,7 @@ export async function getReferenceLinesNear(
     publishType: PublishType,
     bbox: BoundingBox,
 ): Promise<LayoutReferenceLine[]> {
-    const params = queryParams({ bbox: bboxString(bbox) });
+    const params = queryParams({bbox: bboxString(bbox)});
     return getThrowError<LayoutReferenceLine[]>(
         `${layoutUri(publishType)}/reference-lines${params}`,
     );
@@ -556,7 +583,7 @@ export async function getLocationTracksNear(
     publishType: PublishType,
     bbox: BoundingBox,
 ): Promise<LayoutLocationTrack[]> {
-    const params = queryParams({ bbox: bboxString(bbox) });
+    const params = queryParams({bbox: bboxString(bbox)});
     return getThrowError<LayoutLocationTrack[]>(
         `${layoutUri(publishType)}/location-tracks${params}`,
     );

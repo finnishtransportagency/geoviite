@@ -123,14 +123,10 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
         val sql = """
            delete
-           from layout.alignment main
-           using layout.alignment compare
-             left join layout.reference_line on compare.id = reference_line.alignment_id
-             left join layout.location_track on compare.id = location_track.alignment_id
-           where main.id = compare.id
-             and reference_line.id is null
-             and location_track.id is null
-           returning main.id
+           from layout.alignment alignment
+           where not exists(select 1 from layout.reference_line where reference_line.alignment_id = alignment.id)
+             and not exists(select 1 from layout.location_track where location_track.alignment_id = alignment.id)
+           returning alignment.id
        """.trimIndent()
         jdbcTemplate.setUser()
         val deletedAlignments = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -139,7 +135,6 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedAlignments)
         return deletedAlignments
     }
-
 
     private fun fetchSegments(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegment> {
         val sql = """

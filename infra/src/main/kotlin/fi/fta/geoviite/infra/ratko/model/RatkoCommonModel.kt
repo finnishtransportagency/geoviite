@@ -125,11 +125,16 @@ data class RatkoCrs(val properties: RatkoCrsProperties = RatkoCrsProperties())
 enum class RatkoNodeType(@get:JsonValue val value: String) {
     START_POINT("start_point"),
     END_POINT("end_point"),
-    MIDDLE_POINT("middle_point"),
     JOINT_A("joint_point_A"),
     JOINT_B("joint_point_B"),
     JOINT_C("joint_point_C"),
     JOINT_D("joint_point_D"),
+
+    @Suppress("unused")
+    MIDDLE_POINT("middle_point"),
+
+    @Suppress("unused")
+    SOLO_POINT("solo_point"),
 }
 
 enum class RatkoPointStates(@get:JsonValue val state: String) {

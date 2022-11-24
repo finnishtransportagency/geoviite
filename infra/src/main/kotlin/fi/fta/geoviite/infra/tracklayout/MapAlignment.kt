@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.Version
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -35,8 +38,6 @@ data class MapAlignment<T>(
     val id: DomainId<T>,
     val boundingBox: BoundingBox?,
     val length: Double,
-    val startPoint: EndPoint?,
-    val endPoint: EndPoint?,
     val dataType: DataType,
     val segmentCount: Int,
     val version: Version,
@@ -73,8 +74,6 @@ fun toMapAlignment(
     id = referenceLine.id,
     boundingBox = alignment?.boundingBox,
     length = alignment?.length ?: 0.0,
-    startPoint = null,
-    endPoint = null,
     dataType = referenceLine.dataType,
     segmentCount = alignment?.segments?.size ?: 0,
     version = referenceLine.version,
@@ -97,8 +96,6 @@ fun toMapAlignment(
     id = locationTrack.id,
     boundingBox = alignment?.boundingBox,
     length = alignment?.length ?: 0.0,
-    startPoint = locationTrack.startPoint,
-    endPoint = locationTrack.endPoint,
     dataType = locationTrack.dataType,
     segmentCount = alignment?.segments?.size ?: 0,
     version = locationTrack.version,

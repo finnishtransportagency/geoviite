@@ -32,6 +32,7 @@ const val LAYOUT_METER_LENGTH_WARNING_THRESHOLD = 5.0
 const val MAX_METERS_FILTERED_TIGHT = 100
 const val MAX_METERS_FILTERED_LOOSE = 10000
 const val MAX_IMPORT_POINT_ANGLE_CHANGE = PI / 4
+const val MAX_DISTANCE_TO_MATCH_TRACK_END_POINT = 1.0
 
 enum class KmPostColumns { TRACK_NUMBER_EXTERNAL_ID, NUMBER, GEOMETRY, STATE }
 
@@ -89,51 +90,6 @@ data class AlignmentCsvMetaData<T>(
     init {
         require (startMeter < endMeter) {
             "Alignment metadata must start before it ends: start=$startMeter end=$endMeter alignment=$metadataOid"
-        }
-    }
-}
-
-
-enum class ReferenceLineMetaColumns {
-    ALIGNMENT_EXTERNAL_ID,
-    @Suppress("unused")
-    ASSET_EXTERNAL_ID,
-    TRACK_ADDRESS_START,
-    TRACK_ADDRESS_END,
-    CREATED_YEAR,
-    MEASUREMENT_METHOD,
-    FILE_NAME,
-    ALIGNMENT_NAME,
-    ORIGINAL_CRS,
-}
-
-fun createReferenceLineMetadataFromCsv(
-    metadataFile: CsvFile<ReferenceLineMetaColumns>,
-    geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
-): List<AlignmentCsvMetaData<ReferenceLine>> {
-    return metadataFile.parseLines { line ->
-        val alignmentOid = line.getOid<ReferenceLine>(ReferenceLineMetaColumns.ALIGNMENT_EXTERNAL_ID)
-        val startMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_START))
-        val endMeter = TrackMeter.create(line.get(ReferenceLineMetaColumns.TRACK_ADDRESS_END))
-        if (startMeter < endMeter) {
-            val fileName = line.get(ReferenceLineMetaColumns.FILE_NAME).let(::FileName)
-            val alignmentName = line.get(ReferenceLineMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
-            val geometry = geometryProvider(fileName, alignmentName)
-            AlignmentCsvMetaData(
-                alignmentOid = alignmentOid,
-                metadataOid = null,
-                startMeter = startMeter,
-                endMeter = endMeter,
-                createdYear = line.getInt(ReferenceLineMetaColumns.CREATED_YEAR),
-                geometry = geometry,
-                originalCrs = line.get(ReferenceLineMetaColumns.ORIGINAL_CRS),
-                measurementMethod = line.get(ReferenceLineMetaColumns.MEASUREMENT_METHOD),
-                fileName = fileName,
-                planAlignmentName = alignmentName,
-            )
-        } else {
-            LOG.warn("Invalid reference line metadata segment (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
-            null
         }
     }
 }
@@ -215,6 +171,59 @@ data class CsvLocationTrack(
     val duplicateOfExternalId: Oid<LocationTrack>?,
 )
 
+data class SwitchLinkConnectionPoints (
+    val startOfTrack: TopologyLocationTrackSwitch?,
+    val endOfTrack: TopologyLocationTrackSwitch?,
+    val withinTrack: List<AlignmentSwitchLink>,
+)
+
+fun separateOutClosestToEndpoint(locationTrackId: Oid<LocationTrack>, endPoint: Point, linkableToEnd: MutableList<AlignmentSwitchLink>, min: Boolean): AlignmentSwitchLink? {
+    val withinToleranceToEndPoint = linkableToEnd
+        .filter { link -> distance(endPoint, link.linkPoints[0].location!!) < MAX_DISTANCE_TO_MATCH_TRACK_END_POINT }
+    val closestToEndpoint = if (withinToleranceToEndPoint.isNotEmpty()) {
+        if (withinToleranceToEndPoint.size > 1) {
+            LOG.warn("Multiple switch links within tolerance to start point of location track $locationTrackId: ${
+                withinToleranceToEndPoint.joinToString { link -> link.switchOid.stringValue }
+            }")
+            if (min) {
+                withinToleranceToEndPoint.minBy { link -> link.startMeter }
+            } else {
+                withinToleranceToEndPoint.maxBy { link -> link.startMeter }
+            }
+        } else
+            withinToleranceToEndPoint.firstOrNull()
+    } else
+        null
+    if (closestToEndpoint != null) {
+        linkableToEnd.remove(closestToEndpoint)
+    }
+    return closestToEndpoint
+}
+
+fun separateOutSwitchLinkConnectionPoints(locationTrackId: Oid<LocationTrack>, switchLinks: List<AlignmentSwitchLink>, start: AddressPoint, end: AddressPoint): SwitchLinkConnectionPoints {
+    val linkableToEnd: MutableList<AlignmentSwitchLink> = mutableListOf()
+    val notLinkableToEnd: MutableList<AlignmentSwitchLink> = mutableListOf()
+    switchLinks.forEach { link ->
+        (if (!link.startMeter.isSame(link.endMeter) || link.linkPoints[0].location == null) {
+            notLinkableToEnd
+        } else {
+            linkableToEnd
+        }).add(link)
+    }
+    val closestToStart = separateOutClosestToEndpoint(locationTrackId, start.point.toPoint(), linkableToEnd, true)
+    val closestToEnd = separateOutClosestToEndpoint(locationTrackId, end.point.toPoint(), linkableToEnd, true)
+
+    return SwitchLinkConnectionPoints(
+        closestToStart?.let { link ->
+            TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber)
+        },
+        closestToEnd?.let { link ->
+            TopologyLocationTrackSwitch(link.switchId, link.linkPoints[0].jointNumber)
+        },
+        notLinkableToEnd + linkableToEnd
+    )
+}
+
 fun createLocationTracksFromCsv(
     alignmentsFile: CsvFile<LocationTrackColumns>,
     metadataMap: Map<Oid<LocationTrack>, List<AlignmentCsvMetaData<LocationTrack>>>,
@@ -228,7 +237,9 @@ fun createLocationTracksFromCsv(
         val alignmentExtId = Oid<LocationTrack>(line.get(LocationTrackColumns.EXTERNAL_ID))
         val state = enumValueOf<LayoutState>(line.get(LocationTrackColumns.STATE))
         val metadata = metadataMap[alignmentExtId] ?: listOf()
-        val switchLinks = switchLinksMap[alignmentExtId] ?: listOf()
+        val switchLinks =
+            if (state != LayoutState.DELETED && switchLinksMap.containsKey(alignmentExtId)) switchLinksMap[alignmentExtId]!!
+            else listOf()
         val (points, connectionSegmentIndices) = measureAndCollect("parsing->toAddressPoints") {
             toAddressPoints(
                 "locationTrack=$alignmentExtId",
@@ -241,19 +252,23 @@ fun createLocationTracksFromCsv(
             LOG.warn("Cannot create location track as there's no points: locationTrack=$alignmentExtId points=${points.size}")
             null
         } else {
+            val switchLinkGroups = separateOutSwitchLinkConnectionPoints(alignmentExtId, switchLinks, points.first(), points.last())
+
             val segmentRanges = measureAndCollect("parsing->combineMetadataToSegments") {
-                combineMetadataToSegments(switchLinks, metadata, points, kkjToEtrsTriangulationTriangles)
+                combineMetadataToSegments(switchLinkGroups.withinTrack, metadata, points, kkjToEtrsTriangulationTriangles)
             }
             val (segments, metadataIds) = measureAndCollect("parsing->createSegments") {
                 createSegments(segmentRanges, points, resolution, connectionSegmentIndices)
             }
             val alignment = LayoutAlignment(segments, sourceId = null)
+            val name = AlignmentName(line.get(LocationTrackColumns.NAME))
+            verifySwitchLinksAreAllMapped(switchLinks, alignment, switchLinkGroups.startOfTrack, switchLinkGroups.endOfTrack)
             val track = LocationTrack(
                 trackNumberId = trackNumbers[trackNumberExtId] ?: throw IllegalStateException(
                     "No TrackNumber found for LocationTrack: track=$alignmentExtId trackNumber=$trackNumberExtId"
                 ),
                 externalId = alignmentExtId,
-                name = AlignmentName(line.get(LocationTrackColumns.NAME)),
+                name = name,
                 description = FreeText(line.get(LocationTrackColumns.DESCRIPTION)),
                 type = line.getEnum(LocationTrackColumns.TYPE),
                 state = state,
@@ -263,8 +278,9 @@ fun createLocationTracksFromCsv(
                 length = alignment.length,
                 duplicateOf = null,
                 topologicalConnectivity = line.getEnum(LocationTrackColumns.TOPOLOGICAL_CONNECTIVITY),
-
-                )
+                topologyStartSwitch = switchLinkGroups.startOfTrack,
+                topologyEndSwitch = switchLinkGroups.endOfTrack,
+            )
             CsvLocationTrack(
                 locationTrack = track,
                 layoutAlignment = alignment,
@@ -534,6 +550,7 @@ enum class AlignmentSwitchLinkColumns { ALIGNMENT_EXTERNAL_ID, SWITCH_EXTERNAL_I
 
 data class AlignmentSwitchLink(
     val alignmentOid: Oid<LocationTrack>,
+    val switchOid: Oid<TrackLayoutSwitch>,
     val switchId: IntId<TrackLayoutSwitch>,
     val linkPoints: List<AlignmentSwitchLinkPoint>
 ) {
@@ -551,24 +568,26 @@ data class AlignmentSwitchLink(
 data class AlignmentSwitchLinkPoint(
     val jointNumber: JointNumber,
     val trackMeter: TrackMeter,
+    val location: Point?,
 )
 
-data class SwitchLinkingIds(
+data class SwitchLinkingInfo(
     val switchId: IntId<TrackLayoutSwitch>,
     val switchStructureId: IntId<SwitchStructure>,
+    val joints: Map<JointNumber, Point>,
 )
 
 fun createAlignmentSwitchLinks(
     linkFile: CsvFile<AlignmentSwitchLinkColumns>,
-    switchIds: Map<Oid<TrackLayoutSwitch>, SwitchLinkingIds>,
+    linkingInfos: Map<Oid<TrackLayoutSwitch>, SwitchLinkingInfo>,
     switchStructures: Map<IntId<SwitchStructure>, SwitchStructure>,
 ): List<AlignmentSwitchLink> {
     return linkFile.parseLines { line ->
         val alignmentOid = line.getOid<LocationTrack>(AlignmentSwitchLinkColumns.ALIGNMENT_EXTERNAL_ID)
         val switchOid = line.getOid<TrackLayoutSwitch>(AlignmentSwitchLinkColumns.SWITCH_EXTERNAL_ID)
-        val switchIdPair = switchIds[switchOid] ?: return@parseLines null
-        val switchStructure = switchStructures[switchIdPair.switchStructureId]
-            ?: throw IllegalArgumentException("Switch structure ID ${switchIdPair.switchStructureId} not found")
+        val switchLinkingInfo = linkingInfos[switchOid] ?: return@parseLines null
+        val switchStructure = switchStructures[switchLinkingInfo.switchStructureId]
+            ?: throw IllegalArgumentException("Switch structure ID ${switchLinkingInfo.switchStructureId} not found")
 
         val joints = line.get(AlignmentSwitchLinkColumns.JOINTS)
             .split(",")
@@ -585,11 +604,16 @@ fun createAlignmentSwitchLinks(
         }
         AlignmentSwitchLink(
             alignmentOid = alignmentOid,
-            switchId = switchIdPair.switchId,
+            switchOid = switchOid,
+            switchId = switchLinkingInfo.switchId,
             linkPoints = joints.mapIndexed { index, jointNumber ->
+                if (switchLinkingInfo.joints[jointNumber] == null) {
+                    LOG.warn("Switch link joint not in joint table: switch=$switchOid joint=$jointNumber")
+                }
                 AlignmentSwitchLinkPoint(
                     jointNumber = jointNumber,
                     trackMeter = trackMeters[index],
+                    location = switchLinkingInfo.joints[jointNumber]
                 )
             }
         )
@@ -608,35 +632,34 @@ enum class AlignmentMetaColumns {
     ORIGINAL_CRS,
 }
 
-fun createAlignmentMetadataFromCsv(
+inline fun <reified T> createAlignmentMetadataFromCsv(
     metadataFile: CsvFile<AlignmentMetaColumns>,
-    geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
-): List<AlignmentCsvMetaData<LocationTrack>> {
+    crossinline geometryProvider: (fileName: FileName, alignmentName: AlignmentName) -> AlignmentImportGeometry?,
+): List<AlignmentCsvMetaData<T>> {
     return metadataFile.parseLines { line ->
-        val alignmentOid = line.getOid<LocationTrack>(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)
-        val metaDataOid = line.getOid<AlignmentCsvMetaData<LocationTrack>>(AlignmentMetaColumns.ASSET_EXTERNAL_ID)
+        val alignmentOid = line.getOid<T>(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)
+        val metaDataOid = line.getOidOrNull<AlignmentCsvMetaData<T>>(AlignmentMetaColumns.ASSET_EXTERNAL_ID)
         val startMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_START))
         val endMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_END))
-        if (startMeter < endMeter) {
-            val fileName = line.get(AlignmentMetaColumns.FILE_NAME).let(::FileName)
-            val alignmentName = line.get(AlignmentMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
-            val geometry = geometryProvider(fileName, alignmentName)
-            AlignmentCsvMetaData(
-                alignmentOid = alignmentOid,
-                metadataOid = metaDataOid,
-                startMeter = startMeter,
-                endMeter = endMeter,
-                createdYear = line.getInt(AlignmentMetaColumns.CREATED_YEAR),
-                geometry = geometry,
-                originalCrs = line.get(AlignmentMetaColumns.ORIGINAL_CRS),
-                measurementMethod = line.get(AlignmentMetaColumns.MEASUREMENT_METHOD),
-                fileName = fileName,
-                planAlignmentName = alignmentName,
-            )
-        } else {
-            LOG.warn("Invalid LocationTrack metadata range (start >= end): start=$startMeter end=$endMeter oid=$alignmentOid")
-            null
+        require (startMeter < endMeter) {
+            "Invalid ${T::class.simpleName} metadata range (start >= end): " +
+                    "start=$startMeter end=$endMeter alignment=$alignmentOid metadata=$metaDataOid"
         }
+        val fileName = line.get(AlignmentMetaColumns.FILE_NAME).let(::FileName)
+        val alignmentName = line.get(AlignmentMetaColumns.ALIGNMENT_NAME).let(::AlignmentName)
+        val geometry = geometryProvider(fileName, alignmentName)
+        AlignmentCsvMetaData(
+            alignmentOid = alignmentOid,
+            metadataOid = metaDataOid,
+            startMeter = startMeter,
+            endMeter = endMeter,
+            createdYear = line.getInt(AlignmentMetaColumns.CREATED_YEAR),
+            geometry = geometry,
+            originalCrs = line.get(AlignmentMetaColumns.ORIGINAL_CRS),
+            measurementMethod = line.get(AlignmentMetaColumns.MEASUREMENT_METHOD),
+            fileName = fileName,
+            planAlignmentName = alignmentName,
+        )
     }
 }
 
@@ -655,8 +678,113 @@ fun <T> combineMetadataToSegments(
     val elementMetadatas = adjustedAlignmentMetadata.flatMap { metadata ->
         getGeometryElementRanges(points, metadata, kkjToEtrsTriangulationTriangles)
     }
-    val expandedMetadata = adjustMetadataToSwitchLinks(elementMetadatas, switchLinks)
-    return segmentCsvMetadata(points, expandedMetadata, switchLinks)
+    val adjustedSwitchLinks = adjustSwitchLinksToPoints(points, switchLinks)
+    verifyNoOverlappingSwitchLinks(adjustedSwitchLinks)
+    val expandedMetadata = adjustMetadataToSwitchLinks(elementMetadatas, adjustedSwitchLinks)
+    return segmentCsvMetadata(points, expandedMetadata, adjustedSwitchLinks)
+}
+
+fun verifyNoOverlappingSwitchLinks(alignmentSwitchLinks: List<AlignmentSwitchLink>) =
+    alignmentSwitchLinks.forEachIndexed { index, link ->
+        val previous = alignmentSwitchLinks.getOrNull(index-1)
+        require(previous == null || previous.endMeter <= link.startMeter) {
+            "Switch links should not overlap: link=$link previous=$previous"
+        }
+    }
+
+fun adjustSwitchLinksToPoints(
+    points: List<AddressPoint>,
+    switchLinks: List<AlignmentSwitchLink>,
+): List<AlignmentSwitchLink> {
+    val ordered = switchLinks.sortedBy { sl -> sl.startMeter }
+    var nextPointIndex = 0
+    return ordered.mapIndexedNotNull { linkIndex, link ->
+        val newLinkPoints = link.linkPoints
+            .sortedBy { lp -> lp.trackMeter }
+            .mapIndexedNotNull { lpIndex, point ->
+                val (newPointIndex, accurateMatch) =
+                    if (lpIndex == 0) findPoint(points, point.trackMeter, nextPointIndex, true)
+                    else findPoint(points, point.trackMeter, nextPointIndex+1, false)
+                if (newPointIndex == null) {
+                    LOG.warn("Filtering out switch joint: " +
+                            "switch=${link.switchOid} joint=${point.jointNumber}" +
+                            "linkPoint=$point fullLink=$link previous=${switchLinks.getOrNull(linkIndex-1)}")
+                    null
+                } else {
+                    nextPointIndex = newPointIndex
+                    if (accurateMatch) point
+                    else point.copy(trackMeter = points[newPointIndex].trackMeter)
+                }
+            }
+        if (newLinkPoints.isEmpty()) {
+            LOG.warn("Filtering out entire switch: " +
+                    "switch=${link.switchOid} joints=${link.linkPoints.map { p -> p.jointNumber}}" +
+                    "$link previous=${switchLinks.getOrNull(linkIndex-1)}")
+            null
+        } else if (newLinkPoints != link.linkPoints) {
+            LOG.warn("Adjusting switch points to match actual track points: " +
+                    "original=${describePoints(link.linkPoints)} new=${describePoints(newLinkPoints)}")
+            link.copy(linkPoints = newLinkPoints)
+        } else link
+    }
+}
+
+fun describePoints(linkPoints: List<AlignmentSwitchLinkPoint>): String =
+    linkPoints.joinToString(",") { lp -> "${lp.jointNumber}:${lp.trackMeter}" }
+
+fun findPoint(points: List<AddressPoint>, address: TrackMeter, startIndex: Int, preferBackward: Boolean): Pair<Int?, Boolean> {
+    for (idx in startIndex..points.lastIndex) {
+        val currentPoint = points[idx]
+        // Exact match
+        if (currentPoint.trackMeter.isSame(address)) {
+            return idx to true
+        }
+        // We're past the correct point
+        else if (currentPoint.trackMeter > address) {
+            val previousPoint = points.getOrNull(idx-1)
+            return if (previousPoint == null || previousPoint.trackMeter <= address) {
+                // If exact match would be between the points, return one or the other
+                if (preferBackward && idx > startIndex) idx - 1 else idx
+            } else {
+                // The exact match is farther back -> return nothing and filter out the point
+                null
+            } to false
+        }
+    }
+    // Target after the end of points
+    return (if (points.last().trackMeter < address) points.lastIndex else null) to false
+}
+
+fun verifySwitchLinksAreAllMapped(
+    switchLinks: List<AlignmentSwitchLink>,
+    alignment: LayoutAlignment,
+    topologyStart: TopologyLocationTrackSwitch?,
+    topologyEnd: TopologyLocationTrackSwitch?,
+) {
+    val topologyLinks = listOfNotNull(
+        topologyStart?.let { t -> "${t.switchId}/${t.jointNumber}" },
+        topologyEnd?.let { t -> "${t.switchId}/${t.jointNumber}" },
+    )
+    val segmentLinks = alignment.segments.flatMap { s ->
+        if (s.switchId == null) listOf()
+        else listOfNotNull(
+            s.startJointNumber?.let { j -> "${s.switchId}/$j" },
+            s.endJointNumber?.let { j -> "${s.switchId}/$j" },
+        )
+    }
+    val actualLinks = (topologyLinks + segmentLinks).distinct().sorted()
+    val expectedLinks = switchLinks.flatMap { sl ->
+        sl.linkPoints.map { lp -> "${sl.switchId}/${lp.jointNumber}" }
+    }.distinct().sorted()
+    if (expectedLinks != actualLinks) {
+        LOG.warn("Switch linking imperfect: " +
+                "track=${switchLinks.first().alignmentOid} " +
+                "switches=${switchLinks.map { sl -> 
+                    "${sl.switchOid}(${sl.linkPoints.map { lp -> lp.jointNumber }})" 
+                }} " +
+                "expected=$expectedLinks " +
+                "actual=$actualLinks")
+    }
 }
 
 fun <T> createSegments(
@@ -704,6 +832,9 @@ data class SegmentCsvMetaDataRange<T>(
     val metadata: ElementCsvMetadata<T>?,
     val switchLink: AlignmentSwitchLink?,
 ) {
+    init {
+        require(meters.start < meters.endInclusive) { "Cannot create an empty range: $meters" }
+    }
     fun isBefore(meter: TrackMeter) = meter >= meters.endInclusive
 }
 
@@ -727,28 +858,31 @@ fun <T> emptyCsvMetaData(range: ClosedRange<TrackMeter>) =
 fun getSwitchLinkTrackMeterRanges(
     switchLinks: List<AlignmentSwitchLink>,
     metadataRanges: List<ClosedRange<TrackMeter>>,
-    trackStart: TrackMeter,
-    trackEnd: TrackMeter
+    allTrackMeters: List<TrackMeter>,
 ): Map<ClosedRange<TrackMeter>, AlignmentSwitchLink> {
-    val allTrackMeters = switchLinks.flatMap { switchLink ->
+    val trackStart = allTrackMeters.first()
+    val trackEnd = allTrackMeters.last()
+
+    val rangeDelimitingTrackMeters = switchLinks.flatMap { switchLink ->
         listOf(switchLink.startMeter, switchLink.endMeter)
     } + metadataRanges.flatMap { metadataRange ->
         listOf(metadataRange.start, metadataRange.endInclusive)
     }
-    val sortedTrackMeters = allTrackMeters.distinct().sorted()
+    val sortedRangeDelimitingTrackMeters = rangeDelimitingTrackMeters.distinct().sorted()
 
     return switchLinks.flatMap { switchLink ->
         val isSinglePointSwitch = switchLink.startMeter.isSame(switchLink.endMeter)
         if (isSinglePointSwitch) {
-            // Expand a single address to a range from that single point to
-            // the address of the next switch/metadata/end of track.
-            val isLastTrackMeter = switchLink.endMeter.isSame(sortedTrackMeters.last())
+            // We need to come up with a non-empty track meter range to have a segment to link the switch to, but
+            // it's better for the range to be very short rather than possibly stretch for kilometers out to the next
+            // switch or metadata range start/end; so just take the adjacent track meter.
+            val isLastTrackMeter = switchLink.endMeter.isSame(sortedRangeDelimitingTrackMeters.last())
             val range = if (isLastTrackMeter) {
                 val previousTrackMeter =
-                    sortedTrackMeters.findLast { trackMeter -> trackMeter < switchLink.startMeter }
+                    allTrackMeters.findLast { trackMeter -> trackMeter < switchLink.startMeter }
                 (previousTrackMeter ?: trackStart)..switchLink.endMeter
             } else {
-                val nextTrackMeter = sortedTrackMeters.find { trackMeter -> trackMeter > switchLink.endMeter }
+                val nextTrackMeter = allTrackMeters.find { trackMeter -> trackMeter > switchLink.endMeter }
                 switchLink.startMeter..(nextTrackMeter ?: trackEnd)
             }
             listOf(
@@ -791,8 +925,7 @@ fun <T> segmentCsvMetadata(
     val switchLinkByRange = getSwitchLinkTrackMeterRanges(
         switchLinks,
         metadata.map { md -> md.startMeter..md.endMeter },
-        points.first().trackMeter,
-        points.last().trackMeter
+        points.map { point -> point.trackMeter }
     )
     val switchLinkRanges = switchLinkByRange.keys.sortedBy { it.start }
     val segmentRanges: MutableList<SegmentCsvMetaDataRange<T>> = mutableListOf()
@@ -909,12 +1042,12 @@ fun <T> getGeometryElementRanges(
             val elementStart = transform.transform(e.start)
             val elementEnd = transform.transform(e.end)
             val start = previousElementEnd ?: findPoint(points, elementStart, lastPickedIndex)
-            val end = if (start != null) findPoint(points, elementEnd, start.index) else null
+            val end = start?.let { s -> findPoint(points, elementEnd, s.index) }
 
-            val result = if (start == null || end == null) {
-                LOG.warn("No elements on alignment: $debugString")
-                null
-            } else if (max(distance(elementStart, elementEnd), 10.0) < min(start.distance, end.distance)) {
+            require(start != null && end != null) {
+                "Failed to find closest points to element ends: start=$start end=$end $debugString"
+            }
+            val result = if (max(distance(elementStart, elementEnd), 10.0) < min(start.distance, end.distance)) {
                 LOG.debug("Ignoring element that's too far from the metadata segment: element=${e.id} $debugString")
                 null // Ignore elements that are too far from the alignment
             } else if (start.trackMeter > end.trackMeter) {
@@ -945,9 +1078,11 @@ fun <T> getGeometryElementRanges(
     } catch (e: CoordinateTransformationException) {
         LOG.error(
             "Failed to link geometry element to layout due to coordinate transformation failure: " +
-                    "alignment=${alignment.alignmentOid} meta=${alignment.metadataOid} " +
+                    "alignment=${alignment.alignmentOid} " +
+                    "meta=${alignment.metadataOid} " +
                     "foundAlignment=${alignment.geometry.id} " +
-                    "sourceSrid=$sourceSrid targetSrid=$LAYOUT_SRID", e
+                    "sourceSrid=$sourceSrid " +
+                    "targetSrid=$LAYOUT_SRID", e
         )
         return listOf(noElementsCsvMetadata(alignment))
     }
@@ -960,27 +1095,35 @@ fun <T> validateElementRanges(
     elements: List<ElementCsvMetadata<T>>,
 ) {
     if (elements.isEmpty()) {
-        LOG.error("Geometry element mapping failed - no elements found: $debug")
+        LOG.warn("Geometry element mapping failed - no elements found: $debug")
     } else {
         LOG.debug(
             "Geometry elements mapped: $debug" +
                     "elements=${elements.map { e -> e.startMeter..e.endMeter to e.geometryElement?.id }}"
         )
         if (elements.first().startMeter != startMeter) {
-            LOG.warn("Gap in element metadata range start: alignmentMetadataStart=$startMeter firstElementMetadataStart=${elements.first().startMeter} $debug")
+            LOG.warn(
+                "Gap in element metadata range start: $debug " +
+                        "alignmentMetadataStart=$startMeter " +
+                        "firstElementMetadataStart=${elements.first().startMeter} "
+            )
         }
         var previous = elements.first().startMeter
         for (e in elements) {
             if (previous < e.startMeter) {
-                LOG.warn("Gap between element metadata: prev=$previous next=${e.startMeter} $debug")
+                LOG.warn("Gap between element metadata: $debug prev=$previous next=${e.startMeter}")
             }
             if (previous > e.startMeter) {
-                throw IllegalStateException("Overlapping element metadata: prev=$previous next=${e.startMeter} $debug")
+                throw IllegalStateException("Overlapping element metadata: $debug prev=$previous next=${e.startMeter}")
             }
             previous = e.endMeter
         }
         if (elements.last().endMeter != endMeter) {
-            LOG.warn("Gap in element metadata range end: alignmentMetadataEnd=$endMeter lastElementMetadataEnd=${elements.last().endMeter} $debug")
+            LOG.warn(
+                "Gap in element metadata range end: $debug " +
+                        "alignmentMetadataEnd=$endMeter " +
+                        "lastElementMetadataEnd=${elements.last().endMeter} "
+            )
         }
     }
 }
@@ -1042,7 +1185,10 @@ fun <T> dividePointsToSegments(
 
     var currentPoints: MutableList<Point3DM> = mutableListOf()
     var rangeIndex = 0
+    var currentRangeStartMeter = points.first().trackMeter
     val segments: MutableList<Pair<List<Point3DM>, SegmentFullMetaDataRange<T>>> = mutableListOf()
+    // the first point-pair of an alignment is never identified as a connection segment, so false is safe to start with
+    var currentRangeStartWasConnectionSegmentPoint = false
 
     points.forEachIndexed { pointIndex, (point, trackMeter) ->
         require(rangeIndex <= segmentRanges.size) { "Segment point distribution over-indexed" }
@@ -1053,17 +1199,36 @@ fun <T> dividePointsToSegments(
         if (currentPoints.isNotEmpty() || currentRange.meters.contains(trackMeter)) currentPoints.add(point)
 
         // Connection segments are identified by their end point and always exactly one point-pair long
-        val connectionSegment = connectionSegmentIndices.contains(pointIndex)
+        val connectionSegmentStart = connectionSegmentIndices.contains(pointIndex + 1)
+        val connectionSegmentEnd = connectionSegmentIndices.contains(pointIndex)
         val rangeEnd = currentRange.isBefore(trackMeter)
                 || pointIndex == points.lastIndex
-                || connectionSegment
-                || connectionSegmentIndices.contains(pointIndex + 1)
+                || connectionSegmentStart
+                || connectionSegmentEnd
 
         if (rangeEnd) {
-            if (currentPoints.isNotEmpty()) segments.add(
-                currentPoints to SegmentFullMetaDataRange(currentRange, connectionSegment)
-            )
+            if (currentPoints.isNotEmpty()) {
+                val originalMeters = currentRange.meters
+                val startMeter =
+                    if (currentRangeStartWasConnectionSegmentPoint) currentRangeStartMeter else originalMeters.start
+                val endMeter =
+                    if (connectionSegmentStart || connectionSegmentEnd) trackMeter else originalMeters.endInclusive
+
+                segments.add(
+                    currentPoints to SegmentFullMetaDataRange(
+                        // re-split the range so it knows about being split by connection segments
+                        currentRange.copy(
+                            meters = startMeter..endMeter,
+                            metadata = if (connectionSegmentEnd) null else currentRange.metadata,
+                        ),
+                        connectionSegmentEnd
+                    )
+                )
+            }
+
             currentPoints = if (pointIndex == points.lastIndex) mutableListOf() else mutableListOf(point)
+            currentRangeStartMeter = trackMeter
+            currentRangeStartWasConnectionSegmentPoint = connectionSegmentStart || connectionSegmentEnd
         }
 
         // Skip forward to the next range, if the current one is done
@@ -1182,14 +1347,14 @@ fun createSwitchesFromCsv(
     return switchesFile.parseLines { line ->
         val externalId: Oid<TrackLayoutSwitch> = line.getOid(SwitchColumns.EXTERNAL_ID)
         val typeName = line.get(SwitchColumns.TYPE)
-        val switchTypeRequiresHandedness = tryParseSwitchType(typeName, LOG)
+        val switchTypeRequiresHandedness = tryParseSwitchType(typeName)
             .let { switchType -> if (switchType != null) switchTypeRequiresHandedness(switchType.parts.baseType) else false }
         val hand = line.getEnumOrNull<SwitchHand>(SwitchColumns.HAND)
         val fullTypeName = hand.let {
             if (it != null && it != SwitchHand.NONE && switchTypeRequiresHandedness) "$typeName-${it.abbreviation}"
             else typeName
         }
-        val switchType = tryParseSwitchType(fullTypeName, LOG)
+        val switchType = tryParseSwitchType(fullTypeName)
         val switchStructure = switchStructuresByType[switchType]
         val name = SwitchName(line.get(SwitchColumns.NAME))
         if (switchStructure == null) {

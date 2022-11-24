@@ -21,6 +21,7 @@ export enum RatkoPushStatus {
     FAILED = 'FAILED',
     CONNECTION_ISSUE = 'CONNECTION_ISSUE',
     IN_PROGRESS = 'IN_PROGRESS',
+    IN_PROGRESS_M_VALUES = 'IN_PROGRESS_M_VALUES',
 }
 
 export enum DraftChangeType {
@@ -107,6 +108,8 @@ export type PublicationDetails = {
     locationTracks: LocationTrackPublishCandidate[];
     switches: SwitchPublishCandidate[];
     kmPosts: KmPostPublishCandidate[];
+    status: RatkoPushStatus | null;
+    ratkoPushTime?: TimeStamp | null;
 };
 
 export type RatkoPushError = {
@@ -138,4 +141,10 @@ type RatkoPushErrorSwitch = {
 
 export function ratkoPushFailed(status: RatkoPushStatus | null) {
     return status === RatkoPushStatus.FAILED || status === RatkoPushStatus.CONNECTION_ISSUE;
+}
+
+export function ratkoPushInProgress(status: RatkoPushStatus | null) {
+    return (
+        status === RatkoPushStatus.IN_PROGRESS || status === RatkoPushStatus.IN_PROGRESS_M_VALUES
+    );
 }

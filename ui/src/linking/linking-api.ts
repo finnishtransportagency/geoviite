@@ -26,10 +26,8 @@ import {
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     LocationTrackEndpoint,
-    LocationTrackEndPointConnectedUpdateRequest,
     LocationTrackSaveError,
     LocationTrackSaveRequest,
-    LocationTrackTypeUpdateRequest,
     SuggestedSwitch,
     SuggestedSwitchCreateParams,
     SwitchLinkingParameters,
@@ -289,25 +287,25 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
     );
 }
 
-export async function getSuggestedSwitchByPoint(point: Point, switchStructureId: SwitchStructureId): Promise<SuggestedSwitch[]> {
+export async function getSuggestedSwitchByPoint(
+    point: Point,
+    switchStructureId: SwitchStructureId,
+): Promise<SuggestedSwitch[]> {
     const params = queryParams({
         location: pointString(point),
         switchStructureId: switchStructureId,
     });
-    return getIgnoreError<SuggestedSwitch[]>(`${LINKING_URI}/suggested-switch${params}`)
-        .then((suggestedSwitches) => {
-                return (suggestedSwitches || [])
-                    .filter(filterNotEmpty)
-                    .map((suggestedSwitch) => {
-                        return {
-                            ...suggestedSwitch,
-                            id: getSuggestedSwitchId(suggestedSwitch),
-                        };
-                    });
-            },
-        );
+    return getIgnoreError<SuggestedSwitch[]>(`${LINKING_URI}/suggested-switch${params}`).then(
+        (suggestedSwitches) => {
+            return (suggestedSwitches || []).filter(filterNotEmpty).map((suggestedSwitch) => {
+                return {
+                    ...suggestedSwitch,
+                    id: getSuggestedSwitchId(suggestedSwitch),
+                };
+            });
+        },
+    );
 }
-
 
 export async function linkSwitch(params: SwitchLinkingParameters): Promise<string> {
     const result = await postIgnoreError<SwitchLinkingParameters, string>(
@@ -354,7 +352,7 @@ export async function createSuggestedSwitch(
         params,
     ).then((switches) => {
         const s = switches && switches[0];
-        return s ? {...s, id: getSuggestedSwitchId(s)} : null;
+        return s ? { ...s, id: getSuggestedSwitchId(s) } : null;
     });
 }
 
@@ -423,27 +421,3 @@ export const deleteDraftKmPost = async (
         validationErrors: [],
     }));
 };
-
-export async function updateEndPointType(
-    locationTrackId: LocationTrackId,
-    locationTrackTypeUpdateRequest: LocationTrackTypeUpdateRequest,
-): Promise<LocationTrackId | null> {
-    const apiResult = await putIgnoreError<LocationTrackTypeUpdateRequest, LocationTrackId>(
-        `${LINKING_URI}/location-tracks/${locationTrackId}/endpoint`,
-        locationTrackTypeUpdateRequest,
-    );
-    updateLocationTrackChangeTime();
-    return apiResult;
-}
-
-export async function updateEndPointConnectedLocationTrack(
-    locationTrackId: LocationTrackId,
-    locationTrackEndPointIdUpdateRequest: LocationTrackEndPointConnectedUpdateRequest,
-): Promise<LocationTrackId | null> {
-    const apiResult = await putIgnoreError<LocationTrackTypeUpdateRequest, LocationTrackId>(
-        `${LINKING_URI}/location-tracks/${locationTrackId}/endpoint-location-track`,
-        locationTrackEndPointIdUpdateRequest,
-    );
-    updateLocationTrackChangeTime();
-    return apiResult;
-}

@@ -1,7 +1,11 @@
 import * as React from 'react';
 import styles from './location-track-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LAYOUT_SRID, LayoutLocationTrack, MapAlignment } from 'track-layout/track-layout-model';
+import {
+    LAYOUT_SRID,
+    LayoutLocationTrack,
+    MapAlignment,
+} from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import {
@@ -154,9 +158,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
     const existingDuplicate = existingDuplicateOfList && existingDuplicateOfList[0];
     const duplicatesOfLocationTrack = useLocationTrackDuplicates(locationTrack.id, publishType);
-    const showDuplicates =
-        existingDuplicate != undefined ||
-        (duplicatesOfLocationTrack && duplicatesOfLocationTrack.length > 0);
 
     return (
         <React.Fragment>
@@ -207,12 +208,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     />
                     <InfoboxText value={trackNumber?.description} />
 
-                    {showDuplicates && (
+                    {duplicatesOfLocationTrack !== undefined &&
                         <InfoboxField
                             label={
-                                existingDuplicate
-                                    ? t('tool-panel.location-track.duplicate-of')
-                                    : t('tool-panel.location-track.has-duplicates')
+                                duplicatesOfLocationTrack.length > 0
+                                    ? t('tool-panel.location-track.has-duplicates')
+                                    : existingDuplicate ?
+                                        t('tool-panel.location-track.duplicate-of') :
+                                        t('tool-panel.location-track.not-a-duplicate')
                             }
                             value={
                                 <LocationTrackInfoboxDuplicateOf
@@ -220,10 +223,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     duplicatesOfLocationTrack={duplicatesOfLocationTrack}
                                 />
                             }
-                            onEdit={existingDuplicate && openEditLocationTrackDialog}
-                            iconDisabled={existingDuplicate && isOfficial()}
-                        />
-                    )}
+                            onEdit={duplicatesOfLocationTrack.length > 0 ? undefined : openEditLocationTrackDialog}
+                            iconDisabled={isOfficial()}
+                        />}
+
                     <InfoboxField
                         label={t('tool-panel.location-track.topological-connectivity')}
                         value={
@@ -373,6 +376,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     locationTrackChangeTime={locationTrackChangeTime}
                     onUnselect={() => onUnselect(locationTrack)}
                     existingDuplicateTrack={existingDuplicate}
+                    duplicatesExist={duplicatesOfLocationTrack !== undefined && duplicatesOfLocationTrack.length > 0}
                 />
             )}
         </React.Fragment>
