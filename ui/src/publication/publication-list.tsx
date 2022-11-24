@@ -4,7 +4,11 @@ import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { PublicationListingItem, ratkoPushFailed, RatkoPushStatus } from 'publication/publication-model';
+import {
+    PublicationListingItem,
+    ratkoPushFailed,
+    ratkoPushInProgress,
+} from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +40,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
         truncated
             ? setShownPublications(publications.slice(0, MAX_TRUNCATED_PUBLICATIONS_SHOWN))
             : setShownPublications(publications);
-    }, [publications, truncated])
+    }, [publications, truncated]);
 
     const className = createClassName(
         styles['publication-list__more'],
@@ -58,7 +62,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                                 />
                             )}
 
-                            {publication.status === RatkoPushStatus.IN_PROGRESS && (
+                            {ratkoPushInProgress(publication.status) && (
                                 <div
                                     className={styles['publication-list-item__status--in-progress']}
                                     title={t('publishing.in-progress')}
