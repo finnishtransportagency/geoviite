@@ -47,6 +47,7 @@ data class OverrideParameters(
     val authorId: IntId<Author>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val createdDate: Instant?,
+    val encoding: String?
 )
 
 @RestController
@@ -98,6 +99,7 @@ class InfraModelController @Autowired constructor(
             "authorId" to overrideParameters?.authorId,
             "trackNumber" to overrideParameters?.trackNumberId,
             "createdDate" to overrideParameters?.createdDate,
+            "encoding" to overrideParameters?.encoding
         )
         return infraModelService.validateInfraModelFile(file, overrideParameters)
     }
