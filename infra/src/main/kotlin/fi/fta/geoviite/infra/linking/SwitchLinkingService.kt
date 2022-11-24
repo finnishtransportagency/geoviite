@@ -1259,7 +1259,7 @@ class SwitchLinkingService @Autowired constructor(
             joints = listOf(),
             externalId = null,
             sourceId = null,
-            trapPoint = null,
+            trapPoint = request.trapPoint,
             ownerId = request.ownerId,
             source = GeometrySource.GENERATED,
         )
@@ -1277,6 +1277,7 @@ class SwitchLinkingService @Autowired constructor(
             name = switch.name,
             switchStructureId = switch.switchStructureId,
             stateCategory = switch.stateCategory,
+            trapPoint = switch.trapPoint
         )
         return switchService.saveDraft(trackLayoutSwitch).id
     }

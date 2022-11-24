@@ -21,8 +21,8 @@ const val MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE = 1.0
 
 @Suppress("SameParameterValue")
 @Service
-class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
-    : DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
+class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
+    DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
 
     @Transactional
     fun fetchSwitchJointConnections(
@@ -117,9 +117,9 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
         return (unmatchedJoints + accurateMatches.keys + fallbackMatches.keys).map { joint ->
             TrackLayoutSwitchJointConnection(joint.number,
-            accurateMatches[joint]?.entries?.map { e -> TrackLayoutSwitchJointMatch(e.key, e.value) } ?: listOf(),
-            fallbackMatches[joint]?.toList() ?: listOf(),
-            joint.locationAccuracy)
+                accurateMatches[joint]?.entries?.map { e -> TrackLayoutSwitchJointMatch(e.key, e.value) } ?: listOf(),
+                fallbackMatches[joint]?.toList() ?: listOf(),
+                joint.locationAccuracy)
         }
     }
 
@@ -187,6 +187,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               name = :name,
               switch_structure_id = :switch_structure_id,
               state_category = :state_category::layout.state_category,
+              trap_point = :trap_point,
               draft = :draft,
               draft_of_switch_id = :draft_of_switch_id
             where id = :id
@@ -199,6 +200,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "name" to updatedItem.name,
             "switch_structure_id" to updatedItem.switchStructureId.intValue,
             "state_category" to updatedItem.stateCategory.name,
+            "trap_point" to updatedItem.trapPoint,
             "draft" to (updatedItem.draft != null),
             "draft_of_switch_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
         )

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+    booleanToTrapPoint,
     getSwitchPresentationJoint,
     LayoutLocationTrack,
     LayoutSwitch,
@@ -38,6 +39,7 @@ import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track
 import { filterNotEmpty } from 'utils/array-utils';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -286,7 +288,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.layout.trap-point')}
-                        value={t(layoutSwitch?.trapPoint ? 'yes' : 'no')}
+                        value={layoutSwitch && translateSwitchTrapPoint(booleanToTrapPoint(layoutSwitch.trapPoint))}
                     />
                 </InfoboxContent>
             </Infobox>
