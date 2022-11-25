@@ -45,6 +45,7 @@ import { InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { createClassName } from 'vayla-design-lib/utils';
+import { Menu } from 'vayla-design-lib/menu/menu';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -142,11 +143,21 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         React.useState<ValidationResponse | null>(null);
 
     const [fileHandlingFailedErrors, setFileHandlingFailedErrors] = React.useState<string[]>([]);
+    const [fileMenuVisible, setFileMenuVisible] = React.useState(false);
 
     const [showCriticalWarning, setShowCriticalWarning] = React.useState(false);
     const [showFileHandlingFailed, setShowFileHandlingFailed] = React.useState(false);
+    const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
     const [showCharsetPicker, setShowCharsetPicker] = React.useState(false);
     const [charsetOverride, setCharsetOverride] = React.useState<string>('UTF-8');
+
+    const fileMenuItems = [
+        { value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') },
+    ];
+    const handleFileMenuItemChange = (item: string) => {
+        if (item == 'fix-encoding') setShowChangeCharsetDialog(true);
+        setFileMenuVisible(false);
+    };
 
     const onSaveClick = async () => {
         setShowCriticalWarning(false);
@@ -248,6 +259,24 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             <div className={styles['infra-model-upload__form-column']}>
                 <div className={styles['infra-model-upload__file-info-container']}>
                     <Title>{file && file.name}</Title>
+                    {file && (
+                        <div className={styles['infra-model-upload__title-menu-container']}>
+                            <Button
+                                onClick={() => setFileMenuVisible(!fileMenuVisible)}
+                                variant={ButtonVariant.SECONDARY}
+                                icon={Icons.More}
+                            />
+                            {fileMenuVisible && (
+                                <div className={styles['infra-model-upload__title-menu']}>
+                                    <Menu
+                                        items={fileMenuItems}
+                                        onChange={(item) =>
+                                            item && handleFileMenuItemChange(item)
+                                        }></Menu>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles['infra-model-upload__form-container']}>
@@ -428,6 +457,43 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 />
                             </React.Fragment>
                         )}
+                    </div>
+                </Dialog>
+            )}
+            {showChangeCharsetDialog && (
+                <Dialog
+                    // TODO add dialog widths after they have been merged from another branch
+                    title={t('im-form.file-handling-failed.change-encoding')}
+                    scrollable={false}
+                    footerContent={
+                        <React.Fragment>
+                            <React.Fragment>
+                                <Button
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={() => setShowChangeCharsetDialog(false)}>
+                                    {t('button.cancel')}
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        setShowChangeCharsetDialog(false);
+                                        validateFile(charsetOverride);
+                                    }}>
+                                    {t('im-form.file-handling-failed.try-again')}
+                                </Button>
+                            </React.Fragment>
+                        </React.Fragment>
+                    }>
+                    <div className={styles['infra-model-upload-failed__sub-form']}>
+                        <React.Fragment>
+                            <label className={styles['infra-model-upload-failed__checkbox-label']}>
+                                {t('im-form.file-handling-failed.encoding')}
+                            </label>
+                            <Dropdown
+                                options={XmlEncodingsToDropdownEntries()}
+                                value={charsetOverride}
+                                onChange={setCharsetOverride}
+                            />
+                        </React.Fragment>
                     </div>
                 </Dialog>
             )}
