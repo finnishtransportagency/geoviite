@@ -4,14 +4,11 @@ import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import {
-    PublicationListingItem,
-    ratkoPushFailed,
-    ratkoPushInProgress,
-} from 'publication/publication-model';
+import { PublicationListingItem } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { useTranslation } from 'react-i18next';
+import { ratkoPushFailed, ratkoPushInProgress } from 'ratko/ratko-model';
 
 type PublicationListProps = {
     publications: PublicationListingItem[];

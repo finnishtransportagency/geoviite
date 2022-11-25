@@ -1,0 +1,19 @@
+@import '../vayla-design-lib/typography';
+
+.publication-card {
+    padding-top: 0;
+
+    &__title {
+        @include typography-heading;
+    }
+
+    &__latest-title {
+        @include typography-body-strong;
+        margin-bottom: 12px;
+    }
+
+    &__issues-title {
+        @include typography-body-strong;
+        margin-bottom: 12px;
+    }
+}

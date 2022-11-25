@@ -2,7 +2,7 @@
 @import "../geoviite-colors";
 
 .message-box {
-  @include typography-body-small;
+  @include typography-caption;
   background-color: $color-lemon-light;
   color: $color-black-default;
   overflow: hidden;
