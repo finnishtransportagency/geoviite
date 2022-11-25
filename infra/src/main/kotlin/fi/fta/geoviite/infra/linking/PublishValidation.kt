@@ -303,11 +303,33 @@ fun validateGeocodingContext(
         )
     )
     else listOfNotNull(
+
+        context.kmPostsSmallerThanTrackNumberStart
+            //.filter { post -> post.location != null }
+            .let { rejected ->
+                println("km-post-smaller-than-track-number-start $rejected")
+                validateWithParams(rejected.isEmpty()) {
+                    "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start" to listOf(
+                        context.trackNumber.number.value,
+                        rejected.joinToString(",") { post -> post.kmNumber.toString() },
+                    )
+                }
+            },
+        context.referencePoints
+            .filter { point-> point.intersectType != WITHIN }
+            .let { rejected ->
+                println("km-posts-outside-line $rejected")
+                validateWithParams(rejected.isEmpty()) {
+                    "$VALIDATION_GEOCODING.km-posts-outside-line" to listOf(
+                        context.trackNumber.number.value,
+                        rejected.joinToString(",") { post -> post.kmNumber.toString() },
+                    )
+                }
+            },
         context.rejectedKmPosts
             .filter { post -> post.location != null }
             .let { rejected ->
                 validateWithParams(rejected.isEmpty()) {
-                    // TODO
                     "$VALIDATION_GEOCODING.km-posts-rejected" to listOf(
                         context.trackNumber.number.value,
                         rejected.joinToString(",") { post -> post.kmNumber.toString() },
