@@ -118,3 +118,24 @@
     color: $color-red-dark;
 }
 
+.infra-model-upload-failed__content {
+    grid-column: 1 / -1;
+    margin-bottom: 9px;
+}
+
+.infra-model-upload-failed__error-list {
+    overflow-y: scroll;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+.infra-model-upload-failed__checkbox-label {
+    align-self: center;
+}
+
+.infra-model-upload-failed__sub-form {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: fit-content(96px) auto min-content;
+    margin-bottom: 12px;
+}
