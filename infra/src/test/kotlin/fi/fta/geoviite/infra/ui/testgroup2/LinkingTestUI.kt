@@ -217,6 +217,8 @@ class LinkingTestUI @Autowired constructor(
         navigationPanel.geometryPlanByName(GEOMETRY_PLAN_NAME)
             .selecAlignment(GEO_ALIGNMENT_B_NAME)
 
+        toolPanel.geometryAlignmentGeneral().kohdistaKartalla()
+
         val linkingBox = toolPanel.geometryAlignmentLinking()
         linkingBox.aloitaLinkitys()
         linkingBox.linkTo(LOCATION_TRACK_B.first.name.value)
