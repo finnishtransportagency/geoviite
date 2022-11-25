@@ -32,6 +32,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             from layout.location_track_publication_view
             where duplicate_of_location_track_id = :id
               and :publishType = any(publication_states)
+              and state != 'DELETED'
         """.trimIndent()
         val params = mapOf("id" to id.intValue, "publishType" to publishType.name)
         val locationTracks = jdbcTemplate.query(sql, params) { rs, _ ->
