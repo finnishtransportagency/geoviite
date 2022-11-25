@@ -20,7 +20,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
 }) => {
     const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
 
-    useLoaderWithTimer(setPublications, getPublications, []);
+    useLoaderWithTimer(setPublications, getPublications, [], 30000);
 
     const hasAnyFailed = () =>
         !!publications && publications?.some((item) => ratkoPushFailed(item.status));

@@ -73,30 +73,21 @@ export function useLoaderWithTimer<TEntity>(
     setEntity: (entity: TEntity | undefined) => void,
     loadFunc: () => Promise<TEntity> | undefined,
     deps: unknown[],
-    status?: boolean,
-    anyFailed?: boolean,
-    setWaitingAfterFail?: (status: boolean) => void,
+    timeout: number,
 ) {
-
     React.useEffect(() => {
         let cancel = false;
         setEntity(undefined);
-
         function fetchEntities() {
             const result = loadFunc();
             if (result) {
                 result.then((r) => {
-                    if (!cancel) {
-                        setEntity(r);
-                    }
+                    if (!cancel) setEntity(r);
                 });
             }
         }
-
         fetchEntities();
-        const intervalTimer = setInterval(fetchEntities, 30000);
-        if (setWaitingAfterFail && status && anyFailed) {setWaitingAfterFail(status && anyFailed);}
-
+        const intervalTimer = setInterval(fetchEntities, timeout);
         return () => {
             cancel = true;
             clearInterval(intervalTimer);

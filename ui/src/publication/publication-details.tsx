@@ -27,13 +27,18 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     const [waitingAfterFail, setWaitingAfterFail] = React.useState<boolean>();
     const {t} = useTranslation();
 
+    function setPublicationDetailsAndWaitingAfterFail(details?: PublicationDetails) {
+        setPublicationDetails(details);
+        if (setWaitingAfterFail && publicationDetails?.status === null && anyFailed)
+        {setWaitingAfterFail(publicationDetails?.status === null && anyFailed);}
+    }
+
     useLoaderWithTimer(
-        setPublicationDetails,
+        setPublicationDetailsAndWaitingAfterFail,
         () => getPublication(publication.id),
         [],
-        publicationDetails?.status === null,
-        anyFailed,
-        setWaitingAfterFail);
+        30000,
+    );
 
     return (
         <div className={styles['publication-details__publication']}>
