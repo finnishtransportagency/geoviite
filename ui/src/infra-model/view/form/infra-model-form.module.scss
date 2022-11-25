@@ -71,6 +71,11 @@
 
     .infra-model-upload__file-info-container {
         padding: 0 30px;
+        display: flex;
+
+        > .title {
+            flex-grow: 1;
+        }
     }
 
     .infra-model-upload__form-container {
@@ -138,4 +143,17 @@
     grid-template-columns: 1fr 2fr;
     grid-template-rows: fit-content(96px) auto min-content;
     margin-bottom: 12px;
+}
+
+.infra-model-upload__title-menu-container {
+    margin-top: 5px;
+}
+
+.infra-model-upload__title-menu {
+    > div {
+        position: absolute;
+        margin-top: 5px;
+        z-index: 10;
+    }
+    flex-grow: 0;
 }

@@ -58,8 +58,8 @@
         "information-missing": "Ei tiedossa",
         "file-handling-failed": {
             "title": "Tiedoston käsittely epäonnistui",
-            "try-again": "Yritä uudelleen",
-            "change-encoding": "Yritä uudelleen toisella merkistöllä",
+            "try-again": "Lataa uudelleen",
+            "change-encoding": "Lataa toisella merkistöllä",
             "encoding": "Merkistö"
         },
         "critical-warnings-dialog": {
