@@ -573,7 +573,7 @@ class LinkingTestUI @Autowired constructor(
         val layoutSwitchInfoBox = toolPanel.layoutSwitchStructureGeneralInfo()
         assertEquals(GEO_SWITCH_1_STRUCTURE.type.typeName, layoutSwitchInfoBox.tyyppi())
         assertEquals("Oikea", layoutSwitchInfoBox.katisyys())
-        assertEquals("Ei", layoutSwitchInfoBox.turvavaihde())
+        assertEquals("Ei tiedossa", layoutSwitchInfoBox.turvavaihde())
 
 
         val geoSwitchLocation = getGeometrySwitchFromPlan(GEO_SWITCH_1_NAME).getJoint(JointNumber(1))?.location
