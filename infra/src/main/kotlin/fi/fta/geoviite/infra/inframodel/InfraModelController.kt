@@ -80,6 +80,7 @@ class InfraModelController @Autowired constructor(
             "projectId" to overrideParameters?.projectId,
             "authorId" to overrideParameters?.authorId,
             "trackNumberId" to overrideParameters?.trackNumberId,
+            "encodingOverride" to overrideParameters?.encoding
         )
         return InsertResponse("New plan inserted successfully",
             infraModelService.saveInfraModel(file, overrideParameters, extraInfoParameters).id)
@@ -99,7 +100,7 @@ class InfraModelController @Autowired constructor(
             "authorId" to overrideParameters?.authorId,
             "trackNumber" to overrideParameters?.trackNumberId,
             "createdDate" to overrideParameters?.createdDate,
-            "encoding" to overrideParameters?.encoding
+            "encodingOverride" to overrideParameters?.encoding
         )
         return infraModelService.validateInfraModelFile(file, overrideParameters)
     }
