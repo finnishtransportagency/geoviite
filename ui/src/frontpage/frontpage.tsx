@@ -5,6 +5,7 @@ import PublicationDetails from 'publication/publication-details';
 import { PublicationListingItem } from 'publication/publication-model';
 import { getPublications } from 'publication/publication-api';
 import { ratkoPushFailed } from 'ratko/ratko-model';
+import { UserCardContainer } from 'user/user-card-container';
 
 type FrontPageProps = {
     selectedPublication: PublicationListingItem | undefined;
@@ -54,6 +55,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                                 anyFailed={hasAnyFailed()}
                             />
                         )}
+                        <UserCardContainer></UserCardContainer>
                     </div>
                     <div className={styles['frontpage__photo']} />
                 </React.Fragment>
