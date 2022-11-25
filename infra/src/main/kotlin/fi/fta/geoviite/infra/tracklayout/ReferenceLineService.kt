@@ -19,7 +19,6 @@ class ReferenceLineService(
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
-    private val geocodingService: GeocodingService,
 ): DraftableObjectService<ReferenceLine, ReferenceLineDao>(dao) {
 
     @Transactional
@@ -145,7 +144,12 @@ class ReferenceLineService(
         return dao.fetchVersion(publishType, trackNumberId)?.let(::getWithAlignmentInternal)
     }
 
-    fun getWithAlignment(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
+    fun getWithAlignmentOrThrow(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
+        logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
+        return getWithAlignmentInternalOrThrow(publishType, id)
+    }
+
+    fun getWithAlignment(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment>? {
         logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
         return getWithAlignmentInternal(publishType, id)
     }
@@ -155,35 +159,17 @@ class ReferenceLineService(
         return getWithAlignmentInternal(version)
     }
 
-    private fun getWithAlignmentInternal(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        return dao.fetchVersionOrThrow(id, publishType).let(::getWithAlignmentInternal)
-    }
+    private fun getWithAlignmentInternalOrThrow(publishType: PublishType, id: IntId<ReferenceLine>) =
+        getWithAlignmentInternal(dao.fetchVersionOrThrow(id, publishType))
+
+    private fun getWithAlignmentInternal(publishType: PublishType, id: IntId<ReferenceLine>) =
+        dao.fetchVersion(id, publishType)?.let { v -> getWithAlignmentInternal(v) }
 
     private fun getWithAlignmentInternal(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
         val referenceLine = dao.fetch(version)
         val alignment = alignmentDao.fetch(referenceLine.alignmentVersion
             ?: throw IllegalStateException("ReferenceLine in DB must have an alignment"))
         return referenceLine to alignment
-    }
-
-    fun getStartAndEnd(
-        publishType: PublishType,
-        referenceLineId: IntId<ReferenceLine>,
-    ): ReferenceLineStartAndEnd? {
-        logger.serviceCall("getStartAndEnd",
-            "publishType" to publishType, "referenceLineId" to referenceLineId)
-        val (referenceLine, alignment) = getWithAlignmentInternal(publishType, referenceLineId)
-        if (alignment.segments.isEmpty()) return null
-        return geocodingService.getGeocodingContext(publishType, referenceLine.trackNumberId)?.let { context ->
-            val segments = alignment.segments
-            val startAddress = context.toAddressPoint(segments.first().points.first())
-            val endAddress = context.toAddressPoint(segments.last().points.last())
-
-            ReferenceLineStartAndEnd(
-                start = requireNotNull(startAddress?.first) { "No address found for reference line start" },
-                end = requireNotNull(endAddress?.first) { "No address found for reference line end" },
-            )
-        }
     }
 
     fun listNonLinked(): List<ReferenceLine> {

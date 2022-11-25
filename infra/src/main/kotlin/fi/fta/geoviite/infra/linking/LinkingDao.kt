@@ -35,11 +35,10 @@ data class MissingLayoutSwitchLinkingRowData(
     val locationTrackId: RowVersion<LocationTrack>,
 )
 
+@Transactional(readOnly = true)
 @Service
 class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-
-    @Transactional
     fun fetchPlanLinkStatus(planId: IntId<GeometryPlan>, publishType: PublishType): GeometryPlanLinkStatus {
         logger.daoAccess(
             AccessType.FETCH, GeometryPlanLinkStatus::class,

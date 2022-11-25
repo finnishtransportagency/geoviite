@@ -35,6 +35,7 @@ enum class VerticalIntersectionType {
     CIRCULAR_CURVE,
 }
 
+@Transactional(readOnly = true)
 @Service
 class GeometryDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
@@ -627,7 +628,6 @@ class GeometryDao @Autowired constructor(
 
     fun fetchPlanChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN)
 
-    @Transactional
     fun fetchPlanAreas(mapBoundingBox: BoundingBox): List<GeometryPlanArea> {
         val searchPolygonWkt = create2DPolygonString(mapBoundingBox.polygonFromCorners)
         val sql = """
@@ -659,7 +659,6 @@ class GeometryDao @Autowired constructor(
     }
 
     @Cacheable(CACHE_GEOMETRY_PLAN, sync = true)
-    @Transactional
     fun fetchPlan(planVersion: RowVersion<GeometryPlan>): GeometryPlan {
         val sql = """
             select
@@ -859,7 +858,6 @@ class GeometryDao @Autowired constructor(
         return authors
     }
 
-    @Transactional
     fun fetchAlignments(
         units: GeometryUnits,
         planId: IntId<GeometryPlan>? = null,

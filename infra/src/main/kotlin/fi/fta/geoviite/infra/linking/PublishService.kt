@@ -39,7 +39,7 @@ class PublishService @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @Transactional
+    @Transactional(readOnly = true)
     fun collectPublishCandidates(): PublishCandidates {
         logger.serviceCall("collectPublishCandidates")
 
@@ -117,7 +117,6 @@ class PublishService @Autowired constructor(
     @Transactional
     fun revertPublishCandidates(): PublishResult {
         logger.serviceCall("revertPublishCandidates")
-
         val locationTrackCount = locationTrackService.deleteDrafts().size
         val referenceLineCount = referenceLineService.deleteDrafts().size
         alignmentDao.deleteOrphanedAlignments()
@@ -135,6 +134,7 @@ class PublishService @Autowired constructor(
         )
     }
 
+    // TODO: Transactions
     fun updateExternalId(request: PublishRequest) {
         logger.serviceCall("updateExternalId", "request" to request)
 
@@ -144,7 +144,6 @@ class PublishService @Autowired constructor(
         request.trackNumbers
             .filter { trackNumberId -> trackNumberService.getDraft(trackNumberId).externalId == null }
             .forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
-
         request.switches
             .filter { switchId -> switchService.getDraft(switchId).externalId == null }
             .forEach { switchId -> updateExternalIdForSwitch(switchId) }
@@ -170,7 +169,6 @@ class PublishService @Autowired constructor(
         }
         switchOid?.let { oid -> switchService.updateExternalIdForSwitch(switchId, Oid(oid.id)) }
     }
-
 
     fun validatePublishRequest(request: PublishRequest) {
         logger.serviceCall("validate", "request" to request)
@@ -279,7 +277,7 @@ class PublishService @Autowired constructor(
             .map(locationTrackDao::fetch)
         return locationTracks.filter(LocationTrack::exists).flatMap { locationTrack ->
             validateAddressPoints(trackNumber, locationTrack, VALIDATION_REFERENCE_LINE) {
-                geocodingService.getAddressPoints(locationTrack, DRAFT)
+                geocodingService.getAddressPoints(locationTrack.id, DRAFT)
             }
         }
     }
@@ -323,8 +321,10 @@ class PublishService @Autowired constructor(
         id: IntId<ReferenceLine>,
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): List<PublishValidationError> {
-        val (referenceLine, alignment) = referenceLineService.getWithAlignment(DRAFT, id)
-        require(referenceLine.id == id) { "Attempting to publish ReferenceLine via draft ID" }
+        val (referenceLine, alignment) = requireNotNull(referenceLineService.getWithAlignment(DRAFT, id)) {
+            "Cannot find draft reference line: $id"
+        }
+        require(referenceLine.id == id) { "Attempting to publish validate ReferenceLine via draft ID" }
         val trackNumber = trackNumberService.getDraft(referenceLine.trackNumberId)
         return validateDraftReferenceLineFields(referenceLine) +
                 validateReferenceLineReference(referenceLine, trackNumber, publishTrackNumberIds) +
@@ -341,7 +341,9 @@ class PublishService @Autowired constructor(
         publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
     ): List<PublishValidationError> {
-        val (locationTrack, alignment) = locationTrackService.getWithAlignment(DRAFT, id)
+        val (locationTrack, alignment) = requireNotNull(locationTrackService.getWithAlignment(DRAFT, id)) {
+            "Cannot find draft location track: $id"
+        }
         require(locationTrack.id == id) { "Attempting to publish LocationTrack via draft ID" }
         val trackNumber = trackNumberService.getDraft(locationTrack.trackNumberId)
         val duplicateOfLocationTrack = locationTrack.duplicateOf?.let { duplicateId ->
@@ -354,7 +356,7 @@ class PublishService @Autowired constructor(
                 if (locationTrack.exists) {
                     validateLocationTrackAlignment(alignment) +
                             validateAddressPoints(trackNumber, locationTrack, VALIDATION_LOCATION_TRACK) {
-                                geocodingService.getAddressPoints(locationTrack, DRAFT)
+                                geocodingService.getAddressPoints(locationTrack.id, DRAFT)
                             }
                 } else listOf()
     }
@@ -362,6 +364,7 @@ class PublishService @Autowired constructor(
     fun getPublicationListing(): List<PublicationListingItem> =
         publishDao.fetchRatkoPublicationListing()
 
+    @Transactional(readOnly = true)
     fun getPublication(id: IntId<Publication>): Publication {
         val (publishTime, status, pushTime) = publishDao.fetchPublishTime(id)
         val locationTracks = locationTrackDao.fetchPublicationInformation(id)

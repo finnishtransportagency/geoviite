@@ -14,6 +14,13 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
+data class GeocodingContextCacheKey(
+    val publishType: PublishType,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val changeTime: Instant,
+)
+
+@Transactional(readOnly = true)
 @Service
 class GeocodingDao(
     val trackNumberDao: LayoutTrackNumberDao,
@@ -24,10 +31,11 @@ class GeocodingDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun getGeocodingContextChangeTime(
+    fun getGeocodingContextCacheKey(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): Instant? {
+    ): GeocodingContextCacheKey? {
+        //language=SQL
         val sql = """
             select
               (select max(track_number.change_time)
@@ -54,25 +62,18 @@ class GeocodingDao(
             val referenceLineChanged = rs.getInstantOrNull("reference_line_changed")
             val kmPostsChanged = rs.getInstantOrNull("km_post_changed")
             listOfNotNull(trackNumberChanged, referenceLineChanged, kmPostsChanged).maxOrNull()
-        }
+        }?.let { changeTime -> GeocodingContextCacheKey(publishType, trackNumberId, changeTime) }
     }
 
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
-    @Transactional
-    fun getGeocodingContext(
-        publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        changeTime: Instant, //this is for caching, do not remove
-    ): GeocodingContext? {
-        logger.daoAccess(AccessType.FETCH, GeocodingContext::class,
-            "publishType" to publishType, "trackNumberId" to trackNumberId, "changeTime" to changeTime)
-
-        return referenceLineDao.fetchVersion(publishType, trackNumberId)?.let { referenceLineVersion ->
-            val trackNumber = trackNumberDao.fetch(trackNumberDao.fetchVersionOrThrow(trackNumberId, publishType))
+    fun getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext? {
+        logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
+        return referenceLineDao.fetchVersion(key.publishType, key.trackNumberId)?.let { referenceLineVersion ->
+            val trackNumber = trackNumberDao.fetch(trackNumberDao.fetchVersionOrThrow(key.trackNumberId, key.publishType))
             val referenceLine = referenceLineDao.fetch(referenceLineVersion)
             val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
                 ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
-            val kmPosts = kmPostDao.fetchVersions(publishType, trackNumberId).map(kmPostDao::fetch)
+            val kmPosts = kmPostDao.fetchVersions(key.publishType, key.trackNumberId).map(kmPostDao::fetch)
             if (alignment.segments.isEmpty()) { // If reference line has no geometry, we cannot geocode.
                 null
             } else {

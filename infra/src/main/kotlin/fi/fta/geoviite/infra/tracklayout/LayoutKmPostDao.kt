@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST) {
@@ -191,7 +192,6 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         } ?: false
 
     }
-
 
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<KmPostPublishCandidate> {
         val sql = """

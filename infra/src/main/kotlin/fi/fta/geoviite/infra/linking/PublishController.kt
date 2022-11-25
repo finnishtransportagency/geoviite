@@ -3,18 +3,25 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.error.PublishFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
+import fi.fta.geoviite.infra.integration.DatabaseLock
+import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
+import java.time.Duration
+
+val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
 @RestController
 @RequestMapping("/publications")
 class PublishController @Autowired constructor(
+    private val lockDao: LockDao,
     private val publishService: PublishService,
     private val calculatedChangesService: CalculatedChangesService,
 ) {
@@ -45,7 +52,12 @@ class PublishController @Autowired constructor(
     @DeleteMapping("/candidates")
     fun revertPublishCandidates(): PublishResult {
         logger.apiCall("revertPublishCandidates")
-        return publishService.revertPublishCandidates()
+        return lockDao.runWithLock(DatabaseLock.PUBLICATION, publicationMaxDuration) {
+            publishService.revertPublishCandidates()
+        } ?: throw PublishFailureException(
+            message = "Could not reserve publication lock",
+            localizedMessageKey = "error.publish.lock-obtain-failed",
+        )
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -53,8 +65,13 @@ class PublishController @Autowired constructor(
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
         logger.apiCall("publishChanges", "request" to request)
         publishService.validatePublishRequest(request)
-        publishService.updateExternalId(request)
-        return publishService.publishChanges(request)
+        return lockDao.runWithLock(DatabaseLock.PUBLICATION, publicationMaxDuration) {
+            publishService.updateExternalId(request)
+            publishService.publishChanges(request)
+        } ?: throw PublishFailureException(
+            message = "Could not reserve publication lock",
+            localizedMessageKey = "error.publish.lock-obtain-failed",
+        )
     }
 
     @PreAuthorize(AUTH_ALL_READ)

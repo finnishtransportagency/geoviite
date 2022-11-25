@@ -16,12 +16,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE) {
 
     @Cacheable(CACHE_LAYOUT_REFERENCE_LINE, sync = true)
-    @Transactional
     override fun fetch(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select

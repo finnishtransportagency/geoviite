@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
+@Transactional(readOnly = true)
 @Service
 class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
@@ -316,12 +317,12 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 fun getSegmentPoints(
     rs: ResultSet,
     geometryColumn: String,
-    heightColumn: String? = null,
-    cantColumn: String? = null,
+    heightColumn: String,
+    cantColumn: String,
 ): List<LayoutPoint> {
     val geometryValues = parse3DMLineString(rs.getString(geometryColumn))
-    val heightValues = heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
-    val cantValues = cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
+    val heightValues = rs.getNullableDoubleListOrNullFromString(heightColumn)
+    val cantValues = rs.getNullableDoubleListOrNullFromString(cantColumn)
     return geometryValues.mapIndexed { index, coordinate ->
         LayoutPoint(
             x = coordinate.x,

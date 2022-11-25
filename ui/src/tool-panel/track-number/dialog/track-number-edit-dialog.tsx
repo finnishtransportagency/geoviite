@@ -28,10 +28,7 @@ import {
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
 import { formatTrackMeter } from 'utils/geography-utils';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
@@ -307,7 +304,11 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                             label={t('track-number-edit.field.end-location')}
                             value={
                                 <TextField
-                                    value={formatTrackMeter(startAndEndPoints.end.address)}
+                                    value={
+                                        startAndEndPoints?.end
+                                            ? formatTrackMeter(startAndEndPoints.end.address)
+                                            : ''
+                                    }
                                     wide
                                     disabled
                                 />

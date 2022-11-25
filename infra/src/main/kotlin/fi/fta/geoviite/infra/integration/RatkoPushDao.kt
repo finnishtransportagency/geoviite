@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
+@Transactional(readOnly = true)
 @Service
 class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
@@ -36,6 +37,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         return ratkoPushId.also { logger.daoAccess(AccessType.INSERT, RatkoPush::class, ratkoPushId) }
     }
 
+    @Transactional
     fun finishStuckPushes(user: UserName) {
         val sql = """
             update integrations.ratko_push
@@ -191,6 +193,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         logger.daoAccess(AccessType.UPSERT, RatkoPush::class, pushId, publicationIds)
     }
 
+    @Transactional
     fun <T> insertRatkoPushError(
         ratkoPushId: IntId<RatkoPush>,
         ratkoPushErrorType: RatkoPushErrorType,

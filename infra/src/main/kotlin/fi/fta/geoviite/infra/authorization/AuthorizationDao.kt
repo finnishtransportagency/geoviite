@@ -9,16 +9,15 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    @Transactional
     fun getRole(roleCode: Code): Role =
         getRoleInternal(roleCode = roleCode, userGroup = null)
             ?: throw IllegalStateException("No such role: roleCode=$roleCode")
 
     @Cacheable(CACHE_ROLES, sync = true)
-    @Transactional
     fun getRoleByUserGroup(ldapGroup: Code): Role? =
         getRoleInternal(roleCode = null, userGroup = ldapGroup)
 

@@ -5,7 +5,9 @@ import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.util.RowVersion
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
+@Transactional
 @Service
 class LayoutAlignmentService(
     private val dao: LayoutAlignmentDao,

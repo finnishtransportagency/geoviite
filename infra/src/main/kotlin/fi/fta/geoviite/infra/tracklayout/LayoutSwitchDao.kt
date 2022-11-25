@@ -20,11 +20,11 @@ import org.springframework.transaction.annotation.Transactional
 const val MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE = 1.0
 
 @Suppress("SameParameterValue")
+@Transactional(readOnly = true)
 @Service
 class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
 
-    @Transactional
     fun fetchSegmentSwitchJointConnections(
         publishType: PublishType,
         switchId: IntId<TrackLayoutSwitch>

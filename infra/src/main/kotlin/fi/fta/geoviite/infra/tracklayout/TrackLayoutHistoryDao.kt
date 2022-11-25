@@ -12,10 +12,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 @Suppress("SameParameterValue")
+@Transactional(readOnly = true)
 @Service
-class TrackLayoutHistoryDao(
-    jdbcTemplateParam: NamedParameterJdbcTemplate?,
-) : DaoBase(jdbcTemplateParam) {
+class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberAtMoment(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -101,7 +100,6 @@ class TrackLayoutHistoryDao(
         return referenceLine
     }
 
-    @Transactional
     fun fetchLocationTrackAtMoment(locationTrackId: IntId<LocationTrack>, moment: Instant? = null): LocationTrack? {
         //language=SQL
         val sql = """

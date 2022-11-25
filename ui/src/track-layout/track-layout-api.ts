@@ -3,6 +3,7 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import {
     AlignmentId,
+    AlignmentStartAndEnd,
     LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
@@ -15,12 +16,10 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
-    LocationTrackStartAndEndPoints,
     MapAlignment,
     MapAlignmentType,
     MapSegment,
     ReferenceLineId,
-    ReferenceLineStartAndEndPoints,
 } from './track-layout-model';
 import {
     API_URI,
@@ -33,7 +32,11 @@ import {
 } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/layer-visibility-limits';
-import { getChangeTimes, updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'common/change-time-api';
+import {
+    getChangeTimes,
+    updateReferenceLineChangeTime,
+    updateTrackNumberChangeTime,
+} from 'common/change-time-api';
 import { ChangeTimes, KmNumber, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import { LinkInterval, LinkPoint, LocationTrackSaveError } from 'linking/linking-model';
 import { bboxString, pointString } from 'common/common-api';
@@ -129,8 +132,8 @@ export async function getLocationTrackSegmentEnds(
 export async function getReferenceLineStartAndEnd(
     referenceLineId: ReferenceLineId,
     publishType: PublishType,
-): Promise<ReferenceLineStartAndEndPoints> {
-    return getThrowError<ReferenceLineStartAndEndPoints>(
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getThrowError<AlignmentStartAndEnd>(
         `${layoutUri(publishType)}/reference-lines/${referenceLineId}/start-and-end`,
     );
 }
@@ -138,8 +141,8 @@ export async function getReferenceLineStartAndEnd(
 export async function getLocationTrackStartAndEnd(
     locationTrackId: LocationTrackId,
     publishType: PublishType,
-): Promise<LocationTrackStartAndEndPoints | undefined> {
-    return getThrowError<LocationTrackStartAndEndPoints>(
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getThrowError<AlignmentStartAndEnd>(
         `${layoutUri(publishType)}/location-tracks/${locationTrackId}/start-and-end`,
     );
 }
@@ -163,7 +166,7 @@ export async function getLinkPointsByTiles(
 
             const uniqueIds = segments.map((s) => s.id);
             const uniqueSegments = segments.filter(
-                ({id}, index) => !uniqueIds.includes(id, index + 1),
+                ({ id }, index) => !uniqueIds.includes(id, index + 1),
             );
 
             return createLinkPoints(alignmentType, alignmentId, uniqueSegments);
@@ -376,10 +379,7 @@ export async function getSwitchesBySearchTerm(
         searchTerm: searchTerm,
         limit: limit,
     });
-    return await getWithDefault<LayoutSwitch[]>(
-        `${layoutUri(publishType)}/switches${params}`,
-        [],
-    );
+    return await getWithDefault<LayoutSwitch[]>(`${layoutUri(publishType)}/switches${params}`, []);
 }
 
 export async function getSwitch(
@@ -531,8 +531,8 @@ export async function getLocationTrack(
 export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
     return ids.length > 0
         ? getThrowError<LayoutLocationTrack[]>(
-            `${layoutUri(publishType)}/location-tracks?ids=${ids}`,
-        )
+              `${layoutUri(publishType)}/location-tracks?ids=${ids}`,
+          )
         : Promise.resolve([]);
 }
 
@@ -541,7 +541,7 @@ export async function getTrackAddress(
     publishType: PublishType,
     coordinate: Point,
 ): Promise<TrackMeter | undefined> {
-    const params = queryParams({coordinate: pointString(coordinate)});
+    const params = queryParams({ coordinate: pointString(coordinate) });
     return getWithDefault<TrackMeter | undefined>(
         `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
         undefined,
@@ -561,7 +561,7 @@ export async function getReferenceLinesNear(
     publishType: PublishType,
     bbox: BoundingBox,
 ): Promise<LayoutReferenceLine[]> {
-    const params = queryParams({bbox: bboxString(bbox)});
+    const params = queryParams({ bbox: bboxString(bbox) });
     return getThrowError<LayoutReferenceLine[]>(
         `${layoutUri(publishType)}/reference-lines${params}`,
     );
@@ -571,7 +571,7 @@ export async function getLocationTracksNear(
     publishType: PublishType,
     bbox: BoundingBox,
 ): Promise<LayoutLocationTrack[]> {
-    const params = queryParams({bbox: bboxString(bbox)});
+    const params = queryParams({ bbox: bboxString(bbox) });
     return getThrowError<LayoutLocationTrack[]>(
         `${layoutUri(publishType)}/location-tracks${params}`,
     );

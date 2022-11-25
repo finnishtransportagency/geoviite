@@ -12,11 +12,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Cacheable(CACHE_COMMON_SWITCH_STRUCTURE, sync = true)
-    @Transactional
     fun fetchSwitchStructures(): List<SwitchStructure> {
         val sql = """
             select
@@ -41,7 +41,6 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     }
 
     @Cacheable(CACHE_COMMON_SWITCH_STRUCTURE, sync = true)
-    @Transactional
     fun fetchSwitchStructure(version: RowVersion<SwitchStructure>): SwitchStructure {
         val sql = """
             select
@@ -199,7 +198,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }.associate { it }
     }
 
-    fun insertJoints(switchStructureId: RowVersion<SwitchStructure>, joints: List<SwitchJoint>) {
+    private fun insertJoints(switchStructureId: RowVersion<SwitchStructure>, joints: List<SwitchJoint>) {
         joints.forEach { joint -> insertJoint(switchStructureId, joint) }
     }
 

@@ -11,11 +11,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class SwitchOwnerDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Cacheable(CACHE_COMMON_SWITCH_OWNER, sync = true)
-    @Transactional
     fun fetchSwitchOwners(): List<SwitchOwner> {
         val sql = """
             select

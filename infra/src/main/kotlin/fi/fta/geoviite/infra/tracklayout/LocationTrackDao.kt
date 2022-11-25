@@ -17,12 +17,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK) {
 
-
-    @Transactional
     fun fetchDuplicates(id: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
         val sql = """
             select 
@@ -48,7 +47,6 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
 
     @Cacheable(CACHE_LAYOUT_LOCATION_TRACK, sync = true)
-    @Transactional
     override fun fetch(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 

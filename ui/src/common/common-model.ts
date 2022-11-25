@@ -47,17 +47,6 @@ export type AddressPoint = {
     distance: number;
 };
 
-export type RefinedAlignmentEndPoint = {
-    addressPoint: AddressPoint | null;
-    endPoint: LocationTrackEndPoint | null;
-    switchName: string | null;
-};
-
-export type AlignmentStartAndEndPoints = {
-    start: RefinedAlignmentEndPoint;
-    end: RefinedAlignmentEndPoint;
-};
-
 export type ChangeTimes = {
     changed: Date;
     created: Date;

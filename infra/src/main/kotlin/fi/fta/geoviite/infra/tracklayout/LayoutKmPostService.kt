@@ -10,10 +10,12 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.pageToList
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
+    @Transactional
     fun insertKmPost(request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
         logger.serviceCall("insertKmPost", "request" to request)
 
@@ -28,6 +30,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
         return saveDraftInternal(kmPost).id
     }
 
+    @Transactional
     fun updateKmPost(id: IntId<TrackLayoutKmPost>, kmPost: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
         logger.serviceCall("updateKmPost", "id" to id, "kmPost" to kmPost)
         val trackLayoutKmPost = getDraftInternal(id).copy(
@@ -104,6 +107,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
             .map { (kmPost, _) -> kmPost }
     }
 
+    @Transactional
     fun deleteDraft(kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
         logger.serviceCall("deleteDraftKmPost", "kmPostId" to kmPostId)
         return dao.deleteUnpublishedDraft(kmPostId).id

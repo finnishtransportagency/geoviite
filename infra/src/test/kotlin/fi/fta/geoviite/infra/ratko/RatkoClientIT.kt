@@ -64,7 +64,7 @@ class RatkoClientIT @Autowired constructor(
     @Test
     fun shouldAddNewTrackAlignment() {
         val track = locationTrackService.getOrThrow(PublishType.OFFICIAL, IntId(997))
-        val addresses = geocodingService.getAddressPoints(track, PublishType.OFFICIAL)
+        val addresses = geocodingService.getAddressPoints(track.id, PublishType.OFFICIAL)
             ?: throw IllegalStateException("Cannot calculate addresses for location track ${track.id}")
         val ratkoNodes = convertToRatkoNodeCollection(addresses)
         val ratkoAlignment =

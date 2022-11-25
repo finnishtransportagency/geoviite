@@ -5,7 +5,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.logging.AccessType.*
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
+import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
@@ -13,6 +14,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
@@ -229,21 +231,6 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 "row_version" to row_version,
             )
         }.toTypedArray()
-
-    private inline fun <reified T> deleteDrafts(table: DbTable, id: IntId<T>? = null): List<Pair<IntId<T>, IntId<T>?>> {
-        jdbcTemplate.setUser()
-        val sql = """
-            delete from ${table.fullName}
-            where draft = true 
-              and (:id::int is null or :id = id)
-            returning id, ${table.draftLink} draft_of
-        """.trimIndent()
-        val deletedRowIds = jdbcTemplate.query(sql, mapOf("id" to id?.intValue)) { rs, _ ->
-            rs.getIntId<T>("id") to rs.getIntIdOrNull<T>("draft_of")
-        }
-        logger.daoAccess(DELETE, T::class, deletedRowIds)
-        return deletedRowIds
-    }
 
     fun fetchLinkedAlignmentRows(
         switchId: IntId<TrackLayoutSwitch>,

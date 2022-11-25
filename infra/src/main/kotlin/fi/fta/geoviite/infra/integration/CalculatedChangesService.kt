@@ -216,7 +216,7 @@ class CalculatedChangesService(
         val currentPublishType = if (moment == null) DRAFT else OFFICIAL
 
         val (oldLocationTrack, oldAlignment) = if (moment == null) {
-            locationTrackService.fetchWithAlignment(OFFICIAL, locationTrackId)
+            locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
         } else {
             historyDao.fetchLocationTrackAtMoment(locationTrackId, moment)?.let { locationTrack ->
                 locationTrack.alignmentVersion?.let { alignmentVersion ->
@@ -230,7 +230,7 @@ class CalculatedChangesService(
             else historyDao.fetchTrackNumberAtMoment(oldLocationTrack.trackNumberId, moment)
         }
 
-        val (currentLocationTrack, currentAlignment) = locationTrackService.getWithAlignment(
+        val (currentLocationTrack, currentAlignment) = locationTrackService.getWithAlignmentOrThrow(
             currentPublishType,
             locationTrackId
         )
