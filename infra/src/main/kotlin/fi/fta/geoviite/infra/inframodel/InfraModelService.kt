@@ -35,7 +35,7 @@ class InfraModelService @Autowired constructor(
         extraInfoParameters: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
-        val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file)
+        val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
         val geometryPlan =
             overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
 

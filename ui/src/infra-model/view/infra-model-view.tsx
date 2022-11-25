@@ -149,7 +149,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     const [showFileHandlingFailed, setShowFileHandlingFailed] = React.useState(false);
     const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
     const [showCharsetPicker, setShowCharsetPicker] = React.useState(false);
-    const [charsetOverride, setCharsetOverride] = React.useState<string>('UTF-8');
+    const [charsetOverride, setCharsetOverride] = React.useState<string | undefined>(undefined);
 
     const fileMenuItems = [
         { value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') },
@@ -163,11 +163,15 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         setShowCriticalWarning(false);
         setLoadingInProgress(true);
 
+        const overrideParameters = charsetOverride
+            ? { ...props.overrideInfraModelParameters, encoding: charsetOverride }
+            : props.overrideInfraModelParameters;
+
         const extraParams = {
             ...props.extraInframodelParameters,
             oid: props.extraInframodelParameters.oid || undefined,
         };
-        const formData = getFormFile(file, extraParams, props.overrideInfraModelParameters);
+        const formData = getFormFile(file, extraParams, overrideParameters);
 
         const succeed =
             props.viewType === InfraModelViewType.EDIT
@@ -187,9 +191,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             : onSaveClick();
     };
 
-    const validateFile = async (encoding?: string) => {
-        const overrideParameters = encoding
-            ? { ...props.overrideInfraModelParameters, encoding }
+    const validateFile = async () => {
+        const overrideParameters = charsetOverride
+            ? { ...props.overrideInfraModelParameters, encoding: charsetOverride }
             : props.overrideInfraModelParameters;
 
         const response =
@@ -408,7 +412,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                         onClick={() => {
                                             setShowCharsetPicker(false);
                                             setShowFileHandlingFailed(false);
-                                            validateFile(charsetOverride);
+                                            validateFile();
                                         }}>
                                         {t('im-form.file-handling-failed.try-again')}
                                     </Button>
@@ -476,7 +480,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 <Button
                                     onClick={() => {
                                         setShowChangeCharsetDialog(false);
-                                        validateFile(charsetOverride);
+                                        validateFile();
                                     }}>
                                     {t('im-form.file-handling-failed.try-again')}
                                 </Button>
