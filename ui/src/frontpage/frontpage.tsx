@@ -1,11 +1,9 @@
 import * as React from 'react';
-import Card from 'card/card';
 import PublicationCard from 'publication/publication-card';
 import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
 import { PublicationListingItem } from 'publication/publication-model';
 import { getPublications } from 'publication/publication-api';
-import { useTranslation } from 'react-i18next';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 
 type FrontPageProps = {
@@ -17,7 +15,6 @@ const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
 }) => {
-    const { t } = useTranslation();
     const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
 
     React.useEffect(() => {
@@ -45,22 +42,18 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     return (
         <React.Fragment>
-            {!selectedPublication && publications && (
+            {!selectedPublication && (
                 <React.Fragment>
                     <div className={styles['frontpage']}>
-                        <Card
-                            className={styles['frontpage__card']}
-                            header={t('frontpage.publications')}
-                            content={
-                                <PublicationCard
-                                    publications={publications}
-                                    itemClicked={(pub) => {
-                                        onSelectedPublicationChanged(pub);
-                                    }}
-                                    anyFailed={hasAnyFailed()}
-                                />
-                            }
-                        />
+                        {publications && (
+                            <PublicationCard
+                                publications={publications}
+                                itemClicked={(pub) => {
+                                    onSelectedPublicationChanged(pub);
+                                }}
+                                anyFailed={hasAnyFailed()}
+                            />
+                        )}
                     </div>
                     <div className={styles['frontpage__photo']} />
                 </React.Fragment>

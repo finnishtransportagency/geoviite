@@ -7,6 +7,8 @@ import { ButtonSize } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
 import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
+import Card from 'card/card';
+import styles from './publication-card.scss';
 
 type PublishListProps = {
     itemClicked: (pub: PublicationListingItem) => void;
@@ -27,34 +29,45 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
         .at(-1);
 
     return (
-        <React.Fragment>
-            {failures.length > 0 && (
-                <div>
-                    <h3>{t('publishing.publish-issues')}</h3>
-                    <div style={{ marginBottom: '12px' }}>
-                        <RatkoPublishButton size={ButtonSize.SMALL} />
-                    </div>
-                    {latestFailureWithPushError && (
-                        <RatkoPushErrorDetails latestFailure={latestFailureWithPushError} />
+        <Card
+            className={styles['publication-card']}
+            content={
+                <React.Fragment>
+                    <h2 className={styles['publication-card__title']}>
+                        {t('publication-card.title')}
+                    </h2>
+                    {failures.length > 0 && (
+                        <React.Fragment>
+                            <h3 className={styles['publication-card__issues-title']}>
+                                {t('publishing.publish-issues')}
+                            </h3>
+                            <div style={{ marginBottom: '12px' }}>
+                                <RatkoPublishButton size={ButtonSize.SMALL} />
+                            </div>
+                            {latestFailureWithPushError && (
+                                <RatkoPushErrorDetails latestFailure={latestFailureWithPushError} />
+                            )}
+                            <PublicationList
+                                publications={failures}
+                                publicationClicked={itemClicked}
+                                anyFailed={anyFailed}
+                            />
+                        </React.Fragment>
                     )}
-                    <PublicationList
-                        publications={failures}
-                        publicationClicked={itemClicked}
-                        anyFailed={anyFailed}
-                    />
-                </div>
-            )}
-            {successes.length > 0 && (
-                <div>
-                    <h3>{t('publication-card.latest')}</h3>
-                    <PublicationList
-                        publications={successes}
-                        publicationClicked={itemClicked}
-                        anyFailed={anyFailed}
-                    />
-                </div>
-            )}
-        </React.Fragment>
+                    {successes.length > 0 && (
+                        <React.Fragment>
+                            <h3 className={styles['publication-card__latest-title']}>
+                                {t('publication-card.latest')}
+                            </h3>
+                            <PublicationList
+                                publications={successes}
+                                publicationClicked={itemClicked}
+                                anyFailed={anyFailed}
+                            />
+                        </React.Fragment>
+                    )}
+                </React.Fragment>
+            }></Card>
     );
 };
 

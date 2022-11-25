@@ -76,7 +76,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                 <footer className={styles['publication-details__footer']}>
                     {ratkoPushFailed(publication.status) && (
                         <div className={styles['publication-details__failure-notification']}>
-                            <div
+                            <span
                                 className={
                                     styles['publication-details__failure-notification--error']
                                 }>
@@ -84,29 +84,29 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                                     color={IconColor.INHERIT}
                                     size={IconSize.MEDIUM}
                                 />
-                            </div>
-                            <div
+                            </span>
+                            <span
                                 className={
                                     styles['publication-details__failure-notification__content']
                                 }>
                                 {t('publishing.publish-issue')}
-                            </div>
+                            </span>
                         </div>
                     )}
                     {waitingAfterFail && (
                         <div className={styles['publication-details__failure-notification']}>
-                            <div
+                            <span
                                 className={
                                     styles['publication-details__failure-notification--info']
                                 }>
                                 <Icons.Denied color={IconColor.INHERIT} size={IconSize.MEDIUM} />
-                            </div>
-                            <div
+                            </span>
+                            <span
                                 className={
                                     styles['publication-details__failure-notification__content']
                                 }>
                                 {t('publishing.not-published')}
-                            </div>
+                            </span>
                         </div>
                     )}
                     <RatkoPublishButton />
