@@ -92,8 +92,8 @@ data class GeocodingContext(
     val referenceLineGeometry: LayoutAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
     val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
-    val kmPostsSmallerThanTrackNumberStart: List<TrackLayoutKmPost> = listOf(),
-    val kmPostsOutsideTrack: List<TrackLayoutKmPost> = listOf(),
+    val smallerThanTrackNumberStartKmPosts: List<TrackLayoutKmPost> = listOf(),
+    val outsideTrackKmPosts: List<TrackLayoutKmPost> = listOf(),
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
     val projectionLineMaxAngleDelta: Double = PROJECTION_LINE_MAX_ANGLE_DELTA,
 ) {
@@ -134,7 +134,7 @@ data class GeocodingContext(
                 rejectedKmPosts = kmPosts.filterNot { post ->
                     referencePoints.any { reference -> reference.kmNumber == post.kmNumber }
                 },
-                kmPostsSmallerThanTrackNumberStart = kmPosts
+                smallerThanTrackNumberStartKmPosts = kmPosts
                     .filter { post -> post.location != null && TrackMeter(post.kmNumber, 0) < referenceLine.startAddress },
             )
         }
@@ -161,7 +161,6 @@ data class GeocodingContext(
                         )
                     }
                     else if (distance > 0.0 && intersectType == WITHIN) {
-                        // TODO 1490
                         val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtLength(distance)) {
                             "Couldn't resolve distance to point on reference line: not continuous?"
                         }
