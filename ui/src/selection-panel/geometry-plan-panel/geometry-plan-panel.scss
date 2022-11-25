@@ -44,7 +44,7 @@ $accordion-right-padding: 20px;
     }
 
     &__no-entities {
-        @include typography-body-small;
+        @include typography-caption;
         margin-bottom: 4px;
     }
 
