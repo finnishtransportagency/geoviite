@@ -5,6 +5,7 @@
 .switch-badge {
     @include typography-body-strong;
     font-size: 10px;
+    line-height: 10px;
 
     color: $color-black-default;
     background-color: $color-geoviite-cadmium-lighter;

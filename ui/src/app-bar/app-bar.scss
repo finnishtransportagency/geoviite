@@ -25,17 +25,11 @@ $appbar-height: 48px;
     }
 
     &__title {
-        @include typography-body;
-        font-size: 20px;
+        @include typography-heading;
 
         display: flex;
         align-items: center;
         user-select: none;
-    }
-
-    &__user {
-        @include typography-body;
-        font-size: 8px;
     }
 
     &__links {
