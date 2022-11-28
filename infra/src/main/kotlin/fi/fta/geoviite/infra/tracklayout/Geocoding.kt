@@ -5,8 +5,6 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.error.GeocodingFailureException
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
-import fi.fta.geoviite.infra.math.IntersectType.BEFORE
-import fi.fta.geoviite.infra.math.IntersectType.AFTER
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
@@ -92,8 +90,6 @@ data class GeocodingContext(
     val referenceLineGeometry: LayoutAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
     val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
-    val smallerThanTrackNumberStartKmPosts: List<TrackLayoutKmPost> = listOf(),
-    val outsideTrackKmPosts: List<TrackLayoutKmPost> = listOf(),
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
     val projectionLineMaxAngleDelta: Double = PROJECTION_LINE_MAX_ANGLE_DELTA,
 ) {
@@ -134,8 +130,6 @@ data class GeocodingContext(
                 rejectedKmPosts = kmPosts.filterNot { post ->
                     referencePoints.any { reference -> reference.kmNumber == post.kmNumber }
                 },
-                smallerThanTrackNumberStartKmPosts = kmPosts
-                    .filter { post -> post.location != null && TrackMeter(post.kmNumber, 0) < referenceLine.startAddress },
             )
         }
 
@@ -145,22 +139,13 @@ data class GeocodingContext(
             referenceLineGeometry: LayoutAlignment,
         ) = listOf(GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)) +
                 kmPosts
-                    .filter { post -> post.location != null && post.kmNumber > startAddress.kmNumber }
+                    .filter { post -> post.location != null && TrackMeter(post.kmNumber,0) > startAddress }
                     .mapNotNull { post -> toReferencePoint(post.location!!, post.kmNumber, referenceLineGeometry) }
 
         private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: LayoutAlignment) =
             referenceLineGeometry.getLengthUntil(location)
                 ?.let { (distance, intersectType) ->
-                    if(intersectType == BEFORE || intersectType == AFTER){
-                        GeocodingReferencePoint(
-                            kmNumber = kmNumber,
-                            meters = BigDecimal.ZERO,
-                            distance = distance,
-                            kmPostOffset = 0.0,
-                            intersectType = intersectType,
-                        )
-                    }
-                    else if (distance > 0.0 && intersectType == WITHIN) {
+                    if (distance > 0.0 && intersectType == WITHIN) {
                         val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtLength(distance)) {
                             "Couldn't resolve distance to point on reference line: not continuous?"
                         }
@@ -276,7 +261,7 @@ fun getProjectedAddressPoints(
         val projection = projectionLines[projectionIndex]
         val intersection = intersection(edge, projection.projection)
         when (intersection.inSegment1) {
-            BEFORE -> {
+            IntersectType.BEFORE -> {
                 projectionIndex += 1
             }
             WITHIN -> {
@@ -289,7 +274,7 @@ fun getProjectedAddressPoints(
                 )
                 projectionIndex += 1
             }
-            AFTER -> {
+            IntersectType.AFTER -> {
                 edgeIndex += 1
             }
         }
@@ -365,8 +350,8 @@ fun getIntersection(projection: Line, edges: List<PolyLineEdge>): Pair<PolyLineE
     val collisionEdge = edges.getOrNull(edges.binarySearch { edge ->
         val edgeIntersection = intersection(edge, projection)
         when (edgeIntersection.inSegment1) {
-            BEFORE -> 1
-            AFTER -> -1
+            IntersectType.BEFORE -> 1
+            IntersectType.AFTER -> -1
             else -> {
                 intersection = edgeIntersection
                 0
