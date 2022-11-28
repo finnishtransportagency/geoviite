@@ -579,7 +579,8 @@ class PublishValidationTest {
     @Test
     fun validationCatchesKmPostOutsideReferenceLine() {
         val error = "$VALIDATION_GEOCODING.km-posts-rejected"
-        val kmPostsOutsideLineError = "$VALIDATION_GEOCODING.km-posts-outside-line"
+        val kmPostsOutsideLineErrorBefore = "$VALIDATION_GEOCODING.km-post-outside-line-before"
+        val kmPostsOutsideLineErrorAfter = "$VALIDATION_GEOCODING.km-post-outside-line-after"
         assertContainsError(
             false,
             validateGeocodingContext(
@@ -598,7 +599,7 @@ class PublishValidationTest {
                     listOf(kmPost(IntId(1), KmNumber(1), Point(5.0, 0.0))),
                 ), ""
             ),
-            kmPostsOutsideLineError,
+            kmPostsOutsideLineErrorBefore,
         )
         assertContainsError(
             true,
@@ -608,7 +609,7 @@ class PublishValidationTest {
                     listOf(kmPost(IntId(1), KmNumber(1), Point(25.0, 0.0))),
                 ), ""
             ),
-            kmPostsOutsideLineError,
+            kmPostsOutsideLineErrorAfter,
         )
     }
 
