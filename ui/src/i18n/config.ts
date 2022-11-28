@@ -15,6 +15,7 @@ import alignmentDialogFi from 'tool-panel/location-track/dialog/translations.fi.
 import kmPostDialogFi from 'tool-panel/km-post/dialog/translations.fi.json';
 import trackNumberDialogFi from 'tool-panel/track-number/dialog/translations.fi.json';
 import linkingFi from 'linking/translations.fi.json';
+import userFi from 'user/translations.fi.json';
 
 export const resources = {
     en: {
@@ -36,6 +37,7 @@ export const resources = {
             ...trackNumberDialogFi,
             ...kmPostDialogFi,
             ...linkingFi,
+            ...userFi,
         },
     },
 } as const;

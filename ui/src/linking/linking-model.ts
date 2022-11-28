@@ -298,6 +298,7 @@ export type TrackLayoutSwitchSaveRequest = {
     switchStructureId: SwitchStructureId;
     stateCategory: LayoutStateCategory;
     ownerId: SwitchOwnerId;
+    trapPoint: boolean | undefined;
 };
 
 export type TrackLayoutSaveError = {

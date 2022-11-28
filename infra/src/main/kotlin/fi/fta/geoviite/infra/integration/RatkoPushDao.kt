@@ -36,11 +36,33 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         return ratkoPushId.also { logger.daoAccess(AccessType.INSERT, RatkoPush::class, ratkoPushId) }
     }
 
-    @Transactional
-    fun finishPushing(user: UserName, pushId: IntId<RatkoPush>, status: RatkoPushStatus) {
+    fun finishStuckPushes(user: UserName) {
         val sql = """
             update integrations.ratko_push
-            set end_time = now(), status = :status::integrations.ratko_push_status
+            set 
+                end_time = now(),
+                status = case
+                    when status = 'IN_PROGRESS' then 'FAILED'
+                    when status = 'IN_PROGRESS_M_VALUES' then 'SUCCESSFUL'
+                    else status
+                end
+            where end_time is null
+            returning id
+        """.trimIndent()
+
+        jdbcTemplate.setUser(user)
+        jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }.also { updatedPushes ->
+            logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes)
+        }
+    }
+
+    @Transactional
+    fun updatePushStatus(user: UserName, pushId: IntId<RatkoPush>, status: RatkoPushStatus) {
+        val sql = """
+            update integrations.ratko_push
+            set 
+              end_time = case when :status = 'IN_PROGRESS_M_VALUES' then null else now() end,
+              status = :status::integrations.ratko_push_status
             where id = :push_id
         """.trimIndent()
 
@@ -50,7 +72,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         )
 
         jdbcTemplate.setUser(user)
-        check(jdbcTemplate.update(sql, params) > 0)
+        check(jdbcTemplate.update(sql, params) == 1)
         logger.daoAccess(AccessType.UPDATE, RatkoPush::class, pushId)
     }
 
@@ -78,7 +100,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         }
     }
 
-    fun fetchUnpublishedLayoutPublishes(): List<PublicationHeader> {
+    fun fetchNotPushedLayoutPublishes(): List<PublicationHeader> {
         val sql = """
             select
               publication.id,
@@ -153,8 +175,8 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         val sql = """
             insert into integrations.ratko_push_content
               values (:publication_id, :ratko_push_id)
-              on conflict (publication_id)
-                do update set ratko_push_id = :ratko_push_id
+            on conflict (publication_id) 
+              do update set ratko_push_id = :ratko_push_id
         """.trimIndent()
 
         val params = publicationIds.map { id ->
@@ -209,34 +231,33 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             "response_body" to responseBody,
         )
 
-        return jdbcTemplate.queryOne(sql, params, ratkoPushId.toString()) { rs, _ ->
+        return jdbcTemplate.queryOne<IntId<RatkoPushError<T>>>(sql, params, ratkoPushId.toString()) { rs, _ ->
             rs.getIntId("id")
-        }
+        }.also { errorId -> logger.daoAccess(AccessType.INSERT, RatkoPushError::class, errorId) }
     }
 
     fun getLatestRatkoPushErrorFor(publishId: IntId<Publication>): RatkoPushError<*>? {
         //language=SQL
         val sql = """
             select 
-                ratko_push_error.id, 
-                error_type, 
-                operation, 
-                ratko_push_id, 
-                track_number_id, 
-                location_track_id, 
-                switch_id 
+              ratko_push_error.id, 
+              error_type, 
+              operation, 
+              ratko_push_id, 
+              track_number_id, 
+              location_track_id, 
+              switch_id 
             from integrations.ratko_push_error
-            inner join integrations.ratko_push
+              inner join integrations.ratko_push
                 on ratko_push.id = ratko_push_error.ratko_push_id
-            inner join integrations.ratko_push_content
+              inner join integrations.ratko_push_content 
                 using(ratko_push_id)
             where ratko_push_content.publication_id = :id
             order by ratko_push.end_time desc, ratko_push_error.id desc
             limit 1;
         """.trimIndent()
 
-        return jdbcTemplate.queryOptional(sql, mapOf("id" to publishId.intValue))
-        { rs, _ ->
+        return jdbcTemplate.queryOptional(sql, mapOf("id" to publishId.intValue)) { rs, _ ->
             val errorId = rs.getIntId<RatkoPushError<*>>("id")
             val trackNumberId = rs.getIntIdOrNull<TrackLayoutTrackNumber>("track_number_id")
             val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
@@ -253,7 +274,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                     ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
                     ?: switchId.let { RatkoAssetType.SWITCH }
             )
-        }
+        }?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
     }
 
     fun getLatestSuccessfulPushMoment(): Instant {
@@ -261,7 +282,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             select 
               coalesce(max(start_time), now()) as latest_push_time
             from integrations.ratko_push
-            where status='SUCCESSFUL'
+            where status = 'SUCCESSFUL'
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->

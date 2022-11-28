@@ -4,15 +4,19 @@
 
 .frontpage {
     background: $color-white-dark;
+    overflow: hidden auto;
+    padding: 8px 16px 16px 16px;
+    min-width: 494px;
 
-    &__card {
-        width: 416px;
+    .card {
+        margin: 16px;
+        width: 420px;
     }
 
     &__photo {
         flex: 1;
         background-image: url('../geoviite-design-lib/frontpage-background.jpeg');
         background-size: cover;
-        background-position: center bottom;
+        background-position: right center;
     }
 }

@@ -24,6 +24,7 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import reactor.netty.http.client.HttpClientRequest
 import java.math.RoundingMode
 import java.time.Duration
 
@@ -209,6 +210,10 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         client
             .patch()
             .uri("/api/infra/v1.0/locationtracks/geom")
+            .httpRequest { httpRequest ->
+                val reactorRequest: HttpClientRequest = httpRequest.getNativeRequest()
+                reactorRequest.responseTimeout(metersCalculationTimeout)
+            }
             .bodyValue(locationTrackOids.map { it.id })
             .retrieve()
             .toBodilessEntity()
@@ -495,6 +500,10 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         client
             .patch()
             .uri("/api/infra/v1.0/routenumbers/geom")
+            .httpRequest { httpRequest ->
+                val reactorRequest: HttpClientRequest = httpRequest.getNativeRequest()
+                reactorRequest.responseTimeout(metersCalculationTimeout)
+            }
             .bodyValue(routeNumberOids.map { it.id })
             .retrieve()
             .toBodilessEntity()

@@ -11,6 +11,7 @@ import {
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
 import { createDelegates } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type LocationTrackDeleteConfirmationDialogProps = {
     id: LocationTrackId;
@@ -54,7 +55,7 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
                 title={t('tool-panel.location-track.delete-dialog.delete-draft-confirm')}
                 variant={DialogVariant.DARK}
                 allowClose={false}
-                style={{ maxWidth: '250px' }}
+                className={dialogStyles['dialog--narrow']}
                 footerContent={
                     <React.Fragment>
                         <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>

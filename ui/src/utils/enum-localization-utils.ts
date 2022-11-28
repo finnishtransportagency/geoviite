@@ -4,15 +4,17 @@ import {
     LayoutStateCategory,
     LocationTrackType,
     TopologicalConnectivityType,
+    TrapPoint,
 } from 'track-layout/track-layout-model';
 import i18n from 'i18next';
 import { JointNumber, MeasurementMethod, VerticalCoordinateSystem } from 'common/common-model';
-import { RatkoPushErrorOperation, RatkoPushErrorType } from 'publication/publication-model';
+import { RatkoPushErrorOperation, RatkoPushErrorType } from 'ratko/ratko-model';
 
 export interface LocalizedEnum<T> {
     value: T;
     name: string;
 }
+
 function values<T>(keyBase: string, ...enumValues: T[]): LocalizedEnum<T>[] {
     return enumValues.map((v) => ({
         value: v,
@@ -65,16 +67,15 @@ export const ratkoPushErrorOperations: { value: RatkoPushErrorOperation; name: s
     { value: 'DELETE', name: i18n.t('enum.ratko-push-error-operation.DELETE') },
 ];
 
-export const topologicalConnectivityTypes: { value: TopologicalConnectivityType; name: string }[] =
-    [
-        { value: 'NONE', name: i18n.t('enum.topological-connectivity-type.NONE') },
-        { value: 'START', name: i18n.t('enum.topological-connectivity-type.START') },
-        { value: 'END', name: i18n.t('enum.topological-connectivity-type.END') },
-        {
-            value: 'START_AND_END',
-            name: i18n.t('enum.topological-connectivity-type.START_AND_END'),
-        },
-    ];
+export const topologicalConnectivityTypes: { value: TopologicalConnectivityType; name: string }[] = [
+    { value: 'NONE', name: i18n.t('enum.topological-connectivity-type.NONE') },
+    { value: 'START', name: i18n.t('enum.topological-connectivity-type.START') },
+    { value: 'END', name: i18n.t('enum.topological-connectivity-type.END') },
+    {
+        value: 'START_AND_END',
+        name: i18n.t('enum.topological-connectivity-type.START_AND_END'),
+    },
+];
 
 export const planPhases: { value: PlanPhase; name: string }[] = [
     { value: 'RAILWAY_PLAN', name: i18n.t('enum.plan-phase.RAILWAY_PLAN') },
@@ -120,6 +121,17 @@ export const verticalCoordinateSystems: { value: VerticalCoordinateSystem; name:
     { value: 'N60', name: 'N60' },
     { value: 'N2000', name: 'N2000' },
 ];
+
+export const switchTrapPoints: { value: TrapPoint; name: string }[] = [
+    { value: TrapPoint.Yes, name: i18n.t('enum.trap-point.Yes') },
+    { value: TrapPoint.No, name: i18n.t('enum.trap-point.No') },
+    { value: TrapPoint.Unknown, name: i18n.t('enum.trap-point.Unknown') },
+];
+
+export function translateSwitchTrapPoint(trapPoint: TrapPoint): string {
+    const translation = switchTrapPoints.find((option) => option.value == trapPoint)?.name;
+    return translation || '';
+}
 
 export function switchJointNumberToString(joint: JointNumber): string {
     return joint.substring(6);

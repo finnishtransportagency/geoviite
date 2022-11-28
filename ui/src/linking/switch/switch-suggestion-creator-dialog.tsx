@@ -25,6 +25,7 @@ import {
 import { getLocationTracksNear } from 'track-layout/track-layout-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 export type SwitchSuggestionCreatorProps = {
     locationTrackEndpoint: LocationTrackEndpoint;
@@ -178,7 +179,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
             title={t('switch-suggestion-creator-dialog.title')}
             onClose={onClose}
             variant={DialogVariant.DARK}
-            style={{ width: '380px', minWidth: '380px' }}
+            className={dialogStyles['dialog--wide']}
             scrollable={false}
             footerContent={
                 <React.Fragment>
@@ -227,8 +228,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                                                 _toggleSwitchAlignmentDirection(
                                                     config.switchAlignmentId,
                                                 )
-                                            }
-                                            style={{ cursor: 'pointer' }}>
+                                            }>
                                             {config.ascending
                                                 ? config.switchAlignmentName
                                                 : reverse(config.switchAlignmentName)}

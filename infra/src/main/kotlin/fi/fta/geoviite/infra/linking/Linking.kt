@@ -107,7 +107,7 @@ data class SuggestedSwitch(
     val switchStructure: SwitchStructure,
     val joints: List<SuggestedSwitchJoint>,
     val alignmentEndPoint: LocationTrackEndpoint?,
-    val geometrySwitchId: IntId <GeometrySwitch>? = null,
+    val geometrySwitchId: IntId<GeometrySwitch>? = null,
     val geometryPlanId: IntId<GeometryPlan>? = null,
 )
 
@@ -136,6 +136,7 @@ data class TrackLayoutSwitchSaveRequest(
     val switchStructureId: IntId<SwitchStructure>,
     val stateCategory: LayoutStateCategory,
     val ownerId: IntId<SwitchOwner>,
+    val trapPoint: Boolean?
 )
 
 data class TrackNumberSaveRequest(

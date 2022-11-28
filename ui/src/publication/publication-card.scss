@@ -1,0 +1,18 @@
+@import '../vayla-design-lib/typography';
+
+.publication-card {
+    padding-top: 0;
+
+    &__title {
+        @include typography-heading;
+    }
+
+    &__subsection-title {
+        @include typography-body-strong;
+        margin-bottom: 12px;
+    }
+
+    &__ratko-push-button {
+        margin-bottom: 12px;
+    }
+}

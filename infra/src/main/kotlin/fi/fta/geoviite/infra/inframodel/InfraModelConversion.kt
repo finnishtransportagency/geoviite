@@ -614,7 +614,7 @@ fun tryParseKmNumber(text: String): KmNumber? =
     if (text == "AKM" || text == "APU") {
         null
     } else if (text.length in 1..6 && text.all(Char::isLetterOrDigit) && text.first().isDigit()) {
-        parseKmNumber(text)
+        KmNumber(text)
     } else {
         logger.warn("StaEquation desc is not a KM-number: ${formatForLog(text)}")
         null

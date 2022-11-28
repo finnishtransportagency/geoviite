@@ -81,13 +81,13 @@ fun validateKmPostReferences(
     listOfNotNull(
         validate(trackNumber != null) { "$VALIDATION_KM_POST.track-number.null" },
         validateWithParams(!kmPost.exists || trackNumber == null || trackNumber.state.isLinkable()) {
-            "$VALIDATION_KM_POST.track-number.state.${trackNumber?.state}" to listOfNotNull(trackNumber?.number?.value)
+            "$VALIDATION_KM_POST.track-number.state.${trackNumber?.state}" to listOfNotNull(trackNumber?.number?.toString())
         },
         validateWithParams(trackNumber == null || kmPost.trackNumberId == trackNumber.id) {
-            "$VALIDATION_KM_POST.track-number.not-official" to listOfNotNull(trackNumber?.number?.value)
+            "$VALIDATION_KM_POST.track-number.not-official" to listOfNotNull(trackNumber?.number?.toString())
         },
         validateWithParams(trackNumber == null || isPublished(trackNumber, publishTrackNumberIds)) {
-            "$VALIDATION_KM_POST.track-number.not-published" to listOfNotNull(trackNumber?.number?.value)
+            "$VALIDATION_KM_POST.track-number.not-published" to listOfNotNull(trackNumber?.number?.toString())
         },
     )
 
@@ -175,18 +175,18 @@ fun validateDuplicateOfState(
     if (duplicateOfLocationTrack == null) listOf()
     else listOfNotNull(
         validateWithParams(locationTrack.duplicateOf == duplicateOfLocationTrack.id) {
-            "$VALIDATION_REFERENCE_LINE.duplicate-of.not-official" to listOf(duplicateOfLocationTrack.name.value)
+            "$VALIDATION_REFERENCE_LINE.duplicate-of.not-official" to listOf(duplicateOfLocationTrack.name.toString())
         },
         validateWithParams(isPublished(duplicateOfLocationTrack, publishLocationTrackIds)) {
-            "$VALIDATION_LOCATION_TRACK.duplicate-of.not-published" to listOf(duplicateOfLocationTrack.name.value)
+            "$VALIDATION_LOCATION_TRACK.duplicate-of.not-published" to listOf(duplicateOfLocationTrack.name.toString())
         },
         validateWithParams(locationTrack.state.isRemoved() || duplicateOfLocationTrack.state.isLinkable()) {
             "$VALIDATION_LOCATION_TRACK.duplicate-of.state.${duplicateOfLocationTrack.state}" to listOf(
-                duplicateOfLocationTrack.name.value
+                duplicateOfLocationTrack.name.toString()
             )
         },
         validateWithParams(duplicateOfLocationTrack.duplicateOf == null) {
-            "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate" to listOf(duplicateOfLocationTrack.name.value)
+            "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate" to listOf(duplicateOfLocationTrack.name.toString())
         }
    )
 
@@ -211,10 +211,10 @@ fun validateReferenceLineReference(
     )
     else listOfNotNull(
         validateWithParams(referenceLine.trackNumberId == trackNumber.id) {
-            "$VALIDATION_REFERENCE_LINE.track-number.not-official" to listOf(trackNumber.number.value)
+            "$VALIDATION_REFERENCE_LINE.track-number.not-official" to listOf(trackNumber.number.toString())
         },
         validateWithParams(isPublished(trackNumber, publishTrackNumberIds)) {
-            "$VALIDATION_REFERENCE_LINE.track-number.not-published" to listOf(trackNumber.number.value)
+            "$VALIDATION_REFERENCE_LINE.track-number.not-published" to listOf(trackNumber.number.toString())
         },
     )
 
@@ -228,13 +228,13 @@ fun validateLocationTrackReference(
     )
     else listOfNotNull(
         validateWithParams(locationTrack.trackNumberId == trackNumber.id) {
-            "$VALIDATION_LOCATION_TRACK.track-number.not-official" to listOf(trackNumber.number.value)
+            "$VALIDATION_LOCATION_TRACK.track-number.not-official" to listOf(trackNumber.number.toString())
         },
         validateWithParams(isPublished(trackNumber, publishTrackNumberIds)) {
-            "$VALIDATION_LOCATION_TRACK.track-number.not-published" to listOf(trackNumber.number.value)
+            "$VALIDATION_LOCATION_TRACK.track-number.not-published" to listOf(trackNumber.number.toString())
         },
         validateWithParams(locationTrack.state.isRemoved() || trackNumber.state.isLinkable()) {
-            "$VALIDATION_LOCATION_TRACK.track-number.state.${trackNumber.state}" to listOf(trackNumber.number.value)
+            "$VALIDATION_LOCATION_TRACK.track-number.state.${trackNumber.state}" to listOf(trackNumber.number.toString())
         },
     )
 
@@ -255,13 +255,13 @@ fun validateSegmentSwitchReferences(
 
         val stateErrors: List<PublishValidationError> = listOfNotNull(
             validateWithParams(segments.all { segment -> switch.id == segment.switchId }) {
-                "$VALIDATION_LOCATION_TRACK.switch.not-official" to listOf(switch.name.value)
+                "$VALIDATION_LOCATION_TRACK.switch.not-official" to listOf(switch.name.toString())
             },
             validateWithParams(isPublished(switch, publishSwitchIds)) {
-                "$VALIDATION_LOCATION_TRACK.switch.not-published" to listOf(switch.name.value)
+                "$VALIDATION_LOCATION_TRACK.switch.not-published" to listOf(switch.name.toString())
             },
             validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
-                "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to listOf(switch.name.value)
+                "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to listOf(switch.name.toString())
             },
         )
         val geometryErrors: List<PublishValidationError> = if (locationTrack.exists && switch.exists) {
@@ -269,14 +269,14 @@ fun validateSegmentSwitchReferences(
             val segmentJoints = collectJoints(segments)
             listOfNotNull(
                 validateWithParams(areSegmentsContinuous(segments)) {
-                    "$VALIDATION_LOCATION_TRACK.switch.alignment-not-continuous" to listOf(switch.name.value)
+                    "$VALIDATION_LOCATION_TRACK.switch.alignment-not-continuous" to listOf(switch.name.toString())
                 },
                 validateWithParams(segmentAndJointLocationsAgree(switch, segments), WARNING) {
-                    "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch" to listOf(switch.name.value)
+                    "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch" to listOf(switch.name.toString())
                 },
                 validateWithParams(alignmentJointGroupFound(segmentJoints, structureJoints)) {
                     "$VALIDATION_LOCATION_TRACK.switch.wrong-joint-sequence" to listOf(
-                        switch.name.value,
+                        switch.name.toString(),
                         segmentSwitch.switchStructure.baseType.name,
                         jointSequence(segmentJoints),
                     )
@@ -308,7 +308,7 @@ fun validateGeocodingContext(
             .let { rejected ->
                 validateWithParams(rejected.isEmpty()) {
                     "$VALIDATION_GEOCODING.km-posts-rejected" to listOf(
-                        context.trackNumber.number.value,
+                        context.trackNumber.number.toString(),
                         rejected.joinToString(",") { post -> post.kmNumber.toString() },
                     )
                 }
@@ -321,7 +321,7 @@ fun validateGeocodingContext(
             }.let { invalidPoints ->
                 validateWithParams(invalidPoints.isEmpty()) {
                     "$VALIDATION_GEOCODING.km-posts-invalid" to listOf(
-                        context.trackNumber.number.value,
+                        context.trackNumber.number.toString(),
                         invalidPoints.joinToString(",") { point -> point.kmNumber.toString() },
                     )
                 }
@@ -331,7 +331,7 @@ fun validateGeocodingContext(
             .let { farAwayPoints ->
                 validateWithParams(farAwayPoints.isEmpty(), WARNING) {
                     "$VALIDATION_GEOCODING.km-posts-far-from-line" to listOf(
-                        context.trackNumber.number.value,
+                        context.trackNumber.number.toString(),
                         farAwayPoints.joinToString(",") { point -> point.kmNumber.toString() },
                     )
                 }
@@ -355,7 +355,7 @@ fun validateAddressPoints(
                 PublishValidationError(
                     ERROR,
                     "$validationTargetLocalizationPrefix.no-context",
-                    listOf(trackNumber.number.value)
+                    listOf(trackNumber.number.toString())
                 )
             )
         } else {
@@ -386,34 +386,34 @@ fun validateAddressPoints(
     return listOfNotNull(
         validateWithParams(addresses.startIntersect == WITHIN) {
             "$VALIDATION_GEOCODING.start-outside-reference-line" to listOf(
-                trackNumber.number.value,
-                locationTrack.name.value,
+                trackNumber.number.toString(),
+                locationTrack.name.toString(),
             )
         },
         validateWithParams(addresses.endIntersect == WITHIN) {
             "$VALIDATION_GEOCODING.end-outside-reference-line" to listOf(
-                trackNumber.number.value,
-                locationTrack.name.value,
+                trackNumber.number.toString(),
+                locationTrack.name.toString(),
             )
         },
         validateWithParams(discontinuousDirectionRanges.isEmpty()) {
             "$VALIDATION_GEOCODING.sharp-angle" to listOf(
-                trackNumber.number.value,
-                locationTrack.name.value,
+                trackNumber.number.toString(),
+                locationTrack.name.toString(),
                 discontinuousDirectionRanges
             )
         },
         validateWithParams(stretchedMeterRanges.isEmpty()) {
             "$VALIDATION_GEOCODING.stretched-meters" to listOf(
-                trackNumber.number.value,
-                locationTrack.name.value,
+                trackNumber.number.toString(),
+                locationTrack.name.toString(),
                 stretchedMeterRanges
             )
         },
         validateWithParams(discontinuousAddressRanges.isEmpty()) {
             "$VALIDATION_GEOCODING.not-continuous" to listOf(
-                trackNumber.number.value,
-                locationTrack.name.value,
+                trackNumber.number.toString(),
+                locationTrack.name.toString(),
                 discontinuousAddressRanges
             )
         },

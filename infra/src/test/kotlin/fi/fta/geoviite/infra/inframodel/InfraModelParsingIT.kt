@@ -1,13 +1,10 @@
 package fi.fta.geoviite.infra.inframodel
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
-import fi.fta.geoviite.infra.codeDictionary.FeatureType
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.FeatureTypeCode
-import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.common.parseKmNumber
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
@@ -17,13 +14,14 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
+import org.apache.commons.io.ByteOrderMark
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.io.File
 import java.io.StringWriter
 import java.math.BigDecimal
 
@@ -33,19 +31,45 @@ const val TESTFILE_CLOTHOID_AND_PARABOLA = "/inframodel/testfile_clothoid_and_pa
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class InfraModelParsingIT @Autowired constructor(
-    codeDictionaryService: CodeDictionaryService,
     geographyService: GeographyService,
-    val heightTriangleDao: HeightTriangleDao,
     switchStructureDao: SwitchStructureDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
 ): ITTestBase() {
-    private val mapper = jacksonObjectMapper()
-    private val featureTypes: List<FeatureType> = codeDictionaryService.getFeatureTypes()
     private val coordinateSystemNameToSrid = geographyService.getCoordinateSystemNameToSridMapping()
     private val switchStructuresByType = switchStructureDao.fetchSwitchStructures().associateBy { it.type }
-    private val switchStructuresById = switchStructureDao.fetchSwitchStructures().associateBy { it.id as IntId }
     private val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
+
+    @Test
+    fun importingBOMFileWithISOXmlEncodingWorks() {
+        val isoTestFileWithBom = (ByteOrderMark.UTF_BOM + "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>").toByteArray()
+        assertDoesNotThrow { xmlBytesToString(isoTestFileWithBom) }
+    }
+
+    @Test
+    fun importingUTF16FileWithBOMWorks() {
+        val UTF16file = ByteOrderMark.UTF_16BE.bytes +
+                "<?xml version=\"1.0\" encoding=\"UTF-16\"?>".toByteArray(charset = Charsets.UTF_16BE)
+        assertDoesNotThrow { xmlBytesToString(UTF16file) }
+    }
+
+    @Test
+    fun importingUSASCIIFileWorks() {
+        val asciiTestFile = "<?xml version=\"1.0\" encoding=\"ASCII\"?>".toByteArray(charset = Charsets.US_ASCII)
+        assertDoesNotThrow { xmlBytesToString(asciiTestFile) }
+    }
+
+    @Test
+    fun importingUTF8FileWorks() {
+        val testFileWithBom = (ByteOrderMark.UTF_BOM + "<?xml version=\"1.0\" encoding=\"UTF-8\"?>").toByteArray()
+        assertDoesNotThrow { xmlBytesToString(testFileWithBom) }
+    }
+
+    @Test
+    fun importingISOFileWorks() {
+        val isoFile = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>".toByteArray()
+        assertDoesNotThrow { xmlBytesToString(isoFile) }
+    }
 
     @Test
     fun censoringAuthorWorks() {
@@ -55,37 +79,6 @@ class InfraModelParsingIT @Autowired constructor(
         val censored = censorAuthorIdentifyingInfo(xmlString)
         assertFalse(censored.contains("Geoviite Test Author"))
         assertFalse(censored.contains("example@vayla.fi"))
-    }
-
-    private fun debugParseFile(file: File): GeometryPlan? {
-        try {
-            val result = unmarshaller.unmarshal(toSaxSource(fileToString(file))) as InfraModel
-            val converted = toGvtPlan(
-                FileName(file.name),
-                result,
-                coordinateSystemNameToSrid,
-                switchStructuresByType,
-                switchTypeNameAliases,
-                trackNumberDao.getTrackNumberToIdMapping(),
-            )
-            val errors = validate(converted, featureTypes, switchStructuresById)
-            if (errors.isEmpty()) {
-                println("No validation issues found")
-            } else {
-                for (error in errors.filter { e -> e.errorType == ErrorType.VALIDATION_ERROR }) {
-                    println(error)
-                }
-            }
-            return converted
-        } catch (e: Exception) {
-            System.err.println("Parsing failed: file=${file.name} error=$e")
-            e.printStackTrace()
-            return null
-        }
-    }
-
-    private fun getSubDirs(mainDir: File): List<File> {
-        return (mainDir.listFiles { f -> f.isDirectory } ?: fail()).toList()
     }
 
     @Test
@@ -350,7 +343,7 @@ class InfraModelParsingIT @Autowired constructor(
 
     @Test
     fun encodeAndDecodeWorks404() {
-        val infraModelObject: InfraModel404 = InfraModel404(
+        val infraModelObject = InfraModel404(
             language = "finnish",
             featureDictionary = InfraModelFeatureDictionary404("featureDictName"),
             units = InfraModelUnits404(InfraModelMetric404("meter", "squareMeter", "cubicMeter", "grads", "radians")),
@@ -523,7 +516,7 @@ class InfraModelParsingIT @Autowired constructor(
         trackNumber: TrackLayoutTrackNumber?,
     ) {
         assertNotNull(trackNumber)
-        assertEquals(infraModelAlignmentGroups.first().name, trackNumber?.number?.value)
+        assertEquals(TrackNumber(infraModelAlignmentGroups.first().name), trackNumber?.number)
     }
 
     private fun assertAlignmentsMatch(
@@ -533,8 +526,8 @@ class InfraModelParsingIT @Autowired constructor(
         assertEquals(infraModelAlignments.size, gvtAlignments.size)
         infraModelAlignments.forEachIndexed { aIndex, xmlAlignment ->
             val gvtAlignment = gvtAlignments[aIndex]
-            assertEquals(xmlAlignment.name, gvtAlignment.name.value)
-            assertEquals(xmlAlignment.desc, gvtAlignment.description?.value)
+            assertEquals(AlignmentName(xmlAlignment.name), gvtAlignment.name)
+            assertEquals(FreeText(xmlAlignment.desc!!), gvtAlignment.description)
             assertEquals(xmlAlignment.elements.size, gvtAlignment.elements.size)
             xmlAlignment.elements.forEachIndexed { eIndex, xmlElement ->
                 val gvtElement = gvtAlignment.elements[eIndex]
@@ -567,7 +560,7 @@ class InfraModelParsingIT @Autowired constructor(
     private fun assertFeatureTypeCodeMatch(features: List<InfraModelFeature>, featureTypeCode: FeatureTypeCode?) {
         val xmlCodeProperty = features.find { imFeature -> imFeature.code == "IM_coding" }
             ?.getPropertyAnyMatch(listOf("terrainCoding", "infraCoding"))
-        assertEquals(xmlCodeProperty, featureTypeCode?.value)
+        assertEquals(xmlCodeProperty?.let(::FeatureTypeCode), featureTypeCode)
     }
 
     private fun assertProfilesMatch(imProfile: InfraModelProfile, gvtProfile: GeometryProfile) {
@@ -600,7 +593,7 @@ class InfraModelParsingIT @Autowired constructor(
                 assertEquals(parseNullableBigDecimal(xmlKmPosts[i].staBack), gvtKmPostElement.staBack)
                 assertEquals(parseNullableBigDecimal(xmlKmPosts[i].staAhead), gvtKmPostElement.staAhead)
                 assertEquals(parseNullableBigDecimal(xmlKmPosts[i].staInternal), gvtKmPostElement.staInternal)
-                assertEquals(parseKmNumber(xmlKmPosts[i].desc), gvtKmPostElement.kmNumber)
+                assertEquals(KmNumber(xmlKmPosts[i].desc), gvtKmPostElement.kmNumber)
 
                 val gvtKmPostLocation: Point? = gvtKmPostElement.location
                 val xmlKmPostPoint = xmlKmPosts[i].feature?.let { f -> parseFeatureCoordinates(f) }

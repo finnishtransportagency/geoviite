@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchOwnerDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
+import fi.fta.geoviite.infra.util.FreeText
 import org.junit.Ignore
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -32,7 +33,7 @@ class CsvImportIT @Autowired constructor(
         )
         assertEquals(6, trackLayoutTrackNumbers.size)
         assertEquals(TrackNumber("001"), trackLayoutTrackNumbers[0].number)
-        assertEquals("Helsinki - Kirkkonummi (PR) - Karjaa - Turku", trackLayoutTrackNumbers[0].description.value)
+        assertEquals(FreeText("Helsinki - Kirkkonummi (PR) - Karjaa - Turku"), trackLayoutTrackNumbers[0].description)
         assertEquals(Oid<TrackLayoutTrackNumber>("1.2.246.578.3.10001.188907"), trackLayoutTrackNumbers[0].externalId)
         assertEquals(IN_USE, trackLayoutTrackNumbers[0].state)
     }
@@ -74,8 +75,8 @@ class CsvImportIT @Autowired constructor(
             assertEquals(trackIdMap[Oid("1.2.246.578.3.10001.188976")], locationTracks[0].locationTrack.trackNumberId)
             assertEquals(LocationTrackType.SIDE, locationTracks[0].locationTrack.type)
             assertEquals(IN_USE, locationTracks[0].locationTrack.state)
-            assertEquals("PTS 102", locationTracks[0].locationTrack.name.value)
-            assertEquals("Pietarsaari raide: 102 V111 - V114", locationTracks[0].locationTrack.description.value)
+            assertEquals(AlignmentName("PTS 102"), locationTracks[0].locationTrack.name)
+            assertEquals(FreeText("Pietarsaari raide: 102 V111 - V114"), locationTracks[0].locationTrack.description)
         }
     }
 
@@ -96,7 +97,7 @@ class CsvImportIT @Autowired constructor(
         }
         assertNotNull(switch)
         switch!!
-        assertEquals("YV  V0116", switch.name.value)
+        assertEquals(SwitchName("YV  V0116"), switch.name)
         assertEquals(LayoutStateCategory.EXISTING, switch.stateCategory)
         assertEquals(YV, switchStructures[switch.switchStructureId]?.baseType)
         assertEquals(RIGHT, switchStructures[switch.switchStructureId]?.hand)

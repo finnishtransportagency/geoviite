@@ -17,18 +17,20 @@ import jakarta.xml.bind.JAXBContext
 import jakarta.xml.bind.Marshaller
 import jakarta.xml.bind.UnmarshalException
 import jakarta.xml.bind.Unmarshaller
+import org.apache.commons.io.ByteOrderMark
+import org.apache.commons.io.input.BOMInputStream
 import org.springframework.http.MediaType
 import org.springframework.web.multipart.MultipartFile
 import org.xml.sax.InputSource
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.InputStream
 import java.io.StringReader
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
 import javax.xml.parsers.SAXParserFactory
 import javax.xml.stream.XMLInputFactory
-import javax.xml.stream.XMLStreamReader
 import javax.xml.transform.sax.SAXSource
 import javax.xml.validation.Schema
 import javax.xml.validation.SchemaFactory
@@ -39,9 +41,9 @@ private const val SCHEMA_LOCATION = "/xml/inframodel.xsd"
 const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
 
-data class ParsingError(private val key: String) : ValidationError {
+data class ParsingError(override val localizationKey: LocalizationKey) : ValidationError {
+    constructor(key: String) : this(LocalizationKey(key))
     override val errorType = ErrorType.PARSING_ERROR
-    override val localizationKey = LocalizationKey(key)
 }
 
 private val jaxbContext: JAXBContext by lazy {
@@ -92,8 +94,6 @@ fun toSaxSource(xmlString: String) = SAXSource(
     saxParserFactory.newSAXParser().xmlReader,
     InputSource(StringReader(xmlString)),
 )
-
-private const val UTF8_BOM: String = "\uFEFF"
 
 fun parseGeometryPlan(
     file: File,
@@ -178,14 +178,28 @@ val xmlCharsets = listOf(
     StandardCharsets.ISO_8859_1,
 )
 
+fun mapBomToCharset(bom: ByteOrderMark) =
+    when (bom) {
+        ByteOrderMark.UTF_8 -> StandardCharsets.UTF_8
+        ByteOrderMark.UTF_16BE -> StandardCharsets.UTF_16BE
+        ByteOrderMark.UTF_16LE -> StandardCharsets.UTF_16LE
+        else -> null
+    }
+
+fun encodingsFromXmlStream(stream: InputStream) =
+    XMLInputFactory.newInstance().createXMLStreamReader(stream).let { xmlStreamReader ->
+        xmlStreamReader.encoding to xmlStreamReader.characterEncodingScheme
+    }
+
 fun findXmlCharset(name: String) = xmlCharsets.find { cs -> cs.name() == name }
 
-fun getEncoding(bytes: ByteArray): Charset {
-    ByteArrayInputStream(bytes).use { stream ->
-        val xmlStreamReader: XMLStreamReader = XMLInputFactory.newInstance().createXMLStreamReader(stream)
-        val fileEncoding = xmlStreamReader.encoding
-        val encodingFromXMLDeclaration = xmlStreamReader.characterEncodingScheme
-        return (encodingFromXMLDeclaration ?: fileEncoding)?.let(::findXmlCharset) ?: StandardCharsets.UTF_8
+fun getEncodingAndBom(bytes: ByteArray): Pair<Charset, Boolean> {
+    BOMInputStream(ByteArrayInputStream(bytes)).use { stream ->
+        val encodingFromBOM = stream.bom?.let { bom -> mapBomToCharset(bom) }?.name()
+        val (fileEncoding, encodingFromXMLDeclaration) = encodingsFromXmlStream(stream)
+        val encoding = (encodingFromBOM ?: encodingFromXMLDeclaration ?: fileEncoding)?.let(::findXmlCharset)
+            ?: StandardCharsets.UTF_8
+        return encoding to (stream.bom != null)
     }
 }
 
@@ -215,11 +229,9 @@ fun fileToString(file: File): String {
 }
 
 fun xmlBytesToString(bytes: ByteArray, encodingOverride: Charset? = null): String {
-    return checkUTF8BOM(String(bytes, encodingOverride ?: getEncoding(bytes)))
-}
-
-fun checkUTF8BOM(content: String): String {
-    return if (content.startsWith(UTF8_BOM)) content.substring(1) else content
+    val (encoding, hasBom) = getEncodingAndBom(bytes)
+    val stringifiedXml = String(bytes, encodingOverride ?: encoding)
+    return if (hasBom) stringifiedXml.substring(1) else stringifiedXml
 }
 
 fun checkForEmptyFileAndIncorrectFileType(file: MultipartFile, vararg fileContentTypes: MediaType) {

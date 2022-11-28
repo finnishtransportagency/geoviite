@@ -1087,7 +1087,6 @@ class SwitchLinkingService @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val geometryDao: GeometryDao,
     private val switchLibraryService: SwitchLibraryService,
-    private val addressPointService: AddressPointService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -1212,40 +1211,48 @@ class SwitchLinkingService @Autowired constructor(
             }
     }
 
-    fun getTopologySwitchTrackMeters(
+    fun getSwitchJointConnections(
+        publishType: PublishType,
+        switchId: IntId<TrackLayoutSwitch>
+    ): List<TrackLayoutSwitchJointConnection> {
+        logger.serviceCall(
+            "getSwitchJointConnections",
+            "publishType" to publishType,
+            "switchId" to switchId
+        )
+        val segment = switchService.getSegmentSwitchJointConnections(publishType, switchId)
+        val topological = getTopologySwitchJointConnections(publishType, switchId)
+        return (segment + topological)
+            .groupBy { joint -> joint.number }
+            .values.map { jointConnections ->
+                jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
+            }
+    }
+
+    fun getTopologySwitchJointConnections(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>
-    ): List<LocationTrackMeter> {
+    ): List<TrackLayoutSwitchJointConnection> {
         val layoutSwitch = switchService.get(publicationState, layoutSwitchId)
             ?: return listOf()
-        val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
         return getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
             .flatMap { (locationTrack, layoutAlignment) ->
-                val geocodingContext by lazy {
-                    addressPointService.getTrackGeocodingData(
-                        publicationState, locationTrack.id as IntId
-                    )?.context
-                }
-
-                val topologySwitchAndPointPairs = listOf(
+                listOf(
                     locationTrack.topologyStartSwitch to layoutAlignment.start,
                     locationTrack.topologyEndSwitch to layoutAlignment.end
                 )
-
-                topologySwitchAndPointPairs.mapNotNull { (topologySwitch, point) ->
-                    if (point != null &&
-                        topologySwitch?.switchId == layoutSwitchId &&
-                        topologySwitch.jointNumber == switchStructure.presentationJointNumber
-                    )
-                        geocodingContext?.getAddress(point)?.let { (trackMeter, _) ->
-                            LocationTrackMeter(
-                                locationTrackId = locationTrack.id as IntId,
-                                trackMeter = trackMeter
-                            )
+                    .mapNotNull { (connection, point) ->
+                        if (connection == null || point == null || connection.switchId != layoutSwitchId) null else {
+                            layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
+                                TrackLayoutSwitchJointConnection(
+                                    connection.jointNumber,
+                                    listOf(TrackLayoutSwitchJointMatch(locationTrack.id as IntId, point.toPoint())),
+                                    listOf(),
+                                    joint.locationAccuracy
+                                )
+                            }
                         }
-                    else null
-
-                }
+                    }
             }
     }
 
@@ -1259,7 +1266,7 @@ class SwitchLinkingService @Autowired constructor(
             joints = listOf(),
             externalId = null,
             sourceId = null,
-            trapPoint = null,
+            trapPoint = request.trapPoint,
             ownerId = request.ownerId,
             source = GeometrySource.GENERATED,
         )
@@ -1277,6 +1284,7 @@ class SwitchLinkingService @Autowired constructor(
             name = switch.name,
             switchStructureId = switch.switchStructureId,
             stateCategory = switch.stateCategory,
+            trapPoint = switch.trapPoint
         )
         return switchService.saveDraft(trackLayoutSwitch).id
     }

@@ -90,7 +90,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             returning id, version
         """.trimIndent()
         val params = mapOf(
-            "external_id" to newItem.externalId?.stringValue,
+            "external_id" to newItem.externalId,
             "number" to newItem.number,
             "description" to newItem.description,
             "state" to newItem.state.name,
@@ -122,7 +122,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
-            "external_id" to updatedItem.externalId?.stringValue,
+            "external_id" to updatedItem.externalId,
             "number" to updatedItem.number,
             "description" to updatedItem.description,
             "state" to updatedItem.state.name,
@@ -171,7 +171,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               and :publication_state = any(publication_states)
         """.trimIndent()
         val params = mapOf(
-            "number" to number.value,
+            "number" to number,
             "publication_state" to publishType.name,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->

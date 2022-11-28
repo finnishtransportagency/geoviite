@@ -61,7 +61,7 @@ class GeometryDaoIT @Autowired constructor(
 
         val fetchedProject = geometryDao.getProject(planId.id)
 
-        assertEquals("${TEST_NAME_PREFIX}Project name 1", fetchedProject.name.value)
+        assertEquals(ProjectName("${TEST_NAME_PREFIX}Project name 1"), fetchedProject.name)
     }
 
     @Test
@@ -75,7 +75,7 @@ class GeometryDaoIT @Autowired constructor(
         val fetchedProject = geometryDao.findProject(ProjectName("${TEST_NAME_PREFIX}pRojEcT           MaTCh"))
 
         assertNotNull(fetchedProject)
-        assertEquals("${TEST_NAME_PREFIX}Project match", fetchedProject.name.value)
+        assertEquals(ProjectName("${TEST_NAME_PREFIX}Project match"), fetchedProject.name)
     }
 
     @Test
@@ -88,7 +88,7 @@ class GeometryDaoIT @Autowired constructor(
 
         val fetchedAuthor = geometryDao.getAuthor(authorId.id)
 
-        assertEquals("${TEST_NAME_PREFIX}Company 1", fetchedAuthor.companyName.value)
+        assertEquals(MetaDataName("${TEST_NAME_PREFIX}Company 1"), fetchedAuthor.companyName)
     }
 
     @Test
@@ -102,7 +102,7 @@ class GeometryDaoIT @Autowired constructor(
         val author = geometryDao.findAuthor(MetaDataName("${TEST_NAME_PREFIX}COMPANY            mAtCH"))
 
         assertNotNull(author)
-        assertEquals("${TEST_NAME_PREFIX}Company match", author.companyName.value)
+        assertEquals(MetaDataName("${TEST_NAME_PREFIX}Company match"), author.companyName)
     }
 
     @Test
@@ -115,7 +115,7 @@ class GeometryDaoIT @Autowired constructor(
 
         val fetchedApplication = geometryDao.getApplication(applicationId.id)
 
-        assertEquals("${TEST_NAME_PREFIX}Application 1", fetchedApplication.name.value)
+        assertEquals(MetaDataName("${TEST_NAME_PREFIX}Application 1"), fetchedApplication.name)
     }
 
     @Test

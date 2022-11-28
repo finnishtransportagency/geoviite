@@ -164,14 +164,14 @@ fun convertToRatkoLocationTrack(
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
 ) = RatkoLocationTrack(
-    id = locationTrack.externalId?.stringValue,
-    name = locationTrack.name.value,
+    id = locationTrack.externalId?.toString(),
+    name = locationTrack.name.toString(),
     routenumber = trackNumberOid?.let(::RatkoOid),
-    description = locationTrack.description.value,
+    description = locationTrack.description.toString(),
     state = mapToRatkoLocationTrackState(locationTrack.state),
     type = mapToRatkoLocationTrackType(locationTrack.type),
     nodecollection = nodeCollection,
-    duplicateOf = duplicateOfOid?.stringValue,
+    duplicateOf = duplicateOfOid?.toString(),
     topologicalConnectivity = mapToRatkoTopologicalConnectivityType(locationTrack.topologicalConnectivity),
 )
 
@@ -179,9 +179,9 @@ fun convertToRatkoRouteNumber(
     trackNumber: TrackLayoutTrackNumber,
     nodeCollection: RatkoNodes? = null,
 ) = RatkoRouteNumber(
-    id = trackNumber.externalId?.stringValue,
+    id = trackNumber.externalId?.toString(),
     name = trackNumber.number.toString(),
-    description = trackNumber.description.value,
+    description = trackNumber.description.toString(),
     state = mapToRatkoRouteNumberState(trackNumber.state),
     nodecollection = nodeCollection,
 )
@@ -236,7 +236,7 @@ fun convertToRatkoMetadataAsset(
         ),
         RatkoAssetProperty(
             name = "alignment",
-            stringValue = segmentMetadata.alignmentName ?: ""
+            stringValue = segmentMetadata.alignmentName?.toString() ?: ""
         ),
     ),
     locations = listOf(
@@ -280,16 +280,16 @@ fun convertToRatkoSwitch(
     switchOwner: SwitchOwner?,
     existingRatkoSwitch: RatkoSwitchAsset? = null,
 ) = RatkoSwitchAsset(
-    id = layoutSwitch.externalId?.stringValue,
+    id = layoutSwitch.externalId?.toString(),
     state = mapToRatkoSwitchState(layoutSwitch.stateCategory, existingRatkoSwitch?.state),
     properties = listOf(
         RatkoAssetProperty(
             name = "name",
-            stringValue = layoutSwitch.name.value,
+            stringValue = layoutSwitch.name.toString(),
         ),
         RatkoAssetProperty(
             name = "turnout_id",
-            stringValue = layoutSwitch.name.value,
+            stringValue = layoutSwitch.name.toString(),
         ),
         RatkoAssetProperty(
             name = "turnout_type",
@@ -301,7 +301,7 @@ fun convertToRatkoSwitch(
         ),
         RatkoAssetProperty(
             name = "owner",
-            enumValue = switchOwner?.name?.value ?: "Ei tiedossa"
+            enumValue = switchOwner?.name?.toString() ?: "Ei tiedossa"
         ),
         RatkoAssetProperty(
             name = "handedness",

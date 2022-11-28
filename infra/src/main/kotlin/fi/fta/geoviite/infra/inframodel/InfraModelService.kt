@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.RowVersion
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -77,7 +78,7 @@ class InfraModelService @Autowired constructor(
             return ValidationResponse(
                 validationErrors = listOf(ParsingError(
                     if (e is HasLocalizeMessageKey) e.localizedMessageKey
-                    else INFRAMODEL_PARSING_KEY_GENERIC
+                    else LocalizationKey(INFRAMODEL_PARSING_KEY_GENERIC)
                 )),
                 geometryPlan = null,
                 planLayout = null,

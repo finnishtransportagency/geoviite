@@ -207,10 +207,10 @@ class GeometryService @Autowired constructor(
     fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> =
         plannedGeometryFirstComparator.then(when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
-            GeometryPlanSortField.PROJECT_NAME -> Comparator.comparing { h -> h.project.name.value.lowercase() }
+            GeometryPlanSortField.PROJECT_NAME -> Comparator.comparing { h -> h.project.name.toString().lowercase() }
             GeometryPlanSortField.TRACK_NUMBER -> {
                 val trackNumbers = trackNumberService.mapById(PublishType.DRAFT)
-                Comparator.comparing { h -> trackNumbers[h.trackNumberId]?.number?.value?.lowercase() ?: "" }
+                Comparator.comparing { h -> trackNumbers[h.trackNumberId]?.number?.toString()?.lowercase() ?: "" }
             }
 
             GeometryPlanSortField.KM_START -> Comparator.comparing { h -> h.kmNumberRange?.min ?: KmNumber.ZERO }
@@ -219,7 +219,7 @@ class GeometryService @Autowired constructor(
             GeometryPlanSortField.DECISION_PHASE -> Comparator.comparing { h -> h.decisionPhase?.name ?: "" }
             GeometryPlanSortField.CREATED_AT -> Comparator.comparing { h -> h.planTime ?: h.uploadTime }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
-            GeometryPlanSortField.FILE_NAME -> Comparator.comparing { h -> h.fileName.value.lowercase() }
+            GeometryPlanSortField.FILE_NAME -> Comparator.comparing { h -> h.fileName.toString().lowercase() }
         })
 
     fun getFilter(
@@ -245,7 +245,7 @@ private fun freeTextMatches(
 
 private val whitespace = "\\s+".toRegex()
 private fun splitSearchTerms(freeText: FreeText?): List<String> =
-    freeText?.value
+    freeText?.toString()
         ?.split(whitespace)
         ?.toList()
         ?.map { s -> s.lowercase().trim() }

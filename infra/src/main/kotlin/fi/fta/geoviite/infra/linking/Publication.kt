@@ -84,13 +84,10 @@ enum class PublishValidationErrorType { ERROR, WARNING }
 data class PublishValidationError(
     val type: PublishValidationErrorType,
     val localizationKey: LocalizationKey,
-    val params: List<String>,
+    val params: List<String> = listOf(),
 ) {
-    constructor(
-        type: PublishValidationErrorType,
-        localizationKey: String,
-        params: List<String> = listOf(),
-    ): this(type, LocalizationKey(localizationKey), params)
+    constructor(type: PublishValidationErrorType, localizationKey: String, params: List<String> = listOf())
+            : this(type, LocalizationKey(localizationKey), params)
 }
 
 interface PublishCandidate<T> {

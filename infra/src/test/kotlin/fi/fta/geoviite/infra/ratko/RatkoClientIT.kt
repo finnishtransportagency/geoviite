@@ -40,7 +40,7 @@ class RatkoClientIT @Autowired constructor(
         val layoutSwitch = getGeoviiteLayoutSwitchById(switchId)
         val switchExternalId = layoutSwitch.externalId
         checkNotNull(switchExternalId)
-        ratkoClient.getSwitchAsset(RatkoOid(switchExternalId.stringValue))
+        ratkoClient.getSwitchAsset(RatkoOid(switchExternalId.toString()))
     }
 
     @Test
@@ -483,7 +483,7 @@ class RatkoClientIT @Autowired constructor(
             switchDao.fetchOfficialVersion(value)!!
         )
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
-        val ratkoSwitch = ratkoClient.getSwitchAsset(RatkoOid(layoutSwitch.externalId!!.stringValue))
+        val ratkoSwitch = ratkoClient.getSwitchAsset(RatkoOid(layoutSwitch.externalId!!.toString()))
         return convertToRatkoSwitch(layoutSwitch, switchStructure, switchOwners.firstOrNull(), ratkoSwitch)
     }
 

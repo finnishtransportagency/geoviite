@@ -20,7 +20,8 @@
     "publication-card": {
         "latest": "Viimeisimmät",
         "show-more": "Näytä lisää",
-        "show-less": "Näytä vähemmän"
+        "show-less": "Näytä vähemmän",
+        "title": "Julkaisut"
     },
     "publishing": {
         "publish-issues": "Ongelmat Ratko-integraatiossa",

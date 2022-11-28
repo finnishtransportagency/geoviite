@@ -16,13 +16,13 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACKNUM
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACKNUMBER_2
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.WEST_LT_NAME
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastLocationTrack
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastReferenceLine
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastTrackLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastTrackLayoutSwitch
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.geometryPlan
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastReferenceLine
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLine
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.eastTrackLayoutKmPosts
-import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLocationTrack
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLine
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutSwitch
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import org.junit.jupiter.api.*
@@ -99,7 +99,7 @@ class BasicMapTestUI @Autowired constructor(
     fun goToMapPage() {
         openBrowser()
         mapPage = openGeoviite(url).navigationBar().kartta()
-        navigationPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.value)
+        navigationPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }
 

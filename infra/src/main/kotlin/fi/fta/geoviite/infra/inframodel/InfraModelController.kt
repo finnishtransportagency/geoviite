@@ -150,5 +150,5 @@ class InfraModelController @Autowired constructor(
 }
 
 private fun fileNameWithSuffix(fileName: FileName): String =
-    if (fileName.endsWith(".xml", true)) fileName.value
-    else fileName.value + ".xml"
+    if (fileName.endsWith(".xml", true)) fileName.toString()
+    else "$fileName.xml"

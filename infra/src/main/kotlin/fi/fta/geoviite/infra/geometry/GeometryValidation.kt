@@ -182,7 +182,7 @@ fun validateMetadata(plan: GeometryPlan): List<ValidationError> = listOfNotNull<
         val key =
             if (plan.units.coordinateSystemName == null) "coordinate-system-missing"
             else "coordinate-system-unsupported"
-        MetadataError(key, VALIDATION_ERROR, plan.units.coordinateSystemName?.value)
+        MetadataError(key, VALIDATION_ERROR, plan.units.coordinateSystemName?.toString())
     },
     validate(plan.units.verticalCoordinateSystem != null || plan.alignments.all { a -> a.profile == null }) {
         MetadataError("vertical-coordinate-system-missing", VALIDATION_ERROR)
@@ -306,11 +306,11 @@ fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureTy
             AlignmentError("no-feature-type", OBSERVATION_MAJOR, alignment.name)
         },
         validate(typeCode == null || featureTypes.any { ft -> ft.code == typeCode }) {
-            AlignmentError("unknown-feature-type", OBSERVATION_MAJOR, alignment.name, typeCode?.value)
+            AlignmentError("unknown-feature-type", OBSERVATION_MAJOR, alignment.name, typeCode?.toString())
         },
         // TypeCode 121 is for road center-line. Should use 281 instead for tracks.
         validate(typeCode == null || typeCode != FeatureTypeCode("121")) {
-            AlignmentError("wrong-feature-type", OBSERVATION_MINOR, alignment.name, value = typeCode?.value)
+            AlignmentError("wrong-feature-type", OBSERVATION_MINOR, alignment.name, value = typeCode?.toString())
         },
         validate(alignment.state != null) {
             AlignmentError("no-state", OBSERVATION_MINOR, alignment.name)

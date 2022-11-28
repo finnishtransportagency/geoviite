@@ -108,9 +108,6 @@ data class TopologyLocationTrackSwitch(
     val jointNumber: JointNumber,
 )
 
-data class LocationTrackMeter(val locationTrackId: IntId<LocationTrack>, val trackMeter: TrackMeter)
-
-
 data class LocationTrack(
     val name: AlignmentName,
     val description: FreeText,
@@ -206,4 +203,17 @@ data class TrackLayoutSwitchJointConnection(
         }
     }
 
+    fun merge(other: TrackLayoutSwitchJointConnection): TrackLayoutSwitchJointConnection {
+        check(number == other.number) { "expected $number == $other.number in TrackLayoutSwitchJointConnection#merge" }
+        // location accuracy comes from the joint and hence can't differ
+        check(locationAccuracy == other.locationAccuracy) {
+            "expected $locationAccuracy == ${other.locationAccuracy} in TrackLayoutSwitchJointConnection#merge"
+        }
+        return TrackLayoutSwitchJointConnection(
+            number,
+            accurateMatches + other.accurateMatches,
+            fallbackMatches + other.fallbackMatches,
+            locationAccuracy,
+        )
+    }
 }

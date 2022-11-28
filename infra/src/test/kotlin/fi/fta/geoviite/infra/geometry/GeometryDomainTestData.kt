@@ -86,9 +86,18 @@ fun line(
     staStart: Double = 0.0,
     name: String = "Test",
     switchData: SwitchData = emptySwitchData(),
+) = line(start, end, length, staStart, PlanElementName(name), switchData)
+
+fun line(
+    start: Point,
+    end: Point,
+    length: Double = lineLength(start, end),
+    staStart: Double = 0.0,
+    name: PlanElementName,
+    switchData: SwitchData = emptySwitchData(),
 ) = GeometryLine(
     ElementData(
-        name = PlanElementName(name),
+        name = name,
         oidPart = PlanElementName("1"),
         start = start,
         end = end,

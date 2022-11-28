@@ -377,11 +377,11 @@ class DraftIT @Autowired constructor(
 
     private fun alterTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) =
         trackAndAlignment.first.copy(
-            name = AlignmentName(trackAndAlignment.first.name.value + "-D")
+            name = AlignmentName("${trackAndAlignment.first.name}-D")
         ) to trackAndAlignment.second
 
     private fun alter(switch: TrackLayoutSwitch): TrackLayoutSwitch =
-        switch.copy(name = SwitchName(switch.name.value + "-D"))
+        switch.copy(name = SwitchName("${switch.name}-D"))
 
     private fun alter(kmPost: TrackLayoutKmPost): TrackLayoutKmPost =
         kmPost.copy(kmNumber = KmNumber(kmPost.kmNumber.number, (kmPost.kmNumber.extension ?: "") + "B"))

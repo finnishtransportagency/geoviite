@@ -123,6 +123,19 @@
     color: $color-red-dark;
 }
 
+.infra-model-upload-error__row {
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.infra-model-upload-error__icon {
+    min-width: 30px;
+}
+
+.infra-model-upload-error__message {
+    margin-left: 15px;
+}
 .infra-model-upload-failed__content {
     grid-column: 1 / -1;
     margin-bottom: 9px;
