@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+    booleanToTrapPoint,
     getSwitchPresentationJoint,
     LayoutLocationTrack,
     LayoutSwitch,
@@ -38,6 +39,7 @@ import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track
 import { filterNotEmpty } from 'utils/array-utils';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -90,14 +92,14 @@ const getSwitchTrackMeter = (
 };
 
 const getSwitchTrackMeters = (
-    officialSwitch: LayoutSwitch | undefined,
+    layoutSwitch: LayoutSwitch | undefined,
     switchStructure: SwitchStructure | undefined,
     switchJointConnections: LayoutSwitchJointConnection[] | undefined,
     publishType: PublishType,
     changeTimes: ChangeTimes,
 ): Promise<(SwitchTrackMeter | undefined)[]> => {
     const presentationJoint: LayoutSwitchJoint | undefined = getPresentationJoint(
-        officialSwitch,
+        layoutSwitch,
         switchStructure,
     );
     const presentationJointConnection = getPresentationJointConnection(
@@ -118,8 +120,8 @@ const getSwitchTrackMeters = (
         ).then(result => result.filter(filterNotEmpty))
         : Promise.resolve([]);
 
-    const topologySwitchTrackMeters = officialSwitch != undefined ?
-        getTopologySwitchTrackMeters(publishType, officialSwitch.id)
+    const topologySwitchTrackMeters = layoutSwitch != undefined ?
+        getTopologySwitchTrackMeters(publishType, layoutSwitch.id)
             .then(switchTrackMeters =>
                 Promise.all(
                     switchTrackMeters.map(switchTrackMeter =>
@@ -173,7 +175,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const switchTrackMeters = useLoader(
         () =>
             getSwitchTrackMeters(
-                officialSwitch,
+                layoutSwitch,
                 switchStructure,
                 switchJointConnections,
                 publishType,
@@ -286,7 +288,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.layout.trap-point')}
-                        value={t(layoutSwitch?.trapPoint ? 'yes' : 'no')}
+                        value={layoutSwitch && translateSwitchTrapPoint(booleanToTrapPoint(layoutSwitch.trapPoint))}
                     />
                 </InfoboxContent>
             </Infobox>

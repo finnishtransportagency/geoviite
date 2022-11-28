@@ -7,17 +7,18 @@
 .track-layout {
     flex: 1;
     display: grid;
-    grid-template-columns: 336px auto 336px;
     grid-template-rows: 50px;
-    column-gap: 0;
     background: $color-white-default;
 }
 
 .track-layout__map {
     position: relative;
-    flex: 1;
+    width: 100%;
+}
+
+.track-layout__main-view {
+    overflow: hidden;
     display: flex;
-    grid-column: 2;
 }
 
 .track-layout__map-settings {
@@ -30,13 +31,26 @@
 .track-layout__tool-panel {
     @include shadow-8dp;
 
-    overflow: auto;
-    grid-column: 3;
-    padding-bottom: 64px;
+    .infobox {
+        min-width: 336px;
+
+        &:last-of-type {
+            margin-bottom: 64px;
+        }
+    }
+
+    .tool-panel {
+        overflow: hidden auto;
+        height: 100%;
+    }
 }
 
 .track-layout__navi {
     @include shadow-8dp;
 
+    padding-bottom: 64px;
+    min-width: 336px;
+    width: 336px;
+    max-width: 336px;
     overflow: auto;
 }

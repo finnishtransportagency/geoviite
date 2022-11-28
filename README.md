@@ -16,7 +16,8 @@ Geoviite is an application for Finnish Transport Infrastructure Agency. Its user
 
 ### Contributing
 We thank you for your interest, but we are not currently looking for community contributions.
-If you notice a bug or a security defect, please report it via mail at <TBD: support mail>.
+
+For reporting vulnerabilities or security defects, see [SECURITY.md](./SECURITY.md)
 
 ### Requirements
 - IntelliJ Idea (Ultimate)
@@ -31,4 +32,4 @@ If you notice a bug or a security defect, please report it via mail at <TBD: sup
 - Bash
 - 7zip
 - wget (in Mac)
-- 
+

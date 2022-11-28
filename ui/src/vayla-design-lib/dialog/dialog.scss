@@ -41,7 +41,7 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
 }
 
 .dialog__title {
-  @include typography-heading;
+  @include typography-heading-small;
   flex: 1;
   margin-right: 40px;
 }

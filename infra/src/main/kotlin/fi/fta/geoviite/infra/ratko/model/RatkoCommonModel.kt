@@ -132,6 +132,9 @@ enum class RatkoNodeType(@get:JsonValue val value: String) {
 
     @Suppress("unused")
     MIDDLE_POINT("middle_point"),
+
+    @Suppress("unused")
+    SOLO_POINT("solo_point"),
 }
 
 enum class RatkoPointStates(@get:JsonValue val state: String) {

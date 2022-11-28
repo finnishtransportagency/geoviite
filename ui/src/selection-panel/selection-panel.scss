@@ -9,11 +9,9 @@
     }
 
     &__title {
-        @include typography-heading;
+        @include typography-sub-heading;
         box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
 
-        font-size: 14px;
-        text-transform: uppercase;
         padding: 12px 0 8px 20px;
         background-color: $color-white-dark;
         color: $color-black-default;

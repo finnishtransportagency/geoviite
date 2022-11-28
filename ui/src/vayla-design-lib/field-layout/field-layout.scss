@@ -32,6 +32,6 @@
 }
 
 .field-layout__error {
-    @include typography-body-small;
+    @include typography-caption;
     color: $color-red-dark;
 }

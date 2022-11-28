@@ -1,7 +1,14 @@
 import React from 'react';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
-import { LayoutStateCategory, LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
+import {
+    booleanToTrapPoint,
+    LayoutStateCategory,
+    LayoutSwitch,
+    LayoutSwitchId,
+    TrapPoint,
+    trapPointToBoolean,
+} from 'track-layout/track-layout-model';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -15,7 +22,7 @@ import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { SwitchOwner, SwitchOwnerId, SwitchStructure, SwitchStructureId } from 'common/common-model';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
-import { layoutStateCategories } from 'utils/enum-localization-utils';
+import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
 import { getSwitch } from 'track-layout/track-layout-api';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
@@ -41,17 +48,16 @@ export const SwitchEditDialog = ({
     onUpdate,
     onDelete,
 }: SwitchDialogProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [showConfirmationDialog, setShowConfirmationDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
     const [switchStateCategory, setSwitchStateCategory] = React.useState<LayoutStateCategory>();
     const [switchName, setSwitchName] = React.useState<string>('');
+    const [trapPoint, setTrapPoint] = React.useState<TrapPoint>(TrapPoint.Unknown);
     const [switchStructureId, setSwitchStructureId] = React.useState<SwitchStructureId | undefined>(
         prefilledSwitchStructureId,
     );
-    const [validationErrors, setValidationErrors] = React.useState<
-        ValidationError<TrackLayoutSwitchSaveRequest>[]
-    >([]);
+    const [validationErrors, setValidationErrors] = React.useState<ValidationError<TrackLayoutSwitchSaveRequest>[]>([]);
     const [visitedFields, setVisitedFields] = React.useState<string[]>([]);
     const [isSaving, setIsSaving] = React.useState(false);
     const [switchStructures, setSwitchStructures] = React.useState<SwitchStructure[]>([]);
@@ -67,15 +73,7 @@ export const SwitchEditDialog = ({
 
     const switchStateCategoryOptions = layoutStateCategories
         .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
-        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
-    const switchStructure = switchStructures.find((element) => element.id === switchStructureId);
-
-    const baseTypeOfSwitchStructure = switchStructure?.baseType;
-    const handOfSwitchStructure = switchStructure
-        ? switchStructure.hand === 'RIGHT'
-            ? t('switch-dialog.right')
-            : t('switch-dialog.left')
-        : undefined;
+        .map((sc) => ({...sc, disabled: sc.value === 'FUTURE_EXISTING'}));
 
     React.useEffect(() => {
         if (isExistingSwitch) {
@@ -84,6 +82,7 @@ export const SwitchEditDialog = ({
                 setSwitchStateCategory(s.stateCategory);
                 setSwitchName(s.name);
                 setSwitchStructureId(s.switchStructureId);
+                setTrapPoint(booleanToTrapPoint(s.trapPoint));
                 firstInputRef.current?.focus();
             });
 
@@ -134,6 +133,11 @@ export const SwitchEditDialog = ({
         }
     }
 
+    function updateTrapPoint(trapPoint: TrapPoint) {
+        setTrapPoint(trapPoint);
+        visitField('trapPoint');
+    }
+
     function updateOwner(id: string) {
         setSwitchOwnerId(id);
         visitField('owner');
@@ -161,6 +165,7 @@ export const SwitchEditDialog = ({
                 switchStructureId: switchStructureId,
                 stateCategory: switchStateCategory,
                 ownerId: switchOwnerId,
+                trapPoint: trapPointToBoolean(trapPoint),
             };
 
             insertSwitch(newSwitch)
@@ -191,6 +196,7 @@ export const SwitchEditDialog = ({
                 switchStructureId: switchStructureId,
                 stateCategory: switchStateCategory,
                 ownerId: switchOwnerId,
+                trapPoint: trapPointToBoolean(trapPoint),
             };
             updateSwitch(existingSwitch.id, updatedSwitch)
                 .then((result) => {
@@ -366,19 +372,19 @@ export const SwitchEditDialog = ({
                             }
                             errors={getVisibleErrorsByProp('switchStructureId')}
                         />
-                        {baseTypeOfSwitchStructure && (
-                            <FieldLayout
-                                label={t('switch-dialog.switch-type-name')}
-                                value={baseTypeOfSwitchStructure}
-                            />
-                        )}
 
-                        {handOfSwitchStructure && (
-                            <FieldLayout
-                                label={t('switch-dialog.handedness')}
-                                value={handOfSwitchStructure}
-                            />
-                        )}
+                        <FieldLayout
+                            label={`${t('switch-dialog.trap-point')}`}
+                            value={
+                                <Dropdown
+                                    value={trapPoint}
+                                    options={switchTrapPoints}
+                                    onChange={(value) => value && updateTrapPoint(value)}
+                                    onBlur={() => visitField('trapPoint')}
+                                    wide
+                                />
+                            }
+                        />
 
                         <Heading size={HeadingSize.SUB}>
                             {t('switch-dialog.extra-info-heading')}
@@ -489,8 +495,8 @@ export const SwitchEditDialog = ({
                     }>
                     <p>
                         {t('switch-dialog.deleted-category-warning')}
-                        <br />
-                        <br />
+                        <br/>
+                        <br/>
                         {t('switch-dialog.confirm-switch-delete')}
                     </p>
                 </Dialog>

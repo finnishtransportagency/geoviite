@@ -217,6 +217,8 @@ class LinkingTestUI @Autowired constructor(
         navigationPanel.geometryPlanByName(GEOMETRY_PLAN_NAME)
             .selecAlignment(GEO_ALIGNMENT_B_NAME)
 
+        toolPanel.geometryAlignmentGeneral().kohdistaKartalla()
+
         val linkingBox = toolPanel.geometryAlignmentLinking()
         linkingBox.aloitaLinkitys()
         linkingBox.linkTo(LOCATION_TRACK_B.first.name.value)
@@ -573,7 +575,7 @@ class LinkingTestUI @Autowired constructor(
         val layoutSwitchInfoBox = toolPanel.layoutSwitchStructureGeneralInfo()
         assertEquals(GEO_SWITCH_1_STRUCTURE.type.typeName, layoutSwitchInfoBox.tyyppi())
         assertEquals("Oikea", layoutSwitchInfoBox.katisyys())
-        assertEquals("Ei", layoutSwitchInfoBox.turvavaihde())
+        assertEquals("Ei tiedossa", layoutSwitchInfoBox.turvavaihde())
 
 
         val geoSwitchLocation = getGeometrySwitchFromPlan(GEO_SWITCH_1_NAME).getJoint(JointNumber(1))?.location

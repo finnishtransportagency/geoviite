@@ -10,20 +10,12 @@ $font-family: 'Open Sans';
     line-height: 32px;
 }
 
-@mixin typography-title-small {
-    font-family: $font-family;
-    font-style: normal;
-    font-weight: 600;
-    font-size: 16px;
-    line-height: 20px;
-}
-
 @mixin typography-heading {
     font-family: $font-family;
-    font-size: 16px;
+    font-size: 20px;
     font-style: normal;
     font-weight: 600;
-    line-height: 20px;
+    line-height: 24px;
 }
 
 @mixin typography-heading-small {
@@ -51,23 +43,12 @@ $font-family: 'Open Sans';
     font-family: $font-family;
     font-weight: 400;
     font-size: 14px;
+    line-height: 20px;
 }
 
 @mixin typography-body-strong {
     @include typography-body;
     font-weight: 600;
-}
-
-@mixin typography-body-small {
-    font-family: $font-family;
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 16px;
-}
-
-@mixin typography-body-strong-extra-small {
-    @include typography-body-strong;
-    font-size: 10px;
 }
 
 @mixin typography-caption {

@@ -1,5 +1,6 @@
 import { API_URI, getAdt, getIgnoreError } from 'api/api-fetch';
-import { PublicationId, RatkoPushError } from 'publication/publication-model';
+import { PublicationId } from 'publication/publication-model';
+import { RatkoPushError } from 'ratko/ratko-model';
 
 const RATKO_URI = `${API_URI}/ratko`;
 

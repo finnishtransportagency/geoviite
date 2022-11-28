@@ -21,7 +21,10 @@ import './layers/km-post-layer'; // Load module to initialize adapter
 import './layers/switch-layer'; // Load module to initialize adapter
 import './layers/plan-area-layer'; // Load module to initialize adapter
 import './layers/linking-layer'; // Load module to initialize adapter
-import { createSwitchLinkingLayerAdapter, SwitchLinkingFeatureType } from './layers/switch-linking-layer'; // Load module to initialize adapter
+import {
+    createSwitchLinkingLayerAdapter,
+    SwitchLinkingFeatureType,
+} from './layers/switch-linking-layer'; // Load module to initialize adapter
 import styles from './map.module.scss';
 import { selectToolBasic } from './tools/select-tool-basic';
 import { MapToolActivateOptions } from './tools/tool-model';
@@ -46,7 +49,10 @@ import { useTranslation } from 'react-i18next';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { createDebugLayerAdapter, DebugLayerFeatureType } from 'map/layers/debug-layer';
-import { createDebug1mPointsLayerAdapter, Debug1mPointsLayerFeatureType } from './layers/debug-1m-points-layer';
+import {
+    createDebug1mPointsLayerAdapter,
+    Debug1mPointsLayerFeatureType,
+} from './layers/debug-1m-points-layer';
 
 declare global {
     interface Window {
@@ -104,6 +110,7 @@ function getOlViewByDomainViewport(viewport: MapViewport): OlView {
         maxZoom: 32,
         minZoom: 6,
         projection: LAYOUT_SRID,
+        smoothResolutionConstraint: true,
     });
 }
 
@@ -148,21 +155,21 @@ const MapView: React.FC<MapViewProps> = ({
             switch (clickType) {
                 case 'all':
                     props.onSetLayoutClusterLinkPoint &&
-                    props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
+                        props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
                     props.onSetGeometryClusterLinkPoint &&
-                    props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
+                        props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
                     break;
                 case 'geometryPoint':
                     props.onSetGeometryClusterLinkPoint &&
-                    props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
+                        props.onSetGeometryClusterLinkPoint(clusterPoint.geometryPoint);
                     props.onRemoveLayoutLinkPoint &&
-                    props.onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
+                        props.onRemoveLayoutLinkPoint(clusterPoint.layoutPoint);
                     break;
                 case 'layoutPoint':
                     props.onSetLayoutClusterLinkPoint &&
-                    props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
+                        props.onSetLayoutClusterLinkPoint(clusterPoint.layoutPoint);
                     props.onRemoveGeometryLinkPoint &&
-                    props.onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
+                        props.onRemoveGeometryLinkPoint(clusterPoint.geometryPoint);
                     break;
                 case 'remove':
                     if (props.onRemoveGeometryLinkPoint && props.onRemoveLayoutLinkPoint) {
@@ -173,6 +180,10 @@ const MapView: React.FC<MapViewProps> = ({
         }
     };
 
+    React.useEffect(() => {
+        olMap?.updateSize();
+    }, [olMapContainer.current?.clientWidth]);
+
     // Initialize OpenLayers map. Do this only once, in subsequent
     // renders we just want to update OpenLayers layers. In this way map
     // works smoothly.
@@ -181,7 +192,7 @@ const MapView: React.FC<MapViewProps> = ({
         controls.extend([defaultScaleLine]);
         const interactions = defaults();
         //Mouse middle click pan
-        interactions.push(new DragPan({condition: (event) => event.originalEvent.which == 2}));
+        interactions.push(new DragPan({ condition: (event) => event.originalEvent.which == 2 }));
 
         // use in the browser window.map.getPixelFromCoordinate([x,y])
         window.map = new OlMap({
@@ -220,7 +231,7 @@ const MapView: React.FC<MapViewProps> = ({
             element: popupElement,
         });
         olMap.addOverlay(popup);
-    }, [olMap, selection.selectedItems]);
+    }, [olMap, selection.selectedItems.clusterPoints]);
 
     // Update the view"port" of the map
     React.useEffect(() => {

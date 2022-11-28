@@ -4,7 +4,6 @@ import Infobox from 'tool-panel/infobox/infobox';
 import {
     LAYOUT_SRID,
     LayoutLocationTrack,
-    LayoutLocationTrackDuplicate,
     MapAlignment,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
@@ -158,14 +157,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     }, [locationTrack]);
 
     const existingDuplicate = existingDuplicateOfList && existingDuplicateOfList[0];
-    const allDuplicatesOfLocationTrack = useLocationTrackDuplicates(locationTrack.id, publishType);
-    // useLocationTrackDuplicates will return both the official and draft versions of a track duplicating us, if both
-    // exist; so we deduplicate our duplicates
-    const duplicatesOfLocationTrack = allDuplicatesOfLocationTrack &&
-        Array.from(allDuplicatesOfLocationTrack
-            .reduce((acc, v) => acc.set(v.id, v),
-                new Map() as Map<string, LayoutLocationTrackDuplicate>)
-            .values());
+    const duplicatesOfLocationTrack = useLocationTrackDuplicates(locationTrack.id, publishType);
 
     return (
         <React.Fragment>
