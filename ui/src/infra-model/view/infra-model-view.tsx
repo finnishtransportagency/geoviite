@@ -46,6 +46,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Menu } from 'vayla-design-lib/menu/menu';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -396,9 +397,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             )}
             {showFileHandlingFailed && (
                 <Dialog
-                    // TODO add dialog widths after they have been merged from another branch
                     title={t('im-form.file-handling-failed.title')}
                     scrollable={false}
+                    className={dialogStyles['dialog--wide']}
                     footerContent={
                         <React.Fragment>
                             {showCharsetPicker && (
@@ -466,9 +467,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             )}
             {showChangeCharsetDialog && (
                 <Dialog
-                    // TODO add dialog widths after they have been merged from another branch
                     title={t('im-form.file-handling-failed.change-encoding')}
                     scrollable={false}
+                    className={dialogStyles['dialog--wide']}
                     footerContent={
                         <React.Fragment>
                             <React.Fragment>
