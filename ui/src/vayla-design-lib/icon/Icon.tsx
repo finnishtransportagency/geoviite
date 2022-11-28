@@ -21,6 +21,7 @@ import switchSvg from './glyphs/misc/switch.svg';
 import chevronSvg from './glyphs/navigation/chevron.svg';
 import eyeSvg from './glyphs/status/eye.svg';
 import tickSvg from './glyphs/navigation/tick.svg';
+import moreSvg from './glyphs/navigation/more.svg';
 import lockSvg from './glyphs/status/lock.svg';
 import vectorRight from './glyphs/navigation/vector-right.svg';
 import redoSvg from './glyphs/action/redo.svg';
@@ -62,6 +63,7 @@ const iconNameToSvgMap = {
     Chevron: chevronSvg,
     Down: navigationDownSvg,
     Tick: tickSvg,
+    More: moreSvg,
     VectorRight: vectorRight,
 
     // Status

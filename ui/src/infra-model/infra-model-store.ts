@@ -63,6 +63,7 @@ export type OverrideInfraModelParameters = {
     verticalCoordinateSystem: VerticalCoordinateSystem | undefined;
     trackNumberId?: LayoutTrackNumberId;
     createdDate: Date | undefined;
+    encoding?: string;
 };
 
 export type InfraModelParameters = ExtraInfraModelParameters & OverrideInfraModelParameters;
