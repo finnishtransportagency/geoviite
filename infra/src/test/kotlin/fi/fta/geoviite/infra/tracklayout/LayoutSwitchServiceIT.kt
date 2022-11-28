@@ -21,7 +21,6 @@ import kotlin.random.Random
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class LayoutSwitchServiceIT @Autowired constructor(
-    private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val switchLibraryService: SwitchLibraryService,
     private val switchDao: LayoutSwitchDao,
