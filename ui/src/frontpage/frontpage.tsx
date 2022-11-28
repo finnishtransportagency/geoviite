@@ -55,7 +55,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                                 anyFailed={hasAnyFailed()}
                             />
                         )}
-                        <UserCardContainer></UserCardContainer>
+                        <UserCardContainer />
                     </div>
                     <div className={styles['frontpage__photo']} />
                 </React.Fragment>

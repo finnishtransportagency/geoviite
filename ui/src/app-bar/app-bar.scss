@@ -27,6 +27,7 @@ $appbar-height: 48px;
     &__title {
         @include typography-heading;
 
+        font-weight: 400;
         display: flex;
         align-items: center;
         user-select: none;
