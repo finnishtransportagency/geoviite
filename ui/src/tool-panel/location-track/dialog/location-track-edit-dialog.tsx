@@ -339,9 +339,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         value: trackNumber.id,
                                     }))}
                                     onChange={(value) => updateProp('trackNumberId', value)}
-                                    onBlur={() =>
-                                        stateActions.onCommitField('trackNumberId')
-                                    }
+                                    onBlur={() => stateActions.onCommitField('trackNumberId')}
                                     hasError={hasErrors('trackNumberId')}
                                     wide
                                     searchable
@@ -533,7 +531,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
                         </div>
                         <div className={'dialog__text'}>
-                            <span className={styles['location-track-edit-dialog__warning']}><Icons.StatusError color={IconColor.INHERIT}/></span> {t('location-track-delete-dialog.deleted-location-track-warning')}
+                            <span className={styles['location-track-edit-dialog__warning']}>
+                                <Icons.StatusError color={IconColor.INHERIT} />
+                            </span>{' '}
+                            {t('location-track-delete-dialog.deleted-location-track-warning')}
                         </div>
                         <div className={'dialog__text'}>
                             {t('location-track-delete-dialog.confirm-location-track-delete')}

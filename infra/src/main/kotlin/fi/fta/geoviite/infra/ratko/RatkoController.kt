@@ -7,10 +7,10 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -38,9 +38,7 @@ class RatkoController(private val ratkoService: RatkoService) {
         @PathVariable("publishId") publishId: IntId<Publication>,
     ): ResponseEntity<RatkoPushErrorWithAsset> {
         logger.apiCall("getRatkoPushErrors")
-        return ratkoService.getRatkoPushError(publishId)?.let {
-            ResponseEntity(it, HttpStatus.OK)
-        } ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(ratkoService.getRatkoPushError(publishId))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
