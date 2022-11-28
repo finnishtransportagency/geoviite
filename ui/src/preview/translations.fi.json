@@ -152,8 +152,8 @@
                 "start-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen alkua",
                 "end-outside-reference-line": "Pituusmittauslinja {{0}} on sijaintiraiteelle {{1}} liian lyhyt, eikä kata sen loppua",
                 "km-posts-rejected": "Tasakilometripisteitä ({{1}}) ei voitu sijoittaa ratanumeron {{0}} pituusmittauslinjalle",
-                "km-posts-outside-line": "Taskilometripiste ({{1}}) sijaitsee linjan {{0}} ulkopuolella",
-                "km-post-smaller-than-track-number-start": "Taskilometripiste ({{1}}) on pienempi kuin ratanumeron {{0}} aloitusarvo",
+                "km-posts-outside-line": "Tasakilometripiste ({{1}}) sijaitsee linjan {{0}} ulkopuolella",
+                "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{1}}) on pienempi kuin ratanumeron {{0}} aloitusarvo",
                 "km-posts-invalid": "Ratanumeron {{0}} tasakilometripisteet ({{1}}) ovat väärässä järjestyksessä",
                 "km-posts-far-from-line": "Ratanumeron {{0}} tasakilometripisteet ({{1}}) sijaitsevat kaukana pituusmittauslinjasta"
             }
