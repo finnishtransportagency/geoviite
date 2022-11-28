@@ -29,8 +29,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
 
     function setPublicationDetailsAndWaitingAfterFail(details?: PublicationDetails) {
         setPublicationDetails(details);
-        if (setWaitingAfterFail && publicationDetails?.status === null && anyFailed)
-        {setWaitingAfterFail(publicationDetails?.status === null && anyFailed);}
+        setWaitingAfterFail(publicationDetails?.status === null && anyFailed);
     }
 
     useLoaderWithTimer(
