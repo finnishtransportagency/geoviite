@@ -19,16 +19,16 @@ class LayoutSwitchService @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
 ) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
-    fun getSwitchJointConnections(
+    fun getSegmentSwitchJointConnections(
         publishType: PublishType,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.serviceCall(
-            "getSwitchJointConnections",
+            "getSegmentSwitchJointConnections",
             "publishType" to publishType,
             "switchId" to switchId
         )
-        return dao.fetchSwitchJointConnections(publishType, switchId)
+        return dao.fetchSegmentSwitchJointConnections(publishType, switchId)
     }
 
     fun getPresentationJoint(switch: TrackLayoutSwitch): TrackLayoutSwitchJoint? {

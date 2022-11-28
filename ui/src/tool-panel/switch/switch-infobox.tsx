@@ -27,7 +27,6 @@ import {
     getLocationTrack,
     getSwitch,
     getSwitchJointConnections,
-    getTopologySwitchTrackMeters,
     getTrackAddress,
 } from 'track-layout/track-layout-api';
 import { PublishType, SwitchOwnerId, SwitchStructure, TrackMeter } from 'common/common-model';
@@ -112,36 +111,13 @@ const getSwitchTrackMeters = (
             ? accurateMatches.map((match) => match.locationTrackId)
             : presentationJointConnection?.fallbackMatches ?? [];
 
-    const switchTrackMeters = presentationJoint?.location ?
+    return presentationJoint?.location ?
         Promise.all(
             locationTrackIds.map((id) =>
                 getSwitchTrackMeter(id, publishType, changeTimes, presentationJoint),
             ),
         ).then(result => result.filter(filterNotEmpty))
         : Promise.resolve([]);
-
-    const topologySwitchTrackMeters = layoutSwitch != undefined ?
-        getTopologySwitchTrackMeters(publishType, layoutSwitch.id)
-            .then(switchTrackMeters =>
-                Promise.all(
-                    switchTrackMeters.map(switchTrackMeter =>
-                        getLocationTrack(switchTrackMeter.locationTrackId, publishType)
-                            .then(locationTrack => {
-                                const switchTrackMeterWithName: SwitchTrackMeter = {
-                                    ...switchTrackMeter,
-                                    name: locationTrack.name,
-                                };
-                                return switchTrackMeterWithName;
-                            }),
-                    )),
-            ) : Promise.resolve([]);
-
-    return Promise.all(
-        [
-            switchTrackMeters,
-            topologySwitchTrackMeters,
-        ],
-    ).then(result => result.flatMap(trackMeters => trackMeters));
 };
 
 const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
