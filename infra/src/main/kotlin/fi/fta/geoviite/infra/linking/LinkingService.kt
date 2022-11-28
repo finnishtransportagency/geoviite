@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometryService
@@ -230,12 +231,7 @@ class LinkingService @Autowired constructor(
         layoutAlignment: LayoutAlignment,
         layoutInterval: LayoutInterval<T>,
     ): List<LayoutSegment> {
-        val geometryAlignmentId = geometryInterval.alignmentId
-
-        val geometryPlan = geometryService.getTrackLayoutPlan(planId).first
-            ?: throw LinkingFailureException("Geometry plan not found: $planId")
-        val geometryAlignment = geometryPlan.alignments.find { alignment -> alignment.id == geometryAlignmentId }
-            ?: throw LinkingFailureException("Geometry alignment not found: $geometryAlignmentId")
+        val geometryAlignment = getAlignmentLayout(planId, geometryInterval.alignmentId)
 
         val segments = if (layoutInterval.start.point == layoutInterval.end.point) {
             extendAlignmentWithGeometry(
@@ -269,12 +265,7 @@ class LinkingService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         geometryInterval: GeometryInterval,
     ): List<LayoutSegment> {
-        val geometryAlignmentId = geometryInterval.alignmentId
-
-        val geometryPlan = geometryService.getTrackLayoutPlan(planId).first
-            ?: throw LinkingFailureException("Geometry plan not found: $planId")
-        val geometryAlignment = geometryPlan.alignments.find { alignment -> alignment.id == geometryAlignmentId }
-            ?: throw LinkingFailureException("Geometry alignment not found: $geometryAlignmentId")
+        val geometryAlignment = getAlignmentLayout(planId, geometryInterval.alignmentId)
 
         val fromGeometryPoint = geometryInterval.start.point
         val toGeometryPoint = geometryInterval.end.point
@@ -289,6 +280,18 @@ class LinkingService @Autowired constructor(
             toGeometryPoint,
             0.0,
         )
+    }
+
+    private fun getAlignmentLayout(
+        planId: IntId<GeometryPlan>,
+        alignmentId: IntId<GeometryAlignment>,
+    ): MapAlignment<GeometryAlignment> {
+        val (geometryPlan, transformationError) = geometryService.getTrackLayoutPlan(planId)
+        if (geometryPlan == null) {
+            throw LinkingFailureException("Could not create plan layout: plan=$planId error=$transformationError")
+        }
+        return geometryPlan.alignments.find { alignment -> alignment.id == alignmentId }
+            ?: throw LinkingFailureException("Geometry alignment not found: plan=$planId alignment=$alignmentId")
     }
 
     @Transactional

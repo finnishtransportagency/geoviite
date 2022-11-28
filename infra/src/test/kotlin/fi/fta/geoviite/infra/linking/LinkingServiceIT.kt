@@ -84,7 +84,7 @@ class LinkingServiceIT @Autowired constructor(
 
         // Pick the whole geometry as interval
         val geometryInterval = GeometryInterval(
-            alignmentId = geometryLayoutAlignment.id,
+            alignmentId = geometryLayoutAlignment.id as IntId,
             start = IntervalGeometryPoint(
                 segmentId = geometryStartSegment.id,
                 point = Point(geometryStartSegment.points.first())

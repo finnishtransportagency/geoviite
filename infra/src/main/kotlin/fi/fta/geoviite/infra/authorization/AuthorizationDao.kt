@@ -24,6 +24,7 @@ class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase
     private fun getRoleInternal(roleCode: Code? = null, userGroup: Code? = null): Role? {
         if (roleCode == null && userGroup == null) throw IllegalStateException("Can't fetch role without name/group")
 
+        //language=SQL
         val sql = """
             select code, name from common.role 
             where (:role_code::varchar is null or code = :role_code) 
