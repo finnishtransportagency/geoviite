@@ -260,7 +260,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
         Assertions.assertEquals(
             listOf(TrackLayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
-            connections[0].accurateMatches
+            connections.first { connection -> connection.number == JointNumber(1) }.accurateMatches
         )
     }
 
