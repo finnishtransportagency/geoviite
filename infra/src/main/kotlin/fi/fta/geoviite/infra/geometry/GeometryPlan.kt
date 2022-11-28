@@ -44,11 +44,7 @@ data class GeometryPlanHeader(
 ) {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {
-        listOfNotNull(
-            fileName.value,
-            project.name.value,
-            message?.value,
-        ).map(String::lowercase)
+        listOfNotNull(fileName, project.name, message).map { o -> o.toString().lowercase() }
     }
 }
 

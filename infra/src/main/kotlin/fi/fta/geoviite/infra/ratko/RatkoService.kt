@@ -53,15 +53,18 @@ class RatkoService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val ratkoSchedulerUserName = UserName("RATKO_SCHEDULER")
+    private val databaseLockDuration = Duration.ofMinutes(120)
 
     @Scheduled(cron = "0 * * * * *")
     fun scheduledRatkoPush() {
         logger.serviceCall("scheduledRatkoPush")
         val previousPush = ratkoPushDao.fetchPreviousPush()
-        //Auto publish if the previous publication has been successful OR it has failed due to connection error
+        //Try to auto push if the previous one has not failed
         if (previousPush == null
             || previousPush.status == RatkoPushStatus.SUCCESSFUL
             || previousPush.status == RatkoPushStatus.CONNECTION_ISSUE
+            || previousPush.status == RatkoPushStatus.IN_PROGRESS_M_VALUES
+            || previousPush.status == RatkoPushStatus.IN_PROGRESS
         ) {
             pushChangesToRatko(ratkoSchedulerUserName)
         } else {
@@ -88,10 +91,11 @@ class RatkoService @Autowired constructor(
     }
 
     fun pushChangesToRatko(userName: UserName) {
-        lockDao.runWithLock(DatabaseLock.RATKO, Duration.ofMinutes(120)) {
+        lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
             logger.serviceCall("pushChangesToRatko")
+            ratkoPushDao.finishStuckPushes(userName)
 
-            val publishes = ratkoPushDao.fetchUnpublishedLayoutPublishes()
+            val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
             if (publishes.isNotEmpty() && ratkoClient.ratkoIsOnline()) {
                 pushChanges(userName, publishes)
             }
@@ -118,6 +122,12 @@ class RatkoService @Autowired constructor(
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(calculatedChanges.locationTracksChanges)
             ratkoAssetService.pushSwitchChangesToRatko(calculatedChanges.switchChanges)
 
+            ratkoPushDao.updatePushStatus(
+                user = userName,
+                pushId = ratkoPushId,
+                status = RatkoPushStatus.IN_PROGRESS_M_VALUES,
+            )
+
             try {
                 ratkoRouteNumberService.forceRedraw(pushedRouteNumberOids.map { RatkoOid(it) })
             } catch (_: Exception) {
@@ -130,7 +140,7 @@ class RatkoService @Autowired constructor(
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
             }
 
-            ratkoPushDao.finishPushing(
+            ratkoPushDao.updatePushStatus(
                 user = userName,
                 pushId = ratkoPushId,
                 status = RatkoPushStatus.SUCCESSFUL,
@@ -172,7 +182,7 @@ class RatkoService @Autowired constructor(
             val pushStatus =
                 if (ratkoClient.ratkoIsOnline()) RatkoPushStatus.FAILED else RatkoPushStatus.CONNECTION_ISSUE
 
-            ratkoPushDao.finishPushing(
+            ratkoPushDao.updatePushStatus(
                 user = userName,
                 pushId = ratkoPushId,
                 status = pushStatus,
@@ -183,20 +193,19 @@ class RatkoService @Autowired constructor(
     }
 
     fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
-        val ratkoError = ratkoPushDao.getLatestRatkoPushErrorFor(publishId)
-        return ratkoError?.let {
-            val asset = when (it.assetType) {
-                RatkoAssetType.TRACK_NUMBER -> trackNumberService.getOfficial(it.assetId as IntId<TrackLayoutTrackNumber>)
-                RatkoAssetType.LOCATION_TRACK -> locationTrackService.getOfficial(it.assetId as IntId<LocationTrack>)
-                RatkoAssetType.SWITCH -> switchService.getOfficial(it.assetId as IntId<TrackLayoutSwitch>)
+        return ratkoPushDao.getLatestRatkoPushErrorFor(publishId)?.let { ratkoError ->
+            val asset = when (ratkoError.assetType) {
+                RatkoAssetType.TRACK_NUMBER -> trackNumberService.getOfficial(ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
+                RatkoAssetType.LOCATION_TRACK -> locationTrackService.getOfficial(ratkoError.assetId as IntId<LocationTrack>)
+                RatkoAssetType.SWITCH -> switchService.getOfficial(ratkoError.assetId as IntId<TrackLayoutSwitch>)
             }
             checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
 
             RatkoPushErrorWithAsset(
-                it.ratkoPushId,
-                it.ratkoPushErrorType,
-                it.operation,
-                it.assetType,
+                ratkoError.ratkoPushId,
+                ratkoError.ratkoPushErrorType,
+                ratkoError.operation,
+                ratkoError.assetType,
                 asset
             )
         }

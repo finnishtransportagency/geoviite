@@ -43,7 +43,7 @@ fun createKmPostsFromCsv(
     return kmPostsFile.parseLines { line ->
         val trackNumberId = trackNumberIdMapping.getValue(line.getOid(KmPostColumns.TRACK_NUMBER_EXTERNAL_ID))
         TrackLayoutKmPost(
-            kmNumber = parseKmNumber(line.get(KmPostColumns.NUMBER)),
+            kmNumber = KmNumber(line.get(KmPostColumns.NUMBER)),
             location = ratkoToGvtPoint(line.getPoint(KmPostColumns.GEOMETRY)),
             state = line.getEnum(KmPostColumns.STATE),
             sourceId = null,
@@ -147,7 +147,7 @@ fun createReferenceLinesFromCsv(
             val referenceLine = ReferenceLine(
                 trackNumberId = trackNumbers[trackNumberExtId]
                     ?: throw IllegalArgumentException("No such track-number in DB: externalId=$trackNumberExtId"),
-                startAddress = TrackMeter.create(line.get(ReferenceLineColumns.START_KM_M)),
+                startAddress = TrackMeter(line.get(ReferenceLineColumns.START_KM_M)),
                 sourceId = null,
                 length = alignment.length,
                 segmentCount = alignment.segments.size,
@@ -183,7 +183,7 @@ fun separateOutClosestToEndpoint(locationTrackId: Oid<LocationTrack>, endPoint: 
     val closestToEndpoint = if (withinToleranceToEndPoint.isNotEmpty()) {
         if (withinToleranceToEndPoint.size > 1) {
             LOG.warn("Multiple switch links within tolerance to start point of location track $locationTrackId: ${
-                withinToleranceToEndPoint.joinToString { link -> link.switchOid.stringValue }
+                withinToleranceToEndPoint.joinToString { link -> link.switchOid.toString() }
             }")
             if (min) {
                 withinToleranceToEndPoint.minBy { link -> link.startMeter }
@@ -596,9 +596,7 @@ fun createAlignmentSwitchLinks(
         if (joints.isEmpty()) {
             return@parseLines null
         }
-        val trackMeters = line.get(AlignmentSwitchLinkColumns.KM_M)
-            .split(",")
-            .map(TrackMeter::create)
+        val trackMeters = line.get(AlignmentSwitchLinkColumns.KM_M).split(",").map(::TrackMeter)
         if (joints.size != trackMeters.size) {
             throw IllegalStateException("Joint/km_m values not matched: alignment=$alignmentOid switch=$switchOid")
         }
@@ -639,8 +637,8 @@ inline fun <reified T> createAlignmentMetadataFromCsv(
     return metadataFile.parseLines { line ->
         val alignmentOid = line.getOid<T>(AlignmentMetaColumns.ALIGNMENT_EXTERNAL_ID)
         val metaDataOid = line.getOidOrNull<AlignmentCsvMetaData<T>>(AlignmentMetaColumns.ASSET_EXTERNAL_ID)
-        val startMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_START))
-        val endMeter = TrackMeter.create(line.get(AlignmentMetaColumns.TRACK_ADDRESS_END))
+        val startMeter = TrackMeter(line.get(AlignmentMetaColumns.TRACK_ADDRESS_START))
+        val endMeter = TrackMeter(line.get(AlignmentMetaColumns.TRACK_ADDRESS_END))
         require (startMeter < endMeter) {
             "Invalid ${T::class.simpleName} metadata range (start >= end): " +
                     "start=$startMeter end=$endMeter alignment=$alignmentOid metadata=$metaDataOid"
@@ -1325,7 +1323,7 @@ fun toLayoutPoints(points: List<Point3DM>): List<LayoutPoint> {
     }
 }
 
-fun parseKmMeterList(kmMeterString: String): List<TrackMeter> = parseArrayString(kmMeterString).map(TrackMeter::create)
+fun parseKmMeterList(kmMeterString: String): List<TrackMeter> = parseArrayString(kmMeterString).map(::TrackMeter)
 
 fun parseArrayString(arrayString: String): List<String> {
     if (!arrayString.startsWith("{") || !arrayString.endsWith("}")) {
@@ -1365,7 +1363,7 @@ fun createSwitchesFromCsv(
             .filter { joint -> switchStructure.joints.any { sj -> sj.number == joint.number } }
         val ownerName = line.getNonEmpty(SwitchColumns.OWNER)
         val switchOwner = ownerName?.let {
-            switchOwners.firstOrNull { o -> equalsIgnoreCaseAndWhitespace(o.name.value, ownerName) }
+            switchOwners.firstOrNull { o -> equalsIgnoreCaseAndWhitespace(o.name.toString(), ownerName) }
         }
 
         TrackLayoutSwitch(

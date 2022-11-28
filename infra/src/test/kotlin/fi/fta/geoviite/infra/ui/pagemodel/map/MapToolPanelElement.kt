@@ -304,6 +304,8 @@ class SwitchCoordinatesInfoBox(by: By) : InfoBox(by) {
 class GeometryAlignmentGeneralInfoBox(by: By) : InfoBox(by) {
     fun nimi() = fieldValue("Nimi")
     fun pituusmittauslinja() = fieldValue("Pituusmittauslinja")
+
+    fun kohdistaKartalla() = clickButton("Kohdista kartalla").also { Thread.sleep(500) }
 }
 
 open class LinkingInfoBox(by: By): InfoBox(by) {

@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapNavigationPanel
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapToolPanel
 import fi.fta.geoviite.infra.ui.pagemodel.map.SearchBox
@@ -77,32 +76,40 @@ class SearchTestUI @Autowired constructor(
         val searchResults4 = searchBox.searchResults()
         assertEquals(4, searchResults4.size)
 
-        assertStringContains(arrayOf(LT_HKI_A, LT_HKI_B, LT_ESP_A, LT_ESP_B).map { trackAndAlignment -> trackAndAlignment.first.name.value }, searchResults4.joinToString { it.value() } )
+        assertStringContains(
+            arrayOf(LT_HKI_A, LT_HKI_B, LT_ESP_A, LT_ESP_B).map { trackAndAlignment -> trackAndAlignment.first.name.toString() },
+            searchResults4.joinToString { it.value() },
+        )
 
         searchBox.search("-b")
         val searchResults2 = searchBox.searchResults()
         assertEquals(2, searchResults2.size)
-        assertStringContains(arrayOf(LT_HKI_B, LT_ESP_B).map { trackAndAlignment -> trackAndAlignment.first.name.value }, searchResults2.joinToString { it.value() } )
+        assertStringContains(
+            arrayOf(LT_HKI_B, LT_ESP_B).map { trackAndAlignment -> trackAndAlignment.first.name.toString() },
+            searchResults2.joinToString { it.value() },
+        )
 
 
         searchBox.search(" esp")
         val searchResults1 = searchBox.searchResults()
         assertEquals(1, searchResults1.size)
-        assertStringContains(arrayOf(LT_ESP_B).map { trackAndAlignment -> trackAndAlignment.first.name.value }, searchResults1.joinToString { it.value() } )
-
+        assertStringContains(
+            arrayOf(LT_ESP_B).map { trackAndAlignment -> trackAndAlignment.first.name.toString() },
+            searchResults1.joinToString { it.value() },
+        )
     }
 
     @Test
     fun `Search opens specific location track`() {
         val locationTrack = LT_HKI_A.first
 
-        searchBox.search(locationTrack.name.value)
-        searchBox.selectResult(locationTrack.name.value)
+        searchBox.search(locationTrack.name.toString())
+        searchBox.selectResult(locationTrack.name.toString())
 
         val locationTrackGeneralInfoBox = toolPanel.locationTrackGeneralInfo()
-        assertEquals(locationTrack.name.value, locationTrackGeneralInfoBox.sijainteraidetunnus())
-        assertEquals(locationTrack.description.value, locationTrackGeneralInfoBox.kuvaus())
-        assertEquals(SEARCH_TRACK_NUMBER_0084.number.value, locationTrackGeneralInfoBox.ratanumero())
+        assertEquals(locationTrack.name.toString(), locationTrackGeneralInfoBox.sijainteraidetunnus())
+        assertEquals(locationTrack.description.toString(), locationTrackGeneralInfoBox.kuvaus())
+        assertEquals(SEARCH_TRACK_NUMBER_0084.number.toString(), locationTrackGeneralInfoBox.ratanumero())
 
     }
 

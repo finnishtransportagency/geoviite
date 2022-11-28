@@ -3,21 +3,24 @@ package fi.fta.geoviite.infra.error
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.idToString
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
+import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.*
 import kotlin.reflect.KClass
 
 interface HasLocalizeMessageKey {
-    val localizedMessageKey: String
+    val localizedMessageKey: LocalizationKey
 }
 
 sealed class ClientException(
     val status: HttpStatus,
     message: String,
     cause: Throwable? = null,
-    override val localizedMessageKey: String,
-) :
-    Exception(message, cause), HasLocalizeMessageKey {
+    override val localizedMessageKey: LocalizationKey,
+) : Exception(message, cause), HasLocalizeMessageKey {
+    constructor(status: HttpStatus, message: String, cause: Throwable?, localizedMessageKey: String) :
+            this(status, message, cause, LocalizationKey(localizedMessageKey))
+
     init {
         if (!status.is4xxClientError) throw ServerException("Not a client exception: $status")
     }

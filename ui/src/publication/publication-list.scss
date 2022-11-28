@@ -1,6 +1,10 @@
 @import '../vayla-design-lib/typography';
 @import '../vayla-design-lib/colors';
 
+.publication-list__header {
+    margin-bottom: 12px;
+}
+
 .publication-list-item {
     @include typography-body-strong;
     margin-bottom: 12px;

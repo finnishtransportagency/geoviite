@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { deleteDraftSwitch } from 'linking/linking-api';
 import { LayoutSwitchId } from 'track-layout/track-layout-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type SwitchDeleteDialogProps = {
     switchId: LayoutSwitchId;
@@ -32,7 +33,7 @@ const SwitchDeleteDialog: React.FC<SwitchDeleteDialogProps> = ({
             title={t('switch-delete-dialog.title')}
             variant={DialogVariant.DARK}
             allowClose={false}
-            style={{ width: 320, minWidth: 320 }}
+            className={dialogStyles['dialog--normal']}
             footerContent={
                 <React.Fragment>
                     <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>

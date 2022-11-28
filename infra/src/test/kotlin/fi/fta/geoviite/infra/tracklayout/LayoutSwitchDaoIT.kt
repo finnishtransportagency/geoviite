@@ -24,7 +24,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         // If the OID is already in use, remove it
         transactional {
             val deleteSql = "delete from layout.switch where external_id = :external_id"
-            jdbc.update(deleteSql, mapOf("external_id" to oid.stringValue))
+            jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
         val switch1 = switch(5).copy(externalId = oid)

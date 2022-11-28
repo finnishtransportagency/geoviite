@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
 import com.fasterxml.jackson.module.kotlin.MissingKotlinParameterException
+import fi.fta.geoviite.infra.util.LocalizationKey
 import jakarta.xml.bind.UnmarshalException
 import org.opengis.referencing.operation.TransformException
 import org.springframework.beans.ConversionNotSupportedException
@@ -41,21 +42,21 @@ fun createResponse(exception: Exception, correlationId: String): ResponseEntity<
     }
 }
 
-fun createStatusOnlyErrorResponse(correlationId: String, status: HttpStatus, localizedMessageKey: String? = null) =
+fun createStatusOnlyErrorResponse(correlationId: String, status: HttpStatus, localizedMessageKey: LocalizationKey? = null) =
     createResponse(listOf(status.reasonPhrase), status, correlationId, localizedMessageKey)
 
 fun createDescriptiveErrorResponse(
     correlationId: String,
     status: HttpStatus,
     causeChain: List<Exception>,
-    localizedMessageKey: String? = null,
+    localizedMessageKey: LocalizationKey? = null,
 ) = createResponse(causeChain.mapNotNull(::describe), status, correlationId, localizedMessageKey)
 
 fun createResponse(
     messageRows: List<String>,
     status: HttpStatus,
     correlationId: String,
-    localizedMessageKey: String? = null,
+    localizedMessageKey: LocalizationKey? = null,
 ): ResponseEntity<ApiErrorResponse> {
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
@@ -104,7 +105,7 @@ fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     else -> null
 }
 
-fun getLocalizationKey(exception: Exception): String? =
+fun getLocalizationKey(exception: Exception): LocalizationKey? =
     if (exception is HasLocalizeMessageKey) exception.localizedMessageKey
     else null
 

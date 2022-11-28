@@ -762,15 +762,30 @@ private fun lines(alignment: LayoutAlignment): List<Line> {
     }
 }
 
-const val MAX_LINE_INTERSERCTION_DISTANCE = 0.5
+const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
+const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
 fun findClosestIntersection(
     track1: Pair<LocationTrack, LayoutAlignment>,
     track2: Pair<LocationTrack, LayoutAlignment>,
     desiredLocation: IPoint
 ): TrackIntersection? {
-    val lines1 = lines(track1.second)
-    val lines2 = lines(track2.second)
+    val alignment1 = track1.second
+    val alignment2 = track2.second
+
+    // Ignore parallel alignments. Points of alignments are filtered so
+    // that alignments are about 0 - 200 meters long and therefore we can compare
+    // angles from start to end.
+    if (radsToDegrees(
+            angleDiffRads(
+                directionBetweenPoints(alignment1.start!!, alignment1.end!!),
+                directionBetweenPoints(alignment2.start!!, alignment2.end!!)
+            )
+        ) < MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES
+    ) return null
+
+    val lines1 = lines(alignment1)
+    val lines2 = lines(alignment2)
     val intersections = lines1.flatMap { line1 ->
         lines2.mapNotNull { line2 ->
             val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
@@ -788,7 +803,7 @@ fun findClosestIntersection(
                 val distance1 = pointDistanceToLine(line1.start, line1.end, line2.start)
                 val distance2 = pointDistanceToLine(line1.start, line1.end, line2.end)
                 val minDistance = min(distance1, distance2)
-                if (minDistance <= MAX_LINE_INTERSERCTION_DISTANCE) {
+                if (minDistance <= MAX_LINE_INTERSECTION_DISTANCE) {
                     TrackIntersection(
                         point = if (minDistance == distance1) line2.start
                         else line2.end,
@@ -1072,7 +1087,6 @@ class SwitchLinkingService @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val geometryDao: GeometryDao,
     private val switchLibraryService: SwitchLibraryService,
-    private val addressPointService: AddressPointService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -1117,7 +1131,7 @@ class SwitchLinkingService @Autowired constructor(
         ).centerAt(location)
         val nearbyLocationTracks = locationTrackService
             .listNearWithAlignments(DRAFT, alignmentSearchArea)
-            .filter { (locationTrack, _) -> locationTrack.state == LayoutState.IN_USE }
+            .filter { (locationTrack, _) -> locationTrack.state != LayoutState.DELETED }
             .filter { (_, alignment) ->
                 alignment.segments.any { segment ->
                     alignmentSearchArea.intersects(segment.boundingBox) &&
@@ -1197,40 +1211,48 @@ class SwitchLinkingService @Autowired constructor(
             }
     }
 
-    fun getTopologySwitchTrackMeters(
+    fun getSwitchJointConnections(
+        publishType: PublishType,
+        switchId: IntId<TrackLayoutSwitch>
+    ): List<TrackLayoutSwitchJointConnection> {
+        logger.serviceCall(
+            "getSwitchJointConnections",
+            "publishType" to publishType,
+            "switchId" to switchId
+        )
+        val segment = switchService.getSegmentSwitchJointConnections(publishType, switchId)
+        val topological = getTopologySwitchJointConnections(publishType, switchId)
+        return (segment + topological)
+            .groupBy { joint -> joint.number }
+            .values.map { jointConnections ->
+                jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
+            }
+    }
+
+    fun getTopologySwitchJointConnections(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>
-    ): List<LocationTrackMeter> {
+    ): List<TrackLayoutSwitchJointConnection> {
         val layoutSwitch = switchService.get(publicationState, layoutSwitchId)
             ?: return listOf()
-        val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
         return getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
             .flatMap { (locationTrack, layoutAlignment) ->
-                val geocodingContext by lazy {
-                    addressPointService.getTrackGeocodingData(
-                        publicationState, locationTrack.id as IntId
-                    )?.context
-                }
-
-                val topologySwitchAndPointPairs = listOf(
+                listOf(
                     locationTrack.topologyStartSwitch to layoutAlignment.start,
                     locationTrack.topologyEndSwitch to layoutAlignment.end
                 )
-
-                topologySwitchAndPointPairs.mapNotNull { (topologySwitch, point) ->
-                    if (point != null &&
-                        topologySwitch?.switchId == layoutSwitchId &&
-                        topologySwitch.jointNumber == switchStructure.presentationJointNumber
-                    )
-                        geocodingContext?.getAddress(point)?.let { (trackMeter, _) ->
-                            LocationTrackMeter(
-                                locationTrackId = locationTrack.id as IntId,
-                                trackMeter = trackMeter
-                            )
+                    .mapNotNull { (connection, point) ->
+                        if (connection == null || point == null || connection.switchId != layoutSwitchId) null else {
+                            layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
+                                TrackLayoutSwitchJointConnection(
+                                    connection.jointNumber,
+                                    listOf(TrackLayoutSwitchJointMatch(locationTrack.id as IntId, point.toPoint())),
+                                    listOf(),
+                                    joint.locationAccuracy
+                                )
+                            }
                         }
-                    else null
-
-                }
+                    }
             }
     }
 
@@ -1244,7 +1266,7 @@ class SwitchLinkingService @Autowired constructor(
             joints = listOf(),
             externalId = null,
             sourceId = null,
-            trapPoint = null,
+            trapPoint = request.trapPoint,
             ownerId = request.ownerId,
             source = GeometrySource.GENERATED,
         )
@@ -1262,6 +1284,7 @@ class SwitchLinkingService @Autowired constructor(
             name = switch.name,
             switchStructureId = switch.switchStructureId,
             stateCategory = switch.stateCategory,
+            trapPoint = switch.trapPoint
         )
         return switchService.saveDraft(trackLayoutSwitch).id
     }

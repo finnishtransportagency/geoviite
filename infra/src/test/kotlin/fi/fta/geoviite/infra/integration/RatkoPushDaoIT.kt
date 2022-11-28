@@ -84,7 +84,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
     @Test
     fun shouldSetEndTimeWhenFinishedPublishing() {
         val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
-        ratkoPushDao.finishPushing(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
+        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
         val (endTime, status) = jdbc.query(
             "select end_time, status from integrations.ratko_push where id = :id",
             mapOf("id" to ratkoPublishId.intValue)
@@ -101,7 +101,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldReturnPublishableAlignments() {
-        val publishes = ratkoPushDao.fetchUnpublishedLayoutPublishes()
+        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
 
         assertEquals(1, publishes.size)
         assertEquals(layoutPublishId, publishes[0].id)
@@ -111,9 +111,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
     @Test
     fun shouldNotReturnSuccessfullyPublishedAlignments() {
         val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
-        ratkoPushDao.finishPushing(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
+        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
 
-        val publishes = ratkoPushDao.fetchUnpublishedLayoutPublishes()
+        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
 
         assertEquals(0, publishes.size)
     }
@@ -121,9 +121,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
     @Test
     fun shouldReturnAlignmentsWithFailedPublish() {
         val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
-        ratkoPushDao.finishPushing(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.FAILED)
+        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.FAILED)
 
-        val publishes = ratkoPushDao.fetchUnpublishedLayoutPublishes()
+        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
 
         assertEquals(1, publishes.size)
         assertEquals(layoutPublishId, publishes[0].id)
@@ -138,7 +138,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         )
         val layoutPublishId2 = publishDao.createPublish(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
 
-        val publishes = ratkoPushDao.fetchUnpublishedLayoutPublishes()
+        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
 
         val fetchedLayoutPublish = publishes.find { it.id == layoutPublishId }
         val fetchedLayoutPublish2 = publishes.find { it.id == layoutPublishId2 }
@@ -164,7 +164,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
             trackNumberId,
             "Response body"
         )
-        ratkoPushDao.finishPushing(getCurrentUserName(), ratkoPushId, status = RatkoPushStatus.FAILED)
+        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPushId, status = RatkoPushStatus.FAILED)
         val ratkoPushError = ratkoPushDao.getLatestRatkoPushErrorFor(layoutPublishId)
 
         assertNotNull(ratkoPushError)

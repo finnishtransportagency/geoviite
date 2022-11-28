@@ -47,6 +47,7 @@ data class OverrideParameters(
     val authorId: IntId<Author>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val createdDate: Instant?,
+    val encoding: String?
 )
 
 @RestController
@@ -79,6 +80,7 @@ class InfraModelController @Autowired constructor(
             "projectId" to overrideParameters?.projectId,
             "authorId" to overrideParameters?.authorId,
             "trackNumberId" to overrideParameters?.trackNumberId,
+            "encodingOverride" to overrideParameters?.encoding
         )
         return InsertResponse("New plan inserted successfully",
             infraModelService.saveInfraModel(file, overrideParameters, extraInfoParameters).id)
@@ -98,6 +100,7 @@ class InfraModelController @Autowired constructor(
             "authorId" to overrideParameters?.authorId,
             "trackNumber" to overrideParameters?.trackNumberId,
             "createdDate" to overrideParameters?.createdDate,
+            "encodingOverride" to overrideParameters?.encoding
         )
         return infraModelService.validateInfraModelFile(file, overrideParameters)
     }
@@ -147,5 +150,5 @@ class InfraModelController @Autowired constructor(
 }
 
 private fun fileNameWithSuffix(fileName: FileName): String =
-    if (fileName.endsWith(".xml", true)) fileName.value
-    else fileName.value + ".xml"
+    if (fileName.endsWith(".xml", true)) fileName.toString()
+    else "$fileName.xml"

@@ -71,6 +71,11 @@
 
     .infra-model-upload__file-info-container {
         padding: 0 30px;
+        display: flex;
+
+        > .title {
+            flex-grow: 1;
+        }
     }
 
     .infra-model-upload__form-container {
@@ -118,3 +123,50 @@
     color: $color-red-dark;
 }
 
+.infra-model-upload-error__row {
+    display: flex;
+    align-items: center;
+    padding: 5px 0;
+}
+
+.infra-model-upload-error__icon {
+    min-width: 30px;
+}
+
+.infra-model-upload-error__message {
+    margin-left: 15px;
+}
+.infra-model-upload-failed__content {
+    grid-column: 1 / -1;
+    margin-bottom: 9px;
+}
+
+.infra-model-upload-failed__error-list {
+    overflow-y: scroll;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+.infra-model-upload-failed__checkbox-label {
+    align-self: center;
+}
+
+.infra-model-upload-failed__sub-form {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: fit-content(96px) auto min-content;
+    margin-bottom: 12px;
+}
+
+.infra-model-upload__title-menu-container {
+    margin-top: 5px;
+}
+
+.infra-model-upload__title-menu {
+    > div {
+        position: absolute;
+        margin-top: 5px;
+        z-index: 10;
+    }
+    flex-grow: 0;
+}

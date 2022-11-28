@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.math
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import org.geotools.geometry.jts.GeometryBuilder
-import org.springframework.core.convert.converter.Converter
 
 private const val DEFAULT_BUFFER = 0.000001
 private const val SEPARATOR = "_"
@@ -10,12 +9,16 @@ private const val SEPARATOR = "_"
 private val jtsBuilder = GeometryBuilder()
 
 data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
+    constructor(ranges: Pair<Range<Double>, Range<Double>>) : this(ranges.first, ranges.second)
     constructor(min: Point, max: Point) : this(Range(min.x, max.x), Range(min.y, max.y))
+    constructor(value: String) : this(parseRanges(value))
 
     constructor(
         xRange: ClosedFloatingPointRange<Double>,
         yRange: ClosedFloatingPointRange<Double>,
     ) : this(Range(xRange), Range(yRange))
+
+    override fun toString() = "${x.min}$SEPARATOR${x.max}$SEPARATOR${y.min}$SEPARATOR${y.max}"
 
     @get:JsonIgnore
     val width: Double by lazy { x.max - x.min }
@@ -88,13 +91,10 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
     }
 }
 
-fun boundingBoxToString(value: BoundingBox) =
-    "${value.x.min}$SEPARATOR${value.x.max}$SEPARATOR${value.y.min}$SEPARATOR${value.y.max}"
-
-fun stringToBoundingBox(value: String): BoundingBox {
+fun parseRanges(value: String): Pair<Range<Double>, Range<Double>> {
     val values = value.split(SEPARATOR).map(String::toDouble)
     if (values.size != 4) throw IllegalArgumentException("Invalid bounding box (expected 4 numbers): \"$value\"")
-    return BoundingBox(values[0]..values[1], values[2]..values[3])
+    return Range(values[0]..values[1]) to Range(values[2]..values[3])
 }
 
 fun boundingBoxAroundPoint(point: IPoint, delta: Double) =
@@ -110,15 +110,6 @@ fun boundingBoxAroundPointsOrNull(points: List<Point>, buffer: Double = DEFAULT_
     if (points.isEmpty()) null
     else BoundingBox(minPoint(points) - Point(buffer, buffer), maxPoint(points) + Point(buffer, buffer))
 
-
 fun boundingBoxCombining(boxes: List<BoundingBox>) =
     if (boxes.isEmpty()) null
     else BoundingBox(combine(boxes.map(BoundingBox::x)), combine(boxes.map(BoundingBox::y)))
-
-class StringToBoundingBoxConverter : Converter<String, BoundingBox> {
-    override fun convert(source: String): BoundingBox = stringToBoundingBox(source)
-}
-
-class BoundingBoxToStringConverter : Converter<BoundingBox, String> {
-    override fun convert(source: BoundingBox): String = boundingBoxToString(source)
-}

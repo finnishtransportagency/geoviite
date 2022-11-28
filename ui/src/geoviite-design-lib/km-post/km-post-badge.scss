@@ -3,7 +3,9 @@
 @import '../geoviite-colors';
 
 .km-post-badge {
-    @include typography-body-strong-extra-small;
+    @include typography-body-strong;
+    font-size: 10px;
+
     display: inline-flex;
     align-items: center;
     background-color: $color-white-default;
@@ -12,7 +14,6 @@
     user-select: none;
     padding: 3px 6px;
     height: 16px;
-    line-height: normal;
 
     &--linked {
         background-color: $color-green-lighter;

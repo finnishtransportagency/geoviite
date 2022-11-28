@@ -1,23 +1,19 @@
 package fi.fta.geoviite.infra.configuration
 
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
-import fi.fta.geoviite.infra.authorization.AuthNameToStringConverter
-import fi.fta.geoviite.infra.authorization.StringToAuthNameConverter
-import fi.fta.geoviite.infra.authorization.StringToUserNameConverter
-import fi.fta.geoviite.infra.authorization.UserNameToStringConverter
+import fi.fta.geoviite.infra.authorization.AuthName
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.CoordinateSystemNameToStringConverter
-import fi.fta.geoviite.infra.geography.StringToCoordinateSystemNameConverter
-import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeNameToStringConverter
-import fi.fta.geoviite.infra.geometry.MetaDataNameToStringConverter
-import fi.fta.geoviite.infra.geometry.StringToGeometrySwitchTypeNameConverter
-import fi.fta.geoviite.infra.geometry.StringToMetaDataNameConverter
-import fi.fta.geoviite.infra.inframodel.PlanElementNameToStringConverter
-import fi.fta.geoviite.infra.inframodel.StringToPlanElementNameConverter
-import fi.fta.geoviite.infra.math.BoundingBoxToStringConverter
-import fi.fta.geoviite.infra.math.StringToBoundingBoxConverter
-import fi.fta.geoviite.infra.math.StringToPointConverter
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.geography.CoordinateSystemName
+import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
+import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.Code
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -38,33 +34,27 @@ class WebConfig : WebMvcConfigurer {
 
     override fun addFormatters(registry: FormatterRegistry) {
         logger.info("Registering sanitized string converters")
-        registry.addConverter(StringToCodeConverter())
-        registry.addConverter(CodeToStringConverter())
-        registry.addConverter(StringToDescriptionConverter())
-        registry.addConverter(DescriptionToStringConverter())
+        registry.addStringConstructorConverter(::Code)
+        registry.addStringConstructorConverter(::FreeText)
+        registry.addStringConstructorConverter(::LocalizationKey)
 
-        registry.addConverter(StringToLocalizationKeyConverter())
-        registry.addConverter(LocalizationKeyToStringConverter())
+        registry.addStringConstructorConverter(::UserName)
+        registry.addStringConstructorConverter(::AuthName)
 
-        registry.addConverter(StringToCoordinateSystemNameConverter())
-        registry.addConverter(CoordinateSystemNameToStringConverter())
-
-        registry.addConverter(UserNameToStringConverter())
-        registry.addConverter(StringToUserNameConverter())
-        registry.addConverter(StringToAuthNameConverter())
-        registry.addConverter(AuthNameToStringConverter())
-        registry.addConverter(FeatureTypeCodeToStringConverter())
-        registry.addConverter(StringToFeatureTypeCodeConverter())
+        registry.addStringConstructorConverter(::CoordinateSystemName)
+        registry.addStringConstructorConverter(::FeatureTypeCode)
 
         logger.info("Registering geometry name converters")
-        registry.addConverter(StringToFileNameConverter())
-        registry.addConverter(FileNameToStringConverter())
-        registry.addConverter(StringToMetaDataNameConverter())
-        registry.addConverter(MetaDataNameToStringConverter())
-        registry.addConverter(StringToGeometrySwitchTypeNameConverter())
-        registry.addConverter(GeometrySwitchTypeNameToStringConverter())
-        registry.addConverter(StringToPlanElementNameConverter())
-        registry.addConverter(PlanElementNameToStringConverter())
+        registry.addStringConstructorConverter(::FileName)
+        registry.addStringConstructorConverter(::MetaDataName)
+        registry.addStringConstructorConverter(::GeometrySwitchTypeName)
+        registry.addStringConstructorConverter(::PlanElementName)
+
+        logger.info("Registering layout name converters")
+        registry.addStringConstructorConverter(::TrackNumber)
+        registry.addStringConstructorConverter(::AlignmentName)
+        registry.addStringConstructorConverter(::SwitchName)
+        registry.addStringConstructorConverter(::JointNumber)
 
         logger.info("Registering custom ID converters")
         registry.addConverter(StringToDomainIdConverter<Any>())
@@ -77,44 +67,24 @@ class WebConfig : WebMvcConfigurer {
         registry.addConverter(IndexedIdToStringConverter<Any>())
 
         logger.info("Registering OID converters")
-        registry.addConverter(StringToOidConverter<Any>())
-        registry.addConverter(OidToStringConverter<Any>())
+        registry.addStringConstructorConverter { Oid<Any>(it) }
 
         logger.info("Registering SRID converters")
-        registry.addConverter(SridToStringConverter())
-        registry.addConverter(StringToSridConverter())
+        registry.addStringConstructorConverter(::Srid)
 
         logger.info("Registering version converters")
-        registry.addConverter(VersionToStringConverter())
-        registry.addConverter(StringToVersionConverter())
+        registry.addStringConstructorConverter(::Version)
 
-        logger.info("Registering bounding box converters")
-        registry.addConverter(BoundingBoxToStringConverter())
-        registry.addConverter(StringToBoundingBoxConverter())
+        logger.info("Registering geography converters")
+        registry.addStringConstructorConverter(::BoundingBox)
+        registry.addStringConstructorConverter(::Point)
 
-        logger.info("Registering point converters")
-        registry.addConverter(StringToPointConverter())
-
-        logger.info("Registering layout name converters")
-        registry.addConverter(StringToTrackNumberConverter())
-        registry.addConverter(TrackNumberToStringConverter())
-        registry.addConverter(AlignmentNameToStringConverter())
-        registry.addConverter(StringToAlignmentNameConverter())
-        registry.addConverter(SwitchNameToStringConverter())
-        registry.addConverter(StringToSwitchNameConverter())
-
-        logger.info("Registering track km+meter converters")
-        registry.addConverter(StringToKmNumberConverter())
-        registry.addConverter(KmNumberToStringConverter())
-        registry.addConverter(StringToTrackMeterConverter())
-        registry.addConverter(TrackMeterToStringConverter())
-
-        logger.info("Registering joint number converters")
-        registry.addConverter(StringToJointNumberConverter())
-        registry.addConverter(JointNumberToStringConverter())
+        logger.info("Registering track address converters")
+        registry.addStringConstructorConverter(::KmNumber)
+        registry.addStringConstructorConverter(::TrackMeter)
 
         logger.info("Registering case-insensitive path variable enum converters")
-        registry.addConverter(StringToPublishTypeConverter())
+        registry.addStringConstructorConverter { enumCaseInsensitive<PublishType>(it) }
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
@@ -122,4 +92,11 @@ class WebConfig : WebMvcConfigurer {
         converters.add(MappingJackson2HttpMessageConverter(builder.build()))
         converters.add(ByteArrayHttpMessageConverter())
     }
+}
+
+inline fun <reified T : Enum<T>> enumCaseInsensitive(value: String): T = enumValueOf(value.uppercase())
+
+inline fun <reified T> FormatterRegistry.addStringConstructorConverter(noinline initializer: (String) -> T) {
+    addConverter(String::class.java, T::class.java, initializer)
+    addConverter(T::class.java, String::class.java) { t -> t.toString() }
 }

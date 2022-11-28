@@ -18,6 +18,7 @@ export type DialogProps = {
     variant?: DialogVariant;
     scrollable?: boolean;
     allowClose?: boolean;
+    className?: string;
 } & Pick<React.HTMLProps<HTMLElement>, 'style'>;
 
 export const Dialog: React.FC<DialogProps> = ({
@@ -37,7 +38,7 @@ export const Dialog: React.FC<DialogProps> = ({
 
     return (
         <div className={className}>
-            <div className={styles['dialog__popup']} style={props.style}>
+            <div className={createClassName(styles['dialog__popup'], props.className)}>
                 <div className={styles['dialog__header']}>
                     <span className={styles['dialog__title']}>{props.title}</span>
                     {allowClose && (

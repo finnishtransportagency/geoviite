@@ -62,7 +62,7 @@ fun toMapAlignment(
     alignment: LayoutAlignment?,
     segmentSimplification: (LayoutAlignment) -> List<MapSegment>
 ) = MapAlignment(
-    name = AlignmentName(trackNumber.number.value),
+    name = AlignmentName(trackNumber.number.toString()),
     description = trackNumber.description,
     alignmentSource = LAYOUT,
     alignmentType = REFERENCE_LINE,

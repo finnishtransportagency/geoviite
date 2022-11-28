@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { pushToRatko } from 'publication/ratko-api';
+import { pushToRatko } from 'ratko/ratko-api';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type RatkoPublishButtonProps = {
     size?: ButtonSize;
@@ -35,7 +36,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size }) => {
                 <Dialog
                     title={t('publishing.publish-to-ratko')}
                     allowClose={false}
-                    style={{ minWidth: 300 }}
+                    className={dialogStyles['dialog--normal']}
                     footerContent={
                         <React.Fragment>
                             <Button

@@ -1,18 +1,14 @@
+@import "../typography";
 @import '../colors';
 
 .badge {
+    @include typography-body-strong;
+
     position: static;
     width: 42px;
     height: 20px;
     left: 12px;
     top: 2px;
-
-    font-family: Open Sans;
-    font-style: normal;
-    font-weight: 600;
-    font-size: 14px;
-    line-height: 20px;
-    /* identical to box height, or 143% */
 
     display: flex;
     align-items: center;

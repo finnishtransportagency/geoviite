@@ -32,6 +32,7 @@ export type ButtonProps = {
     attachLeft?: boolean;
     attachRight?: boolean;
     wide?: boolean;
+    className?: string;
 } & Pick<React.HTMLProps<HTMLButtonElement>, 'disabled' | 'onClick' | 'title'>;
 
 export const Button: React.FC<ButtonProps> = ({
@@ -44,11 +45,13 @@ export const Button: React.FC<ButtonProps> = ({
     attachLeft,
     attachRight,
     wide,
+    className,
     ...props
 }: ButtonProps) => {
-    const className = createClassName(
+    const classes = createClassName(
         styles.button,
         styles[variant],
+        className,
         Icon && styles['button--has-icon'],
         size && styles[size],
         !props.children && styles['button--no-label'],
@@ -60,7 +63,7 @@ export const Button: React.FC<ButtonProps> = ({
     );
 
     return (
-        <button id={id} className={className} {...props}>
+        <button id={id} className={classes} {...props}>
             <span className={styles['button__icon-and-animation']}>
                 {isProcessing && <div className={styles['button__animation']} />}
                 {Icon && (

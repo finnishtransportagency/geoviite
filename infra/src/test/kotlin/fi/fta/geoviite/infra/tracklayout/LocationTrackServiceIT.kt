@@ -494,6 +494,35 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(null, updatedTrack.topologyEndSwitch)
     }
 
+    @Test
+    fun fetchDuplicatesIsVersioned() {
+        val trackNumberId = getUnusedTrackNumberId()
+        val originalLocationTrackId = locationTrackService.insert(saveRequest(trackNumberId, 1)).id
+        locationTrackService.publish(originalLocationTrackId)
+        val officialCopy = insertAndFetch(
+            locationTrack(getUnusedTrackNumberId()).copy(duplicateOf = originalLocationTrackId),
+            alignment
+        )
+        locationTrackService.publish(officialCopy.first.id as IntId<LocationTrack>)
+
+        val draftCopyVersion = locationTrackService.update(
+            officialCopy.first.id as IntId,
+            saveRequest(trackNumberId, 1).copy(duplicateOf = originalLocationTrackId)
+        )
+        val draftCopy = locationTrackService.getDraft(draftCopyVersion.id)
+        assertEquals(
+            listOf(asLocationtrackDuplicate(officialCopy.first)),
+            locationTrackService.getDuplicates(originalLocationTrackId, OFFICIAL)
+        )
+        assertEquals(
+            listOf(asLocationtrackDuplicate(draftCopy)),
+            locationTrackService.getDuplicates(originalLocationTrackId, DRAFT)
+        )
+    }
+
+    private fun asLocationtrackDuplicate(locationTrack: LocationTrack) =
+        LocationTrackDuplicate(locationTrack.id as IntId, locationTrack.name, locationTrack.externalId)
+
     private fun insertAndFetch(switch: TrackLayoutSwitch) = switchService.get(switchService.saveDraft(switch))
 
     private fun insertAndFetch(

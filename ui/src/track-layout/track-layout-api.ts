@@ -21,12 +21,10 @@ import {
     MapSegment,
     ReferenceLineId,
     ReferenceLineStartAndEndPoints,
-    SwitchTrackMeter,
 } from './track-layout-model';
 import {
     API_URI,
     deleteAdt,
-    getIgnoreError,
     getThrowError,
     getWithDefault,
     postIgnoreError,
@@ -403,16 +401,6 @@ export async function getSwitches(
     return switchIds.length > 0
         ? getThrowError<LayoutSwitch[]>(`${layoutUri(publishType)}/switches?ids=${switchIds}`)
         : Promise.resolve([]);
-}
-
-export async function getTopologySwitchTrackMeters(
-    publishType: PublishType,
-    switchId: LayoutSwitchId,
-): Promise<SwitchTrackMeter[]> {
-    const result = await getIgnoreError<SwitchTrackMeter[]>(
-        `${layoutUri(publishType)}/switches/${switchId}/topology-track-meters`,
-    );
-    return result || [];
 }
 
 export async function getKmPost(

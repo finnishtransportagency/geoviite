@@ -42,6 +42,11 @@ import { Prop } from 'utils/type-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import { useTranslation } from 'react-i18next';
 import { InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
+import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+import { createClassName } from 'vayla-design-lib/utils';
+import { Menu } from 'vayla-design-lib/menu/menu';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -64,6 +69,16 @@ export type InfraModelViewProps = InfraModelState & {
     getGeometrySwitch: (geomSwitchId: GeometrySwitchId) => Promise<GeometrySwitch | null>;
     onCommitField: (fieldName: string) => void;
 };
+
+const XmlEncodings = ['ISO-8859-1', 'UTF-8', 'UTF-16', 'US ASCII'];
+
+const XmlEncodingsToDropdownEntries = () =>
+    XmlEncodings.map((encoding) => {
+        return {
+            name: encoding,
+            value: encoding,
+        };
+    });
 
 const getFormFile = (
     file?: Blob,
@@ -119,7 +134,7 @@ const getValidationResponseGeometryPlan = async (
 };
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     const [file, setFile] = React.useState<File>();
     const [loadingInProgress, setLoadingInProgress] = React.useState(false);
@@ -129,19 +144,35 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         React.useState<ValidationResponse | null>(null);
 
     const [fileHandlingFailedErrors, setFileHandlingFailedErrors] = React.useState<string[]>([]);
+    const [fileMenuVisible, setFileMenuVisible] = React.useState(false);
 
     const [showCriticalWarning, setShowCriticalWarning] = React.useState(false);
     const [showFileHandlingFailed, setShowFileHandlingFailed] = React.useState(false);
+    const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
+    const [showCharsetPicker, setShowCharsetPicker] = React.useState(false);
+    const [charsetOverride, setCharsetOverride] = React.useState<string | undefined>(undefined);
+
+    const fileMenuItems = [
+        { value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') },
+    ];
+    const handleFileMenuItemChange = (item: string) => {
+        if (item == 'fix-encoding') setShowChangeCharsetDialog(true);
+        setFileMenuVisible(false);
+    };
 
     const onSaveClick = async () => {
         setShowCriticalWarning(false);
         setLoadingInProgress(true);
 
+        const overrideParameters = charsetOverride
+            ? { ...props.overrideInfraModelParameters, encoding: charsetOverride }
+            : props.overrideInfraModelParameters;
+
         const extraParams = {
             ...props.extraInframodelParameters,
             oid: props.extraInframodelParameters.oid || undefined,
         };
-        const formData = getFormFile(file, extraParams, props.overrideInfraModelParameters);
+        const formData = getFormFile(file, extraParams, overrideParameters);
 
         const succeed =
             props.viewType === InfraModelViewType.EDIT
@@ -162,13 +193,17 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const validateFile = async () => {
+        const overrideParameters = charsetOverride
+            ? { ...props.overrideInfraModelParameters, encoding: charsetOverride }
+            : props.overrideInfraModelParameters;
+
         const response =
             props.viewType === InfraModelViewType.UPLOAD
-                ? await getValidationResponseForFile(file, props.overrideInfraModelParameters)
+                ? await getValidationResponseForFile(file, overrideParameters)
                 : await getValidationResponseGeometryPlan(
-                (props.plan as GeometryPlan).id,
-                props.overrideInfraModelParameters,
-                );
+                      (props.plan as GeometryPlan).id,
+                      overrideParameters,
+                  );
 
         setInfraModelValidationResponse(response);
 
@@ -195,7 +230,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const getVisibleErrors = () => {
-        const fieldValidationErrors = getFieldValidationErrors().map(error => t(`im-form.${error.reason}`));
+        const fieldValidationErrors = getFieldValidationErrors().map((error) =>
+            t(`im-form.${error.reason}`),
+        );
         return fieldValidationErrors.length > 0 ? fieldValidationErrors.join(', ') : '';
     };
 
@@ -227,6 +264,24 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             <div className={styles['infra-model-upload__form-column']}>
                 <div className={styles['infra-model-upload__file-info-container']}>
                     <Title>{file && file.name}</Title>
+                    {file && (
+                        <div className={styles['infra-model-upload__title-menu-container']}>
+                            <Button
+                                onClick={() => setFileMenuVisible(!fileMenuVisible)}
+                                variant={ButtonVariant.SECONDARY}
+                                icon={Icons.More}
+                            />
+                            {fileMenuVisible && (
+                                <div className={styles['infra-model-upload__title-menu']}>
+                                    <Menu
+                                        items={fileMenuItems}
+                                        onChange={(item) =>
+                                            item && handleFileMenuItemChange(item)
+                                        }></Menu>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles['infra-model-upload__form-container']}>
@@ -303,7 +358,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         onClickLocation={props.onClickLocation}
                     />
                 )}
-                {showMap === false && <div className={styles['infra-model-upload__error-photo']}/>}
+                {showMap === false && <div className={styles['infra-model-upload__error-photo']} />}
             </div>
             {showCriticalWarning && (
                 <div>
@@ -335,24 +390,117 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 </li>
                             ))}
                             {props.planLayout != null ||
-                            `${t('im-form.critical-warnings-dialog.error-message')}`}
+                                `${t('im-form.critical-warnings-dialog.error-message')}`}
                         </ul>
                     </Dialog>
                 </div>
             )}
             {showFileHandlingFailed && (
-                <div>
-                    <Dialog
-                        title={t('im-form.file-handling-failed.title')}
-                        onClose={() => setShowFileHandlingFailed(false)}>
-                        <div>
+                <Dialog
+                    title={t('im-form.file-handling-failed.title')}
+                    scrollable={false}
+                    className={dialogStyles['dialog--wide']}
+                    footerContent={
+                        <React.Fragment>
+                            {showCharsetPicker && (
+                                <React.Fragment>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        onClick={() => setShowFileHandlingFailed(false)}>
+                                        {t('button.cancel')}
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            setShowCharsetPicker(false);
+                                            setShowFileHandlingFailed(false);
+                                            validateFile();
+                                        }}>
+                                        {t('im-form.file-handling-failed.try-again')}
+                                    </Button>
+                                </React.Fragment>
+                            )}
+                            {!showCharsetPicker && (
+                                <Button
+                                    onClick={() => {
+                                        setShowFileHandlingFailed(false);
+                                    }}>
+                                    {t('button.ok')}
+                                </Button>
+                            )}
+                        </React.Fragment>
+                    }>
+                    <div className={styles['infra-model-upload-failed__sub-form']}>
+                        <div
+                            className={createClassName(
+                                styles['infra-model-upload-failed__content'],
+                                styles['infra-model-upload-failed__error-list'],
+                            )}>
                             {fileHandlingFailedErrors &&
-                            fileHandlingFailedErrors.map((error) => (
-                                <div key={error}>{t(error)}</div>
-                            ))}
+                                fileHandlingFailedErrors.map((error) => (
+                                    <React.Fragment key={error}>
+                                        <div key={error}>{t(error)}</div>
+                                    </React.Fragment>
+                                ))}
                         </div>
-                    </Dialog>
-                </div>
+                        <div className={styles['infra-model-upload-failed__content']}>
+                            <Checkbox
+                                checked={showCharsetPicker}
+                                onChange={(e) => setShowCharsetPicker(e.target.checked)}>
+                                {t('im-form.file-handling-failed.change-encoding')}
+                            </Checkbox>
+                        </div>
+                        {showCharsetPicker && (
+                            <React.Fragment>
+                                <label
+                                    className={styles['infra-model-upload-failed__checkbox-label']}>
+                                    {t('im-form.file-handling-failed.encoding')}
+                                </label>
+                                <Dropdown
+                                    options={XmlEncodingsToDropdownEntries()}
+                                    value={charsetOverride}
+                                    onChange={setCharsetOverride}
+                                />
+                            </React.Fragment>
+                        )}
+                    </div>
+                </Dialog>
+            )}
+            {showChangeCharsetDialog && (
+                <Dialog
+                    title={t('im-form.file-handling-failed.change-encoding')}
+                    scrollable={false}
+                    className={dialogStyles['dialog--wide']}
+                    footerContent={
+                        <React.Fragment>
+                            <React.Fragment>
+                                <Button
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={() => setShowChangeCharsetDialog(false)}>
+                                    {t('button.cancel')}
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        setShowChangeCharsetDialog(false);
+                                        validateFile();
+                                    }}>
+                                    {t('im-form.file-handling-failed.try-again')}
+                                </Button>
+                            </React.Fragment>
+                        </React.Fragment>
+                    }>
+                    <div className={styles['infra-model-upload-failed__sub-form']}>
+                        <React.Fragment>
+                            <label className={styles['infra-model-upload-failed__checkbox-label']}>
+                                {t('im-form.file-handling-failed.encoding')}
+                            </label>
+                            <Dropdown
+                                options={XmlEncodingsToDropdownEntries()}
+                                value={charsetOverride}
+                                onChange={setCharsetOverride}
+                            />
+                        </React.Fragment>
+                    </div>
+                </Dialog>
             )}
         </div>
     );
