@@ -7,13 +7,12 @@
         @include typography-heading;
     }
 
-    &__latest-title {
+    &__subsection-title {
         @include typography-body-strong;
         margin-bottom: 12px;
     }
 
-    &__issues-title {
-        @include typography-body-strong;
+    &__ratko-push-button {
         margin-bottom: 12px;
     }
 }

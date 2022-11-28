@@ -55,7 +55,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                     }}>
                     {t('frontpage.frontpage-link')}
                 </Link>
-                <span style={{ whiteSpace: 'pre' }}>
+                <span className={styles['publication-details__publication-time']}>
                     {publicationDetails && ' > ' + formatDateFull(publicationDetails.publishTime)}
                 </span>
             </div>

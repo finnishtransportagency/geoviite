@@ -38,10 +38,10 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
                     </h2>
                     {failures.length > 0 && (
                         <React.Fragment>
-                            <h3 className={styles['publication-card__issues-title']}>
+                            <h3 className={styles['publication-card__subsection-title']}>
                                 {t('publishing.publish-issues')}
                             </h3>
-                            <div style={{ marginBottom: '12px' }}>
+                            <div className={styles['publication-card__ratko-push-button']}>
                                 <RatkoPublishButton size={ButtonSize.SMALL} />
                             </div>
                             {latestFailureWithPushError && (
@@ -56,7 +56,7 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
                     )}
                     {successes.length > 0 && (
                         <React.Fragment>
-                            <h3 className={styles['publication-card__latest-title']}>
+                            <h3 className={styles['publication-card__subsection-title']}>
                                 {t('publication-card.latest')}
                             </h3>
                             <PublicationList

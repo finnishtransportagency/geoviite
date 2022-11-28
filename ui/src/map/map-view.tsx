@@ -27,8 +27,7 @@ import {
 } from './layers/switch-linking-layer'; // Load module to initialize adapter
 import styles from './map.module.scss';
 import { selectToolBasic } from './tools/select-tool-basic';
-import { selectToolPolygon } from './tools/select-tool-polygon';
-import { MapTool, MapToolActivateOptions } from './tools/tool-model';
+import { MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles, calculateTileSize } from 'map/map-utils';
 import { adapterInfoRegister } from 'map/layers/register';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
@@ -80,20 +79,6 @@ type MapViewProps = {
     onRemoveGeometryLinkPoint?: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint?: (linkPoint: LinkPoint) => void;
 };
-
-// DEBUG: For now we define a set of tools here
-const mapTools: MapTool[] = [
-    selectToolBasic,
-    {
-        icon: 'far fa-object-ungroup',
-        activate: () => () => 0,
-    },
-    {
-        icon: 'fas fa-bolt',
-        activate: () => () => 0,
-    },
-    selectToolPolygon,
-];
 
 const defaultScaleLine: ScaleLine = new ScaleLine({
     units: 'metric',
@@ -161,7 +146,6 @@ const MapView: React.FC<MapViewProps> = ({
 
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap | null>(null);
-    const [activeTool, setActiveTool] = React.useState<MapTool | null>(selectToolBasic);
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [layerAdapters, setLayerAdapters] = React.useState<OlLayerAdapter[]>([]);
 
@@ -372,7 +356,7 @@ const MapView: React.FC<MapViewProps> = ({
             onHoverLocation: props.onHoverLocation,
             onClickLocation: props.onClickLocation,
         };
-        const deactivateToolFunc = activeTool?.activate(olMap, layerAdapters, toolActivateOptions);
+        const deactivateToolFunc = selectToolBasic.activate(olMap, layerAdapters, toolActivateOptions);
 
         // Always activate e.g. highlight tool
         const deactivateHighlightTool = highlightTool.activate(
@@ -407,30 +391,7 @@ const MapView: React.FC<MapViewProps> = ({
 
     return (
         <div className={styles.map}>
-            {/* FAKE TOOLS BEGINS */}
-            <div className={styles['map__tools']} style={{display: 'none'}}>
-                {mapTools.map((mapTool, index) => {
-                    return (
-                        <div
-                            key={index}
-                            className={
-                                styles['map__tool'] +
-                                ' ' +
-                                (mapTool == activeTool ? styles['map__tool--active'] : '')
-                            }
-                            onClick={() => setActiveTool(mapTool)}>
-                            <i className={mapTool.icon}/>
-                        </div>
-                    );
-                })}
-            </div>
-            {/* FAKE TOOLS ENDS */}
-
             <div ref={olMapContainer} className={styles['map__ol-map']}/>
-
-            <div className={styles['map__overlay']}>
-                {/*<MapTooltip map={olMap} layerAdapters={layerAdapters}/>*/}
-            </div>
 
             <div id="clusteroverlay">
                 {selection.selectedItems.clusterPoints[0] && (

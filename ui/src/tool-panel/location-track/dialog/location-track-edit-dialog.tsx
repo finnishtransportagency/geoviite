@@ -26,11 +26,12 @@ import { useLocationTrack, useLocationTrackStartAndEnd } from 'track-layout/trac
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PublishType, TimeStamp } from 'common/common-model';
-import styles from 'vayla-design-lib/dialog/dialog.scss';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { createClassName } from 'vayla-design-lib/utils';
 import { debounceAsync } from 'utils/async-utils';
 import { isNullOrBlank } from 'utils/string-utils';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import styles from './location-track-edit-dialog.scss';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -247,13 +248,13 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         : t('location-track-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                style={{minWidth: '700px'}}
+                className={dialogStyles['dialog--ultrawide']}
                 scrollable={false}
                 footerClassName={'dialog-footer'}
                 footerContent={
                     <React.Fragment>
-                        <div className={styles['dialog-footer__content-area']}>
-                            <div className={styles['dialog-footer__content--shrink']}>
+                        <div className={dialogStyles['dialog-footer__content-area']}>
+                            <div className={dialogStyles['dialog-footer__content--shrink']}>
                                 {officialLocationTrack === undefined && !state.isNewLocationTrack && (
                                     <Button
                                         onClick={() =>
@@ -269,9 +270,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             </div>
                             <div
                                 className={createClassName(
-                                    styles['dialog-footer__content--grow'],
-                                    styles['dialog-footer__content--centered'],
-                                    styles['dialog-footer__content--padded'],
+                                    dialogStyles['dialog-footer__content--grow'],
+                                    dialogStyles['dialog-footer__content--centered'],
+                                    dialogStyles['dialog-footer__content--padded'],
                                 )}>
                                 <Button
                                     variant={ButtonVariant.SECONDARY}
@@ -314,24 +315,20 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         <FieldLayout
                             label={`${t('location-track-dialog.track-number')} *`}
                             value={
-                                <div style={{display: 'flex'}}>
-                                    <div style={{flex: '1'}}>
-                                        <Dropdown
-                                            value={state.locationTrack?.trackNumberId}
-                                            options={state.trackNumbers.map((trackNumber) => ({
-                                                name: trackNumber.number,
-                                                value: trackNumber.id,
-                                            }))}
-                                            onChange={(value) => updateProp('trackNumberId', value)}
-                                            onBlur={() =>
-                                                stateActions.onCommitField('trackNumberId')
-                                            }
-                                            hasError={hasErrors('trackNumberId')}
-                                            wide
-                                            searchable
-                                        />
-                                    </div>
-                                </div>
+                                <Dropdown
+                                    value={state.locationTrack?.trackNumberId}
+                                    options={state.trackNumbers.map((trackNumber) => ({
+                                        name: trackNumber.number,
+                                        value: trackNumber.id,
+                                    }))}
+                                    onChange={(value) => updateProp('trackNumberId', value)}
+                                    onBlur={() =>
+                                        stateActions.onCommitField('trackNumberId')
+                                    }
+                                    hasError={hasErrors('trackNumberId')}
+                                    wide
+                                    searchable
+                                />
                             }
                             errors={getVisibleErrorsByProp('trackNumberId')}
                         />
@@ -455,7 +452,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={
                                         startAndEndPoints
                                             ? formatTrackMeter(
-                                            startAndEndPoints.start.addressPoint.address,
+                                                startAndEndPoints.start.addressPoint.address,
                                             )
                                             : ''
                                     }
@@ -471,7 +468,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={
                                         startAndEndPoints
                                             ? formatTrackMeter(
-                                            startAndEndPoints.end.addressPoint.address,
+                                                startAndEndPoints.end.addressPoint.address,
                                             )
                                             : ''
                                     }
@@ -487,8 +484,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={
                                         props.locationTrack
                                             ? roundToPrecision(
-                                            props.locationTrack.length,
-                                            Precision.alignmentLengthMeters,
+                                                props.locationTrack.length,
+                                                Precision.alignmentLengthMeters,
                                             )
                                             : ''
                                     }
@@ -504,7 +501,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         title={t('location-track-delete-dialog.title')}
                         variant={DialogVariant.DARK}
                         allowClose={false}
-                        style={{minWidth: '300px'}}
+                        className={dialogStyles['dialog--normal']}
                         footerContent={
                             <React.Fragment>
                                 <Button
@@ -519,8 +516,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                         <div className={'dialog__text'}>
                             {t('location-track-delete-dialog.deleted-location-tracks-not-allowed')}
                         </div>
-                        <div className={'dialog__text'} style={{fill: 'rgb(222 53 23)'}}>
-                            <Icons.StatusError color={IconColor.INHERIT}/> {t('location-track-delete-dialog.deleted-location-track-warning')}
+                        <div className={'dialog__text'}>
+                            <span className={styles['location-track-edit-dialog__warning']}><Icons.StatusError color={IconColor.INHERIT}/></span> {t('location-track-delete-dialog.deleted-location-track-warning')}
                         </div>
                         <div className={'dialog__text'}>
                             {t('location-track-delete-dialog.confirm-location-track-delete')}

@@ -11,6 +11,7 @@ import {
     initialKmPostEditState,
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type KmPostDeleteConfirmationDialogProps = {
     id: LayoutKmPostId;
@@ -52,7 +53,7 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
                 title={t('km-post-delete-draft-dialog.delete-draft-confirm')}
                 variant={DialogVariant.DARK}
                 allowClose={false}
-                style={{ maxWidth: '250px' }}
+                className={dialogStyles['dialog--narrow']}
                 footerContent={
                     <React.Fragment>
                         <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>

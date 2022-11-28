@@ -5,6 +5,7 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
+import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
 import {
     publishCandidates,
     PublishRequest,
@@ -158,7 +159,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     title={t('publish.publish-confirm.title')}
                     variant={DialogVariant.LIGHT}
                     allowClose={false}
-                    style={{ minWidth: '300px' }}
+                    className={dialogStyles['dialog--normal']}
                     footerContent={
                         <React.Fragment>
                             <Button
@@ -183,7 +184,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     title={t('publish.revert-confirm.title')}
                     variant={DialogVariant.LIGHT}
                     allowClose={false}
-                    style={{ minWidth: '300px' }}
+                    className={dialogStyles['dialog--normal']}
                     footerContent={
                         <React.Fragment>
                             <Button

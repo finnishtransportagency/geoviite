@@ -13,6 +13,10 @@
         padding: 12px 0 8px 20px;
     }
 
+    &__publication-time {
+        white-space: pre;
+    }
+
     &__publication {
         display: flex;
         flex: 1;
