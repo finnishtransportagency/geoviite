@@ -279,7 +279,7 @@ class ValidationTest {
                     line(
                         start = startPoint,
                         end = endPoint,
-                        name = switch.name.value,
+                        name = switch.name.toString(),
                         switchData = SwitchData(
                             switchId = switch.id,
                             startJointNumber = jointNumber,

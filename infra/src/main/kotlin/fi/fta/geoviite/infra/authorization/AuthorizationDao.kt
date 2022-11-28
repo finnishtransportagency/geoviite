@@ -15,7 +15,7 @@ class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase
     @Transactional
     fun getRole(roleCode: Code): Role =
         getRoleInternal(roleCode = roleCode, userGroup = null)
-            ?: throw IllegalStateException("No such role: roleCode=${roleCode.value}")
+            ?: throw IllegalStateException("No such role: roleCode=$roleCode")
 
     @Cacheable(CACHE_ROLES, sync = true)
     @Transactional
@@ -31,8 +31,8 @@ class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase
               and (:user_group::varchar is null or user_group = :user_group)
         """.trimIndent()
         val params = mapOf(
-            "role_code" to roleCode?.value,
-            "user_group" to userGroup?.value,
+            "role_code" to roleCode,
+            "user_group" to userGroup,
         )
         val role = jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             val code: Code = rs.getCode("code")
@@ -53,7 +53,7 @@ class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase
               left join common.privilege on privilege.code = rp.privilege_code
             where rp.role_code = :role_code
         """.trimIndent()
-        val params = mapOf("role_code" to code.value)
+        val params = mapOf("role_code" to code)
         val privileges = jdbcTemplate.query(sql, params) { rs, _ ->
             Privilege(
                 code = rs.getCode("code"),

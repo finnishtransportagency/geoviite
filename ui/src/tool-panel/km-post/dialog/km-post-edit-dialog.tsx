@@ -32,6 +32,7 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { createClassName } from 'vayla-design-lib/utils';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 export type KmPostDialogProps = {
     kmPostId?: LayoutKmPostId;
@@ -213,7 +214,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                         : t('km-post-dialog.title-edit')
                 }
                 onClose={() => cancelSave()}
-                style={{ minWidth: '700px', maxWidth: '700px' }}
+                className={dialogStyles['dialog--ultrawide']}
                 scrollable={false}
                 footerClassName={'dialog-footer'}
                 footerContent={
@@ -280,28 +281,24 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                         <FieldLayout
                             label={`${t('km-post-dialog.track-number')} *`}
                             value={
-                                <div style={{ display: 'flex' }}>
-                                    <div style={{ flex: '1' }}>
-                                        <Dropdown
-                                            value={state.kmPost?.trackNumberId}
-                                            options={state.trackNumbers.map((trackNumber) => ({
-                                                name: trackNumber.number,
-                                                value: trackNumber.id,
-                                            }))}
-                                            onChange={(value) => updateProp('trackNumberId', value)}
-                                            onBlur={() =>
-                                                stateActions.onCommitField('trackNumberId')
-                                            }
-                                            hasError={hasErrors('trackNumberId')}
-                                            wide
-                                            searchable
-                                            disabled={
-                                                props.prefilledTrackNumberId != undefined ||
-                                                props.kmPostId != undefined
-                                            }
-                                        />
-                                    </div>
-                                </div>
+                                <Dropdown
+                                    value={state.kmPost?.trackNumberId}
+                                    options={state.trackNumbers.map((trackNumber) => ({
+                                        name: trackNumber.number,
+                                        value: trackNumber.id,
+                                    }))}
+                                    onChange={(value) => updateProp('trackNumberId', value)}
+                                    onBlur={() =>
+                                        stateActions.onCommitField('trackNumberId')
+                                    }
+                                    hasError={hasErrors('trackNumberId')}
+                                    wide
+                                    searchable
+                                    disabled={
+                                        props.prefilledTrackNumberId != undefined ||
+                                        props.kmPostId != undefined
+                                    }
+                                />
                             }
                             errors={getVisibleErrorsByProp('trackNumberId')}
                         />
@@ -383,7 +380,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                         title={t('km-post-delete-dialog.title')}
                         variant={DialogVariant.DARK}
                         allowClose={false}
-                        style={{ minWidth: '300px' }}
+                        className={dialogStyles['dialog--normal']}
                         footerContent={
                             <React.Fragment>
                                 <Button

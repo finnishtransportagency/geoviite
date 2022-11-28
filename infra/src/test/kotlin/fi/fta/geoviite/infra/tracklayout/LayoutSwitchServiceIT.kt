@@ -83,7 +83,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val dummySwitch = generateDummySwitch()
         switchDao.insert(dummySwitch)
 
-        val switchesCompleteName = getSwitches(switchService.switchFilter(name = dummySwitch.name.value))
+        val switchesCompleteName = getSwitches(switchService.switchFilter(name = dummySwitch.name.toString()))
         val switchesPartialName = getSwitches(switchService.switchFilter(name = dummySwitch.name.substring(2)))
 
         assertTrue(switchesCompleteName.isNotEmpty())

@@ -111,8 +111,8 @@ class RequestFilter @Autowired constructor(
             MDC.put(CORRELATION_ID_HEADER, extractRequestCorrelationId(request))
 
             val user = getUser(request)
-            MDC.put(USER_HEADER, user.details.userName.value)
-            MDC.put(ROLE_HEADER, user.role.code.value)
+            MDC.put(USER_HEADER, user.details.userName.toString())
+            MDC.put(ROLE_HEADER, user.role.code.toString())
 
             log.apiRequest(request, requestIP)
             val auth = UsernamePasswordAuthenticationToken(user, "", user.role.privileges)

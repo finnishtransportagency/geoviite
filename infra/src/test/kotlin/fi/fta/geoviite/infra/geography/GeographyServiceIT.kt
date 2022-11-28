@@ -23,14 +23,14 @@ class GeographyServiceIT @Autowired constructor(
     @Test
     fun fetchingDefaultCoordinateSystemsWorks() {
         val system = geographyService.getCoordinateSystem(Srid(3129))
-        assertEquals("ETRS-GK22", system.name.value)
+        assertEquals(CoordinateSystemName("ETRS-GK22"), system.name)
         assertEquals(Srid(3129), system.srid)
     }
 
     @Test
     fun fetchingNonDefaultCoordinateSystemsWorks() {
         val system = geographyService.getCoordinateSystem(Srid(4216))
-        assertEquals("Bermuda 1957", system.name.value)
+        assertEquals(CoordinateSystemName("Bermuda 1957"), system.name)
         assertEquals(Srid(4216), system.srid)
     }
 

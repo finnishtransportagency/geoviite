@@ -31,8 +31,9 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               name
             from layout.location_track_publication_view
             where duplicate_of_location_track_id = :id
+              and :publishType = any(publication_states)
         """.trimIndent()
-        val params = mapOf("id" to id.intValue)
+        val params = mapOf("id" to id.intValue, "publishType" to publishType.name)
         val locationTracks = jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrackDuplicate(
                 id = rs.getIntId("official_id"),
@@ -83,7 +84,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 sourceId = null,
                 externalId = rs.getOidOrNull("external_id"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                name = AlignmentName(rs.getString("name")),
+                name = rs.getString("name").let(::AlignmentName),
                 description = rs.getFreeText("description"),
                 type = rs.getEnum("type"),
                 state = rs.getEnum("state"),
@@ -153,7 +154,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to newItem.trackNumberId.intValue,
-            "external_id" to newItem.externalId?.stringValue,
+            "external_id" to newItem.externalId,
             "alignment_id" to (newItem.alignmentVersion?.id?.intValue
                 ?: throw IllegalStateException("LocationTrack in DB needs an alignment")),
             "alignment_version" to newItem.alignmentVersion.version,
@@ -207,7 +208,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         val params = mapOf(
             "id" to rowId.intValue,
             "track_number_id" to updatedItem.trackNumberId.intValue,
-            "external_id" to updatedItem.externalId?.stringValue,
+            "external_id" to updatedItem.externalId,
             "alignment_id" to (updatedItem.alignmentVersion?.id?.intValue
                 ?: throw IllegalStateException("LocationTrack in DB needs an alignment")),
             "alignment_version" to updatedItem.alignmentVersion.version,

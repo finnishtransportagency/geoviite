@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.geometry
 
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.assertSanitized
-import org.springframework.core.convert.converter.Converter
 
 enum class PlanState { ABANDONED, DESTROYED, EXISTING, PROPOSED }
 
@@ -38,20 +38,9 @@ data class Author(val companyName: MetaDataName, val id: DomainId<Author> = Stri
 val metaDataNameLength = 1..100
 val metaDataNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-/+&,.:()]+\$")
 
-data class MetaDataName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(val value: String) :
-    CharSequence by value {
+data class MetaDataName @JsonCreator(mode = DELEGATING) constructor(private val value: String) : CharSequence by value {
+    init { assertSanitized<MetaDataName>(value, metaDataNameRegex, metaDataNameLength) }
+
     @JsonValue
     override fun toString(): String = value
-
-    init {
-        assertSanitized<MetaDataName>(value, metaDataNameRegex, metaDataNameLength)
-    }
-}
-
-class StringToMetaDataNameConverter : Converter<String, MetaDataName> {
-    override fun convert(source: String): MetaDataName = MetaDataName(source)
-}
-
-class MetaDataNameToStringConverter : Converter<MetaDataName, String> {
-    override fun convert(source: MetaDataName): String = source.toString()
 }

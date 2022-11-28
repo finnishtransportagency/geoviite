@@ -5,6 +5,7 @@
         "switch-name": "Vaihdetunnus",
         "state-category": "Tilakategoria",
         "switch-type": "Vaihdetyyppi",
+        "trap-point": "Turvavaihde",
         "switch-type-name": "Nimi",
         "handedness": "Kätisyys",
         "extra-info-heading": "Lisätiedot",

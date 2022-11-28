@@ -1,9 +1,10 @@
 package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.common.parseKmNumber
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
@@ -14,6 +15,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import org.apache.commons.io.ByteOrderMark
+import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -495,7 +497,7 @@ class InfraModelParsingIT @Autowired constructor(
         trackNumber: TrackLayoutTrackNumber?,
     ) {
         assertNotNull(trackNumber)
-        assertEquals(infraModelAlignmentGroups.first().name, trackNumber?.number?.value)
+        assertEquals(TrackNumber(infraModelAlignmentGroups.first().name), trackNumber?.number)
     }
 
     private fun assertAlignmentsMatch(
@@ -505,8 +507,8 @@ class InfraModelParsingIT @Autowired constructor(
         assertEquals(infraModelAlignments.size, gvtAlignments.size)
         infraModelAlignments.forEachIndexed { aIndex, xmlAlignment ->
             val gvtAlignment = gvtAlignments[aIndex]
-            assertEquals(xmlAlignment.name, gvtAlignment.name.value)
-            assertEquals(xmlAlignment.desc, gvtAlignment.description?.value)
+            assertEquals(AlignmentName(xmlAlignment.name), gvtAlignment.name)
+            assertEquals(FreeText(xmlAlignment.desc!!), gvtAlignment.description)
             assertEquals(xmlAlignment.elements.size, gvtAlignment.elements.size)
             xmlAlignment.elements.forEachIndexed { eIndex, xmlElement ->
                 val gvtElement = gvtAlignment.elements[eIndex]
@@ -539,7 +541,7 @@ class InfraModelParsingIT @Autowired constructor(
     private fun assertFeatureTypeCodeMatch(features: List<InfraModelFeature>, featureTypeCode: FeatureTypeCode?) {
         val xmlCodeProperty = features.find { imFeature -> imFeature.code == "IM_coding" }
             ?.getPropertyAnyMatch(listOf("terrainCoding", "infraCoding"))
-        assertEquals(xmlCodeProperty, featureTypeCode?.value)
+        assertEquals(xmlCodeProperty?.let(::FeatureTypeCode), featureTypeCode)
     }
 
     private fun assertProfilesMatch(imProfile: InfraModelProfile, gvtProfile: GeometryProfile) {
@@ -572,7 +574,7 @@ class InfraModelParsingIT @Autowired constructor(
                 assertEquals(parseNullableBigDecimal(xmlKmPosts[i].staBack), gvtKmPostElement.staBack)
                 assertEquals(parseNullableBigDecimal(xmlKmPosts[i].staAhead), gvtKmPostElement.staAhead)
                 assertEquals(parseNullableBigDecimal(xmlKmPosts[i].staInternal), gvtKmPostElement.staInternal)
-                assertEquals(parseKmNumber(xmlKmPosts[i].desc), gvtKmPostElement.kmNumber)
+                assertEquals(KmNumber(xmlKmPosts[i].desc), gvtKmPostElement.kmNumber)
 
                 val gvtKmPostLocation: Point? = gvtKmPostElement.location
                 val xmlKmPostPoint = xmlKmPosts[i].feature?.let { f -> parseFeatureCoordinates(f) }

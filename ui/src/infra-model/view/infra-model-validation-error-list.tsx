@@ -29,15 +29,11 @@ const createErrorRow = (errorType: ErrorType, message: string, index: number) =>
         <InfoboxContent key={index}>
             <InfoboxRow>
                 <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '5px 0',
-                    }}>
-                    <div style={{ minWidth: '30px' }}>
+                    className={styles['infra-model-upload-error__row']}>
+                    <div className={styles['infra-model-upload-error__icon']}>
                         <Icon color={IconColor.INHERIT} size={IconSize.MEDIUM} />
                     </div>
-                    <div style={{ marginLeft: '15px' }}>{message}</div>
+                    <div className={styles['infra-model-upload-error__message']}>{message}</div>
                 </div>
             </InfoboxRow>
         </InfoboxContent>

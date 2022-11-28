@@ -11,6 +11,7 @@ import {
 import { createDelegates } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
 import { deleteTrackNumber } from 'track-layout/track-layout-api';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type TrackNumberDeleteConfirmationDialogProps = {
     id: LayoutTrackNumberId;
@@ -56,7 +57,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
                 title={t('tool-panel.track-number.delete-dialog.delete-draft-confirm')}
                 variant={DialogVariant.DARK}
                 allowClose={false}
-                style={{ maxWidth: '250px' }}
+                className={dialogStyles['dialog--narrow']}
                 footerContent={
                     <React.Fragment>
                         <Button onClick={onCancel} variant={ButtonVariant.SECONDARY}>

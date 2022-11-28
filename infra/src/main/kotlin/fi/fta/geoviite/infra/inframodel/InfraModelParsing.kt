@@ -41,9 +41,9 @@ private const val SCHEMA_LOCATION = "/xml/inframodel.xsd"
 const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
 
-data class ParsingError(private val key: String) : ValidationError {
+data class ParsingError(override val localizationKey: LocalizationKey) : ValidationError {
+    constructor(key: String) : this(LocalizationKey(key))
     override val errorType = ErrorType.PARSING_ERROR
-    override val localizationKey = LocalizationKey(key)
 }
 
 private val jaxbContext: JAXBContext by lazy {

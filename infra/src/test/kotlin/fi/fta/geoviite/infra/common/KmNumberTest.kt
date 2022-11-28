@@ -23,8 +23,8 @@ class KmNumberTest {
     fun parsingWorks() {
         assertEquals(TrackMeter(KmNumber(704), 85.123, 3), TrackMeter(704, 85.123, 3))
         assertEquals(TrackMeter(KmNumber(704), 85.123, 3), TrackMeter("0704", 85.123, 3))
-        assertEquals(TrackMeter(KmNumber(704), 85.123, 3), TrackMeter.create("0704+85.123"))
-        assertEquals(TrackMeter(KmNumber(704, "B"), 85.123, 3), TrackMeter.create("0704B+85.123"))
+        assertEquals(TrackMeter(KmNumber(704), 85.123, 3), TrackMeter("0704+85.123"))
+        assertEquals(TrackMeter(KmNumber(704, "B"), 85.123, 3), TrackMeter("0704B+85.123"))
     }
 
     @Test
@@ -124,23 +124,23 @@ class KmNumberTest {
         assertEquals("0001+0002", TrackMeter(1, 1.523, 0).toString())
         assertEquals("0001+0001.111", TrackMeter(1, 1.111111, 3).toString())
         assertEquals("9999+9999.999999", TrackMeter(9999, 9999.999999, 6).toString())
-        assertEquals("1234+0123.45", TrackMeter.create("1234+123.45").toString())
-        assertEquals("1234+1234.56", TrackMeter.create("1234+1234.56").toString())
-        assertEquals("0000+0000.000", TrackMeter.create("0000+0000.000").toString())
-        assertEquals("0000+0000", TrackMeter.create("0000+0000").toString())
+        assertEquals("1234+0123.45", TrackMeter("1234+123.45").toString())
+        assertEquals("1234+1234.56", TrackMeter("1234+1234.56").toString())
+        assertEquals("0000+0000.000", TrackMeter("0000+0000.000").toString())
+        assertEquals("0000+0000", TrackMeter("0000+0000").toString())
     }
 
     @Test
     fun addressRangesWork() {
-        assertTrue(TrackMeter.create("0001+0002.0") in TrackMeter.create("0001+0002")..TrackMeter.create("0001+0003"))
-        assertTrue(TrackMeter.create("0001+0002.521") in TrackMeter.create("0001+0002")..TrackMeter.create("0001+0003"))
-        assertTrue(TrackMeter.create("0001+0003.0") in TrackMeter.create("0001+0002")..TrackMeter.create("0001+0003"))
-        assertTrue(TrackMeter.create("0001+0002") in TrackMeter.create("0001+0002.000")..TrackMeter.create("0001+0003.000"))
-        assertTrue(TrackMeter.create("0001+0003") in TrackMeter.create("0001+0002.000")..TrackMeter.create("0001+0003.000"))
+        assertTrue(TrackMeter("0001+0002.0") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
+        assertTrue(TrackMeter("0001+0002.521") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
+        assertTrue(TrackMeter("0001+0003.0") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
+        assertTrue(TrackMeter("0001+0002") in TrackMeter("0001+0002.000")..TrackMeter("0001+0003.000"))
+        assertTrue(TrackMeter("0001+0003") in TrackMeter("0001+0002.000")..TrackMeter("0001+0003.000"))
 
-        assertFalse(TrackMeter.create("0001+0001.999") in TrackMeter.create("0001+0002")..TrackMeter.create("0001+0003"))
-        assertFalse(TrackMeter.create("0001+0003.001") in TrackMeter.create("0001+0002")..TrackMeter.create("0001+0003"))
-        assertFalse(TrackMeter.create("0001+0001.999") in TrackMeter.create("0001+0002.0")..TrackMeter.create("0001+0003.0"))
-        assertFalse(TrackMeter.create("0001+0003.001") in TrackMeter.create("0001+0002.0")..TrackMeter.create("0001+0003.0"))
+        assertFalse(TrackMeter("0001+0001.999") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
+        assertFalse(TrackMeter("0001+0003.001") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
+        assertFalse(TrackMeter("0001+0001.999") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
+        assertFalse(TrackMeter("0001+0003.001") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
     }
 }

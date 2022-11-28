@@ -4,45 +4,41 @@
 
 .publication-details {
     &__title {
-        @include typography-heading-small;
+        @include typography-body;
 
-        display: flex;
-        flex-direction: row;
-        width: 100vw;
-        color: $color-black-default;
+        color: $color-black-lighter;
         background-color: $color-white-dark;
         box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
         margin-bottom: 8px;
         padding: 12px 0 8px 20px;
-        line-height: 20px;
-        font-size: 14px;
+    }
+
+    &__publication-time {
+        white-space: pre;
     }
 
     &__publication {
         display: flex;
+        flex: 1;
         flex-direction: column;
     }
 
     &__footer {
         @include shadow-8dp;
-        display: grid;
-        grid-template-columns: auto auto;
-        grid-template-rows: 100px;
-        grid-gap: 24px;
+        display: flex;
         align-items: center;
-        align-content: center;
         justify-content: center;
-        padding: 0 10px;
+
+        height: 68px;
     }
 
     &__failure-notification {
         display: flex;
+        margin-right: 24px;
 
         &__content {
             @include typography-body-strong;
-            margin-left: 16px;
-            margin-top: auto;
-            margin-bottom: auto;
+            margin: auto 0 auto 16px;
         }
 
         &--info {

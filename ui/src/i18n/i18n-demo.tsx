@@ -14,7 +14,6 @@ export const I18nDemo: React.FC = () => {
         <div>
             <select
                 className="custom-select"
-                style={{ width: 200 }}
                 onChange={changeLanguageHandler}>
                 <option value="en">English</option>
                 <option value="fi">Finnish</option>

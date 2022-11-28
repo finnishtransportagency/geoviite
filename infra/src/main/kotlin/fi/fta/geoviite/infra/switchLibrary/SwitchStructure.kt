@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.switchLibrary
 
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -96,7 +97,7 @@ fun parseSwitchType(typeName: String): SwitchTypeParts? {
     )
 }
 
-data class SwitchType @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(val typeName: String) {
+data class SwitchType @JsonCreator(mode = DELEGATING) constructor(val typeName: String) {
     val parts = parseSwitchType(typeName)
         ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
 

@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.DataType
-import fi.fta.geoviite.infra.common.IndexedId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.createPostgis3DMLineString
@@ -210,31 +207,11 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             LayoutSegmentMetadata(
                 startPoint = rs.getPoint("start_point_x", "start_point_y"),
                 endPoint = rs.getPoint("end_point_x", "end_point_y"),
-                alignmentName = rs.getString("alignment_name"),
+                alignmentName = rs.getString("alignment_name")?.let(::AlignmentName),
                 planTime = rs.getInstantOrNull("plan_time"),
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
-                fileName = rs.getString("file_name")?.let { FileName(it) },
+                fileName = rs.getString("file_name")?.let(::FileName),
                 originalSrid = rs.getSridOrNull("srid")
-            )
-        }
-    }
-
-    fun getSegmentPoints(
-        rs: ResultSet,
-        geometryColumn: String,
-        heightColumn: String,
-        cantColumn: String,
-    ): List<LayoutPoint> {
-        val geometryValues = parse3DMLineString(rs.getString(geometryColumn))
-        val heightValues = rs.getNullableDoubleListOrNullFromString(heightColumn)
-        val cantValues = rs.getNullableDoubleListOrNullFromString(cantColumn)
-        return geometryValues.mapIndexed { index, coordinate ->
-            LayoutPoint(
-                x = coordinate.x,
-                y = coordinate.y,
-                z = heightValues?.getOrNull(index),
-                m = coordinate.m,
-                cant = cantValues?.getOrNull(index)
             )
         }
     }
@@ -333,5 +310,25 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             )
             jdbcTemplate.update(sqlDelete, paramsDelete)
         }
+    }
+}
+
+fun getSegmentPoints(
+    rs: ResultSet,
+    geometryColumn: String,
+    heightColumn: String? = null,
+    cantColumn: String? = null,
+): List<LayoutPoint> {
+    val geometryValues = parse3DMLineString(rs.getString(geometryColumn))
+    val heightValues = heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
+    val cantValues = cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
+    return geometryValues.mapIndexed { index, coordinate ->
+        LayoutPoint(
+            x = coordinate.x,
+            y = coordinate.y,
+            z = heightValues?.getOrNull(index),
+            m = coordinate.m,
+            cant = cantValues?.getOrNull(index)
+        )
     }
 }

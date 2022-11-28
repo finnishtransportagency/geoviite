@@ -31,7 +31,7 @@ fun createGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>, location:
         staBack = null,
         staAhead = BigDecimal("-148.729000"),
         staInternal = BigDecimal("-148.729000"),
-        kmNumber = parseKmNumber(kmNumber),
+        kmNumber = KmNumber(kmNumber),
         description = PlanElementName("0"),
         state = PlanState.PROPOSED,
         location = location,
@@ -40,7 +40,7 @@ fun createGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>, location:
 
 fun trackLayoutKmPost(kmNumber: String, trackNumber: DomainId<TrackLayoutTrackNumber>, point: Point) =
     TrackLayoutKmPost(
-        kmNumber = parseKmNumber(kmNumber),
+        kmNumber = KmNumber(kmNumber),
         location = point,
         trackNumberId = trackNumber,
         sourceId = null,
@@ -152,7 +152,7 @@ fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: S
     sourceId = null,
     name = SwitchName(name),
     stateCategory = LayoutStateCategory.EXISTING,
-    switchStructureId = switchStructureYV60_300_1_9().id as IntId,
+    switchStructureId = switchStructure.id as IntId,
     joints = jointPoints.map { point -> switchJoint(point) },
     trapPoint = false,
     ownerId = switchOwnerVayla().id,
@@ -227,7 +227,7 @@ fun createSwitchAndAligments(switchName: String, switchStructure: SwitchStructur
 }
 
 fun switchStructureToGeometryAlignment(switchName: String, switchStructure: SwitchStructure, switchAngle: Double, switchOrig: Point, geometrySwitch: GeometrySwitch, trackNumberId: IntId<TrackLayoutTrackNumber>): List<GeometryAlignment> {
-    return switchStructure.alignments.mapIndexed() { index, switchAlignment ->
+    return switchStructure.alignments.mapIndexed { index, switchAlignment ->
         GeometryAlignment(
             name = AlignmentName("$index-$switchName"),
             description = FreeText("$index switch alignment"),
@@ -251,7 +251,7 @@ private fun alignmentElementsFromSwitchAlignment(switchAlignment: SwitchAlignmen
         SwitchJointData(switchId, startSwitchJoint, endSwitchJoint)
     }
 
-    return switchAlignment.elements.mapIndexed() { index, switchElement ->
+    return switchAlignment.elements.mapIndexed { index, switchElement ->
         geometryLine(
             name = "element-$index",
             oidPart = "$index",
@@ -264,7 +264,7 @@ private fun alignmentElementsFromSwitchAlignment(switchAlignment: SwitchAlignmen
     }
 }
 
-private fun matchSwitchDataToElement(switchElement: SwitchElement, switchJointData: List<SwitchJointData>, switchId: DomainId<GeometrySwitch>): SwitchData? {
+private fun matchSwitchDataToElement(switchElement: SwitchElement, switchJointData: List<SwitchJointData>, switchId: DomainId<GeometrySwitch>): SwitchData {
     try {
         return switchJointData.first { data -> data.isInsideSwitchJoint(switchElement)  }
             .let { SwitchData(switchId, it.startSwitchJoint.number, it.endSwitchJoint.number )}

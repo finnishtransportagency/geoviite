@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
+import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertEquals
@@ -808,7 +809,7 @@ class PublishValidationTest {
 
     private fun assertContainsError(contains: Boolean, errors: List<PublishValidationError>, error: String) {
         val message = "Expected to ${if (contains) "have" else "not have"} error: expected=$error actual=$errors"
-        assertEquals(contains, errors.any { e -> e.localizationKey.value == error }, message)
+        assertEquals(contains, errors.any { e -> e.localizationKey == LocalizationKey(error) }, message)
     }
 
     private fun simpleGeocodingContext(referenceLinePoints: List<LayoutPoint>): GeocodingContext =

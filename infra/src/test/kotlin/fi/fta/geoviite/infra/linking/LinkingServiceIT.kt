@@ -172,6 +172,7 @@ class LinkingServiceIT @Autowired constructor(
             IntId(5),
             LayoutStateCategory.EXISTING,
             ownerId = IntId(3),
+            trapPoint = null,
         )
         val switchId = switchLinkingService.insertSwitch(switch)
         val fetchedSwitch = switchService.getDraft(switchId)

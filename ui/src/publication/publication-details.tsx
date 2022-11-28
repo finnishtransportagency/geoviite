@@ -1,18 +1,14 @@
 import * as React from 'react';
 import PublicationTable from 'publication/publication-table';
 import { getPublication } from 'publication/publication-api';
-import {
-    PublicationDetails,
-    PublicationListingItem,
-    ratkoPushFailed,
-    RatkoPushStatus,
-} from 'publication/publication-model';
+import { PublicationDetails, PublicationListingItem } from 'publication/publication-model';
 import styles from './publication-details.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
-import RatkoPublishButton from 'publication/ratko-publish-button';
+import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
+import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
 
 export type PublicationDetailsProps = {
     publication: PublicationListingItem;
@@ -20,24 +16,22 @@ export type PublicationDetailsProps = {
     anyFailed: boolean;
 };
 
-
 const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     publication,
     onPublicationUnselected,
     anyFailed,
 }) => {
-
-    const [publicationDetails, setPublicationDetails] = React.useState<PublicationDetails | null >();
+    const [publicationDetails, setPublicationDetails] = React.useState<PublicationDetails | null>();
     const [waitingAfterFail, setWaitingAfterFail] = React.useState<boolean>();
     const { t } = useTranslation();
 
-
     React.useEffect(() => {
         let cancel = false;
-        function fetchPublications () {
-            getPublication(publication.id).then(result => {
+
+        function fetchPublications() {
+            getPublication(publication.id).then((result) => {
                 if (!cancel) {
-                    setPublicationDetails(result)
+                    setPublicationDetails(result);
                 }
             });
         }
@@ -48,7 +42,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
 
         return () => {
             cancel = true;
-            clearInterval(intervalTimer)
+            clearInterval(intervalTimer);
         };
     }, []);
 
@@ -61,7 +55,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                     }}>
                     {t('frontpage.frontpage-link')}
                 </Link>
-                <span style={{ whiteSpace: 'pre' }}>
+                <span className={styles['publication-details__publication-time']}>
                     {publicationDetails && ' > ' + formatDateFull(publicationDetails.publishTime)}
                 </span>
             </div>
@@ -82,7 +76,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                 <footer className={styles['publication-details__footer']}>
                     {ratkoPushFailed(publication.status) && (
                         <div className={styles['publication-details__failure-notification']}>
-                            <div
+                            <span
                                 className={
                                     styles['publication-details__failure-notification--error']
                                 }>
@@ -90,29 +84,29 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                                     color={IconColor.INHERIT}
                                     size={IconSize.MEDIUM}
                                 />
-                            </div>
-                            <div
+                            </span>
+                            <span
                                 className={
                                     styles['publication-details__failure-notification__content']
                                 }>
                                 {t('publishing.publish-issue')}
-                            </div>
+                            </span>
                         </div>
                     )}
                     {waitingAfterFail && (
                         <div className={styles['publication-details__failure-notification']}>
-                            <div
+                            <span
                                 className={
                                     styles['publication-details__failure-notification--info']
                                 }>
                                 <Icons.Denied color={IconColor.INHERIT} size={IconSize.MEDIUM} />
-                            </div>
-                            <div
+                            </span>
+                            <span
                                 className={
                                     styles['publication-details__failure-notification__content']
                                 }>
                                 {t('publishing.not-published')}
-                            </div>
+                            </span>
                         </div>
                     )}
                     <RatkoPublishButton />
