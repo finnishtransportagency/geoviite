@@ -4,7 +4,6 @@ import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
 import { PublicationListingItem } from 'publication/publication-model';
 import { getPublications } from 'publication/publication-api';
-import { useTranslation } from 'react-i18next';
 import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
