@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.util.assertSanitized
 private val trackNumberLength = 2..30
 private val trackNumberRegex = Regex("^[äÄöÖåÅA-Za-z0-9 ]+\$")
 
-data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(private val value: String)
+data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(val value: String)
     : Comparable<TrackNumber>, CharSequence by value {
     init { assertSanitized<TrackNumber>(value, trackNumberRegex, trackNumberLength, allowBlank = false) }
 
