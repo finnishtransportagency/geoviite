@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.math
 
-import org.springframework.core.convert.converter.Converter
 import kotlin.math.*
 
 
@@ -97,6 +96,9 @@ interface IPoint {
 }
 
 data class Point(override val x: Double, override val y: Double) : IPoint {
+    constructor(values: Pair<Double, Double>) : this(values.first, values.second)
+    constructor(value: String) : this(parsePointPair(value))
+
     init {
         require(x.isFinite() && y.isFinite()) { "Cannot create coordinate of: x=$x y=$y" }
     }
@@ -116,15 +118,10 @@ fun minPoint(points: List<Point>): Point =
 fun maxPoint(points: List<Point>): Point =
     points.reduceRight { acc, point -> Point(max(acc.x, point.x), max(acc.y, point.y)) }
 
-
-class StringToPointConverter : Converter<String, Point> {
-    override fun convert(source: String): Point = stringToPoint(source)
-}
-
-fun stringToPoint(value: String): Point {
+fun parsePointPair(value: String): Pair<Double, Double> {
     val values = value.split("_").map(String::toDouble)
     if (values.size != 2) throw IllegalArgumentException("Invalid point (expected 2 numbers): \"$value\"")
-    return Point(values[0], values[1])
+    return values[0] to values[1]
 }
 
 interface IPoint3DM : IPoint {

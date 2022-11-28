@@ -16,7 +16,7 @@ import java.math.RoundingMode
 const val GEOVIITE_NAME = "GEOVIITE"
 
 data class RatkoOid<T>(val id: String) {
-    constructor(oid: Oid<*>) : this(oid.stringValue)
+    constructor(oid: Oid<*>) : this(oid.toString())
 
     override fun toString() = id
 }
@@ -70,7 +70,7 @@ data class RatkoTrackMeter(
         @JvmStatic
         @JsonCreator
         fun create(kmM: String): RatkoTrackMeter {
-            val trackMeter = TrackMeter.create(kmM)
+            val trackMeter = TrackMeter(kmM)
             return RatkoTrackMeter(
                 kmNumber = trackMeter.kmNumber,
                 meters = trackMeter.meters.let { m ->

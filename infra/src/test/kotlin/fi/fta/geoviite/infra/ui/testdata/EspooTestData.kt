@@ -52,7 +52,7 @@ class EspooTestData {
                 switchOrig = BASE_POINT + Point(x = 10.0, y = 130.0),
                 trackNumberId = trackLayoutTrackNumberId
             )
-            GEO_SWITCH_1_ALIGNMENT_NAMES = switchAndAlignments1.second.map{ it.name.value }
+            GEO_SWITCH_1_ALIGNMENT_NAMES = switchAndAlignments1.second.map{ it.name.toString() }
 
             val switchAndAlignments2 = createSwitchAndAligments(
                 switchName = "${GEO_SWITCH_1_STRUCTURE.type.typeName.substringBefore("-")}-2",
@@ -62,7 +62,7 @@ class EspooTestData {
                 trackNumberId = trackLayoutTrackNumberId
             )
 
-            GEO_SWITCH_2_ALIGNMENT_NAMES = switchAndAlignments2.second.map { it.name.value }
+            GEO_SWITCH_2_ALIGNMENT_NAMES = switchAndAlignments2.second.map { it.name.toString() }
 
             return GeometryPlan(
                 project = createProject(GEOMETRY_PLAN_NAME),

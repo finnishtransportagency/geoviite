@@ -15,7 +15,6 @@ import java.time.ZoneOffset
 @Service
 class TrackLayoutHistoryDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    val layoutAlignmentDao: LayoutAlignmentDao,
 ) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberAtMoment(
@@ -150,7 +149,7 @@ class TrackLayoutHistoryDao(
                 sourceId = null,
                 externalId = rs.getOidOrNull("external_id"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                name = AlignmentName(rs.getString("name")),
+                name = rs.getString("name").let(::AlignmentName),
                 description = rs.getFreeText("description"),
                 type = rs.getEnum("type"),
                 state = rs.getEnum("state"),
@@ -258,7 +257,7 @@ class TrackLayoutHistoryDao(
                 id = rs.getIndexedId("alignment_id", "segment_index"),
                 sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
                 sourceStart = rs.getDoubleOrNull("source_start"),
-                points = layoutAlignmentDao.getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
+                points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
                 resolution = rs.getInt("resolution"),
                 switchId = rs.getIntIdOrNull("switch_id"),
                 startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),

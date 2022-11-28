@@ -27,5 +27,5 @@ fun NamedParameterJdbcTemplate.setUser() = setUser(getCurrentUserName())
 
 fun NamedParameterJdbcTemplate.setUser(userName: UserName) {
     // set doesn't work with parameters, but it's validated in UserName constructor
-    update("set local geoviite.edit_user = '${userName.value}';", mapOf<String, Any>())
+    update("set local geoviite.edit_user = '$userName';", mapOf<String, Any>())
 }

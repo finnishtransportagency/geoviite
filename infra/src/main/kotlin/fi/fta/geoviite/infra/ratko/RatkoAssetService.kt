@@ -117,7 +117,7 @@ class RatkoAssetService @Autowired constructor(
             existingRatkoLocations
                 .map { location ->
                     location.nodecollection.nodes
-                        .filter { node -> linkedLocationTracks.any { it.stringValue == node.point.locationtrack?.id } }
+                        .filter { node -> linkedLocationTracks.any { it.toString() == node.point.locationtrack?.id } }
                         .filter { node -> node.point.state?.name == RatkoPointStates.VALID }
                         .filterNot { node ->
                             jointChanges.any { jointChange ->
@@ -129,7 +129,7 @@ class RatkoAssetService @Autowired constructor(
                                     "Cannot push switch changes with missing location track oid ${jointChange.locationTrackExternalId}"
                                 }
 
-                                jointChange.locationTrackExternalId.stringValue == node.point.locationtrack?.id
+                                jointChange.locationTrackExternalId.toString() == node.point.locationtrack?.id
                                         && nodeType == node.nodeType
                             }
                         }
