@@ -270,7 +270,6 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     @Cacheable(CACHE_LAYOUT_SWITCH, sync = true)
-    @Transactional
     override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
         val sql = """
             select 

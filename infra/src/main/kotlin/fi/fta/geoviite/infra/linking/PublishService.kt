@@ -134,7 +134,10 @@ class PublishService @Autowired constructor(
         )
     }
 
-    // TODO: Transactions
+    /**
+     * Note: this is intentionally not transactional:
+     * each ID is fetched from ratko and becomes an object there -> we want to store it, even if the rest fail
+     */
     fun updateExternalId(request: PublishRequest) {
         logger.serviceCall("updateExternalId", "request" to request)
 

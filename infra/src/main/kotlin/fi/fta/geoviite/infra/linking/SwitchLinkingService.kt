@@ -1088,6 +1088,7 @@ class SwitchLinkingService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    @Transactional(readOnly = true)
     fun getSuggestedSwitches(bbox: BoundingBox): List<SuggestedSwitch> {
         logger.serviceCall("getSuggestedSwitches", "bbox" to bbox)
         val missing = linkingDao.getMissingLayoutSwitchLinkings(bbox)
@@ -1120,6 +1121,7 @@ class SwitchLinkingService @Autowired constructor(
         return result
     }
 
+    @Transactional(readOnly = true)
     fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? {
         val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
         val alignmentSearchAreaSize = 2.0
@@ -1144,6 +1146,7 @@ class SwitchLinkingService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun getSuggestedSwitch(createParams: SuggestedSwitchCreateParams): SuggestedSwitch? {
         logger.serviceCall("getSuggestedSwitch", "createParams" to createParams)
 
@@ -1199,7 +1202,7 @@ class SwitchLinkingService @Autowired constructor(
         }
     }
 
-    fun getLocationTracksLinkedToSwitch(
+    private fun getLocationTracksLinkedToSwitch(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>
     ): List<Pair<LocationTrack, LayoutAlignment>> {
@@ -1209,6 +1212,7 @@ class SwitchLinkingService @Autowired constructor(
             }
     }
 
+    @Transactional(readOnly = true)
     fun getSwitchJointConnections(
         publishType: PublishType,
         switchId: IntId<TrackLayoutSwitch>
@@ -1227,7 +1231,7 @@ class SwitchLinkingService @Autowired constructor(
             }
     }
 
-    fun getTopologySwitchJointConnections(
+    private fun getTopologySwitchJointConnections(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>
     ): List<TrackLayoutSwitchJointConnection> {

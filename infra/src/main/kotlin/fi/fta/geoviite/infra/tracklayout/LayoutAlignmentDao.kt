@@ -23,7 +23,6 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
     @Cacheable(CACHE_LAYOUT_ALIGNMENT, sync = true)
-    @Transactional
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql = """
             select id, geometry_alignment_id

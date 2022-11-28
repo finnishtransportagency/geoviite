@@ -11,10 +11,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
+@Transactional(readOnly = true)
 @Service
 class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    @Transactional
     fun fetchTriangles(boundingPolygon: List<Point>): List<HeightTriangle> {
         val sql = """
             select tn.coord1_id, 
