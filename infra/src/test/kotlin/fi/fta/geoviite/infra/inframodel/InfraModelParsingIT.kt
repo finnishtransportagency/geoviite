@@ -14,8 +14,8 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
-import org.apache.commons.io.ByteOrderMark
 import fi.fta.geoviite.infra.util.FreeText
+import org.apache.commons.io.ByteOrderMark
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -42,14 +42,33 @@ class InfraModelParsingIT @Autowired constructor(
 
     @Test
     fun importingBOMFileWithISOXmlEncodingWorks() {
-        val testFileWithBom = (ByteOrderMark.UTF_BOM + "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>").toByteArray()
+        val isoTestFileWithBom = (ByteOrderMark.UTF_BOM + "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>").toByteArray()
+        assertDoesNotThrow { xmlBytesToString(isoTestFileWithBom) }
+    }
+
+    @Test
+    fun importingUTF16FileWithBOMWorks() {
+        val UTF16file = ByteOrderMark.UTF_16BE.bytes +
+                "<?xml version=\"1.0\" encoding=\"UTF-16\"?>".toByteArray(charset = Charsets.UTF_16BE)
+        assertDoesNotThrow { xmlBytesToString(UTF16file) }
+    }
+
+    @Test
+    fun importingUSASCIIFileWorks() {
+        val asciiTestFile = "<?xml version=\"1.0\" encoding=\"ASCII\"?>".toByteArray(charset = Charsets.US_ASCII)
+        assertDoesNotThrow { xmlBytesToString(asciiTestFile) }
+    }
+
+    @Test
+    fun importingUTF8FileWorks() {
+        val testFileWithBom = (ByteOrderMark.UTF_BOM + "<?xml version=\"1.0\" encoding=\"UTF-8\"?>").toByteArray()
         assertDoesNotThrow { xmlBytesToString(testFileWithBom) }
     }
 
     @Test
-    fun importingBOMlessFileWorks() {
-        val testFileWithBom = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>".toByteArray()
-        assertDoesNotThrow { xmlBytesToString(testFileWithBom) }
+    fun importingISOFileWorks() {
+        val isoFile = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>".toByteArray()
+        assertDoesNotThrow { xmlBytesToString(isoFile) }
     }
 
     @Test

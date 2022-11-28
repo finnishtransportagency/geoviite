@@ -186,8 +186,8 @@ fun mapBomToCharset(bom: ByteOrderMark) =
     }
 
 fun encodingsFromXmlStream(stream: InputStream) =
-    XMLInputFactory.newInstance().createXMLStreamReader(stream).let {
-        xmlStreamReader -> xmlStreamReader.encoding to xmlStreamReader.characterEncodingScheme
+    XMLInputFactory.newInstance().createXMLStreamReader(stream).let { xmlStreamReader ->
+        xmlStreamReader.encoding to xmlStreamReader.characterEncodingScheme
     }
 
 fun getEncodingAndBom(bytes: ByteArray): Pair<Charset, Boolean> {
