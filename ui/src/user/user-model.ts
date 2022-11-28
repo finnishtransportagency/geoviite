@@ -11,6 +11,7 @@ export type UserDetails = {
     firstName: string | null;
     lastName: string | null;
     organization: string | null;
+    userName: string;
 };
 
 export type Role = {
