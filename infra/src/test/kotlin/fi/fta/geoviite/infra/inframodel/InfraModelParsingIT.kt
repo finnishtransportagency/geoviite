@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import org.apache.commons.io.ByteOrderMark
@@ -513,7 +513,7 @@ class InfraModelParsingIT @Autowired constructor(
 
     private fun assertTrackNumbersMatch(
         infraModelAlignmentGroups: List<InfraModelAlignmentGroup>,
-        trackNumber: TrackLayoutTrackNumber?,
+        trackNumber: LayoutTrackNumber?,
     ) {
         assertNotNull(trackNumber)
         assertEquals(TrackNumber(infraModelAlignmentGroups.first().name), trackNumber?.number)

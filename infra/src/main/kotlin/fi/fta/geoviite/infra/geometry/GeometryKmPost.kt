@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import java.math.BigDecimal
 
 data class GeometryKmPost(
@@ -18,6 +18,6 @@ data class GeometryKmPost(
     val description: PlanElementName,
     val state: PlanState?,
     val location: Point?,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    val trackNumberId: IntId<LayoutTrackNumber>?,
     val id: DomainId<GeometryKmPost> = StringId(),
 )

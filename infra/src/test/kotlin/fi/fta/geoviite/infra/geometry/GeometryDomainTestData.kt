@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.common.RotationDirection.CW
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
@@ -225,13 +225,13 @@ fun biquadraticParabola(
 )
 
 fun plan(
-    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    trackNumberId: IntId<LayoutTrackNumber> = IntId(1),
     srid: Srid = Srid(3879),
     vararg alignments: GeometryAlignment = arrayOf(geometryAlignment(trackNumberId))
 ): GeometryPlan = plan(trackNumberId, srid, alignments.toList())
 
 fun plan(
-    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    trackNumberId: IntId<LayoutTrackNumber> = IntId(1),
     srid: Srid = Srid(3879),
     alignments: List<GeometryAlignment> = listOf(geometryAlignment(trackNumberId)),
     switches: List<GeometrySwitch> = listOf(),
@@ -298,12 +298,12 @@ fun geometryElements(): List<GeometryElement> {
 }
 
 fun geometryAlignment(
-    trackNumberId: DomainId<TrackLayoutTrackNumber>,
+    trackNumberId: DomainId<LayoutTrackNumber>,
     vararg elements: GeometryElement = geometryElements().toTypedArray(),
 ) = geometryAlignment(trackNumberId, elements.toList())
 
 fun geometryAlignment(
-    trackNumberId: DomainId<TrackLayoutTrackNumber>? = null,
+    trackNumberId: DomainId<LayoutTrackNumber>? = null,
     elements: List<GeometryElement> = geometryElements(),
     profile: GeometryProfile? = null,
     cant: GeometryCant? = null,
@@ -320,7 +320,7 @@ fun geometryAlignment(
     trackNumberId = trackNumberId,
 )
 
-fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
+fun kmPosts(trackNumberId: IntId<LayoutTrackNumber>) = listOf(
     GeometryKmPost(
         staBack = null,
         staAhead = BigDecimal("-148.729000"),

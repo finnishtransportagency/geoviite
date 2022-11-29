@@ -47,7 +47,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     fun deletingDraftOnlyTrackNumberDeletesItAndReferenceLineAndAlignment() {
         val items = createTrackNumberAndReferenceLineAndAlignment()
         Assertions.assertNotNull(items.second.first.alignmentVersion)
-        val trackNumberId = items.first.id as IntId<TrackLayoutTrackNumber>
+        val trackNumberId = items.first.id as IntId<LayoutTrackNumber>
 
         Assertions.assertDoesNotThrow { trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumberId) }
         assertThrows<NoSuchEntityException> {
@@ -62,15 +62,15 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     @Test
     fun tryingToDeletePublishedTrackNumberThrows() {
         val items = createTrackNumberAndReferenceLineAndAlignment()
-        trackNumberService.publish(items.first.id as IntId<TrackLayoutTrackNumber>)
+        trackNumberService.publish(items.first.id as IntId<LayoutTrackNumber>)
         referenceLineService.publish(items.second.first.id as IntId<ReferenceLine>)
 
         assertThrows<DeletingFailureException> {
-            trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(items.first.id as IntId<TrackLayoutTrackNumber>)
+            trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(items.first.id as IntId<LayoutTrackNumber>)
         }
     }
 
-    fun createTrackNumberAndReferenceLineAndAlignment(): Pair<TrackLayoutTrackNumber, Pair<ReferenceLine, LayoutAlignment>> {
+    fun createTrackNumberAndReferenceLineAndAlignment(): Pair<LayoutTrackNumber, Pair<ReferenceLine, LayoutAlignment>> {
         val saveRequest = TrackNumberSaveRequest(
             getUnusedTrackNumber(),
             FreeText(trackNumberDescription),
@@ -84,7 +84,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
         val referenceLineLayoutAlignment = referenceLineService.getByTrackNumberWithAlignment(
             PublishType.DRAFT,
-            trackNumber.id as IntId<TrackLayoutTrackNumber>
+            trackNumber.id as IntId<LayoutTrackNumber>
         )!! // Always exists, since we just created it
 
         return trackNumber to referenceLineLayoutAlignment

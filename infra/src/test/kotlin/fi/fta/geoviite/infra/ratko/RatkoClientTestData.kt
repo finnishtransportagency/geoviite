@@ -59,8 +59,8 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
     ) to alignment
 }
 
-fun getTrackNumber(): TrackLayoutTrackNumber {
-    return TrackLayoutTrackNumber(
+fun getTrackNumber(): LayoutTrackNumber {
+    return LayoutTrackNumber(
         number = TrackNumber("0415"),
         description = FreeText("Pännäinen - Pietarsaari"),
         state = LayoutState.IN_USE,

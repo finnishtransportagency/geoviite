@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.model.*
@@ -22,7 +24,7 @@ class RatkoRouteNumberService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushTrackNumberChangesToRatko(trackNumberChanges: List<TrackNumberChange>): List<Oid<TrackLayoutTrackNumber>> {
+    fun pushTrackNumberChangesToRatko(trackNumberChanges: List<TrackNumberChange>): List<Oid<LayoutTrackNumber>> {
         return trackNumberChanges
             .map { change -> change to trackNumberService.getOrThrow(PublishType.OFFICIAL, change.trackNumberId) }
             .sortedBy { sortByDeletedStateFirst(it.second.state) }
@@ -53,7 +55,7 @@ class RatkoRouteNumberService @Autowired constructor(
         }
     }
 
-    private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber) {
+    private fun deleteRouteNumber(trackNumber: LayoutTrackNumber) {
         logger.serviceCall("deleteRouteNumber", "trackNumber" to trackNumber)
         requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid $trackNumber" }
 
@@ -75,7 +77,7 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun updateRouteNumber(
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         existingRatkoRouteNumber: RatkoRouteNumber,
         routeNumberChange: TrackNumberChange,
     ) {
@@ -140,7 +142,7 @@ class RatkoRouteNumberService @Autowired constructor(
             }
     }
 
-    private fun createRouteNumber(trackNumber: TrackLayoutTrackNumber) {
+    private fun createRouteNumber(trackNumber: LayoutTrackNumber) {
         logger.serviceCall("createRouteNumber", "trackNumber" to trackNumber)
 
         val addresses =
@@ -168,7 +170,7 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun updateRouteNumberProperties(
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         nodeCollection: RatkoNodes? = null
     ) {
         requireNotNull(trackNumber.externalId) { "Cannot update route number properties without oid $trackNumber" }

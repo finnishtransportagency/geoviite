@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutSwitchService @Autowired constructor(
     dao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
+    private val locationTrackService: LocationTrackService,
 ) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
     fun getSegmentSwitchJointConnections(
@@ -121,6 +122,64 @@ class LayoutSwitchService @Autowired constructor(
     override fun createDraft(item: TrackLayoutSwitch) = draft(item)
 
     override fun createPublished(item: TrackLayoutSwitch) = published(item)
+
+    @Transactional(readOnly = true)
+    fun getSwitchJointConnections(
+        publishType: PublishType,
+        switchId: IntId<TrackLayoutSwitch>
+    ): List<TrackLayoutSwitchJointConnection> {
+        logger.serviceCall(
+            "getSwitchJointConnections",
+            "publishType" to publishType,
+            "switchId" to switchId
+        )
+        val segment = getSegmentSwitchJointConnections(publishType, switchId)
+        val topological = getTopologySwitchJointConnections(publishType, switchId)
+        return (segment + topological)
+            .groupBy { joint -> joint.number }
+            .values.map { jointConnections ->
+                jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
+            }
+    }
+
+    private fun getTopologySwitchJointConnections(
+        publicationState: PublishType,
+        layoutSwitchId: IntId<TrackLayoutSwitch>
+    ): List<TrackLayoutSwitchJointConnection> {
+        val layoutSwitch = get(publicationState, layoutSwitchId)
+            ?: return listOf()
+        return getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
+            .flatMap { (locationTrack, layoutAlignment) ->
+                listOf(
+                    locationTrack.topologyStartSwitch to layoutAlignment.start,
+                    locationTrack.topologyEndSwitch to layoutAlignment.end
+                )
+                    .mapNotNull { (connection, point) ->
+                        if (connection == null || point == null || connection.switchId != layoutSwitchId) null else {
+                            layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
+                                TrackLayoutSwitchJointConnection(
+                                    connection.jointNumber,
+                                    listOf(TrackLayoutSwitchJointMatch(locationTrack.id as IntId, point.toPoint())),
+                                    listOf(),
+                                    joint.locationAccuracy
+                                )
+                            }
+                        }
+                    }
+            }
+    }
+
+    @Transactional(readOnly = true)
+    fun getLocationTracksLinkedToSwitch(
+        publicationState: PublishType,
+        layoutSwitchId: IntId<TrackLayoutSwitch>
+    ): List<Pair<LocationTrack, LayoutAlignment>> {
+        return dao.findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
+            .map { ids ->
+                locationTrackService.getWithAlignment(ids.rowVersion)
+            }
+    }
+
 }
 
 fun <T> associateByDistance(

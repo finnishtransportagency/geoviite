@@ -56,7 +56,7 @@ class BasicMapTestUI @Autowired constructor(
     lateinit var GEOMETRY_PLAN: GeometryPlan
     lateinit var WEST_REFERENCE_LINE: Pair<ReferenceLine, LayoutAlignment>
     lateinit var EAST_LAYOUT_SWITCH: TrackLayoutSwitch
-    lateinit var TRACK_NUMBER_WEST: TrackLayoutTrackNumber
+    lateinit var TRACK_NUMBER_WEST: LayoutTrackNumber
 
     @BeforeAll
     fun createTestData() {

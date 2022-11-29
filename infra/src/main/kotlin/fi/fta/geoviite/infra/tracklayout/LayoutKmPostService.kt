@@ -55,7 +55,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
 
     fun list(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
         logger.serviceCall("getKmPosts", "trackNumberId" to trackNumberId)
         return dao.fetchVersions(publishType, trackNumberId = trackNumberId).map(dao::fetch)
@@ -77,16 +77,19 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
             .filter { p -> (step <= 1 || (p.kmNumber.isPrimary() && p.kmNumber.number % step == 0)) }
     }
 
-    fun getKmPostExistsAtKmNumber(
+    fun getByKmNumber(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         kmNumber: KmNumber,
-    ): Boolean = list(publishType, trackNumberId).find { it.kmNumber == kmNumber } != null
+    ): TrackLayoutKmPost? {
+        logger.serviceCall("getByKmNumber", "trackNumberId" to trackNumberId, "kmNumber" to kmNumber)
+        return dao.fetchVersion(publishType, trackNumberId, kmNumber)?.let(dao::fetch)
+    }
 
     fun listNearbyOnTrackPaged(
         publishType: PublishType,
         location: Point,
-        trackNumberId: DomainId<TrackLayoutTrackNumber>,
+        trackNumberId: DomainId<LayoutTrackNumber>,
         offset: Int,
         limit: Int?,
     ): List<TrackLayoutKmPost> {
@@ -98,7 +101,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
             "offset" to offset,
             "limit" to limit
         )
-        val kmPosts = list(publishType, trackNumberId as IntId<TrackLayoutTrackNumber>)
+        val kmPosts = list(publishType, trackNumberId as IntId<LayoutTrackNumber>)
             .map { associateByDistance(it, location) { item -> item.location } }
 
         // Returns kmPosts with null location first, after that it compares by distance to the point given in
@@ -112,11 +115,4 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
         logger.serviceCall("deleteDraftKmPost", "kmPostId" to kmPostId)
         return dao.deleteUnpublishedDraft(kmPostId).id
     }
-
-    fun officialKmPostExists(
-        kmPostId: IntId<TrackLayoutKmPost>,
-    ): Boolean {
-        return dao.officialKmPostExists(kmPostId)
-    }
-
 }

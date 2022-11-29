@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -34,7 +35,7 @@ class GeocodingService(
 
     fun getAddress(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         location: IPoint,
     ): Pair<TrackMeter, IntersectType>? {
         logger.serviceCall(
@@ -46,7 +47,7 @@ class GeocodingService(
 
     fun getAddressIfWithin(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         location: IPoint,
     ): TrackMeter? {
         logger.serviceCall(
@@ -93,7 +94,7 @@ class GeocodingService(
         }
     }
 
-    fun getGeocodingContext(publishType: PublishType, trackNumberId: DomainId<TrackLayoutTrackNumber>?) =
+    fun getGeocodingContext(publishType: PublishType, trackNumberId: DomainId<LayoutTrackNumber>?) =
         if (trackNumberId is IntId) {
             geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)
                 ?.let(geocodingDao::getGeocodingContext)

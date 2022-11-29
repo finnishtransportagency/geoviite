@@ -173,7 +173,7 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     @Transactional
     fun createPublish(
-        trackNumbers: List<RowVersion<TrackLayoutTrackNumber>>,
+        trackNumbers: List<RowVersion<LayoutTrackNumber>>,
         referenceLines: List<RowVersion<ReferenceLine>>,
         locationTracks: List<RowVersion<LocationTrack>>,
         switches: List<RowVersion<TrackLayoutSwitch>>,
@@ -261,7 +261,7 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     }
 
     fun fetchTrackNumberLocationTrackRows(
-        trackNumberId: IntId<TrackLayoutTrackNumber>
+        trackNumberId: IntId<LayoutTrackNumber>
     ): List<RowVersion<LocationTrack>> {
         val sql = """
             select row_id, row_version 
@@ -320,19 +320,19 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             from publication.calculated_change_to_track_number_km
             where publication_id = :publication_id
         """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
-        ) { rs, _ -> rs.getIntId<TrackLayoutTrackNumber>("track_number_id") to rs.getKmNumber("km_number") }
+        ) { rs, _ -> rs.getIntId<LayoutTrackNumber>("track_number_id") to rs.getKmNumber("km_number") }
             .groupBy({ (tn, _) -> tn }, { (_, km) -> km })
 
     private fun fetchTrackNumberChangesInPublish(
         publicationId: IntId<Publication>,
-        trackNumberKmChanges: Map<IntId<TrackLayoutTrackNumber>, List<KmNumber>>
+        trackNumberKmChanges: Map<IntId<LayoutTrackNumber>, List<KmNumber>>
     ) =
         jdbcTemplate.query("""
             select track_number_id, start_changed, end_changed
             from publication.calculated_change_to_track_number
             where publication_id = :publication_id
         """.trimIndent(), mapOf("publication_id" to publicationId.intValue)) {rs, _ ->
-            val id = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
+            val id = rs.getIntId<LayoutTrackNumber>("track_number_id")
             TrackNumberChange(
                 id,
                 trackNumberKmChanges[id]?.let(::HashSet) ?: setOf(),

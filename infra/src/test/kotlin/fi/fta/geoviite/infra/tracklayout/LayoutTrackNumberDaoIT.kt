@@ -19,7 +19,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
 
     @Test
     fun trackNumberIsStoredAndLoadedOk() {
-        val original = TrackLayoutTrackNumber(
+        val original = LayoutTrackNumber(
             number = getUnusedTrackNumber(),
             description = FreeText("empty-test-track-number"),
             state = IN_USE,
@@ -32,7 +32,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
 
     @Test
     fun trackNumberExternalIdIsUnique() {
-        val oid = Oid<TrackLayoutTrackNumber>("99.99.99.99.99.99")
+        val oid = Oid<LayoutTrackNumber>("99.99.99.99.99.99")
 
         // If the OID is already in use, remove it
         transactional {

@@ -23,7 +23,7 @@ class ReferenceLineService(
 
     @Transactional
     fun addTrackNumberReferenceLine(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         startAddress: TrackMeter,
     ): RowVersion<ReferenceLine> {
         logger.serviceCall("insertTrackNumberReferenceLine",
@@ -37,7 +37,7 @@ class ReferenceLineService(
 
     @Transactional
     fun updateTrackNumberReferenceLine(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         startAddress: TrackMeter,
     ): RowVersion<ReferenceLine> {
         logger.serviceCall("updateTrackNumberStart",
@@ -129,7 +129,7 @@ class ReferenceLineService(
         )
     }
 
-    fun getByTrackNumber(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {
+    fun getByTrackNumber(publishType: PublishType, trackNumberId: IntId<LayoutTrackNumber>): ReferenceLine? {
         logger.serviceCall("getByTrackNumber",
             "publishType" to publishType, "trackNumberId" to trackNumberId)
         return dao.fetchVersion(publishType, trackNumberId)?.let(dao::fetch)
@@ -137,7 +137,7 @@ class ReferenceLineService(
 
     fun getByTrackNumberWithAlignment(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): Pair<ReferenceLine,LayoutAlignment>? {
         logger.serviceCall("getByTrackNumberWithAlignment",
             "publishType" to publishType, "trackNumberId" to trackNumberId)

@@ -224,7 +224,7 @@ class GeometryService @Autowired constructor(
 
     fun getFilter(
         freeText: FreeText?,
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
     ): (header: GeometryPlanHeader) -> Boolean {
         val searchTerms = splitSearchTerms(freeText)
         return { header: GeometryPlanHeader ->
@@ -235,7 +235,7 @@ class GeometryService @Autowired constructor(
 
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,
-    trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    trackNumberIds: List<IntId<LayoutTrackNumber>>,
 ) = (trackNumberIds.isEmpty() || (header.trackNumberId?.let(trackNumberIds::contains) ?: false))
 
 private fun freeTextMatches(

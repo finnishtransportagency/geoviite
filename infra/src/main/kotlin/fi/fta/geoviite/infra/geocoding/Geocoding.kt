@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.geocoding
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.DEFAULT_TRACK_METER_DECIMALS
@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.GeocodingFailureException
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
@@ -76,7 +77,7 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
 data class GeocodingContext(
-    val trackNumber: TrackLayoutTrackNumber,
+    val trackNumber: LayoutTrackNumber,
     val referenceLine: ReferenceLine,
     val referenceLineGeometry: LayoutAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
@@ -107,7 +108,7 @@ data class GeocodingContext(
 
     companion object {
         fun create(
-            trackNumber: TrackLayoutTrackNumber,
+            trackNumber: LayoutTrackNumber,
             referenceLine: ReferenceLine,
             referenceLineGeometry: LayoutAlignment,
             kmPosts: List<TrackLayoutKmPost>,

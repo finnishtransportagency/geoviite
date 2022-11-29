@@ -5,6 +5,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
@@ -571,7 +573,7 @@ class RatkoAddressPointServiceIT @Autowired constructor(
         val referenceLine = referenceLineDao.fetch(
             referenceLineDao.insert(
                 referenceLine(
-                    trackNumber.id as IntId<TrackLayoutTrackNumber>,
+                    trackNumber.id as IntId<LayoutTrackNumber>,
                     alignment = referenceLineGeometry
                 ).copy(
                     alignmentVersion = referenceLineGeometryVersion

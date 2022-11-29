@@ -17,9 +17,9 @@ import java.time.ZoneOffset
 class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberAtMoment(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant? = null,
-    ): TrackLayoutTrackNumber? {
+    ): LayoutTrackNumber? {
         //language=SQL
         val sql = """
             select 
@@ -42,7 +42,7 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
             "moment" to moment?.atOffset(ZoneOffset.UTC),
         )
         val trackNumber = jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            TrackLayoutTrackNumber(
+            LayoutTrackNumber(
                 number = rs.getTrackNumber("number"),
                 description = rs.getFreeText("description"),
                 state = rs.getEnum("state"),
@@ -52,13 +52,13 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
             )
         }
         if (trackNumber != null) {
-            logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumber.id)
+            logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, trackNumber.id)
         }
         return trackNumber
     }
 
     fun fetchReferenceLineAtMoment(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant? = null,
     ): ReferenceLine? {
         //language=SQL
@@ -267,7 +267,7 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
     }
 
     fun fetchKmPostsAtMoment(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         moment: Instant? = null,
     ): List<TrackLayoutKmPost> {
         val sql = """

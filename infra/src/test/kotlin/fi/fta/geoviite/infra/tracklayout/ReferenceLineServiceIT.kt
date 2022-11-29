@@ -179,7 +179,7 @@ class ReferenceLineServiceIT @Autowired constructor(
     }
 
     private fun publishAndVerify(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         referenceLineId: IntId<ReferenceLine>,
     ): Pair<RowVersion<ReferenceLine>, ReferenceLine> {
         val (draft, draftAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)

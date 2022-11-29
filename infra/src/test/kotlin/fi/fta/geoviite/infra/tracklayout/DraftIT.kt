@@ -429,7 +429,7 @@ class DraftIT @Autowired constructor(
         return fromDb
     }
 
-    private fun insertAndVerify(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber {
+    private fun insertAndVerify(trackNumber: LayoutTrackNumber): LayoutTrackNumber {
         val id = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(id)
         assertMatches(trackNumber, fromDb)

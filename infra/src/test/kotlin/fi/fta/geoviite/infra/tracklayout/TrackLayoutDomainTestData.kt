@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
@@ -67,7 +68,7 @@ fun switchStructureYV60_300_1_9(): SwitchStructure {
 }
 
 fun switchAndMatchingAlignments(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     structure: SwitchStructure
 ): Pair<TrackLayoutSwitch, List<Pair<LocationTrack, LayoutAlignment>>> {
     val switchId = IntId<TrackLayoutSwitch>(1)
@@ -152,10 +153,10 @@ fun trackNumber(
     number: TrackNumber,
     description: String = "Test Track number $number",
     draft: Boolean = false,
-    externalId: Oid<TrackLayoutTrackNumber>? = Oid(
+    externalId: Oid<LayoutTrackNumber>? = Oid(
         "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
     )
-) = TrackLayoutTrackNumber(
+) = LayoutTrackNumber(
     number = number,
     description = FreeText(description),
     state = LayoutState.IN_USE,
@@ -163,14 +164,14 @@ fun trackNumber(
 ).let { tn -> if (draft) draft(tn) else tn }
 
 fun referenceLineAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     vararg segments: LayoutSegment,
 ): Pair<ReferenceLine, LayoutAlignment> =
     referenceLineAndAlignment(trackNumberId, segments.toList())
 
 
 fun referenceLineAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     segments: List<LayoutSegment>,
     startAddress: TrackMeter = TrackMeter.ZERO,
 ): Pair<ReferenceLine, LayoutAlignment> {
@@ -180,7 +181,7 @@ fun referenceLineAndAlignment(
 }
 
 fun referenceLine(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     startAddress: TrackMeter = TrackMeter.ZERO,
 ) = ReferenceLine(
@@ -229,14 +230,14 @@ fun locationTrackAndAlignment(
 
 
 fun locationTrackAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     vararg segments: LayoutSegment,
 ): Pair<LocationTrack, LayoutAlignment> =
     locationTrackAndAlignment(trackNumberId, segments.toList())
 
 
 fun locationTrackAndAlignment(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     segments: List<LayoutSegment>,
     id: IntId<LocationTrack>? = null,
     draft: Draft<LocationTrack>? = null,
@@ -247,7 +248,7 @@ fun locationTrackAndAlignment(
 }
 
 fun locationTrack(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     id: IntId<LocationTrack>? = null,
     draft: Draft<LocationTrack>? = null,
@@ -291,7 +292,7 @@ fun fixStartDistances(segments: List<LayoutSegment>): List<LayoutSegment> {
 }
 
 fun locationTrackWithTwoSwitches(
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberId: IntId<LayoutTrackNumber>,
     layoutSwitchId: IntId<TrackLayoutSwitch>,
     otherLayoutSwitchId: IntId<TrackLayoutSwitch>,
     locationTrackId: IntId<LocationTrack>? = null,
@@ -625,7 +626,7 @@ fun switchJoint(seed: Int) = TrackLayoutSwitchJoint(
     locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
 )
 
-fun kmPost(trackNumberId: DomainId<TrackLayoutTrackNumber>?, km: KmNumber, location: IPoint? = Point(1.0, 1.0)) =
+fun kmPost(trackNumberId: DomainId<LayoutTrackNumber>?, km: KmNumber, location: IPoint? = Point(1.0, 1.0)) =
     TrackLayoutKmPost(
         trackNumberId = trackNumberId,
         kmNumber = km,
@@ -674,7 +675,7 @@ fun externalIdForLocationTrack(): Oid<LocationTrack> {
     return Oid("$first.$second.$third.$fourth")
 }
 
-fun externalIdForTrackNumber(): Oid<TrackLayoutTrackNumber> {
+fun externalIdForTrackNumber(): Oid<LayoutTrackNumber> {
     val first = nextInt(100, 999)
     val second = nextInt(100, 999)
     val third = nextInt(100, 999)

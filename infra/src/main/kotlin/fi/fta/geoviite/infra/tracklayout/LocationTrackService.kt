@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.RowVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional
 class LocationTrackService(
     dao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
-    private val switchService: LayoutSwitchService,
     private val alignmentDao: LayoutAlignmentDao,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
 
@@ -152,21 +152,22 @@ class LocationTrackService(
 
     fun list(
         publishType: PublishType,
-        searchTerm: String,
+        searchTerm: FreeText,
         limit: Int?,
     ): List<LocationTrack> {
         logger.serviceCall(
             "list",
             "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
         )
+        val term = searchTerm.toString()
         return dao.fetchVersions(publishType)
             .map(dao::fetch)
             .filter { locationTrack ->
-                locationTrack.externalId.toString() == searchTerm ||
+                locationTrack.externalId.toString() == term ||
                         locationTrack.exists &&
-                        (locationTrack.name.contains(searchTerm, true)
-                        || locationTrack.description.contains(searchTerm, true)
-                                || locationTrack.id.toString() == searchTerm)
+                        (locationTrack.name.contains(term, true)
+                        || locationTrack.description.contains(term, true)
+                                || locationTrack.id.toString() == term)
             }
             .sortedBy { locationTrack -> locationTrack.name }
             .let { list -> if (limit != null) list.take(limit) else list }
@@ -182,13 +183,6 @@ class LocationTrackService(
             .map(dao::fetch)
             .filter(LocationTrack::exists)
 
-    fun getSwitchNameForSegment(publishType: PublishType, segment: LayoutSegment): SwitchName? {
-        return segment.switchId
-            .takeIf { switchId -> switchId is IntId }
-            ?.let { switchId -> switchService.getOrThrow(publishType, switchId as IntId) }
-            ?.let { switch -> if (switch.exists) switch.name else null }
-    }
-
     fun listWithAlignments(publishType: PublishType): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall("listWithAlignments", "publishType" to publishType)
         return dao.fetchVersions(publishType).map(::getWithAlignmentInternal)
@@ -196,7 +190,7 @@ class LocationTrackService(
 
     fun listWithAlignments(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall(
             "listWithAlignments",

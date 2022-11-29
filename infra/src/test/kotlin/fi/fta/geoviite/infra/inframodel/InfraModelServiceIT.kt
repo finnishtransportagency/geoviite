@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -119,7 +119,7 @@ class InfraModelServiceIT @Autowired constructor(
         assertEquals(original.joints, fromDb.joints)
     }
 
-    fun assertMatches(original: TrackLayoutTrackNumber?, fromDb: TrackLayoutTrackNumber?) {
+    fun assertMatches(original: LayoutTrackNumber?, fromDb: LayoutTrackNumber?) {
         if (original != null || fromDb != null) {
             assertEquals(original?.number, fromDb?.number)
             assertEquals(original?.description, fromDb?.description)

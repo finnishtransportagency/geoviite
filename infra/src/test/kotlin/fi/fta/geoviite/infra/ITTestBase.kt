@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.configuration.USER_HEADER
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.RowVersion
 import fi.fta.geoviite.infra.util.getInstant
@@ -51,16 +51,16 @@ abstract class ITTestBase {
     fun getUnusedTrackNumberId() =
         getOrCreateTrackNumber(getUnusedTrackNumber()).id as IntId
 
-    fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
+    fun getOrCreateTrackNumber(trackNumber: TrackNumber): LayoutTrackNumber {
         val version = trackNumberDao.findVersions(trackNumber, DRAFT).firstOrNull()
             ?: insertNewTrackNumber(trackNumber, false)
         return version.let(trackNumberDao::fetch)
     }
 
-    fun insertDraftTrackNumber(): IntId<TrackLayoutTrackNumber> =
+    fun insertDraftTrackNumber(): IntId<LayoutTrackNumber> =
         insertNewTrackNumber(getUnusedTrackNumber(), true).id
 
-    fun insertOfficialTrackNumber(): IntId<TrackLayoutTrackNumber> =
+    fun insertOfficialTrackNumber(): IntId<LayoutTrackNumber> =
         insertNewTrackNumber(getUnusedTrackNumber(), false).id
 
     fun getDbTime(): Instant = requireNotNull(
@@ -77,7 +77,7 @@ abstract class ITTestBase {
         return TrackNumber("$baseName $maxId")
     }
 
-    private fun insertNewTrackNumber(trackNumber: TrackNumber, draft: Boolean): RowVersion<TrackLayoutTrackNumber> =
+    private fun insertNewTrackNumber(trackNumber: TrackNumber, draft: Boolean): RowVersion<LayoutTrackNumber> =
         transactional {
             jdbc.setUser()
             trackNumberDao.insert(trackNumber(

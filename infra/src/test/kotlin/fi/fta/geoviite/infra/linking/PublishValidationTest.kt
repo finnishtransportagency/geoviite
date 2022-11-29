@@ -4,6 +4,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.*
@@ -135,7 +137,7 @@ class PublishValidationTest {
 
     @Test
     fun kmPostValidationCatchesUnpublishedTrackNumber() {
-        val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
+        val trackNumberId = IntId<LayoutTrackNumber>(1)
         val kmPost = kmPost(trackNumberId, KmNumber(1))
         val unpublished = trackNumber().copy(draft = Draft(IntId(2)), id = trackNumberId)
         val published = trackNumber().copy(draft = null, id = trackNumberId)
@@ -646,7 +648,7 @@ class PublishValidationTest {
         return SegmentSwitch(switch, structure, listOf(segment))
     }
 
-    private fun assertFieldError(hasError: Boolean, trackNumber: TrackLayoutTrackNumber, error: String) =
+    private fun assertFieldError(hasError: Boolean, trackNumber: LayoutTrackNumber, error: String) =
         assertContainsError(hasError, validateDraftTrackNumberFields(trackNumber), error)
 
     private fun assertFieldError(hasError: Boolean, kmPost: TrackLayoutKmPost, error: String) =
@@ -666,7 +668,7 @@ class PublishValidationTest {
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         alignment: LocationTrack,
         error: String,
         includeAlignmentInPublish: Boolean = false,
@@ -680,7 +682,7 @@ class PublishValidationTest {
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         kmPost: TrackLayoutKmPost,
         error: String,
         includeKmPostInPublish: Boolean = false,
@@ -694,7 +696,7 @@ class PublishValidationTest {
 
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         error: String,
         kmPosts: List<TrackLayoutKmPost> = listOf(),
         alignments: List<LocationTrack> = listOf(),
@@ -715,7 +717,7 @@ class PublishValidationTest {
     private fun assertKmPostReferenceError(
         hasError: Boolean,
         kmPost: TrackLayoutKmPost,
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         error: String,
         includeTrackNumberInPublish: Boolean = false,
     ) = assertContainsError(

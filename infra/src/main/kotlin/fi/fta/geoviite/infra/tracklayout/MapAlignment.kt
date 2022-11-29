@@ -33,7 +33,7 @@ data class MapAlignment<T>(
     val type: LocationTrackType?,
     val state: LayoutState,
     val segments: List<MapSegment>,
-    val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+    val trackNumberId: DomainId<LayoutTrackNumber>?,
     val sourceId: DomainId<GeometryAlignment>?,
     val id: DomainId<T>,
     val boundingBox: BoundingBox?,
@@ -57,7 +57,7 @@ data class MapSegment(
 )
 
 fun toMapAlignment(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment?,
     segmentSimplification: (LayoutAlignment) -> List<MapSegment>
@@ -119,7 +119,7 @@ fun toMapSegment(
 )
 
 fun simplify(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment?,
 ) = toMapAlignment(trackNumber, referenceLine, alignment, segmentSimplification())
@@ -130,7 +130,7 @@ fun simplify(
 ) = toMapAlignment(locationTrack, alignment, segmentSimplification())
 
 fun simplify(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment?,
     resolution: Int,

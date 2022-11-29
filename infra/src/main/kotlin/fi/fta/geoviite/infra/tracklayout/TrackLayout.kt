@@ -63,16 +63,16 @@ data class LocationTrackDuplicate(
     val externalId: Oid<LocationTrack>?,
 )
 
-data class TrackLayoutTrackNumber(
+data class LayoutTrackNumber(
     val number: TrackNumber,
     val description: FreeText,
     val state: LayoutState,
-    val externalId: Oid<TrackLayoutTrackNumber>?,
-    override val id: DomainId<TrackLayoutTrackNumber> = StringId(),
+    val externalId: Oid<LayoutTrackNumber>?,
+    override val id: DomainId<LayoutTrackNumber> = StringId(),
     override val dataType: DataType = DataType.TEMP,
     val version: Version = Version.NONE,
-    @JsonIgnore override val draft: Draft<TrackLayoutTrackNumber>? = null,
-) : Draftable<TrackLayoutTrackNumber> {
+    @JsonIgnore override val draft: Draft<LayoutTrackNumber>? = null,
+) : Draftable<LayoutTrackNumber> {
     @JsonIgnore
     val exists = !state.isRemoved()
 
@@ -90,7 +90,7 @@ enum class LocationTrackType {
 }
 
 data class ReferenceLine(
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val trackNumberId: IntId<LayoutTrackNumber>,
     val startAddress: TrackMeter,
     val sourceId: IntId<GeometryAlignment>?,
     override val id: DomainId<ReferenceLine> = deriveFromSourceId("RL", sourceId),
@@ -114,7 +114,7 @@ data class LocationTrack(
     val type: LocationTrackType,
     val state: LayoutState,
     val externalId: Oid<LocationTrack>?,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val trackNumberId: IntId<LayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
     override val id: DomainId<LocationTrack> = deriveFromSourceId("LT", sourceId),
     override val dataType: DataType = DataType.TEMP,
@@ -175,7 +175,7 @@ data class TrackLayoutKmPost(
     val kmNumber: KmNumber,
     val location: Point?,
     val state: LayoutState,
-    val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+    val trackNumberId: DomainId<LayoutTrackNumber>?,
     val sourceId: DomainId<GeometryKmPost>?,
     override val id: DomainId<TrackLayoutKmPost> = deriveFromSourceId("K", sourceId),
     override val dataType: DataType = DataType.TEMP,

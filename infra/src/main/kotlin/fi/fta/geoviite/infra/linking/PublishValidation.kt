@@ -4,6 +4,10 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.ClientException
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
 import fi.fta.geoviite.infra.linking.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.linking.PublishValidationErrorType.WARNING
 import fi.fta.geoviite.infra.math.IntersectType
@@ -28,14 +32,14 @@ const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
 
-fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<PublishValidationError> =
+fun validateDraftTrackNumberFields(trackNumber: LayoutTrackNumber): List<PublishValidationError> =
     listOfNotNull(
         validate(trackNumber.draft != null) { "$VALIDATION_TRACK_NUMBER.not-draft" },
         validate(trackNumber.state.isPublishable()) { "$VALIDATION_TRACK_NUMBER.state.${trackNumber.state}" }
     )
 
 fun validateTrackNumberReferences(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     kmPosts: List<TrackLayoutKmPost>,
     locationTracks: List<LocationTrack>,
     publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
@@ -76,8 +80,8 @@ fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidation
 
 fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
-    trackNumber: TrackLayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    trackNumber: LayoutTrackNumber?,
+    publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
 ): List<PublishValidationError> =
     listOfNotNull(
         validate(trackNumber != null) { "$VALIDATION_KM_POST.track-number.null" },
@@ -204,8 +208,8 @@ fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<Publish
 
 fun validateReferenceLineReference(
     referenceLine: ReferenceLine,
-    trackNumber: TrackLayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    trackNumber: LayoutTrackNumber?,
+    publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
 ) =
     if (trackNumber == null) listOf(
         PublishValidationError(ERROR, "$VALIDATION_REFERENCE_LINE.track-number.null")
@@ -221,8 +225,8 @@ fun validateReferenceLineReference(
 
 fun validateLocationTrackReference(
     locationTrack: LocationTrack,
-    trackNumber: TrackLayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    trackNumber: LayoutTrackNumber?,
+    publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
 ) =
     if (trackNumber == null) listOf(
         PublishValidationError(ERROR, "$VALIDATION_LOCATION_TRACK.track-number.null")
@@ -356,7 +360,7 @@ fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?
     else previous.distance < next.distance
 
 fun validateAddressPoints(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
     geocode: () -> AlignmentAddresses?,
@@ -379,7 +383,7 @@ fun validateAddressPoints(
     }
 
 fun validateAddressPoints(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     locationTrack: LocationTrack,
     addresses: AlignmentAddresses,
 ): List<PublishValidationError> {

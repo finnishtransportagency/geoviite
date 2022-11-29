@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
 import org.slf4j.Logger
@@ -30,7 +30,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @RequestParam("bbox") bbox: BoundingBox?,
         @RequestParam("sources") sources: List<PlanSource>,
         @RequestParam("freeText") freeText: FreeText?,
-        @RequestParam("trackNumberIds") trackNumberIds: List<IntId<TrackLayoutTrackNumber>>?,
+        @RequestParam("trackNumberIds") trackNumberIds: List<IntId<LayoutTrackNumber>>?,
         @RequestParam("limit") limit: Int?,
         @RequestParam("offset") offset: Int?,
         @RequestParam("sortField") sortField: GeometryPlanSortField?,

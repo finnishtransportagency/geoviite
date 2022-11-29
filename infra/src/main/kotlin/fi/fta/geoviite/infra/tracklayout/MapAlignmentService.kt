@@ -80,7 +80,7 @@ class MapAlignmentService(
     ) = locationTrackService.list(publishType).map { track -> toMap(track, bbox, resolution) }
 
     private fun getMapReferenceLines(
-        trackNumbers: Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
+        trackNumbers: Map<IntId<LayoutTrackNumber>, LayoutTrackNumber>,
         publishType: PublishType,
         bbox: BoundingBox,
         resolution: Int,
@@ -120,7 +120,7 @@ class MapAlignmentService(
 
     private fun toMap(
         line: ReferenceLine,
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
         bbox: BoundingBox,
         resolution: Int,
     ) = simplify(

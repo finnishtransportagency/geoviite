@@ -16,13 +16,13 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutTrackNumberService(
     dao: LayoutTrackNumberDao,
     private val referenceLineService: ReferenceLineService
-) : DraftableObjectService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
+) : DraftableObjectService<LayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
+    fun insert(saveRequest: TrackNumberSaveRequest): IntId<LayoutTrackNumber> {
         logger.serviceCall("insert", "trackNumber" to saveRequest.number)
         val trackNumberId = saveDraftInternal(
-            TrackLayoutTrackNumber(
+            LayoutTrackNumber(
                 number = saveRequest.number,
                 description = saveRequest.description,
                 state = saveRequest.state,
@@ -34,7 +34,7 @@ class LayoutTrackNumberService(
     }
 
     @Transactional
-    fun update(id: IntId<TrackLayoutTrackNumber>, saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
+    fun update(id: IntId<LayoutTrackNumber>, saveRequest: TrackNumberSaveRequest): IntId<LayoutTrackNumber> {
         logger.serviceCall("update", "trackNumber" to saveRequest.number)
         val original = getInternalOrThrow(DRAFT, id)
         val trackNumberId = saveDraftInternal(
@@ -51,9 +51,9 @@ class LayoutTrackNumberService(
 
     @Transactional
     fun updateExternalId(
-        id: IntId<TrackLayoutTrackNumber>,
-        oid: Oid<TrackLayoutTrackNumber>
-    ): RowVersion<TrackLayoutTrackNumber> {
+        id: IntId<LayoutTrackNumber>,
+        oid: Oid<LayoutTrackNumber>
+    ): RowVersion<LayoutTrackNumber> {
         logger.serviceCall("updateExternalIdForTrackNumber", "id" to id, "oid" to oid)
 
         val original = getDraft(id)
@@ -63,8 +63,8 @@ class LayoutTrackNumberService(
     }
 
     @Transactional
-    fun deleteDraftOnlyTrackNumberAndReferenceLine(id: IntId<TrackLayoutTrackNumber>):
-            IntId<TrackLayoutTrackNumber> {
+    fun deleteDraftOnlyTrackNumberAndReferenceLine(id: IntId<LayoutTrackNumber>):
+            IntId<LayoutTrackNumber> {
         val trackNumber = getDraft(id)
         val referenceLine = referenceLineService.getByTrackNumber(DRAFT, id)
             ?: throw IllegalStateException("Found Track Number without Reference Line $id")
@@ -74,22 +74,22 @@ class LayoutTrackNumberService(
         return id
     }
 
-    private fun deleteDraftOnlyTrackNumber(trackNumber: TrackLayoutTrackNumber) {
+    private fun deleteDraftOnlyTrackNumber(trackNumber: LayoutTrackNumber) {
         if (trackNumber.getDraftType() != DraftType.NEW_DRAFT)
             throw DeletingFailureException("Trying to delete non-draft Track Number")
         require(trackNumber.id is IntId) { "Trying to delete or reset track number not yet saved to database" }
-        dao.deleteDrafts(trackNumber.draft!!.draftRowId as IntId<TrackLayoutTrackNumber>)
+        dao.deleteDrafts(trackNumber.draft!!.draftRowId as IntId<LayoutTrackNumber>)
     }
 
     fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }
 
-    fun mapByNumber(publishType: PublishType) = list(publishType).associateBy(TrackLayoutTrackNumber::number)
+    fun mapByNumber(publishType: PublishType) = list(publishType).associateBy(LayoutTrackNumber::number)
 
-    override fun createDraft(item: TrackLayoutTrackNumber) = draft(item)
+    override fun createDraft(item: LayoutTrackNumber) = draft(item)
 
-    override fun createPublished(item: TrackLayoutTrackNumber) = published(item)
+    override fun createPublished(item: LayoutTrackNumber) = published(item)
 
-    fun find(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> {
+    fun find(trackNumber: TrackNumber, publishType: PublishType): List<LayoutTrackNumber> {
         logger.serviceCall("find", "trackNumber" to trackNumber, "publishType" to publishType)
         return dao.findVersions(trackNumber, publishType).map(dao::fetch)
     }

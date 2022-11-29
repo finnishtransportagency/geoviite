@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.integration
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -12,7 +14,7 @@ import java.time.Instant
 
 
 data class TrackNumberChange(
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val trackNumberId: IntId<LayoutTrackNumber>,
     val changedKmNumbers: Set<KmNumber> = emptySet(),
     val isStartChanged: Boolean,
     val isEndChanged: Boolean,
@@ -44,8 +46,8 @@ data class SwitchJointChange(
     val point: Point,
     val locationTrackId: IntId<LocationTrack>,
     val locationTrackExternalId: Oid<LocationTrack>?,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val trackNumberExternalId: Oid<TrackLayoutTrackNumber>?
+    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberExternalId: Oid<LayoutTrackNumber>?
 )
 
 data class SwitchChange(
@@ -72,7 +74,7 @@ class CalculatedChangesService(
     val geocodingService: GeocodingService,
 ) {
     fun getCalculatedChangesSince(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
         locationTrackIds: List<IntId<LocationTrack>>,
         switchIds: List<IntId<TrackLayoutSwitch>>,
         moment: Instant
@@ -104,7 +106,7 @@ class CalculatedChangesService(
     }
 
     fun getCalculatedChangesInDraft(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
         referenceLineIds: List<IntId<ReferenceLine>>,
         kmPostIds: List<IntId<TrackLayoutKmPost>>,
         locationTrackIds: List<IntId<LocationTrack>>,
@@ -139,7 +141,7 @@ class CalculatedChangesService(
     }
 
     private fun calculateTrackNumberChangesSinceMoment(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
         moment: Instant
     ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
         val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
@@ -153,7 +155,7 @@ class CalculatedChangesService(
     }
 
     private fun calculateTrackNumberChangesInDraft(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: List<IntId<LayoutTrackNumber>>,
     ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
         val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
             getTrackNumberChange(
@@ -166,7 +168,7 @@ class CalculatedChangesService(
     }
 
     private fun getTrackNumberChange(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         beforeContext: GeocodingContext?,
         afterContext: GeocodingContext?,
     ): Pair<TrackNumberChange, List<IntId<LocationTrack>>> {

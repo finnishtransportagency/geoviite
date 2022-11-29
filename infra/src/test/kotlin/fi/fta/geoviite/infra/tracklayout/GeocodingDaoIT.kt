@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.linking.PublishRequest
 import fi.fta.geoviite.infra.linking.PublishService
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
@@ -85,7 +86,7 @@ class GeocodingDaoIT @Autowired constructor(
         }
     }
 
-    fun assertChangeTimeProceedsWhen(trackNumberId: IntId<TrackLayoutTrackNumber>, publishType: PublishType, block: () -> Unit) {
+    fun assertChangeTimeProceedsWhen(trackNumberId: IntId<LayoutTrackNumber>, publishType: PublishType, block: () -> Unit) {
         val before = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
         block()
         val after = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime

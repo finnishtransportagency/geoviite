@@ -38,7 +38,7 @@ enum class KmPostColumns { TRACK_NUMBER_EXTERNAL_ID, NUMBER, GEOMETRY, STATE }
 
 fun createKmPostsFromCsv(
     kmPostsFile: CsvFile<KmPostColumns>,
-    trackNumberIdMapping: Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>,
+    trackNumberIdMapping: Map<Oid<LayoutTrackNumber>, IntId<LayoutTrackNumber>>,
 ): List<TrackLayoutKmPost> {
     return kmPostsFile.parseLines { line ->
         val trackNumberId = trackNumberIdMapping.getValue(line.getOid(KmPostColumns.TRACK_NUMBER_EXTERNAL_ID))
@@ -54,9 +54,9 @@ fun createKmPostsFromCsv(
 
 enum class TrackNumberColumns { EXTERNAL_ID, NUMBER, DESCRIPTION, STATE }
 
-fun createTrackNumbersFromCsv(trackNumberFile: CsvFile<TrackNumberColumns>): List<TrackLayoutTrackNumber> {
+fun createTrackNumbersFromCsv(trackNumberFile: CsvFile<TrackNumberColumns>): List<LayoutTrackNumber> {
     return trackNumberFile.parseLines { line ->
-        TrackLayoutTrackNumber(
+        LayoutTrackNumber(
             number = TrackNumber(line.get(TrackNumberColumns.NUMBER)),
             description = FreeText(line.get(TrackNumberColumns.DESCRIPTION)),
             state = line.getEnum(TrackNumberColumns.STATE),
@@ -117,12 +117,12 @@ data class CsvReferenceLine(
 fun createReferenceLinesFromCsv(
     file: CsvFile<ReferenceLineColumns>,
     metadataMap: Map<Oid<ReferenceLine>, List<AlignmentCsvMetaData<ReferenceLine>>>,
-    trackNumbers: Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>,
+    trackNumbers: Map<Oid<LayoutTrackNumber>, IntId<LayoutTrackNumber>>,
     kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>
 ): Sequence<CsvReferenceLine> {
     return file.parseLinesStreaming { line ->
         val resolution = line.getInt(ReferenceLineColumns.RESOLUTION)
-        val trackNumberExtId = Oid<TrackLayoutTrackNumber>(line.get(ReferenceLineColumns.TRACK_NUMBER_EXTERNAL_ID))
+        val trackNumberExtId = Oid<LayoutTrackNumber>(line.get(ReferenceLineColumns.TRACK_NUMBER_EXTERNAL_ID))
         val referenceLineExtId = Oid<ReferenceLine>(line.get(ReferenceLineColumns.TRACK_NUMBER_EXTERNAL_ID))
         val metadata = metadataMap[referenceLineExtId] ?: listOf()
         val (points, connectionSegmentIndices) = measureAndCollect("parsing->toAddressPoints") {
@@ -228,12 +228,12 @@ fun createLocationTracksFromCsv(
     alignmentsFile: CsvFile<LocationTrackColumns>,
     metadataMap: Map<Oid<LocationTrack>, List<AlignmentCsvMetaData<LocationTrack>>>,
     switchLinksMap: Map<Oid<LocationTrack>, List<AlignmentSwitchLink>>,
-    trackNumbers: Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>,
+    trackNumbers: Map<Oid<LayoutTrackNumber>, IntId<LayoutTrackNumber>>,
     kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>
 ): Sequence<CsvLocationTrack> {
     return alignmentsFile.parseLinesStreaming { line ->
         val resolution = line.getInt(LocationTrackColumns.RESOLUTION)
-        val trackNumberExtId = Oid<TrackLayoutTrackNumber>(line.get(LocationTrackColumns.TRACK_NUMBER_EXTERNAL_ID))
+        val trackNumberExtId = Oid<LayoutTrackNumber>(line.get(LocationTrackColumns.TRACK_NUMBER_EXTERNAL_ID))
         val alignmentExtId = Oid<LocationTrack>(line.get(LocationTrackColumns.EXTERNAL_ID))
         val state = enumValueOf<LayoutState>(line.get(LocationTrackColumns.STATE))
         val metadata = metadataMap[alignmentExtId] ?: listOf()

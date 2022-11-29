@@ -238,30 +238,4 @@ class LinkingController @Autowired constructor(
         linkingService.saveKmPostLinking(linkingParameters)
         return layoutKmPostService.getDraft(linkingParameters.layoutKmPostId)
     }
-
-    @PreAuthorize(AUTH_ALL_WRITE)
-    @PostMapping("/km-post")
-    fun insertTrackLayoutKmPost(
-        @RequestBody trackLayoutKmPost: TrackLayoutKmPostSaveRequest,
-    ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("insertTrackLayoutKmPost", "trackLayoutKmPost" to trackLayoutKmPost)
-        return layoutKmPostService.insertKmPost(trackLayoutKmPost)
-    }
-
-    @PreAuthorize(AUTH_ALL_WRITE)
-    @PutMapping("/km-posts/{id}")
-    fun updateKmPost(
-        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-        @RequestBody kmPost: TrackLayoutKmPostSaveRequest,
-    ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("updateKmPost", "kmPostId" to kmPostId, "kmPost" to kmPost)
-        return layoutKmPostService.updateKmPost(kmPostId, kmPost)
-    }
-
-    @PreAuthorize(AUTH_ALL_WRITE)
-    @DeleteMapping("/km-posts/{id}")
-    fun deleteDraftKmPost(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
-        logger.apiCall("deleteDraftKmPost", "kmPostId" to kmPostId)
-        return layoutKmPostService.deleteDraft(kmPostId)
-    }
 }

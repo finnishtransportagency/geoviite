@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.PublishDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.util.RowVersion
 import fi.fta.geoviite.infra.util.getEnum
@@ -29,7 +29,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
     val publishDao: PublishDao,
 ): ITTestBase() {
     lateinit var layoutPublishId: IntId<Publication>
-    lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
+    lateinit var trackNumberId: IntId<LayoutTrackNumber>
     lateinit var locationTrackId: RowVersion<LocationTrack>
 
     @BeforeEach

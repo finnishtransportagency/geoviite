@@ -9,7 +9,7 @@ private const val LENGTH_DELTA: Double = 0.00001
 private const val HEIGHT_DELTA: Double = 0.000001
 private const val CANT_DELTA: Double = 0.000001
 
-fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumber, idMatch: Boolean = false) {
+fun assertMatches(expected: LayoutTrackNumber, actual: LayoutTrackNumber, idMatch: Boolean = false) {
     if (idMatch) {
         assertEquals(expected, actual)
     } else {

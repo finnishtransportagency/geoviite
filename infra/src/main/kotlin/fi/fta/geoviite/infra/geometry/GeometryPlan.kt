@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.boundingBoxCombining
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
@@ -30,7 +30,7 @@ data class GeometryPlanHeader(
     val project: Project,
     val fileName: FileName,
     val source: PlanSource,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    val trackNumberId: IntId<LayoutTrackNumber>?,
     val kmNumberRange: Range<KmNumber>?,
     val measurementMethod: MeasurementMethod?,
     val planPhase: PlanPhase?,
@@ -60,7 +60,7 @@ data class GeometryPlan(
     val planTime: Instant?,
     val uploadTime: Instant?,
     val units: GeometryUnits,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    val trackNumberId: IntId<LayoutTrackNumber>?,
     val trackNumberDescription: PlanElementName,
     val alignments: List<GeometryAlignment>,
     val switches: List<GeometrySwitch>,

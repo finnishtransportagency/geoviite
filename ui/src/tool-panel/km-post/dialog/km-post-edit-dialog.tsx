@@ -16,12 +16,7 @@ import {
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { KmPostSaveRequest } from 'linking/linking-model';
-import {
-    getKmPost,
-    getKmPostExistsOnTrack,
-    getTrackNumbers,
-    officialKmPostExists,
-} from 'track-layout/track-layout-api';
+import { getKmPost, getKmPostByNumber, getTrackNumbers } from 'track-layout/track-layout-api';
 import { insertKmPost, updateKmPost } from 'linking/linking-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
@@ -30,9 +25,9 @@ import { isNullOrBlank } from 'utils/string-utils';
 import { useDebouncedState } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { createClassName } from 'vayla-design-lib/utils';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 export type KmPostDialogProps = {
     kmPostId?: LayoutKmPostId;
@@ -58,70 +53,6 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
 
-    // Load track numbers once
-    React.useEffect(() => {
-        stateActions.onStartLoadingTrackNumbers();
-        getTrackNumbers('DRAFT').then((trackNumbers) => {
-            stateActions.onTrackNumbersLoaded(trackNumbers);
-        });
-    }, []);
-
-    // Load an existing kmPost or create a new KmPost
-    React.useEffect(() => {
-        if (props.kmPostId) {
-            stateActions.onStartLoadingKmPost();
-            getKmPost(props.kmPostId, 'DRAFT').then((kmPost) => {
-                stateActions.onKmPostLoaded(kmPost);
-                firstInputRef.current?.focus();
-            });
-        } else {
-            stateActions.initWithNewKmPost(props.prefilledTrackNumberId);
-            firstInputRef.current?.focus();
-        }
-    }, [props.kmPostId]);
-
-    React.useEffect(() => {
-        if (
-            !hasErrors('kmNumber') &&
-            state.kmPost?.trackNumberId &&
-            !isNullOrBlank(state.kmPost.kmNumber) &&
-            (state.kmPost.kmNumber != state.baselineKmNumber ||
-                state.kmPost.trackNumberId != state.baselineTrackNumberId)
-        ) {
-            getKmPostExistsOnTrack('DRAFT', state.kmPost.trackNumberId, state.kmPost.kmNumber).then(
-                (result) => {
-                    if (result) {
-                        stateActions.onKmNumberExistsOnTrack();
-                    }
-                },
-            );
-        }
-    }, [state.kmPost?.trackNumberId, debouncedKmNumber, state.kmPost?.state]);
-
-    React.useEffect(() => {
-        if (props.kmPostId) {
-            officialKmPostExists(props.kmPostId).then((exists) => {
-                if (exists && props.kmPostId) {
-                    getKmPost(props.kmPostId, 'OFFICIAL').then((kmPost) =>
-                        setOfficialKmPost(kmPost),
-                    );
-                }
-            });
-        }
-    }, []);
-
-    function cancelSave() {
-        props.onClose && props.onClose();
-    }
-
-    const saveOrConfirm = () => {
-        if (state.kmPost?.state === 'DELETED') {
-            setNonDraftDeleteConfirmationVisible(true);
-        } else {
-            save();
-        }
-    };
-
     const closeNonDraftDeleteConfirmation = () => {
         setNonDraftDeleteConfirmationVisible(false);
     };
@@ -138,6 +69,71 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
         closeNonDraftDeleteConfirmation();
         props.onClose && props.onClose();
         props.kmPostId && props.onUnselect && props.onUnselect();
+    };
+
+    // Load track numbers once
+    React.useEffect(() => {
+        stateActions.onStartLoadingTrackNumbers();
+        getTrackNumbers('DRAFT').then((trackNumbers) => {
+            stateActions.onTrackNumbersLoaded(trackNumbers);
+        });
+    }, []);
+
+    // Load an existing kmPost or create a new KmPost
+    React.useEffect(() => {
+        if (props.kmPostId) {
+            stateActions.onStartLoadingKmPost();
+            getKmPost(props.kmPostId, 'DRAFT').then((kmPost) => {
+                if (kmPost) {
+                    stateActions.onKmPostLoaded(kmPost);
+                    firstInputRef.current?.focus();
+                } else {
+                    Snackbar.error(t('km-post-dialog.cant-open-deleted'));
+                    onKmPostDeleted();
+                }
+            });
+        } else {
+            stateActions.initWithNewKmPost(props.prefilledTrackNumberId);
+            firstInputRef.current?.focus();
+        }
+    }, [props.kmPostId]);
+
+    React.useEffect(() => {
+        if (
+            !hasErrors('kmNumber') &&
+            state.kmPost?.trackNumberId &&
+            !isNullOrBlank(state.kmPost.kmNumber) &&
+            (state.kmPost.kmNumber != state.baselineKmNumber ||
+                state.kmPost.trackNumberId != state.baselineTrackNumberId)
+        ) {
+            getKmPostByNumber('DRAFT', state.kmPost.trackNumberId, state.kmPost.kmNumber).then(
+                (found) => {
+                    if (found) {
+                        stateActions.onKmNumberExistsOnTrack();
+                    }
+                },
+            );
+        }
+    }, [state.kmPost?.trackNumberId, debouncedKmNumber, state.kmPost?.state]);
+
+    React.useEffect(() => {
+        if (props.kmPostId) {
+            getKmPost(props.kmPostId, 'OFFICIAL').then((kmPost) => {
+                if (kmPost) setOfficialKmPost(kmPost);
+            });
+        }
+    }, []);
+
+    function cancelSave() {
+        props.onClose && props.onClose();
+    }
+
+    const saveOrConfirm = () => {
+        if (state.kmPost?.state === 'DELETED') {
+            setNonDraftDeleteConfirmationVisible(true);
+        } else {
+            save();
+        }
     };
 
     function save() {
@@ -288,9 +284,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                                         value: trackNumber.id,
                                     }))}
                                     onChange={(value) => updateProp('trackNumberId', value)}
-                                    onBlur={() =>
-                                        stateActions.onCommitField('trackNumberId')
-                                    }
+                                    onBlur={() => stateActions.onCommitField('trackNumberId')}
                                     hasError={hasErrors('trackNumberId')}
                                     wide
                                     searchable

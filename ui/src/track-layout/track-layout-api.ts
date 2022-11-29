@@ -24,6 +24,7 @@ import {
 import {
     API_URI,
     deleteAdt,
+    getIgnoreError,
     getThrowError,
     getWithDefault,
     postIgnoreError,
@@ -49,20 +50,28 @@ import { directionBetweenPoints } from 'utils/math-utils';
 const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
 const locationTrackEndsCache = asyncCache<string, MapAlignment>();
 const referenceLineEndsCache = asyncCache<string, MapAlignment>();
-const referenceLineCache = asyncCache<string, LayoutReferenceLine>();
-const locationTrackCache = asyncCache<string, LayoutLocationTrack>();
+const referenceLineCache = asyncCache<string, LayoutReferenceLine | null>();
+const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const alignmentTilesCache = asyncCache<string, MapAlignment[]>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 const switchCache = asyncCache<string, LayoutSwitch>();
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
-const kmPostCache = asyncCache<string, LayoutKmPost>();
+const kmPostCache = asyncCache<string, LayoutKmPost | null>();
 
 export const TRACK_LAYOUT_URI = `${API_URI}/track-layout`;
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
-function layoutUri(publishType: PublishType) {
-    return `${TRACK_LAYOUT_URI}/${publishType.toLowerCase()}`;
+type LayoutDataType =
+    | 'track-numbers'
+    | 'km-posts'
+    | 'switches'
+    | 'location-tracks'
+    | 'reference-lines';
+
+function layoutUri(dataType: LayoutDataType, publishType: PublishType, id?: string) {
+    const baseUri = `${TRACK_LAYOUT_URI}/${dataType}/${publishType.toLowerCase()}`;
+    return id ? `${baseUri}/${id}` : baseUri;
 }
 
 function geocodingUri(publishType: PublishType) {
@@ -134,7 +143,7 @@ export async function getReferenceLineStartAndEnd(
     publishType: PublishType,
 ): Promise<AlignmentStartAndEnd | undefined> {
     return getThrowError<AlignmentStartAndEnd>(
-        `${layoutUri(publishType)}/reference-lines/${referenceLineId}/start-and-end`,
+        `${layoutUri('reference-lines', publishType, referenceLineId)}/start-and-end`,
     );
 }
 
@@ -143,7 +152,7 @@ export async function getLocationTrackStartAndEnd(
     publishType: PublishType,
 ): Promise<AlignmentStartAndEnd | undefined> {
     return getThrowError<AlignmentStartAndEnd>(
-        `${layoutUri(publishType)}/location-tracks/${locationTrackId}/start-and-end`,
+        `${layoutUri('location-tracks', publishType, locationTrackId)}/start-and-end`,
     );
 }
 
@@ -338,20 +347,20 @@ export async function getLocationTracksBySearchTerm(
         limit: limit,
     });
     return await getWithDefault<LayoutLocationTrack[]>(
-        `${layoutUri(publishType)}/location-tracks${params}`,
+        `${layoutUri('location-tracks', publishType)}${params}`,
         [],
     );
 }
 
 export const getReferenceLineChangeTimes = (id: ReferenceLineId): Promise<ChangeTimes> => {
     return getThrowError<ChangeTimes>(
-        `${layoutUri('OFFICIAL')}/reference-lines/${id}/change-times`,
+        `${layoutUri('reference-lines', 'OFFICIAL', id)}/change-times`,
     );
 };
 
 export const getLocationTrackChangeTimes = (id: LocationTrackId): Promise<ChangeTimes> => {
     return getThrowError<ChangeTimes>(
-        `${layoutUri('OFFICIAL')}/location-tracks/${id}/change-times`,
+        `${layoutUri('location-tracks', 'OFFICIAL', id)}/change-times`,
     );
 };
 
@@ -367,7 +376,10 @@ export async function getSwitchesByBoundingBox(
         comparisonPoint: comparisonPoint && pointString(comparisonPoint),
         includeSwitchesWithNoJoints: includeSwitchesWithNoJoints,
     });
-    return await getWithDefault<LayoutSwitch[]>(`${layoutUri(publishType)}/switches${params}`, []);
+    return await getWithDefault<LayoutSwitch[]>(
+        `${layoutUri('switches', publishType)}${params}`,
+        [],
+    );
 }
 
 export async function getSwitchesBySearchTerm(
@@ -379,7 +391,10 @@ export async function getSwitchesBySearchTerm(
         searchTerm: searchTerm,
         limit: limit,
     });
-    return await getWithDefault<LayoutSwitch[]>(`${layoutUri(publishType)}/switches${params}`, []);
+    return await getWithDefault<LayoutSwitch[]>(
+        `${layoutUri('switches', publishType)}${params}`,
+        [],
+    );
 }
 
 export async function getSwitch(
@@ -388,7 +403,7 @@ export async function getSwitch(
 ): Promise<LayoutSwitch> {
     const cacheKey = `${switchId}_${publishType}`;
     return switchCache.get(getChangeTimes().layoutSwitch, cacheKey, () =>
-        getThrowError<LayoutSwitch>(`${layoutUri(publishType)}/switches/${switchId}`),
+        getThrowError<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
     );
 }
 
@@ -399,7 +414,7 @@ export async function getSwitches(
     publishType: PublishType,
 ): Promise<LayoutSwitch[]> {
     return switchIds.length > 0
-        ? getThrowError<LayoutSwitch[]>(`${layoutUri(publishType)}/switches?ids=${switchIds}`)
+        ? getThrowError<LayoutSwitch[]>(`${layoutUri('switches', publishType)}?ids=${switchIds}`)
         : Promise.resolve([]);
 }
 
@@ -407,11 +422,23 @@ export async function getKmPost(
     id: LayoutKmPostId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
-): Promise<LayoutKmPost> {
+): Promise<LayoutKmPost | null> {
     const cacheKey = `${id}_${publishType}`;
     return kmPostCache.get(changeTime, cacheKey, () =>
-        getThrowError<LayoutKmPost>(`${layoutUri(publishType)}/km-posts/${id}`),
+        getIgnoreError<LayoutKmPost>(layoutUri('km-posts', publishType, id)),
     );
+}
+
+export async function getKmPostByNumber(
+    publishType: PublishType,
+    trackNumberId: LayoutTrackNumberId,
+    kmNumber: KmNumber,
+): Promise<LayoutKmPost | null> {
+    const params = queryParams({
+        trackNumberId: trackNumberId,
+        kmNumber: kmNumber,
+    });
+    return getIgnoreError<LayoutKmPost>(`${layoutUri('km-posts', publishType)}${params}`);
 }
 
 export async function getKmPostsByTile(
@@ -426,7 +453,7 @@ export async function getKmPostsByTile(
         publishType,
     });
     return kmPostListCache.get(changeTime, `${publishType}_${JSON.stringify(params)}`, () =>
-        getThrowError(`${layoutUri(publishType)}/km-posts${params}`),
+        getThrowError(`${layoutUri('km-posts', publishType)}${params}`),
     );
 }
 
@@ -439,24 +466,13 @@ export async function getKmPostForLinking(
 ): Promise<LayoutKmPost[]> {
     const kmPostChangeTime = getChangeTimes().layoutKmPost;
     const params = queryParams({
+        trackNumberId: trackNumberId,
         location: pointString(location),
         offset: offset,
         limit: limit,
     });
     return kmPostForLinkingCache.get(kmPostChangeTime, params, () =>
-        getThrowError(
-            `${layoutUri(publishType)}/track-numbers/${trackNumberId}/km-posts-near${params}`,
-        ),
-    );
-}
-
-export async function getKmPostExistsOnTrack(
-    publishType: PublishType,
-    trackNumberId: LayoutTrackNumberId,
-    kmNumber: KmNumber,
-): Promise<boolean> {
-    return getThrowError<boolean>(
-        `${layoutUri(publishType)}/track-numbers/${trackNumberId}/km-post-at/${kmNumber}`,
+        getThrowError(`${layoutUri('km-posts', publishType)}${params}`),
     );
 }
 
@@ -472,14 +488,14 @@ export async function getTrackNumberById(
 
 export async function getNonLinkedReferenceLines(): Promise<LayoutReferenceLine[]> {
     return getWithDefault<LayoutReferenceLine[]>(
-        `${layoutUri('DRAFT')}/reference-lines/non-linked`,
+        `${layoutUri('reference-lines', 'DRAFT')}/non-linked`,
         [],
     );
 }
 
 export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[]> {
     return getWithDefault<LayoutLocationTrack[]>(
-        `${layoutUri('DRAFT')}/location-tracks/non-linked`,
+        `${layoutUri('location-tracks', 'DRAFT')}/non-linked`,
         [],
     );
 }
@@ -488,14 +504,14 @@ export async function getTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId,
     publishType: PublishType,
     changeTime?: TimeStamp,
-): Promise<LayoutReferenceLine> {
+): Promise<LayoutReferenceLine | null> {
     const cacheKey = `TN_${trackNumberId}_${publishType}`;
     return referenceLineCache.get(
         changeTime || getChangeTimes().layoutReferenceLine,
         cacheKey,
         () =>
-            getThrowError<LayoutReferenceLine>(
-                `${layoutUri(publishType)}/track-numbers/${trackNumberId}/reference-line`,
+            getIgnoreError<LayoutReferenceLine>(
+                `${layoutUri('reference-lines', publishType)}/by-track-number/${trackNumberId}`,
             ),
     );
 }
@@ -504,12 +520,12 @@ export async function getReferenceLine(
     id: ReferenceLineId,
     publishType: PublishType,
     changeTime?: TimeStamp,
-): Promise<LayoutReferenceLine> {
+): Promise<LayoutReferenceLine | null> {
     const cacheKey = `${id}_${publishType}`;
     return referenceLineCache.get(
         changeTime || getChangeTimes().layoutReferenceLine,
         cacheKey,
-        () => getThrowError<LayoutReferenceLine>(`${layoutUri(publishType)}/reference-lines/${id}`),
+        () => getIgnoreError<LayoutReferenceLine>(layoutUri('reference-lines', publishType, id)),
     );
 }
 
@@ -517,12 +533,12 @@ export async function getLocationTrack(
     id: LocationTrackId,
     publishType: PublishType,
     changeTime?: TimeStamp,
-): Promise<LayoutLocationTrack> {
+): Promise<LayoutLocationTrack | null> {
     const cacheKey = `${id}_${publishType}`;
     return locationTrackCache.get(
         changeTime || getChangeTimes().layoutLocationTrack,
         cacheKey,
-        () => getThrowError<LayoutLocationTrack>(`${layoutUri(publishType)}/location-tracks/${id}`),
+        () => getIgnoreError<LayoutLocationTrack>(layoutUri('location-tracks', publishType, id)),
     );
 }
 
@@ -531,7 +547,7 @@ export async function getLocationTrack(
 export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
     return ids.length > 0
         ? getThrowError<LayoutLocationTrack[]>(
-              `${layoutUri(publishType)}/location-tracks?ids=${ids}`,
+              `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
           )
         : Promise.resolve([]);
 }
@@ -553,7 +569,7 @@ export async function getLocationTrackDuplicates(
     id: LocationTrackId,
 ): Promise<LayoutLocationTrackDuplicate[]> {
     return getThrowError<LayoutLocationTrackDuplicate[]>(
-        `${layoutUri(publishType)}/location-tracks/${id}/duplicate-of`,
+        `${layoutUri('location-tracks', publishType, 'id')}/duplicate-of`,
     );
 }
 
@@ -563,7 +579,7 @@ export async function getReferenceLinesNear(
 ): Promise<LayoutReferenceLine[]> {
     const params = queryParams({ bbox: bboxString(bbox) });
     return getThrowError<LayoutReferenceLine[]>(
-        `${layoutUri(publishType)}/reference-lines${params}`,
+        `${layoutUri('reference-lines', publishType)}${params}`,
     );
 }
 
@@ -573,7 +589,7 @@ export async function getLocationTracksNear(
 ): Promise<LayoutLocationTrack[]> {
     const params = queryParams({ bbox: bboxString(bbox) });
     return getThrowError<LayoutLocationTrack[]>(
-        `${layoutUri(publishType)}/location-tracks${params}`,
+        `${layoutUri('location-tracks', publishType)}${params}`,
     );
 }
 
@@ -584,7 +600,7 @@ export async function getTrackNumbers(
     return trackNumbersCache.get(
         changeTime || getChangeTimes().layoutTrackNumber,
         publishType,
-        () => getThrowError<LayoutTrackNumber[]>(`${layoutUri(publishType)}/track-numbers`),
+        () => getThrowError<LayoutTrackNumber[]>(layoutUri('track-numbers', publishType)),
     );
 }
 
@@ -592,7 +608,7 @@ export async function updateTrackNumber(
     trackNumberId: LayoutTrackNumberId,
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | null> {
-    const path = `${layoutUri('DRAFT')}/track-numbers/${trackNumberId}`;
+    const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
     return await putIgnoreError<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
     );
@@ -601,7 +617,7 @@ export async function updateTrackNumber(
 export async function createTrackNumber(
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | null> {
-    const path = `${layoutUri('DRAFT')}/track-numbers`;
+    const path = layoutUri('track-numbers', 'DRAFT');
     return await postIgnoreError<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
     );
@@ -610,7 +626,7 @@ export async function createTrackNumber(
 export async function deleteTrackNumber(
     trackNumberId: LayoutTrackNumberId,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const path = `${layoutUri('DRAFT')}/track-numbers/${trackNumberId}`;
+    const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
     const apiResult = await deleteAdt<undefined, LayoutTrackNumberId>(path, undefined, true);
     updateTrackNumberChangeTime();
     updateReferenceLineChangeTime();
@@ -625,11 +641,7 @@ export async function getSwitchJointConnections(
     id: LayoutSwitchId,
 ): Promise<LayoutSwitchJointConnection[]> {
     return getWithDefault<LayoutSwitchJointConnection[]>(
-        `${layoutUri(publishType)}/switches/${id}/joint-connections`,
+        `${layoutUri('switches', publishType, id)}/joint-connections`,
         [],
     );
-}
-
-export async function officialKmPostExists(id: LayoutKmPostId): Promise<boolean> {
-    return getThrowError<boolean>(`${TRACK_LAYOUT_URI}/km-posts/${id}`);
 }

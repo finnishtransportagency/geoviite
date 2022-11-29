@@ -11,7 +11,7 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { getKmPost, officialKmPostExists } from 'track-layout/track-layout-api';
+import { getKmPost } from 'track-layout/track-layout-api';
 import { useLoader } from 'utils/react-utils';
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
 
@@ -43,10 +43,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
 
     React.useEffect(() => {
         if (kmPost.id) {
-            officialKmPostExists(kmPost.id).then((exists) => {
-                if (exists) {
-                    getKmPost(kmPost.id, 'OFFICIAL').then((kmPost) => setOfficialKmPost(kmPost));
-                }
+            getKmPost(kmPost.id, 'OFFICIAL', kmPostChangeTime).then((kmPost) => {
+                if (kmPost) setOfficialKmPost(kmPost);
             });
         }
     }, [kmPost.id, kmPostChangeTime]);

@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.RowVersion
 import org.junit.jupiter.api.Assertions.*
@@ -166,20 +165,6 @@ class LocationTrackServiceIT @Autowired constructor(
         // Second edit to same draft should not duplicate alignment again
         assertEquals(editedDraft.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         assertNotEquals(editedDraft.alignmentVersion!!.version, editedDraft2.alignmentVersion!!.version)
-    }
-
-    @Test
-    fun switchNameIsReturnedForSegment() {
-        val switch = switchDao.fetch(
-            switchDao.insert(switch(132))
-        )
-        val start = Point(428123.459, 7208379.993)
-        val verticalPoints = toTrackLayoutPoints((0..3).map { n ->
-            Point3DM(start.x + 0.0, start.y + 3 * n.toDouble(), 3 * n.toDouble())
-        })
-        val segment = segment(verticalPoints).copy(switchId = switch.id)
-
-        assertEquals(locationTrackService.getSwitchNameForSegment(OFFICIAL, segment), switch.name)
     }
 
     @Test
@@ -454,7 +439,7 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     private fun createAndVerifyTrack(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         seed: Int,
     ): Pair<RowVersion<LocationTrack>, LocationTrack> {
         val insertRequest = saveRequest(trackNumberId, seed)
@@ -513,7 +498,7 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     private fun saveRequest(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         seed: Int,
     ) = LocationTrackSaveRequest(
         name = AlignmentName("TST-TRACK$seed"),

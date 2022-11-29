@@ -22,7 +22,7 @@ interface Draftable<T> {
         else DraftType.EDITED_DRAFT
 }
 
-fun draft(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber =
+fun draft(trackNumber: LayoutTrackNumber): LayoutTrackNumber =
     draft(trackNumber) { orig, draft, dataType -> orig.copy(draft = draft, dataType = dataType) }
 
 fun draft(locationTrack: LocationTrack): LocationTrack =
@@ -37,7 +37,7 @@ fun draft(switch: TrackLayoutSwitch): TrackLayoutSwitch =
 fun draft(kmPost: TrackLayoutKmPost): TrackLayoutKmPost =
     draft(kmPost) { orig, draft, dataType -> orig.copy(draft = draft, dataType = dataType) }
 
-fun published(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber =
+fun published(trackNumber: LayoutTrackNumber): LayoutTrackNumber =
     published(trackNumber) { orig, draft -> orig.copy(draft = draft) }
 
 fun published(referenceLine: ReferenceLine): ReferenceLine =

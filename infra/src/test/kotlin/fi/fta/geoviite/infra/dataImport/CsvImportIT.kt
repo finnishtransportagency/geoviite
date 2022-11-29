@@ -34,7 +34,7 @@ class CsvImportIT @Autowired constructor(
         assertEquals(6, trackLayoutTrackNumbers.size)
         assertEquals(TrackNumber("001"), trackLayoutTrackNumbers[0].number)
         assertEquals(FreeText("Helsinki - Kirkkonummi (PR) - Karjaa - Turku"), trackLayoutTrackNumbers[0].description)
-        assertEquals(Oid<TrackLayoutTrackNumber>("1.2.246.578.3.10001.188907"), trackLayoutTrackNumbers[0].externalId)
+        assertEquals(Oid<LayoutTrackNumber>("1.2.246.578.3.10001.188907"), trackLayoutTrackNumbers[0].externalId)
         assertEquals(IN_USE, trackLayoutTrackNumbers[0].state)
     }
 
@@ -119,7 +119,7 @@ class CsvImportIT @Autowired constructor(
     }
 
     var intIdGenerator: Int = 0
-    private fun generateTestDataTrackIdMap(): Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>> =
+    private fun generateTestDataTrackIdMap(): Map<Oid<LayoutTrackNumber>, IntId<LayoutTrackNumber>> =
         listOf(
             "1.2.246.578.3.10001.188907",
             "1.2.246.578.3.10001.188925",
@@ -139,5 +139,5 @@ class CsvImportIT @Autowired constructor(
             "1.2.246.578.3.10001.188919",
             "1.2.246.578.3.10001.189320",
 
-            ).associate { tnStr -> Oid<TrackLayoutTrackNumber>(tnStr) to IntId(intIdGenerator++) }
+            ).associate { tnStr -> Oid<LayoutTrackNumber>(tnStr) to IntId(intIdGenerator++) }
 }

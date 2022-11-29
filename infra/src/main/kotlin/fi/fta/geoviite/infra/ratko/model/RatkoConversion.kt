@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ratko.model
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.ratko.asSwitchTypeString
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
@@ -160,7 +162,7 @@ fun mapJointNumberToGeometryType(
 
 fun convertToRatkoLocationTrack(
     locationTrack: LocationTrack,
-    trackNumberOid: Oid<TrackLayoutTrackNumber>?,
+    trackNumberOid: Oid<LayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
 ) = RatkoLocationTrack(
@@ -176,7 +178,7 @@ fun convertToRatkoLocationTrack(
 )
 
 fun convertToRatkoRouteNumber(
-    trackNumber: TrackLayoutTrackNumber,
+    trackNumber: LayoutTrackNumber,
     nodeCollection: RatkoNodes? = null,
 ) = RatkoRouteNumber(
     id = trackNumber.externalId?.toString(),
@@ -211,7 +213,7 @@ fun convertToRatkoNode(
 ) = RatkoNode(nodeType, convertToRatkoPoint(addressPoint, state))
 
 fun convertToRatkoMetadataAsset(
-    trackNumberOid: Oid<TrackLayoutTrackNumber>,
+    trackNumberOid: Oid<LayoutTrackNumber>,
     locationTrackOid: Oid<LocationTrack>,
     segmentMetadata: LayoutSegmentMetadata,
     startTrackMeter: TrackMeter,

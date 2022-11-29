@@ -7,7 +7,8 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -41,12 +42,12 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val post1 = TrackLayoutKmPost(KmNumber(234), Point(123.4, 234.5), IN_USE, trackNumberId, null)
         val officialId = kmPostDao.insert(post1).id
 
-        assertTrue(kmPostDao.officialKmPostExists(officialId))
+        assertEquals(officialId, kmPostDao.fetchOfficialVersion(officialId)?.id)
 
         val post2 = TrackLayoutKmPost(KmNumber(432), Point(123.4, 234.5), IN_USE, trackNumberId, null)
         val draftId = kmPostDao.insert(draft(post2)).id
 
-        assertFalse(kmPostDao.officialKmPostExists(draftId))
+        assertNull(kmPostDao.fetchOfficialVersion(draftId)?.id)
     }
 
     fun insertAndVerify(post: TrackLayoutKmPost) {
@@ -56,7 +57,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
 
     private fun fetchTrackNumberKmPosts(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
         return kmPostDao.fetchVersions(publishType, trackNumberId).map(kmPostDao::fetch)
     }

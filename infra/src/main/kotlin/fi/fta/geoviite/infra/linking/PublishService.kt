@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.error.PublishFailureException
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.RatkoService
@@ -159,7 +160,7 @@ class PublishService @Autowired constructor(
         locationTrackOid?.let { oid -> locationTrackService.updateExternalId(locationTrackId, Oid(oid.id)) }
     }
 
-    private fun updateExternalIdForTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>) {
+    private fun updateExternalIdForTrackNumber(trackNumberId: IntId<LayoutTrackNumber>) {
         val routeNumberOid = ratkoService?.let { s ->
             s.getNewRouteNumberTrackOid() ?: throw IllegalStateException("No OID received from RATKO")
         }
@@ -250,7 +251,7 @@ class PublishService @Autowired constructor(
     }
 
     fun validateTrackNumber(
-        id: IntId<TrackLayoutTrackNumber>,
+        id: IntId<LayoutTrackNumber>,
         publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
         publishReferenceLineIds: List<IntId<ReferenceLine>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
@@ -273,7 +274,7 @@ class PublishService @Autowired constructor(
     }
 
     fun validateTrackNumberAssociatedTrackAddresses(
-        trackNumber: TrackLayoutTrackNumber,
+        trackNumber: LayoutTrackNumber,
     ): List<PublishValidationError> {
         val locationTracks = publishDao
             .fetchTrackNumberLocationTrackRows(trackNumber.id as IntId)
@@ -287,7 +288,7 @@ class PublishService @Autowired constructor(
 
     fun validateKmPost(
         id: IntId<TrackLayoutKmPost>,
-        publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
     ): List<PublishValidationError> {
         val kmPost = kmPostService.getDraft(id)
         require(kmPost.id == id) { "Attempting to publish km-post via draft ID" }
@@ -322,7 +323,7 @@ class PublishService @Autowired constructor(
 
     fun validateReferenceLine(
         id: IntId<ReferenceLine>,
-        publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
     ): List<PublishValidationError> {
         val (referenceLine, alignment) = requireNotNull(referenceLineService.getWithAlignment(DRAFT, id)) {
             "Cannot find draft reference line: $id"
@@ -340,7 +341,7 @@ class PublishService @Autowired constructor(
 
     fun validateLocationTrack(
         id: IntId<LocationTrack>,
-        publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
         publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
     ): List<PublishValidationError> {
@@ -390,7 +391,7 @@ class PublishService @Autowired constructor(
     }
 
     private fun validateTrackNumberGeocodingContext(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
         validationType: String
     ) = validateGeocodingContext(geocodingService.getGeocodingContext(DRAFT, trackNumberId), validationType)
 

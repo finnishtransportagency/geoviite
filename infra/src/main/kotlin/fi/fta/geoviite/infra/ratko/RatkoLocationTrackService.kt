@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.model.*
@@ -55,7 +57,7 @@ class RatkoLocationTrackService @Autowired constructor(
             }
     }
 
-    private fun getTrackNumberOid(trackNumberId: IntId<TrackLayoutTrackNumber>): Oid<TrackLayoutTrackNumber> {
+    private fun getTrackNumberOid(trackNumberId: IntId<LayoutTrackNumber>): Oid<LayoutTrackNumber> {
         return layoutTrackNumberDao.fetchOfficialVersionOrThrow(trackNumberId)
             .let { version -> layoutTrackNumberDao.fetch(version) }
             .let { layoutTrackNumber ->
@@ -117,7 +119,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
     private fun createLocationTrackMetadata(
         layoutLocationTrack: LocationTrack,
-        trackNumberOid: Oid<TrackLayoutTrackNumber>,
+        trackNumberOid: Oid<LayoutTrackNumber>,
         includeMetadata: (startTrackMeter: TrackMeter, endTrackMeter: TrackMeter) -> Boolean
     ) {
         logger.serviceCall(

@@ -1192,7 +1192,7 @@ class SwitchLinkingService @Autowired constructor(
         else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
 
     private fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
-        getLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId).forEach { (locationTrack, alignment) ->
+        switchService.getLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId).forEach { (locationTrack, alignment) ->
             val (updatedLocationTrack, updatedAlignment) = clearSwitchInformationFromSegments(
                 locationTrack,
                 alignment,
@@ -1200,62 +1200,6 @@ class SwitchLinkingService @Autowired constructor(
             )
             locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
         }
-    }
-
-    private fun getLocationTracksLinkedToSwitch(
-        publicationState: PublishType,
-        layoutSwitchId: IntId<TrackLayoutSwitch>
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return linkingDao.findLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId)
-            .map { ids ->
-                locationTrackService.getWithAlignment(ids.rowVersion)
-            }
-    }
-
-    @Transactional(readOnly = true)
-    fun getSwitchJointConnections(
-        publishType: PublishType,
-        switchId: IntId<TrackLayoutSwitch>
-    ): List<TrackLayoutSwitchJointConnection> {
-        logger.serviceCall(
-            "getSwitchJointConnections",
-            "publishType" to publishType,
-            "switchId" to switchId
-        )
-        val segment = switchService.getSegmentSwitchJointConnections(publishType, switchId)
-        val topological = getTopologySwitchJointConnections(publishType, switchId)
-        return (segment + topological)
-            .groupBy { joint -> joint.number }
-            .values.map { jointConnections ->
-                jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
-            }
-    }
-
-    private fun getTopologySwitchJointConnections(
-        publicationState: PublishType,
-        layoutSwitchId: IntId<TrackLayoutSwitch>
-    ): List<TrackLayoutSwitchJointConnection> {
-        val layoutSwitch = switchService.get(publicationState, layoutSwitchId)
-            ?: return listOf()
-        return getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
-            .flatMap { (locationTrack, layoutAlignment) ->
-                listOf(
-                    locationTrack.topologyStartSwitch to layoutAlignment.start,
-                    locationTrack.topologyEndSwitch to layoutAlignment.end
-                )
-                    .mapNotNull { (connection, point) ->
-                        if (connection == null || point == null || connection.switchId != layoutSwitchId) null else {
-                            layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
-                                TrackLayoutSwitchJointConnection(
-                                    connection.jointNumber,
-                                    listOf(TrackLayoutSwitchJointMatch(locationTrack.id as IntId, point.toPoint())),
-                                    listOf(),
-                                    joint.locationAccuracy
-                                )
-                            }
-                        }
-                    }
-            }
     }
 
     @Transactional

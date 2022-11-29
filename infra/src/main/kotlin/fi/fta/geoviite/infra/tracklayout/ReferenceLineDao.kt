@@ -133,7 +133,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
     fun fetchVersion(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<LayoutTrackNumber>,
     ): RowVersion<ReferenceLine>? {
         //language=SQL
         val sql = """

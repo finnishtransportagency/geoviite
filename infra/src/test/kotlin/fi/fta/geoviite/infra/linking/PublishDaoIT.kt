@@ -118,7 +118,7 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(changes, fetchedChanges)
     }
 
-    private fun insertAndCheck(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber {
+    private fun insertAndCheck(trackNumber: LayoutTrackNumber): LayoutTrackNumber {
         val dbVersion = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(dbVersion)
         assertMatches(trackNumber, fromDb)
