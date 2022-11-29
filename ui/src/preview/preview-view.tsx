@@ -2,7 +2,12 @@ import * as React from 'react';
 import styles from './preview-view.scss';
 import { useTranslation } from 'react-i18next';
 import { useLoader } from 'utils/react-utils';
-import { getCalculatedChanges, getPublishCandidates } from 'publication/publication-api';
+import {
+    getCalculatedChanges,
+    getPublishCandidates,
+    PublishRequest,
+    validatePublishCandidates,
+} from 'publication/publication-api';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
@@ -26,6 +31,7 @@ import { PublishType } from 'common/common-model';
 import PublicationTable from 'publication/publication-table';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { PublishCandidates } from 'publication/publication-model';
 
 export type SelectedChanges = {
     trackNumbers: LayoutTrackNumberId[];
@@ -48,9 +54,22 @@ type PreviewProps = {
     onClosePreview: () => void;
 };
 
+const publishCandidateIds = (candidates: PublishCandidates): PublishRequest => ({
+    trackNumbers: candidates.trackNumbers.map(tn => tn.id),
+    locationTracks: candidates.locationTracks.map(lt => lt.id),
+    referenceLines: candidates.referenceLines.map(rl => rl.id),
+    switches: candidates.switches.map(s => s.id),
+    kmPosts: candidates.kmPosts.map(s => s.id),
+});
+
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const {t} = useTranslation();
-    const previewChanges = useLoader(() => getPublishCandidates(), []);
+    const allChanges = useLoader(() => getPublishCandidates(), []);
+    const allPreviewChanges = useLoader(() =>
+            (allChanges && validatePublishCandidates(publishCandidateIds(allChanges))) ?? undefined,
+        [allChanges]);
+    // GVT-1510 currently all changes are fetched above and hence all validated as a single publication unit
+    const previewChanges = allPreviewChanges?.validatedAsPublicationUnit
 
     const [selectedChanges, setSelectedChanges] = React.useState<SelectedChanges>({
         trackNumbers: [],

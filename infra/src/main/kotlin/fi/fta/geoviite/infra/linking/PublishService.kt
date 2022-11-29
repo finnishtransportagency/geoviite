@@ -58,8 +58,64 @@ class PublishService @Autowired constructor(
         )
     }
 
-    fun validatePublishCandidates(publishCandidates: PublishCandidates): PublishCandidates {
+    fun getPublishCandidates(): PublishCandidates {
+        logger.serviceCall("getPublishCandidates")
+        return collectPublishCandidates()
+    }
+
+    fun validatePublishCandidates(publishRequest: PublishRequest): ValidatedPublishCandidates {
         logger.serviceCall("validatePublishCandidates")
+        val allPublishCandidates = collectPublishCandidates()
+        val candidatesInPublicationRequest = allPublishCandidates.filteredToRequest(publishRequest)
+        val candidatesNotInPublicationRequest =
+            allPublishCandidates.filteredToRequest(allPublishCandidates.ids() - publishRequest)
+
+        return ValidatedPublishCandidates(
+            validatedAsPublicationUnit = validateAsPublicationUnit(candidatesInPublicationRequest),
+            validatedSeparately = validateSeparately(candidatesNotInPublicationRequest),
+        )
+    }
+
+    fun validateSeparately(publishCandidates: PublishCandidates) =
+        PublishCandidates(
+            trackNumbers = publishCandidates.trackNumbers.map { candidate ->
+                candidate.copy(
+                    errors = validateTrackNumberOwnInformation(
+                        candidate.id
+                    )
+                )
+            },
+            locationTracks = publishCandidates.locationTracks.map { candidate ->
+                candidate.copy(
+                    errors = validateLocationTrackOwnInformation(
+                        candidate.id
+                    )
+                )
+            },
+            referenceLines = publishCandidates.referenceLines.map { candidate ->
+                candidate.copy(
+                    errors = validateReferenceLineOwnInformation(
+                        candidate.id
+                    )
+                )
+            },
+            switches = publishCandidates.switches.map { candidate ->
+                candidate.copy(
+                    errors = validateSwitchOwnInformation(
+                        candidate.id
+                    )
+                )
+            },
+            kmPosts = publishCandidates.kmPosts.map { candidate ->
+                candidate.copy(
+                    errors = validateKmPostOwnInformation(
+                        candidate.id
+                    )
+                )
+            },
+        )
+
+    fun validateAsPublicationUnit(publishCandidates: PublishCandidates): PublishCandidates {
         val publishSwitchIds = publishCandidates.switches.map(SwitchPublishCandidate::id)
         val publishKmPostIds = publishCandidates.kmPosts.map(KmPostPublishCandidate::id)
         val publishReferenceLineIds = publishCandidates.referenceLines.map(ReferenceLinePublishCandidate::id)
@@ -249,14 +305,17 @@ class PublishService @Autowired constructor(
         )
     }
 
+    fun validateTrackNumberOwnInformation(id: IntId<TrackLayoutTrackNumber>): List<PublishValidationError> {
+        return validateDraftTrackNumberFields(getDraftTrackNumberWithOfficialId(id))
+    }
+
     fun validateTrackNumber(
         id: IntId<TrackLayoutTrackNumber>,
         publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
         publishReferenceLineIds: List<IntId<ReferenceLine>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
     ): List<PublishValidationError> {
-        val trackNumber = trackNumberService.getDraft(id)
-        require(trackNumber.id == id) { "Attempting to publish track number via draft ID" }
+        val trackNumber = getDraftTrackNumberWithOfficialId(id)
         val kmPosts = kmPostService.list(DRAFT, id)
         val locationTracks = publishDao.fetchTrackNumberLocationTrackRows(id).map(locationTrackDao::fetch)
         return validateDraftTrackNumberFields(trackNumber) +
@@ -285,12 +344,15 @@ class PublishService @Autowired constructor(
         }
     }
 
+    fun validateKmPostOwnInformation(id: IntId<TrackLayoutKmPost>): List<PublishValidationError> {
+        return validateDraftKmPostFields(getDraftKmPostWithOfficialId(id))
+    }
+
     fun validateKmPost(
         id: IntId<TrackLayoutKmPost>,
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): List<PublishValidationError> {
-        val kmPost = kmPostService.getDraft(id)
-        require(kmPost.id == id) { "Attempting to publish km-post via draft ID" }
+        val kmPost = getDraftKmPostWithOfficialId(id)
         val trackNumber = kmPost.trackNumberId?.let { tnId ->
             trackNumberService.getDraft(tnId as IntId)
         }
@@ -301,12 +363,15 @@ class PublishService @Autowired constructor(
                 } else listOf()
     }
 
+    fun validateSwitchOwnInformation(id: IntId<TrackLayoutSwitch>): List<PublishValidationError> {
+        return validateDraftSwitchFields(getDraftSwitchWithOfficialId(id))
+    }
+
     fun validateSwitch(
         id: IntId<TrackLayoutSwitch>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
     ): List<PublishValidationError> {
-        val switch = switchDao.fetch(switchDao.fetchDraftVersionOrThrow(id))
-        require(switch.id == id) { "Attempting to publish switch via draft ID" }
+        val switch = getDraftSwitchWithOfficialId(id)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val locationTracksAndAlignments = publishDao.fetchLinkedAlignmentRows(id)
             .map { (trackVersion, alignmentVersion) ->
@@ -320,14 +385,21 @@ class PublishService @Autowired constructor(
                 validateSwitchSegmentStructure(switch, structure, locationTracksAndAlignments)
     }
 
+    fun validateReferenceLineOwnInformation(id: IntId<ReferenceLine>): List<PublishValidationError> {
+        val (referenceLine, alignment) = getDraftReferenceLineAndAlignmentWithOfficialId(id)
+        val trackNumber = trackNumberService.getDraft(referenceLine.trackNumberId)
+        return validateDraftReferenceLineFields(referenceLine) +
+                if (trackNumber.exists) {
+                    validateReferenceLineAlignment(alignment)
+                } else listOf()
+
+    }
+
     fun validateReferenceLine(
         id: IntId<ReferenceLine>,
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): List<PublishValidationError> {
-        val (referenceLine, alignment) = requireNotNull(referenceLineService.getWithAlignment(DRAFT, id)) {
-            "Cannot find draft reference line: $id"
-        }
-        require(referenceLine.id == id) { "Attempting to publish validate ReferenceLine via draft ID" }
+        val (referenceLine, alignment) = getDraftReferenceLineAndAlignmentWithOfficialId(id)
         val trackNumber = trackNumberService.getDraft(referenceLine.trackNumberId)
         return validateDraftReferenceLineFields(referenceLine) +
                 validateReferenceLineReference(referenceLine, trackNumber, publishTrackNumberIds) +
@@ -338,16 +410,21 @@ class PublishService @Autowired constructor(
                 } else listOf()
     }
 
+    fun validateLocationTrackOwnInformation(id: IntId<LocationTrack>): List<PublishValidationError> {
+        val (locationTrack, alignment) = getDraftLocationTrackAndAlignmentWithOfficialId(id)
+        return validateDraftLocationTrackFields(locationTrack) +
+                if (locationTrack.exists) {
+                    validateLocationTrackAlignment(alignment)
+                } else listOf()
+    }
+
     fun validateLocationTrack(
         id: IntId<LocationTrack>,
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
     ): List<PublishValidationError> {
-        val (locationTrack, alignment) = requireNotNull(locationTrackService.getWithAlignment(DRAFT, id)) {
-            "Cannot find draft location track: $id"
-        }
-        require(locationTrack.id == id) { "Attempting to publish LocationTrack via draft ID" }
+        val (locationTrack, alignment) = getDraftLocationTrackAndAlignmentWithOfficialId(id)
         val trackNumber = trackNumberService.getDraft(locationTrack.trackNumberId)
         val duplicateOfLocationTrack = locationTrack.duplicateOf?.let { duplicateId ->
             locationTrackService.getOrThrow(DRAFT, duplicateId)
@@ -406,5 +483,39 @@ class PublishService @Autowired constructor(
                 segments = segments,
             )
         }
+    }
+
+    private fun getDraftKmPostWithOfficialId(id: IntId<TrackLayoutKmPost>): TrackLayoutKmPost {
+        val kmPost = kmPostService.getDraft(id)
+        require(kmPost.id == id) { "Attempting to publish km-post via draft ID" }
+        return kmPost
+    }
+
+    private fun getDraftSwitchWithOfficialId(id: IntId<TrackLayoutSwitch>): TrackLayoutSwitch {
+        val switch = switchDao.fetch(switchDao.fetchDraftVersionOrThrow(id))
+        require(switch.id == id) { "Attempting to publish switch via draft ID" }
+        return switch
+    }
+
+    private fun getDraftTrackNumberWithOfficialId(id: IntId<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
+        val trackNumber = trackNumberService.getDraft(id)
+        require(trackNumber.id == id) { "Attempting to publish track number via draft ID" }
+        return trackNumber
+    }
+
+    private fun getDraftReferenceLineAndAlignmentWithOfficialId(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
+        val (referenceLine, alignment) = requireNotNull(referenceLineService.getWithAlignment(DRAFT, id)) {
+            "Cannot find draft reference line: $id"
+        }
+        require(referenceLine.id == id) { "Attempting to publish ReferenceLine via draft ID" }
+        return referenceLine to alignment
+    }
+
+    private fun getDraftLocationTrackAndAlignmentWithOfficialId(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+        val (locationTrack, alignment) = requireNotNull(locationTrackService.getWithAlignment(DRAFT, id)) {
+            "Cannot find draft location track: $id"
+        }
+        require(locationTrack.id == id) { "Attempting to publish LocationTrack via draft ID" }
+        return locationTrack to alignment
     }
 }
