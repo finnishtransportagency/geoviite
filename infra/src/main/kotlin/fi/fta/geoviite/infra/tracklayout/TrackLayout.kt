@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.RowVersion
+import java.time.Instant
 
 val LAYOUT_SRID = Srid(3067)
 val LAYOUT_CRS = crs(LAYOUT_SRID)
@@ -217,3 +218,10 @@ data class TrackLayoutSwitchJointConnection(
         )
     }
 }
+
+data class ChangeTimes(
+    val created: Instant,
+    val changed: Instant,
+    val officialChanged: Instant?,
+    val draftChanged: Instant?,
+)

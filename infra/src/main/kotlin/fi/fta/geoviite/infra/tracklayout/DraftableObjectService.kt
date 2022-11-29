@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.geocoding.ChangeTimes
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.util.RowVersion
 import org.slf4j.Logger
