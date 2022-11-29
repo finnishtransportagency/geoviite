@@ -765,11 +765,12 @@ private fun lines(alignment: LayoutAlignment): List<Line> {
 const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
 const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
-fun findClosestIntersection(
+fun findClosestIntersections(
     track1: Pair<LocationTrack, LayoutAlignment>,
     track2: Pair<LocationTrack, LayoutAlignment>,
-    desiredLocation: IPoint
-): TrackIntersection? {
+    desiredLocation: IPoint,
+    count: Int = 1
+): List<TrackIntersection> {
     val alignment1 = track1.second
     val alignment2 = track2.second
 
@@ -782,7 +783,7 @@ fun findClosestIntersection(
                 directionBetweenPoints(alignment2.start!!, alignment2.end!!)
             )
         ) < MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES
-    ) return null
+    ) return emptyList()
 
     val lines1 = lines(alignment1)
     val lines2 = lines(alignment2)
@@ -816,7 +817,9 @@ fun findClosestIntersection(
             }
         }
     }
-    return intersections.minOrNull()
+    return intersections
+        .sorted()
+        .take(count)
 }
 
 fun findTrackIntersections(
@@ -826,7 +829,12 @@ fun findTrackIntersections(
     val trackPairs = locationTracks.flatMapIndexed { index, track1 ->
         locationTracks.drop(index + 1).map { track2 -> track1 to track2 }
     }
-    return trackPairs.mapNotNull { (track1, track2) -> findClosestIntersection(track1, track2, desiredLocation) }
+    return trackPairs.flatMap { (track1, track2) ->
+        // Take two closest intersections instead of one because there might
+        // be two points very close to each other and it is cheap to
+        // calculate additional suggested switch and then select the best one.
+        findClosestIntersections(track1, track2, desiredLocation, 2)
+    }
 }
 
 fun findFarthestJoint(
