@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
