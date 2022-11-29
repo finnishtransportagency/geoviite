@@ -57,7 +57,7 @@ class RatkoLocationTrackService @Autowired constructor(
             }
     }
 
-    private fun getTrackNumberOid(trackNumberId: IntId<LayoutTrackNumber>): Oid<LayoutTrackNumber> {
+    private fun getTrackNumberOid(trackNumberId: IntId<TrackLayoutTrackNumber>): Oid<TrackLayoutTrackNumber> {
         return layoutTrackNumberDao.fetchOfficialVersionOrThrow(trackNumberId)
             .let { version -> layoutTrackNumberDao.fetch(version) }
             .let { layoutTrackNumber ->
@@ -119,7 +119,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
     private fun createLocationTrackMetadata(
         layoutLocationTrack: LocationTrack,
-        trackNumberOid: Oid<LayoutTrackNumber>,
+        trackNumberOid: Oid<TrackLayoutTrackNumber>,
         includeMetadata: (startTrackMeter: TrackMeter, endTrackMeter: TrackMeter) -> Boolean
     ) {
         logger.serviceCall(

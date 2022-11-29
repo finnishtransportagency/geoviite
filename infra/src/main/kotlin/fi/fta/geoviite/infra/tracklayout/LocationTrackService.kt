@@ -190,7 +190,7 @@ class LocationTrackService(
 
     fun listWithAlignments(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall(
             "listWithAlignments",

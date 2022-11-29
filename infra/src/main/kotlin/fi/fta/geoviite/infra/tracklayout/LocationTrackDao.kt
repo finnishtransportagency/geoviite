@@ -295,7 +295,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
     fun fetchVersions(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
     ): List<RowVersion<LocationTrack>> {
         val sql = """
             select lt.row_id, lt.row_version 

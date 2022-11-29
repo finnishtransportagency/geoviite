@@ -25,18 +25,18 @@ class HelsinkiTestData {
 
         val HKI_BASE_POINT = Point(HKI_BASE_POINT_X, HKI_BASE_POINT_Y)
 
-        fun geometryPlan(layoutTrackNumberId: IntId<LayoutTrackNumber>): GeometryPlan {
+        fun geometryPlan(trackLayoutTrackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan {
             return GeometryPlan(
                 project = createProject(GEOMETRY_PLAN_NAME),
                 application = application(),
                 author = null,
                 planTime = null,
                 units = tmi35GeometryUnit(),
-                trackNumberId = layoutTrackNumberId,
+                trackNumberId = trackLayoutTrackNumberId,
                 trackNumberDescription = PlanElementName(""),
-                alignments = listOf(westGeometryAlignment(layoutTrackNumberId)),
+                alignments = listOf(westGeometryAlignment(trackLayoutTrackNumberId)),
                 switches = listOf(),
-                kmPosts = listOf(westGeometryKmPost(layoutTrackNumberId)),
+                kmPosts = listOf(westGeometryKmPost(trackLayoutTrackNumberId)),
                 fileName = FileName("ratapiha.xml"),
                 oid = null,
                 planPhase = PlanPhase.RAILWAY_PLAN,
@@ -47,12 +47,12 @@ class HelsinkiTestData {
             )
         }
 
-        fun westGeometryKmPost(trackNumberId: IntId<LayoutTrackNumber>): GeometryKmPost {
+        fun westGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>): GeometryKmPost {
             val location = HKI_BASE_POINT + Point(x = 710.00, y = 550.00)
             return createGeometryKmPost(trackNumberId, location, "0001")
         }
 
-        fun westGeometryAlignment(trackNumberId: DomainId<LayoutTrackNumber>): GeometryAlignment {
+        fun westGeometryAlignment(trackNumberId: DomainId<TrackLayoutTrackNumber>): GeometryAlignment {
             val point1 = Point(x = HKI_BASE_POINT_X + 680.00, y = HKI_BASE_POINT_Y + 410.00) //etelä
             val point2 = Point(x = HKI_BASE_POINT_X + 695.00, y = HKI_BASE_POINT_Y + 500.00)
             val point3 = Point(x = HKI_BASE_POINT_X + 700.00, y = HKI_BASE_POINT_Y + 560.00) //pohjoinen
@@ -77,7 +77,7 @@ class HelsinkiTestData {
             )
         }
 
-        fun westMainLocationTrack(trackNumber: IntId<LayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
+        fun westMainLocationTrack(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
             return locationTrack(
                 name = "west",
                 trackNumber = trackNumber,
@@ -86,7 +86,7 @@ class HelsinkiTestData {
             )
         }
 
-        fun westReferenceLine(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun westReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
             val trackLayoutPoints = toTrackLayoutPoints(
                 Point(x = HKI_BASE_POINT_X + 670.00, y = HKI_BASE_POINT_Y + 410.00), //etelä
                 Point(x = HKI_BASE_POINT_X + 685.00, y = HKI_BASE_POINT_Y + 500.00),
@@ -100,7 +100,7 @@ class HelsinkiTestData {
             ) to alignment
         }
 
-        fun eastReferenceLine(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun eastReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
             val trackLayoutPoints = toTrackLayoutPoints(
                 Point(x = HKI_BASE_POINT_X + 675.00, y = HKI_BASE_POINT_Y + 410.00), //etelä
                 Point(x = HKI_BASE_POINT_X + 690.00, y = HKI_BASE_POINT_Y + 500.00),
@@ -114,7 +114,7 @@ class HelsinkiTestData {
             ) to alignment
         }
 
-        fun eastLocationTrack(trackNumberId: IntId<LayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
+        fun eastLocationTrack(trackNumberId: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
             return locationTrack(
                 name = "east",
                 trackNumber = trackNumberId,
@@ -123,7 +123,7 @@ class HelsinkiTestData {
             )
         }
 
-        fun westTrackLayoutKmPosts(trackNumber: IntId<LayoutTrackNumber>): List<TrackLayoutKmPost> {
+        fun westTrackLayoutKmPosts(trackNumber: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
             val point1 = HKI_BASE_POINT + Point(x = 690.00, y = 410.00)
             val point2 = HKI_BASE_POINT + Point(x = 690.00, y = 485.00)
             val point3 = HKI_BASE_POINT + Point(x = 690.00, y = 560.00)
@@ -136,7 +136,7 @@ class HelsinkiTestData {
 
         }
 
-        fun eastTrackLayoutKmPosts(trackNumber: DomainId<LayoutTrackNumber>): List<TrackLayoutKmPost> {
+        fun eastTrackLayoutKmPosts(trackNumber: DomainId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
             val point1 = HKI_BASE_POINT + Point(x = 752.00, y = 410.00)
             val point2 = HKI_BASE_POINT + Point(x = 752.00, y = 485.00)
             val point3 = HKI_BASE_POINT + Point(x = 752.00, y = 560.00)

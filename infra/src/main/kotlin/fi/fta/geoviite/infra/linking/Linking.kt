@@ -65,7 +65,7 @@ data class LocationTrackSaveRequest(
     val description: FreeText,
     val type: LocationTrackType,
     val state: LayoutState,
-    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType
 ) {
@@ -154,7 +154,7 @@ data class TrackNumberSaveRequest(
 data class TrackLayoutKmPostSaveRequest(
     val kmNumber: KmNumber,
     val state: LayoutState,
-    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
 )
 
 data class LocationTrackEndpoint(

@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -27,7 +27,7 @@ class GeocodingController(
     @GetMapping("/{publishType}/address/{trackNumberId}")
     fun getTrackAddress(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
+        @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
         logger.apiCall("getTrackAddress", "trackNumberId" to trackNumberId, "coordinate" to coordinate)

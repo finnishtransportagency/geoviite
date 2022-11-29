@@ -34,7 +34,7 @@ class RatkoSwitchPushException(exception: RatkoPushException, val switch: TrackL
 class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: LocationTrack) :
     RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
 
-class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: LayoutTrackNumber) :
+class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: TrackLayoutTrackNumber) :
     RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
 
 @Service
@@ -195,7 +195,7 @@ class RatkoService @Autowired constructor(
     fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
         return ratkoPushDao.getLatestRatkoPushErrorFor(publishId)?.let { ratkoError ->
             val asset = when (ratkoError.assetType) {
-                RatkoAssetType.TRACK_NUMBER -> trackNumberService.getOfficial(ratkoError.assetId as IntId<LayoutTrackNumber>)
+                RatkoAssetType.TRACK_NUMBER -> trackNumberService.getOfficial(ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
                 RatkoAssetType.LOCATION_TRACK -> locationTrackService.getOfficial(ratkoError.assetId as IntId<LocationTrack>)
                 RatkoAssetType.SWITCH -> switchService.getOfficial(ratkoError.assetId as IntId<TrackLayoutSwitch>)
             }

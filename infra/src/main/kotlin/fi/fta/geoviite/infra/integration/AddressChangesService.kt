@@ -114,7 +114,7 @@ class AddressChangesService(
     }
 
     fun getGeocodingContextAtMoment(
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant? = null,
     ): GeocodingContext? {
         val trackNumber = trackLayoutHistoryDao.fetchTrackNumberAtMoment(trackNumberId, moment)

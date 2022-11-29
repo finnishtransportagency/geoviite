@@ -86,7 +86,7 @@ class GeocodingDaoIT @Autowired constructor(
         }
     }
 
-    fun assertChangeTimeProceedsWhen(trackNumberId: IntId<LayoutTrackNumber>, publishType: PublishType, block: () -> Unit) {
+    fun assertChangeTimeProceedsWhen(trackNumberId: IntId<TrackLayoutTrackNumber>, publishType: PublishType, block: () -> Unit) {
         val before = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
         block()
         val after = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime

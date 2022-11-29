@@ -19,14 +19,14 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import java.math.BigDecimal
 
-fun createTrackLayoutTrackNumber(number: String, description: String = "description for $number" ) = LayoutTrackNumber(
+fun createTrackLayoutTrackNumber(number: String, description: String = "description for $number" ) = TrackLayoutTrackNumber(
     number = TrackNumber(number),
     description = FreeText(description),
     state = LayoutState.IN_USE,
     externalId = null,
 )
 
-fun createGeometryKmPost(trackNumberId: IntId<LayoutTrackNumber>, location: Point, kmNumber: String) =
+fun createGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>, location: Point, kmNumber: String) =
     GeometryKmPost(
         staBack = null,
         staAhead = BigDecimal("-148.729000"),
@@ -38,7 +38,7 @@ fun createGeometryKmPost(trackNumberId: IntId<LayoutTrackNumber>, location: Poin
         trackNumberId = trackNumberId,
     )
 
-fun trackLayoutKmPost(kmNumber: String, trackNumber: DomainId<LayoutTrackNumber>, point: Point) =
+fun trackLayoutKmPost(kmNumber: String, trackNumber: DomainId<TrackLayoutTrackNumber>, point: Point) =
     TrackLayoutKmPost(
         kmNumber = KmNumber(kmNumber),
         location = point,
@@ -49,7 +49,7 @@ fun trackLayoutKmPost(kmNumber: String, trackNumber: DomainId<LayoutTrackNumber>
 
 fun createGeometryAlignment(
     alignmentName: String,
-    trackNumberId: DomainId<LayoutTrackNumber>,
+    trackNumberId: DomainId<TrackLayoutTrackNumber>,
     basePoint: Point,
     incrementPoints: List<Point>,
     switchData: List<SwitchData?> = emptyList()
@@ -66,7 +66,7 @@ fun createGeometryAlignment(
 fun createGeometryAlignment(
     alignmentName: String,
     elementNamePrefix: String = "elm",
-    trackNumberId: DomainId<LayoutTrackNumber>,
+    trackNumberId: DomainId<TrackLayoutTrackNumber>,
     locationPoints: List<Point>,
     switchData: List<SwitchData?> = emptyList()
 ): GeometryAlignment {
@@ -92,7 +92,7 @@ fun createGeometryAlignment(
 }
 
 fun locationTrack(name: String,
-                  trackNumber: IntId<LayoutTrackNumber>,
+                  trackNumber: IntId<TrackLayoutTrackNumber>,
                   layoutAlignmentType: LocationTrackType = LocationTrackType.MAIN,
                   basePoint: Point,
                   incrementPoints: List<Point>,
@@ -184,7 +184,7 @@ fun pointsFromIncrementList(basePoint: Point, incrementPoints: List<Point>) =
     incrementPoints.scan(basePoint) { prevPoint, pointIncr -> prevPoint + pointIncr }
 
 fun locationTrackAndAlignmentForGeometryAlignment(
-    trackNumberId: IntId<LayoutTrackNumber>,
+    trackNumberId: IntId<TrackLayoutTrackNumber>,
     geometryAlignment: GeometryAlignment,
     planSrid: Srid = LAYOUT_SRID
 ): Pair<LocationTrack, LayoutAlignment> {
@@ -211,7 +211,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
         })
 }
 
-fun createSwitchAndAligments(switchName: String, switchStructure: SwitchStructure, switchAngle: Double, switchOrig: Point, trackNumberId: IntId<LayoutTrackNumber>): Pair<GeometrySwitch, List<GeometryAlignment>> {
+fun createSwitchAndAligments(switchName: String, switchStructure: SwitchStructure, switchAngle: Double, switchOrig: Point, trackNumberId: IntId<TrackLayoutTrackNumber>): Pair<GeometrySwitch, List<GeometryAlignment>> {
     val jointNumbers = switchStructure.joints.map { switchJoint -> switchJoint.number  }
     logger.info("Switch structure id ${switchStructure.id}")
     val geometrySwitch = GeometrySwitch(
@@ -226,7 +226,7 @@ fun createSwitchAndAligments(switchName: String, switchStructure: SwitchStructur
     return Pair(geometrySwitch, geometryAlignments)
 }
 
-fun switchStructureToGeometryAlignment(switchName: String, switchStructure: SwitchStructure, switchAngle: Double, switchOrig: Point, geometrySwitch: GeometrySwitch, trackNumberId: IntId<LayoutTrackNumber>): List<GeometryAlignment> {
+fun switchStructureToGeometryAlignment(switchName: String, switchStructure: SwitchStructure, switchAngle: Double, switchOrig: Point, geometrySwitch: GeometrySwitch, trackNumberId: IntId<TrackLayoutTrackNumber>): List<GeometryAlignment> {
     return switchStructure.alignments.mapIndexed { index, switchAlignment ->
         GeometryAlignment(
             name = AlignmentName("$index-$switchName"),

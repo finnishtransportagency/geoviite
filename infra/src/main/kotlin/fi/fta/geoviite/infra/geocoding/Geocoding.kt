@@ -77,7 +77,7 @@ private const val PROJECTION_LINE_MAX_ANGLE_DELTA = PI / 16
 private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.java)
 
 data class GeocodingContext(
-    val trackNumber: LayoutTrackNumber,
+    val trackNumber: TrackLayoutTrackNumber,
     val referenceLine: ReferenceLine,
     val referenceLineGeometry: LayoutAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
@@ -108,7 +108,7 @@ data class GeocodingContext(
 
     companion object {
         fun create(
-            trackNumber: LayoutTrackNumber,
+            trackNumber: TrackLayoutTrackNumber,
             referenceLine: ReferenceLine,
             referenceLineGeometry: LayoutAlignment,
             kmPosts: List<TrackLayoutKmPost>,

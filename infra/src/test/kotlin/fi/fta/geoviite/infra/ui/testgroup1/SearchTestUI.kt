@@ -31,7 +31,7 @@ class SearchTestUI @Autowired constructor(
 
     val toolPanel: MapToolPanel = MapToolPanel()
 
-    lateinit var SEARCH_TRACK_NUMBER_0084: LayoutTrackNumber
+    lateinit var SEARCH_TRACK_NUMBER_0084: TrackLayoutTrackNumber
 
     lateinit var LT_HKI_A: Pair<LocationTrack, LayoutAlignment>
     lateinit var LT_HKI_B: Pair<LocationTrack, LayoutAlignment>

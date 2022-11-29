@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.geometry.PlanState.*
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.*
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.formatForException
@@ -44,7 +44,7 @@ fun toGvtPlan(
     coordinateSystemNameToSrid: Map<CoordinateSystemName, Srid>,
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<LayoutTrackNumber>>,
+    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
 
     // Collect & verify expected mandatory sections
@@ -173,7 +173,7 @@ fun toVerticalCoordinateSystem(name: String): VerticalCoordinateSystem? =
     } else null
 
 fun toGvtAlignment(
-    trackNumberId: DomainId<LayoutTrackNumber>?,
+    trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     alignment: InfraModelAlignment,
     units: GeometryUnits,
     switches: Map<SwitchKey, GeometrySwitch>,
@@ -206,7 +206,7 @@ private fun getAlignmentImCodingFeatureType(features: List<InfraModelFeature>): 
         ?.let(::tryParseFeatureTypeCode)
 
 fun toGvtKmPost(
-    trackNumberId: IntId<LayoutTrackNumber>?,
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     staEquation: InfraModelStaEquation,
     state: PlanState?,
 ): GeometryKmPost {

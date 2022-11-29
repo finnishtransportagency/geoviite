@@ -17,7 +17,7 @@ import java.time.Instant
 
 data class GeocodingContextCacheKey(
     val publishType: PublishType,
-    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val changeTime: Instant,
 )
 
@@ -34,7 +34,7 @@ class GeocodingDao(
 
     fun getGeocodingContextCacheKey(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): GeocodingContextCacheKey? {
         //language=SQL
         val sql = """

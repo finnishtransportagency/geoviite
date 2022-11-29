@@ -26,7 +26,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
     fun fetchVersions(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>? = null,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
     ): List<RowVersion<TrackLayoutKmPost>> {
         val sql = """
@@ -54,7 +54,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
     fun fetchVersion(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
     ): RowVersion<TrackLayoutKmPost>? {
         val sql = """

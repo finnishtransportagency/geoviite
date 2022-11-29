@@ -57,7 +57,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
 
     private fun fetchTrackNumberKmPosts(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
         return kmPostDao.fetchVersions(publishType, trackNumberId).map(kmPostDao::fetch)
     }

@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import org.slf4j.Logger
@@ -45,7 +45,7 @@ data class OverrideParameters(
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val projectId: IntId<Project>?,
     val authorId: IntId<Author>?,
-    val trackNumberId: IntId<LayoutTrackNumber>?,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val createdDate: Instant?,
     val encoding: String?
 )

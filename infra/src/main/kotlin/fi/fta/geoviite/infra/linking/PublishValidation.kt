@@ -32,14 +32,14 @@ const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
 
-fun validateDraftTrackNumberFields(trackNumber: LayoutTrackNumber): List<PublishValidationError> =
+fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<PublishValidationError> =
     listOfNotNull(
         validate(trackNumber.draft != null) { "$VALIDATION_TRACK_NUMBER.not-draft" },
         validate(trackNumber.state.isPublishable()) { "$VALIDATION_TRACK_NUMBER.state.${trackNumber.state}" }
     )
 
 fun validateTrackNumberReferences(
-    trackNumber: LayoutTrackNumber,
+    trackNumber: TrackLayoutTrackNumber,
     kmPosts: List<TrackLayoutKmPost>,
     locationTracks: List<LocationTrack>,
     publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
@@ -80,8 +80,8 @@ fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidation
 
 fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
-    trackNumber: LayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
+    trackNumber: TrackLayoutTrackNumber?,
+    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
 ): List<PublishValidationError> =
     listOfNotNull(
         validate(trackNumber != null) { "$VALIDATION_KM_POST.track-number.null" },
@@ -208,8 +208,8 @@ fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<Publish
 
 fun validateReferenceLineReference(
     referenceLine: ReferenceLine,
-    trackNumber: LayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
+    trackNumber: TrackLayoutTrackNumber?,
+    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
 ) =
     if (trackNumber == null) listOf(
         PublishValidationError(ERROR, "$VALIDATION_REFERENCE_LINE.track-number.null")
@@ -225,8 +225,8 @@ fun validateReferenceLineReference(
 
 fun validateLocationTrackReference(
     locationTrack: LocationTrack,
-    trackNumber: LayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
+    trackNumber: TrackLayoutTrackNumber?,
+    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
 ) =
     if (trackNumber == null) listOf(
         PublishValidationError(ERROR, "$VALIDATION_LOCATION_TRACK.track-number.null")
@@ -360,7 +360,7 @@ fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?
     else previous.distance < next.distance
 
 fun validateAddressPoints(
-    trackNumber: LayoutTrackNumber,
+    trackNumber: TrackLayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
     geocode: () -> AlignmentAddresses?,
@@ -383,7 +383,7 @@ fun validateAddressPoints(
     }
 
 fun validateAddressPoints(
-    trackNumber: LayoutTrackNumber,
+    trackNumber: TrackLayoutTrackNumber,
     locationTrack: LocationTrack,
     addresses: AlignmentAddresses,
 ): List<PublishValidationError> {

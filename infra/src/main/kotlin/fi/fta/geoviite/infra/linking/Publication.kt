@@ -12,14 +12,14 @@ data class PublicationListingItem(
     val publishTime: Instant,
     val ratkoPushTime: Instant?,
     val status: RatkoPushStatus?,
-    val trackNumberIds: List<IntId<LayoutTrackNumber>>,
+    val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     val hasRatkoPushError: Boolean,
 )
 
 data class PublicationHeader(
     val id: IntId<Publication>,
     val publishTime: Instant,
-    val trackNumbers: List<IntId<LayoutTrackNumber>>,
+    val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,
     val switches: List<IntId<TrackLayoutSwitch>>,
 )
@@ -64,7 +64,7 @@ data class PublishCandidates(
 )
 
 data class PublishRequest(
-    val trackNumbers: List<IntId<LayoutTrackNumber>>,
+    val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,
     val referenceLines: List<IntId<ReferenceLine>>,
     val switches: List<IntId<TrackLayoutSwitch>>,
@@ -98,18 +98,18 @@ interface PublishCandidate<T> {
 }
 
 data class TrackNumberPublishCandidate(
-    override val id: IntId<LayoutTrackNumber>,
+    override val id: IntId<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     override val draftChangeTime: Instant,
     override val errors: List<PublishValidationError> = listOf(),
-) : PublishCandidate<LayoutTrackNumber> {
+) : PublishCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
 }
 
 data class ReferenceLinePublishCandidate(
     override val id: IntId<ReferenceLine>,
     val name: TrackNumber,
-    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
     override val errors: List<PublishValidationError> = listOf(),
 ) : PublishCandidate<ReferenceLine> {
@@ -119,7 +119,7 @@ data class ReferenceLinePublishCandidate(
 data class LocationTrackPublishCandidate(
     override val id: IntId<LocationTrack>,
     val name: AlignmentName,
-    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
     val duplicateOf: IntId<LocationTrack>?,
     override val errors: List<PublishValidationError> = listOf(),
@@ -138,7 +138,7 @@ data class SwitchPublishCandidate(
 
 data class KmPostPublishCandidate(
     override val id: IntId<TrackLayoutKmPost>,
-    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
     override val draftChangeTime: Instant,
     override val errors: List<PublishValidationError> = listOf(),

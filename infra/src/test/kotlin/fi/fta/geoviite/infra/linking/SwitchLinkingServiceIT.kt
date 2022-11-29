@@ -292,7 +292,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     private fun makeAndSavePlan(
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         measurementMethod: MeasurementMethod?,
         alignments: List<GeometryAlignment> = listOf(),
         switches: List<GeometrySwitch> = listOf(),

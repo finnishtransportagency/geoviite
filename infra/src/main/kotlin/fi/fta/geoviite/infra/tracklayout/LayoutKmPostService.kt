@@ -55,7 +55,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
 
     fun list(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
         logger.serviceCall("getKmPosts", "trackNumberId" to trackNumberId)
         return dao.fetchVersions(publishType, trackNumberId = trackNumberId).map(dao::fetch)
@@ -79,7 +79,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
 
     fun getByKmNumber(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
     ): TrackLayoutKmPost? {
         logger.serviceCall("getByKmNumber", "trackNumberId" to trackNumberId, "kmNumber" to kmNumber)
@@ -89,7 +89,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
     fun listNearbyOnTrackPaged(
         publishType: PublishType,
         location: Point,
-        trackNumberId: DomainId<LayoutTrackNumber>,
+        trackNumberId: DomainId<TrackLayoutTrackNumber>,
         offset: Int,
         limit: Int?,
     ): List<TrackLayoutKmPost> {
@@ -101,7 +101,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
             "offset" to offset,
             "limit" to limit
         )
-        val kmPosts = list(publishType, trackNumberId as IntId<LayoutTrackNumber>)
+        val kmPosts = list(publishType, trackNumberId as IntId<TrackLayoutTrackNumber>)
             .map { associateByDistance(it, location) { item -> item.location } }
 
         // Returns kmPosts with null location first, after that it compares by distance to the point given in

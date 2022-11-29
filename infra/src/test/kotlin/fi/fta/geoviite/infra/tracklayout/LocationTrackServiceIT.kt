@@ -439,7 +439,7 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     private fun createAndVerifyTrack(
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         seed: Int,
     ): Pair<RowVersion<LocationTrack>, LocationTrack> {
         val insertRequest = saveRequest(trackNumberId, seed)
@@ -498,7 +498,7 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     private fun saveRequest(
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         seed: Int,
     ) = LocationTrackSaveRequest(
         name = AlignmentName("TST-TRACK$seed"),

@@ -573,7 +573,7 @@ class RatkoAddressPointServiceIT @Autowired constructor(
         val referenceLine = referenceLineDao.fetch(
             referenceLineDao.insert(
                 referenceLine(
-                    trackNumber.id as IntId<LayoutTrackNumber>,
+                    trackNumber.id as IntId<TrackLayoutTrackNumber>,
                     alignment = referenceLineGeometry
                 ).copy(
                     alignmentVersion = referenceLineGeometryVersion

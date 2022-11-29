@@ -162,7 +162,7 @@ fun mapJointNumberToGeometryType(
 
 fun convertToRatkoLocationTrack(
     locationTrack: LocationTrack,
-    trackNumberOid: Oid<LayoutTrackNumber>?,
+    trackNumberOid: Oid<TrackLayoutTrackNumber>?,
     nodeCollection: RatkoNodes? = null,
     duplicateOfOid: Oid<LocationTrack>?,
 ) = RatkoLocationTrack(
@@ -178,7 +178,7 @@ fun convertToRatkoLocationTrack(
 )
 
 fun convertToRatkoRouteNumber(
-    trackNumber: LayoutTrackNumber,
+    trackNumber: TrackLayoutTrackNumber,
     nodeCollection: RatkoNodes? = null,
 ) = RatkoRouteNumber(
     id = trackNumber.externalId?.toString(),
@@ -213,7 +213,7 @@ fun convertToRatkoNode(
 ) = RatkoNode(nodeType, convertToRatkoPoint(addressPoint, state))
 
 fun convertToRatkoMetadataAsset(
-    trackNumberOid: Oid<LayoutTrackNumber>,
+    trackNumberOid: Oid<TrackLayoutTrackNumber>,
     locationTrackOid: Oid<LocationTrack>,
     segmentMetadata: LayoutSegmentMetadata,
     startTrackMeter: TrackMeter,

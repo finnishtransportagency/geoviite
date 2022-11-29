@@ -21,7 +21,7 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}")
-    fun getTrackNumbers(@PathVariable("publishType") publishType: PublishType): List<LayoutTrackNumber> {
+    fun getTrackNumbers(@PathVariable("publishType") publishType: PublishType): List<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumbers", "publishType" to publishType)
         return trackNumberService.list(publishType)
     }
@@ -30,15 +30,15 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
     @GetMapping("/{publishType}/{id}")
     fun getTrackNumber(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<LayoutTrackNumber>,
-    ): ResponseEntity<LayoutTrackNumber> {
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+    ): ResponseEntity<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumber", "publishType" to publishType, "id" to id)
         return toResponse(trackNumberService.get(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/draft")
-    fun insertTrackNumber(@RequestBody saveRequest: TrackNumberSaveRequest): IntId<LayoutTrackNumber> {
+    fun insertTrackNumber(@RequestBody saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("insertTrackNumber", "trackNumber" to saveRequest)
         return trackNumberService.insert(saveRequest)
     }
@@ -46,16 +46,16 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
     @PreAuthorize(AUTH_ALL_WRITE)
     @PutMapping("/draft/{id}")
     fun updateTrackNumber(
-        @PathVariable id: IntId<LayoutTrackNumber>,
+        @PathVariable id: IntId<TrackLayoutTrackNumber>,
         @RequestBody saveRequest: TrackNumberSaveRequest,
-    ): IntId<LayoutTrackNumber> {
+    ): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("updateTrackNumber", "id" to id, "trackNumber" to saveRequest)
         return trackNumberService.update(id, saveRequest)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @DeleteMapping("/draft/{id}")
-    fun deleteDraftTrackNumber(@PathVariable("id") id: IntId<LayoutTrackNumber>): IntId<LayoutTrackNumber> {
+    fun deleteDraftTrackNumber(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("deleteDraftTrackNumber", "id" to id)
         return trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(id)
     }

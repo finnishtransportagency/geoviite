@@ -160,7 +160,7 @@ class PublishService @Autowired constructor(
         locationTrackOid?.let { oid -> locationTrackService.updateExternalId(locationTrackId, Oid(oid.id)) }
     }
 
-    private fun updateExternalIdForTrackNumber(trackNumberId: IntId<LayoutTrackNumber>) {
+    private fun updateExternalIdForTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>) {
         val routeNumberOid = ratkoService?.let { s ->
             s.getNewRouteNumberTrackOid() ?: throw IllegalStateException("No OID received from RATKO")
         }
@@ -251,7 +251,7 @@ class PublishService @Autowired constructor(
     }
 
     fun validateTrackNumber(
-        id: IntId<LayoutTrackNumber>,
+        id: IntId<TrackLayoutTrackNumber>,
         publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
         publishReferenceLineIds: List<IntId<ReferenceLine>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
@@ -274,7 +274,7 @@ class PublishService @Autowired constructor(
     }
 
     fun validateTrackNumberAssociatedTrackAddresses(
-        trackNumber: LayoutTrackNumber,
+        trackNumber: TrackLayoutTrackNumber,
     ): List<PublishValidationError> {
         val locationTracks = publishDao
             .fetchTrackNumberLocationTrackRows(trackNumber.id as IntId)
@@ -288,7 +288,7 @@ class PublishService @Autowired constructor(
 
     fun validateKmPost(
         id: IntId<TrackLayoutKmPost>,
-        publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
+        publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): List<PublishValidationError> {
         val kmPost = kmPostService.getDraft(id)
         require(kmPost.id == id) { "Attempting to publish km-post via draft ID" }
@@ -323,7 +323,7 @@ class PublishService @Autowired constructor(
 
     fun validateReferenceLine(
         id: IntId<ReferenceLine>,
-        publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
+        publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): List<PublishValidationError> {
         val (referenceLine, alignment) = requireNotNull(referenceLineService.getWithAlignment(DRAFT, id)) {
             "Cannot find draft reference line: $id"
@@ -341,7 +341,7 @@ class PublishService @Autowired constructor(
 
     fun validateLocationTrack(
         id: IntId<LocationTrack>,
-        publishTrackNumberIds: List<IntId<LayoutTrackNumber>>,
+        publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
     ): List<PublishValidationError> {
@@ -391,7 +391,7 @@ class PublishService @Autowired constructor(
     }
 
     private fun validateTrackNumberGeocodingContext(
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         validationType: String
     ) = validateGeocodingContext(geocodingService.getGeocodingContext(DRAFT, trackNumberId), validationType)
 

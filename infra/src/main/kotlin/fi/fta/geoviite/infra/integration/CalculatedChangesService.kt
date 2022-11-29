@@ -14,7 +14,7 @@ import java.time.Instant
 
 
 data class TrackNumberChange(
-    val trackNumberId: IntId<LayoutTrackNumber>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val changedKmNumbers: Set<KmNumber> = emptySet(),
     val isStartChanged: Boolean,
     val isEndChanged: Boolean,
@@ -46,8 +46,8 @@ data class SwitchJointChange(
     val point: Point,
     val locationTrackId: IntId<LocationTrack>,
     val locationTrackExternalId: Oid<LocationTrack>?,
-    val trackNumberId: IntId<LayoutTrackNumber>,
-    val trackNumberExternalId: Oid<LayoutTrackNumber>?
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val trackNumberExternalId: Oid<TrackLayoutTrackNumber>?
 )
 
 data class SwitchChange(
@@ -74,7 +74,7 @@ class CalculatedChangesService(
     val geocodingService: GeocodingService,
 ) {
     fun getCalculatedChangesSince(
-        trackNumberIds: List<IntId<LayoutTrackNumber>>,
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         locationTrackIds: List<IntId<LocationTrack>>,
         switchIds: List<IntId<TrackLayoutSwitch>>,
         moment: Instant
@@ -106,7 +106,7 @@ class CalculatedChangesService(
     }
 
     fun getCalculatedChangesInDraft(
-        trackNumberIds: List<IntId<LayoutTrackNumber>>,
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         referenceLineIds: List<IntId<ReferenceLine>>,
         kmPostIds: List<IntId<TrackLayoutKmPost>>,
         locationTrackIds: List<IntId<LocationTrack>>,
@@ -141,7 +141,7 @@ class CalculatedChangesService(
     }
 
     private fun calculateTrackNumberChangesSinceMoment(
-        trackNumberIds: List<IntId<LayoutTrackNumber>>,
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         moment: Instant
     ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
         val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
@@ -155,7 +155,7 @@ class CalculatedChangesService(
     }
 
     private fun calculateTrackNumberChangesInDraft(
-        trackNumberIds: List<IntId<LayoutTrackNumber>>,
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
         val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
             getTrackNumberChange(
@@ -168,7 +168,7 @@ class CalculatedChangesService(
     }
 
     private fun getTrackNumberChange(
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         beforeContext: GeocodingContext?,
         afterContext: GeocodingContext?,
     ): Pair<TrackNumberChange, List<IntId<LocationTrack>>> {

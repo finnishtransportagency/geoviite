@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.ui.testdata
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 
 class SearchTestData {
     companion object {
@@ -11,7 +11,7 @@ class SearchTestData {
         val BASE_POINT_HELSINKI =  Point(HelsinkiTestData.HKI_BASE_POINT_X, HelsinkiTestData.HKI_BASE_POINT_Y)
 
 
-        fun createLocationTrackHkiA(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun createLocationTrackHkiA(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "LT-A HKI",
                 trackNumber = trackNumberId,
@@ -21,7 +21,7 @@ class SearchTestData {
 
             )
 
-        fun createLocationTrackHkiB(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun createLocationTrackHkiB(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "LT-B HKI",
                 trackNumber = trackNumberId,
@@ -31,7 +31,7 @@ class SearchTestData {
 
             )
 
-        fun createLocationTrackEspA(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun createLocationTrackEspA(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "LT-A ESP 1",
                 trackNumber = trackNumberId,
@@ -41,7 +41,7 @@ class SearchTestData {
 
             )
 
-        fun createLocationTrackEspB(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun createLocationTrackEspB(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "LT-B ESP 2",
                 trackNumber = trackNumberId,

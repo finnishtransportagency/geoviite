@@ -47,7 +47,7 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
     @GetMapping("/{publishType}", params=["trackNumberId", "location", "offset", "limit"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
+        @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("location") location: Point,
         @RequestParam("offset") offset: Int?,
         @RequestParam("limit") limit: Int?,
@@ -70,7 +70,7 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
     @GetMapping("/{publishType}", params=["trackNumberId", "kmNumber"])
     fun getKmPost(
         @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
+        @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("kmNumber") kmNumber: KmNumber,
     ): ResponseEntity<TrackLayoutKmPost> {
         logger.apiCall(

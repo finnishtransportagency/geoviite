@@ -35,7 +35,7 @@ class GeocodingService(
 
     fun getAddress(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         location: IPoint,
     ): Pair<TrackMeter, IntersectType>? {
         logger.serviceCall(
@@ -47,7 +47,7 @@ class GeocodingService(
 
     fun getAddressIfWithin(
         publishType: PublishType,
-        trackNumberId: IntId<LayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         location: IPoint,
     ): TrackMeter? {
         logger.serviceCall(
@@ -94,7 +94,7 @@ class GeocodingService(
         }
     }
 
-    fun getGeocodingContext(publishType: PublishType, trackNumberId: DomainId<LayoutTrackNumber>?) =
+    fun getGeocodingContext(publishType: PublishType, trackNumberId: DomainId<TrackLayoutTrackNumber>?) =
         if (trackNumberId is IntId) {
             geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)
                 ?.let(geocodingDao::getGeocodingContext)

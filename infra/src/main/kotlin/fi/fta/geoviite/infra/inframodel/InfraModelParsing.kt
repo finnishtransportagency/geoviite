@@ -10,7 +10,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.ValidationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import jakarta.xml.bind.JAXBContext
@@ -101,7 +101,7 @@ fun parseGeometryPlan(
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<LayoutTrackNumber>>,
+    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, fileToString(file))
 
@@ -120,7 +120,7 @@ fun parseGeometryPlan(
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<LayoutTrackNumber>>,
+    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
     return parseFromString(
@@ -137,7 +137,7 @@ fun parseFromClasspath(
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<LayoutTrackNumber>>,
+    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, classpathResourceToString(fileName))
     return parseFromString(
@@ -157,7 +157,7 @@ fun parseFromString(
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<LayoutTrackNumber>>,
+    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
     return toGvtPlan(
         file.name,

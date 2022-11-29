@@ -15,30 +15,30 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional(readOnly = true)
 @Component
 class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
-    : DraftableDaoBase<LayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+    : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
 
-    fun fetchExternalIdToIdMapping(): Map<Oid<LayoutTrackNumber>, IntId<LayoutTrackNumber>> {
+    fun fetchExternalIdToIdMapping(): Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>> {
         val sql = "select id, external_id from layout.track_number where external_id is not null"
-        val result: List<Pair<Oid<LayoutTrackNumber>, IntId<LayoutTrackNumber>>> =
+        val result: List<Pair<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>> =
             jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-                rs.getOid<LayoutTrackNumber>("external_id") to rs.getIntId("id")
+                rs.getOid<TrackLayoutTrackNumber>("external_id") to rs.getIntId("id")
             }
-        logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, result.map { r -> r.second })
+        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, result.map { r -> r.second })
         return result.associate { it }
     }
 
-    fun getTrackNumberToIdMapping(): Map<TrackNumber, IntId<LayoutTrackNumber>> {
+    fun getTrackNumberToIdMapping(): Map<TrackNumber, IntId<TrackLayoutTrackNumber>> {
         val sql = "select id, number from layout.track_number"
-        val result: List<Pair<TrackNumber, IntId<LayoutTrackNumber>>> =
+        val result: List<Pair<TrackNumber, IntId<TrackLayoutTrackNumber>>> =
             jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
                 rs.getTrackNumber("number") to rs.getIntId("id")
             }
-        logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, result.map { r -> r.second })
+        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, result.map { r -> r.second })
         return result.associate { it }
     }
 
     @Cacheable(CACHE_LAYOUT_TRACK_NUMBER, sync = true)
-    override fun fetch(version: RowVersion<LayoutTrackNumber>): LayoutTrackNumber {
+    override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             select 
               official_id, 
@@ -54,23 +54,23 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
         val params = mapOf("id" to version.id.intValue)
         val trackNumber = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            LayoutTrackNumber(
+            TrackLayoutTrackNumber(
                 id = rs.getIntId("official_id"),
                 number = rs.getTrackNumber("number"),
                 description = rs.getFreeText("description"),
                 state = rs.getEnum("state"),
                 externalId = rs.getOidOrNull("external_id"),
                 dataType = DataType.STORED,
-                draft = rs.getIntIdOrNull<LayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
+                draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
                 version = rs.getVersion("official_version", "draft_version"),
             )
         })
-        logger.daoAccess(AccessType.FETCH, LayoutTrackNumber::class, trackNumber.id)
+        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumber.id)
         return trackNumber
     }
 
     @Transactional
-    override fun insert(newItem: LayoutTrackNumber): RowVersion<LayoutTrackNumber> {
+    override fun insert(newItem: TrackLayoutTrackNumber): RowVersion<TrackLayoutTrackNumber> {
         verifyDraftableInsert(newItem)
         val sql = """
             insert into layout.track_number(
@@ -101,14 +101,14 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         )
         jdbcTemplate.setUser()
         val idAndVersion = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion<LayoutTrackNumber>("id", "version")
+            rs.getRowVersion<TrackLayoutTrackNumber>("id", "version")
         } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
-        logger.daoAccess(AccessType.INSERT, LayoutTrackNumber::class, idAndVersion)
+        logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, idAndVersion)
         return idAndVersion
     }
 
     @Transactional
-    override fun update(updatedItem: LayoutTrackNumber): RowVersion<LayoutTrackNumber> {
+    override fun update(updatedItem: TrackLayoutTrackNumber): RowVersion<TrackLayoutTrackNumber> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.track_number
@@ -132,10 +132,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_track_number_id" to draftOfId(updatedItem)?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: RowVersion<LayoutTrackNumber> =
+        val result: RowVersion<TrackLayoutTrackNumber> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to get new version for Track Layout TrackNumber")
-        logger.daoAccess(AccessType.UPDATE, LayoutTrackNumber::class, rowId)
+        logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, rowId)
         return result
     }
 
@@ -165,7 +165,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
 
-    fun findVersions(number: TrackNumber, publishType: PublishType): List<RowVersion<LayoutTrackNumber>> {
+    fun findVersions(number: TrackNumber, publishType: PublishType): List<RowVersion<TrackLayoutTrackNumber>> {
         val sql = """
             select row_id, row_version
             from layout.track_number_publication_view

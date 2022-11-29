@@ -40,7 +40,7 @@ class EspooTestData {
         val BASE_POINT_Y = 6676400.00
         val BASE_POINT = Point(BASE_POINT_X, BASE_POINT_Y)
 
-        fun geometryPlan(layoutTrackNumberId: IntId<LayoutTrackNumber>): GeometryPlan {
+        fun geometryPlan(trackLayoutTrackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan {
 
             GEO_SWITCH_1_STRUCTURE = switchStructures.first { it.type.typeName == "YV60-300-1:9-O" }
             GEO_SWITCH_1_NAME = GEO_SWITCH_1_STRUCTURE.type.typeName.substringBefore("-")
@@ -50,7 +50,7 @@ class EspooTestData {
                 switchStructure = GEO_SWITCH_1_STRUCTURE,
                 switchAngle = 0.0,
                 switchOrig = BASE_POINT + Point(x = 10.0, y = 130.0),
-                trackNumberId = layoutTrackNumberId
+                trackNumberId = trackLayoutTrackNumberId
             )
             GEO_SWITCH_1_ALIGNMENT_NAMES = switchAndAlignments1.second.map{ it.name.toString() }
 
@@ -59,7 +59,7 @@ class EspooTestData {
                 switchStructure = GEO_SWITCH_1_STRUCTURE,
                 switchAngle = 0.0,
                 switchOrig = BASE_POINT + Point(x = 10.0, y = 150.0),
-                trackNumberId = layoutTrackNumberId
+                trackNumberId = trackLayoutTrackNumberId
             )
 
             GEO_SWITCH_2_ALIGNMENT_NAMES = switchAndAlignments2.second.map { it.name.toString() }
@@ -70,22 +70,22 @@ class EspooTestData {
                 author = null,
                 planTime = null,
                 units = tmi35GeometryUnit(),
-                trackNumberId = layoutTrackNumberId,
+                trackNumberId = trackLayoutTrackNumberId,
                 switches = listOf(
                     switchAndAlignments1.first,
                 ),
                 alignments = listOf(
-                    geometryAlignmentA(layoutTrackNumberId),
-                    geometryAlignmentB(layoutTrackNumberId),
-                    geometryAlignmentC(layoutTrackNumberId),
-                    geometryAlignmentD(layoutTrackNumberId),
-                    geometryAlignmentE(layoutTrackNumberId),
-                    geometryAlignmentF(layoutTrackNumberId),
-                    geometryAlignmentI(layoutTrackNumberId)
+                    geometryAlignmentA(trackLayoutTrackNumberId),
+                    geometryAlignmentB(trackLayoutTrackNumberId),
+                    geometryAlignmentC(trackLayoutTrackNumberId),
+                    geometryAlignmentD(trackLayoutTrackNumberId),
+                    geometryAlignmentE(trackLayoutTrackNumberId),
+                    geometryAlignmentF(trackLayoutTrackNumberId),
+                    geometryAlignmentI(trackLayoutTrackNumberId)
                 )
                     .plus(switchAndAlignments1.second)
                     .plus(switchAndAlignments2.second),
-                kmPosts = geometryKmPosts(layoutTrackNumberId),
+                kmPosts = geometryKmPosts(trackLayoutTrackNumberId),
                 fileName = FileName("espoo_test_data.xml"),
                 oid = null,
                 planPhase = PlanPhase.RAILWAY_PLAN,
@@ -99,7 +99,7 @@ class EspooTestData {
 
 
 
-        fun geometryKmPosts(trackNumberId: IntId<LayoutTrackNumber>): List<GeometryKmPost> {
+        fun geometryKmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>): List<GeometryKmPost> {
             val locations = listOf(Point(x = 100.0, y = 10.0), Point(x = 50.0, y = 20.0), Point(x = 50.0, y = 20.0))
                 .scan(BASE_POINT + Point(x = 0.0, y = 70.0)) { prevPoint, pointIncr -> prevPoint + pointIncr }
 
@@ -112,7 +112,7 @@ class EspooTestData {
             }
         }
 
-        fun trackLayoutKmPosts(trackNumberId: IntId<LayoutTrackNumber>): List<TrackLayoutKmPost> {
+        fun trackLayoutKmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
             val locations = listOf(Point(x = 100.0, y = 20.0), Point(x = 50.0, y = 20.0))
                 .scan(BASE_POINT + Point(x = 0.0, y = 80.0)) { prevPoint, pointIncr -> prevPoint + pointIncr }
 
@@ -125,14 +125,14 @@ class EspooTestData {
             }
         }
 
-        fun geometryAlignmentA(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun geometryAlignmentA(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             createGeometryAlignment(alignmentName = GEO_ALIGNMENT_A_NAME,
                 trackNumberId = trackNumberId,
                 basePoint = BASE_POINT + Point(x = 0.0, y = 20.0),
                 incrementPoints = listOf(Point(x = 50.0, y = 5.0), Point(x = 50.0, y = 5.0))
             )
 
-        fun geometryAlignmentB(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun geometryAlignmentB(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             createGeometryAlignment(
                 alignmentName = GEO_ALIGNMENT_B_NAME,
                 trackNumberId = trackNumberId,
@@ -141,7 +141,7 @@ class EspooTestData {
             )
 
 
-        fun locationTrackB(trackNumber: IntId<LayoutTrackNumber>) =
+        fun locationTrackB(trackNumber: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "B",
                 trackNumber = trackNumber,
@@ -150,7 +150,7 @@ class EspooTestData {
             )
 
 
-        fun geometryAlignmentC(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun geometryAlignmentC(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             createGeometryAlignment(
                 alignmentName = GEO_ALIGNMENT_C_NAME,
                 trackNumberId = trackNumberId,
@@ -159,7 +159,7 @@ class EspooTestData {
             )
 
 
-        fun geometryAlignmentD(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun geometryAlignmentD(trackNumberId: IntId<TrackLayoutTrackNumber>) =
              createGeometryAlignment(
                 alignmentName = GEO_ALIGNMENT_D_NAME,
                 trackNumberId = trackNumberId,
@@ -168,7 +168,7 @@ class EspooTestData {
             )
 
 
-        fun locationTrackD(trackNumber: IntId<LayoutTrackNumber>): List<Pair<LocationTrack, LayoutAlignment>> {
+        fun locationTrackD(trackNumber: IntId<TrackLayoutTrackNumber>): List<Pair<LocationTrack, LayoutAlignment>> {
 
             val part1 = locationTrack(
                 name = "D1",
@@ -189,7 +189,7 @@ class EspooTestData {
             return listOf(part1, part2)
         }
 
-        fun geometryAlignmentE(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun geometryAlignmentE(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             createGeometryAlignment(
                 alignmentName = GEO_ALIGNMENT_E_NAME,
                 trackNumberId = trackNumberId,
@@ -197,7 +197,7 @@ class EspooTestData {
                 incrementPoints = listOf(Point(x = 20.0, y = 5.0), Point(x = 20.0, y = 5.0))
             )
 
-        fun locationTrackE(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun locationTrackE(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "E",
                 trackNumber = trackNumberId,
@@ -206,7 +206,7 @@ class EspooTestData {
                 incrementPoints =  listOf(Point(x = 20.0, y = 2.0), Point(x = 20.0, y = 2.0))
             )
 
-        fun geometryAlignmentF(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun geometryAlignmentF(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             createGeometryAlignment(
                 alignmentName = GEO_ALIGNMENT_F_NAME,
                 trackNumberId = trackNumberId,
@@ -214,7 +214,7 @@ class EspooTestData {
                 incrementPoints = listOf(Point(x = 20.0, y = 5.0), Point(x = 20.0, y = 5.0))
             )
 
-        fun locationTrackF(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun locationTrackF(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "F",
                 trackNumber = trackNumberId,
@@ -223,7 +223,7 @@ class EspooTestData {
             )
 
 
-        fun locationTrackG(trackNumber: IntId<LayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> =
+        fun locationTrackG(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> =
             locationTrack(
                 name = "G",
                 trackNumber = trackNumber,
@@ -231,7 +231,7 @@ class EspooTestData {
                 incrementPoints =  listOf(Point(x = 100.0, y = 5.0), Point(x = 100.0, y = 5.0)))
 
 
-        fun geometryAlignmentI(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun geometryAlignmentI(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             createGeometryAlignment(
                 alignmentName = GEO_ALIGNMENT_I_NAME,
                 trackNumberId = trackNumberId,
@@ -239,7 +239,7 @@ class EspooTestData {
                 incrementPoints = listOf(Point(x = 150.0, y = 10.0), Point(x = 150.0, y = 10.0))
             )
 
-        fun locationTrackH(trackNumber: IntId<LayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> =
+        fun locationTrackH(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> =
             locationTrack(
                 name = "H",
                 trackNumber = trackNumber,
@@ -252,7 +252,7 @@ class EspooTestData {
             return trackLayoutSwitch("switch-A", listOf(location), switchStructures.first { it.type.typeName == "YV60-300-1:9-O" })
         }
 
-        fun locationTrackJ(trackNumberId: IntId<LayoutTrackNumber>) =
+        fun locationTrackJ(trackNumberId: IntId<TrackLayoutTrackNumber>) =
             locationTrack(
                 name = "J",
                 trackNumber = trackNumberId,
@@ -260,7 +260,7 @@ class EspooTestData {
                 incrementPoints = listOf(Point(x = 30.0, y = 0.0), Point(x = 30.0, y = 0.0))
             )
 
-        fun referenceLine1(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun referenceLine1(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
             val points = pointsFromIncrementList(BASE_POINT + Point(x = -20.0, y = 5.0), listOf(Point(x = 150.0, y = 10.0), Point(x = 150.0, y = 10.0)) )
 
             val trackLayoutPoints = toTrackLayoutPoints(*points.toTypedArray())
@@ -272,7 +272,7 @@ class EspooTestData {
             ) to alignment
         }
 
-        fun referenceLine2(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun referenceLine2(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
             val points = pointsFromIncrementList(BASE_POINT + Point(x =  0.0, y = 0.0), listOf(Point(x = 15.0, y = 1.0), Point(x = 15.0, y = 1.0)) )
 
             val trackLayoutPoints = toTrackLayoutPoints(*points.toTypedArray())
@@ -284,7 +284,7 @@ class EspooTestData {
             ) to alignment
         }
 
-        fun referenceLine3(trackNumber: IntId<LayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun referenceLine3(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
             val points = pointsFromIncrementList(BASE_POINT + Point(x =  -20.0, y = 10.0), listOf(Point(x = 15+.0, y = 10.0), Point(x = 150.0, y = 10.0)) )
 
             val trackLayoutPoints = toTrackLayoutPoints(*points.toTypedArray())

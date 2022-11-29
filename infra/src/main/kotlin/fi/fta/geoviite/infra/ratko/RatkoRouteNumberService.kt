@@ -24,7 +24,7 @@ class RatkoRouteNumberService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushTrackNumberChangesToRatko(trackNumberChanges: List<TrackNumberChange>): List<Oid<LayoutTrackNumber>> {
+    fun pushTrackNumberChangesToRatko(trackNumberChanges: List<TrackNumberChange>): List<Oid<TrackLayoutTrackNumber>> {
         return trackNumberChanges
             .map { change -> change to trackNumberService.getOrThrow(PublishType.OFFICIAL, change.trackNumberId) }
             .sortedBy { sortByDeletedStateFirst(it.second.state) }
@@ -55,7 +55,7 @@ class RatkoRouteNumberService @Autowired constructor(
         }
     }
 
-    private fun deleteRouteNumber(trackNumber: LayoutTrackNumber) {
+    private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber) {
         logger.serviceCall("deleteRouteNumber", "trackNumber" to trackNumber)
         requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid $trackNumber" }
 
@@ -77,7 +77,7 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun updateRouteNumber(
-        trackNumber: LayoutTrackNumber,
+        trackNumber: TrackLayoutTrackNumber,
         existingRatkoRouteNumber: RatkoRouteNumber,
         routeNumberChange: TrackNumberChange,
     ) {
@@ -142,7 +142,7 @@ class RatkoRouteNumberService @Autowired constructor(
             }
     }
 
-    private fun createRouteNumber(trackNumber: LayoutTrackNumber) {
+    private fun createRouteNumber(trackNumber: TrackLayoutTrackNumber) {
         logger.serviceCall("createRouteNumber", "trackNumber" to trackNumber)
 
         val addresses =
@@ -170,7 +170,7 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun updateRouteNumberProperties(
-        trackNumber: LayoutTrackNumber,
+        trackNumber: TrackLayoutTrackNumber,
         nodeCollection: RatkoNodes? = null
     ) {
         requireNotNull(trackNumber.externalId) { "Cannot update route number properties without oid $trackNumber" }

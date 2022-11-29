@@ -26,7 +26,7 @@ import fi.fta.geoviite.infra.inframodel.parseGeometryPlan
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.resetCollected
 import org.flywaydb.core.api.migration.BaseJavaMigration
@@ -65,7 +65,7 @@ private data class PlanMetaData(
     val quality: MeasurementMethod?,
     val date: LocalDate?,
     val notes: String?,
-    val trackNumbers: List<Pair<TrackNumber, IntId<LayoutTrackNumber>>>,
+    val trackNumbers: List<Pair<TrackNumber, IntId<TrackLayoutTrackNumber>>>,
 )
 
 @Suppress("unused", "ClassName")
@@ -153,7 +153,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
         switchStructures: List<SwitchStructure>,
         switchTypeNameAliases: Map<String, String>,
         featureTypes: List<FeatureType>,
-        trackNumberIdsByNumber: Map<TrackNumber, IntId<LayoutTrackNumber>>,
+        trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
         defaultMeasurementMethod: MeasurementMethod? = null,
     ) {
         val metadatas = loadMetadata(baseDir, trackNumberIdsByNumber, defaultMeasurementMethod).associateBy(PlanMetaData::name)
@@ -273,7 +273,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
     private fun loadMetadata(
         baseDir: File,
-        trackNumberIdsByNumber: Map<TrackNumber, IntId<LayoutTrackNumber>>,
+        trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
         defaultMeasurementMethod: MeasurementMethod?,
     ): List<PlanMetaData> {
         val metadataFile = CsvFile("${baseDir.absolutePath}/plan_metadata.csv", InfraModelMetadataColumns::class)

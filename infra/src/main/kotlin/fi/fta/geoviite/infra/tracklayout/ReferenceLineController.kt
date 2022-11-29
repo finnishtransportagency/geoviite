@@ -37,7 +37,7 @@ class ReferenceLineController(
     @GetMapping("/{publishType}/by-track-number/{trackNumberId}")
     fun getTrackNumberReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("trackNumberId") trackNumberId: IntId<LayoutTrackNumber>,
+        @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<ReferenceLine> {
         logger.apiCall(
             "getTrackNumberReferenceLine",
