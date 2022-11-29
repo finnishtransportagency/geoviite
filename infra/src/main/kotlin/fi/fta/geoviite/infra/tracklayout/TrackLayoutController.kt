@@ -11,9 +11,9 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
+import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -27,7 +27,8 @@ class TrackLayoutController(
     private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
     private val mapAlignmentService: MapAlignmentService,
-    private val switchLinkingService: SwitchLinkingService
+    private val switchLinkingService: SwitchLinkingService,
+    private val geocodingService: GeocodingService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -46,9 +47,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumber", "publishType" to publishType, "id" to id)
-        return trackNumberService.get(publishType, id)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(trackNumberService.get(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -88,9 +87,7 @@ class TrackLayoutController(
             "getTrackNumberReferenceLine",
             "publishType" to publishType, "trackNumberId" to trackNumberId
         )
-        return referenceLineService.getByTrackNumber(publishType, trackNumberId)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(referenceLineService.getByTrackNumber(publishType, trackNumberId))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -183,9 +180,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<ReferenceLine>,
     ): ResponseEntity<ReferenceLine> {
         logger.apiCall("getReferenceLine", "publishType" to publishType, "id" to id)
-        return referenceLineService.get(publishType, id)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(referenceLineService.get(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -195,9 +190,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LocationTrack> {
         logger.apiCall("getLocationTrack", "publishType" to publishType, "id" to id)
-        return locationTrackService.get(publishType, id)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(locationTrackService.get(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -247,9 +240,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<ReferenceLine>,
     ): ResponseEntity<MapAlignment<ReferenceLine>> {
         logger.apiCall("getMapReferenceLine", "publishType" to publishType, "id" to id)
-        return mapAlignmentService.getMapReferenceLine(publishType, id)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(mapAlignmentService.getMapReferenceLine(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -259,9 +250,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<MapAlignment<LocationTrack>> {
         logger.apiCall("getMapLocationTrack", "publishType" to publishType, "id" to id)
-        return mapAlignmentService.getMapLocationTrack(publishType, id)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(mapAlignmentService.getMapLocationTrack(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -283,10 +272,9 @@ class TrackLayoutController(
     fun getReferenceLineStartAndEnd(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<ReferenceLine>,
-    ): ResponseEntity<ReferenceLineStartAndEnd> {
+    ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getReferenceLineStartAndEnd", "publishType" to publishType, "id" to id)
-        return referenceLineService.getStartAndEnd(publishType, id)?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(geocodingService.getReferenceLineStartAndEnd(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -294,10 +282,9 @@ class TrackLayoutController(
     fun getLocationTrackStartAndEnd(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
-    ): ResponseEntity<LocationTrackStartAndEnd> {
+    ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getLocationTrackStartAndEnd", "publishType" to publishType, "id" to id)
-        return locationTrackService.getStartAndEnd(publishType, id)?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(geocodingService.getLocationTrackStartAndEnd(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -321,9 +308,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<TrackLayoutKmPost> {
         logger.apiCall("getTrackLayoutKmPosts", "publishType" to publishType, "id" to id)
-        return kmPostService.get(publishType, id)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(kmPostService.get(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -377,9 +362,7 @@ class TrackLayoutController(
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): ResponseEntity<TrackLayoutSwitch> {
         logger.apiCall("getTrackLayoutSwitch", "id" to id, "publishType" to publishType)
-        return switchService.get(publishType, id)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(switchService.get(publishType, id))
     }
 
     @PreAuthorize(AUTH_ALL_READ)

@@ -545,7 +545,7 @@ private fun filterMatchingJointsBySwitchAlignment(
                         alignment.jointNumbers.any { jointNumber -> jointNumber == presentationJoint } &&
                         locationTrackSwitchJoints.any { joint -> joint.jointNumber == presentationJoint }
 
-            // Alignment must contain at least two of these ("etujatkos, "takajatkos", presentation joint)
+            // Alignment must contain at least two of these ("etujatkos", "takajatkos", presentation joint)
             listOf(hasFrontJoint, hasBackJoint, hasSeparatePresentationJoint).count { it } >= 2
         }?.jointNumbers
 
@@ -738,7 +738,7 @@ data class TrackIntersection(
     val track2: Pair<LocationTrack, LayoutAlignment>,
     val desiredLocation: IPoint
 ) : Comparable<TrackIntersection> {
-    val distanceToDesiredLocation by lazy { lineLength(point, desiredLocation) }
+    private val distanceToDesiredLocation by lazy { lineLength(point, desiredLocation) }
 
     override fun compareTo(other: TrackIntersection): Int {
         return when {
@@ -774,7 +774,7 @@ fun findClosestIntersection(
     val alignment2 = track2.second
 
     // Ignore parallel alignments. Points of alignments are filtered so
-    // that alignments are about 0 - 200 meters long and therefore we can compare
+    // that alignments are about 0 - 200 meters long, and therefore we can compare
     // angles from start to end.
     if (radsToDegrees(
             angleDiffRads(
@@ -966,7 +966,7 @@ fun createSuggestedSwitch(
         geometrySwitch = null,
         geometryPlanId = null,
         alignmentEndPoint = null,
-        getMeasurementMethod = { _ -> MeasurementMethod.DIGITIZED_AERIAL_IMAGE }
+        getMeasurementMethod = { MeasurementMethod.DIGITIZED_AERIAL_IMAGE }
     )
 }
 
@@ -980,15 +980,13 @@ fun getSharedSwitchJoint(switchStructure: SwitchStructure): Pair<SwitchJoint, Li
             }
         }
 
-    val (sharedSwitchJoint, switchAlignmentsContainingCommonJoint) = sortedSwitchJoints
-        .mapNotNull { joint ->
-            val alignmentsContainingJoint = switchStructure.alignments.filter { alignment ->
-                alignment.jointNumbers.contains(joint.number)
-            }
-            if (alignmentsContainingJoint.size >= 2) joint to alignmentsContainingJoint
-            else null
+    val (sharedSwitchJoint, switchAlignmentsContainingCommonJoint) = sortedSwitchJoints.firstNotNullOfOrNull { joint ->
+        val alignmentsContainingJoint = switchStructure.alignments.filter { alignment ->
+            alignment.jointNumbers.contains(joint.number)
         }
-        .firstOrNull()
+        if (alignmentsContainingJoint.size >= 2) joint to alignmentsContainingJoint
+        else null
+    }
         ?: throw IllegalStateException("Switch structure ${switchStructure.type} does not contain shared switch joint and that is weird!")
 
     return sharedSwitchJoint to switchAlignmentsContainingCommonJoint
@@ -1090,6 +1088,7 @@ class SwitchLinkingService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    @Transactional(readOnly = true)
     fun getSuggestedSwitches(bbox: BoundingBox): List<SuggestedSwitch> {
         logger.serviceCall("getSuggestedSwitches", "bbox" to bbox)
         val missing = linkingDao.getMissingLayoutSwitchLinkings(bbox)
@@ -1122,6 +1121,7 @@ class SwitchLinkingService @Autowired constructor(
         return result
     }
 
+    @Transactional(readOnly = true)
     fun getSuggestedSwitch(location: IPoint, switchStructureId: IntId<SwitchStructure>): SuggestedSwitch? {
         val switchStructure = switchLibraryService.getSwitchStructure(switchStructureId)
         val alignmentSearchAreaSize = 2.0
@@ -1146,6 +1146,7 @@ class SwitchLinkingService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun getSuggestedSwitch(createParams: SuggestedSwitchCreateParams): SuggestedSwitch? {
         logger.serviceCall("getSuggestedSwitch", "createParams" to createParams)
 
@@ -1164,7 +1165,7 @@ class SwitchLinkingService @Autowired constructor(
             switchStructure,
             createParams.alignmentMappings,
             nearbyLocationTracks,
-            locationTrackIds.associateWith { id -> locationTrackService.getWithAlignment(DRAFT, id) },
+            locationTrackIds.associateWith { id -> locationTrackService.getWithAlignmentOrThrow(DRAFT, id) },
             getMeasurementMethod = this::getMeasurementMethod,
         )
     }
@@ -1201,7 +1202,7 @@ class SwitchLinkingService @Autowired constructor(
         }
     }
 
-    fun getLocationTracksLinkedToSwitch(
+    private fun getLocationTracksLinkedToSwitch(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>
     ): List<Pair<LocationTrack, LayoutAlignment>> {
@@ -1211,6 +1212,7 @@ class SwitchLinkingService @Autowired constructor(
             }
     }
 
+    @Transactional(readOnly = true)
     fun getSwitchJointConnections(
         publishType: PublishType,
         switchId: IntId<TrackLayoutSwitch>
@@ -1229,7 +1231,7 @@ class SwitchLinkingService @Autowired constructor(
             }
     }
 
-    fun getTopologySwitchJointConnections(
+    private fun getTopologySwitchJointConnections(
         publicationState: PublishType,
         layoutSwitchId: IntId<TrackLayoutSwitch>
     ): List<TrackLayoutSwitchJointConnection> {
@@ -1256,6 +1258,7 @@ class SwitchLinkingService @Autowired constructor(
             }
     }
 
+    @Transactional
     fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("insertSwitch", "request" to request)
 
@@ -1273,6 +1276,7 @@ class SwitchLinkingService @Autowired constructor(
         return switchService.saveDraft(switch).id
     }
 
+    @Transactional
     fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
         if (switch.stateCategory == LayoutStateCategory.NOT_EXISTING) {
@@ -1289,6 +1293,7 @@ class SwitchLinkingService @Autowired constructor(
         return switchService.saveDraft(trackLayoutSwitch).id
     }
 
+    @Transactional
     fun deleteDraftSwitch(switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
         logger.serviceCall("deleteDraftSwitch", "switchId" to switchId)
         clearSwitchInformationFromSegments(switchId)
@@ -1326,7 +1331,7 @@ class SwitchLinkingService @Autowired constructor(
             .filter { it.value.isNotEmpty() }
 
         switchJointsByLocationTrack.forEach { (locationTrackId, switchJoints) ->
-            val (locationTrack, alignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
+            val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
             val updatedAlignment = updateAlignmentSegmentsWithSwitchLinking(
                 alignment = alignment,
                 layoutSwitchId = linkingParameters.layoutSwitchId,

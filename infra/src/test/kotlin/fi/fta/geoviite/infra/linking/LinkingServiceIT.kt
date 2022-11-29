@@ -79,12 +79,12 @@ class LinkingServiceIT @Autowired constructor(
         val locationTrackId = locationTrackService.saveDraft(locationTrack, alignment).id
         locationTrackService.publish(locationTrackId)
 
-        val (officialTrack, officialAlignment) = locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
-        assertMatches(officialTrack to officialAlignment, locationTrackService.getWithAlignment(DRAFT, locationTrackId))
+        val (officialTrack, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+        assertMatches(officialTrack to officialAlignment, locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId))
 
         // Pick the whole geometry as interval
         val geometryInterval = GeometryInterval(
-            alignmentId = geometryLayoutAlignment.id,
+            alignmentId = geometryLayoutAlignment.id as IntId,
             start = IntervalGeometryPoint(
                 segmentId = geometryStartSegment.id,
                 point = Point(geometryStartSegment.points.first())
@@ -116,7 +116,7 @@ class LinkingServiceIT @Autowired constructor(
             locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
         )
 
-        val (_, draftAlignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
+        val (_, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         assertNotEquals(officialAlignment, draftAlignment)
         // Should be split so that we have;
         // all geometry segments

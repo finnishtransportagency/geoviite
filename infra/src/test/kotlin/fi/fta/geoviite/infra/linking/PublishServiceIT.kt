@@ -97,7 +97,7 @@ class PublishServiceIT @Autowired constructor(
     fun publishingNewReferenceLineWorks() {
         val (line, alignment) = referenceLineAndAlignment(someTrackNumber())
         val draftId = referenceLineService.saveDraft(line, alignment).id
-        assertThrows<NoSuchEntityException> { referenceLineService.getWithAlignment(OFFICIAL, draftId) }
+        assertThrows<NoSuchEntityException> { referenceLineService.getWithAlignmentOrThrow(OFFICIAL, draftId) }
         assertEquals(draftId, referenceLineService.getDraft(draftId).id)
 
         val publishRequest = PublishRequest(
@@ -132,7 +132,7 @@ class PublishServiceIT @Autowired constructor(
         )
         referenceLineService.saveDraft(referenceLine(track.trackNumberId), alignment)
         val draftId = locationTrackService.saveDraft(track, alignment).id
-        assertThrows<NoSuchEntityException> { locationTrackService.getWithAlignment(OFFICIAL, draftId) }
+        assertThrows<NoSuchEntityException> { locationTrackService.getWithAlignmentOrThrow(OFFICIAL, draftId) }
         assertEquals(draftId, locationTrackService.getDraft(draftId).id)
 
         val publishResult = publishService.publishChanges(
@@ -166,7 +166,7 @@ class PublishServiceIT @Autowired constructor(
             .copy(alignmentVersion = alignmentVersion)
         val officialId = referenceLineDao.insert(line).id
 
-        val (tmpLine, tmpAlignment) = referenceLineService.getWithAlignment(DRAFT, officialId)
+        val (tmpLine, tmpAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, officialId)
         referenceLineService.saveDraft(
             tmpLine.copy(startAddress = TrackMeter("0002", 20)),
             tmpAlignment.copy(
@@ -184,8 +184,8 @@ class PublishServiceIT @Autowired constructor(
         )
 
 
-        assertEquals(1, referenceLineService.getWithAlignment(OFFICIAL, officialId).second.segments.size)
-        assertEquals(2, referenceLineService.getWithAlignment(DRAFT, officialId).second.segments.size)
+        assertEquals(1, referenceLineService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments.size)
+        assertEquals(2, referenceLineService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments.size)
 
         val publishRequest = PublishRequest(
             trackNumbers = listOf(),
@@ -208,10 +208,10 @@ class PublishServiceIT @Autowired constructor(
             referenceLineService.getOfficial(officialId)!!.startAddress,
             referenceLineService.getDraft(officialId).startAddress,
         )
-        assertEquals(2, referenceLineService.getWithAlignment(OFFICIAL, officialId).second.segments.size)
+        assertEquals(2, referenceLineService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments.size)
         assertEquals(
-            referenceLineService.getWithAlignment(OFFICIAL, officialId).second.segments,
-            referenceLineService.getWithAlignment(DRAFT, officialId).second.segments,
+            referenceLineService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments,
+            referenceLineService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments,
         )
         val fetchedCalculatedChanges = publishDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
         assertEquals(draftCalculatedChanges, fetchedCalculatedChanges)
@@ -228,7 +228,7 @@ class PublishServiceIT @Autowired constructor(
 
         val officialId = locationTrackDao.insert(track).id
 
-        val (tmpTrack, tmpAlignment) = locationTrackService.getWithAlignment(DRAFT, officialId)
+        val (tmpTrack, tmpAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, officialId)
         locationTrackService.saveDraft(
             tmpTrack.copy(name = AlignmentName("DRAFT test 01")),
             tmpAlignment.copy(
@@ -244,8 +244,8 @@ class PublishServiceIT @Autowired constructor(
             locationTrackService.getOfficial(officialId)!!.name,
             locationTrackService.getDraft(officialId).name,
         )
-        assertEquals(1, locationTrackService.getWithAlignment(OFFICIAL, officialId).second.segments.size)
-        assertEquals(2, locationTrackService.getWithAlignment(DRAFT, officialId).second.segments.size)
+        assertEquals(1, locationTrackService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments.size)
+        assertEquals(2, locationTrackService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments.size)
 
         val publishRequest = PublishRequest(
             trackNumbers = listOf(),
@@ -268,10 +268,10 @@ class PublishServiceIT @Autowired constructor(
             locationTrackService.getOfficial(officialId)!!.name,
             locationTrackService.getDraft(officialId).name,
         )
-        assertEquals(2, locationTrackService.getWithAlignment(OFFICIAL, officialId).second.segments.size)
+        assertEquals(2, locationTrackService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments.size)
         assertEquals(
-            locationTrackService.getWithAlignment(OFFICIAL, officialId).second.segments,
-            locationTrackService.getWithAlignment(DRAFT, officialId).second.segments,
+            locationTrackService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments,
+            locationTrackService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments,
         )
 
         val fetchedCalculatedChanges = publishDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
@@ -449,7 +449,7 @@ class PublishServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))))
         val (track, alignment) = locationTrackAndAlignment(trackNumberId)
         val draftId = locationTrackService.saveDraft(track, alignment).id
-        assertThrows<NoSuchEntityException> { locationTrackService.getWithAlignment(OFFICIAL, draftId) }
+        assertThrows<NoSuchEntityException> { locationTrackService.getWithAlignmentOrThrow(OFFICIAL, draftId) }
         assertEquals(draftId, locationTrackService.getDraft(draftId).id)
 
         val publicationCountBeforePublishing = publishService.getPublicationListing().size

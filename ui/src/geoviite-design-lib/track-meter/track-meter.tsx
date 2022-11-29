@@ -3,7 +3,7 @@ import * as React from 'react';
 import { TrackMeter } from 'common/common-model';
 
 type TrackMeterProps = {
-    value: TrackMeter;
+    value?: TrackMeter;
 };
 
 const TrackMeter: React.FC<TrackMeterProps> = ({ value }: TrackMeterProps) => {

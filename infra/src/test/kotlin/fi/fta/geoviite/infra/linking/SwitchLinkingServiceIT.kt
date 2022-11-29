@@ -161,7 +161,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             )
         )
 
-        val (_, alignment) = locationTrackService.getWithAlignment(PublishType.DRAFT, locationTrackId.id)
+        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId.id)
         val joint12Segment = alignment.segments[1]
 
         assertEquals(JointNumber(1), joint12Segment.startJointNumber)
@@ -236,7 +236,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             )
         )
 
-        val (_, alignment) = locationTrackService.getWithAlignment(PublishType.DRAFT, locationTrackId.id)
+        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId.id)
         val joint12Segment = alignment.segments[1]
 
         assertEquals(JointNumber(1), joint12Segment.startJointNumber)

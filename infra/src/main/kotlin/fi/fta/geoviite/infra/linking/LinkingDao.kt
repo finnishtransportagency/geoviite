@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 /**
@@ -35,11 +35,10 @@ data class MissingLayoutSwitchLinkingRowData(
     val locationTrackId: RowVersion<LocationTrack>,
 )
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-
-    @Transactional
     fun fetchPlanLinkStatus(planId: IntId<GeometryPlan>, publishType: PublishType): GeometryPlanLinkStatus {
         logger.daoAccess(
             AccessType.FETCH, GeometryPlanLinkStatus::class,

@@ -86,9 +86,9 @@ class GeocodingDaoIT @Autowired constructor(
     }
 
     fun assertChangeTimeProceedsWhen(trackNumberId: IntId<TrackLayoutTrackNumber>, publishType: PublishType, block: () -> Unit) {
-        val before = geocodingDao.getGeocodingContextChangeTime(publishType, trackNumberId)!!
+        val before = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
         block()
-        val after = geocodingDao.getGeocodingContextChangeTime(publishType, trackNumberId)!!
+        val after = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
         assertTrue(before.isBefore(after), "on track number $trackNumberId, expected $before before $after")
     }
 }

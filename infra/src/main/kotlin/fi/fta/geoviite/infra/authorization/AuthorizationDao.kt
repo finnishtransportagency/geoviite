@@ -6,25 +6,25 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    @Transactional
     fun getRole(roleCode: Code): Role =
         getRoleInternal(roleCode = roleCode, userGroup = null)
             ?: throw IllegalStateException("No such role: roleCode=$roleCode")
 
     @Cacheable(CACHE_ROLES, sync = true)
-    @Transactional
     fun getRoleByUserGroup(ldapGroup: Code): Role? =
         getRoleInternal(roleCode = null, userGroup = ldapGroup)
 
     private fun getRoleInternal(roleCode: Code? = null, userGroup: Code? = null): Role? {
         if (roleCode == null && userGroup == null) throw IllegalStateException("Can't fetch role without name/group")
 
+        //language=SQL
         val sql = """
             select code, name from common.role 
             where (:role_code::varchar is null or code = :role_code) 

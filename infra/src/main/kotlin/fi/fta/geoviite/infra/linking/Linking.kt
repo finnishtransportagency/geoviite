@@ -34,7 +34,7 @@ data class LayoutInterval<T>(
 )
 
 data class GeometryInterval(
-    val alignmentId: DomainId<GeometryAlignment>,
+    val alignmentId: IntId<GeometryAlignment>,
     val start: IntervalGeometryPoint,
     val end: IntervalGeometryPoint,
 )

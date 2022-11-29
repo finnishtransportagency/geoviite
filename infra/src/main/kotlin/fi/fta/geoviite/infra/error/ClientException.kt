@@ -17,7 +17,7 @@ sealed class ClientException(
     message: String,
     cause: Throwable? = null,
     override val localizedMessageKey: LocalizationKey,
-) : Exception(message, cause), HasLocalizeMessageKey {
+) : RuntimeException(message, cause), HasLocalizeMessageKey {
     constructor(status: HttpStatus, message: String, cause: Throwable?, localizedMessageKey: String) :
             this(status, message, cause, LocalizationKey(localizedMessageKey))
 

@@ -11,11 +11,12 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Transactional
@@ -36,6 +37,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         return ratkoPushId.also { logger.daoAccess(AccessType.INSERT, RatkoPush::class, ratkoPushId) }
     }
 
+    @Transactional
     fun finishStuckPushes(user: UserName) {
         val sql = """
             update integrations.ratko_push
@@ -191,6 +193,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         logger.daoAccess(AccessType.UPSERT, RatkoPush::class, pushId, publicationIds)
     }
 
+    @Transactional
     fun <T> insertRatkoPushError(
         ratkoPushId: IntId<RatkoPush>,
         ratkoPushErrorType: RatkoPushErrorType,

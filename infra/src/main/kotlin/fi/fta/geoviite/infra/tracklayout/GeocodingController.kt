@@ -6,11 +6,10 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.logging.apiCall
-import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -30,22 +29,17 @@ class GeocodingController(
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
         logger.apiCall("getTrackAddress", "trackNumberId" to trackNumberId, "coordinate" to coordinate)
-        return geocodingService.getTrackAddress(trackNumberId, coordinate, publishType)
-            ?.let { (address, intersect) -> if (intersect != IntersectType.WITHIN) null else address }
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(geocodingService.getAddressIfWithin(publishType, trackNumberId, coordinate))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/location/{alignmentId}")
+    @GetMapping("/location/{locationTrackId}")
     fun getTrackPoint(
-        @PathVariable("alignmentId") alignmentId: IntId<LocationTrack>,
+        @PathVariable("locationTrackId") locationTrackId: IntId<LocationTrack>,
         @RequestParam("address") address: TrackMeter,
     ): ResponseEntity<AddressPoint> {
-        logger.apiCall("getTrackPoint", "alignmentId" to alignmentId, "address" to address)
-        return geocodingService.getTrackLocation(alignmentId, address, OFFICIAL)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        logger.apiCall("getTrackPoint", "locationTrackId" to locationTrackId, "address" to address)
+        return toResponse(geocodingService.getTrackLocation(locationTrackId, address, OFFICIAL))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -55,8 +49,6 @@ class GeocodingController(
         @PathVariable("publishType") publishType: PublishType,
     ): ResponseEntity<AlignmentAddresses> {
         logger.apiCall("getAlignmentAddressPoints", "alignmentId" to alignmentId)
-        return geocodingService.getAddressPoints(alignmentId, publishType)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(geocodingService.getAddressPoints(alignmentId, publishType))
     }
 }

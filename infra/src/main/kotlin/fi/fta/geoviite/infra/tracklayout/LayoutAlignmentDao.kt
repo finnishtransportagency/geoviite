@@ -12,17 +12,17 @@ import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import net.postgis.jdbc.PGgeometry
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
     @Cacheable(CACHE_LAYOUT_ALIGNMENT, sync = true)
-    @Transactional
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql = """
             select id, geometry_alignment_id
@@ -316,12 +316,12 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 fun getSegmentPoints(
     rs: ResultSet,
     geometryColumn: String,
-    heightColumn: String? = null,
-    cantColumn: String? = null,
+    heightColumn: String,
+    cantColumn: String,
 ): List<LayoutPoint> {
     val geometryValues = parse3DMLineString(rs.getString(geometryColumn))
-    val heightValues = heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
-    val cantValues = cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
+    val heightValues = rs.getNullableDoubleListOrNullFromString(heightColumn)
+    val cantValues = rs.getNullableDoubleListOrNullFromString(cantColumn)
     return geometryValues.mapIndexed { index, coordinate ->
         LayoutPoint(
             x = coordinate.x,

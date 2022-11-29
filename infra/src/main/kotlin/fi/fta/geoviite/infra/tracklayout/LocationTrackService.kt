@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional
 class LocationTrackService(
     dao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
-    private val addressPointService: AddressPointService,
     private val switchService: LayoutSwitchService,
     private val alignmentDao: LayoutAlignmentDao,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
@@ -50,7 +49,7 @@ class LocationTrackService(
     @Transactional
     fun update(id: IntId<LocationTrack>, request: LocationTrackSaveRequest): RowVersion<LocationTrack> {
         logger.serviceCall("update", "id" to id, "request" to request)
-        val (originalTrack, originalAlignment) = getWithAlignment(DRAFT, id)
+        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(DRAFT, id)
         val locationTrack = originalTrack.copy(
             name = request.name,
             description = request.description,
@@ -178,47 +177,10 @@ class LocationTrackService(
         return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch).filter(LocationTrack::exists)
     }
 
-    fun getStartAndEnd(
-        publishType: PublishType,
-        locationTrackId: IntId<LocationTrack>,
-    ): LocationTrackStartAndEnd? {
-        logger.serviceCall(
-            "getStartAndEnd",
-            "publishType" to publishType, "locationTrackId" to locationTrackId
-        )
-        return addressPointService.getTrackGeocodingData(publishType, locationTrackId)?.let { data ->
-            val segments = data.alignment.segments
-
-            val startAddress = data.context.toAddressPoint(segments.first().points.first())
-            val endAddress = data.context.toAddressPoint(segments.last().points.last())
-
-            // TODO: GVT-1428 Remove end-point info entirely or show topology connections?
-//            val startSwitch = data.locationTrack.topologyStartSwitch?.switchId?.let { id ->
-//                switchService.get(publishType, id)
-//            }
-//            val endSwitch = data.locationTrack.topologyStartSwitch?.switchId?.let { id ->
-//                switchService.get(publishType, id)
-//            }
-            LocationTrackStartAndEnd(
-                start = RefinedAlignmentEndPoint(
-                    startAddress?.first,
-                    null, //startSwitch?.name,
-                    null,
-                ),
-                end = RefinedAlignmentEndPoint(
-                    endAddress?.first,
-                    null, //endSwitch?.name,
-                    null,
-                )
-            )
-        }
-    }
-
     override fun listInternal(publishType: PublishType) =
         dao.fetchVersions(publishType)
             .map(dao::fetch)
             .filter(LocationTrack::exists)
-
 
     fun getSwitchNameForSegment(publishType: PublishType, segment: LayoutSegment): SwitchName? {
         return segment.switchId
@@ -243,13 +205,13 @@ class LocationTrackService(
         return dao.fetchVersions(publishType, trackNumberId).map(::getWithAlignmentInternal)
     }
 
-    fun getWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+    fun getWithAlignmentOrThrow(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
-        return dao.fetchVersionOrThrow(id, publishType).let(::getWithAlignmentInternal)
+        return getWithAlignmentInternalOrThrow(publishType, id)
     }
 
-    fun fetchWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
-        logger.serviceCall("fetchWithAlignment", "publishType" to publishType, "id" to id)
+    fun getWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
+        logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
         return dao.fetchVersion(id, publishType)?.let(::getWithAlignmentInternal)
     }
 
@@ -269,6 +231,12 @@ class LocationTrackService(
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
     }
 
+    private fun getWithAlignmentInternalOrThrow(publishType: PublishType, id: IntId<LocationTrack>) =
+        getWithAlignmentInternal(dao.fetchVersionOrThrow(id, publishType))
+
+    private fun getWithAlignmentInternal(publishType: PublishType, id: IntId<LocationTrack>) =
+        dao.fetchVersion(id, publishType)?.let { v -> getWithAlignmentInternal(v) }
+
     private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         val locationTrack = dao.fetch(version)
         val alignment = alignmentDao.fetch(
@@ -278,45 +246,11 @@ class LocationTrackService(
         return locationTrack to alignment
     }
 
-    fun getSwitchIdsByAddressKilometers(
-        locationTrackId: IntId<LocationTrack>,
-        kmNumbers: Set<KmNumber>,
-        publishType: PublishType,
-        geocodingContext: GeocodingContext
-    ): List<IntId<TrackLayoutSwitch>> {
-        val (_, alignment) = getWithAlignment(publishType, locationTrackId)
-
-        return getSwitchIdsByAddressKilometers(
-            alignment,
-            kmNumbers,
-            geocodingContext
-        )
-    }
-
-    fun getSwitchIdsByAddressKilometers(
-        alignment: LayoutAlignment,
-        kmNumbers: Set<KmNumber>,
-        geocodingContext: GeocodingContext
-    ): List<IntId<TrackLayoutSwitch>> {
-        return alignment.segments.mapNotNull { segment ->
-            val address = if (segment.startJointNumber != null)
-                geocodingContext.getAddress(segment.points.first())?.first
-            else if (segment.endJointNumber != null)
-                geocodingContext.getAddress(segment.points.last())?.first
-            else
-                null
-
-            if (address != null && kmNumbers.contains(address.kmNumber))
-                segment.switchId as IntId<TrackLayoutSwitch>
-            else
-                null
-        }.distinct()
-    }
-
     fun getDuplicates(duplicateOf: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
         return dao.fetchDuplicates(duplicateOf, publishType)
     }
 
+    @Transactional
     fun updateTopology(
         track: LocationTrack,
         alignment: LayoutAlignment,
@@ -362,7 +296,6 @@ class LocationTrackService(
             ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracks)
     }
 }
-
 
 private fun findBestTopologySwitchFromSegments(
     target: IPoint,

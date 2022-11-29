@@ -10,15 +10,11 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.Page
-import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
-import fi.fta.geoviite.infra.util.page
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -87,9 +83,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @PathVariable("switchId") switchId: IntId<GeometrySwitch>,
     ): ResponseEntity<TrackLayoutSwitch> {
         log.apiCall("getGeometrySwitchLayout", "switchId" to switchId)
-        return geometryService.getSwitchLayout(switchId)
-            ?.let { ResponseEntity(it, HttpStatus.OK) }
-            ?: ResponseEntity(HttpStatus.NO_CONTENT)
+        return toResponse(geometryService.getSwitchLayout(switchId))
     }
 
     @PreAuthorize(AUTH_ALL_READ)

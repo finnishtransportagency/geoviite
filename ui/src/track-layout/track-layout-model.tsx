@@ -12,7 +12,6 @@ import {
     JointNumber,
     KmNumber,
     LocationAccuracy,
-    LocationTrackEndPoint,
     Oid,
     Srid,
     SwitchOwnerId,
@@ -56,7 +55,9 @@ export function simplifySegments(
 ): MapSegment {
     const lengths = segments.map((s) => s.length);
     return {
-        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${segments.length}_${resolution}`,
+        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${
+            segments.length
+        }_${resolution}`,
         resolution: Math.ceil(Math.max(...lengths)),
         pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
         points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
@@ -169,7 +170,7 @@ export type MapAlignment = {
 export enum TrapPoint {
     Yes = 1,
     No,
-    Unknown
+    Unknown,
 }
 
 export function booleanToTrapPoint(trapPoint: boolean | null): TrapPoint {
@@ -193,7 +194,6 @@ export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
             return undefined;
     }
 }
-
 
 export type LayoutSwitchId = string;
 
@@ -266,21 +266,9 @@ export type AddressPoint = {
     distance: number;
 };
 
-export type RefinedLocationTrackEndPoint = {
-    addressPoint: AddressPoint;
-    endPoint: LocationTrackEndPoint | undefined;
-    switchName: string | undefined;
-    alignmentName: string | undefined;
-};
-
-export type LocationTrackStartAndEndPoints = {
-    start: RefinedLocationTrackEndPoint;
-    end: RefinedLocationTrackEndPoint;
-};
-
-export type ReferenceLineStartAndEndPoints = {
-    start: AddressPoint;
-    end: AddressPoint;
+export type AlignmentStartAndEnd = {
+    start: AddressPoint | null;
+    end: AddressPoint | null;
 };
 
 export type TrafficOperatingPointId = string;
