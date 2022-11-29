@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.logging.daoCall
 import fi.fta.geoviite.infra.util.DaoBase
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import java.time.Duration
 
 enum class DatabaseLock {
@@ -12,7 +12,11 @@ enum class DatabaseLock {
     RATKO,
 }
 
-@Service
+/**
+ * Note, this DAO is intentionally non-transactional as running with the lock should not
+ * require an encompassing transaction.
+ */
+@Component
 class LockDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?
 ) : DaoBase(jdbcTemplateParam) {

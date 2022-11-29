@@ -6,14 +6,14 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneOffset
 
 @Suppress("SameParameterValue")
 @Transactional(readOnly = true)
-@Service
+@Component
 class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberAtMoment(

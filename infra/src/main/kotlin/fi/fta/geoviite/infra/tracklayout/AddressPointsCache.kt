@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.util.RowVersion
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 data class AddressPointCacheKey(
@@ -17,7 +17,7 @@ data class AddressPointCacheKey(
     val geocodingContextCacheKey: GeocodingContextCacheKey,
 )
 
-@Service
+@Component
 class AddressPointsCache(
     val alignmentDao: LayoutAlignmentDao,
     val locationTrackDao: LocationTrackDao,

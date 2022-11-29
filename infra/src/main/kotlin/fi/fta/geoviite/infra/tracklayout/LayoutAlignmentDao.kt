@@ -12,12 +12,12 @@ import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import net.postgis.jdbc.PGgeometry
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
 @Transactional(readOnly = true)
-@Service
+@Component
 class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)

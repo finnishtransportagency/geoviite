@@ -23,7 +23,7 @@ import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -36,10 +36,10 @@ enum class VerticalIntersectionType {
 }
 
 @Transactional(readOnly = true)
-@Service
+@Component
 class GeometryDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
+    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
 ) : DaoBase(jdbcTemplateParam) {
 
     @Transactional

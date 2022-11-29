@@ -14,14 +14,14 @@ import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_SWITCH
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 const val MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE = 1.0
 
 @Suppress("SameParameterValue")
 @Transactional(readOnly = true)
-@Service
+@Component
 class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
 

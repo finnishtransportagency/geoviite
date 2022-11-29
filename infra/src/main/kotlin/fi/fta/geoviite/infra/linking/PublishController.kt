@@ -64,8 +64,8 @@ class PublishController @Autowired constructor(
     @PostMapping
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
         logger.apiCall("publishChanges", "request" to request)
-        publishService.validatePublishRequest(request)
         return lockDao.runWithLock(DatabaseLock.PUBLICATION, publicationMaxDuration) {
+            publishService.validatePublishRequest(request)
             publishService.updateExternalId(request)
             publishService.publishChanges(request)
         } ?: throw PublishFailureException(

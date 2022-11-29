@@ -1,29 +1,34 @@
 package fi.fta.geoviite.infra.error
 
 import fi.fta.geoviite.infra.ITTestBase
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.dao.DataAccessException
 import org.springframework.stereotype.Service
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class RollbackTestService {
+class TransactionTestService {
     @Transactional
     fun <T> run(operation: () -> T): T = operation()
+
+    @Transactional(readOnly = true)
+    fun <T> runReadOnly(operation: () -> T): T = operation()
 }
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class TransactionConfigurationIT @Autowired constructor(val rollbackTestService: RollbackTestService): ITTestBase() {
+class TransactionConfigurationIT @Autowired constructor(val transactionTestService: TransactionTestService): ITTestBase() {
 
     @BeforeEach
     fun setup() {
-        rollbackTestService.run {
+        transactionTestService.run {
             val sql = """
                 drop table if exists common.test_table;
                 create table common.test_table(
@@ -37,41 +42,54 @@ class TransactionConfigurationIT @Autowired constructor(val rollbackTestService:
 
     @Test
     fun transactionSeesOwnChanges() {
-        val allValues = rollbackTestService.run {
+        val allValues = transactionTestService.run {
             insert("test 1")
             insert("test 2")
             fetchAll()
         }
-        allValues.contains(1 to "test 1")
-        allValues.contains(2 to "test 2")
+        assertEquals(allValues, listOf(1 to "test 1", 2 to "test 2"))
     }
 
     @Test
     fun transactionRollsBackOnUncheckedException() {
         assertThrows<IllegalStateException> {
-            rollbackTestService.run {
+            transactionTestService.run {
                 insert("test 1")
                 throw IllegalStateException("Test")
             }
         }
-        val allValues = rollbackTestService.run { fetchAll() }
+        val allValues = transactionTestService.run { fetchAll() }
         assertTrue(allValues.isEmpty())
     }
 
     @Test
     fun transactionRollsBackOnCheckedException() {
         assertThrows<java.lang.Exception> {
-            rollbackTestService.run {
+            transactionTestService.run {
                 insert("test 1")
                 throw Exception("Test")
             }
         }
-        val allValues = rollbackTestService.run { fetchAll() }
+        val allValues = transactionTestService.run { fetchAll() }
+        assertTrue(allValues.isEmpty())
+    }
+
+    @Test
+    fun readOnlyTransactionDoesRead() {
+        transactionTestService.run { insert("test 1") }
+        val allValues = transactionTestService.runReadOnly { fetchAll() }
+        assertEquals(allValues, listOf(1 to "test 1"))
+    }
+
+    @Test
+    fun readOnlyTransactionDoesntWrite() {
+        assertThrows<DataAccessException> { transactionTestService.runReadOnly { insert("test 1") } }
+        val allValues = transactionTestService.runReadOnly { fetchAll() }
         assertTrue(allValues.isEmpty())
     }
 
     fun fetchAll(): List<Pair<Int, String>> {
-        val sql = "select id, value from common.test_table;"
+        val sql = "select id, value from common.test_table order by id;"
         return jdbc.query(sql, mapOf<String,Any>()) { rs, _ ->
             rs.getInt("id") to rs.getString("value")
         }

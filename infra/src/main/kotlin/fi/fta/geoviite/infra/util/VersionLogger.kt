@@ -3,10 +3,10 @@ package fi.fta.geoviite.infra.util
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import javax.annotation.PostConstruct
 
-@Service
+@Component
 class VersionLogger(val jdbcTemplate: NamedParameterJdbcTemplate?) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)

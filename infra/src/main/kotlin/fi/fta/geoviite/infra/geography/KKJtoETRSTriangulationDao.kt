@@ -7,9 +7,9 @@ import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getPoint
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 
-@Service
+@Component
 class KKJtoETRSTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Cacheable(CACHE_KKJ_ETRS_TRIANGULATION_NETWORK, sync = true)
     fun fetchTriangulationNetwork(): List<KKJtoETRSTriangle> {
