@@ -1,7 +1,7 @@
 {
     "preview-view": {
-        "title": "Muutokset paikannuspohjaan ja rekisteriin",
-        "subtitle": "Valitse mitkä muutokset halutaan julkaista",
+        "publish-candidates-title": "Julkaistavat muutokset",
+        "other-changes-title": "Muutokset",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
         "track-number": "Ratanumero {{number}} {{disabled}}",

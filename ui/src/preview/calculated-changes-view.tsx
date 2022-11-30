@@ -97,71 +97,74 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
 
     return !isFetching ? (
         <section className={styles['calculated-changes-view']}>
-            {trackNumberCalculatedChanges.length > 0 &&
-                trackNumberCalculatedChanges.map(
-                    (trackNumberChange: TrackNumberCalculatedChanges) => {
-                        const hasCalculatedChanges = !calculatedChangesIsEmpty(trackNumberChange);
-                        const trackNumber = trackNumberChange.trackNumber.number;
-                        const trackNumberId = trackNumberChange.trackNumber.id;
-                        const disabledMessage = hasCalculatedChanges
-                            ? ''
-                            : t('preview-view.disabled-message');
+            <h3>{t('preview-view.track-address-changes')}</h3>
+            <div className={styles['calculated-changes-view__changes-list']}>
+                {trackNumberCalculatedChanges.length > 0 &&
+                    trackNumberCalculatedChanges.map(
+                        (trackNumberChange: TrackNumberCalculatedChanges) => {
+                            const hasCalculatedChanges = !calculatedChangesIsEmpty(trackNumberChange);
+                            const trackNumber = trackNumberChange.trackNumber.number;
+                            const trackNumberId = trackNumberChange.trackNumber.id;
+                            const disabledMessage = hasCalculatedChanges
+                                ? ''
+                                : t('preview-view.disabled-message');
 
-                        return (
-                            <Accordion
-                                key={trackNumberId}
-                                header={t('preview-view.track-number', {
-                                    number: trackNumber,
-                                    disabled: disabledMessage,
-                                })}
-                                onToggle={() => toggle(trackNumberId)}
-                                open={openTrackNumbers[trackNumberId]}
-                                disabled={!hasCalculatedChanges}>
-                                <React.Fragment>
-                                    <p>
-                                        {t('preview-view.calculated-changes-text', {
-                                            number: trackNumber,
-                                        })}
-                                    </p>
-                                    <ul>
-                                        {trackNumberChange.locationTracks.length > 0 && (
-                                            <li
-                                                className={
-                                                    styles[
-                                                        'calculated-changes-view__location_tracks'
-                                                    ]
-                                                }>
-                                                {t('preview-view.location-tracks')}
-                                                <ul>
-                                                    {trackNumberChange.locationTracks.map((lt) => (
-                                                        <li key={lt.id}>{lt.name}</li>
-                                                    ))}
-                                                </ul>
-                                            </li>
-                                        )}
+                            return (
+                                <Accordion
+                                    key={trackNumberId}
+                                    header={t('preview-view.track-number', {
+                                        number: trackNumber,
+                                        disabled: disabledMessage,
+                                    })}
+                                    onToggle={() => toggle(trackNumberId)}
+                                    open={openTrackNumbers[trackNumberId]}
+                                    disabled={!hasCalculatedChanges}>
+                                    <React.Fragment>
+                                        <p>
+                                            {t('preview-view.calculated-changes-text', {
+                                                number: trackNumber,
+                                            })}
+                                        </p>
+                                        <ul>
+                                            {trackNumberChange.locationTracks.length > 0 && (
+                                                <li
+                                                    className={
+                                                        styles[
+                                                            'calculated-changes-view__location_tracks'
+                                                            ]
+                                                    }>
+                                                    {t('preview-view.location-tracks')}
+                                                    <ul>
+                                                        {trackNumberChange.locationTracks.map((lt) => (
+                                                            <li key={lt.id}>{lt.name}</li>
+                                                        ))}
+                                                    </ul>
+                                                </li>
+                                            )}
 
-                                        {trackNumberChange.switches.length > 0 && (
-                                            <li
-                                                className={
-                                                    styles['calculated-changes-view__switches']
-                                                }>
-                                                {t('preview-view.switches')}
-                                                <ul>
-                                                    {trackNumberChange.switches.map((s) => (
-                                                        <li key={s.id}>{s.name}</li>
-                                                    ))}
-                                                </ul>
-                                            </li>
-                                        )}
-                                    </ul>
-                                </React.Fragment>
-                            </Accordion>
-                        );
-                    },
+                                            {trackNumberChange.switches.length > 0 && (
+                                                <li
+                                                    className={
+                                                        styles['calculated-changes-view__switches']
+                                                    }>
+                                                    {t('preview-view.switches')}
+                                                    <ul>
+                                                        {trackNumberChange.switches.map((s) => (
+                                                            <li key={s.id}>{s.name}</li>
+                                                        ))}
+                                                    </ul>
+                                                </li>
+                                            )}
+                                        </ul>
+                                    </React.Fragment>
+                                </Accordion>
+                            );
+                        },
+                    )}
+                {trackNumberCalculatedChanges.length == 0 && (
+                    <>{t('preview-view.no-calculated-changes-text')}</>
                 )}
-            {trackNumberCalculatedChanges.length == 0 && (
-                <>{t('preview-view.no-calculated-changes-text')}</>
-            )}
+            </div>
         </section>
     ) : (
         <Spinner />
