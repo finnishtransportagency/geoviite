@@ -1,4 +1,7 @@
 @import '../vayla-design-lib/typography';
+@import '../vayla-design-lib/colors';
+
+$color-error: $color-red-dark;
 
 .publication-card {
     padding-top: 0;
@@ -15,4 +18,32 @@
     &__ratko-push-button {
         margin-bottom: 12px;
     }
+
+    &__title-errors {
+        @include typography-sub-heading;
+        text-transform: none;
+        color: $color-error;
+    }
+    &__error-items-list {
+        list-style: none;
+        padding-left: 0px;
+    }
 }
+/*
+.linked-items-list {
+    list-style: none;
+    padding-left: 6px;
+
+    &__label {
+        @include typography-caption;
+        color: $color-black-light;
+        display: flex;
+        align-items: start;
+        width: 50%;
+        max-width: 120px;
+    }
+    &__list-item {
+        padding: 4px 4px 4px 138px;
+    }
+}
+ */
