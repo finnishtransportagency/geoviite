@@ -18,7 +18,7 @@
 
         &--waiting {
             @extend .publication-list-item__status;
-            background: $lemon-default;
+            background: $color-lemon;
         }
 
         &--in-progress {
