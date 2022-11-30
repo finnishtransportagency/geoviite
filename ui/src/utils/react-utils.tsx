@@ -50,7 +50,6 @@ export function useLoaderWithStatus<TEntity>(
     React.useEffect(() => {
         const result = loadFunc();
         let cancel = false;
-        setEntity(undefined);
         if (result) {
             setLoaderStatus(LoaderStatus.Loading);
             result.then((r) => {
@@ -59,7 +58,8 @@ export function useLoaderWithStatus<TEntity>(
                     setLoaderStatus(LoaderStatus.Ready);
                 }
             });
-        }
+        } else setEntity(undefined);
+
         return () => {
             cancel = true;
             setLoaderStatus(LoaderStatus.Cancelled);
