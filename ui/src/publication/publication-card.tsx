@@ -9,14 +9,16 @@ import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
 import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
 import Card from 'card/card';
 import styles from './publication-card.scss';
+import { RatkoStatus } from 'ratko/ratko-api';
 
 type PublishListProps = {
     itemClicked: (pub: PublicationListingItem) => void;
     publications: PublicationListingItem[];
     anyFailed: boolean;
+    ratkoStatus: RatkoStatus | undefined;
 };
 
-const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked, anyFailed }) => {
+const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked, anyFailed, ratkoStatus }) => {
     const { t } = useTranslation();
     const allPublications = publications
         .sort((i1, i2) => compareTimestamps(i1.publishTime, i2.publishTime))
@@ -28,6 +30,18 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
         .filter((p) => p.status == RatkoPushStatus.FAILED && p.hasRatkoPushError)
         .at(-1);
 
+    const parseRatkoStatus = (ratkoStatus: RatkoStatus) => {
+        if (ratkoStatus) {
+            if (+ratkoStatus.statusCode >= 400 && +ratkoStatus.statusCode <= 403) {
+                return('ota yhteys geoviite-supporttiin')
+            } else if (+ratkoStatus.statusCode == 500) {
+                return('ota yhteys ratko-supporttiin')
+            }
+        } else {
+            return('ota yhteys geoviite-supporttiin')
+        }
+    }
+
     return (
         <Card
             className={styles['publication-card']}
@@ -36,6 +50,7 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
                     <h2 className={styles['publication-card__title']}>
                         {t('publication-card.title')}
                     </h2>
+                    {ratkoStatus && parseRatkoStatus(ratkoStatus)}
                     {failures.length > 0 && (
                         <React.Fragment>
                             <h3 className={styles['publication-card__subsection-title']}>

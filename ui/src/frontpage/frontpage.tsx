@@ -29,7 +29,6 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     return (
         <React.Fragment>
-            <p>S:{ratkoStatus && ratkoStatus.statusCode}</p>
             {!selectedPublication && (
                 <React.Fragment>
                     <div className={styles['frontpage']}>
@@ -40,6 +39,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                                     onSelectedPublicationChanged(pub);
                                 }}
                                 anyFailed={hasAnyFailed()}
+                                ratkoStatus={ratkoStatus}
                             />
                         )}
                         <UserCardContainer />
