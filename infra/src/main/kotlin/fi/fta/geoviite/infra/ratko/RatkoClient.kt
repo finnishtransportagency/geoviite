@@ -42,7 +42,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     data class RatkoStatus(val statusCode: HttpStatus  ) {
-        val isOnline = statusCode == HttpStatus.OK //tarkista mitkä hyväksytyt tilanteet
+        val isOnline = statusCode == HttpStatus.OK
     }
 
     fun ratkoIsOnline(): RatkoStatus {
@@ -52,19 +52,11 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .retrieve()
             .toBodilessEntity()
             .thenReturn(RatkoStatus(HttpStatus.OK))
-            //.onErrorResume { Mono.just(false) } //kerro onko 400 vai 500
             .onErrorResume(WebClientResponseException::class.java) {
                 Mono.just(RatkoStatus(it.statusCode))
             }
             .block(defaultRequestTimeout)!!
     }
-    /*
-    .onErrorResume(WebClientResponseException::class.java) {
-        if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-        else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
-    }
-
-     */
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
         logger.serviceCall(

@@ -93,7 +93,6 @@ export function useLoaderWithTimer<TEntity>(
             clearInterval(intervalTimer);
         };
     }, deps);
-    console.log('HELLO ollaan useLoaderWithTimerista')
 }
 
 

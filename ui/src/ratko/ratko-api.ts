@@ -14,26 +14,14 @@ export type RatkoStatus = {
     isOnline: boolean;
 }
 export const getRatkoStatus = () => getAdt(`${RATKO_URI}/is-online`).then(result => {
-
-    // const value = result.isOk() && result.value;
-    //            console.log('ratko status value', value)
-    //
-    // const err = !result.isOk()  && result.error;
-    //            console.log('ratko status error', value)
-
-    if(result.isOk()){
-        console.log('ratko status value', result.value)
+    if (result.isOk()){
         return result.value
     }
     else {
-        console.log('ratko status value',  {
-            statusCode: result.error.status,
-            isOnline: false
-        })
         return {
             statusCode: result.error.status,
             isOnline: false
         }
     }
 
-}); //result.value = RatkoStatus
+});
