@@ -1,11 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
 import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.SwitchPublishCandidate
+import fi.fta.geoviite.infra.linking.operationFromStateCategoryAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
@@ -374,7 +376,10 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             select
               switch_version.id,
               switch_version.change_time,
-              switch_version.name
+              switch_version.name,
+              switch_version.state_category,
+              switch_version.draft_of_switch_id,
+              switch_version.change_user
             from publication.switch published_switch
               left join layout.switch_version
                 on published_switch.switch_id = switch_version.id
@@ -390,7 +395,9 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             SwitchPublishCandidate(
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
-                name = SwitchName(rs.getString("name"))
+                name = SwitchName(rs.getString("name")),
+                userName = UserName(rs.getString("change_user")),
+                operation = operationFromStateCategoryAndDraftId(rs.getEnum("state_category"), rs.getIntIdOrNull<TrackLayoutSwitch>("draft_of_switch_id"))
             )
         }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }

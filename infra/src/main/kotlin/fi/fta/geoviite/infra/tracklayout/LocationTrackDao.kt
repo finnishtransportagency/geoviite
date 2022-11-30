@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
@@ -7,6 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_LOCATION_TRACK
 import fi.fta.geoviite.infra.linking.LocationTrackPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
+import fi.fta.geoviite.infra.linking.operationFromStateAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -269,7 +271,10 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             location_track_version.id, 
             location_track_version.change_time, 
             location_track_version.name, 
-            location_track_version.track_number_id
+            location_track_version.track_number_id,
+            location_track_version.state,
+            location_track_version.draft_of_location_track_id,
+            location_track_version.change_user
           from publication.location_track published_location_track
             left join layout.location_track_version
               on published_location_track.location_track_id = location_track_version.id 
@@ -289,6 +294,8 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
                 duplicateOf = null,
+                userName = UserName(rs.getString("change_user")),
+                operation = operationFromStateAndDraftId(rs.getEnum("state"), rs.getIntIdOrNull<LocationTrack>("draft_of_location_track_id"))
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }

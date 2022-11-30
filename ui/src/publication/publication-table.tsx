@@ -59,9 +59,12 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     {/*<Th/>*/}
                     <Th>{t('publication-table.change-target')}</Th>
                     <Th>{t('publication-table.track-number-short')}</Th>
+                    <Th>{t('publication-table.change-type')}</Th>
                     <Th>{t('publication-table.status')}</Th>
                     <Th>{t('publication-table.modified-moment')}</Th>
+                    <Th>{t('publication-table.user')}</Th>
                     {showRatkoPushDate && <Th>{t('publication-table.exported-to-ratko')}</Th>}
+                    <Th>{t('publication-table.actions')}</Th>
                 </tr>
             </thead>
             <tbody>
@@ -90,6 +93,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={trackNumber.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                userName={trackNumber.userName}
+                                operation={trackNumber.operation}
                             />
                         }
                     </React.Fragment>
@@ -123,19 +128,21 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={referenceLine.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                userName={referenceLine.userName}
+                                operation={referenceLine.operation}
                             />
                         }
                     </React.Fragment>
                 ))}
-                {previewChanges.locationTracks.map((referenceLine) => (
-                    <React.Fragment key={referenceLine.id}>
+                {previewChanges.locationTracks.map((locationTrack) => (
+                    <React.Fragment key={locationTrack.id}>
                         {
                             <PublicationTableItem
                                 onChange={(e) => {
                                     // Checkbox selection - disabled for MVP to simplify validation
                                     const locationTracks = addOrRemoveByCheckbox(
                                         selectedChanges.locationTracks,
-                                        referenceLine.id,
+                                        locationTrack.id,
                                         e.target.checked,
                                     );
                                     const _newSelectedChanges: SelectedChanges = {
@@ -146,16 +153,18 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                     // setSelectedChanges(newSelectedChanges);
                                 }}
                                 itemName={`${t('publication-table.location-track')} ${
-                                    referenceLine.name
+                                    locationTrack.name
                                 }`}
                                 trackNumber={
-                                    trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId)
+                                    trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId)
                                         ?.number
                                 }
-                                errors={referenceLine.errors}
-                                changeTime={referenceLine.draftChangeTime}
+                                errors={locationTrack.errors}
+                                changeTime={locationTrack.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                userName={locationTrack.userName}
+                                operation={locationTrack.operation}
                             />
                         }
                     </React.Fragment>
@@ -183,6 +192,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={layoutSwitch.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                userName={layoutSwitch.userName}
+                                operation={layoutSwitch.operation}
                             />
                         }
                     </React.Fragment>
@@ -213,6 +224,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={kmPost.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                userName={kmPost.userName}
+                                operation={kmPost.operation}
                             />
                         }
                     </React.Fragment>

@@ -4,8 +4,9 @@ import styles from 'publication/publication-table-item.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { PublishValidationError } from 'publication/publication-model';
+import { Operation, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 
 export type PreviewTableItemProps = {
     onChange: React.ChangeEventHandler<HTMLInputElement>;
@@ -15,6 +16,8 @@ export type PreviewTableItemProps = {
     changeTime: TimeStamp;
     showRatkoPushDate: boolean;
     ratkoPushDate?: TimeStamp;
+    operation: Operation;
+    userName: string;
 };
 
 export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
@@ -24,6 +27,8 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     changeTime,
     showRatkoPushDate,
     ratkoPushDate,
+    operation,
+    userName,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -45,18 +50,9 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
-                {/*<td className={styles['preview-table-item__accordion']}>*/}
-                {/*<span>*/}
-                {/*    <AccordionToggle open={false}/>*/}
-                {/*</span>*/}
-                {/*</td>*/}
-                <td>
-                    {/*<span className={styles['preview-table-item__checkbox']}>*/}
-                    {/*    <Checkbox onChange={onChange}/>*/}
-                    {/*</span>*/}
-                    {itemName}
-                </td>
+                <td>{itemName}</td>
                 <td>{trackNumber ? trackNumber : ''}</td>
+                <td>{t(`enum.publish-operation.${operation}`)}</td>
                 <td
                     className={statusCellClassName}
                     onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
@@ -80,6 +76,13 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                 {showRatkoPushDate && (
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>
                 )}
+                <td>{userName}</td>
+                <td>
+                    <div className={'preview-table-item__buttons'}>
+                        <Button variant={ButtonVariant.GHOST} icon={Icons.Descending} />
+                        <Button variant={ButtonVariant.GHOST} icon={Icons.More} />
+                    </div>
+                </td>
             </tr>
             {isErrorRowExpanded && hasErrors && (
                 <tr className={'preview-table-item preview-table-item--error'}>

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
@@ -50,6 +51,12 @@ enum class DraftChangeType {
     KM_POST,
 }
 
+enum class Operation {
+    CREATE,
+    MODIFY,
+    DELETE
+}
+
 data class PublicationChanges(
     val candidates: PublishCandidates,
     val calculatedChanges: CalculatedChanges,
@@ -92,15 +99,19 @@ data class PublishValidationError(
 
 interface PublishCandidate<T> {
     val type: DraftChangeType
+    val operation: Operation
     val id: IntId<T>
     val draftChangeTime: Instant
+    val userName: UserName
     val errors: List<PublishValidationError>
 }
 
 data class TrackNumberPublishCandidate(
     override val id: IntId<TrackLayoutTrackNumber>,
     val number: TrackNumber,
+    override val operation: Operation,
     override val draftChangeTime: Instant,
+    override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
 ) : PublishCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
@@ -109,8 +120,10 @@ data class TrackNumberPublishCandidate(
 data class ReferenceLinePublishCandidate(
     override val id: IntId<ReferenceLine>,
     val name: TrackNumber,
+    override val operation: Operation,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
+    override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
 ) : PublishCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
@@ -119,9 +132,11 @@ data class ReferenceLinePublishCandidate(
 data class LocationTrackPublishCandidate(
     override val id: IntId<LocationTrack>,
     val name: AlignmentName,
+    override val operation: Operation,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
     val duplicateOf: IntId<LocationTrack>?,
+    override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
@@ -130,7 +145,9 @@ data class LocationTrackPublishCandidate(
 data class SwitchPublishCandidate(
     override val id: IntId<TrackLayoutSwitch>,
     val name: SwitchName,
+    override val operation: Operation,
     override val draftChangeTime: Instant,
+    override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
 ) : PublishCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
@@ -140,8 +157,19 @@ data class KmPostPublishCandidate(
     override val id: IntId<TrackLayoutKmPost>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
+    override val operation: Operation,
     override val draftChangeTime: Instant,
+    override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
 ) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }
+
+fun operationFromStateAndDraftId(state: LayoutState, draftOfId: IntId<*>?) =
+    if (state == LayoutState.DELETED) Operation.DELETE else createOrModifyByDraftId(draftOfId)
+
+fun operationFromStateCategoryAndDraftId(stateCategory: LayoutStateCategory, draftOfId: IntId<*>?) =
+    if (stateCategory == LayoutStateCategory.NOT_EXISTING) Operation.DELETE else createOrModifyByDraftId(draftOfId)
+
+fun createOrModifyByDraftId(draftOfId: IntId<*>?) =
+    if (draftOfId == null) Operation.CREATE else Operation.MODIFY

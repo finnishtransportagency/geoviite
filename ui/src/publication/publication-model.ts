@@ -22,10 +22,14 @@ export enum DraftChangeType {
     KM_POST = 'KM_POST',
 }
 
+export type Operation = 'CREATE' | 'DELETE' | 'MODIFY';
+
 export type PublicationId = string;
 
 export type PublishCandidate = {
     draftChangeTime: TimeStamp;
+    userName: string;
+    operation: Operation;
     errors: PublishValidationError[];
 };
 

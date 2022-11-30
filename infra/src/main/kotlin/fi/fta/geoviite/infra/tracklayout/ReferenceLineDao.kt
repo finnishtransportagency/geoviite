@@ -1,11 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_REFERENCE_LINE
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.ReferenceLinePublishCandidate
+import fi.fta.geoviite.infra.linking.operationFromStateAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -231,13 +233,16 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             reference_line_version.id,
             reference_line_version.change_time,
             reference_line_version.track_number_id,
-            track_number.number as name
+            track_number.number as name,
+            reference_line_version.change_user,
+            reference_line_version.draft_of_reference_line_id,
+            track_number.state
           from publication.reference_line published_reference_line
             left join layout.reference_line_version
               on published_reference_line.reference_line_id = reference_line_version.id
                 and published_reference_line.reference_line_version = reference_line_version.version
             left join layout.track_number
-              on reference_line_version.track_number_id = track_number.id
+              on reference_line_version.track_number_id = track_number.draft_of_track_number_id
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -251,6 +256,8 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 draftChangeTime = rs.getInstant("change_time"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 name = rs.getTrackNumber("name"),
+                userName = UserName(rs.getString("change_user")),
+                operation = operationFromStateAndDraftId(rs.getEnum("state"), rs.getIntIdOrNull<ReferenceLine>("draft_of_reference_line_id"))
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }

@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.TrackNumberPublishCandidate
+import fi.fta.geoviite.infra.linking.operationFromStateAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
@@ -144,7 +146,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
           select
             track_number_version.id,
             track_number_version.change_time,
-            track_number_version.number
+            track_number_version.number,
+            track_number_version.change_user,
+            track_number_version.state,
+            track_number_version.draft_of_track_number_id
           from publication.track_number published_track_number
             left join layout.track_number_version
               on published_track_number.track_number_id = track_number_version.id
@@ -160,7 +165,9 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             TrackNumberPublishCandidate(
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
-                number = rs.getTrackNumber("number")
+                number = rs.getTrackNumber("number"),
+                userName = UserName(rs.getString("change_user")),
+                operation = operationFromStateAndDraftId(rs.getEnum("state"), rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_of_track_number_id"))
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }

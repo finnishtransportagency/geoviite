@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -8,6 +9,7 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.linking.KmPostPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
+import fi.fta.geoviite.infra.linking.operationFromStateAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -199,6 +201,9 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             km_post_version.id,
             km_post_version.change_time,
             km_post_version.track_number_id,
+            km_post_version.change_user,
+            km_post_version.state,
+            km_post_version.draft_of_km_post_id,
             km_number
           from publication.km_post published_km_post
             left join layout.km_post_version
@@ -218,7 +223,9 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                kmNumber = rs.getKmNumber("km_number")
+                kmNumber = rs.getKmNumber("km_number"),
+                userName = UserName(rs.getString("change_user")),
+                operation = operationFromStateAndDraftId(rs.getEnum("state"), rs.getIntIdOrNull<TrackLayoutKmPost>("draft_of_km_post_id"))
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }

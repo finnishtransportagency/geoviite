@@ -139,6 +139,11 @@
             "CHORD": "Kujaraide",
             "UNKNOWN": "Ei tiedossa"
         },
+        "publish-operation": {
+            "CREATE": "luonti",
+            "DELETE": "poisto",
+            "MODIFY": "muokkaus"
+        },
         "topological-connectivity-type": {
             "NONE": "Ei kytketty",
             "START": "Raiteen alku",

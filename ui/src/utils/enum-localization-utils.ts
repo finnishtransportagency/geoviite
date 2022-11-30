@@ -9,6 +9,7 @@ import {
 import i18n from 'i18next';
 import { JointNumber, MeasurementMethod, VerticalCoordinateSystem } from 'common/common-model';
 import { RatkoPushErrorOperation, RatkoPushErrorType } from 'ratko/ratko-model';
+import { Operation } from 'publication/publication-model';
 
 export interface LocalizedEnum<T> {
     value: T;
@@ -54,6 +55,12 @@ export const locationTrackTypes: { value: LocationTrackType; name: string }[] = 
     { value: 'CHORD', name: i18n.t('enum.location-track-type.CHORD') },
 ];
 
+export const publishOperationTypes: { value: Operation; name: string }[] = [
+    { value: 'CREATE', name: i18n.t('enum.publish-operation.CREATE') },
+    { value: 'DELETE', name: i18n.t('enum.publish-operation.DELETE') },
+    { value: 'MODIFY', name: i18n.t('enum.publish-operation.MODIFY') },
+];
+
 export const ratkoPushErrorTypes: { value: RatkoPushErrorType; name: string }[] = [
     { value: 'PROPERTIES', name: i18n.t('enum.ratko-push-error-type.PROPERTIES') },
     { value: 'LOCATION', name: i18n.t('enum.ratko-push-error-type.LOCATION') },
@@ -67,15 +74,16 @@ export const ratkoPushErrorOperations: { value: RatkoPushErrorOperation; name: s
     { value: 'DELETE', name: i18n.t('enum.ratko-push-error-operation.DELETE') },
 ];
 
-export const topologicalConnectivityTypes: { value: TopologicalConnectivityType; name: string }[] = [
-    { value: 'NONE', name: i18n.t('enum.topological-connectivity-type.NONE') },
-    { value: 'START', name: i18n.t('enum.topological-connectivity-type.START') },
-    { value: 'END', name: i18n.t('enum.topological-connectivity-type.END') },
-    {
-        value: 'START_AND_END',
-        name: i18n.t('enum.topological-connectivity-type.START_AND_END'),
-    },
-];
+export const topologicalConnectivityTypes: { value: TopologicalConnectivityType; name: string }[] =
+    [
+        { value: 'NONE', name: i18n.t('enum.topological-connectivity-type.NONE') },
+        { value: 'START', name: i18n.t('enum.topological-connectivity-type.START') },
+        { value: 'END', name: i18n.t('enum.topological-connectivity-type.END') },
+        {
+            value: 'START_AND_END',
+            name: i18n.t('enum.topological-connectivity-type.START_AND_END'),
+        },
+    ];
 
 export const planPhases: { value: PlanPhase; name: string }[] = [
     { value: 'RAILWAY_PLAN', name: i18n.t('enum.plan-phase.RAILWAY_PLAN') },
