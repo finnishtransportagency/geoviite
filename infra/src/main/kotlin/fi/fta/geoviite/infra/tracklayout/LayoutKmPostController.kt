@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -48,7 +47,7 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
     @GetMapping("/{publishType}", params=["location", "offset", "limit"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("trackNumberId") trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+        @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>?,
         @RequestParam("location") location: Point,
         @RequestParam("offset") offset: Int,
         @RequestParam("limit") limit: Int,
