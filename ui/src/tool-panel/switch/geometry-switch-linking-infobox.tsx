@@ -11,8 +11,12 @@ import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-fi
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { SwitchEditDialog } from './dialog/switch-edit-dialog';
-import { LayoutSwitch, LayoutSwitchId, LayoutSwitchJointConnection } from 'track-layout/track-layout-model';
-import { getSwitch, getSwitchesByBoundingBox } from 'track-layout/track-layout-api';
+import {
+    LayoutSwitch,
+    LayoutSwitchId,
+    LayoutSwitchJointConnection,
+} from 'track-layout/track-layout-model';
+import { getSwitch, getSwitchesByBoundingBox } from 'track-layout/layout-switch-api';
 import { useDebouncedState, useLoader } from 'utils/react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { SWITCH_SHOW } from 'map/layers/layer-visibility-limits';
@@ -48,7 +52,7 @@ function isValidSwitchForLinking(
     _suggestedSwitch: SuggestedSwitch,
     _layoutSwitch: LayoutSwitch,
 ): boolean {
-    return true//suggestedSwitch.switchStructure.id == layoutSwitch.switchStructureId;
+    return true; //suggestedSwitch.switchStructure.id == layoutSwitch.switchStructureId;
 }
 
 const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> = ({
@@ -117,13 +121,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                 y: { min: point.y - bboxSize, max: point.y + bboxSize },
             };
 
-            return getSwitchesByBoundingBox(
-                bbox,
-                'DRAFT',
-                debouncedSearchTerm,
-                point,
-                true,
-            );
+            return getSwitchesByBoundingBox(bbox, 'DRAFT', debouncedSearchTerm, point, true);
         } else {
             return undefined;
         }

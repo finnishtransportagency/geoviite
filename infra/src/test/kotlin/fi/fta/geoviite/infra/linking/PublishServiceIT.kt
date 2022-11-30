@@ -162,7 +162,7 @@ class PublishServiceIT @Autowired constructor(
     @Test
     fun publishingReferenceLineChangesWorks() {
         val alignmentVersion = alignmentDao.insert(alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0))))
-        val line = referenceLine(someTrackNumber(), alignment, startAddress = TrackMeter("0001", 10))
+        val line = referenceLine(someTrackNumber(), alignmentDao.fetch(alignmentVersion), startAddress = TrackMeter("0001", 10))
             .copy(alignmentVersion = alignmentVersion)
         val officialId = referenceLineDao.insert(line).id
 
@@ -221,7 +221,7 @@ class PublishServiceIT @Autowired constructor(
     fun publishingLocationTrackChangesWorks() {
         val alignmentVersion = alignmentDao.insert(alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0))))
         val referenceAlignment = alignment(segment(Point(0.0, 0.0), Point(4.0, 4.0)))
-        val track = locationTrack(insertOfficialTrackNumber(), alignment, name = "test 01")
+        val track = locationTrack(insertOfficialTrackNumber(), alignmentDao.fetch(alignmentVersion), name = "test 01")
             .copy(alignmentVersion = alignmentVersion)
 
         referenceLineService.publish(referenceLineService.saveDraft(referenceLine(track.trackNumberId), referenceAlignment).id)

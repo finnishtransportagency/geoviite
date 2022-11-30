@@ -46,13 +46,6 @@ class ReferenceLineController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/draft/non-linked")
-    fun getNonLinkedReferenceLines(): List<ReferenceLine> {
-        logger.apiCall("getNonLinkedReferenceLines")
-        return referenceLineService.listNonLinked()
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}", params = ["bbox"])
     fun getReferenceLinesNear(
         @PathVariable("publishType") publishType: PublishType,
@@ -63,14 +56,7 @@ class ReferenceLineController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/official/{id}/change-times")
-    fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): ChangeTimes {
-        logger.apiCall("getReferenceLineChangeInfo", "id" to id)
-        return referenceLineService.getChangeTimes(id)
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/reference-lines/{id}/start-and-end")
+    @GetMapping("/{publishType}/{id}/start-and-end")
     fun getReferenceLineStartAndEnd(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<ReferenceLine>,
@@ -79,4 +65,17 @@ class ReferenceLineController(
         return toResponse(geocodingService.getReferenceLineStartAndEnd(publishType, id))
     }
 
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/draft/non-linked")
+    fun getNonLinkedReferenceLines(): List<ReferenceLine> {
+        logger.apiCall("getNonLinkedReferenceLines")
+        return referenceLineService.listNonLinked()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{id}/change-times")
+    fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): ChangeTimes {
+        logger.apiCall("getReferenceLineChangeInfo", "id" to id)
+        return referenceLineService.getChangeTimes(id)
+    }
 }

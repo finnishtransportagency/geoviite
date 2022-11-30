@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -272,6 +273,25 @@ class LayoutSwitchServiceIT @Autowired constructor(
             listOf(TrackLayoutSwitchJointMatch(locationTrackVersion.id, joint1Point)),
             connections.first { connection -> connection.number == JointNumber(1) }.accurateMatches
         )
+    }
+
+    @Test
+    fun switchIdIsReturnedWhenAddingNewSwitch() {
+        val switch = TrackLayoutSwitchSaveRequest(
+            SwitchName("XYZ-987"),
+            IntId(5),
+            LayoutStateCategory.EXISTING,
+            ownerId = IntId(3),
+            trapPoint = null,
+        )
+        val switchId = switchService.insertSwitch(switch)
+        val fetchedSwitch = switchService.getDraft(switchId)
+        assertNull(switchService.getOfficial(switchId))
+
+        assertEquals(DataType.STORED, fetchedSwitch.dataType)
+        assertEquals(switch.name, fetchedSwitch.name)
+        assertEquals(switch.stateCategory, fetchedSwitch.stateCategory)
+        assertEquals(switch.switchStructureId, fetchedSwitch.switchStructureId)
     }
 
     private fun insert(

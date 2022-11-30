@@ -6,7 +6,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { useTranslation } from 'react-i18next';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { createTrackNumber, updateTrackNumber } from 'track-layout/track-layout-api';
+import { createTrackNumber, updateTrackNumber } from 'track-layout/layout-track-number-api';
 import {
     useReferenceLineStartAndEnd,
     useTrackNumberReferenceLine,
@@ -32,10 +32,10 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { createClassName } from 'vayla-design-lib/utils';
-import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;

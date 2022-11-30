@@ -16,8 +16,12 @@ import {
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { KmPostSaveRequest } from 'linking/linking-model';
-import { getKmPost, getKmPostByNumber, getTrackNumbers } from 'track-layout/track-layout-api';
-import { insertKmPost, updateKmPost } from 'linking/linking-api';
+import {
+    getKmPost,
+    getKmPostByNumber,
+    insertKmPost,
+    updateKmPost,
+} from 'track-layout/layout-km-post-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { GeometryTrackNumberId } from 'geometry/geometry-model';
@@ -28,6 +32,7 @@ import styles from 'vayla-design-lib/dialog/dialog.scss';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { createClassName } from 'vayla-design-lib/utils';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 
 export type KmPostDialogProps = {
     kmPostId?: LayoutKmPostId;

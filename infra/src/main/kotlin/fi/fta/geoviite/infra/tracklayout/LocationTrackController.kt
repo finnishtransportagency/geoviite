@@ -1,10 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
+import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.FreeText
@@ -22,13 +25,6 @@ class LocationTrackController(
     private val geocodingService: GeocodingService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/draft/non-linked")
-    fun getNonLinkedLocationTracks(): List<LocationTrack> {
-        logger.apiCall("getNonLinkedLocationTracks")
-        return locationTrackService.listNonLinked()
-    }
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}", params = ["bbox"])
@@ -82,19 +78,60 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/official/{id}/change-times")
-    fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): ChangeTimes {
-        logger.apiCall("getLocationTrackChangeInfo", "id" to id)
-        return locationTrackService.getChangeTimes(id)
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/location-tracks/{id}/start-and-end")
+    @GetMapping("/{publishType}/{id}/start-and-end")
     fun getLocationTrackStartAndEnd(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getLocationTrackStartAndEnd", "publishType" to publishType, "id" to id)
         return toResponse(geocodingService.getLocationTrackStartAndEnd(publishType, id))
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/end-points")
+    fun getLocationTrackAlignmentEndpoints(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<LocationTrackEndpoint> {
+        logger.apiCall("getLocationTrackAlignmentEndpoints", "bbox" to bbox)
+        return locationTrackService.getLocationTrackEndpoints(bbox, publishType)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PostMapping("/draft")
+    fun insertLocationTrack(@RequestBody request: LocationTrackSaveRequest): IntId<LocationTrack> {
+        logger.apiCall("insertLocationTrack", "request" to request)
+        return locationTrackService.insert(request).id
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PutMapping("/draft/{id}")
+    fun updateLocationTrack(
+        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
+        @RequestBody request: LocationTrackSaveRequest,
+    ): IntId<LocationTrack> {
+        logger.apiCall("updateLocationTrack", "locationTrackId" to locationTrackId, "request" to request)
+        return locationTrackService.update(locationTrackId, request).id
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @DeleteMapping("/draft/{id}")
+    fun deleteLocationTrack(@PathVariable("id") id: IntId<LocationTrack>): IntId<LocationTrack> {
+        logger.apiCall("deleteLocationTrack", "id" to id)
+        return locationTrackService.deleteUnpublishedDraft(id).id
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/draft/non-linked")
+    fun getNonLinkedLocationTracks(): List<LocationTrack> {
+        logger.apiCall("getNonLinkedLocationTracks")
+        return locationTrackService.listNonLinked()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{id}/change-times")
+    fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): ChangeTimes {
+        logger.apiCall("getLocationTrackChangeInfo", "id" to id)
+        return locationTrackService.getChangeTimes(id)
     }
 }

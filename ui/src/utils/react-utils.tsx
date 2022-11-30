@@ -19,6 +19,14 @@ export function useLoader<TEntity>(
     return useLoaderWithStatus(loadFunc, deps)[0];
 }
 
+export function useNullableLoader<TEntity>(
+    loadFunc: () => Promise<TEntity | null> | undefined,
+    deps: unknown[],
+): TEntity | undefined {
+    const nullMappingLoadFunc = () => loadFunc()?.then((r) => (r === null ? undefined : r));
+    return useLoader(nullMappingLoadFunc, deps);
+}
+
 export enum LoaderStatus {
     Initialized,
     Loading,
@@ -68,7 +76,6 @@ export function useLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
-
 export function useLoaderWithTimer<TEntity>(
     setEntity: (entity: TEntity | undefined) => void,
     loadFunc: () => Promise<TEntity> | undefined,
@@ -94,7 +101,6 @@ export function useLoaderWithTimer<TEntity>(
         };
     }, deps);
 }
-
 
 /**
  * Usage:

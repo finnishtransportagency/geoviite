@@ -1,7 +1,6 @@
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackId } from 'track-layout/track-layout-model';
-import { deleteLocationTrack } from 'linking/linking-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import * as React from 'react';
 import {
@@ -12,6 +11,7 @@ import {
 import { createDelegates } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { deleteLocationTrack } from 'track-layout/layout-location-track-api';
 
 type LocationTrackDeleteConfirmationDialogProps = {
     id: LocationTrackId;

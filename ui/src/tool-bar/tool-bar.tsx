@@ -3,13 +3,12 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
+import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
+import { getKmPost } from 'track-layout/layout-km-post-api';
 import {
-    getKmPost,
     getLocationTrack,
     getLocationTracksBySearchTerm,
-    getSwitch,
-    getSwitchesBySearchTerm,
-} from 'track-layout/track-layout-api';
+} from 'track-layout/layout-location-track-api';
 import {
     LayoutKmPost,
     LayoutKmPostId,
@@ -21,7 +20,12 @@ import {
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { isNullOrBlank } from 'utils/string-utils';
-import { BoundingBox, boundingBoxAroundPoints, centerForBoundingBox, expandBoundingBox } from 'model/geometry';
+import {
+    BoundingBox,
+    boundingBoxAroundPoints,
+    centerForBoundingBox,
+    expandBoundingBox,
+} from 'model/geometry';
 import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
@@ -67,7 +71,7 @@ type SwitchItemValue = {
 type SearchItemValue = LocationTrackItemValue | SwitchItemValue;
 
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const selectedItems = props.selection.selectedItems;
     const _hasActiveElement = hasActiveMapElement(selectedItems); // Will be used later
     const [showAddMenu, setShowAddMenu] = React.useState(false);
@@ -84,10 +88,10 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     }
 
     const newMenuItems = [
-        {value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number')},
-        {value: NewMenuItems.locationTrack, name: t('tool-bar.new-location-track')},
-        {value: NewMenuItems.switch, name: t('tool-bar.new-switch')},
-        {value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post')},
+        { value: NewMenuItems.trackNumber, name: t('tool-bar.new-track-number') },
+        { value: NewMenuItems.locationTrack, name: t('tool-bar.new-location-track') },
+        { value: NewMenuItems.switch, name: t('tool-bar.new-switch') },
+        { value: NewMenuItems.kmPost, name: t('tool-bar.new-km-post') },
     ];
 
     const handleNewMenuItemChange = (item: NewMenuItems) => {
@@ -99,33 +103,33 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
             return Promise.resolve([]);
         }
 
-        const locationTracks: Promise<Item<LocationTrackItemValue>[]> = getLocationTracksBySearchTerm(searchTerm, props.publishType, 10).then(
-            (locationTracks) => {
-                return locationTracks.map((locationTrack) => ({
-                    name: `${locationTrack.name}, ${locationTrack.description}`,
-                    value: {
-                        type: 'locationTrackSearchItem',
-                        locationTrack: locationTrack,
-                    },
-                }));
-            },
-        );
-        const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(searchTerm, props.publishType, 10).then(
-            (switches) => {
-                return switches.map((layoutSwitch) => ({
-                    name: `${layoutSwitch.name}`,
-                    value: {
-                        type: 'switchSearchItem',
-                        layoutSwitch: layoutSwitch,
-                    },
-                }));
-            },
-        );
-        return Promise.all([locationTracks, switches]).then(result => {
-            const allItems: Item<SearchItemValue>[] = [
-                ...result[0],
-                ...result[1],
-            ];
+        const locationTracks: Promise<Item<LocationTrackItemValue>[]> =
+            getLocationTracksBySearchTerm(searchTerm, props.publishType, 10).then(
+                (locationTracks) => {
+                    return locationTracks.map((locationTrack) => ({
+                        name: `${locationTrack.name}, ${locationTrack.description}`,
+                        value: {
+                            type: 'locationTrackSearchItem',
+                            locationTrack: locationTrack,
+                        },
+                    }));
+                },
+            );
+        const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(
+            searchTerm,
+            props.publishType,
+            10,
+        ).then((switches) => {
+            return switches.map((layoutSwitch) => ({
+                name: `${layoutSwitch.name}`,
+                value: {
+                    type: 'switchSearchItem',
+                    layoutSwitch: layoutSwitch,
+                },
+            }));
+        });
+        return Promise.all([locationTracks, switches]).then((result) => {
+            const allItems: Item<SearchItemValue>[] = [...result[0], ...result[1]];
             return allItems;
         });
     }
@@ -143,7 +147,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
             if (item.layoutSwitch.joints.length > 0) {
                 const center = centerForBoundingBox(
                     boundingBoxAroundPoints(
-                        item.layoutSwitch.joints.map(joint => joint.location),
+                        item.layoutSwitch.joints.map((joint) => joint.location),
                     ),
                 );
                 const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
@@ -180,7 +184,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     function handleLocationTrackInsert(id: LocationTrackId) {
         updateLocationTrackChangeTime().then((ts) => {
             getLocationTrack(id, 'DRAFT', ts).then((locationTrack) => {
-                props.onSelectLocationTrack(locationTrack.id);
+                if (locationTrack) props.onSelectLocationTrack(locationTrack.id);
             });
 
             setShowAddLocationTrackDialog(false);
@@ -198,7 +202,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     function handleKmPostInsert(id: LayoutKmPostId) {
         updateKmPostChangeTime().then((kp) => {
             getKmPost(id, 'DRAFT', kp).then((kmPost) => {
-                props.onSelectKmPost(kmPost);
+                if (kmPost) props.onSelectKmPost(kmPost);
             });
             setShowAddKmPostDialog(false);
         });

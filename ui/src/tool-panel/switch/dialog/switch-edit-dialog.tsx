@@ -16,18 +16,22 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { insertSwitch, updateSwitch } from 'linking/linking-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { SwitchOwner, SwitchOwnerId, SwitchStructure, SwitchStructureId } from 'common/common-model';
+import {
+    SwitchOwner,
+    SwitchOwnerId,
+    SwitchStructure,
+    SwitchStructureId,
+} from 'common/common-model';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
-import { getSwitch } from 'track-layout/track-layout-api';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import styles from 'vayla-design-lib/dialog/dialog.scss';
-import { createClassName } from 'vayla-design-lib/utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { createClassName } from 'vayla-design-lib/utils';
+import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -48,7 +52,7 @@ export const SwitchEditDialog = ({
     onUpdate,
     onDelete,
 }: SwitchDialogProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [showConfirmationDialog, setShowConfirmationDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
     const [switchStateCategory, setSwitchStateCategory] = React.useState<LayoutStateCategory>();
@@ -57,7 +61,9 @@ export const SwitchEditDialog = ({
     const [switchStructureId, setSwitchStructureId] = React.useState<SwitchStructureId | undefined>(
         prefilledSwitchStructureId,
     );
-    const [validationErrors, setValidationErrors] = React.useState<ValidationError<TrackLayoutSwitchSaveRequest>[]>([]);
+    const [validationErrors, setValidationErrors] = React.useState<
+        ValidationError<TrackLayoutSwitchSaveRequest>[]
+    >([]);
     const [visitedFields, setVisitedFields] = React.useState<string[]>([]);
     const [isSaving, setIsSaving] = React.useState(false);
     const [switchStructures, setSwitchStructures] = React.useState<SwitchStructure[]>([]);
@@ -73,7 +79,7 @@ export const SwitchEditDialog = ({
 
     const switchStateCategoryOptions = layoutStateCategories
         .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
-        .map((sc) => ({...sc, disabled: sc.value === 'FUTURE_EXISTING'}));
+        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
 
     React.useEffect(() => {
         if (isExistingSwitch) {
@@ -495,8 +501,8 @@ export const SwitchEditDialog = ({
                     }>
                     <p>
                         {t('switch-dialog.deleted-category-warning')}
-                        <br/>
-                        <br/>
+                        <br />
+                        <br />
                         {t('switch-dialog.confirm-switch-delete')}
                     </p>
                 </Dialog>

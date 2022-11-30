@@ -1,8 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
+import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -82,5 +84,29 @@ class LayoutSwitchController(
     ): List<TrackLayoutSwitchJointConnection> {
         logger.apiCall("getSwitchJointConnections", "switchId" to id, "publishType" to publishType)
         return switchService.getSwitchJointConnections(publishType, id)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PostMapping("/draft")
+    fun insertTrackLayoutSwitch(@RequestBody request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
+        logger.apiCall("insertTrackLayoutSwitch", "request" to request)
+        return switchService.insertSwitch(request)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PutMapping("/draft/{id}")
+    fun updateSwitch(
+        @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
+        @RequestBody switch: TrackLayoutSwitchSaveRequest,
+    ): IntId<TrackLayoutSwitch> {
+        logger.apiCall("updateSwitch", "switchId" to switchId, "switch" to switch)
+        return switchService.updateSwitch(switchId, switch)
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @DeleteMapping("/draft/{id}")
+    fun deleteDraftSwitch(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
+        logger.apiCall("deleteDraftSwitch", "switchId" to switchId)
+        return switchService.deleteDraftSwitch(switchId)
     }
 }

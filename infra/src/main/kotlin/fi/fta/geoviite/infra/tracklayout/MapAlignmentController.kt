@@ -14,12 +14,12 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/track-layout")
+@RequestMapping("/track-layout/map")
 class MapAlignmentController(private val mapAlignmentService: MapAlignmentService) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/map/alignments")
+    @GetMapping("/{publishType}/alignments")
     fun getMapAlignments(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox,
@@ -39,7 +39,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/map/reference-lines/{id}")
+    @GetMapping("/{publishType}/reference-lines/{id}")
     fun getMapReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<ReferenceLine>,
@@ -49,7 +49,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/map/location-tracks/{id}")
+    @GetMapping("/{publishType}/location-tracks/{id}")
     fun getMapLocationTrack(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,

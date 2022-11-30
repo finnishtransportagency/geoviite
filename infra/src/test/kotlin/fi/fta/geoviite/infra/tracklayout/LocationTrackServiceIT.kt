@@ -27,7 +27,6 @@ import org.springframework.test.context.ActiveProfiles
 class LocationTrackServiceIT @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val alignmentDao: LayoutAlignmentDao,
-    private val switchDao: LayoutSwitchDao,
     private val switchService: LayoutSwitchService,
 ): ITTestBase() {
 
@@ -402,7 +401,7 @@ class LocationTrackServiceIT @Autowired constructor(
         locationTrackService.publish(originalLocationTrackId)
         val officialCopy = insertAndFetch(
             locationTrack(getUnusedTrackNumberId()).copy(duplicateOf = originalLocationTrackId),
-            alignment
+            alignment()
         )
         locationTrackService.publish(officialCopy.first.id as IntId<LocationTrack>)
 

@@ -11,7 +11,7 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { getKmPost } from 'track-layout/track-layout-api';
+import { getKmPost } from 'track-layout/layout-km-post-api';
 import { useLoader } from 'utils/react-utils';
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
 

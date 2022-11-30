@@ -19,7 +19,7 @@ import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { filterUniqueById } from 'utils/array-utils';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { toMapAlignmentResolution } from 'track-layout/track-layout-api';
+import { toMapAlignmentResolution } from 'track-layout/layout-map-api';
 import { getMaxTimestamp } from 'utils/date-utils';
 
 const unlinkedAlignmentStyle = new Style({
