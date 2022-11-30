@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
@@ -31,7 +31,7 @@ import java.time.Duration
 val defaultRequestTimeout: Duration = Duration.ofMinutes(5L)
 val metersCalculationTimeout: Duration = Duration.ofMinutes(15L)
 
-@Service
+@Component
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoClient @Autowired constructor(private val client: WebClient) {
 

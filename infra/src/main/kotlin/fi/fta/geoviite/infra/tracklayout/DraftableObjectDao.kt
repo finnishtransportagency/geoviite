@@ -62,6 +62,7 @@ data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>
 
 interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDraftableObjectWriter<T>
 
+@Transactional(readOnly = true)
 abstract class DraftableDaoBase<T : Draftable<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     private val table: DbTable,

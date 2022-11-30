@@ -14,15 +14,14 @@ import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_LOCATION_TRACK
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK) {
 
-
-    @Transactional
     fun fetchDuplicates(id: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
         val sql = """
             select 
@@ -48,7 +47,6 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
 
     @Cacheable(CACHE_LAYOUT_LOCATION_TRACK, sync = true)
-    @Transactional
     override fun fetch(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 

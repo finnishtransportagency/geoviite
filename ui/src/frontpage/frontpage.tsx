@@ -4,6 +4,7 @@ import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
 import { PublicationListingItem } from 'publication/publication-model';
 import { getPublications } from 'publication/publication-api';
+import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
 
@@ -18,25 +19,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
 }) => {
     const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
 
-    React.useEffect(() => {
-        let cancel = false;
-
-        function fetchPublications() {
-            getPublications().then((result) => {
-                if (!cancel) {
-                    setPublications(result);
-                }
-            });
-        }
-
-        fetchPublications();
-        const intervalTimer = setInterval(fetchPublications, 30000);
-
-        return () => {
-            cancel = true;
-            clearInterval(intervalTimer);
-        };
-    }, []);
+    useLoaderWithTimer(setPublications, getPublications, [], 30000);
 
     const hasAnyFailed = () =>
         !!publications && publications?.some((item) => ratkoPushFailed(item.status));

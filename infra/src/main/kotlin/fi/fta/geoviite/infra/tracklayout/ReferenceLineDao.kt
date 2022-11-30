@@ -13,15 +13,15 @@ import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_REFERENCE_LINE
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE) {
 
     @Cacheable(CACHE_LAYOUT_REFERENCE_LINE, sync = true)
-    @Transactional
     override fun fetch(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select

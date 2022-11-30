@@ -8,9 +8,11 @@ import fi.fta.geoviite.infra.util.getFeatureTypeCode
 import fi.fta.geoviite.infra.util.getFreeText
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class CodeDictionaryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Cacheable(CACHE_FEATURE_TYPES, sync = true)

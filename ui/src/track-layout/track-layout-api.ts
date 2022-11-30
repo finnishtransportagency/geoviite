@@ -3,6 +3,7 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import {
     AlignmentId,
+    AlignmentStartAndEnd,
     LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
@@ -15,12 +16,10 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
-    LocationTrackStartAndEndPoints,
     MapAlignment,
     MapAlignmentType,
     MapSegment,
     ReferenceLineId,
-    ReferenceLineStartAndEndPoints,
 } from './track-layout-model';
 import {
     API_URI,
@@ -134,8 +133,8 @@ export async function getLocationTrackSegmentEnds(
 export async function getReferenceLineStartAndEnd(
     referenceLineId: ReferenceLineId,
     publishType: PublishType,
-): Promise<ReferenceLineStartAndEndPoints> {
-    return getThrowError<ReferenceLineStartAndEndPoints>(
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getThrowError<AlignmentStartAndEnd>(
         `${layoutUri(publishType)}/reference-lines/${referenceLineId}/start-and-end`,
     );
 }
@@ -143,8 +142,8 @@ export async function getReferenceLineStartAndEnd(
 export async function getLocationTrackStartAndEnd(
     locationTrackId: LocationTrackId,
     publishType: PublishType,
-): Promise<LocationTrackStartAndEndPoints | undefined> {
-    return getThrowError<LocationTrackStartAndEndPoints>(
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getThrowError<AlignmentStartAndEnd>(
         `${layoutUri(publishType)}/location-tracks/${locationTrackId}/start-and-end`,
     );
 }

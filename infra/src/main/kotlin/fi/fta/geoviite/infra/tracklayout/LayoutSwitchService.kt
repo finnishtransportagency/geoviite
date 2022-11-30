@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.util.RowVersion
 import fi.fta.geoviite.infra.util.pageToList
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class LayoutSwitchService @Autowired constructor(
@@ -95,17 +96,14 @@ class LayoutSwitchService @Autowired constructor(
                 && switchMatchesBbox(switch, bbox, includeSwitchesWithNoJoints)
     }
 
+    @Transactional
     fun updateExternalIdForSwitch(
         id: IntId<TrackLayoutSwitch>,
         oid: Oid<TrackLayoutSwitch>,
     ): RowVersion<TrackLayoutSwitch> {
         logger.serviceCall("updateExternalIdForSwitch", "id" to id, "oid" to oid)
         val original = getDraft(id)
-        return saveDraft(
-            original.copy(
-                externalId = oid,
-            )
-        )
+        return saveDraft(original.copy(externalId = oid))
     }
 
     private fun switchMatchesName(switch: TrackLayoutSwitch, name: String?) =

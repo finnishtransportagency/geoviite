@@ -917,7 +917,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val publishedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
             val id = locationTrack.id as IntId
-            val (edited, editedAlignment) = locationTrackService.getWithAlignment(PublishType.DRAFT, id)
+            val (edited, editedAlignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, id)
             if (edited.draft != null) locationTrackService.getWithAlignment(locationTrackService.publish(id))
             else edited to editedAlignment
         }

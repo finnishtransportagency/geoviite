@@ -116,12 +116,13 @@ fun parseGeometryPlan(
 
 fun parseGeometryPlan(
     file: MultipartFile,
+    fileEncodingOverride: Charset?,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file))
+    val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
     return parseFromString(
         imFile,
         coordinateSystems,
@@ -190,13 +191,14 @@ fun encodingsFromXmlStream(stream: InputStream) =
         xmlStreamReader.encoding to xmlStreamReader.characterEncodingScheme
     }
 
+fun findXmlCharset(name: String) = xmlCharsets.find { cs -> cs.name() == name }
+
 fun getEncodingAndBom(bytes: ByteArray): Pair<Charset, Boolean> {
     BOMInputStream(ByteArrayInputStream(bytes)).use { stream ->
         val encodingFromBOM = stream.bom?.let { bom -> mapBomToCharset(bom) }?.name()
         val (fileEncoding, encodingFromXMLDeclaration) = encodingsFromXmlStream(stream)
-        val encoding = (encodingFromBOM ?: encodingFromXMLDeclaration ?: fileEncoding)?.let { name ->
-            xmlCharsets.find { cs -> cs.name() == name }
-        } ?: StandardCharsets.UTF_8
+        val encoding = (encodingFromBOM ?: encodingFromXMLDeclaration ?: fileEncoding)?.let(::findXmlCharset)
+            ?: StandardCharsets.UTF_8
         return encoding to (stream.bom != null)
     }
 }
@@ -218,17 +220,17 @@ fun classpathResourceToString(fileName: String): String {
     return xmlBytesToString(resource.readBytes())
 }
 
-fun fileToString(file: MultipartFile): String {
-    return xmlBytesToString(file.bytes)
+fun fileToString(file: MultipartFile, encodingOverride: Charset?): String {
+    return xmlBytesToString(file.bytes, encodingOverride)
 }
 
 fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
 }
 
-fun xmlBytesToString(bytes: ByteArray): String {
+fun xmlBytesToString(bytes: ByteArray, encodingOverride: Charset? = null): String {
     val (encoding, hasBom) = getEncodingAndBom(bytes)
-    val stringifiedXml = String(bytes, encoding)
+    val stringifiedXml = String(bytes, encodingOverride ?: encoding)
     return if (hasBom) stringifiedXml.substring(1) else stringifiedXml
 }
 

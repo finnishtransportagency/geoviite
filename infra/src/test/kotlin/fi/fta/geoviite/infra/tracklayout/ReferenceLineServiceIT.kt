@@ -44,7 +44,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         val trackNumber = createAndPublishTrackNumber()
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumber)?.id as IntId
         referenceLineService.publish(referenceLineId)
-        val (line, _) = referenceLineService.getWithAlignment(OFFICIAL, referenceLineId)
+        val (line, _) = referenceLineService.getWithAlignmentOrThrow(OFFICIAL, referenceLineId)
         assertNull(line.draft)
         assertThrows<NoSuchEntityException> { referenceLineService.deleteUnpublishedDraft(referenceLineId) }
     }
@@ -171,7 +171,7 @@ class ReferenceLineServiceIT @Autowired constructor(
     }
 
     private fun getAndVerifyDraftWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        val (draft, alignment) = referenceLineService.getWithAlignment(DRAFT, id)
+        val (draft, alignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, id)
         assertEquals(id, draft.id)
         assertNotNull(draft.draft)
         assertEquals(draft.alignmentVersion!!.id, alignment.id)
@@ -182,13 +182,13 @@ class ReferenceLineServiceIT @Autowired constructor(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         referenceLineId: IntId<ReferenceLine>,
     ): Pair<RowVersion<ReferenceLine>, ReferenceLine> {
-        val (draft, draftAlignment) = referenceLineService.getWithAlignment(DRAFT, referenceLineId)
+        val (draft, draftAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
         assertNotNull(draft.draft)
         assertEquals(draft, referenceLineService.getByTrackNumber(DRAFT, trackNumberId))
         assertNull(referenceLineService.getByTrackNumber(OFFICIAL, trackNumberId))
 
         val publishedVersion = referenceLineService.publish(draft.id as IntId)
-        val (published, publishedAlignment) = referenceLineService.getWithAlignment(OFFICIAL, publishedVersion.id)
+        val (published, publishedAlignment) = referenceLineService.getWithAlignmentOrThrow(OFFICIAL, publishedVersion.id)
         val publishedByTrackNumber = referenceLineService.getByTrackNumber(OFFICIAL, trackNumberId)
         assertEquals(published, publishedByTrackNumber)
         assertNull(published.draft)

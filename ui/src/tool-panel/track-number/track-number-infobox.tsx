@@ -31,10 +31,7 @@ import { updateReferenceLineGeometry } from 'linking/linking-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatDateShort } from 'utils/date-utils';
 import { getReferenceLineSegmentEnds } from 'track-layout/track-layout-api';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
@@ -148,13 +145,13 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     <InfoboxContent>
                         <InfoboxField
                             label={t('tool-panel.reference-line.start-location')}
-                            value={<TrackMeter value={startAndEndPoints.start.address} />}
+                            value={<TrackMeter value={startAndEndPoints?.start?.address} />}
                             onEdit={() => setShowEditDialog(true)}
                             iconDisabled={isOfficial}
                         />
                         <InfoboxField
                             label={t('tool-panel.reference-line.end-location')}
-                            value={<TrackMeter value={startAndEndPoints.end.address} />}
+                            value={<TrackMeter value={startAndEndPoints?.end?.address} />}
                         />
                         {linkingState === undefined && referenceLine && (
                             <InfoboxButtons>
@@ -213,13 +210,21 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={`${t('tool-panel.reference-line.start-coordinates')} ${
                                 coordinateSystem.name
                             }`}
-                            value={formatToTM35FINString(startAndEndPoints.start.point)}
+                            value={
+                                startAndEndPoints?.start
+                                    ? formatToTM35FINString(startAndEndPoints.start.point)
+                                    : ''
+                            }
                         />
                         <InfoboxField
                             label={`${t('tool-panel.reference-line.end-coordinates')} ${
                                 coordinateSystem.name
                             }`}
-                            value={formatToTM35FINString(startAndEndPoints.end.point)}
+                            value={
+                                startAndEndPoints?.end
+                                    ? formatToTM35FINString(startAndEndPoints.end.point)
+                                    : ''
+                            }
                         />
                         <InfoboxButtons>
                             <Button

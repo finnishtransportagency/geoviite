@@ -6,10 +6,11 @@ import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class InitAlignmentMetadataDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {

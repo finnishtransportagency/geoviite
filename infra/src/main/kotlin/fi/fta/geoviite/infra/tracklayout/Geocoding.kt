@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DEFAULT_TRACK_METER_DECIMALS
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.GeocodingFailureException
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
@@ -28,20 +30,9 @@ data class AlignmentAddresses(
     }
 }
 
-data class RefinedAlignmentEndPoint(
-    val addressPoint: AddressPoint?,
-    val switchName: SwitchName?,
-    val alignmentName: AlignmentName?,
-)
-
-data class ReferenceLineStartAndEnd(
-    val start: AddressPoint,
-    val end: AddressPoint,
-)
-
-data class LocationTrackStartAndEnd(
-    val start: RefinedAlignmentEndPoint,
-    val end: RefinedAlignmentEndPoint,
+data class AlignmentStartAndEnd(
+    val start: AddressPoint?,
+    val end: AddressPoint?,
 )
 
 data class ChangeTimes(
@@ -139,7 +130,7 @@ data class GeocodingContext(
             referenceLineGeometry: LayoutAlignment,
         ) = listOf(GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)) +
                 kmPosts
-                    .filter { post -> post.location != null && post.kmNumber > startAddress.kmNumber }
+                    .filter { post -> post.location != null && TrackMeter(post.kmNumber,0) > startAddress }
                     .mapNotNull { post -> toReferencePoint(post.location!!, post.kmNumber, referenceLineGeometry) }
 
         private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: LayoutAlignment) =
@@ -183,8 +174,8 @@ data class GeocodingContext(
         }
 
     fun getAddressPoints(alignment: LayoutAlignment): AlignmentAddresses? {
-        val startPoint = toAddressPoint(alignment.segments.first().points.first())
-        val endPoint = toAddressPoint(alignment.segments.last().points.last())
+        val startPoint = alignment.start?.let(::toAddressPoint)
+        val endPoint = alignment.end?.let(::toAddressPoint)
         return if (startPoint != null && endPoint != null) {
             val midPoints = getMidPoints(
                 alignment,
@@ -201,6 +192,22 @@ data class GeocodingContext(
         } else null
     }
 
+    fun getTrackLocation(alignment: LayoutAlignment, address: TrackMeter): AddressPoint? {
+        val startAddress = alignment.start?.let(::getAddress)?.first
+        val endAddress = alignment.end?.let(::getAddress)?.first
+        return if (startAddress == null || endAddress == null || address !in startAddress..endAddress) {
+            null
+        } else getProjectionLine(address)?.let { projectionLine ->
+            getProjectedAddressPoint(projectionLine, alignment)
+        }
+    }
+
+    fun getStartAndEnd(alignment: LayoutAlignment): AlignmentStartAndEnd {
+        val startAddress = alignment.start?.let(::toAddressPoint)
+        val endAddress = alignment.end?.let(::toAddressPoint)
+        return AlignmentStartAndEnd(startAddress?.first, endAddress?.first)
+    }
+
     private fun getMidPoints(alignment: LayoutAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {
         val projectionLines = getSublistForRangeInOrderedList(projectionLines, range) { p, e -> p.address.compareTo(e) }
         return getProjectedAddressPoints(projectionLines, alignment)
@@ -212,6 +219,7 @@ data class GeocodingContext(
         return referencePoints.findLast { (_, _, distance: Double) -> roundTo3Decimals(distance) <= target }
             ?: throw GeocodingFailureException("Target point is not withing the reference line length")
     }
+
 }
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(

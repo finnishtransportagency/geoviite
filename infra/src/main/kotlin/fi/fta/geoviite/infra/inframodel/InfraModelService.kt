@@ -36,14 +36,14 @@ class InfraModelService @Autowired constructor(
         extraInfoParameters: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
-        val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file)
+        val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
         val geometryPlan =
             overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
 
         return geometryDao.insertPlan(geometryPlan, imFile)
     }
 
-    fun validateInputFileAndParseInfraModel(file: MultipartFile): Pair<GeometryPlan, InfraModelFile> {
+    fun validateInputFileAndParseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {
         logger.serviceCall(
             "validateInputFileAndParseGeometryPlan",
             "file.originalFilename" to file.originalFilename
@@ -54,6 +54,7 @@ class InfraModelService @Autowired constructor(
 
         return parseGeometryPlan(
             file,
+            encodingOverride?.let(::findXmlCharset),
             geographyService.getCoordinateSystemNameToSridMapping(),
             switchStructuresByType,
             switchLibraryService.getInframodelAliases(),
@@ -63,15 +64,15 @@ class InfraModelService @Autowired constructor(
 
     fun validateInfraModelFile(
         file: MultipartFile,
-        overrideParameters: OverrideParameters?,
+        overrideParameters: OverrideParameters?
     ): ValidationResponse {
         logger.serviceCall(
             "validateInfraModelFile",
-            "overrideParameters" to overrideParameters
+            "overrideParameters" to overrideParameters,
         )
 
         val parsedGeometryPlan = try {
-            validateInputFileAndParseInfraModel(file).first
+            validateInputFileAndParseInfraModel(file, overrideParameters?.encoding).first
         } catch (e: Exception) {
             logger.warn("Failed to parse InfraModel", e)
             return ValidationResponse(

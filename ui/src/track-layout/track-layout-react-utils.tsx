@@ -1,4 +1,5 @@
 import {
+    AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutLocationTrackDuplicate,
     LayoutReferenceLine,
@@ -7,9 +8,7 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
-    LocationTrackStartAndEndPoints,
     ReferenceLineId,
-    ReferenceLineStartAndEndPoints,
 } from 'track-layout/track-layout-model';
 import { useLoader } from 'utils/react-utils';
 import {
@@ -100,7 +99,7 @@ export function useTrackNumbers(
 export function useReferenceLineStartAndEnd(
     id: ReferenceLineId | undefined,
     publishType: PublishType | undefined,
-): ReferenceLineStartAndEndPoints | undefined {
+): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id && publishType ? getReferenceLineStartAndEnd(id, publishType) : undefined),
         [id, publishType],
@@ -110,7 +109,7 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
-): LocationTrackStartAndEndPoints | undefined {
+): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id && publishType ? getLocationTrackStartAndEnd(id, publishType) : undefined),
         [id, publishType],

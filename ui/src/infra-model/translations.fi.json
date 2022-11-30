@@ -57,7 +57,10 @@
         "save-changes": "Tallenna muutokset",
         "information-missing": "Ei tiedossa",
         "file-handling-failed": {
-            "title": "Tiedoston käsittely epäonnistui"
+            "title": "Tiedoston käsittely epäonnistui",
+            "try-again": "Lataa uudelleen",
+            "change-encoding": "Lataa toisella merkistöllä",
+            "encoding": "Merkistö"
         },
         "critical-warnings-dialog": {
             "title": "Haluatko varmasti tallentaa?",

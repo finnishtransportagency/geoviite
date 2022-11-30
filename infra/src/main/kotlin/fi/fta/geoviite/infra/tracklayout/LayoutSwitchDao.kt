@@ -14,17 +14,17 @@ import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_SWITCH
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 const val MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE = 1.0
 
 @Suppress("SameParameterValue")
-@Service
+@Transactional(readOnly = true)
+@Component
 class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
 
-    @Transactional
     fun fetchSegmentSwitchJointConnections(
         publishType: PublishType,
         switchId: IntId<TrackLayoutSwitch>
@@ -270,7 +270,6 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     @Cacheable(CACHE_LAYOUT_SWITCH, sync = true)
-    @Transactional
     override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
         val sql = """
             select 

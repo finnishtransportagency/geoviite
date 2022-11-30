@@ -10,9 +10,9 @@ import fi.fta.geoviite.infra.util.getSrid
 import fi.fta.geoviite.infra.util.getStringListFromString
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 
-@Service
+@Component
 class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Cacheable(CACHE_COORDINATE_SYSTEMS, sync = true)

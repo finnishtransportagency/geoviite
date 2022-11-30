@@ -12,7 +12,6 @@ import {
     JointNumber,
     KmNumber,
     LocationAccuracy,
-    LocationTrackEndPoint,
     Oid,
     Srid,
     SwitchOwnerId,
@@ -267,21 +266,9 @@ export type AddressPoint = {
     distance: number;
 };
 
-export type RefinedLocationTrackEndPoint = {
-    addressPoint: AddressPoint;
-    endPoint: LocationTrackEndPoint | undefined;
-    switchName: string | undefined;
-    alignmentName: string | undefined;
-};
-
-export type LocationTrackStartAndEndPoints = {
-    start: RefinedLocationTrackEndPoint;
-    end: RefinedLocationTrackEndPoint;
-};
-
-export type ReferenceLineStartAndEndPoints = {
-    start: AddressPoint;
-    end: AddressPoint;
+export type AlignmentStartAndEnd = {
+    start: AddressPoint | null;
+    end: AddressPoint | null;
 };
 
 export type TrafficOperatingPointId = string;

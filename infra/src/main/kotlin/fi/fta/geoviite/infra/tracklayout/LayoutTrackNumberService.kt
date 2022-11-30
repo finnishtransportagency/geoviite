@@ -57,9 +57,7 @@ class LayoutTrackNumberService(
         logger.serviceCall("updateExternalIdForTrackNumber", "id" to id, "oid" to oid)
 
         val original = getDraft(id)
-        val trackLayoutTrackNumber = original.copy(
-            externalId = oid,
-        )
+        val trackLayoutTrackNumber = original.copy(externalId = oid)
 
         return saveDraftInternal(trackLayoutTrackNumber)
     }

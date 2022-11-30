@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -19,7 +21,6 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 
 @ActiveProfiles("dev", "test")
@@ -195,91 +196,6 @@ class LocationTrackServiceIT @Autowired constructor(
 
         val updatedLocationTrack = locationTrackService.getDraft(id)
         assertNotNull(updatedLocationTrack.externalId)
-    }
-
-    @Test
-    fun findsSwitchesByKm() {
-        // Reference line:
-        //      |---------|------------------|--------------|----------|
-        //  0002+800  0003+000           0004+000       0005+000   0005+800
-        //
-        // Location track:
-        //           |-------------|-------------|
-        //        switch 1     switch 2      switch 3
-
-        val start = Point(385000.0, 6670000.00)
-        val (_, geocodingContext) = referenceLineAndGeocodingContext(
-            from = start,
-            to = start + Point(3000.0, 0.0),
-            startAddress = TrackMeter(KmNumber(2), 800),
-            kmPosts = arrayOf(
-                KmNumber(3) to start + Point(200.0, 0.0),
-                KmNumber(4) to start + Point(1200.0, 0.0),
-                KmNumber(5) to start + Point(2200.0, 0.0)
-            )
-        )
-
-        val locationTrackSegments = segments(
-            start + Point(100.0, 0.0),
-            start + Point(1500.0, 0.0),
-            segmentLength = 10.0
-        )
-        val (_, alignment) = attachSwitches(
-            locationTrackAndAlignment(
-                trackNumberId = insertDraftTrackNumber(),
-                segments = locationTrackSegments
-            ),
-            IntId<TrackLayoutSwitch>(1) to TargetSegmentStart(),
-            IntId<TrackLayoutSwitch>(2) to TargetSegmentMiddle(locationTrackSegments.count() / 2),
-            IntId<TrackLayoutSwitch>(3) to TargetSegmentEnd()
-        )
-
-        val switchIdsForKm1 = locationTrackService.getSwitchIdsByAddressKilometers(
-            alignment,
-            setOf(KmNumber(1)),
-            geocodingContext
-        )
-        assertTrue(switchIdsForKm1.isEmpty())
-
-        val switchIdsForKm2 = locationTrackService.getSwitchIdsByAddressKilometers(
-            alignment,
-            setOf(KmNumber(2)),
-            geocodingContext
-        )
-        assertContains(switchIdsForKm2, IntId(1))
-        assertTrue(switchIdsForKm2.count() == 1)
-
-        val switchIdsForKm3 = locationTrackService.getSwitchIdsByAddressKilometers(
-            alignment,
-            setOf(KmNumber(3)),
-            geocodingContext
-        )
-        assertContains(switchIdsForKm3, IntId(2))
-        assertTrue(switchIdsForKm3.count() == 1)
-
-        val switchIdsForKm2And4 = locationTrackService.getSwitchIdsByAddressKilometers(
-            alignment,
-            setOf(KmNumber(2), KmNumber(4)),
-            geocodingContext
-        )
-        assertContains(switchIdsForKm2And4, IntId(1))
-        assertContains(switchIdsForKm2And4, IntId(3))
-        assertTrue(switchIdsForKm2And4.count() == 2)
-
-        val switchIdsForKm5 = locationTrackService.getSwitchIdsByAddressKilometers(
-            alignment,
-            setOf(KmNumber(5)),
-            geocodingContext
-        )
-        assertTrue(switchIdsForKm5.isEmpty())
-
-        val switchIdsForKm6 = locationTrackService.getSwitchIdsByAddressKilometers(
-            alignment,
-            setOf(KmNumber(6)),
-            geocodingContext
-        )
-        assertTrue(switchIdsForKm6.isEmpty())
-
     }
 
     @Test
@@ -551,11 +467,11 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun publishAndVerify(
         locationTrackId: IntId<LocationTrack>,
     ): Pair<RowVersion<LocationTrack>, LocationTrack> {
-        val (draft, draftAlignment) = locationTrackService.getWithAlignment(DRAFT, locationTrackId)
+        val (draft, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         assertNotNull(draft.draft)
 
         val publishedVersion = locationTrackService.publish(draft.id as IntId)
-        val (published, publishedAlignment) = locationTrackService.getWithAlignment(OFFICIAL, publishedVersion.id)
+        val (published, publishedAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, publishedVersion.id)
         assertNull(published.draft)
         assertEquals(draft.id, published.id)
         assertEquals(published.id, publishedVersion.id)
@@ -573,7 +489,7 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     private fun getAndVerifyDraftWithAlignment(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
-        val (draft, alignment) = locationTrackService.getWithAlignment(DRAFT, id)
+        val (draft, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
         assertEquals(id, draft.id)
         assertNotNull(draft.draft)
         assertEquals(draft.alignmentVersion!!.id, alignment.id)

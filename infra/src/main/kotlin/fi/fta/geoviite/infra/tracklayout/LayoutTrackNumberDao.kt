@@ -9,12 +9,14 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+
     fun fetchExternalIdToIdMapping(): Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>> {
         val sql = "select id, external_id from layout.track_number where external_id is not null"
         val result: List<Pair<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>> =

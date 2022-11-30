@@ -23,7 +23,7 @@ import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -35,10 +35,11 @@ enum class VerticalIntersectionType {
     CIRCULAR_CURVE,
 }
 
-@Service
+@Transactional(readOnly = true)
+@Component
 class GeometryDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
+    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
 ) : DaoBase(jdbcTemplateParam) {
 
     @Transactional
@@ -627,7 +628,6 @@ class GeometryDao @Autowired constructor(
 
     fun fetchPlanChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN)
 
-    @Transactional
     fun fetchPlanAreas(mapBoundingBox: BoundingBox): List<GeometryPlanArea> {
         val searchPolygonWkt = create2DPolygonString(mapBoundingBox.polygonFromCorners)
         val sql = """
@@ -659,7 +659,6 @@ class GeometryDao @Autowired constructor(
     }
 
     @Cacheable(CACHE_GEOMETRY_PLAN, sync = true)
-    @Transactional
     fun fetchPlan(planVersion: RowVersion<GeometryPlan>): GeometryPlan {
         val sql = """
             select
@@ -859,7 +858,6 @@ class GeometryDao @Autowired constructor(
         return authors
     }
 
-    @Transactional
     fun fetchAlignments(
         units: GeometryUnits,
         planId: IntId<GeometryPlan>? = null,
