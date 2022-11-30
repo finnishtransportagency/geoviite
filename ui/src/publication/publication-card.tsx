@@ -30,18 +30,27 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
         .filter((p) => p.status == RatkoPushStatus.FAILED && p.hasRatkoPushError)
         .at(-1);
 
-    const parseRatkoStatus = (ratkoStatus: RatkoStatus) => {
-        if (ratkoStatus) {
-            if (+ratkoStatus.statusCode >= 400 && +ratkoStatus.statusCode <= 403) {
-                return('ota yhteys geoviite-supporttiin')
-            } else if (+ratkoStatus.statusCode == 500) {
-                return('ota yhteys ratko-supporttiin')
-            }
-        } else {
-            return('ota yhteys geoviite-supporttiin')
-        }
+
+    const parseErrorItemsList = (ratkoStatusCode: string, contact: string) => {
+        return (
+            <ul className={styles['publication-card__error-items-list']}>
+                <li>{t('error-in-ratko-connection.ratko-connection-error-status-code', [ratkoStatusCode])}</li>
+                <li>{t(`error-in-ratko-connection.${contact}`)}</li>
+            </ul>)
     }
 
+    const parseRatkoStatus = (ratkoStatus: RatkoStatus)  => {
+        if (ratkoStatus) {
+            if (+ratkoStatus.statusCode >= 400 && +ratkoStatus.statusCode <= 403) {
+                return parseErrorItemsList(ratkoStatus.statusCode, 'contact-geoviite-support' )
+            } else if (+ratkoStatus.statusCode === 500) {
+                return parseErrorItemsList(ratkoStatus.statusCode, 'contact-ratko-support' )
+            }
+        } else {
+            return t('error-in-ratko-connection.contact-geoviite-support')
+        }
+    }
+    
     return (
         <Card
             className={styles['publication-card']}
@@ -50,7 +59,9 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
                     <h2 className={styles['publication-card__title']}>
                         {t('publication-card.title')}
                     </h2>
+                    <p className={styles['publication-card__title-errors']}>
                     {ratkoStatus && parseRatkoStatus(ratkoStatus)}
+                    </p>
                     {failures.length > 0 && (
                         <React.Fragment>
                             <h3 className={styles['publication-card__subsection-title']}>

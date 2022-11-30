@@ -23,6 +23,11 @@
         "show-less": "Näytä vähemmän",
         "title": "Julkaisut"
     },
+    "error-in-ratko-connection": {
+        "ratko-connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe ({{0}}) Ratko -yhteydessä. ",
+        "contact-geoviite-support": "Ota yhteyttä geoviite.support@solita.fi",
+        "contact-ratko-support": "Ota yhteyttä vayla.asiakkaat.fi@cgi.com"
+    },
     "publishing": {
         "publish-issues": "Ongelmat Ratko-integraatiossa",
         "publish-to-ratko": "Vie Ratkoon",
