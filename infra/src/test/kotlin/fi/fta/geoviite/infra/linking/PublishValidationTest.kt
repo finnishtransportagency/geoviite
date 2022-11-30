@@ -94,9 +94,9 @@ class PublishValidationTest {
     @Test
     fun trackNumberValidationCatchesUnpublishedKmPost() {
         val trackNumber = trackNumber().copy(id = IntId(1))
-        val unpublished = kmPost(trackNumber.id, KmNumber(1))
+        val unpublished = kmPost(trackNumber.id as IntId, KmNumber(1))
             .copy(draft = Draft(IntId(2)), id = IntId(1))
-        val published = kmPost(trackNumber.id, KmNumber(1))
+        val published = kmPost(trackNumber.id as IntId, KmNumber(1))
             .copy(draft = null, id = IntId(1))
         assertTrackNumberReferenceError(
             true,

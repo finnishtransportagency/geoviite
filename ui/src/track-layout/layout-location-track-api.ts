@@ -86,7 +86,7 @@ export async function getLocationTrackDuplicates(
     id: LocationTrackId,
 ): Promise<LayoutLocationTrackDuplicate[]> {
     return getThrowError<LayoutLocationTrackDuplicate[]>(
-        `${layoutUri('location-tracks', publishType, 'id')}/duplicate-of`,
+        `${layoutUri('location-tracks', publishType, id)}/duplicate-of`,
     );
 }
 

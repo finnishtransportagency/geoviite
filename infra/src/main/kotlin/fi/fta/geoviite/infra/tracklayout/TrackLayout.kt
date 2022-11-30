@@ -176,7 +176,7 @@ data class TrackLayoutKmPost(
     val kmNumber: KmNumber,
     val location: Point?,
     val state: LayoutState,
-    val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val sourceId: DomainId<GeometryKmPost>?,
     override val id: DomainId<TrackLayoutKmPost> = deriveFromSourceId("K", sourceId),
     override val dataType: DataType = DataType.TEMP,

@@ -53,7 +53,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     }
 
     fun fetchVersion(
-        publishType: PublishType,
+        publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
     ): RowVersion<TrackLayoutKmPost>? {
@@ -68,6 +68,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
             "km_number" to kmNumber.toString(),
+            "publication_state" to publicationState.name,
         )
         val result = jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion<TrackLayoutKmPost>("row_id", "row_version")

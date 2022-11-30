@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -17,7 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/track-layout/km-post")
+@RequestMapping("/track-layout/km-posts")
 class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -44,13 +45,13 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}", params=["trackNumberId", "location", "offset", "limit"])
+    @GetMapping("/{publishType}", params=["location", "offset", "limit"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
+        @RequestParam("trackNumberId") trackNumberId: DomainId<TrackLayoutTrackNumber>?,
         @RequestParam("location") location: Point,
-        @RequestParam("offset") offset: Int?,
-        @RequestParam("limit") limit: Int?,
+        @RequestParam("offset") offset: Int,
+        @RequestParam("limit") limit: Int,
     ): List<TrackLayoutKmPost> {
         logger.apiCall(
             "getNearbyKmPostsOnTrack",
@@ -60,9 +61,9 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
         return kmPostService.listNearbyOnTrackPaged(
             publishType = publishType,
             location = location,
-            trackNumberId = trackNumberId,
-            offset = offset ?: 0,
-            limit = limit
+            trackNumberId = if (trackNumberId is IntId) trackNumberId else null,
+            offset = offset,
+            limit = limit,
         )
     }
 
@@ -82,21 +83,19 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/draft")
-    fun insertTrackLayoutKmPost(
-        @RequestBody trackLayoutKmPost: TrackLayoutKmPostSaveRequest,
-    ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("insertTrackLayoutKmPost", "trackLayoutKmPost" to trackLayoutKmPost)
-        return kmPostService.insertKmPost(trackLayoutKmPost)
+    fun insertTrackLayoutKmPost(@RequestBody request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
+        logger.apiCall("insertTrackLayoutKmPost", "request" to request)
+        return kmPostService.insertKmPost(request)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PutMapping("/draft/{id}")
     fun updateKmPost(
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-        @RequestBody kmPost: TrackLayoutKmPostSaveRequest,
+        @RequestBody request: TrackLayoutKmPostSaveRequest,
     ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("updateKmPost", "kmPostId" to kmPostId, "kmPost" to kmPost)
-        return kmPostService.updateKmPost(kmPostId, kmPost)
+        logger.apiCall("updateKmPost", "kmPostId" to kmPostId, "request" to request)
+        return kmPostService.updateKmPost(kmPostId, request)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

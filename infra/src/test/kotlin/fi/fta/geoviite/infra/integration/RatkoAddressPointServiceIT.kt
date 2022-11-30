@@ -557,7 +557,7 @@ class RatkoAddressPointServiceIT @Autowired constructor(
         val kmPost = layoutKmPostDao.fetch(
             layoutKmPostDao.insert(
                 kmPost(
-                    trackNumberId = trackNumber.id,
+                    trackNumberId = trackNumber.id as IntId,
                     km = KmNumber(1),
                     location = refPoint + 1.0
                 )

@@ -851,7 +851,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             layoutKmPostDao.fetch(
                 layoutKmPostDao.insert(
                     kmPost(
-                        trackNumberId = trackNumber.id,
+                        trackNumberId = trackNumber.id as IntId,
                         km = kmNumber,
                         location = refPoint + location
                     )
