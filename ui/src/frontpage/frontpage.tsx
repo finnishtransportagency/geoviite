@@ -22,7 +22,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
 
     useLoaderWithTimer(setPublications, getPublications, [], 30000);
-    useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 1000); //vaihda timeout
+    useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 
     const hasAnyFailed = () =>
         !!publications && publications?.some((item) => ratkoPushFailed(item.status));

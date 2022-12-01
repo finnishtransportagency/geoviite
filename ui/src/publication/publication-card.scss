@@ -29,21 +29,3 @@ $color-error: $color-red-dark;
         padding-left: 0px;
     }
 }
-/*
-.linked-items-list {
-    list-style: none;
-    padding-left: 6px;
-
-    &__label {
-        @include typography-caption;
-        color: $color-black-light;
-        display: flex;
-        align-items: start;
-        width: 50%;
-        max-width: 120px;
-    }
-    &__list-item {
-        padding: 4px 4px 4px 138px;
-    }
-}
- */
