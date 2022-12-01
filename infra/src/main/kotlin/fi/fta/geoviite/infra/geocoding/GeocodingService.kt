@@ -88,7 +88,8 @@ class GeocodingService(
         address: TrackMeter,
         publishType: PublishType,
     ): AddressPoint? {
-        logger.serviceCall("getTrackLocation", "locationTrackId" to locationTrackId, "address" to address)
+        logger.serviceCall("getTrackLocation",
+            "locationTrackId" to locationTrackId, "address" to address, "publishType" to publishType)
         return locationTrackService.getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
             getGeocodingContext(publishType, track.trackNumberId)?.getTrackLocation(alignment, address)
         }
