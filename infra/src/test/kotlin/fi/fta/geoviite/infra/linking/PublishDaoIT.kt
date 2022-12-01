@@ -23,6 +23,7 @@ class PublishDaoIT @Autowired constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val kmPostDao: LayoutKmPostDao,
     val referenceLineDao: ReferenceLineDao,
+    val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
 ): ITTestBase() {
@@ -68,6 +69,8 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(track.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
+        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(Operation.CREATE, candidates.first().operation)
     }
 
     @Test
@@ -78,6 +81,44 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(1, candidates.size)
         assertEquals(switch.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
+        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(Operation.CREATE, candidates.first().operation)
+    }
+
+    @Test
+    fun modifyOperationIsInferredCorrectly() {
+        val track = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
+        val draft = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        locationTrackService.publish(draft.id as IntId)
+        locationTrackService.saveDraft(draft(locationTrackService.getOrThrow(PublishType.OFFICIAL, draft.id as IntId).let { lt -> lt.copy(name = AlignmentName("${lt.name} TEST")) }))
+        val candidates = publishDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
+    }
+
+    @Test
+    fun deleteOperationIsInferredCorrectly() {
+        val track = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
+        val draft = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        locationTrackService.publish(draft.id as IntId)
+        locationTrackService.saveDraft(draft(locationTrackService.getOrThrow(PublishType.OFFICIAL, draft.id as IntId).copy(state = LayoutState.DELETED)))
+        val candidates = publishDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
+        assertEquals(Operation.DELETE, candidates.first().operation)
+    }
+
+    @Test
+    fun restoreOperationIsInferredCorrectly() {
+        val track = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
+        val draft = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT"), state = LayoutState.DELETED))
+        locationTrackService.publish(draft.id as IntId)
+        locationTrackService.saveDraft(draft(locationTrackService.getOrThrow(PublishType.OFFICIAL, draft.id as IntId).copy(state = LayoutState.IN_USE)))
+        val candidates = publishDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
+        assertEquals(Operation.RESTORE, candidates.first().operation)
     }
 
     @Test
