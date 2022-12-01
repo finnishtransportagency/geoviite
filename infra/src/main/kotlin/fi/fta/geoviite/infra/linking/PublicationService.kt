@@ -20,7 +20,7 @@ const val ENFORCE_VALIDITY = true
 
 @Service
 class PublishService @Autowired constructor(
-    private val publishDao: PublishDao,
+    private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
     private val trackNumberService: LayoutTrackNumberService,
     private val switchService: LayoutSwitchService,
@@ -44,11 +44,11 @@ class PublishService @Autowired constructor(
     fun collectPublishCandidates(): PublishCandidates {
         logger.serviceCall("collectPublishCandidates")
 
-        val trackNumberCandidates = publishDao.fetchTrackNumberPublishCandidates()
-        val locationTrackCandidates = publishDao.fetchLocationTrackPublishCandidates()
-        val referenceLineCandidates = publishDao.fetchReferenceLinePublishCandidates()
-        val switchCandidates = publishDao.fetchSwitchPublishCandidates()
-        val kmPostCandidates = publishDao.fetchKmPostPublishCandidates()
+        val trackNumberCandidates = publicationDao.fetchTrackNumberPublishCandidates()
+        val locationTrackCandidates = publicationDao.fetchLocationTrackPublishCandidates()
+        val referenceLineCandidates = publicationDao.fetchReferenceLinePublishCandidates()
+        val switchCandidates = publicationDao.fetchSwitchPublishCandidates()
+        val kmPostCandidates = publicationDao.fetchKmPostPublishCandidates()
 
         return PublishCandidates(
             trackNumberCandidates,
@@ -272,9 +272,9 @@ class PublishService @Autowired constructor(
         val referenceLines = request.referenceLines.map(referenceLineService::publish)
         val locationTracks = request.locationTracks.map(locationTrackService::publish)
 
-        val publishId = publishDao.createPublish(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
+        val publishId = publicationDao.createPublish(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
 
-        publishDao.savePublishCalculatedChanges(publishId, calculatedChanges)
+        publicationDao.savePublishCalculatedChanges(publishId, calculatedChanges)
 
         return PublishResult(
             publishId = publishId,
@@ -298,7 +298,7 @@ class PublishService @Autowired constructor(
     ): List<PublishValidationError> {
         val trackNumber = getDraftTrackNumberWithOfficialId(id)
         val kmPosts = kmPostService.list(DRAFT, id)
-        val locationTracks = publishDao.fetchTrackNumberLocationTrackRows(id).map(locationTrackDao::fetch)
+        val locationTracks = publicationDao.fetchTrackNumberLocationTrackRows(id).map(locationTrackDao::fetch)
         return validateDraftTrackNumberFields(trackNumber) +
                 validateTrackNumberReferences(
                     trackNumber,
@@ -315,7 +315,7 @@ class PublishService @Autowired constructor(
     fun validateTrackNumberAssociatedTrackAddresses(
         trackNumber: TrackLayoutTrackNumber,
     ): List<PublishValidationError> {
-        val locationTracks = publishDao
+        val locationTracks = publicationDao
             .fetchTrackNumberLocationTrackRows(trackNumber.id as IntId)
             .map(locationTrackDao::fetch)
         return locationTracks.filter(LocationTrack::exists).flatMap { locationTrack ->
@@ -354,7 +354,7 @@ class PublishService @Autowired constructor(
     ): List<PublishValidationError> {
         val switch = getDraftSwitchWithOfficialId(id)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-        val locationTracksAndAlignments = publishDao.fetchLinkedAlignmentRows(id)
+        val locationTracksAndAlignments = publicationDao.fetchLinkedAlignmentRows(id)
             .map { (trackVersion, alignmentVersion) ->
                 val locationTrack = locationTrackDao.fetch(trackVersion)
                 val alignment = alignmentDao.fetch(alignmentVersion)
@@ -423,11 +423,11 @@ class PublishService @Autowired constructor(
     }
 
     fun getPublicationListing(): List<PublicationListingItem> =
-        publishDao.fetchRatkoPublicationListing()
+        publicationDao.fetchRatkoPublicationListing()
 
     @Transactional(readOnly = true)
     fun getPublication(id: IntId<Publication>): Publication {
-        val (publishTime, status, pushTime) = publishDao.fetchPublishTime(id)
+        val (publishTime, status, pushTime) = publicationDao.fetchPublishTime(id)
         val locationTracks = locationTrackDao.fetchPublicationInformation(id)
         val referenceLines = referenceLineDao.fetchPublicationInformation(id)
         val kmPosts = kmPostDao.fetchPublicationInformation(id)
