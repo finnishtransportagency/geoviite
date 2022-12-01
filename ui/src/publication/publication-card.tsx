@@ -59,14 +59,15 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
                     <h2 className={styles['publication-card__title']}>
                         {t('publication-card.title')}
                     </h2>
-                    <p className={styles['publication-card__title-errors']}>
-                    {ratkoStatus && parseRatkoStatus(ratkoStatus)}
-                    </p>
+
                     {failures.length > 0 && (
                         <React.Fragment>
                             <h3 className={styles['publication-card__subsection-title']}>
                                 {t('publishing.publish-issues')}
                             </h3>
+                            <p className={styles['publication-card__title-errors']}>
+                                {ratkoStatus && parseRatkoStatus(ratkoStatus)}
+                            </p>
                             <div className={styles['publication-card__ratko-push-button']}>
                                 <RatkoPublishButton size={ButtonSize.SMALL} />
                             </div>
