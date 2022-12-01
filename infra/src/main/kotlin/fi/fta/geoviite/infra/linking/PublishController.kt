@@ -32,7 +32,14 @@ class PublishController @Autowired constructor(
     @GetMapping("/candidates")
     fun getPublishCandidates(): PublishCandidates {
         logger.apiCall("getPublishCandidates")
-        return publishService.validatePublishCandidates(publishService.collectPublishCandidates())
+        return publishService.getPublishCandidates()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PostMapping("/validate")
+    fun validatePublishCandidates(@RequestBody publishRequest: PublishRequest): ValidatedPublishCandidates {
+        logger.apiCall("validatePublishCandidates")
+        return publishService.validatePublishCandidates(publishRequest)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

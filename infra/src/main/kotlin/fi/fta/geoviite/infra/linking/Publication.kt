@@ -55,13 +55,41 @@ data class PublicationChanges(
     val calculatedChanges: CalculatedChanges,
 )
 
+data class ValidatedPublishCandidates(
+    val validatedAsPublicationUnit: PublishCandidates,
+    val validatedSeparately: PublishCandidates,
+)
+
 data class PublishCandidates(
     val trackNumbers: List<TrackNumberPublishCandidate>,
     val locationTracks: List<LocationTrackPublishCandidate>,
     val referenceLines: List<ReferenceLinePublishCandidate>,
     val switches: List<SwitchPublishCandidate>,
     val kmPosts: List<KmPostPublishCandidate>,
-)
+) {
+    fun filteredToRequest(publishRequest: PublishRequest): PublishCandidates {
+        val trackNumberIds = publishRequest.trackNumbers.toSet()
+        val locationTrackIds = publishRequest.locationTracks.toSet()
+        val referenceLineIds = publishRequest.referenceLines.toSet()
+        val switchIds = publishRequest.switches.toSet()
+        val kmPostIds = publishRequest.kmPosts.toSet()
+        return PublishCandidates(
+            trackNumbers.filter { candidate -> trackNumberIds.contains(candidate.id) },
+            locationTracks.filter { candidate -> locationTrackIds.contains(candidate.id) },
+            referenceLines.filter { candidate -> referenceLineIds.contains(candidate.id) },
+            switches.filter { candidate -> switchIds.contains(candidate.id) },
+            kmPosts.filter { candidate -> kmPostIds.contains(candidate.id) },
+        )
+    }
+
+    fun ids(): PublishRequest = PublishRequest(
+        trackNumbers.map { candidate -> candidate.id },
+        locationTracks.map { candidate -> candidate.id },
+        referenceLines.map { candidate -> candidate.id },
+        switches.map { candidate -> candidate.id },
+        kmPosts.map { candidate -> candidate.id },
+    )
+}
 
 data class PublishRequest(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
@@ -69,7 +97,16 @@ data class PublishRequest(
     val referenceLines: List<IntId<ReferenceLine>>,
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
-)
+) {
+    operator fun minus(other: PublishRequest) =
+        PublishRequest(
+            trackNumbers - other.trackNumbers.toSet(),
+            locationTracks - other.locationTracks.toSet(),
+            referenceLines - other.referenceLines.toSet(),
+            switches - other.switches.toSet(),
+            kmPosts - other.kmPosts.toSet(),
+        )
+}
 
 data class PublishResult(
     val publishId: IntId<Publication>?,

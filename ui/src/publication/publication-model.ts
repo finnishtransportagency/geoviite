@@ -70,6 +70,11 @@ export type PublishCandidates = {
     kmPosts: KmPostPublishCandidate[];
 };
 
+export type ValidatedPublishCandidates = {
+    validatedAsPublicationUnit: PublishCandidates;
+    validatedSeparately: PublishCandidates;
+}
+
 export type PublicationListingItem = {
     id: PublicationId;
     publishTime: TimeStamp;
