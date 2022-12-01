@@ -49,10 +49,10 @@ type GeometrySwitchLinkingInfoboxProps = {
 };
 
 function isValidSwitchForLinking(
-    _suggestedSwitch: SuggestedSwitch,
-    _layoutSwitch: LayoutSwitch,
+    suggestedSwitch: SuggestedSwitch,
+    layoutSwitch: LayoutSwitch,
 ): boolean {
-    return true; //suggestedSwitch.switchStructure.id == layoutSwitch.switchStructureId;
+    return suggestedSwitch.switchStructure.id == layoutSwitch.switchStructureId;
 }
 
 const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> = ({
