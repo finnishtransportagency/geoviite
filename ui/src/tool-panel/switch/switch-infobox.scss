@@ -83,10 +83,16 @@
   position: absolute;
 }
 
+.switch-edit-dialog__confirmation-list {
+  margin: 0;
+  padding: 0;
+  list-style: inside;
+}
+
 .switch-infobox-track-meters__ul {
-    list-style-type: none; /* Remove bullets */
-    padding: 0; /* Remove padding */
-    margin: 0; /* Remove margins */
+  list-style-type: none; /* Remove bullets */
+  padding: 0; /* Remove padding */
+  margin: 0; /* Remove margins */
 }
 
 .switch-joint-infobox {
