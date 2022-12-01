@@ -1,5 +1,6 @@
 {
     "location-track-dialog": {
+        "cant-open-deleted": "Tietoja ei voitu avata, koska sijaintiraide on poistettu",
         "title-new": "Uusi sijaintiraide",
         "title-edit": "Muokkaa sijaintiraiteen tietoja",
         "basic-info-heading": "Perustiedot",

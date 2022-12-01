@@ -10,10 +10,10 @@ import { debounce } from 'ts-debounce';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { isEmpty, isEqualWithoutWhitespace } from 'utils/string-utils';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { createTrackNumber } from 'track-layout/track-layout-api';
 import { ZERO_TRACK_METER } from 'common/common-model';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import { formatTrackMeter } from 'utils/geography-utils';
+import { createTrackNumber } from 'track-layout/layout-track-number-api';
 
 type NewProjectDialogProps = {
     trackNumbers: LayoutTrackNumber[] | undefined;

@@ -9,12 +9,6 @@ import { LinkingLayer, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { adapterInfoRegister } from './register';
 import {
-    createGeometryLinkPointsByTiles,
-    getLinkPointsByTiles,
-    getLocationTrackSegmentEnds,
-    getReferenceLineSegmentEnds,
-} from 'track-layout/track-layout-api';
-import {
     getMatchingEntities,
     getMatchingLinkPoints,
     getPlanarDistanceUnwrapped,
@@ -35,6 +29,12 @@ import { createUpdatedInterval } from 'linking/linking-store';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
+import {
+    createGeometryLinkPointsByTiles,
+    getLinkPointsByTiles,
+    getLocationTrackSegmentEnds,
+    getReferenceLineSegmentEnds,
+} from 'track-layout/layout-map-api';
 
 const linkPointRadius = 4;
 const LinkPointSelectedRadius = 6;

@@ -136,15 +136,15 @@ class HelsinkiTestData {
 
         }
 
-        fun eastTrackLayoutKmPosts(trackNumber: DomainId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+        fun eastTrackLayoutKmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
             val point1 = HKI_BASE_POINT + Point(x = 752.00, y = 410.00)
             val point2 = HKI_BASE_POINT + Point(x = 752.00, y = 485.00)
             val point3 = HKI_BASE_POINT + Point(x = 752.00, y = 560.00)
 
             return arrayListOf(
-                trackLayoutKmPost("0001es", trackNumber, point1),
-                trackLayoutKmPost("0002es", trackNumber, point2),
-                trackLayoutKmPost("0003es", trackNumber, point3)
+                trackLayoutKmPost("0001es", trackNumberId, point1),
+                trackLayoutKmPost("0002es", trackNumberId, point2),
+                trackLayoutKmPost("0003es", trackNumberId, point3)
             )
         }
 

@@ -32,7 +32,6 @@ import { InfraModelMeasurementMethodField } from 'infra-model/view/form/fields/i
 import NewAuthorDialog from 'infra-model/view/dialogs/new-author-dialog';
 import NewProjectDialog from 'infra-model/view/dialogs/new-project-dialog';
 import { InfraModelVerticalCoordinateInfoboxField } from 'infra-model/view/form/fields/infra-model-vertical-coordinate-infobox-field';
-import { getTrackNumbers } from 'track-layout/track-layout-api';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infra-model-form-chosen-date-dropdowns';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
@@ -42,6 +41,7 @@ import CoordinateSystem from 'geoviite-design-lib/coordinate-system/coordinate-s
 import NewTrackNumberDialog from '../dialogs/new-track-number-dialog';
 import { filterNotEmpty } from 'utils/array-utils';
 import { InfraModelTextField } from 'infra-model/view/form/infra-model-form-text-field';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -115,7 +115,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     function changeInExtraParametersField<
         TKey extends keyof ExtraInfraModelParameters,
         TValue extends ExtraInfraModelParameters[TKey],
-        >(value: TValue, fieldName: TKey) {
+    >(value: TValue, fieldName: TKey) {
         onInfraModelExtraParametersChange({
             key: fieldName,
             value: value,
@@ -125,7 +125,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     function changeInOverrideParametersField<
         TKey extends keyof OverrideInfraModelParameters,
         TValue extends OverrideInfraModelParameters[TKey],
-        >(value: TValue, fieldName: TKey) {
+    >(value: TValue, fieldName: TKey) {
         onInfraModelOverrideParametersChange({
             ...overrideInfraModelParameters,
             [fieldName]: value,
@@ -197,12 +197,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     function getVisibleErrorsByProp(prop: InfraModelParametersProp) {
         return committedFields.includes(prop)
             ? validationErrors
-                .filter(
-                    (error) => error.field == prop && error.type === ValidationErrorType.ERROR,
-                )
-                .map((error) => {
-                    return t(`im-form.${error.reason}`);
-                })
+                  .filter(
+                      (error) => error.field == prop && error.type === ValidationErrorType.ERROR,
+                  )
+                  .map((error) => {
+                      return t(`im-form.${error.reason}`);
+                  })
             : [];
     }
 
@@ -252,9 +252,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             options={
                                                 projects
                                                     ? projects.map((project) => ({
-                                                        name: project.name,
-                                                        value: project.id,
-                                                    }))
+                                                          name: project.name,
+                                                          value: project.id,
+                                                      }))
                                                     : []
                                             }
                                             onChange={(projectId) => {
@@ -282,16 +282,13 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 <FieldLayout
                                     value={
                                         <InfraModelTextField hasError={hasErrors('oid')}>
-                                            {
-                                                extraInframodelParameters.oid
-                                                    ? (extraInframodelParameters.oid)
-                                                    : (t('im-form.information-missing'))
-                                            }
+                                            {extraInframodelParameters.oid
+                                                ? extraInframodelParameters.oid
+                                                : t('im-form.information-missing')}
                                         </InfraModelTextField>
                                     }
                                     errors={getVisibleErrorsByProp('oid')}
                                 />
-
                             ) : (
                                 <FieldLayout
                                     value={
@@ -326,9 +323,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             options={
                                                 authors
                                                     ? authors.map((author) => ({
-                                                        name: author.companyName,
-                                                        value: author.id,
-                                                    }))
+                                                          name: author.companyName,
+                                                          value: author.id,
+                                                      }))
                                                     : []
                                             }
                                             onChange={(authorId) => {
@@ -375,9 +372,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                                 options={
                                                     trackNumberList
                                                         ? trackNumberList.map((tn) => ({
-                                                            name: `${tn.number}`,
-                                                            value: tn.id,
-                                                        }))
+                                                              name: `${tn.number}`,
+                                                              value: tn.id,
+                                                          }))
                                                         : []
                                                 }
                                                 canUnselect
@@ -419,9 +416,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             options={
                                                 sridList
                                                     ? sridList.map((srid) => ({
-                                                        name: `${srid.name} ${srid.srid}`,
-                                                        value: srid.srid,
-                                                    }))
+                                                          name: `${srid.name} ${srid.srid}`,
+                                                          value: srid.srid,
+                                                      }))
                                                     : []
                                             }
                                             canUnselect

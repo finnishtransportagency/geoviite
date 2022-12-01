@@ -25,35 +25,6 @@ import kotlin.math.PI
 
 const val LOCALIZATION_KEY_SHARP_ANGLE = "error.linking.segments-sharp-angle"
 
-fun getLocationTrackEndpoints(
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    bbox: BoundingBox,
-): List<LocationTrackEndpoint> {
-    return locationTracks.flatMap { (locationTrack, alignment) ->
-        listOfNotNull(
-            if (alignment.segments.isNotEmpty()
-                && alignment.start != null
-                && bbox.contains(alignment.start!!)
-            ) {
-                LocationTrackEndpoint(
-                    locationTrack.id as IntId<LocationTrack>,
-                    location = Point(alignment.start!!),
-                    LocationTrackPointUpdateType.START_POINT,
-                )
-            } else null,
-            if (alignment.segments.isNotEmpty()
-                && alignment.end != null
-                && bbox.contains(alignment.end!!)
-            ) {
-                LocationTrackEndpoint(
-                    locationTrack.id as IntId<LocationTrack>,
-                    location = Point(alignment.end!!),
-                    LocationTrackPointUpdateType.END_POINT,
-                )
-            } else null
-        )
-    }
-}
 
 fun isAlignmentConnected(
     location: Point,
@@ -348,11 +319,6 @@ class LinkingService @Autowired constructor(
             "publishType" to publishType
         )
         return linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType)
-    }
-
-    fun getLocationTrackEndpoints(bbox: BoundingBox, publishType: PublishType): List<LocationTrackEndpoint> {
-        logger.serviceCall("getLocationTrackEndpoints", "bbox" to bbox)
-        return getLocationTrackEndpoints(locationTrackService.listWithAlignments(publishType), bbox)
     }
 
     @Transactional

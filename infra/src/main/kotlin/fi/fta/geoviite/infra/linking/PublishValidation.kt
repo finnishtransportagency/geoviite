@@ -4,6 +4,10 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.ClientException
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
 import fi.fta.geoviite.infra.linking.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.linking.PublishValidationErrorType.WARNING
 import fi.fta.geoviite.infra.math.IntersectType

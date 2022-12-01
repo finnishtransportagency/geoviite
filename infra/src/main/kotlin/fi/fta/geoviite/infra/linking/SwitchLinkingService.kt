@@ -438,30 +438,6 @@ fun createSuggestedSwitch(
     return null
 }
 
-fun clearSwitchInformationFromSegments(
-    locationTrack: LocationTrack,
-    alignment: LayoutAlignment,
-    layoutSwitchId: IntId<TrackLayoutSwitch>,
-): Pair<LocationTrack, LayoutAlignment> {
-    val newSegments = alignment.segments.map { segment ->
-        if (segment.switchId == layoutSwitchId) {
-            segment.copy(
-                switchId = null,
-                endJointNumber = null,
-                startJointNumber = null
-            )
-        } else {
-            segment
-        }
-    }
-    val newAlignment = alignment.withSegments(newSegments)
-    val newLocationTrack = locationTrack.copy(
-        topologyStartSwitch = locationTrack.topologyStartSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
-        topologyEndSwitch = locationTrack.topologyEndSwitch?.takeIf { s -> s.switchId != layoutSwitchId },
-    )
-    return newLocationTrack to newAlignment
-}
-
 fun updateAlignmentSegmentsWithSwitchLinking(
     alignment: LayoutAlignment,
     layoutSwitchId: IntId<TrackLayoutSwitch>,
@@ -1173,7 +1149,7 @@ class SwitchLinkingService @Autowired constructor(
     @Transactional
     fun saveSwitchLinking(linkingParameters: SwitchLinkingParameters): RowVersion<TrackLayoutSwitch> {
         val originalArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
-        clearSwitchInformationFromSegments(linkingParameters.layoutSwitchId)
+        switchService.clearSwitchInformationFromSegments(linkingParameters.layoutSwitchId)
         val switchId = updateLayoutSwitch(linkingParameters)
         updateSwitchLinkingIntoSegments(linkingParameters)
         val updatedArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
@@ -1190,119 +1166,6 @@ class SwitchLinkingService @Autowired constructor(
     private fun listDraftTracksNearArea(area: BoundingBox?) =
         if (area == null) listOf()
         else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
-
-    private fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
-        getLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId).forEach { (locationTrack, alignment) ->
-            val (updatedLocationTrack, updatedAlignment) = clearSwitchInformationFromSegments(
-                locationTrack,
-                alignment,
-                layoutSwitchId,
-            )
-            locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
-        }
-    }
-
-    private fun getLocationTracksLinkedToSwitch(
-        publicationState: PublishType,
-        layoutSwitchId: IntId<TrackLayoutSwitch>
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return linkingDao.findLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId)
-            .map { ids ->
-                locationTrackService.getWithAlignment(ids.rowVersion)
-            }
-    }
-
-    @Transactional(readOnly = true)
-    fun getSwitchJointConnections(
-        publishType: PublishType,
-        switchId: IntId<TrackLayoutSwitch>
-    ): List<TrackLayoutSwitchJointConnection> {
-        logger.serviceCall(
-            "getSwitchJointConnections",
-            "publishType" to publishType,
-            "switchId" to switchId
-        )
-        val segment = switchService.getSegmentSwitchJointConnections(publishType, switchId)
-        val topological = getTopologySwitchJointConnections(publishType, switchId)
-        return (segment + topological)
-            .groupBy { joint -> joint.number }
-            .values.map { jointConnections ->
-                jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
-            }
-    }
-
-    private fun getTopologySwitchJointConnections(
-        publicationState: PublishType,
-        layoutSwitchId: IntId<TrackLayoutSwitch>
-    ): List<TrackLayoutSwitchJointConnection> {
-        val layoutSwitch = switchService.get(publicationState, layoutSwitchId)
-            ?: return listOf()
-        return getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
-            .flatMap { (locationTrack, layoutAlignment) ->
-                listOf(
-                    locationTrack.topologyStartSwitch to layoutAlignment.start,
-                    locationTrack.topologyEndSwitch to layoutAlignment.end
-                )
-                    .mapNotNull { (connection, point) ->
-                        if (connection == null || point == null || connection.switchId != layoutSwitchId) null else {
-                            layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
-                                TrackLayoutSwitchJointConnection(
-                                    connection.jointNumber,
-                                    listOf(TrackLayoutSwitchJointMatch(locationTrack.id as IntId, point.toPoint())),
-                                    listOf(),
-                                    joint.locationAccuracy
-                                )
-                            }
-                        }
-                    }
-            }
-    }
-
-    @Transactional
-    fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
-        logger.serviceCall("insertSwitch", "request" to request)
-
-        val switch = TrackLayoutSwitch(
-            name = request.name,
-            switchStructureId = request.switchStructureId,
-            stateCategory = request.stateCategory,
-            joints = listOf(),
-            externalId = null,
-            sourceId = null,
-            trapPoint = request.trapPoint,
-            ownerId = request.ownerId,
-            source = GeometrySource.GENERATED,
-        )
-        return switchService.saveDraft(switch).id
-    }
-
-    @Transactional
-    fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
-        logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
-        val layoutSwitch = switchService.getDraft(id);
-        val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
-
-        if (switch.stateCategory == LayoutStateCategory.NOT_EXISTING || switchStructureChanged) {
-            clearSwitchInformationFromSegments(id)
-        }
-
-        val updatedLayoutSwitch = layoutSwitch.copy(
-            id = id,
-            name = switch.name,
-            switchStructureId = switch.switchStructureId,
-            stateCategory = switch.stateCategory,
-            trapPoint = switch.trapPoint,
-            joints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
-        )
-        return switchService.saveDraft(updatedLayoutSwitch).id
-    }
-
-    @Transactional
-    fun deleteDraftSwitch(switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
-        logger.serviceCall("deleteDraftSwitch", "switchId" to switchId)
-        clearSwitchInformationFromSegments(switchId)
-        return switchService.deleteUnpublishedDraft(switchId).id
-    }
 
     private fun updateLayoutSwitch(linkingParameters: SwitchLinkingParameters): RowVersion<TrackLayoutSwitch> {
         val layoutSwitch = switchService.getDraft(linkingParameters.layoutSwitchId)

@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.getLocationTrackEndpoints
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Test
@@ -100,7 +101,7 @@ class LocationTrackEndpointTest {
     fun shouldIgnoreLocationTrackEndpointsOutsideBbox() {
         val alignmentsWithEndpointsOutsideBbox = listOf(
             locationTrackAndAlignment(IntId(0), segment(pointOutsideBbox, otherPointOutsideBbox)),
-        )
+        ).map { (track, alignment) -> track.copy(id = IntId(1)) to alignment }
 
         val endpoints = getLocationTrackEndpoints(alignmentsWithEndpointsOutsideBbox, bbox)
 

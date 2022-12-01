@@ -4,11 +4,6 @@ import { formatToTM35FINString } from 'utils/geography-utils';
 import { trackLayoutStore } from 'store/store';
 import { Point } from 'model/geometry';
 import {
-    getLocationTrack,
-    getReferenceLine,
-    getTrackNumberById,
-} from 'track-layout/track-layout-api';
-import {
     LayoutTrackNumberId,
     LocationTrackId,
     ReferenceLineId,
@@ -17,6 +12,9 @@ import { PublishType, TrackMeter as TrackMeterModel } from 'common/common-model'
 import { useDebouncedState, useLoader } from 'utils/react-utils';
 import { getAddress } from 'common/geocoding-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getTrackNumberById } from 'track-layout/layout-track-number-api';
+import { getReferenceLine } from 'track-layout/layout-reference-line-api';
 
 type LocationHolderProps = {
     hoveredCoordinate: Point | null;
@@ -32,9 +30,9 @@ export async function getLocationTrackHoverLocation(
     locationTrackId: LocationTrackId,
     publishType: PublishType,
     coordinate: Point,
-) {
+): Promise<HoverLocation> {
     return getLocationTrack(locationTrackId, publishType).then((track) =>
-        getHoverLocation(track.name, track.trackNumberId, publishType, coordinate),
+        getHoverLocation(track?.name, track?.trackNumberId, publishType, coordinate),
     );
 }
 
@@ -42,12 +40,16 @@ export async function getReferenceLineHoverLocation(
     referenceLineId: ReferenceLineId,
     publishType: PublishType,
     coordinate: Point,
-) {
-    return getReferenceLine(referenceLineId, publishType).then((line) =>
-        getTrackNumberById(line.trackNumberId, publishType).then((trackNumber) =>
-            getHoverLocation(trackNumber?.number, trackNumber?.id, publishType, coordinate),
-        ),
-    );
+): Promise<HoverLocation> {
+    return getReferenceLine(referenceLineId, publishType).then((line) => {
+        if (!line) {
+            return emptyHoveredLocation(coordinate);
+        } else {
+            return getTrackNumberById(line.trackNumberId, publishType).then((trackNumber) =>
+                getHoverLocation(trackNumber?.number, trackNumber?.id, publishType, coordinate),
+            );
+        }
+    });
 }
 
 export async function getHoverLocation(

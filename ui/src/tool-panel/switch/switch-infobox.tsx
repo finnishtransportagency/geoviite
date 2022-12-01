@@ -23,12 +23,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchEditDialog } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import {
-    getLocationTrack,
-    getSwitch,
-    getSwitchJointConnections,
-    getTrackAddress,
-} from 'track-layout/track-layout-api';
+import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
 import { PublishType, SwitchOwnerId, SwitchStructure, TrackMeter } from 'common/common-model';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
@@ -39,6 +34,8 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
+import { getTrackAddress } from 'track-layout/layout-map-api';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -48,7 +45,7 @@ type SwitchInfoboxProps = {
     publishType: PublishType;
     onUnselect: (switchId: LayoutSwitchId) => void;
     placingSwitchLinkingState?: PlacingSwitch;
-    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void
+    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
 };
 
 const getPresentationJoint = (
@@ -82,11 +79,18 @@ const getSwitchTrackMeter = (
     changeTimes: ChangeTimes,
     presentationJoint: LayoutSwitchJoint,
 ) => {
-    return getLocationTrack(locationTrackId, publishType, changeTimes.layoutLocationTrack).then((track) =>
-        getTrackAddress(track.trackNumberId, publishType, presentationJoint.location).then(
-            (trackAddress) =>
+    return getLocationTrack(locationTrackId, publishType, changeTimes.layoutLocationTrack).then(
+        (track) => {
+            if (!track) return undefined;
+            const address = getTrackAddress(
+                track.trackNumberId,
+                publishType,
+                presentationJoint.location,
+            );
+            return address.then((trackAddress) =>
                 trackAddress ? mapToSwitchTrackMeter(track, trackAddress) : undefined,
-        ),
+            );
+        },
     );
 };
 
@@ -111,12 +115,12 @@ const getSwitchTrackMeters = (
             ? accurateMatches.map((match) => match.locationTrackId)
             : presentationJointConnection?.fallbackMatches ?? [];
 
-    return presentationJoint?.location ?
-        Promise.all(
-            locationTrackIds.map((id) =>
-                getSwitchTrackMeter(id, publishType, changeTimes, presentationJoint),
-            ),
-        ).then(result => result.filter(filterNotEmpty))
+    return presentationJoint?.location
+        ? Promise.all(
+              locationTrackIds.map((id) =>
+                  getSwitchTrackMeter(id, publishType, changeTimes, presentationJoint),
+              ),
+          ).then((result) => result.filter(filterNotEmpty))
         : Promise.resolve([]);
 };
 
@@ -130,7 +134,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     placingSwitchLinkingState,
     startSwitchPlacing,
 }: SwitchInfoboxProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const layoutSwitch = useLoader(
@@ -233,7 +237,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxField
                             label={t('tool-panel.switch.layout.state-category')}
                             value={
-                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory}/>
+                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
                             }
                             onEdit={openEditSwitchDialog}
                             iconDisabled={isOfficial()}
@@ -256,15 +260,18 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 <InfoboxContent>
                     <p>{switchStructure ? switchStructure.type : ''}</p>
                     {SwitchImage && (
-                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT}/>
+                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
                     )}
                     <InfoboxField
                         label={t('tool-panel.switch.layout.hand')}
-                        value={switchStructure && <SwitchHand hand={switchStructure.hand}/>}
+                        value={switchStructure && <SwitchHand hand={switchStructure.hand} />}
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.layout.trap-point')}
-                        value={layoutSwitch && translateSwitchTrapPoint(booleanToTrapPoint(layoutSwitch.trapPoint))}
+                        value={
+                            layoutSwitch &&
+                            translateSwitchTrapPoint(booleanToTrapPoint(layoutSwitch.trapPoint))
+                        }
                     />
                 </InfoboxContent>
             </Infobox>
@@ -284,13 +291,17 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         />
                     )}
                     <InfoboxButtons>
-                        <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}
-                                disabled={!canStartPlacing}
-                                onClick={tryToStartSwitchPlacing}>{t('tool-panel.switch.layout.start-switch-placing')}</Button>
+                        <Button
+                            size={ButtonSize.SMALL}
+                            variant={ButtonVariant.SECONDARY}
+                            disabled={!canStartPlacing}
+                            onClick={tryToStartSwitchPlacing}>
+                            {t('tool-panel.switch.layout.start-switch-placing')}
+                        </Button>
                     </InfoboxButtons>
-                    {placingSwitchLinkingState &&
-                    <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
-                    }
+                    {placingSwitchLinkingState && (
+                        <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
+                    )}
                 </InfoboxContent>
             </Infobox>
             <Infobox

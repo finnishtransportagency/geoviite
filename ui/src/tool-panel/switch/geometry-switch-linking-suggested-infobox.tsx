@@ -7,7 +7,7 @@ import { LocationTrackEndpoint, SuggestedSwitch } from 'linking/linking-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchSuggestionCreatorDialog } from 'linking/switch/switch-suggestion-creator-dialog';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
-import { getLocationTrack } from 'track-layout/track-layout-api';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
 
 type GeometrySwitchLinkingSuggestedInfoboxProps = {
     suggestedSwitch: SuggestedSwitch;
@@ -23,9 +23,9 @@ export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
     const [showEditDialog, setShowEditDialog] = React.useState(false);
 
     React.useEffect(() => {
-        getLocationTrack(alignmentEndPoint.locationTrackId, 'DRAFT').then((a) =>
-            setLocation(a.name),
-        );
+        getLocationTrack(alignmentEndPoint.locationTrackId, 'DRAFT').then((a) => {
+            if (a) setLocation(a.name);
+        });
     }, [alignmentEndPoint]);
 
     function onSelectSuggestedSwitch(suggestedSwitch: SuggestedSwitch) {

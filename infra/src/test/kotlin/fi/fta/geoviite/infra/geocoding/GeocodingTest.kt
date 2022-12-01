@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import org.junit.jupiter.api.Test
@@ -66,7 +67,7 @@ val segment3 = segment(
 )
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
-val referenceLine = referenceLine(IntId(1), alignment = alignment, startAddress = startAddress)
+val referenceLine: ReferenceLine = referenceLine(IntId(1), alignment = alignment, startAddress = startAddress)
 val addressPoints = listOf(
     GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
@@ -74,7 +75,7 @@ val addressPoints = listOf(
     GeocodingReferencePoint(KmNumber(5,"A"), BigDecimal.ZERO, 3 * alignment.length / 5, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(5, "B"), BigDecimal.ZERO, 4 * alignment.length / 5, 0.0, WITHIN),
 )
-val trackNumber = trackNumber(TrackNumber("T001"))
+val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"))
 val context = GeocodingContext(
     trackNumber,
     referenceLine,
@@ -124,7 +125,7 @@ class GeocodingTest {
         assertEquals(startAddress, context.getAddress(0.0, startAddress.decimalCount()))
 
         val lastPoint = addressPoints.last()
-        val endLength = referenceLine.length
+        val endLength: Double = referenceLine.length
         assertEquals(
             TrackMeter(lastPoint.kmNumber, endLength - lastPoint.distance, 3),
             context.getAddress(endLength, 3)

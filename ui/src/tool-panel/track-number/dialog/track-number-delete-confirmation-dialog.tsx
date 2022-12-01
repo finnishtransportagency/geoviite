@@ -10,8 +10,8 @@ import {
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
 import { createDelegates } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
-import { deleteTrackNumber } from 'track-layout/track-layout-api';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { deleteTrackNumber } from 'track-layout/layout-track-number-api';
 
 type TrackNumberDeleteConfirmationDialogProps = {
     id: LayoutTrackNumberId;

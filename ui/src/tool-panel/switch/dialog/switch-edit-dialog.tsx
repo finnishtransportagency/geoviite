@@ -16,7 +16,6 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { insertSwitch, updateSwitch } from 'linking/linking-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -29,10 +28,10 @@ import {
 } from 'common/common-model';
 import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
 import { layoutStateCategories, switchTrapPoints } from 'utils/enum-localization-utils';
-import { getSwitch } from 'track-layout/track-layout-api';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { createClassName } from 'vayla-design-lib/utils';
+import { getSwitch, insertSwitch, updateSwitch } from 'track-layout/layout-switch-api';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 

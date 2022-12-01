@@ -9,7 +9,7 @@ import { KmPostLayer, MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { adapterInfoRegister } from './register';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
-import { getKmPostsByTile } from 'track-layout/track-layout-api';
+import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import { getMatchingKmPosts } from 'map/layers/layer-utils';
 import { getKmPostRenderer, getSelectedKmPostRenderer } from 'map/layers/km-post-renderers';

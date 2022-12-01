@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ratko.model
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.ratko.asSwitchTypeString
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType

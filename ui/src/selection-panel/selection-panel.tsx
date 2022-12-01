@@ -20,7 +20,7 @@ import { GeometryPlanHeader, SortByValue, SortOrderValue } from 'geometry/geomet
 import { createClassName } from 'vayla-design-lib/utils';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
-import { getTrackNumbers } from 'track-layout/track-layout-api';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
 import { getGeometryPlanHeaders } from 'geometry/geometry-api';
 import { MapViewport } from 'map/map-model';
@@ -85,7 +85,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
 }: SelectionPanelProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     const [trackNumberFilter, setTrackNumberFilter] = React.useState<LayoutTrackNumber[]>([]);
     const [planHeaders, setPlanHeaders] = React.useState<GeometryPlanHeader[]>([]);
@@ -107,22 +107,26 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         });
     }, [viewport.area, changeTimes.geometryPlan, trackNumberFilter]);
 
-    const toggleTrackNumberFilter = React.useCallback((tn: LayoutTrackNumber) => {
+    const toggleTrackNumberFilter = React.useCallback(
+        (tn: LayoutTrackNumber) => {
             if (trackNumberFilter.includes(tn)) {
                 setTrackNumberFilter([]);
             } else {
                 setTrackNumberFilter([tn]);
             }
-        }
-        , [trackNumberFilter]);
+        },
+        [trackNumberFilter],
+    );
 
-    const onToggleSwitchSelection = React.useCallback((layoutSwitch: LayoutSwitch) =>
+    const onToggleSwitchSelection = React.useCallback(
+        (layoutSwitch: LayoutSwitch) =>
             onSelect({
                 ...createEmptyItemCollections(),
                 switches: [layoutSwitch],
                 isToggle: true,
-            })
-        , []);
+            }),
+        [],
+    );
 
     const onToggleReferenceLineSelection = React.useCallback(
         (trackNumber: string, referenceLine: string) =>
@@ -131,16 +135,19 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 trackNumbers: [trackNumber],
                 referenceLines: [referenceLine],
                 isToggle: true,
-            })
-        , []);
+            }),
+        [],
+    );
 
-    const onToggleLocationTrackSelection = React.useCallback((locationTrack: string) =>
+    const onToggleLocationTrackSelection = React.useCallback(
+        (locationTrack: string) =>
             onSelect({
                 ...createEmptyItemCollections(),
                 locationTracks: [locationTrack],
                 isToggle: true,
-            })
-        , []);
+            }),
+        [],
+    );
 
     const visibleTrackNumberIds = [
         ...new Set([
@@ -169,9 +176,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         filterByTrackNumberId(a.trackNumberId),
     );
     const filteredReferenceLines = React.useMemo(() => {
-        return referenceLines.filter((l) =>
-            filterByTrackNumberId(l.trackNumberId),
-        );
+        return referenceLines.filter((l) => filterByTrackNumberId(l.trackNumberId));
     }, [referenceLines]);
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
@@ -202,70 +207,70 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                             styles['selection-panel__content--unpadded'],
                         )}>
                         {planHeaders.length == planHeaderCount &&
-                        planHeaders.map((h) => {
-                            return (
-                                <GeometryPlanPanel
-                                    key={h.id}
-                                    planHeader={h}
-                                    onPlanHeaderSelection={(header) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometryPlans: [header],
-                                            isToggle: true,
-                                        })
-                                    }
-                                    publishType={publishType}
-                                    changeTimes={changeTimes}
-                                    onTogglePlanVisibility={onTogglePlanVisibility}
-                                    onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                                    onToggleAlignmentSelection={(alignment) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometryAlignments: [
-                                                {
-                                                    geometryItem: alignment,
-                                                    planId: h.id,
-                                                },
-                                            ],
-                                            isToggle: true,
-                                        })
-                                    }
-                                    onToggleSwitchVisibility={onToggleSwitchVisibility}
-                                    onToggleSwitchSelection={(switchItem) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometrySwitches: [
-                                                {
-                                                    geometryItem: switchItem,
-                                                    planId: h.id,
-                                                },
-                                            ],
-                                            isToggle: true,
-                                        })
-                                    }
-                                    onToggleKmPostVisibility={onToggleKmPostVisibility}
-                                    onToggleKmPostSelection={(kmPost) =>
-                                        onSelect({
-                                            ...createEmptyItemCollections(),
-                                            geometryKmPosts: [
-                                                {
-                                                    geometryItem: kmPost,
-                                                    planId: h.id,
-                                                },
-                                            ],
-                                            isToggle: true,
-                                        })
-                                    }
-                                    selectedItems={selectedItems}
-                                    selectedPlanLayouts={selectedPlanLayouts}
-                                    togglePlanOpen={togglePlanOpen}
-                                    openedPlanLayouts={openedPlanLayouts}
-                                    togglePlanKmPostsOpen={togglePlanKmPostsOpen}
-                                    togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
-                                    togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                                />
-                            );
-                        })}
+                            planHeaders.map((h) => {
+                                return (
+                                    <GeometryPlanPanel
+                                        key={h.id}
+                                        planHeader={h}
+                                        onPlanHeaderSelection={(header) =>
+                                            onSelect({
+                                                ...createEmptyItemCollections(),
+                                                geometryPlans: [header],
+                                                isToggle: true,
+                                            })
+                                        }
+                                        publishType={publishType}
+                                        changeTimes={changeTimes}
+                                        onTogglePlanVisibility={onTogglePlanVisibility}
+                                        onToggleAlignmentVisibility={onToggleAlignmentVisibility}
+                                        onToggleAlignmentSelection={(alignment) =>
+                                            onSelect({
+                                                ...createEmptyItemCollections(),
+                                                geometryAlignments: [
+                                                    {
+                                                        geometryItem: alignment,
+                                                        planId: h.id,
+                                                    },
+                                                ],
+                                                isToggle: true,
+                                            })
+                                        }
+                                        onToggleSwitchVisibility={onToggleSwitchVisibility}
+                                        onToggleSwitchSelection={(switchItem) =>
+                                            onSelect({
+                                                ...createEmptyItemCollections(),
+                                                geometrySwitches: [
+                                                    {
+                                                        geometryItem: switchItem,
+                                                        planId: h.id,
+                                                    },
+                                                ],
+                                                isToggle: true,
+                                            })
+                                        }
+                                        onToggleKmPostVisibility={onToggleKmPostVisibility}
+                                        onToggleKmPostSelection={(kmPost) =>
+                                            onSelect({
+                                                ...createEmptyItemCollections(),
+                                                geometryKmPosts: [
+                                                    {
+                                                        geometryItem: kmPost,
+                                                        planId: h.id,
+                                                    },
+                                                ],
+                                                isToggle: true,
+                                            })
+                                        }
+                                        selectedItems={selectedItems}
+                                        selectedPlanLayouts={selectedPlanLayouts}
+                                        togglePlanOpen={togglePlanOpen}
+                                        openedPlanLayouts={openedPlanLayouts}
+                                        togglePlanKmPostsOpen={togglePlanKmPostsOpen}
+                                        togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
+                                        togglePlanSwitchesOpen={togglePlanSwitchesOpen}
+                                    />
+                                );
+                            })}
                         {planHeaders.length < planHeaderCount && (
                             <span className={styles['selection-panel__subtitle']}>{`${t(
                                 'selection-panel.zoom-closer',

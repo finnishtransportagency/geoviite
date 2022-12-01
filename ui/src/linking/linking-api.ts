@@ -1,42 +1,29 @@
-import { Result } from 'neverthrow';
 import {
     LayoutKmPostId,
     LayoutLocationTrack,
-    LayoutSwitchId,
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
     API_URI,
-    deleteAdt,
-    deleteIgnoreError,
     getIgnoreError,
     getThrowError,
-    postAdt,
     postIgnoreError,
-    putAdt,
     putIgnoreError,
     queryParams,
 } from 'api/api-fetch';
 import {
     GeometryPlanLinkStatus,
     IntervalRequest,
-    KmPostSaveError,
-    KmPostSaveRequest,
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     LocationTrackEndpoint,
-    LocationTrackSaveError,
-    LocationTrackSaveRequest,
     SuggestedSwitch,
     SuggestedSwitchCreateParams,
     SwitchLinkingParameters,
-    TrackLayoutSaveError,
-    TrackLayoutSwitchSaveRequest,
 } from 'linking/linking-model';
 import {
     getChangeTimes,
-    updateAllChangeTimes,
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
     updatePlanChangeTime,
@@ -57,7 +44,15 @@ const LINKING_URI = `${API_URI}/linking`;
 
 const geometryElementsLinkedStatusCache = asyncCache<GeometryPlanId, GeometryPlanLinkStatus>();
 const suggestedSwitchesCache = asyncCache<string, SuggestedSwitch[]>();
-const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
+
+type LinkingDataType = 'reference-lines' | 'location-tracks' | 'switches' | 'km-posts';
+type LinkingType = 'geometry' | 'empty-geometry' | 'suggested';
+
+function linkingUri(dataType: LinkingDataType, linkingType: LinkingType, id?: string): string {
+    return id
+        ? `${LINKING_URI}/${dataType}/${id}/${linkingType}`
+        : `${LINKING_URI}/${dataType}/${linkingType}`;
+}
 
 export const getSuggestedContinuousLocationTracks = async (
     locationTrackId: LocationTrackId,
@@ -70,15 +65,15 @@ export const getSuggestedContinuousLocationTracks = async (
         locationTrackPointUpdateType: locationTrackEndPoint.updateType,
         bbox: bboxString(bbox),
     });
-    return getThrowError<LayoutLocationTrack[]>(`${LINKING_URI}/suggested-alignments${params}`);
+    const uri = linkingUri('location-tracks', 'suggested');
+    return getThrowError<LayoutLocationTrack[]>(`${uri}${params}`);
 };
 
 export const linkGeometryWithReferenceLine = async (
     parameters: LinkingGeometryWithAlignmentParameters,
 ): Promise<RowVersion | null> => {
-    const url = `${LINKING_URI}/reference-lines/geometry`;
     const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, RowVersion>(
-        url,
+        linkingUri('reference-lines', 'geometry'),
         parameters,
     );
     updateReferenceLineChangeTime();
@@ -88,9 +83,8 @@ export const linkGeometryWithReferenceLine = async (
 export const linkGeometryWithLocationTrack = async (
     parameters: LinkingGeometryWithAlignmentParameters,
 ): Promise<RowVersion | null> => {
-    const url = `${LINKING_URI}/location-tracks/geometry`;
     const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, RowVersion>(
-        url,
+        linkingUri('location-tracks', 'geometry'),
         parameters,
     );
     updateLocationTrackChangeTime();
@@ -100,9 +94,8 @@ export const linkGeometryWithLocationTrack = async (
 export const linkGeometryWithEmptyReferenceLine = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
 ): Promise<RowVersion | null> => {
-    const url = `${LINKING_URI}/reference-lines/empty-geometry`;
     const response = await postIgnoreError<LinkingGeometryWithEmptyAlignmentParameters, RowVersion>(
-        url,
+        linkingUri('reference-lines', 'empty-geometry'),
         parameters,
     );
     updateReferenceLineChangeTime();
@@ -112,83 +105,20 @@ export const linkGeometryWithEmptyReferenceLine = async (
 export const linkGeometryWithEmptyLocationTrack = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
 ): Promise<RowVersion | null> => {
-    const url = `${LINKING_URI}/location-tracks/empty-geometry`;
     const response = await postIgnoreError<LinkingGeometryWithEmptyAlignmentParameters, RowVersion>(
-        url,
+        linkingUri('location-tracks', 'empty-geometry'),
         parameters,
     );
     updateLocationTrackChangeTime();
     return response;
 };
 
-export async function insertLocationTrack(
-    locationTrack: LocationTrackSaveRequest,
-): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await postAdt<LocationTrackSaveRequest, LocationTrackId>(
-        `${LINKING_URI}/location-tracks`,
-        locationTrack,
-        true,
-    );
-    updateLocationTrackChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-}
-
-export async function updateLocationTrack(
-    id: LocationTrackId,
-    locationTrack: LocationTrackSaveRequest,
-): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await putAdt<LocationTrackSaveRequest, LocationTrackId>(
-        `${LINKING_URI}/location-tracks/${id}`,
-        locationTrack,
-        true,
-    );
-    updateLocationTrackChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-}
-
-export const deleteLocationTrack = async (
-    id: LocationTrackId,
-): Promise<Result<LocationTrackId, LocationTrackSaveError>> => {
-    const apiResult = await deleteAdt<undefined, LocationTrackId>(
-        `${LINKING_URI}/location-tracks/${id}`,
-        undefined,
-        true,
-    );
-    updateLocationTrackChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-};
-
-export async function updateSwitch(
-    id: LayoutSwitchId,
-    updatedSwitch: TrackLayoutSwitchSaveRequest,
-): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await putAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
-        `${LINKING_URI}/switches/${id}`,
-        updatedSwitch,
-        true,
-    );
-    updateSwitchChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-}
-
 export async function updateReferenceLineGeometry(
     id: ReferenceLineId,
     interval: IntervalRequest,
 ): Promise<string | null> {
     const result = await putIgnoreError<IntervalRequest, ReferenceLineId>(
-        `${LINKING_URI}/reference-lines/${id}/geometry`,
+        linkingUri('reference-lines', 'geometry', id),
         interval,
     );
     updateReferenceLineChangeTime();
@@ -200,7 +130,7 @@ export async function updateLocationTrackGeometry(
     interval: IntervalRequest,
 ): Promise<string | null> {
     const result = await putIgnoreError<IntervalRequest, LocationTrackId>(
-        `${LINKING_URI}/location-tracks/${id}/geometry`,
+        linkingUri('location-tracks', 'geometry', id),
         interval,
     );
     updateLocationTrackChangeTime();
@@ -233,30 +163,6 @@ export async function getPlanLinkStatus(
     );
 }
 
-export async function insertSwitch(
-    newSwitch: TrackLayoutSwitchSaveRequest,
-): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await postAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
-        `${LINKING_URI}/switches`,
-        newSwitch,
-        true,
-    );
-    updateSwitchChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-}
-
-export async function deleteDraftSwitch(switchId: LayoutSwitchId): Promise<LayoutSwitchId | null> {
-    return await deleteIgnoreError<LayoutSwitchId>(`${LINKING_URI}/switches/${switchId}`).then(
-        (r) => {
-            updateSwitchChangeTime();
-            return r;
-        },
-    );
-}
-
 export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<SuggestedSwitch[]> {
     const key = mapTile.id;
     const params = queryParams({
@@ -270,7 +176,7 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
                     getChangeTimes().layoutSwitch,
                 ),
                 key,
-                () => getThrowError(`${LINKING_URI}/suggested-switch${params}`),
+                () => getThrowError(`${linkingUri('switches', 'suggested')}${params}`),
             )
             // IDs are needed to separate different suggested switches from each other.
             // If suggested switch is generated from geometry switch, geom switch id
@@ -295,21 +201,20 @@ export async function getSuggestedSwitchByPoint(
         location: pointString(point),
         switchStructureId: switchStructureId,
     });
-    return getIgnoreError<SuggestedSwitch[]>(`${LINKING_URI}/suggested-switch${params}`).then(
-        (suggestedSwitches) => {
-            return (suggestedSwitches || []).filter(filterNotEmpty).map((suggestedSwitch) => {
-                return {
-                    ...suggestedSwitch,
-                    id: getSuggestedSwitchId(suggestedSwitch),
-                };
-            });
-        },
-    );
+    const uri = linkingUri('switches', 'suggested');
+    return getIgnoreError<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
+        return (suggestedSwitches || []).filter(filterNotEmpty).map((suggestedSwitch) => {
+            return {
+                ...suggestedSwitch,
+                id: getSuggestedSwitchId(suggestedSwitch),
+            };
+        });
+    });
 }
 
 export async function linkSwitch(params: SwitchLinkingParameters): Promise<string> {
     const result = await postIgnoreError<SwitchLinkingParameters, string>(
-        `${LINKING_URI}/switch-linking`,
+        linkingUri('switches', 'geometry'),
         params,
     );
     if (!result) {
@@ -320,35 +225,11 @@ export async function linkSwitch(params: SwitchLinkingParameters): Promise<strin
     return result;
 }
 
-export async function getLocationTrackEndpointsByTile(
-    mapTile: MapTile,
-    publishType: PublishType,
-): Promise<LocationTrackEndpoint[]> {
-    const key = mapTile.id + publishType;
-    const params = queryParams({
-        bbox: bboxString(mapTile.area),
-    });
-    const changeTimes = await updateAllChangeTimes();
-    return locationTrackEndpointsCache
-        .get(changeTimes.layoutLocationTrack, key, () =>
-            getThrowError(`${LINKING_URI}/${publishType}/location-tracks/end-points${params}`),
-        )
-        .then((locationTrackEndpoints) =>
-            locationTrackEndpoints.map((locationTrackEndpoint) => ({
-                ...locationTrackEndpoint,
-                // Generate id
-                id:
-                    locationTrackEndpoint.locationTrackId +
-                    JSON.stringify(locationTrackEndpoint.location),
-            })),
-        );
-}
-
 export async function createSuggestedSwitch(
     params: SuggestedSwitchCreateParams,
 ): Promise<SuggestedSwitch | null> {
     return postIgnoreError<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
-        `${LINKING_URI}/suggested-switch`,
+        linkingUri('switches', 'suggested'),
         params,
     ).then((switches) => {
         const s = switches && switches[0];
@@ -365,7 +246,7 @@ export async function linkKmPost(
         layoutKmPostId: layoutKmPostId,
     };
     const result = await postIgnoreError<typeof params, string>(
-        `${LINKING_URI}/km-post-linking`,
+        linkingUri('km-posts', 'geometry'),
         params,
     );
     if (!result) {
@@ -375,49 +256,3 @@ export async function linkKmPost(
     updatePlanChangeTime();
     return result;
 }
-
-export async function insertKmPost(
-    kmPost: KmPostSaveRequest,
-): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
-    const apiResult = await postAdt<KmPostSaveRequest, LayoutKmPostId>(
-        `${LINKING_URI}/km-post`,
-        kmPost,
-        true,
-    );
-    updateKmPostChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-}
-
-export async function updateKmPost(
-    id: LayoutKmPostId,
-    kmPost: KmPostSaveRequest,
-): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
-    const apiResult = await putAdt<KmPostSaveRequest, LayoutKmPostId>(
-        `${LINKING_URI}/km-posts/${id}`,
-        kmPost,
-        true,
-    );
-    updateKmPostChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-}
-
-export const deleteDraftKmPost = async (
-    id: LayoutKmPostId,
-): Promise<Result<LayoutKmPostId, KmPostSaveError>> => {
-    const apiResult = await deleteAdt<undefined, LayoutKmPostId>(
-        `${LINKING_URI}/km-posts/${id}`,
-        undefined,
-        true,
-    );
-    updateKmPostChangeTime();
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
-};

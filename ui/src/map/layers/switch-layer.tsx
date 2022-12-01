@@ -10,7 +10,7 @@ import { GeometrySwitchLayer, MapTile, OptionalShownItems, SwitchLayer } from 'm
 import { Selection } from 'selection/selection-model';
 import { adapterInfoRegister } from './register';
 import { LayoutSwitch, LayoutSwitchId, LayoutSwitchJoint } from 'track-layout/track-layout-model';
-import { getSwitchesByTile } from 'track-layout/track-layout-api';
+import { getSwitchesByTile } from 'track-layout/layout-switch-api';
 import { getMatchingSwitches } from 'map/layers/layer-utils';
 import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import { calculateTileSize } from 'map/map-utils';
