@@ -465,33 +465,23 @@ class PublishService @Autowired constructor(
         }
     }
 
-    private fun getDraftKmPostWithOfficialId(id: IntId<TrackLayoutKmPost>): TrackLayoutKmPost {
-        val kmPost = kmPostService.getDraft(id)
-        require(kmPost.id == id) { "Attempting to publish km-post via draft ID" }
-        return kmPost
-    }
+    private fun getDraftKmPostWithOfficialId(id: IntId<TrackLayoutKmPost>): TrackLayoutKmPost =
+        kmPostService.getDraft(id)
+            .also { kmPost -> require(kmPost.id == id) { "Attempting to publish km-post via draft ID" } }
 
-    private fun getDraftSwitchWithOfficialId(id: IntId<TrackLayoutSwitch>): TrackLayoutSwitch {
-        val switch = switchDao.fetch(switchDao.fetchDraftVersionOrThrow(id))
-        require(switch.id == id) { "Attempting to publish switch via draft ID" }
-        return switch
-    }
+    private fun getDraftSwitchWithOfficialId(id: IntId<TrackLayoutSwitch>): TrackLayoutSwitch =
+        switchDao.fetch(switchDao.fetchDraftVersionOrThrow(id))
+            .also { switch -> require(switch.id == id) { "Attempting to publish switch via draft ID" } }
 
-    private fun getDraftTrackNumberWithOfficialId(id: IntId<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
-        val trackNumber = trackNumberService.getDraft(id)
-        require(trackNumber.id == id) { "Attempting to publish track number via draft ID" }
-        return trackNumber
-    }
+    private fun getDraftTrackNumberWithOfficialId(id: IntId<TrackLayoutTrackNumber>): TrackLayoutTrackNumber =
+        trackNumberService.getDraft(id)
+            .also { trackNumber -> require(trackNumber.id == id) { "Attempting to publish track number via draft ID" } }
 
-    private fun getDraftReferenceLineAndAlignmentWithOfficialId(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, id)
-        require(referenceLine.id == id) { "Attempting to publish ReferenceLine via draft ID" }
-        return referenceLine to alignment
-    }
+    private fun getDraftReferenceLineAndAlignmentWithOfficialId(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
+        referenceLineService.getWithAlignmentOrThrow(DRAFT, id)
+            .also { (referenceLine, _) -> require(referenceLine.id == id) { "Attempting to publish ReferenceLine via draft ID" } }
 
-    private fun getDraftLocationTrackAndAlignmentWithOfficialId(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
-        require(locationTrack.id == id) { "Attempting to publish LocationTrack via draft ID" }
-        return locationTrack to alignment
-    }
+    private fun getDraftLocationTrackAndAlignmentWithOfficialId(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
+        locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
+            .also { (locationTrack, _) -> require(locationTrack.id == id) { "Attempting to publish LocationTrack via draft ID" } }
 }
