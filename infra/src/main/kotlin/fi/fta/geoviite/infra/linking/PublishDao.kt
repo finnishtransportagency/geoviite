@@ -21,18 +21,25 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_track_number_id, id) as official_id, draft_of_track_number_id, number, change_time, state, change_user
-            from layout.track_number
-            where draft = true
+            select
+              case
+    when draft_track_number.state = 'DELETED' and official_track_number.state != 'DELETED' then 'DELETE'
+    when draft_track_number.state != 'DELETED' and official_track_number.state = 'DELETED' then 'RESTORE'
+    when official_track_number.official_id is null then 'CREATE'
+    else 'MODIFY'
+  end as operation,
+  draft_track_number.official_id, draft_track_number.number, draft_track_number.change_time, draft_track_number.change_user
+            from layout.track_number_publication_view draft_track_number
+            left join layout.track_number_publication_view official_track_number on draft_track_number.official_id = official_track_number.official_id
+            and 'OFFICIAL' = any(official_track_number.publication_states)
+            where draft_track_number.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            val state = rs.getEnum<LayoutState>("state")
-            val draft_of_id = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_of_track_number_id")
             TrackNumberPublishCandidate(
                 id = rs.getIntId("official_id"),
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
-                operation = operationFromStateAndDraftId(state, draft_of_id),
+                operation = rs.getEnum("operation"),
                 userName = UserName(rs.getString("change_user"))
             )
         }
@@ -42,28 +49,37 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidate> {
         val sql = """
-            select 
-              coalesce(reference_line.draft_of_reference_line_id, reference_line.id) as official_id,
-              reference_line.draft_of_reference_line_id,
-              track_number.number as name, 
-              reference_line.track_number_id, 
-              reference_line.change_time,
-              track_number.state as state,
-              reference_line.change_user
-            from layout.reference_line
-              left join layout.track_number on track_number.draft_of_track_number_id = reference_line.track_number_id
-            where reference_line.draft = true
+select
+  case
+    when draft_track_number.state = 'DELETED' and official_track_number.state != 'DELETED' then 'DELETE'
+    when draft_track_number.state != 'DELETED' and official_track_number.state = 'DELETED' then 'RESTORE'
+    when official_track_number.official_id is null then 'CREATE'
+    else 'MODIFY'
+  end as operation,
+  draft_reference_line.row_id,
+  draft_reference_line.row_version,
+  draft_reference_line.official_id,
+  draft_reference_line.change_time,
+  draft_reference_line.track_number_id,
+  draft_track_number.number as name,
+  draft_reference_line.change_user
+  from layout.reference_line_publication_view draft_reference_line
+    left join layout.track_number_publication_view draft_track_number on draft_track_number.official_id = draft_reference_line.track_number_id
+    and 'DRAFT' = any(draft_track_number.publication_states)
+    left join layout.reference_line_publication_view official_reference_line on official_reference_line.official_id = draft_reference_line.official_id
+    and 'OFFICIAL' = any(official_reference_line.publication_states)
+    left join layout.track_number_publication_view official_track_number on official_track_number.official_id = official_reference_line.track_number_id
+    and 'OFFICIAL' = any(official_track_number.publication_states)
+  where draft_reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            val state = rs.getEnum<LayoutState>("state")
-            val draft_of_id = rs.getIntIdOrNull<ReferenceLine>("draft_of_reference_line_id")
             ReferenceLinePublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = rs.getTrackNumber("name"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = operationFromStateAndDraftId(state, draft_of_id),
+                operation = rs.getEnum("operation"),
             )
         }
         logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
@@ -72,13 +88,24 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_location_track_id, id) as official_id, draft_of_location_track_id, name, track_number_id, change_time, duplicate_of_location_track_id, change_user, state
-            from layout.location_track
-            where draft = true
+            select   case
+    when draft_location_track.state = 'DELETED' and official_location_track.state != 'DELETED' then 'DELETE'
+    when draft_location_track.state != 'DELETED' and official_location_track.state = 'DELETED' then 'RESTORE'
+    when official_location_track.official_id is null then 'CREATE'
+    else 'MODIFY'
+  end as operation, 
+  draft_location_track.official_id,
+  draft_location_track.name, 
+  draft_location_track.track_number_id, 
+  draft_location_track.change_time, 
+  draft_location_track.duplicate_of_location_track_id, 
+  draft_location_track.change_user
+            from layout.location_track_publication_view draft_location_track
+              left join layout.location_track_publication_view official_location_track on official_location_track.official_id = draft_location_track.official_id
+              and 'OFFICIAL' = any(official_location_track.publication_states)
+            where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            val state = rs.getEnum<LayoutState>("state")
-            val draft_of_id = rs.getIntIdOrNull<ReferenceLine>("draft_of_location_track_id")
             LocationTrackPublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = AlignmentName(rs.getString("name")),
@@ -86,7 +113,7 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 draftChangeTime = rs.getInstant("change_time"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 userName = UserName(rs.getString("change_user")),
-                operation = operationFromStateAndDraftId(state, draft_of_id),
+                operation = rs.getEnum("operation"),
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
@@ -95,19 +122,28 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_switch_id, id) as official_id, draft_of_switch_id, name, change_time, state_category, change_user
-            from layout.switch
-            where draft = true
+                        select   case
+    when draft_switch.state_category = 'NOT_EXISTING' and official_switch.state_category != 'NOT_EXISTING' then 'DELETE'
+    when draft_switch.state_category != 'NOT_EXISTING' and official_switch.state_category = 'NOT_EXISTING' then 'RESTORE'
+    when official_switch.official_id is null then 'CREATE'
+    else 'MODIFY'
+    end as operation, 
+            draft_switch.official_id,  
+            draft_switch.name, 
+            draft_switch.change_time,
+            draft_switch.change_user
+            from layout.switch_publication_view draft_switch
+            left join layout.switch_publication_view official_switch on draft_switch.official_id = official_switch.official_id
+            and 'OFFICIAL' = any(official_switch.publication_states)
+            where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            val stateCategory = rs.getEnum<LayoutStateCategory>("state_category")
-            val draft_of_id = rs.getIntIdOrNull<ReferenceLine>("draft_of_switch_id")
             SwitchPublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = if (stateCategory == LayoutStateCategory.NOT_EXISTING) Operation.DELETE else createOrModifyByDraftId(draft_of_id)
+                operation = rs.getEnum("operation")
             )
         }
         logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
@@ -116,21 +152,27 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_km_post_id, id) as official_id, draft_of_km_post_id, track_number_id, km_number, change_time, state, change_user
-            from layout.km_post
-            where draft = true
+                        select   case
+    when draft_km_post.state = 'DELETED' and official_km_post.state != 'DELETED' then 'DELETE'
+    when draft_km_post.state != 'DELETED' and official_km_post.state = 'DELETED' then 'RESTORE'
+    when official_km_post.official_id is null then 'CREATE'
+    else 'MODIFY'
+  end as operation, 
+  draft_km_post.official_id, draft_km_post.track_number_id, draft_km_post.km_number, draft_km_post.change_time, draft_km_post.change_user
+            from layout.km_post_publication_view draft_km_post
+            left join layout.km_post_publication_view official_km_post on draft_km_post.official_id = official_km_post.official_id
+            and 'OFFICIAL' = any(official_km_post.publication_states)
+            where draft_km_post.draft = true
             order by km_number
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            val state = rs.getEnum<LayoutState>("state")
-            val draft_of_id = rs.getIntIdOrNull<ReferenceLine>("draft_of_km_post_id")
             KmPostPublishCandidate(
                 id = rs.getIntId("official_id"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = operationFromStateAndDraftId(state, draft_of_id),
+                operation = rs.getEnum("operation"),
             )
         }
         logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))

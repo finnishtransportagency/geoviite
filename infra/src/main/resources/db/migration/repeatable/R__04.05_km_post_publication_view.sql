@@ -15,6 +15,7 @@ select
   row.state,
   row.change_user,
   row.change_time,
+  row.draft,
   (case
      when row.draft = true then '{"DRAFT"}'
      when exists(select 1 from layout.km_post as d where d.draft_of_km_post_id = row.id) then '{"OFFICIAL"}'

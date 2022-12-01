@@ -54,7 +54,8 @@ enum class DraftChangeType {
 enum class Operation {
     CREATE,
     MODIFY,
-    DELETE
+    DELETE,
+    RESTORE
 }
 
 data class PublicationChanges(
@@ -164,12 +165,3 @@ data class KmPostPublishCandidate(
 ) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }
-
-fun operationFromStateAndDraftId(state: LayoutState, draftOfId: IntId<*>?) =
-    if (state == LayoutState.DELETED) Operation.DELETE else createOrModifyByDraftId(draftOfId)
-
-fun operationFromStateCategoryAndDraftId(stateCategory: LayoutStateCategory, draftOfId: IntId<*>?) =
-    if (stateCategory == LayoutStateCategory.NOT_EXISTING) Operation.DELETE else createOrModifyByDraftId(draftOfId)
-
-fun createOrModifyByDraftId(draftOfId: IntId<*>?) =
-    if (draftOfId == null) Operation.CREATE else Operation.MODIFY

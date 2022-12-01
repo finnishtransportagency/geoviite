@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.TEST_USER
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.math.Point
@@ -53,6 +55,8 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(1, candidates.size)
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
+        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(Operation.CREATE, candidates.first().operation)
     }
 
     @Test
