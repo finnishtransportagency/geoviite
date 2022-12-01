@@ -40,7 +40,7 @@ class RatkoServiceIT @Autowired constructor(
         }
         val locationTracks = listOf(
             locationTrackService.publish(
-                locationTrackService.saveDraft(draft, alignment).id
+                locationTrackService.saveDraft(draft, alignmentDao.fetch(alignmentVersion)).id
             )
         )
         publishDao.createPublish(listOf(), listOf(), locationTracks, listOf(), listOf())

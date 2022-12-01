@@ -33,10 +33,10 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatDateShort } from 'utils/date-utils';
-import { getReferenceLineSegmentEnds } from 'track-layout/track-layout-api';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
+import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;

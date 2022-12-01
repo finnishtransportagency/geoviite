@@ -19,7 +19,8 @@
         "error-km-number-already-in-use": "Tunnus on jo käytössä valitulla ratanumerolla",
         "modified-successfully": "Tasakilometripisteen tiedot päivitetty",
         "deleted-successfully": "Tasakilometripiste poistettu",
-        "delete-draft": "Poista luonnos"
+        "delete-draft": "Poista luonnos",
+        "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu"
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",

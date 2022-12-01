@@ -4,7 +4,7 @@ import * as React from 'react';
 import { PublishCandidates } from 'publication/publication-model';
 import { useTranslation } from 'react-i18next';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { getTrackNumbers } from 'track-layout/track-layout-api';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { SelectedChanges } from 'preview/preview-view';
 import { TimeStamp } from 'common/common-model';
 

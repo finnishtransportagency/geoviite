@@ -38,11 +38,11 @@ fun createGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>, location:
         trackNumberId = trackNumberId,
     )
 
-fun trackLayoutKmPost(kmNumber: String, trackNumber: DomainId<TrackLayoutTrackNumber>, point: Point) =
+fun trackLayoutKmPost(kmNumber: String, trackNumberId: IntId<TrackLayoutTrackNumber>, point: Point) =
     TrackLayoutKmPost(
         kmNumber = KmNumber(kmNumber),
         location = point,
-        trackNumberId = trackNumber,
+        trackNumberId = trackNumberId,
         sourceId = null,
         state = LayoutState.IN_USE
     )

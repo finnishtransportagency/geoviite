@@ -4,6 +4,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.*
@@ -92,9 +94,9 @@ class PublishValidationTest {
     @Test
     fun trackNumberValidationCatchesUnpublishedKmPost() {
         val trackNumber = trackNumber().copy(id = IntId(1))
-        val unpublished = kmPost(trackNumber.id, KmNumber(1))
+        val unpublished = kmPost(trackNumber.id as IntId, KmNumber(1))
             .copy(draft = Draft(IntId(2)), id = IntId(1))
-        val published = kmPost(trackNumber.id, KmNumber(1))
+        val published = kmPost(trackNumber.id as IntId, KmNumber(1))
             .copy(draft = null, id = IntId(1))
         assertTrackNumberReferenceError(
             true,

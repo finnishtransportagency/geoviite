@@ -9,9 +9,11 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
-import { getLocationTracks, getSwitches, getTrackNumberById } from 'track-layout/track-layout-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { getTrackNumberById } from 'track-layout/layout-track-number-api';
+import { getLocationTracks } from 'track-layout/layout-location-track-api';
+import { getSwitches } from 'track-layout/layout-switch-api';
 
 const calculatedChangesIsEmpty = (calculatedChanges: TrackNumberCalculatedChanges) => {
     return calculatedChanges.switches.length == 0 && calculatedChanges.locationTracks.length == 0;

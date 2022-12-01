@@ -9,8 +9,9 @@ import { LocationTrackSaveRequest } from 'linking/linking-model';
 import {
     getLocationTrack,
     getLocationTracksBySearchTerm,
-    getTrackNumbers,
-} from 'track-layout/track-layout-api';
+    insertLocationTrack,
+    updateLocationTrack,
+} from 'track-layout/layout-location-track-api';
 import {
     actions,
     canSaveLocationTrack,
@@ -26,7 +27,6 @@ import {
     topologicalConnectivityTypes,
 } from 'utils/enum-localization-utils';
 import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
-import { insertLocationTrack, updateLocationTrack } from 'linking/linking-api';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +43,7 @@ import { debounceAsync } from 'utils/async-utils';
 import { isNullOrBlank } from 'utils/string-utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
@@ -83,6 +84,24 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
         .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED' }));
 
+    const closeNonDraftDeleteConfirmation = () => {
+        setNonDraftDeleteConfirmationVisible(false);
+    };
+
+    const confirmNonDraftDelete = () => {
+        setDraftDeleteConfirmationVisible(true);
+    };
+
+    const closeDraftDeleteConfirmation = () => {
+        setDraftDeleteConfirmationVisible(false);
+    };
+
+    const onLocationTrackDeleted = () => {
+        closeNonDraftDeleteConfirmation();
+        props.onClose && props.onClose();
+        props.locationTrack && props.onUnselect && props.onUnselect();
+    };
+
     // Load track numbers once
     React.useEffect(() => {
         stateActions.onStartLoadingTrackNumbers();
@@ -96,8 +115,13 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (props.locationTrack) {
             stateActions.onStartLoadingLocationTrack();
             getLocationTrack(props.locationTrack.id, 'DRAFT').then((locationTrack) => {
-                stateActions.onLocationTrackLoaded(locationTrack);
-                firstInputRef.current?.focus();
+                if (locationTrack) {
+                    stateActions.onLocationTrackLoaded(locationTrack);
+                    firstInputRef.current?.focus();
+                } else {
+                    Snackbar.error(t('location-track-dialog.cant-open-deleted'));
+                    onLocationTrackDeleted();
+                }
             });
         } else {
             stateActions.initWithNewLocationTrack();
@@ -115,24 +139,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         } else {
             save();
         }
-    };
-
-    const closeNonDraftDeleteConfirmation = () => {
-        setNonDraftDeleteConfirmationVisible(false);
-    };
-
-    const confirmNonDraftDelete = () => {
-        setDraftDeleteConfirmationVisible(true);
-    };
-
-    const closeDraftDeleteConfirmation = () => {
-        setDraftDeleteConfirmationVisible(false);
-    };
-
-    const onLocationTrackDeleted = () => {
-        closeNonDraftDeleteConfirmation();
-        props.onClose && props.onClose();
-        props.locationTrack && props.onUnselect && props.onUnselect();
     };
 
     function save() {

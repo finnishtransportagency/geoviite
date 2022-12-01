@@ -23,12 +23,6 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchEditDialog } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import {
-    getLocationTrack,
-    getSwitch,
-    getSwitchJointConnections,
-    getTrackMeter,
-} from 'track-layout/track-layout-api';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
@@ -40,6 +34,9 @@ import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track-meters';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getTrackMeter } from 'track-layout/layout-map-api';
+import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -78,7 +75,8 @@ const getTrackMeterForPoint = async (
         changeTimes.layoutLocationTrack,
     );
 
-    const trackMeter = await getTrackMeter(locationTrack.trackNumberId, publishType, location);
+    const trackMeter =
+        locationTrack && (await getTrackMeter(locationTrack.trackNumberId, publishType, location));
 
     return trackMeter
         ? mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter)

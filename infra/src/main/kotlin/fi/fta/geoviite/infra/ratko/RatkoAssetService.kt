@@ -4,12 +4,12 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.integration.SwitchJointChange
-import fi.fta.geoviite.infra.linking.LinkingDao
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
@@ -25,7 +25,7 @@ class RatkoAssetService @Autowired constructor(
     private val ratkoClient: RatkoClient,
     private val switchService: LayoutSwitchService,
     private val switchLibraryService: SwitchLibraryService,
-    private val linkingDao: LinkingDao,
+    private val switchDao: LayoutSwitchDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -109,7 +109,7 @@ class RatkoAssetService @Autowired constructor(
     ): List<RatkoAssetLocation> {
         return if (existingRatkoLocations.isNotEmpty()) {
             val linkedLocationTracks =
-                linkingDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId, switchStructure.presentationJointNumber)
+                switchDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId, switchStructure.presentationJointNumber)
                     .map { ids ->
                         ids.externalId ?: throw IllegalStateException("Official LocationTrack must have an external ID")
                     }

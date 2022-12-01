@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -87,7 +88,8 @@ class GeocodingService(
         address: TrackMeter,
         publishType: PublishType,
     ): AddressPoint? {
-        logger.serviceCall("getTrackLocation", "locationTrackId" to locationTrackId, "address" to address)
+        logger.serviceCall("getTrackLocation",
+            "locationTrackId" to locationTrackId, "address" to address, "publishType" to publishType)
         return locationTrackService.getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
             getGeocodingContext(publishType, track.trackNumberId)?.getTrackLocation(alignment, address)
         }

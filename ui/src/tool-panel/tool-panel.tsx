@@ -30,15 +30,13 @@ import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import GeometryKmPostInfoboxContainer from 'tool-panel/km-post/geometry-km-post-infobox-container';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
-import {
-    getKmPost,
-    getLocationTrack,
-    getSwitch,
-    getTrackNumbers,
-} from 'track-layout/track-layout-api';
+import { getKmPost } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
 import { useLoader } from 'utils/react-utils';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { getSwitch } from 'track-layout/layout-switch-api';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
 
 type ToolPanelProps = {
     planHeaders: GeometryPlanHeader[];
@@ -100,7 +98,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     );
 
     const onUnSelectLocationTracks = React.useCallback((track: LayoutLocationTrack) => {
-        onUnselect({locationTracks: [track.id]});
+        onUnselect({ locationTracks: [track.id] });
     }, []);
 
     const onUnSelectSwitches = React.useCallback((switchId: LayoutSwitchId) => {
@@ -128,10 +126,10 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         );
 
         return Promise.all([
-            locationTracksPromise,
-            switchesPromise,
-            kmPostsPromise,
-            trackNumbersPromise,
+            locationTracksPromise.then((l) => l.filter(filterNotEmpty)),
+            switchesPromise.then((l) => l.filter(filterNotEmpty)),
+            kmPostsPromise.then((l) => l.filter(filterNotEmpty)),
+            trackNumbersPromise.then((l) => l.filter(filterNotEmpty)),
         ]);
     }, [
         locationTrackIds,
@@ -150,7 +148,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const trackNumbers = (tracksSwitchesKmPosts && tracksSwitchesKmPosts[3]) || [];
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
-    const visibleByTypeAndPublishType = ({draftType}: { draftType: DraftType }) =>
+    const visibleByTypeAndPublishType = ({ draftType }: { draftType: DraftType }) =>
         publishType === 'DRAFT' || draftType !== 'NEW_DRAFT';
 
     React.useEffect(() => {
@@ -161,7 +159,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             return {
                 id: 'plan-header_' + p.id,
                 title: p.fileName,
-                element: <GeometryPlanInfobox planHeader={p}/>,
+                element: <GeometryPlanInfobox planHeader={p} />,
             };
         });
 
@@ -212,7 +210,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             return {
                 id: 'geometry-km-post_' + k.geometryItem.id,
                 title: k.geometryItem.kmNumber,
-                element: <GeometryKmPostInfoboxContainer geometryKmPost={k} showArea={showArea}/>,
+                element: <GeometryKmPostInfoboxContainer geometryKmPost={k} showArea={showArea} />,
             };
         });
 
@@ -228,7 +226,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         changeTimes={changeTimes}
                         onDataChange={onDataChange}
                         onUnselect={onUnSelectSwitches}
-                        placingSwitchLinkingState={linkingState?.type == LinkingType.PlacingSwitch ? linkingState : undefined}
+                        placingSwitchLinkingState={
+                            linkingState?.type == LinkingType.PlacingSwitch
+                                ? linkingState
+                                : undefined
+                        }
                         startSwitchPlacing={startSwitchPlacing}
                     />
                 ),

@@ -79,12 +79,8 @@ class BasicMapTestUI @Autowired constructor(
         insertReferenceLine(WEST_REFERENCE_LINE)
         insertReferenceLine(eastReferenceLine)
 
-        westTrackLayoutKmPosts(trackNumberWestId.id).forEach { kmPost ->
-            kmPostDao.insert(kmPost)
-        }
-        eastTrackLayoutKmPosts(trackNumberEastId.id).forEach { kmPost ->
-            kmPostDao.insert(kmPost)
-        }
+        westTrackLayoutKmPosts(trackNumberWestId.id).forEach(kmPostDao::insert)
+        eastTrackLayoutKmPosts(trackNumberEastId.id).forEach(kmPostDao::insert)
 
         EAST_LAYOUT_SWITCH = eastTrackLayoutSwitch()
         switchDao.insert(westTrackLayoutSwitch())

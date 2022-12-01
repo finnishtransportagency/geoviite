@@ -4,12 +4,16 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
+import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
+import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.RowVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -18,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional
 class LocationTrackService(
     dao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
-    private val switchService: LayoutSwitchService,
     private val alignmentDao: LayoutAlignmentDao,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
 
@@ -152,21 +155,22 @@ class LocationTrackService(
 
     fun list(
         publishType: PublishType,
-        searchTerm: String,
+        searchTerm: FreeText,
         limit: Int?,
     ): List<LocationTrack> {
         logger.serviceCall(
             "list",
             "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
         )
+        val term = searchTerm.toString()
         return dao.fetchVersions(publishType)
             .map(dao::fetch)
             .filter { locationTrack ->
-                locationTrack.externalId.toString() == searchTerm ||
+                locationTrack.externalId.toString() == term ||
                         locationTrack.exists &&
-                        (locationTrack.name.contains(searchTerm, true)
-                        || locationTrack.description.contains(searchTerm, true)
-                                || locationTrack.id.toString() == searchTerm)
+                        (locationTrack.name.contains(term, true)
+                        || locationTrack.description.contains(term, true)
+                                || locationTrack.id.toString() == term)
             }
             .sortedBy { locationTrack -> locationTrack.name }
             .let { list -> if (limit != null) list.take(limit) else list }
@@ -181,13 +185,6 @@ class LocationTrackService(
         dao.fetchVersions(publishType)
             .map(dao::fetch)
             .filter(LocationTrack::exists)
-
-    fun getSwitchNameForSegment(publishType: PublishType, segment: LayoutSegment): SwitchName? {
-        return segment.switchId
-            .takeIf { switchId -> switchId is IntId }
-            ?.let { switchId -> switchService.getOrThrow(publishType, switchId as IntId) }
-            ?.let { switch -> if (switch.exists) switch.name else null }
-    }
 
     fun listWithAlignments(publishType: PublishType): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall("listWithAlignments", "publishType" to publishType)
@@ -295,6 +292,11 @@ class LocationTrackService(
             ?: defaultSwitch
             ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracks)
     }
+
+    fun getLocationTrackEndpoints(bbox: BoundingBox, publishType: PublishType): List<LocationTrackEndpoint> {
+        logger.serviceCall("getLocationTrackEndpoints", "bbox" to bbox)
+        return getLocationTrackEndpoints(listWithAlignments(publishType), bbox)
+    }
 }
 
 private fun findBestTopologySwitchFromSegments(
@@ -341,3 +343,18 @@ private fun pickIfClose(
     if (distance < 1.0) topologyMatch to distance
     else null
 } else null
+
+fun getLocationTrackEndpoints(
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    bbox: BoundingBox,
+): List<LocationTrackEndpoint> = locationTracks.flatMap { (locationTrack, alignment) ->
+    val trackId = locationTrack.id as IntId
+    listOfNotNull(
+        alignment.start?.takeIf(bbox::contains)?.let{ p ->
+            LocationTrackEndpoint(trackId, p.toPoint(), START_POINT)
+        },
+        alignment.end?.takeIf(bbox::contains)?.let{ p ->
+            LocationTrackEndpoint(trackId, p.toPoint(), END_POINT)
+        },
+    )
+}
