@@ -23,9 +23,6 @@ import org.springframework.transaction.annotation.Transactional
 import kotlin.math.PI
 
 
-const val LOCALIZATION_KEY_SHARP_ANGLE = "error.linking.segments-sharp-angle"
-
-
 fun isAlignmentConnected(
     location: Point,
     locationTrackPointUpdateType: LocationTrackPointUpdateType,
@@ -225,7 +222,7 @@ class LinkingService @Autowired constructor(
                 if (diff > PI / 2) throw LinkingFailureException(
                     message = "Linked geometry has over 90 degree angles between segments: " +
                             "segment=${segment.id} angle=${radsToDegrees(diff)}",
-                    localizedMessageKey = LOCALIZATION_KEY_SHARP_ANGLE,
+                    localizedMessageKey = "segments-sharp-angle",
                 )
             }
         }
@@ -351,9 +348,9 @@ class LinkingService @Autowired constructor(
         } catch (e: IllegalArgumentException) {
             logger.warn("Linking selection produces invalid alignment: ${e.message}")
             throw LinkingFailureException(
-                "Linking selection produces invalid alignment",
-                e,
-                "error.linking.alignment-geometry"
+                message = "Linking selection produces invalid alignment",
+                cause = e,
+                localizedMessageKey = "alignment-geometry"
             )
         }
     }

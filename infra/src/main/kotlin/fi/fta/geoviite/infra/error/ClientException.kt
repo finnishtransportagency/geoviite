@@ -26,29 +26,31 @@ sealed class ClientException(
     }
 }
 
-class GeocodingFailureException(
-    message: String,
-    cause: Throwable? = null,
-    localizedMessageKey: String = "error.geocoding.generic",
-) : ClientException(BAD_REQUEST, "Geocoding failed: $message", cause, localizedMessageKey)
+
+class GeocodingFailureException(message: String, cause: Throwable? = null)
+    : ClientException(BAD_REQUEST, "Geocoding failed: $message", cause, "error.geocoding.generic")
 
 class LinkingFailureException(
     message: String,
     cause: Throwable? = null,
-    localizedMessageKey: String = "error.linking.generic",
-) : ClientException(BAD_REQUEST, "Linking failed: $message", cause, localizedMessageKey)
+    localizedMessageKey: String = "generic",
+) : ClientException(BAD_REQUEST, "Linking failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
+    companion object { const val LOCALIZATION_KEY_BASE = "error.linking" }
+}
+
+class PublicationFailureException(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "generic",
+) : ClientException(BAD_REQUEST, "Publishing failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
+    companion object { const val LOCALIZATION_KEY_BASE = "error.publication" }
+}
 
 class DeletingFailureException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "error.deleting.generic",
 ) : ClientException(BAD_REQUEST, "Deleting failed: $message", cause, localizedMessageKey)
-
-class PublishFailureException(
-    message: String,
-    cause: Throwable? = null,
-    localizedMessageKey: String = "error.publish.generic",
-) : ClientException(BAD_REQUEST, "Publish failed: $message", cause, localizedMessageKey)
 
 class InputValidationException(
     message: String,

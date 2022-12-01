@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.error.PublishFailureException
+import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -178,15 +178,23 @@ class PublishService @Autowired constructor(
     fun updateExternalId(request: PublishRequest) {
         logger.serviceCall("updateExternalId", "request" to request)
 
-        request.locationTracks
-            .filter { locationTrackId -> locationTrackService.getDraft(locationTrackId).externalId == null }
-            .forEach { locationTrackId -> updateExternalIdForLocationTrack(locationTrackId) }
-        request.trackNumbers
-            .filter { trackNumberId -> trackNumberService.getDraft(trackNumberId).externalId == null }
-            .forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
-        request.switches
-            .filter { switchId -> switchService.getDraft(switchId).externalId == null }
-            .forEach { switchId -> updateExternalIdForSwitch(switchId) }
+        try {
+            request.locationTracks
+                .filter { locationTrackId -> locationTrackService.getDraft(locationTrackId).externalId == null }
+                .forEach { locationTrackId -> updateExternalIdForLocationTrack(locationTrackId) }
+            request.trackNumbers
+                .filter { trackNumberId -> trackNumberService.getDraft(trackNumberId).externalId == null }
+                .forEach { trackNumberId -> updateExternalIdForTrackNumber(trackNumberId) }
+            request.switches
+                .filter { switchId -> switchService.getDraft(switchId).externalId == null }
+                .forEach { switchId -> updateExternalIdForSwitch(switchId) }
+        } catch (e: Exception) {
+            throw PublicationFailureException(
+                message = "Failed to update external IDs for publish candidates",
+                cause = e,
+                localizedMessageKey = "external-id-update-failed"
+            )
+        }
     }
 
     private fun updateExternalIdForLocationTrack(locationTrackId: IntId<LocationTrack>) {
@@ -249,7 +257,10 @@ class PublishService @Autowired constructor(
         if (severeErrors.isNotEmpty()) {
             logger.warn("Validation errors in published ${T::class.simpleName}: item=$id errors=$severeErrors")
             if (ENFORCE_VALIDITY) {
-                throw PublishFailureException("Cannot publish ${T::class.simpleName} due to validation errors: $id")
+                throw PublicationFailureException(
+                    message = "Cannot publish ${T::class.simpleName} due to validation errors: $id",
+                    localizedMessageKey = "validation-failed",
+                )
             }
         }
     }
