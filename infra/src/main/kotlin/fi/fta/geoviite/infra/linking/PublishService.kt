@@ -484,17 +484,13 @@ class PublishService @Autowired constructor(
     }
 
     private fun getDraftReferenceLineAndAlignmentWithOfficialId(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        val (referenceLine, alignment) = requireNotNull(referenceLineService.getWithAlignment(DRAFT, id)) {
-            "Cannot find draft reference line: $id"
-        }
+        val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, id)
         require(referenceLine.id == id) { "Attempting to publish ReferenceLine via draft ID" }
         return referenceLine to alignment
     }
 
     private fun getDraftLocationTrackAndAlignmentWithOfficialId(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
-        val (locationTrack, alignment) = requireNotNull(locationTrackService.getWithAlignment(DRAFT, id)) {
-            "Cannot find draft location track: $id"
-        }
+        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
         require(locationTrack.id == id) { "Attempting to publish LocationTrack via draft ID" }
         return locationTrack to alignment
     }
