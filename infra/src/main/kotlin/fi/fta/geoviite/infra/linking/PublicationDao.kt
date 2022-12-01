@@ -79,7 +79,11 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_switch_id, id) as official_id, name, change_time
+            select coalesce(draft_of_switch_id, id) as official_id, name, change_time,
+                   (select array_agg(distinct track_number_id)
+                    from layout.segment
+                      join layout.location_track using(alignment_id)
+                    where coalesce(switch.draft_of_switch_id, switch.id) = segment.switch_id) as track_numbers
             from layout.switch
             where draft = true
         """.trimIndent()
@@ -88,6 +92,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 id = rs.getIntId("official_id"),
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
+                trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }
         logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))

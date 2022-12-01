@@ -167,6 +167,7 @@ data class LocationTrackPublishCandidate(
 data class SwitchPublishCandidate(
     override val id: IntId<TrackLayoutSwitch>,
     val name: SwitchName,
+    val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     override val draftChangeTime: Instant,
     override val errors: List<PublishValidationError> = listOf(),
 ) : PublishCandidate<TrackLayoutSwitch> {

@@ -178,7 +178,10 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                     // setSelectedChanges(newSelectedChanges);
                                 }}
                                 itemName={`${t('publication-table.switch')} ${layoutSwitch.name}`}
-                                trackNumber={undefined}
+                                trackNumber={trackNumbers
+                                    .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn == tn.id))
+                                    .map((tn) => tn.number)
+                                    .join(', ')}
                                 errors={layoutSwitch.errors}
                                 changeTime={layoutSwitch.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}

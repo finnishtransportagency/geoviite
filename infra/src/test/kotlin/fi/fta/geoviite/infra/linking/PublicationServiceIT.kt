@@ -94,6 +94,31 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun fetchSwitchTrackNumberLinksFromPublication() {
+        val switch = switchService.saveDraft(switch(123))
+        val trackNumberIds = listOf(
+            trackNumberService.saveDraft(trackNumber(getUnusedTrackNumber())).id,
+            trackNumberService.saveDraft(trackNumber(getUnusedTrackNumber())).id,
+        )
+        val locationTracks = trackNumberIds.map { trackNumberId ->
+            val (t, a) = locationTrackAndAlignment(trackNumberId, segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+            locationTrackService.saveDraft(t.copy(alignmentVersion =
+                alignmentDao.insert(a.copy(segments = listOf(a.segments[0].copy(switchId = switch.id))))))
+        }
+
+        val publishRequest = PublishRequest(
+            listOf(),
+            locationTracks.map { it.id },
+            listOf(),
+            listOf(switch.id),
+            listOf(),
+        )
+        val publishResult = publicationService.publishChanges(publishRequest)
+        val publish = publicationService.getPublication(publishResult.publishId!!)
+        assertEquals(trackNumberIds.sortedBy { it.intValue }, publish.switches[0].trackNumberIds.sortedBy { it.intValue })
+    }
+
+    @Test
     fun publishingNewReferenceLineWorks() {
         val (line, alignment) = referenceLineAndAlignment(someTrackNumber())
         val draftId = referenceLineService.saveDraft(line, alignment).id
