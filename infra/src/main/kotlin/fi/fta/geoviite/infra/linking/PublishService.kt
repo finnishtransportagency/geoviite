@@ -79,39 +79,19 @@ class PublishService @Autowired constructor(
     fun validateSeparately(publishCandidates: PublishCandidates) =
         PublishCandidates(
             trackNumbers = publishCandidates.trackNumbers.map { candidate ->
-                candidate.copy(
-                    errors = validateTrackNumberOwnInformation(
-                        candidate.id
-                    )
-                )
+                candidate.copy(errors = validateTrackNumberOwnInformation(candidate.id))
             },
             locationTracks = publishCandidates.locationTracks.map { candidate ->
-                candidate.copy(
-                    errors = validateLocationTrackOwnInformation(
-                        candidate.id
-                    )
-                )
+                candidate.copy(errors = validateLocationTrackOwnInformation(candidate.id))
             },
             referenceLines = publishCandidates.referenceLines.map { candidate ->
-                candidate.copy(
-                    errors = validateReferenceLineOwnInformation(
-                        candidate.id
-                    )
-                )
+                candidate.copy(errors = validateReferenceLineOwnInformation(candidate.id))
             },
             switches = publishCandidates.switches.map { candidate ->
-                candidate.copy(
-                    errors = validateSwitchOwnInformation(
-                        candidate.id
-                    )
-                )
+                candidate.copy(errors = validateSwitchOwnInformation(candidate.id))
             },
             kmPosts = publishCandidates.kmPosts.map { candidate ->
-                candidate.copy(
-                    errors = validateKmPostOwnInformation(
-                        candidate.id
-                    )
-                )
+                candidate.copy(errors = validateKmPostOwnInformation(candidate.id))
             },
         )
 
