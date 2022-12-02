@@ -16,9 +16,11 @@ fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumb
         val unified = actual.copy(
             id = expected.id,
             dataType = expected.dataType,
+            draft = expected.draft,
             version = expected.version,
         )
         assertEquals(expected, unified)
+        assertEquals(expected.draft != null, actual.draft != null)
     }
 }
 
