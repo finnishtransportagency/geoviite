@@ -84,18 +84,14 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         <>
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <div>
-                                        <h3>{t('preview-view.other-changes-title')}</h3>
-                                    </div>
+                                    <h3>{t('preview-view.other-changes-title')}</h3>
                                 </div>
                                 <PublicationTable previewChanges={previewChanges}/>
                             </section>
 
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <div>
-                                        <h3>{t('preview-view.publish-candidates-title')}</h3>
-                                    </div>
+                                    <h3>{t('preview-view.publish-candidates-title')}</h3>
                                 </div>
                                 <PublicationTable previewChanges={previewChanges}/>
                             </section>
