@@ -30,7 +30,8 @@ class CommonUiTestUtil {
         fun metersToDouble(meters: String) =
             meters.substringBefore(' ').toDouble()
 
-        private fun asThreeDecimalPlaces(v: Double) = String.format("%.3f").replace(",", ".")
+        //UI uses '.' instead of ','
+        private fun asThreeDecimalPlaces(v: Double) = String.format("%.3f", v).replace(",", ".")
 
     }
 }
