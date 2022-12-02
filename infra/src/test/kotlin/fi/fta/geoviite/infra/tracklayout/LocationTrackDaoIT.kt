@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
@@ -76,5 +77,44 @@ class LocationTrackDaoIT @Autowired constructor(
 
         locationTrackDao.insert(locationTrack1)
         assertThrows<DuplicateKeyException> { locationTrackDao.insert(locationTrack2) }
+    }
+
+    @Test
+    fun locationTrackVersioningWorks() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val tempAlignment = alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
+        val alignmentVersion = alignmentDao.insert(tempAlignment)
+        val tempTrack = locationTrack(
+            trackNumberId = trackNumberId,
+            name = "test1",
+            alignment = tempAlignment,
+            alignmentVersion = alignmentVersion,
+        )
+        val insertVersion = locationTrackDao.insert(tempTrack)
+        val inserted = locationTrackDao.fetch(insertVersion)
+        assertMatches(tempTrack, inserted)
+        assertEquals(VersionPair(insertVersion, null), locationTrackDao.fetchVersionPair(insertVersion.id))
+
+        val tempDraft1 = draft(inserted).copy(name = AlignmentName("test2"))
+        val draftVersion1 = locationTrackDao.insert(tempDraft1)
+        val draft1 = locationTrackDao.fetch(draftVersion1)
+        assertMatches(tempDraft1, draft1)
+        assertEquals(VersionPair(insertVersion, draftVersion1), locationTrackDao.fetchVersionPair(insertVersion.id))
+
+        val newTempAlignment = alignment(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
+        val newAlignmentVersion = alignmentDao.insert(newTempAlignment)
+        val tempDraft2 = draft1.copy(alignmentVersion = newAlignmentVersion, length = newTempAlignment.length)
+        val draftVersion2 = locationTrackDao.update(tempDraft2)
+        val draft2 = locationTrackDao.fetch(draftVersion2)
+        assertMatches(tempDraft2, draft2)
+        assertEquals(VersionPair(insertVersion, draftVersion2), locationTrackDao.fetchVersionPair(insertVersion.id))
+
+        locationTrackDao.deleteDrafts(insertVersion.id)
+        alignmentDao.deleteOrphanedAlignments()
+        assertEquals(VersionPair(insertVersion, null), locationTrackDao.fetchVersionPair(insertVersion.id))
+
+        assertEquals(inserted, locationTrackDao.fetch(insertVersion))
+        assertEquals(draft1, locationTrackDao.fetch(draftVersion1))
+        assertEquals(draft2, locationTrackDao.fetch(draftVersion2))
     }
 }
