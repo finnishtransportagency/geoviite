@@ -16,7 +16,6 @@ import { createLinkPoints } from 'linking/linking-store';
 const locationTrackEndsCache = asyncCache<string, MapAlignment>();
 const referenceLineEndsCache = asyncCache<string, MapAlignment>();
 const alignmentTilesCache = asyncCache<string, MapAlignment[]>();
-const trackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
@@ -162,15 +161,11 @@ export async function getTrackMeter(
     trackNumberId: string,
     publishType: PublishType,
     location: Point,
-    changeTime?: TimeStamp,
 ): Promise<TrackMeter | undefined> {
     const params = queryParams({ coordinate: pointString(location) });
-    const cacheKey = `${trackNumberId}_${publishType}_${pointString(location)}`;
 
-    return trackMeterCache.get(changeTime || getChangeTimes().layoutTrackNumber, cacheKey, () =>
-        getWithDefault<TrackMeter | undefined>(
-            `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
-            undefined,
-        ),
+    return getWithDefault(
+        `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
+        undefined,
     );
 }

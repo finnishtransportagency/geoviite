@@ -33,28 +33,17 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
 }: SwitchInfoboxTrackMetersProps) => {
     const { t } = useTranslation();
 
-    const [otherJointsAddress, setOtherJointsAddress] = React.useState<
-        Record<string, SwitchJointTrackMeter[]>
-    >({});
-
-    const [presentationJointAddress, setPresentationJointAddress] = React.useState<
-        SwitchJointTrackMeter[]
-    >([]);
-
     const [showOtherJoints, setShowOtherJoints] = React.useState(false);
 
+    const presentationJointAddress = jointTrackMeters.filter(
+        (jtm) => jtm.jointNumber == presentationJoint,
+    );
+    const otherJointsAddress = groupBy(
+        jointTrackMeters.filter((jtm) => jtm.jointNumber != presentationJoint),
+        (i) => i.jointNumber,
+    );
+
     React.useEffect(() => {
-        setPresentationJointAddress(
-            jointTrackMeters.filter((jtm) => jtm.jointNumber == presentationJoint),
-        );
-
-        setOtherJointsAddress(
-            groupBy(
-                jointTrackMeters.filter((jtm) => jtm.jointNumber != presentationJoint),
-                (i) => i.jointNumber,
-            ),
-        );
-
         setShowOtherJoints(false);
     }, [jointTrackMeters, presentationJoint]);
 

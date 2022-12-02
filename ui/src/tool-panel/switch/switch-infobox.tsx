@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next';
 import SwitchHand from 'geoviite-design-lib/switch/switch-hand';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import { useLoader } from 'utils/react-utils';
-import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
+import { getSwitchOwners, getSwitchStructures, pointString } from 'common/common-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchEditDialog } from './dialog/switch-edit-dialog';
@@ -37,6 +37,9 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getTrackMeter } from 'track-layout/layout-map-api';
 import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
+import { asyncCache } from 'cache/cache';
+
+const switchJointTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -75,8 +78,14 @@ const getTrackMeterForPoint = async (
         changeTimes.layoutLocationTrack,
     );
 
-    const trackMeter =
-        locationTrack && (await getTrackMeter(locationTrack.trackNumberId, publishType, location));
+    if (!locationTrack) return undefined;
+
+    const cacheKey = `${locationTrack.trackNumberId}_${publishType}_${pointString(location)}`;
+    const trackMeter = await switchJointTrackMeterCache.get(
+        changeTimes.layoutTrackNumber,
+        cacheKey,
+        () => getTrackMeter(locationTrack.trackNumberId, publishType, location),
+    );
 
     return trackMeter
         ? mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter)
@@ -135,8 +144,9 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     );
 
     const switchJointTrackMeters = useLoader(() => {
-        if (switchJointConnections)
-            return getSwitchJointTrackMeters(switchJointConnections, publishType, changeTimes);
+        return switchJointConnections
+            ? getSwitchJointTrackMeters(switchJointConnections, publishType, changeTimes)
+            : undefined;
     }, [switchJointConnections, publishType, changeTimes]);
 
     const SwitchImage =
