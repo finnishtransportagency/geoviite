@@ -234,9 +234,9 @@ class RatkoLocationTrackService @Autowired constructor(
             existingEndNode = existingEndNode,
         )
 
-        deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
-
         updateLocationTrackProperties(layoutLocationTrack, updatedEndPointNodeCollection)
+
+        deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
 
         updateLocationTrackGeometry(
             locationTrackOid = locationTrackOid,
