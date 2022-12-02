@@ -52,7 +52,6 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
 
     fun valmis(): Toaster{
         clickButton("Valmis")
-        waitUntilElementIsStale(rootElement)
         refresRootElement()
         return waitAndGetToasterElement()
     }
@@ -552,4 +551,3 @@ data class SwitchLineAndTrack (
     val switchLine: String,
     val switchTrack: String
 )
-

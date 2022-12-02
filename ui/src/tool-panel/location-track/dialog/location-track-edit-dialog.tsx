@@ -63,7 +63,11 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const { t } = useTranslation();
     const startAndEndPoints =
         props.locationTrack && props.publishType
-            ? useLocationTrackStartAndEnd(props.locationTrack.id, props.publishType)
+            ? useLocationTrackStartAndEnd(
+                  props.locationTrack.id,
+                  props.publishType,
+                  props.locationTrackChangeTime,
+              )
             : undefined;
     const officialLocationTrack =
         props.publishType && props.locationTrack

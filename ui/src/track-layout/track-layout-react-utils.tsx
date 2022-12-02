@@ -110,10 +110,11 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
+    changeTime: TimeStamp,
 ): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id && publishType ? getLocationTrackStartAndEnd(id, publishType) : undefined),
-        [id, publishType],
+        [id, publishType, changeTime],
     );
 }
 

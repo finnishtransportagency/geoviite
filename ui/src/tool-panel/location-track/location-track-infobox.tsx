@@ -70,7 +70,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
-    const startAndEndPoints = useLocationTrackStartAndEnd(locationTrack?.id, publishType);
+    const startAndEndPoints = useLocationTrackStartAndEnd(
+        locationTrack?.id,
+        publishType,
+        locationTrackChangeTime,
+    );
     const changeTimes = useLocationTrackChangeTimes(locationTrack?.id);
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const officialLocationTrack = useLocationTrack(
