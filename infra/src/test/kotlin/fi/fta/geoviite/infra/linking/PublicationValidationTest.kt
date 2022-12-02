@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.test.assertEquals
 
-class PublishValidationTest {
+class PublicationValidationTest {
 
     private val structure = switchStructureYV60_300_1_9()
 

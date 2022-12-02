@@ -367,8 +367,9 @@ export type LayoutSwitchJointConnection = {
     locationAccuracy?: LocationAccuracy;
 };
 
-export type SwitchTrackMeter = {
-    name: string;
-    trackMeter: TrackMeter;
+export type SwitchJointTrackMeter = {
+    jointNumber: JointNumber;
     locationTrackId: LocationTrackId;
+    locationTrackName: string;
+    trackMeter: TrackMeter;
 };

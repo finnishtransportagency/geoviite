@@ -20,7 +20,7 @@ val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
 @RestController
 @RequestMapping("/publications")
-class PublishController @Autowired constructor(
+class PublicationController @Autowired constructor(
     private val lockDao: LockDao,
     private val publishService: PublishService,
     private val calculatedChangesService: CalculatedChangesService,
@@ -32,7 +32,14 @@ class PublishController @Autowired constructor(
     @GetMapping("/candidates")
     fun getPublishCandidates(): PublishCandidates {
         logger.apiCall("getPublishCandidates")
-        return publishService.validatePublishCandidates(publishService.collectPublishCandidates())
+        return publishService.getPublishCandidates()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PostMapping("/validate")
+    fun validatePublishCandidates(@RequestBody publishRequest: PublishRequest): ValidatedPublishCandidates {
+        logger.apiCall("validatePublishCandidates")
+        return publishService.validatePublishCandidates(publishRequest)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -83,9 +90,7 @@ class PublishController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}")
-    fun getRatkoPublication(
-        @PathVariable("id") id: IntId<Publication>
-    ): Publication {
+    fun getRatkoPublication(@PathVariable("id") id: IntId<Publication>): Publication {
         logger.apiCall("getRatkoPublication", "id" to id)
         return publishService.getPublication(id)
     }

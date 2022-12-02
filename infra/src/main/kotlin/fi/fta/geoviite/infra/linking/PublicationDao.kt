@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
-class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
         val sql = """
