@@ -1,7 +1,7 @@
 {
     "km-post-dialog": {
         "owner": "Omistaja",
-        "coordinates": "Koordinaatit (x, y)",
+        "coordinates": "Koordinaatit (TM35FIN)",
         "title-new": "Uusi tasakilometripiste",
         "title-edit": "Muokkaa tasakilometripisteen tietoja",
         "general-title": "Perustiedot",

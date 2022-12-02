@@ -13,7 +13,7 @@
         "info-from-linking": "Linkityksestä tulevat tiedot",
         "track-location": "Rataosoite (km + m)",
         "coordinate-system": "Koordinaattijärjestelmä",
-        "coordinates": "Koordinaatit (x, y)",
+        "coordinates": "Koordinaatit (TM35FIN)",
         "right": "Oikea",
         "left": "Vasen",
         "new-switch-added": "Uusi vaihde lisätty rekisteriin",
