@@ -16,6 +16,7 @@ import { createLinkPoints } from 'linking/linking-store';
 const locationTrackEndsCache = asyncCache<string, MapAlignment>();
 const referenceLineEndsCache = asyncCache<string, MapAlignment>();
 const alignmentTilesCache = asyncCache<string, MapAlignment[]>();
+const trackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
@@ -157,14 +158,19 @@ export function toMapAlignmentResolution(tileResolution: number): number {
     return parseFloat(Math.ceil(tileResolution * MAP_RESOLUTION_MULTIPLIER).toPrecision(1));
 }
 
-export async function getTrackAddress(
+export async function getTrackMeter(
     trackNumberId: string,
     publishType: PublishType,
-    coordinate: Point,
+    location: Point,
+    changeTime?: TimeStamp,
 ): Promise<TrackMeter | undefined> {
-    const params = queryParams({ coordinate: pointString(coordinate) });
-    return getWithDefault<TrackMeter | undefined>(
-        `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
-        undefined,
+    const params = queryParams({ coordinate: pointString(location) });
+    const cacheKey = `${trackNumberId}_${publishType}_${pointString(location)}`;
+
+    return trackMeterCache.get(changeTime || getChangeTimes().layoutTrackNumber, cacheKey, () =>
+        getWithDefault<TrackMeter | undefined>(
+            `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
+            undefined,
+        ),
     );
 }

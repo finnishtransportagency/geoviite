@@ -87,16 +87,11 @@ export function compareByField<T, S>(v1: T, v2: T, getter: (obj: T) => S): numbe
     else return 0;
 }
 
-export function associateBy<T>(
-    arr: T[],
-    keyFunc: (item: T) => string | number,
-): { [key: string | number]: T } {
-    return arr.reduce((map, item) => {
-        return {
-            ...map,
-            [keyFunc(item)]: item,
-        };
-    }, {});
+export function groupBy<T, K extends string | number>(array: T[], getKey: (item: T) => K) {
+    return array.reduce((acc, item) => {
+        (acc[getKey(item)] ||= []).push(item);
+        return acc;
+    }, {} as Record<K, T[]>);
 }
 
 /**

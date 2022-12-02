@@ -1,55 +1,117 @@
 import * as React from 'react';
-import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import styles from './switch-infobox.scss';
-import { Precision, roundToPrecision } from 'utils/rounding';
-import { SwitchTrackMeter } from 'track-layout/track-layout-model';
+import { SwitchJointTrackMeter } from 'track-layout/track-layout-model';
+import { JointNumber } from 'common/common-model';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
+import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
+import { groupBy } from 'utils/array-utils';
+import { useTranslation } from 'react-i18next';
+import { switchJointNumberToString } from 'utils/enum-localization-utils';
 
-type TrackMeterProps = {
-    switchTrackMeter: SwitchTrackMeter;
-    precision?: Precision.kmNumberMeters | Precision.kmNumberMillimeters;
-};
-
-const TrackMeter: React.FC<TrackMeterProps> = ({
-    switchTrackMeter,
-    precision = Precision.kmNumberMeters,
-}) => {
+const formatJointTrackMeter = (jointTrackMeter: SwitchJointTrackMeter) => {
     return (
-        <>
-            {`${switchTrackMeter.trackMeter.kmNumber} + ${roundToPrecision(
-                switchTrackMeter.trackMeter.meters,
-                precision,
-            )} (`}
+        <span>
+            <TrackMeter value={jointTrackMeter.trackMeter} />
+            <br />
             <LocationTrackLink
-                key={switchTrackMeter.locationTrackId}
-                locationTrackId={switchTrackMeter.locationTrackId}
-                locationTrackName={switchTrackMeter.name}
+                locationTrackId={jointTrackMeter.locationTrackId}
+                locationTrackName={jointTrackMeter.locationTrackName}
             />
-            {')'}
-        </>
+        </span>
     );
 };
 
 export type SwitchInfoboxTrackMetersProps = {
-    switchTrackMeters: SwitchTrackMeter[] | undefined;
+    jointTrackMeters: SwitchJointTrackMeter[];
+    presentationJoint?: JointNumber;
 };
 
 export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> = ({
-    switchTrackMeters,
+    jointTrackMeters,
+    presentationJoint,
 }: SwitchInfoboxTrackMetersProps) => {
+    const { t } = useTranslation();
+
+    const [otherJointsAddress, setOtherJointsAddress] = React.useState<
+        Record<string, SwitchJointTrackMeter[]>
+    >({});
+
+    const [presentationJointAddress, setPresentationJointAddress] = React.useState<
+        SwitchJointTrackMeter[]
+    >([]);
+
+    const [showOtherJoints, setShowOtherJoints] = React.useState(false);
+
+    React.useEffect(() => {
+        setPresentationJointAddress(
+            jointTrackMeters.filter((jtm) => jtm.jointNumber == presentationJoint),
+        );
+
+        setOtherJointsAddress(
+            groupBy(
+                jointTrackMeters.filter((jtm) => jtm.jointNumber != presentationJoint),
+                (i) => i.jointNumber,
+            ),
+        );
+
+        setShowOtherJoints(false);
+    }, [jointTrackMeters, presentationJoint]);
+
     return (
-        <React.Fragment>
-            {switchTrackMeters && (
-                <ul className={styles['switch-infobox-track-meters__ul']}>
-                    {switchTrackMeters.map((switchTrackMeter) => (
-                        <li key={switchTrackMeter.locationTrackId}>
-                            <TrackMeter
-                                switchTrackMeter={switchTrackMeter}
-                                precision={Precision.kmNumberMillimeters}
-                            />
+        <div className="switch-infobox-track-meters">
+            <section>
+                {presentationJointAddress.length === 0 && (
+                    <span>{t('tool-panel.switch.layout.no-location')}</span>
+                )}
+                <ol className={styles['switch-infobox-track-meters__track-meters']}>
+                    {presentationJointAddress.map((pja) => (
+                        <li
+                            key={pja.locationTrackId}
+                            className={styles['switch-infobox-track-meters__track-meter']}>
+                            {formatJointTrackMeter(pja)}
                         </li>
                     ))}
-                </ul>
+                </ol>
+            </section>
+
+            {showOtherJoints &&
+                Object.entries(otherJointsAddress).map(([jointNumber, addresses]) => {
+                    return (
+                        <section key={jointNumber}>
+                            <h3 className={styles['switch-infobox-track-meters__joint-number']}>
+                                {t('tool-panel.switch.layout.joint-number', {
+                                    number: switchJointNumberToString(jointNumber),
+                                })}
+                            </h3>
+                            <ol className={styles['switch-infobox-track-meters__track-meters']}>
+                                {addresses.map((a) => (
+                                    <li
+                                        key={a.locationTrackId}
+                                        className={
+                                            styles['switch-infobox-track-meters__track-meter']
+                                        }>
+                                        {formatJointTrackMeter(a)}
+                                    </li>
+                                ))}
+                            </ol>
+                        </section>
+                    );
+                })}
+
+            {Object.keys(otherJointsAddress).length > 0 && (
+                <section>
+                    <Button
+                        className={styles['switch-infobox-track-meters__show-more']}
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.GHOST}
+                        onClick={() => setShowOtherJoints(!showOtherJoints)}>
+                        {showOtherJoints
+                            ? t('tool-panel.switch.layout.show-less')
+                            : t('tool-panel.switch.layout.show-more')}
+                    </Button>
+                </section>
             )}
-        </React.Fragment>
+        </div>
     );
 };
