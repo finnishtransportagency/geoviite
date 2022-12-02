@@ -24,9 +24,11 @@
         "title-edit": "Muokkaa vaihteen tietoja",
         "modified-successfully": "Vaihteen tiedot päivitetty",
         "modify-failed": "Vaihteen päivittäminen epäonnistui",
-        "deleted-confirmation-title": "Sijaintivaihteen poistaminen paikannuspohjasta",
-        "deleted-category-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
-        "confirm-switch-delete": "Vaihteen linkitykset sijaintiraiteisiin puretaan poistettaessa. Haluatko poistaa vaihteen paikannuspohjasta?"
+        "confirmation-title": "Vaihteen päivittäminen",
+        "confirmation-delete-title": "Vaihteen poistaminen",
+        "deleted-state-warning": "Poistettu-tilainen vaihde ei voi olla osa paikannuspohjaa.",
+        "changed-switch-structure-warning": "Vaihteen vaihdetyyppiä on muokattu.",
+        "confirm-switch-save": "Vaihteen linkitykset sijaintiraiteisiin puretaan tallennuksen yhteydessä. Haluatko varmasti tallentaa muutokset?"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

@@ -45,18 +45,23 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
-        if (switch.stateCategory == LayoutStateCategory.NOT_EXISTING) {
+        val layoutSwitch = getDraft(id);
+        val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
+        val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
+
+        if (switch.stateCategory == LayoutStateCategory.NOT_EXISTING || switchStructureChanged) {
             clearSwitchInformationFromSegments(id)
         }
 
-        val trackLayoutSwitch = getDraft(id).copy(
+        val updatedLayoutSwitch = layoutSwitch.copy(
             id = id,
             name = switch.name,
             switchStructureId = switch.switchStructureId,
             stateCategory = switch.stateCategory,
-            trapPoint = switch.trapPoint
+            trapPoint = switch.trapPoint,
+            joints = switchJoints
         )
-        return saveDraftInternal(trackLayoutSwitch).id
+        return saveDraftInternal(updatedLayoutSwitch).id
     }
 
     @Transactional
