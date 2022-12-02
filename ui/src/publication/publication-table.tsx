@@ -7,6 +7,7 @@ import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { SelectedChanges } from 'preview/preview-view';
 import { TimeStamp } from 'common/common-model';
+import styles from './publication-table.scss';
 
 type PublicationTableProps = {
     previewChanges: PublishCandidates;
@@ -52,9 +53,11 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         return modifiedCollection;
     }
 
+
     return (
-        <Table wide>
-            <thead>
+        <div className={styles['publication-table__container']}>
+            <Table wide>
+                <thead className={styles['publication-table__header']}>
                 <tr>
                     {/*<Th/>*/}
                     <Th>{t('publication-table.change-target')}</Th>
@@ -63,8 +66,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     <Th>{t('publication-table.modified-moment')}</Th>
                     {showRatkoPushDate && <Th>{t('publication-table.exported-to-ratko')}</Th>}
                 </tr>
-            </thead>
-            <tbody>
+                </thead>
+                <tbody>
                 {previewChanges.trackNumbers.map((trackNumber) => (
                     <React.Fragment key={trackNumber.id}>
                         {
@@ -220,8 +223,9 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                         }
                     </React.Fragment>
                 ))}
-            </tbody>
-        </Table>
+                </tbody>
+            </Table>
+        </div>
     );
 };
 

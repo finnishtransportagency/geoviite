@@ -98,22 +98,29 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             <div className={styles['preview-view']} qa-id="preview-content">
                 <PreviewToolBar onClosePreview={props.onClosePreview}/>
                 <div className={styles['preview-view__changes']}>
-                    <div className={styles['preview-view__changes-title']}>
-                        <div>
-                            <h3>{t('preview-view.title')}</h3>
-                        </div>
-                    </div>
+
                     {(previewChanges && (
                         <>
-                            <section>
+                            <section className={styles['preview-section']}>
+                                <div className={styles['preview-view__changes-title']}>
+                                    <h3>{t('preview-view.other-changes-title')}</h3>
+                                </div>
                                 <PublicationTable previewChanges={previewChanges}/>
                             </section>
 
-                            <h3>{t('preview-view.track-address-changes')}</h3>
-                            {calculatedChanges && (
-                                <CalculatedChangesView calculatedChanges={calculatedChanges}/>
-                            )}
-                            {!calculatedChanges && <Spinner/>}
+                            <section className={styles['preview-section']}>
+                                <div className={styles['preview-view__changes-title']}>
+                                    <h3>{t('preview-view.publish-candidates-title')}</h3>
+                                </div>
+                                <PublicationTable previewChanges={previewChanges}/>
+                            </section>
+
+                            <div className={styles['preview-section']}>
+                                {calculatedChanges && (
+                                    <CalculatedChangesView calculatedChanges={calculatedChanges}/>
+                                )}
+                                {!calculatedChanges && <Spinner/>}
+                            </div>
                         </>
                     )) || <Spinner/>}
                 </div>

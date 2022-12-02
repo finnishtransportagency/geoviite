@@ -3,6 +3,15 @@
 @import '../vayla-design-lib/shadows';
 
 .calculated-changes-view {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+
+    &__header {
+        position: sticky;
+        top: 0;
+    }
+
     &__title {
         @include typography-heading-small
     }
@@ -26,5 +35,9 @@
         li {
             padding: 3px 0
         }
+    }
+
+    &__changes-list {
+        overflow-y: auto;
     }
 }
