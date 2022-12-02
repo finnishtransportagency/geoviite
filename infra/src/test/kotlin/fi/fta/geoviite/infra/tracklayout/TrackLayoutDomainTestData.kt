@@ -578,11 +578,12 @@ fun segments(vararg endPoints: IPoint): List<LayoutSegment> {
 fun switch(
     seed: Int = 1,
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
-    joints: List<TrackLayoutSwitchJoint> = joints(seed)
+    joints: List<TrackLayoutSwitchJoint> = joints(seed),
+    name: String = "TV$seed",
 ) = TrackLayoutSwitch(
     externalId = null,
     sourceId = null,
-    name = SwitchName("TV$seed"),
+    name = SwitchName(name),
     stateCategory = getSomeValue(seed),
     joints = joints,
     switchStructureId = structureId,
@@ -591,7 +592,7 @@ fun switch(
     source = GENERATED,
 )
 
-fun joints(seed: Int = 1) = (1..5).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
+fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
 
 fun switchJoint(seed: Int) = TrackLayoutSwitchJoint(
     number = JointNumber(1 + seed % 5),
