@@ -53,6 +53,7 @@ export type SwitchPublishCandidate = PublishCandidate & {
     type: DraftChangeType.SWITCH;
     id: LayoutSwitchId;
     name: string;
+    trackNumberIds: LayoutTrackNumberId[];
 };
 
 export type KmPostPublishCandidate = PublishCandidate & {

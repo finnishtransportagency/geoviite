@@ -374,7 +374,11 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             select
               switch_version.id,
               switch_version.change_time,
-              switch_version.name
+              switch_version.name,
+              (select array_agg(distinct track_number_id)
+               from layout.segment_version
+                 join layout.location_track_version using(alignment_id, alignment_version)
+               where switch_version.id = segment_version.switch_id) as track_numbers
             from publication.switch published_switch
               left join layout.switch_version
                 on published_switch.switch_id = switch_version.id
@@ -390,7 +394,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             SwitchPublishCandidate(
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
-                name = SwitchName(rs.getString("name"))
+                name = SwitchName(rs.getString("name")),
+                trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }
