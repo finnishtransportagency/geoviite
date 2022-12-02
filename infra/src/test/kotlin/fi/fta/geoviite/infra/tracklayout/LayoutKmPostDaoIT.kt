@@ -5,11 +5,13 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -77,6 +79,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         assertEquals(inserted, kmPostDao.fetch(insertVersion))
         assertEquals(draft1, kmPostDao.fetch(draftVersion1))
         assertEquals(draft2, kmPostDao.fetch(draftVersion2))
+        assertThrows<NoSuchEntityException> { kmPostDao.fetch(draftVersion2.next()) }
     }
 
     fun insertAndVerify(post: TrackLayoutKmPost) {

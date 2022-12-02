@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Test
@@ -74,5 +75,6 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         assertEquals(inserted, trackNumberDao.fetch(insertVersion))
         assertEquals(draft1, trackNumberDao.fetch(draftVersion1))
         assertEquals(draft2, trackNumberDao.fetch(draftVersion2))
+        assertThrows<NoSuchEntityException> { trackNumberDao.fetch(draftVersion2.next()) }
     }
 }

@@ -72,6 +72,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
             where ltv.id = :id
               and ltv.version = :version
+              and ltv.deleted = false
         """.trimIndent()
         val params = mapOf(
             "id" to version.id.intValue,

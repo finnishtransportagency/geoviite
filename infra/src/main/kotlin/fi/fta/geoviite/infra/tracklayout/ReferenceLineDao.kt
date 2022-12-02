@@ -41,6 +41,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
             where rlv.id = :id
               and rlv.version = :version
+              and rlv.deleted = false
         """.trimIndent()
         val params = mapOf(
             "id" to version.id.intValue,

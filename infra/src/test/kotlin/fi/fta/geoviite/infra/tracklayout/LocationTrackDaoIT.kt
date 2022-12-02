@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
@@ -116,5 +117,6 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(inserted, locationTrackDao.fetch(insertVersion))
         assertEquals(draft1, locationTrackDao.fetch(draftVersion1))
         assertEquals(draft2, locationTrackDao.fetch(draftVersion2))
+        assertThrows<NoSuchEntityException> { locationTrackDao.fetch(draftVersion2.next()) }
     }
 }

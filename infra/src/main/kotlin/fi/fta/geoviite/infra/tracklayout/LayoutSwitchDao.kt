@@ -288,6 +288,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             from layout.switch_version
             where id = :id
               and version = :version
+              and deleted = false
         """.trimIndent()
         val params = mapOf(
             "id" to version.id.intValue,

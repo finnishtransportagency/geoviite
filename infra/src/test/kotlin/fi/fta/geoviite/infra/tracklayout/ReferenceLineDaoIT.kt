@@ -5,9 +5,11 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -83,5 +85,6 @@ class ReferenceLineDaoIT @Autowired constructor(
         assertEquals(inserted, referenceLineDao.fetch(insertVersion))
         assertEquals(draft1, referenceLineDao.fetch(draftVersion1))
         assertEquals(draft2, referenceLineDao.fetch(draftVersion2))
+        assertThrows<NoSuchEntityException> { referenceLineDao.fetch(draftVersion2.next()) }
     }
 }

@@ -69,6 +69,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         assertEquals(inserted, switchDao.fetch(insertVersion))
         assertEquals(draft1, switchDao.fetch(draftVersion1))
         assertEquals(draft2, switchDao.fetch(draftVersion2))
+        assertThrows<NoSuchEntityException> { switchDao.fetch(draftVersion2.next()) }
     }
 
     @Test
