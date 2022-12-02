@@ -486,7 +486,11 @@ export const SwitchEditDialog = ({
             </Dialog>
             {showConfirmationDialog && (
                 <Dialog
-                    title={t('switch-dialog.confirmation-title')}
+                    title={
+                        switchStructureChanged
+                            ? t('switch-dialog.confirmation-title')
+                            : t('switch-dialog.confirmation-delete-title')
+                    }
                     variant={DialogVariant.DARK}
                     allowClose={false}
                     className={dialogStyles['dialog--normal']}
