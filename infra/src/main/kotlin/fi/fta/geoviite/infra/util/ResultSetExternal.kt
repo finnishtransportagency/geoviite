@@ -213,9 +213,6 @@ inline fun <reified T> ResultSet.getList(name: String): List<T> {
     }
 }
 
-fun ResultSet.getVersion(officialVersionName: String, draftVersionName: String): Version =
-    Version(getIntOrNull(officialVersionName), getIntOrNull(draftVersionName))
-
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
 

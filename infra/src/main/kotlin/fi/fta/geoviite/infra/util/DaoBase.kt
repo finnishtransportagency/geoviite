@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.util
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -11,12 +12,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
-
-data class RowVersion<T>(val id: IntId<T>, val version: Int) {
-    init {
-        require(version > 0) { "Version numbers start at 1: version=$version" }
-    }
-}
 
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
 
