@@ -96,7 +96,7 @@ class RatkoService @Autowired constructor(
             ratkoPushDao.finishStuckPushes(userName)
 
             val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
-            if (publishes.isNotEmpty() && ratkoClient.ratkoIsOnline().isOnline) {
+            if (publishes.isNotEmpty() && ratkoClient.getRatkoOnlineStatus().isOnline) {
                 pushChanges(userName, publishes)
             }
         }
@@ -180,7 +180,7 @@ class RatkoService @Autowired constructor(
 
             //dummy check if Ratko is online
             val pushStatus =
-                if (ratkoClient.ratkoIsOnline().isOnline) RatkoPushStatus.FAILED else RatkoPushStatus.CONNECTION_ISSUE
+                if (ratkoClient.getRatkoOnlineStatus().isOnline) RatkoPushStatus.FAILED else RatkoPushStatus.CONNECTION_ISSUE
 
             ratkoPushDao.updatePushStatus(
                 user = userName,
@@ -212,8 +212,8 @@ class RatkoService @Autowired constructor(
     }
 
     @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
-    fun ratkoIsOnline(): RatkoClient.RatkoStatus {
-        return ratkoClient.ratkoIsOnline()
+    fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
+        return ratkoClient.getRatkoOnlineStatus()
     }
 
 }

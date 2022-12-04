@@ -18,8 +18,8 @@ type PublishListProps = {
     ratkoStatus: RatkoStatus | undefined;
 };
 
-const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked, anyFailed, ratkoStatus }) => {
-    const { t } = useTranslation();
+const PublicationCard: React.FC<PublishListProps> = ({publications, itemClicked, anyFailed, ratkoStatus}) => {
+    const {t} = useTranslation();
     const allPublications = publications
         .sort((i1, i2) => compareTimestamps(i1.publishTime, i2.publishTime))
         .reverse();
@@ -31,26 +31,22 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
         .at(-1);
 
 
-    const parseErrorItemsList = (ratkoStatusCode: string, contact: string) => {
+    const parseRatkoConnectionError = (ratkoStatusCode: number, contact: string) => {
         return (
-            <ul className={styles['publication-card__error-items-list']}>
+            <ul className={styles['publication-card__ratko-connection-error']}>
                 <li>{t('error-in-ratko-connection.ratko-connection-error-status-code', [ratkoStatusCode])}</li>
                 <li>{t(`error-in-ratko-connection.${contact}`)}</li>
-            </ul>)
-    }
+            </ul>);
+    };
 
-    const parseRatkoStatus = (ratkoStatus: RatkoStatus)  => {
-        if (ratkoStatus) {
-            if (+ratkoStatus.statusCode >= 400 && +ratkoStatus.statusCode <= 403) {
-                return parseErrorItemsList(ratkoStatus.statusCode, 'contact-geoviite-support' )
-            } else if (+ratkoStatus.statusCode === 500) {
-                return parseErrorItemsList(ratkoStatus.statusCode, 'contact-ratko-support' )
-            }
-        } else {
-            return t('error-in-ratko-connection.contact-geoviite-support')
+    const parseRatkoStatus = (ratkoStatus: RatkoStatus) => {
+        if (ratkoStatus.statusCode >= 400 && ratkoStatus.statusCode <= 403) {
+            return parseRatkoConnectionError(ratkoStatus.statusCode, 'contact-geoviite-support');
+        } else if (ratkoStatus.statusCode === 500) {
+            return parseRatkoConnectionError(ratkoStatus.statusCode, 'contact-ratko-support');
         }
-    }
-    
+    };
+
     return (
         <Card
             className={styles['publication-card']}
@@ -65,14 +61,16 @@ const PublicationCard: React.FC<PublishListProps> = ({ publications, itemClicked
                             <h3 className={styles['publication-card__subsection-title']}>
                                 {t('publishing.publish-issues')}
                             </h3>
-                            <p className={styles['publication-card__title-errors']}>
-                                {ratkoStatus && parseRatkoStatus(ratkoStatus)}
-                            </p>
+                            {ratkoStatus &&
+                                <p className={styles['publication-card__title-errors']}>
+                                    {parseRatkoStatus(ratkoStatus)}
+                                </p>
+                            }
                             <div className={styles['publication-card__ratko-push-button']}>
-                                <RatkoPublishButton size={ButtonSize.SMALL} />
+                                <RatkoPublishButton size={ButtonSize.SMALL}/>
                             </div>
                             {latestFailureWithPushError && (
-                                <RatkoPushErrorDetails latestFailure={latestFailureWithPushError} />
+                                <RatkoPushErrorDetails latestFailure={latestFailureWithPushError}/>
                             )}
                             <PublicationList
                                 publications={failures}

@@ -10,7 +10,7 @@ export const getRatkoPushError = (publishId: PublicationId) =>
     getIgnoreError<RatkoPushError>(`${RATKO_URI}/errors/${publishId}`);
 
 export type RatkoStatus = {
-    statusCode: string;
+    statusCode: number;
     isOnline: boolean;
 }
 export const getRatkoStatus = () => getAdt(`${RATKO_URI}/is-online`).then(result => {

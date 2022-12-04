@@ -41,11 +41,11 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    data class RatkoStatus(val statusCode: HttpStatus  ) {
+    data class RatkoStatus(val statusCode: HttpStatus) {
         val isOnline = statusCode == HttpStatus.OK
     }
 
-    fun ratkoIsOnline(): RatkoStatus {
+    fun getRatkoOnlineStatus(): RatkoStatus {
         return client
             .get()
             .uri("/api/versions/v1.0/version")
@@ -106,7 +106,14 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
+                else Mono.error(
+                    RatkoPushException(
+                        RatkoPushErrorType.GEOMETRY,
+                        RatkoOperation.DELETE,
+                        it.responseBodyAsString,
+                        it
+                    )
+                )
             }
             .block(defaultRequestTimeout)
     }
@@ -125,7 +132,14 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
+                else Mono.error(
+                    RatkoPushException(
+                        RatkoPushErrorType.GEOMETRY,
+                        RatkoOperation.DELETE,
+                        it.responseBodyAsString,
+                        it
+                    )
+                )
             }
             .block(defaultRequestTimeout)
     }
