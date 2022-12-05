@@ -31,19 +31,24 @@ const PublicationCard: React.FC<PublishListProps> = ({publications, itemClicked,
         .at(-1);
 
 
-    const parseRatkoConnectionError = (ratkoStatusCode: number, contact: string) => {
+    const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
         return (
             <ul className={styles['publication-card__ratko-connection-error']}>
-                <li>{t('error-in-ratko-connection.ratko-connection-error-status-code', [ratkoStatusCode])}</li>
+                <li>{t(`error-in-ratko-connection.${errorType}`, [ratkoStatusCode])}</li>
                 <li>{t(`error-in-ratko-connection.${contact}`)}</li>
             </ul>);
     };
 
     const parseRatkoStatus = (ratkoStatus: RatkoStatus) => {
         if (ratkoStatus.statusCode >= 400 && ratkoStatus.statusCode <= 403) {
-            return parseRatkoConnectionError(ratkoStatus.statusCode, 'contact-geoviite-support');
-        } else if (ratkoStatus.statusCode === 500) {
-            return parseRatkoConnectionError(ratkoStatus.statusCode, 'contact-ratko-support');
+            return parseRatkoConnectionError('connection-error-status-code', ratkoStatus.statusCode, 'contact-geoviite-support');
+        } else if (ratkoStatus.statusCode >= 300 && ratkoStatus.statusCode <= 308) {
+            return parseRatkoConnectionError('integration-error-status-code', ratkoStatus.statusCode, 'contact-geoviite-support');
+        } else if (ratkoStatus.statusCode >= 500 && ratkoStatus.statusCode <= 511) {
+            if (ratkoStatus.statusCode === 503) {
+                return parseRatkoConnectionError('temporary-error-status-code', ratkoStatus.statusCode, 'contact-ratko-support-if-needed')
+            }
+            return parseRatkoConnectionError('connection-error-status-code', ratkoStatus.statusCode, 'contact-ratko-support');
         }
     };
 
