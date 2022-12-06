@@ -8,9 +8,19 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.ProviderManager
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration
+import org.springframework.security.config.annotation.authentication.configurers.provisioning.InMemoryUserDetailsManagerConfigurer
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy.STATELESS
+import org.springframework.security.core.userdetails.User
+import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import org.springframework.security.web.SecurityFilterChain
@@ -19,39 +29,66 @@ import org.springframework.security.web.SecurityFilterChain
 @ConditionalOnWebApplication
 @EnableWebSecurity // spring knows this is our security context
 @Configuration // add to bean context
+@EnableMethodSecurity
+//@EnableGlobalMethodSecurity(prePostEnabled = true)
 class SecurityConfiguration {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+//    @Bean
+//    fun configureAuthentication(): InMemoryUserDetailsManager {
+//        logger.info("Configuring authentication manager")
+//        /* auth.inMemoryAuthentication() // No users */
+//        return InMemoryUserDetailsManager()
+//    }
+
+    // not a recommended approach
+//    @Bean
+//    fun authenticationManager(authenticationConfiguration: AuthenticationConfiguration): AuthenticationManager {
+//        return authenticationConfiguration.getAuthenticationManager();
+//    }
+
     @Bean
-    fun configureAuthentication(): InMemoryUserDetailsManager {
-        logger.info("Configuring authentication manager")
-        /* auth.inMemoryAuthentication() // No users */
-        return InMemoryUserDetailsManager()
+    fun authManager(userDetailService: UserDetailsService): AuthenticationManager {
+        val authProvider = DaoAuthenticationProvider()
+        authProvider.setUserDetailsService(userDetailService)
+        return ProviderManager(authProvider)
+
     }
 
+    @Bean
+    fun userDetailsService(): UserDetailsService {
 
+        return InMemoryUserDetailsManager(
+            User.withUsername("test")
+                .password("password")
+                .authorities("read")
+                .build()
+        )
+    }
 
     @Bean
     @Throws(Exception::class)
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
-        http
-            .csrf().disable()
-            .httpBasic().disable()
-            .cors().disable()
-            .authorizeRequests().anyRequest().authenticated().and()
+        return http
+            .csrf { csrf -> csrf.disable() }
+            //.authorizeHttpRequests { auth -> auth.anyRequest().authenticated() }
+            //.httpBasic().disable()
+            .cors { cors -> cors.disable() }
+            //.authorizeRequests().anyRequest().fullyAuthenticated().and()
+            //.authorizeRequests().anyRequest().hasAnyAuthority().and()
             .sessionManagement().sessionCreationPolicy(STATELESS)
             .and()
-        return http.build()
-
+            .authorizeHttpRequests()
+            .anyRequest().permitAll()
+            .and()
+            .build()
     }
 
 
-
-//    @Bean
-//    fun configure(auth: AuthenticationManagerBuilder) {
+//    fun configure(auth: AuthenticationManagerBuilder): InMemoryUserDetailsManagerConfigurer<AuthenticationManagerBuilder>? {
 //        logger.info("Configuring authentication manager")
-//        auth.inMemoryAuthentication() // No users
+//        return auth.inMemoryAuthentication() // No users
 //    }
 
 //    override fun configure(http: HttpSecurity) {
