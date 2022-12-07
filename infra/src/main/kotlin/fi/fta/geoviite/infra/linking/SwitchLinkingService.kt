@@ -769,7 +769,7 @@ fun findClosestIntersections(
     track1: Pair<LocationTrack, LayoutAlignment>,
     track2: Pair<LocationTrack, LayoutAlignment>,
     desiredLocation: IPoint,
-    count: Int = 1
+    count: Int
 ): List<TrackIntersection> {
     val alignment1 = track1.second
     val alignment2 = track2.second
