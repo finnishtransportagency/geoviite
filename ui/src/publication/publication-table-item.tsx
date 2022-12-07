@@ -6,6 +6,7 @@ import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import { PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
+import { SelectedPublishChange } from 'track-layout/track-layout-store';
 
 export type PreviewTableItemProps = {
     onChange: React.ChangeEventHandler<HTMLInputElement>;
@@ -15,6 +16,7 @@ export type PreviewTableItemProps = {
     changeTime: TimeStamp;
     showRatkoPushDate: boolean;
     ratkoPushDate?: TimeStamp;
+    onPublishItemSelect? :() => void;
 };
 
 export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
@@ -24,6 +26,7 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     changeTime,
     showRatkoPushDate,
     ratkoPushDate,
+    onPublishItemSelect,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -76,6 +79,10 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                         </span>
                     )}
                 </td>
+                <td onClick={() => {
+                    console.log("clicked")
+                    onPublishItemSelect && onPublishItemSelect();
+                }}>Toiminnot</td>
                 <td>{formatDateFull(changeTime)}</td>
                 {showRatkoPushDate && (
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>

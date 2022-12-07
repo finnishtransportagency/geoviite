@@ -3,13 +3,34 @@ import { Map } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import { allSelectableItemTypes, OnSelectOptions, SelectableItemType, Selection } from 'selection/selection-model';
 import { wrapReducers } from 'store/store-utils';
-import { initialSelectionState, selectionReducers } from 'selection/selection-store';
+import { createEmptyItemCollections, initialSelectionState, selectionReducers } from 'selection/selection-store';
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { LayoutMode, PublishType, TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
-import { GeometryPlanLayout } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout, LayoutKmPostId, LayoutSwitchId,
+    LayoutTrackNumberId,
+    LocationTrackId,
+    ReferenceLineId,
+} from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
+
+export type SelectedPublishChanges = {
+    trackNumbers: LayoutTrackNumberId[];
+    referenceLines: ReferenceLineId[];
+    locationTracks: LocationTrackId[];
+    switches: LayoutSwitchId[];
+    kmPosts: LayoutKmPostId[];
+};
+
+export type SelectedPublishChange = {
+    trackNumber: LayoutTrackNumberId | undefined;
+    referenceLine: ReferenceLineId| undefined;
+    locationTrack: LocationTrackId| undefined;
+    switch: LayoutSwitchId | undefined;
+    kmPost: LayoutKmPostId | undefined;
+}
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
@@ -18,6 +39,15 @@ export type ChangeTimes = {
     layoutSwitch: TimeStamp;
     layoutKmPost: TimeStamp;
     geometryPlan: TimeStamp;
+};
+
+export const initialCandidateId = 'INT_2328'
+export const initialSelectedPublishCandidateIdsState: SelectedPublishChanges = {
+    trackNumbers: [],
+    referenceLines: [],
+    locationTracks: [],
+    switches: [],
+    kmPosts: [],
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -35,6 +65,7 @@ export type TrackLayoutState = {
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
+    selectedPublishCandidateIds: SelectedPublishChanges;
     linkingState?: LinkingState;
     changeTimes: ChangeTimes;
     linkingIssuesSelectedBeforeLinking: boolean;
@@ -47,6 +78,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
+    selectedPublishCandidateIds: initialSelectedPublishCandidateIdsState,
     changeTimes: initialChangeTimes,
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
@@ -161,6 +193,27 @@ const trackLayoutSlice = createSlice({
                     break;
                 }
             }
+        },
+        onPreviewSelect: function (state: TrackLayoutState, action: PayloadAction<SelectedPublishChange>): void {
+
+            console.log('action.payload.trackNumber',action.payload.trackNumber)
+            console.log('action.payload.referenceLine',action.payload.referenceLine)
+            console.log(' action.payload.locationTrack', action.payload.locationTrack)
+            console.log('action.payload.locationTrack === undefined', action.payload.locationTrack === undefined)
+            // console.log('{...state.selectedPublishCandidateIds.trackNumbers}',{...state.selectedPublishCandidateIds.trackNumbers})
+            // const trackNumbers = ( action.payload.trackNumber === undefined) ? {...state.selectedPublishCandidateIds.trackNumbers} : [...state.selectedPublishCandidateIds.trackNumbers, action.payload.trackNumber]
+            // const referenceLines = action.payload.referenceLine ? [...state.selectedPublishCandidateIds.referenceLines, action.payload.referenceLine] : {...state.selectedPublishCandidateIds.referenceLines}
+            const locationTracks = action.payload.locationTrack ? [...state.selectedPublishCandidateIds.locationTracks, action.payload.locationTrack] : {...state.selectedPublishCandidateIds.locationTracks}
+            console.log('added locationtracks',locationTracks)
+            const changes: SelectedPublishChanges = {
+                trackNumbers: [],
+                referenceLines: [],
+                locationTracks: locationTracks,
+                switches: [],
+                kmPosts: []
+            }
+            console.log('changes',changes)
+            state.selectedPublishCandidateIds = changes
         },
         onHighlightItems: function (
             state: TrackLayoutState,
