@@ -296,6 +296,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onInsert={handleLocationTrackInsert}
                     locationTrackChangeTime={props.changeTimes.layoutLocationTrack}
+                    publishType={'DRAFT'}
                 />
             )}
 
