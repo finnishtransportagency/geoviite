@@ -194,22 +194,21 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<Pair<KmPostPublishCandidate, LayoutState>> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<KmPostPublishCandidate> {
         val sql = """
           select
-            km_post_version.id,
-            km_post_version.change_time,
-            km_post_version.track_number_id,
-            km_post_version.change_user,
-            km_post_version.state,
-            km_post_version.draft_of_km_post_id,
+            km_post_and_previous.id,
+            km_post_and_previous.change_time,
+            km_post_and_previous.track_number_id,
+            km_post_and_previous.change_user,
+            layout.infer_operation_from_state_transition(km_post_and_previous.old_state, km_post_and_previous.state) operation,
             km_number
           from publication.km_post published_km_post
-            left join layout.km_post_version
-              on published_km_post.km_post_id = km_post_version.id
-                and published_km_post.km_post_version = km_post_version.version
+            left join layout.km_post_and_previous_view km_post_and_previous
+              on published_km_post.km_post_id = km_post_and_previous.id
+                and published_km_post.km_post_version = km_post_and_previous.version
             left join layout.track_number
-              on km_post_version.track_number_id = track_number.id
+              on km_post_and_previous.track_number_id = track_number.id
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -224,7 +223,8 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
                 userName = UserName(rs.getString("change_user")),
-            ) to rs.getEnum<LayoutState>("state")
+                operation = rs.getEnum("operation")
+            )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
 }

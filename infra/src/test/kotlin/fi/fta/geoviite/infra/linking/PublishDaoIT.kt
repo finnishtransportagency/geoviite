@@ -57,7 +57,7 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
         assertEquals(UserName(TEST_USER), candidates.first().userName)
-        assertEquals(Operation.MODIFY, candidates.first().operation)
+        assertEquals(null, candidates.first().operation)
     }
 
     @Test

@@ -264,19 +264,19 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<Pair<LocationTrackPublishCandidate, LayoutState>> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<LocationTrackPublishCandidate> {
         val sql = """
           select 
-            location_track_version.id, 
-            location_track_version.change_time, 
-            location_track_version.name, 
-            location_track_version.track_number_id,
-            location_track_version.state,
-            location_track_version.change_user
+            location_track.id, 
+            location_track.change_time, 
+            location_track.name, 
+            location_track.track_number_id,
+            location_track.change_user,
+            layout.infer_operation_from_state_transition(location_track.old_state, location_track.state) operation
           from publication.location_track published_location_track
-            left join layout.location_track_version
-              on published_location_track.location_track_id = location_track_version.id 
-                and published_location_track.location_track_version = location_track_version.version
+            left join layout.location_track_and_previous_view location_track
+              on published_location_track.location_track_id = location_track.id 
+                and published_location_track.location_track_version = location_track.version
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -292,8 +292,9 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
                 duplicateOf = null,
-                userName = UserName(rs.getString("change_user"))
-            ) to rs.getEnum<LayoutState>("state")
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation")
+            )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
 

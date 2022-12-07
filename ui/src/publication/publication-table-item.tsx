@@ -16,7 +16,7 @@ export type PreviewTableItemProps = {
     changeTime: TimeStamp;
     showRatkoPushDate: boolean;
     ratkoPushDate?: TimeStamp;
-    operation: Operation;
+    operation: Operation | null;
     userName: string;
 };
 
@@ -52,7 +52,7 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
             <tr className={'preview-table-item'}>
                 <td>{itemName}</td>
                 <td>{trackNumber ? trackNumber : ''}</td>
-                <td>{t(`enum.publish-operation.${operation}`)}</td>
+                <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
                 <td
                     className={statusCellClassName}
                     onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>

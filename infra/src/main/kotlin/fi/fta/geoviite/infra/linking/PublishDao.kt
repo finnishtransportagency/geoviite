@@ -19,23 +19,21 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidateWithOperation> {
+    fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
         val sql = """
             select
-              case
-    when draft_track_number.state = 'DELETED' and official_track_number.state != 'DELETED' then 'DELETE'
-    when draft_track_number.state != 'DELETED' and official_track_number.state = 'DELETED' then 'RESTORE'
-    when official_track_number.official_id is null then 'CREATE'
-    else 'MODIFY'
-  end as operation,
-  draft_track_number.official_id, draft_track_number.number, draft_track_number.change_time, draft_track_number.change_user
+  draft_track_number.official_id, 
+  draft_track_number.number, 
+  draft_track_number.change_time, 
+  draft_track_number.change_user,
+  layout.infer_operation_from_state_transition(official_track_number.state, draft_track_number.state) operation
             from layout.track_number_publication_view draft_track_number
             left join layout.track_number_publication_view official_track_number on draft_track_number.official_id = official_track_number.official_id
             and 'OFFICIAL' = any(official_track_number.publication_states)
             where draft_track_number.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            TrackNumberPublishCandidateWithOperation(
+            TrackNumberPublishCandidate(
                 id = rs.getIntId("official_id"),
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
@@ -43,19 +41,13 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 userName = UserName(rs.getString("change_user"))
             )
         }
-        logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidateWithOperation::id))
+        logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidate::id))
         return candidates
     }
 
-    fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidateWithOperation> {
+    fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidate> {
         val sql = """
 select
-  case
-    when draft_track_number.state = 'DELETED' and official_track_number.state != 'DELETED' then 'DELETE'
-    when draft_track_number.state != 'DELETED' and official_track_number.state = 'DELETED' then 'RESTORE'
-    when official_track_number.official_id is null then 'CREATE'
-    else 'MODIFY'
-  end as operation,
   draft_reference_line.row_id,
   draft_reference_line.row_version,
   draft_reference_line.official_id,
@@ -73,40 +65,36 @@ select
   where draft_reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            ReferenceLinePublishCandidateWithOperation(
+            ReferenceLinePublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = rs.getTrackNumber("name"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = rs.getEnum("operation"),
+                operation = null,
             )
         }
-        logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidateWithOperation::id))
+        logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
         return candidates
     }
 
-    fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidateWithOperation> {
+    fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
         val sql = """
-            select   case
-    when draft_location_track.state = 'DELETED' and official_location_track.state != 'DELETED' then 'DELETE'
-    when draft_location_track.state != 'DELETED' and official_location_track.state = 'DELETED' then 'RESTORE'
-    when official_location_track.official_id is null then 'CREATE'
-    else 'MODIFY'
-  end as operation, 
+            select 
   draft_location_track.official_id,
   draft_location_track.name, 
   draft_location_track.track_number_id, 
   draft_location_track.change_time, 
   draft_location_track.duplicate_of_location_track_id, 
-  draft_location_track.change_user
+  draft_location_track.change_user,
+  layout.infer_operation_from_state_transition(official_location_track.state, draft_location_track.state) operation
             from layout.location_track_publication_view draft_location_track
               left join layout.location_track_publication_view official_location_track on official_location_track.official_id = draft_location_track.official_id
               and 'OFFICIAL' = any(official_location_track.publication_states)
             where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            LocationTrackPublishCandidateWithOperation(
+            LocationTrackPublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
@@ -116,29 +104,25 @@ select
                 operation = rs.getEnum("operation"),
             )
         }
-        logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidateWithOperation::id))
+        logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
         return candidates
     }
 
-    fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidateWithOperation> {
+    fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidate> {
         val sql = """
-                        select   case
-    when draft_switch.state_category = 'NOT_EXISTING' and official_switch.state_category != 'NOT_EXISTING' then 'DELETE'
-    when draft_switch.state_category != 'NOT_EXISTING' and official_switch.state_category = 'NOT_EXISTING' then 'RESTORE'
-    when official_switch.official_id is null then 'CREATE'
-    else 'MODIFY'
-    end as operation, 
+            select 
             draft_switch.official_id,  
             draft_switch.name, 
             draft_switch.change_time,
-            draft_switch.change_user
+            draft_switch.change_user,
+            layout.infer_operation_from_state_category_transition(official_switch.state_category, draft_switch.state_category) operation
             from layout.switch_publication_view draft_switch
             left join layout.switch_publication_view official_switch on draft_switch.official_id = official_switch.official_id
             and 'OFFICIAL' = any(official_switch.publication_states)
             where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            SwitchPublishCandidateWithOperation(
+            SwitchPublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
@@ -146,11 +130,11 @@ select
                 operation = rs.getEnum("operation")
             )
         }
-        logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidateWithOperation::id))
+        logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
         return candidates
     }
 
-    fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidateWithOperation> {
+    fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
         val sql = """
                         select   case
     when draft_km_post.state = 'DELETED' and official_km_post.state != 'DELETED' then 'DELETE'
@@ -166,7 +150,7 @@ select
             order by km_number
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            KmPostPublishCandidateWithOperation(
+            KmPostPublishCandidate(
                 id = rs.getIntId("official_id"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
@@ -175,7 +159,7 @@ select
                 operation = rs.getEnum("operation"),
             )
         }
-        logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidateWithOperation::id))
+        logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))
         return candidates
     }
 

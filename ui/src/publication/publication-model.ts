@@ -22,7 +22,7 @@ export enum DraftChangeType {
     KM_POST = 'KM_POST',
 }
 
-export type Operation = 'CREATE' | 'DELETE' | 'MODIFY';
+export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE' | 'null';
 
 export type PublicationId = string;
 

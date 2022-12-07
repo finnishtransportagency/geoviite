@@ -370,19 +370,19 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         }
     }
 
-    fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<Pair<SwitchPublishCandidate, LayoutStateCategory>> {
+    fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<SwitchPublishCandidate> {
         val sql = """
             select
-              switch_version.id,
-              switch_version.change_time,
-              switch_version.name,
-              switch_version.state_category,
-              switch_version.draft_of_switch_id,
-              switch_version.change_user
+              switch_and_previous.id,
+              switch_and_previous.change_time,
+              switch_and_previous.name,
+              switch_and_previous.version,
+              switch_and_previous.change_user,
+              layout.infer_operation_from_state_category_transition(switch_and_previous.old_state_category, switch_and_previous.state_category) operation
             from publication.switch published_switch
-              left join layout.switch_version
-                on published_switch.switch_id = switch_version.id
-                  and published_switch.switch_version = switch_version.version
+              left join layout.switch_and_previous_view switch_and_previous
+                on published_switch.switch_id = switch_and_previous.id
+                  and published_switch.switch_version = switch_and_previous.version
             where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -396,7 +396,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 draftChangeTime = rs.getInstant("change_time"),
                 name = SwitchName(rs.getString("name")),
                 userName = UserName(rs.getString("change_user")),
-            ) to rs.getEnum<LayoutStateCategory>("state_category")
+                operation = rs.getEnum("operation")
+            )
         }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }
 }

@@ -142,7 +142,8 @@
         "publish-operation": {
             "CREATE": "luonti",
             "DELETE": "poisto",
-            "MODIFY": "muokkaus"
+            "MODIFY": "muokkaus",
+            "RESTORE": "palautus"
         },
         "topological-connectivity-type": {
             "NONE": "Ei kytketty",

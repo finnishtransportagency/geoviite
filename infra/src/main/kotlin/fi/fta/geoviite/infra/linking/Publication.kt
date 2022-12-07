@@ -27,11 +27,11 @@ data class PublicationHeader(
 data class Publication(
     val id: IntId<Publication>,
     val publishTime: Instant,
-    val trackNumbers: List<TrackNumberPublishCandidateWithOperation>,
-    val referenceLines: List<ReferenceLinePublishCandidateWithOperation>,
-    val locationTracks: List<LocationTrackPublishCandidateWithOperation>,
-    val switches: List<SwitchPublishCandidateWithOperation>,
-    val kmPosts: List<KmPostPublishCandidateWithOperation>,
+    val trackNumbers: List<TrackNumberPublishCandidate>,
+    val referenceLines: List<ReferenceLinePublishCandidate>,
+    val locationTracks: List<LocationTrackPublishCandidate>,
+    val switches: List<SwitchPublishCandidate>,
+    val kmPosts: List<KmPostPublishCandidate>,
     val status: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
 )
@@ -58,11 +58,11 @@ enum class Operation {
 }
 
 data class PublishCandidates(
-    val trackNumbers: List<TrackNumberPublishCandidateWithOperation>,
-    val locationTracks: List<LocationTrackPublishCandidateWithOperation>,
-    val referenceLines: List<ReferenceLinePublishCandidateWithOperation>,
-    val switches: List<SwitchPublishCandidateWithOperation>,
-    val kmPosts: List<KmPostPublishCandidateWithOperation>,
+    val trackNumbers: List<TrackNumberPublishCandidate>,
+    val locationTracks: List<LocationTrackPublishCandidate>,
+    val referenceLines: List<ReferenceLinePublishCandidate>,
+    val switches: List<SwitchPublishCandidate>,
+    val kmPosts: List<KmPostPublishCandidate>,
 )
 
 data class PublishRequest(
@@ -98,10 +98,7 @@ interface PublishCandidate<T> {
     val draftChangeTime: Instant
     val userName: UserName
     val errors: List<PublishValidationError>
-}
-
-interface WithOperation {
-    val operation: Operation
+    val operation: Operation?
 }
 
 data class TrackNumberPublishCandidate(
@@ -110,28 +107,9 @@ data class TrackNumberPublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
+    override val operation: Operation
 ) : PublishCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
-}
-
-data class TrackNumberPublishCandidateWithOperation(
-    override val id: IntId<TrackLayoutTrackNumber>,
-    val number: TrackNumber,
-    override val draftChangeTime: Instant,
-    override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation
-) : PublishCandidate<TrackLayoutTrackNumber>, WithOperation {
-    override val type = DraftChangeType.TRACK_NUMBER
-    constructor(candidate: TrackNumberPublishCandidate, operation: Operation) :
-            this(
-                candidate.id,
-                candidate.number,
-                candidate.draftChangeTime,
-                candidate.userName,
-                candidate.errors,
-                operation
-            )
 }
 
 data class ReferenceLinePublishCandidate(
@@ -141,30 +119,9 @@ data class ReferenceLinePublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
+    override val operation: Operation?
 ) : PublishCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
-}
-
-data class ReferenceLinePublishCandidateWithOperation(
-    override val id: IntId<ReferenceLine>,
-    val name: TrackNumber,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    override val draftChangeTime: Instant,
-    override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation
-) : PublishCandidate<ReferenceLine>, WithOperation {
-    override val type = DraftChangeType.REFERENCE_LINE
-    constructor(candidate: ReferenceLinePublishCandidate, operation: Operation) :
-            this(
-                candidate.id,
-                candidate.name,
-                candidate.trackNumberId,
-                candidate.draftChangeTime,
-                candidate.userName,
-                candidate.errors,
-                operation
-            )
 }
 
 data class LocationTrackPublishCandidate(
@@ -175,32 +132,9 @@ data class LocationTrackPublishCandidate(
     val duplicateOf: IntId<LocationTrack>?,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
+    override val operation: Operation
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
-}
-
-data class LocationTrackPublishCandidateWithOperation(
-    override val id: IntId<LocationTrack>,
-    val name: AlignmentName,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    override val draftChangeTime: Instant,
-    val duplicateOf: IntId<LocationTrack>?,
-    override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation
-) : PublishCandidate<LocationTrack>, WithOperation {
-    override val type = DraftChangeType.LOCATION_TRACK
-    constructor(candidate: LocationTrackPublishCandidate, operation: Operation) :
-            this(
-                candidate.id,
-                candidate.name,
-                candidate.trackNumberId,
-                candidate.draftChangeTime,
-                candidate.duplicateOf,
-                candidate.userName,
-                candidate.errors,
-                operation
-            )
 }
 
 data class SwitchPublishCandidate(
@@ -209,28 +143,9 @@ data class SwitchPublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
-) : PublishCandidate<TrackLayoutSwitch> {
-    override val type = DraftChangeType.SWITCH
-}
-
-data class SwitchPublishCandidateWithOperation(
-    override val id: IntId<TrackLayoutSwitch>,
-    val name: SwitchName,
-    override val draftChangeTime: Instant,
-    override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation
-) :  PublishCandidate<TrackLayoutSwitch>, WithOperation {
+) :  PublishCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
-    constructor(candidate: SwitchPublishCandidate, operation: Operation) :
-            this(
-                candidate.id,
-                candidate.name,
-                candidate.draftChangeTime,
-                candidate.userName,
-                candidate.errors,
-                operation
-            )
 }
 
 data class KmPostPublishCandidate(
@@ -240,39 +155,7 @@ data class KmPostPublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
-) : PublishCandidate<TrackLayoutKmPost> {
-    override val type = DraftChangeType.KM_POST
-}
-
-data class KmPostPublishCandidateWithOperation(
-    override val id: IntId<TrackLayoutKmPost>,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val kmNumber: KmNumber,
-    override val draftChangeTime: Instant,
-    override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation
-) :PublishCandidate<TrackLayoutKmPost>, WithOperation {
+) :PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
-    constructor(candidate: KmPostPublishCandidate, operation: Operation) : this(
-        candidate.id,
-        candidate.trackNumberId,
-        candidate.kmNumber,
-        candidate.draftChangeTime,
-        candidate.userName,
-        candidate.errors,
-        operation
-    )
 }
-
-fun operationFromStateTransition(oldState: LayoutState?, newState: LayoutState) =
-    if (oldState != LayoutState.DELETED && newState == LayoutState.DELETED) Operation.DELETE
-    else if (oldState == LayoutState.DELETED && newState != LayoutState.DELETED) Operation.RESTORE
-    else if (oldState == null) Operation.CREATE
-    else Operation.MODIFY
-
-fun operationFromStateCategoryTransition(oldState: LayoutStateCategory?, newState: LayoutStateCategory) =
-    if (oldState != LayoutStateCategory.NOT_EXISTING && newState == LayoutStateCategory.NOT_EXISTING) Operation.DELETE
-    else if (oldState == LayoutStateCategory.NOT_EXISTING && newState != LayoutStateCategory.NOT_EXISTING) Operation.RESTORE
-    else if (oldState == null) Operation.CREATE
-    else Operation.MODIFY

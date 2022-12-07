@@ -226,7 +226,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return referenceLines
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<Pair<ReferenceLinePublishCandidate, LayoutState>> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<ReferenceLinePublishCandidate> {
         val sql = """
           select
             reference_line_version.id,
@@ -255,7 +255,8 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 trackNumberId = rs.getIntId("track_number_id"),
                 name = rs.getTrackNumber("name"),
                 userName = UserName(rs.getString("change_user")),
-            ) to rs.getEnum<LayoutState>("state")
+                operation = null
+            )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
 }

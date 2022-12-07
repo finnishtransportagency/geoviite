@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
+import fi.fta.geoviite.infra.linking.Operation
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.TrackNumberPublishCandidate
 import fi.fta.geoviite.infra.logging.AccessType
@@ -140,18 +141,21 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return result
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<Pair<TrackNumberPublishCandidate, LayoutState>> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<TrackNumberPublishCandidate> {
         val sql = """
           select
-            track_number_version.id,
-            track_number_version.change_time,
-            track_number_version.number,
-            track_number_version.change_user,
-            track_number_version.state
+            track_number_and_previous.id,
+            track_number_and_previous.change_time,
+            track_number_and_previous.number,
+            track_number_and_previous.change_user,
+            layout.infer_operation_from_state_transition(
+              track_number_and_previous.old_state, 
+              track_number_and_previous.state
+            ) operation
           from publication.track_number published_track_number
-            left join layout.track_number_version
-              on published_track_number.track_number_id = track_number_version.id
-                and published_track_number.track_number_version = track_number_version.version
+            left join layout.track_number_and_previous_view track_number_and_previous
+              on published_track_number.track_number_id = track_number_and_previous.id
+                and published_track_number.track_number_version = track_number_and_previous.version
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -165,7 +169,8 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 draftChangeTime = rs.getInstant("change_time"),
                 number = rs.getTrackNumber("number"),
                 userName = UserName(rs.getString("change_user")),
-            ) to rs.getEnum<LayoutState>("state")
+                operation = rs.getEnum<Operation>("operation")
+            )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
 
