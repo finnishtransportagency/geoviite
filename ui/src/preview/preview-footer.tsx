@@ -33,6 +33,7 @@ type PreviewFooterProps = {
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;
     previewChanges: PublishCandidates | undefined;
+    onPublishPreviewRevert: () => void;
 };
 
 function describe(name: string, value: number | undefined): string | undefined {
@@ -102,6 +103,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             })
             .finally(() => {
                 props.onSelect(createEmptyItemCollections());
+                props.onPublishPreviewRevert();
                 setRevertConfirmVisible(false);
                 setReverting(false);
             });

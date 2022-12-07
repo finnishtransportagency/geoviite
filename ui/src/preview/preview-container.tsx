@@ -22,6 +22,8 @@ export const PreviewContainer: React.FC = () => {
         onShownItemsChange: delegates.onShownItemsChange,
         onClosePreview: () => delegates.onLayoutModeChange('DEFAULT'),
         onPreviewSelect: delegates.onPreviewSelect,
+        onPublishPreviewRemove: delegates.onPublishPreviewRemove,
+        onPublishPreviewRevert: delegates.onPublishPreviewRevert,
     };
 
     return <PreviewView {...props} />;

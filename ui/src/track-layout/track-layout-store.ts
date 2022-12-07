@@ -3,7 +3,7 @@ import { Map } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import { allSelectableItemTypes, OnSelectOptions, SelectableItemType, Selection } from 'selection/selection-model';
 import { wrapReducers } from 'store/store-utils';
-import { createEmptyItemCollections, initialSelectionState, selectionReducers } from 'selection/selection-store';
+import { initialSelectionState, selectionReducers } from 'selection/selection-store';
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { LayoutMode, PublishType, TimeStamp } from 'common/common-model';
@@ -41,7 +41,6 @@ export type ChangeTimes = {
     geometryPlan: TimeStamp;
 };
 
-export const initialCandidateId = 'INT_2328'
 export const initialSelectedPublishCandidateIdsState: SelectedPublishChanges = {
     trackNumbers: [],
     referenceLines: [],
@@ -133,6 +132,11 @@ function filterItemSelectOptions(
     };
 }
 
+function removeFromSelectedPublishChanges(changeIds:string[], id:string){
+    console.log('changeIds',changeIds)
+    return changeIds.filter(changeId => changeId!=id)
+}
+
 const trackLayoutSlice = createSlice({
     name: 'trackLayout',
     initialState: initialTrackLayoutState,
@@ -196,15 +200,33 @@ const trackLayoutSlice = createSlice({
         },
         onPreviewSelect: function (state: TrackLayoutState, action: PayloadAction<SelectedPublishChange>): void {
 
-            console.log('action.payload.trackNumber',action.payload.trackNumber)
-            console.log('action.payload.referenceLine',action.payload.referenceLine)
-            console.log(' action.payload.locationTrack', action.payload.locationTrack)
-            console.log('action.payload.locationTrack === undefined', action.payload.locationTrack === undefined)
+
+            console.log('ON PREVIEW SELECT action.payload.locationTrack', action.payload.locationTrack)
+
             // console.log('{...state.selectedPublishCandidateIds.trackNumbers}',{...state.selectedPublishCandidateIds.trackNumbers})
-            // const trackNumbers = ( action.payload.trackNumber === undefined) ? {...state.selectedPublishCandidateIds.trackNumbers} : [...state.selectedPublishCandidateIds.trackNumbers, action.payload.trackNumber]
-            // const referenceLines = action.payload.referenceLine ? [...state.selectedPublishCandidateIds.referenceLines, action.payload.referenceLine] : {...state.selectedPublishCandidateIds.referenceLines}
+            const trackNumbers   = action.payload.trackNumber   ? [...state.selectedPublishCandidateIds.trackNumbers, action.payload.trackNumber] : {...state.selectedPublishCandidateIds.trackNumbers}
+            const referenceLines = action.payload.referenceLine ? [...state.selectedPublishCandidateIds.referenceLines, action.payload.referenceLine] : {...state.selectedPublishCandidateIds.referenceLines}
             const locationTracks = action.payload.locationTrack ? [...state.selectedPublishCandidateIds.locationTracks, action.payload.locationTrack] : {...state.selectedPublishCandidateIds.locationTracks}
-            console.log('added locationtracks',locationTracks)
+            const switches = action.payload.switch ? [...state.selectedPublishCandidateIds.switches, action.payload.switch] : {...state.selectedPublishCandidateIds.switches}
+            const kmPosts = action.payload.kmPost ? [...state.selectedPublishCandidateIds.kmPosts, action.payload.kmPost] : {...state.selectedPublishCandidateIds.kmPosts}
+
+            const changes: SelectedPublishChanges = {
+                trackNumbers: trackNumbers,
+                referenceLines: referenceLines,
+                locationTracks: locationTracks,
+                switches: switches,
+                kmPosts: kmPosts
+            }
+            console.log('changes',changes)
+            state.selectedPublishCandidateIds = changes
+        },
+        onPublishPreviewRemove: function (state: TrackLayoutState, action: PayloadAction<SelectedPublishChange>): void {
+            // console.log('{...state.selectedPublishCandidateIds.trackNumbers}',{...state.selectedPublishCandidateIds.trackNumbers})
+            console.log('ON PREVIEW DELETE action.payload.locationTrack', action.payload.locationTrack)
+
+            const locationTracks = action.payload.locationTrack ? removeFromSelectedPublishChanges([...state.selectedPublishCandidateIds.locationTracks], action.payload.locationTrack)
+                : {...state.selectedPublishCandidateIds.locationTracks}
+            console.log('removed from  locationtracks',locationTracks)
             const changes: SelectedPublishChanges = {
                 trackNumbers: [],
                 referenceLines: [],
@@ -213,6 +235,16 @@ const trackLayoutSlice = createSlice({
                 kmPosts: []
             }
             console.log('changes',changes)
+            state.selectedPublishCandidateIds = changes
+        },
+        onPublishPreviewRevert: function (state: TrackLayoutState): void {
+            const changes: SelectedPublishChanges = {
+                trackNumbers: [],
+                referenceLines: [],
+                locationTracks: [],
+                switches: [],
+                kmPosts: []
+            }
             state.selectedPublishCandidateIds = changes
         },
         onHighlightItems: function (

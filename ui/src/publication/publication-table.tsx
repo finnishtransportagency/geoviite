@@ -3,7 +3,7 @@ import { PublicationTableItem } from 'publication/publication-table-item';
 import * as React from 'react';
 import { PublishCandidates } from 'publication/publication-model';
 import { useTranslation } from 'react-i18next';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { LayoutTrackNumber, LayoutTrackNumberId, ReferenceLineId } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { SelectedChanges } from 'preview/preview-view';
 import { TimeStamp } from 'common/common-model';
@@ -64,12 +64,23 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         kmPost = 5
     }
 
+    type publishId = LayoutTrackNumberId | ReferenceLineId
 
-    const handlePreviewSelect = (id: string, type: string) => {
-        console.log('handlepreview select', id, type)
+    const defaultSelectedPublishChange: SelectedPublishChange = {
+        trackNumber: undefined,
+        referenceLine: undefined,
+        locationTrack: undefined,
+        switch: undefined,
+        kmPost: undefined,
+    };
+
+    function handlePreviewSelect<T>(id: string, type: T) {
         switch (type) {
             case ('trackNumbers'):
-                onPreviewSelect && onPreviewSelect({
+                onPreviewSelect && onPreviewSelect(
+                 //   {...defaultSelectedPublishChange, trackNumber: id});
+                //onPreviewSelect && onPreviewSelect(
+                    {
                     trackNumber: id,
                     referenceLine: undefined,
                     locationTrack: undefined,
@@ -78,42 +89,19 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                 });
                 break;
             case ('referencelines'):
-                onPreviewSelect && onPreviewSelect({
-                    trackNumber: undefined,
-                    referenceLine: id,
-                    locationTrack: undefined,
-                    switch: undefined,
-                    kmPost: undefined,
-                });
+                onPreviewSelect && onPreviewSelect(
+                    {...defaultSelectedPublishChange, referenceLine: id});
                 break;
             case ('locationtracks'):
-                console.log('LOCATIONTARCKS',{
-                    trackNumber: undefined,
-                    referenceLine: undefined,
-                    locationTrack: id,
-                    switch: undefined,
-                    kmPost: undefined,
-                })
-                onPreviewSelect && onPreviewSelect({
-                    trackNumber: undefined,
-                    referenceLine: undefined,
-                    locationTrack: id,
-                    switch: undefined,
-                    kmPost: undefined,
-                });
+                onPreviewSelect && onPreviewSelect(
+                    {...defaultSelectedPublishChange, locationTrack: id});
                 break;
+            // switches
+            // kmPosts
             default:
-                onPreviewSelect && onPreviewSelect({
-                    trackNumber: undefined,
-                    referenceLine: undefined,
-                    locationTrack: undefined,
-                    switch: undefined,
-                    kmPost: undefined,
-                });
+                onPreviewSelect && onPreviewSelect(defaultSelectedPublishChange);
         }
-
-
-    };
+    }
 
     return (
         <div className={styles['publication-table__container']}>
