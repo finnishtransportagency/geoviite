@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.linking.KmPostPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.operationFromStateAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -195,7 +194,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
 
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<KmPostPublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<Pair<KmPostPublishCandidate, LayoutState>> {
         val sql = """
           select
             km_post_version.id,
@@ -225,8 +224,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
                 userName = UserName(rs.getString("change_user")),
-                operation = operationFromStateAndDraftId(rs.getEnum("state"), rs.getIntIdOrNull<TrackLayoutKmPost>("draft_of_km_post_id"))
-            )
+            ) to rs.getEnum<LayoutState>("state")
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
 }

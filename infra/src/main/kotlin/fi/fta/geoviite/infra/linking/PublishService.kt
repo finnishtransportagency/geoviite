@@ -35,6 +35,7 @@ class PublishService @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val calculatedChangesService: CalculatedChangesService,
     private val ratkoService: RatkoService?,
+    private val historyDao: TrackLayoutHistoryDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -60,11 +61,11 @@ class PublishService @Autowired constructor(
 
     fun validatePublishCandidates(publishCandidates: PublishCandidates): PublishCandidates {
         logger.serviceCall("validatePublishCandidates")
-        val publishSwitchIds = publishCandidates.switches.map(SwitchPublishCandidate::id)
-        val publishKmPostIds = publishCandidates.kmPosts.map(KmPostPublishCandidate::id)
-        val publishReferenceLineIds = publishCandidates.referenceLines.map(ReferenceLinePublishCandidate::id)
-        val publishLocationTrackIds = publishCandidates.locationTracks.map(LocationTrackPublishCandidate::id)
-        val publishTrackNumberIds = publishCandidates.trackNumbers.map(TrackNumberPublishCandidate::id)
+        val publishSwitchIds = publishCandidates.switches.map(SwitchPublishCandidateWithOperation::id)
+        val publishKmPostIds = publishCandidates.kmPosts.map(KmPostPublishCandidateWithOperation::id)
+        val publishReferenceLineIds = publishCandidates.referenceLines.map(ReferenceLinePublishCandidateWithOperation::id)
+        val publishLocationTrackIds = publishCandidates.locationTracks.map(LocationTrackPublishCandidateWithOperation::id)
+        val publishTrackNumberIds = publishCandidates.trackNumbers.map(TrackNumberPublishCandidateWithOperation::id)
 
         return PublishCandidates(
             trackNumbers = publishCandidates.trackNumbers.map { candidate ->
@@ -370,11 +371,26 @@ class PublishService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getPublication(id: IntId<Publication>): Publication {
         val (publishTime, status, pushTime) = publishDao.fetchPublishTime(id)
-        val locationTracks = locationTrackDao.fetchPublicationInformation(id)
-        val referenceLines = referenceLineDao.fetchPublicationInformation(id)
-        val kmPosts = kmPostDao.fetchPublicationInformation(id)
-        val switches = switchDao.fetchSwitchPublicationInformation(id)
-        val trackNumbers = trackNumberDao.fetchPublicationInformation(id)
+        val locationTracks = locationTrackDao.fetchPublicationInformation(id).map { s ->
+            val operation = operationFromStateTransition(historyDao.fetchOfficialLocationTrackPriorToMoment(s.first.id, s.first.draftChangeTime)?.state, s.second)
+            LocationTrackPublishCandidateWithOperation(s.first, operation)
+        }
+        val referenceLines = referenceLineDao.fetchPublicationInformation(id).map { s ->
+            val operation = operationFromStateTransition(historyDao.fetchOfficialTrackNumberPriorToMoment(s.first.trackNumberId, s.first.draftChangeTime)?.state, s.second)
+            ReferenceLinePublishCandidateWithOperation(s.first, operation)
+        }
+        val kmPosts = kmPostDao.fetchPublicationInformation(id).map { s ->
+            val operation = operationFromStateTransition(historyDao.fetchOfficialKmPostPriorToMoment(s.first.id, s.first.draftChangeTime)?.state, s.second)
+            KmPostPublishCandidateWithOperation(s.first, operation)
+        }
+        val switches = switchDao.fetchSwitchPublicationInformation(id).map { s ->
+            val operation = operationFromStateCategoryTransition(historyDao.getOfficialSwitchPriorToMoment(s.first.id, s.first.draftChangeTime)?.stateCategory, s.second)
+            SwitchPublishCandidateWithOperation(s.first, operation)
+        }
+        val trackNumbers = trackNumberDao.fetchPublicationInformation(id).map { s ->
+            val operation = operationFromStateTransition(historyDao.fetchOfficialTrackNumberPriorToMoment(s.first.id, s.first.draftChangeTime)?.state, s.second)
+            TrackNumberPublishCandidateWithOperation(s.first, operation)
+        }
 
         return Publication(
             id,

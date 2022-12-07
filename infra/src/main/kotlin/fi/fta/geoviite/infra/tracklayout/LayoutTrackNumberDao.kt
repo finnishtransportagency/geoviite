@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.TrackNumberPublishCandidate
-import fi.fta.geoviite.infra.linking.operationFromStateAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
@@ -141,15 +140,14 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return result
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<TrackNumberPublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<Pair<TrackNumberPublishCandidate, LayoutState>> {
         val sql = """
           select
             track_number_version.id,
             track_number_version.change_time,
             track_number_version.number,
             track_number_version.change_user,
-            track_number_version.state,
-            track_number_version.draft_of_track_number_id
+            track_number_version.state
           from publication.track_number published_track_number
             left join layout.track_number_version
               on published_track_number.track_number_id = track_number_version.id
@@ -167,8 +165,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 draftChangeTime = rs.getInstant("change_time"),
                 number = rs.getTrackNumber("number"),
                 userName = UserName(rs.getString("change_user")),
-                operation = operationFromStateAndDraftId(rs.getEnum("state"), rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_of_track_number_id"))
-            )
+            ) to rs.getEnum<LayoutState>("state")
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
 

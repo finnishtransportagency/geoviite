@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
+    fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidateWithOperation> {
         val sql = """
             select
               case
@@ -35,7 +35,7 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             where draft_track_number.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            TrackNumberPublishCandidate(
+            TrackNumberPublishCandidateWithOperation(
                 id = rs.getIntId("official_id"),
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
@@ -43,11 +43,11 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 userName = UserName(rs.getString("change_user"))
             )
         }
-        logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidate::id))
+        logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidateWithOperation::id))
         return candidates
     }
 
-    fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidate> {
+    fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidateWithOperation> {
         val sql = """
 select
   case
@@ -73,7 +73,7 @@ select
   where draft_reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            ReferenceLinePublishCandidate(
+            ReferenceLinePublishCandidateWithOperation(
                 id = rs.getIntId("official_id"),
                 name = rs.getTrackNumber("name"),
                 trackNumberId = rs.getIntId("track_number_id"),
@@ -82,11 +82,11 @@ select
                 operation = rs.getEnum("operation"),
             )
         }
-        logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
+        logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidateWithOperation::id))
         return candidates
     }
 
-    fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
+    fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidateWithOperation> {
         val sql = """
             select   case
     when draft_location_track.state = 'DELETED' and official_location_track.state != 'DELETED' then 'DELETE'
@@ -106,7 +106,7 @@ select
             where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            LocationTrackPublishCandidate(
+            LocationTrackPublishCandidateWithOperation(
                 id = rs.getIntId("official_id"),
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
@@ -116,11 +116,11 @@ select
                 operation = rs.getEnum("operation"),
             )
         }
-        logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
+        logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidateWithOperation::id))
         return candidates
     }
 
-    fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidate> {
+    fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidateWithOperation> {
         val sql = """
                         select   case
     when draft_switch.state_category = 'NOT_EXISTING' and official_switch.state_category != 'NOT_EXISTING' then 'DELETE'
@@ -138,7 +138,7 @@ select
             where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            SwitchPublishCandidate(
+            SwitchPublishCandidateWithOperation(
                 id = rs.getIntId("official_id"),
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
@@ -146,11 +146,11 @@ select
                 operation = rs.getEnum("operation")
             )
         }
-        logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
+        logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidateWithOperation::id))
         return candidates
     }
 
-    fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
+    fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidateWithOperation> {
         val sql = """
                         select   case
     when draft_km_post.state = 'DELETED' and official_km_post.state != 'DELETED' then 'DELETE'
@@ -166,7 +166,7 @@ select
             order by km_number
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            KmPostPublishCandidate(
+            KmPostPublishCandidateWithOperation(
                 id = rs.getIntId("official_id"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
@@ -175,7 +175,7 @@ select
                 operation = rs.getEnum("operation"),
             )
         }
-        logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))
+        logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidateWithOperation::id))
         return candidates
     }
 
@@ -393,11 +393,13 @@ select
         publicationId: IntId<Publication>,
         trackNumberKmChanges: Map<IntId<TrackLayoutTrackNumber>, List<KmNumber>>
     ) =
-        jdbcTemplate.query("""
+        jdbcTemplate.query(
+            """
             select track_number_id, start_changed, end_changed
             from publication.calculated_change_to_track_number
             where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)) {rs, _ ->
+        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
+        ) { rs, _ ->
             val id = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
             TrackNumberChange(
                 id,
@@ -421,11 +423,13 @@ select
         publicationId: IntId<Publication>,
         locationTrackKmChanges: Map<IntId<LocationTrack>, List<KmNumber>>
     ) =
-        jdbcTemplate.query("""
+        jdbcTemplate.query(
+            """
             select location_track_id, start_changed, end_changed
             from publication.calculated_change_to_location_track
             where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)) {rs, _ ->
+        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
+        ) { rs, _ ->
             val id = rs.getIntId<LocationTrack>("location_track_id")
             LocationTrackChange(
                 id,
@@ -458,7 +462,10 @@ select
             )
         }.groupBy({ (s, _) -> s }, { (_, js) -> js })
 
-    private fun fetchSwitchChangesInPublish(publicationId: IntId<Publication>, switchJointChanges: Map<IntId<TrackLayoutSwitch>, List<SwitchJointChange>>) =
+    private fun fetchSwitchChangesInPublish(
+        publicationId: IntId<Publication>,
+        switchJointChanges: Map<IntId<TrackLayoutSwitch>, List<SwitchJointChange>>
+    ) =
         jdbcTemplate.query(
             """
             select switch_id
@@ -482,7 +489,10 @@ select
         logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
     }
 
-    private fun saveTrackNumberChangesInPublish(publicationId: IntId<Publication>, trackNumberChanges: List<TrackNumberChange>) {
+    private fun saveTrackNumberChangesInPublish(
+        publicationId: IntId<Publication>,
+        trackNumberChanges: List<TrackNumberChange>
+    ) {
         jdbcTemplate.batchUpdate(
             """insert into publication.calculated_change_to_track_number
                values (:publication_id, :track_number_id, :start_changed, :end_changed)
@@ -513,17 +523,22 @@ select
         )
     }
 
-    private fun saveLocationTrackChangesInPublish(publicationId: IntId<Publication>, locationTrackChanges: List<LocationTrackChange>) {
+    private fun saveLocationTrackChangesInPublish(
+        publicationId: IntId<Publication>,
+        locationTrackChanges: List<LocationTrackChange>
+    ) {
         jdbcTemplate.batchUpdate(
             """insert into publication.calculated_change_to_location_track
                values (:publication_id, :location_track_id, :start_changed, :end_changed)
             """.trimMargin(),
-            locationTrackChanges.map { ltc -> mapOf(
-                "publication_id" to publicationId.intValue,
-                "location_track_id" to ltc.locationTrackId.intValue,
-                "start_changed" to ltc.isStartChanged,
-                "end_changed" to ltc.isEndChanged
-            ) }.toTypedArray()
+            locationTrackChanges.map { ltc ->
+                mapOf(
+                    "publication_id" to publicationId.intValue,
+                    "location_track_id" to ltc.locationTrackId.intValue,
+                    "start_changed" to ltc.isStartChanged,
+                    "end_changed" to ltc.isEndChanged
+                )
+            }.toTypedArray()
         )
         jdbcTemplate.batchUpdate(
             """insert into publication.calculated_change_to_location_track_km

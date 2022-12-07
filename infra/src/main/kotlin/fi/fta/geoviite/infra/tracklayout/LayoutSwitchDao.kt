@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.SwitchPublishCandidate
-import fi.fta.geoviite.infra.linking.operationFromStateCategoryAndDraftId
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
@@ -371,7 +370,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         }
     }
 
-    fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<SwitchPublishCandidate> {
+    fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<Pair<SwitchPublishCandidate, LayoutStateCategory>> {
         val sql = """
             select
               switch_version.id,
@@ -397,8 +396,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 draftChangeTime = rs.getInstant("change_time"),
                 name = SwitchName(rs.getString("name")),
                 userName = UserName(rs.getString("change_user")),
-                operation = operationFromStateCategoryAndDraftId(rs.getEnum("state_category"), rs.getIntIdOrNull<TrackLayoutSwitch>("draft_of_switch_id"))
-            )
+            ) to rs.getEnum<LayoutStateCategory>("state_category")
         }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }
 }

@@ -57,7 +57,7 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
         assertEquals(UserName(TEST_USER), candidates.first().userName)
-        assertEquals(Operation.CREATE, candidates.first().operation)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
     }
 
     @Test
@@ -70,7 +70,7 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(draft.name, candidates.first().name)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
         assertEquals(UserName(TEST_USER), candidates.first().userName)
-        assertEquals(Operation.CREATE, candidates.first().operation)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
     }
 
     @Test
@@ -82,6 +82,15 @@ class PublishDaoIT @Autowired constructor(
         assertEquals(switch.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
         assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
+    }
+
+    @Test
+    fun createOperationIsInferredCorrectly() {
+        val track = insertAndCheck(draft(locationTrack(insertOfficialTrackNumber())))
+        val candidates = publishDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.CREATE, candidates.first().operation)
     }
 
