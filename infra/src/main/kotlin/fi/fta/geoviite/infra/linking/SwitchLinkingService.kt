@@ -1078,10 +1078,10 @@ class SwitchLinkingService @Autowired constructor(
                 ?.let { calculatedJoints ->
                     val switchBoundingBox = boundingBoxAroundPoints(calculatedJoints.map { it.location }) * 1.5
                     val nearAlignmentIds = locationTrackDao.fetchVersionsNear(DRAFT, switchBoundingBox)
-                    val locationTrackIds = (nearAlignmentIds + missingLayoutSwitchLinking.locationTrackIds).distinct()
-                    val alignments = locationTrackIds.map { version ->
-                        locationTrackService.getWithAlignment(version)
-                    }
+
+                    val alignments = (nearAlignmentIds + missingLayoutSwitchLinking.locationTrackIds)
+                        .distinct()
+                        .map { id -> locationTrackService.getWithAlignment(id) }
 
                     createSuggestedSwitch(
                         jointsInLayoutSpace = calculatedJoints,
@@ -1107,7 +1107,6 @@ class SwitchLinkingService @Autowired constructor(
         ).centerAt(location)
         val nearbyLocationTracks = locationTrackService
             .listNearWithAlignments(DRAFT, alignmentSearchArea)
-            .filter { (locationTrack, _) -> locationTrack.state != LayoutState.DELETED }
             .filter { (_, alignment) ->
                 alignment.segments.any { segment ->
                     alignmentSearchArea.intersects(segment.boundingBox) &&
@@ -1128,7 +1127,10 @@ class SwitchLinkingService @Autowired constructor(
 
         val switchStructure =
             createParams.switchStructureId?.let(switchLibraryService::getSwitchStructure) ?: return null
-        val locationTrackIds = createParams.alignmentMappings.map { mapping -> mapping.locationTrackId }
+        val locationTracks = createParams.alignmentMappings
+            .map { mapping -> mapping.locationTrackId }
+            .associateWith { id -> locationTrackService.getWithAlignmentOrThrow(DRAFT, id) }
+
         val areaSize = switchStructure.bbox.width.coerceAtLeast(switchStructure.bbox.height) * 2.0
         val switchAreaBbox = BoundingBox(
             Point(0.0, 0.0),
@@ -1141,7 +1143,7 @@ class SwitchLinkingService @Autowired constructor(
             switchStructure,
             createParams.alignmentMappings,
             nearbyLocationTracks,
-            locationTrackIds.associateWith { id -> locationTrackService.getWithAlignmentOrThrow(DRAFT, id) },
+            locationTracks,
             getMeasurementMethod = this::getMeasurementMethod,
         )
     }
