@@ -58,7 +58,7 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
             "location" to location, "offset" to offset, "limit" to limit
         )
         return kmPostService.listNearbyOnTrackPaged(
-            publishType = publishType,
+            publicationState = publishType,
             location = location,
             trackNumberId = if (trackNumberId is IntId) trackNumberId else null,
             offset = offset,

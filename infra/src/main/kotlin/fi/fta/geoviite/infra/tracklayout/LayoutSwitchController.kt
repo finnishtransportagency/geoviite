@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -48,7 +49,7 @@ class LayoutSwitchController(
     @GetMapping("/{publishType}", params = ["searchTerm", "limit"])
     fun searchSwitches(
         @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("searchTerm", required = true) searchTerm: String,
+        @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limit", required = true) limit: Int,
     ): List<TrackLayoutSwitch> {
         logger.apiCall("searchSwitches", "searchTerm" to searchTerm, "limit" to limit)
