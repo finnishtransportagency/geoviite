@@ -247,7 +247,8 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 ),
                 s.bounding_box
               )
-            where :publication_state = any(lt.publication_states)
+            where :publication_state = any(lt.publication_states) 
+              and lt.state != 'DELETED'
         """.trimIndent()
 
         val params = mapOf(

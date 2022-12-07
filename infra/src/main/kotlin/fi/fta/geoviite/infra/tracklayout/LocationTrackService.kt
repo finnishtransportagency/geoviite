@@ -323,17 +323,17 @@ class LocationTrackService(
         startChanged: Boolean = false,
         endChanged: Boolean = false,
     ): LocationTrack {
-        val startPoint = alignment.start ?: return track
-        val endPoint = alignment.end ?: return track
+        val startPoint = alignment.start
+        val endPoint = alignment.end
         val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
 
         val startSwitch =
-            if (!track.exists) null
+            if (!track.exists || startPoint == null) null
             else if (startChanged) findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, null)
             else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, track.topologyStartSwitch)
 
         val endSwitch =
-            if (!track.exists) null
+            if (!track.exists || endPoint == null) null
             else if (endChanged) findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, null)
             else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, track.topologyEndSwitch)
 
