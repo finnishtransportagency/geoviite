@@ -160,13 +160,17 @@ class LocationTrackService(
             "list",
             "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
         )
-        return listInternal(publishType)
+        val term = searchTerm
+        return dao.fetchVersions(publishType)
+            .map(dao::fetch)
             .filter { locationTrack ->
-                locationTrack.name.contains(searchTerm, true)
-                        || locationTrack.description.contains(searchTerm, true)
-                        || locationTrack.id.toString() == searchTerm
-                        || locationTrack.externalId.toString() == searchTerm
+                locationTrack.externalId.toString() == term ||
+                        locationTrack.exists &&
+                        (locationTrack.name.contains(term, true)
+                                || locationTrack.description.contains(term, true)
+                                || locationTrack.id.toString() == term)
             }
+            .sortedBy { locationTrack -> locationTrack.name }
             .let { list -> if (limit != null) list.take(limit) else list }
     }
 
@@ -320,17 +324,17 @@ class LocationTrackService(
         startChanged: Boolean = false,
         endChanged: Boolean = false,
     ): LocationTrack {
-        val startPoint = alignment.start ?: return track
-        val endPoint = alignment.end ?: return track
+        val startPoint = alignment.start
+        val endPoint = alignment.end
         val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
 
         val startSwitch =
-            if (!track.exists) null
+            if (!track.exists || startPoint == null) null
             else if (startChanged) findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, null)
             else findBestTopologySwitchMatch(startPoint, track.id, ownSwitches, track.topologyStartSwitch)
 
         val endSwitch =
-            if (!track.exists) null
+            if (!track.exists || endPoint == null) null
             else if (endChanged) findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, null)
             else findBestTopologySwitchMatch(endPoint, track.id, ownSwitches, track.topologyEndSwitch)
 
