@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.RowVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
