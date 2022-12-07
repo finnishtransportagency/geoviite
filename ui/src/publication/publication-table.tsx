@@ -11,12 +11,16 @@ import { TimeStamp } from 'common/common-model';
 type PublicationTableProps = {
     previewChanges: PublishCandidates;
     showRatkoPushDate?: boolean;
+    showStatus?: boolean;
+    showActions?: boolean;
     ratkoPushDate?: TimeStamp;
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
     previewChanges,
     showRatkoPushDate = false,
+    showStatus = false,
+    showActions = false,
     ratkoPushDate = undefined,
 }) => {
     const { t } = useTranslation();
@@ -56,15 +60,14 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         <Table wide>
             <thead>
                 <tr>
-                    {/*<Th/>*/}
                     <Th>{t('publication-table.change-target')}</Th>
                     <Th>{t('publication-table.track-number-short')}</Th>
                     <Th>{t('publication-table.change-type')}</Th>
-                    <Th>{t('publication-table.status')}</Th>
-                    <Th>{t('publication-table.modified-moment')}</Th>
+                    {showStatus && <Th>{t('publication-table.status')}</Th>}
                     <Th>{t('publication-table.user')}</Th>
+                    <Th>{t('publication-table.modified-moment')}</Th>
                     {showRatkoPushDate && <Th>{t('publication-table.exported-to-ratko')}</Th>}
-                    <Th>{t('publication-table.actions')}</Th>
+                    {showActions && <Th>{t('publication-table.actions')}</Th>}
                 </tr>
             </thead>
             <tbody>
@@ -93,6 +96,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={trackNumber.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                showStatus={showStatus}
+                                showActions={showActions}
                                 userName={trackNumber.userName}
                                 operation={trackNumber.operation}
                             />
@@ -128,6 +133,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={referenceLine.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                showStatus={showStatus}
+                                showActions={showActions}
                                 userName={referenceLine.userName}
                                 operation={referenceLine.operation}
                             />
@@ -163,6 +170,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={locationTrack.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                showStatus={showStatus}
+                                showActions={showActions}
                                 userName={locationTrack.userName}
                                 operation={locationTrack.operation}
                             />
@@ -192,6 +201,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={layoutSwitch.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                showStatus={showStatus}
+                                showActions={showActions}
                                 userName={layoutSwitch.userName}
                                 operation={layoutSwitch.operation}
                             />
@@ -224,6 +235,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={kmPost.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                showStatus={showStatus}
+                                showActions={showActions}
                                 userName={kmPost.userName}
                                 operation={kmPost.operation}
                             />

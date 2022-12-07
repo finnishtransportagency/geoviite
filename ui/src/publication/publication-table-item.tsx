@@ -15,6 +15,8 @@ export type PreviewTableItemProps = {
     errors: PublishValidationError[];
     changeTime: TimeStamp;
     showRatkoPushDate: boolean;
+    showStatus: boolean;
+    showActions: boolean;
     ratkoPushDate?: TimeStamp;
     operation: Operation | null;
     userName: string;
@@ -26,6 +28,8 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     errors,
     changeTime,
     showRatkoPushDate,
+    showStatus,
+    showActions,
     ratkoPushDate,
     operation,
     userName,
@@ -53,36 +57,40 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                 <td>{itemName}</td>
                 <td>{trackNumber ? trackNumber : ''}</td>
                 <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
-                <td
-                    className={statusCellClassName}
-                    onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
-                    {!hasErrors && (
-                        <span className={styles['preview-table-item__ok-status']}>
-                            <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
-                        </span>
-                    )}
-                    {errorTexts.length > 0 && (
-                        <span className={styles['preview-table-item__error-status']}>
-                            {t('publication-table.errors-status-text', [errorTexts.length])}
-                        </span>
-                    )}
-                    {warningTexts.length > 0 && (
-                        <span className={styles['preview-table-item__warning-status']}>
-                            {t('publication-table.warnings-status-text', [warningTexts.length])}
-                        </span>
-                    )}
-                </td>
+                {showStatus && (
+                    <td
+                        className={statusCellClassName}
+                        onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
+                        {!hasErrors && (
+                            <span className={styles['preview-table-item__ok-status']}>
+                                <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
+                            </span>
+                        )}
+                        {errorTexts.length > 0 && (
+                            <span className={styles['preview-table-item__error-status']}>
+                                {t('publication-table.errors-status-text', [errorTexts.length])}
+                            </span>
+                        )}
+                        {warningTexts.length > 0 && (
+                            <span className={styles['preview-table-item__warning-status']}>
+                                {t('publication-table.warnings-status-text', [warningTexts.length])}
+                            </span>
+                        )}
+                    </td>
+                )}
+                <td>{userName}</td>
                 <td>{formatDateFull(changeTime)}</td>
                 {showRatkoPushDate && (
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>
                 )}
-                <td>{userName}</td>
-                <td>
-                    <div className={'preview-table-item__buttons'}>
-                        <Button variant={ButtonVariant.GHOST} icon={Icons.Descending} />
-                        <Button variant={ButtonVariant.GHOST} icon={Icons.More} />
-                    </div>
-                </td>
+                {showActions && (
+                    <td>
+                        <div className={'preview-table-item__buttons'}>
+                            <Button variant={ButtonVariant.GHOST} icon={Icons.Descending} />
+                            <Button variant={ButtonVariant.GHOST} icon={Icons.More} />
+                        </div>
+                    </td>
+                )}
             </tr>
             {isErrorRowExpanded && hasErrors && (
                 <tr className={'preview-table-item preview-table-item--error'}>

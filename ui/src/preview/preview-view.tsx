@@ -49,7 +49,7 @@ type PreviewProps = {
 };
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const previewChanges = useLoader(() => getPublishCandidates(), []);
 
     const [selectedChanges, setSelectedChanges] = React.useState<SelectedChanges>({
@@ -77,7 +77,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
-                <PreviewToolBar onClosePreview={props.onClosePreview}/>
+                <PreviewToolBar onClosePreview={props.onClosePreview} />
                 <div className={styles['preview-view__changes']}>
                     <div className={styles['preview-view__changes-title']}>
                         <div>
@@ -87,16 +87,20 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     {(previewChanges && (
                         <>
                             <section>
-                                <PublicationTable previewChanges={previewChanges}/>
+                                <PublicationTable
+                                    previewChanges={previewChanges}
+                                    showActions={true}
+                                    showStatus={true}
+                                />
                             </section>
 
                             <h3>{t('preview-view.track-address-changes')}</h3>
                             {calculatedChanges && (
-                                <CalculatedChangesView calculatedChanges={calculatedChanges}/>
+                                <CalculatedChangesView calculatedChanges={calculatedChanges} />
                             )}
-                            {!calculatedChanges && <Spinner/>}
+                            {!calculatedChanges && <Spinner />}
                         </>
-                    )) || <Spinner/>}
+                    )) || <Spinner />}
                 </div>
 
                 <MapView
