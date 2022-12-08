@@ -174,7 +174,7 @@ class ReferenceLineService(
 
     fun listNonLinked(): List<ReferenceLine> {
         logger.serviceCall("listNonLinked")
-        return dao.fetchNonLinked()
+        return dao.fetchVersionsNonLinked(DRAFT).map(dao::fetch)
     }
 
     fun listNear(publishType: PublishType, bbox: BoundingBox): List<ReferenceLine> {

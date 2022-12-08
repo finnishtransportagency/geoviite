@@ -144,61 +144,49 @@ class LocationTrackService(
 
     fun listNonLinked(): List<LocationTrack> {
         logger.serviceCall("listNonLinked")
-        return listInternal(DRAFT).filter { a -> a.segmentCount == 0 }
+        return listInternal(DRAFT, false).filter { a -> a.segmentCount == 0 }
     }
 
     fun list(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
         logger.serviceCall("list", "publishType" to publishType, "bbox" to bbox)
-        return listInternal(publishType).filter { tn -> bbox.intersects(tn.boundingBox) }
+        return listInternal(publishType, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
-    fun list(
-        publishType: PublishType,
-        searchTerm: FreeText,
-        limit: Int?,
-    ): List<LocationTrack> {
+    fun list(publishType: PublishType, searchTerm: FreeText, limit: Int?): List<LocationTrack> {
         logger.serviceCall(
             "list",
             "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
         )
-        val term = searchTerm.toString()
-        return dao.fetchVersions(publishType)
-            .map(dao::fetch)
-            .filter { locationTrack ->
-                locationTrack.externalId.toString() == term ||
-                        locationTrack.exists &&
-                        (locationTrack.name.contains(term, true)
-                        || locationTrack.description.contains(term, true)
-                                || locationTrack.id.toString() == term)
-            }
-            .sortedBy { locationTrack -> locationTrack.name }
-            .let { list -> if (limit != null) list.take(limit) else list }
+        return searchTerm
+            .toString()
+            .trim()
+            .takeIf(String::isNotEmpty)
+            ?.let { term ->
+                listInternal(publishType, true)
+                    .filter { track -> idMatches(term, track) || contentMatches(term, track) }
+                    .sortedBy(LocationTrack::name)
+                    .let { list -> if (limit != null) list.take(limit) else list }
+            } ?: listOf()
     }
+
+    private fun idMatches(term: String, track: LocationTrack) =
+        track.externalId.toString() == term || track.id.toString() == term
+
+    private fun contentMatches(term: String, track: LocationTrack) =
+        track.exists && (track.name.contains(term, true) || track.description.contains(term, true))
 
     fun listNear(publishType: PublishType, bbox: BoundingBox): List<LocationTrack> {
         logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
         return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch).filter(LocationTrack::exists)
     }
 
-    override fun listInternal(publishType: PublishType) =
-        dao.fetchVersions(publishType)
-            .map(dao::fetch)
-            .filter(LocationTrack::exists)
-
-    fun listWithAlignments(publishType: PublishType): List<Pair<LocationTrack, LayoutAlignment>> {
-        logger.serviceCall("listWithAlignments", "publishType" to publishType)
-        return dao.fetchVersions(publishType).map(::getWithAlignmentInternal)
-    }
-
     fun listWithAlignments(
         publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
-        logger.serviceCall(
-            "listWithAlignments",
-            "publishType" to publishType, "trackNumberId" to trackNumberId
-        )
-        return dao.fetchVersions(publishType, trackNumberId).map(::getWithAlignmentInternal)
+        logger.serviceCall("listWithAlignments",
+            "publishType" to publishType, "trackNumberId" to trackNumberId)
+        return dao.fetchVersions(publishType, false, trackNumberId).map(::getWithAlignmentInternal)
     }
 
     fun getWithAlignmentOrThrow(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {

@@ -345,9 +345,7 @@ class PublishService @Autowired constructor(
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): List<PublishValidationError> {
         val kmPost = getDraftKmPostWithOfficialId(id)
-        val trackNumber = kmPost.trackNumberId?.let { tnId ->
-            trackNumberService.getDraft(tnId as IntId)
-        }
+        val trackNumber = kmPost.trackNumberId?.let(trackNumberService::getDraft)
         return validateDraftKmPostFields(kmPost) +
                 validateKmPostReferences(kmPost, trackNumber, publishTrackNumberIds) +
                 if (kmPost.exists) {

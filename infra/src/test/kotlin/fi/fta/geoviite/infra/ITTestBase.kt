@@ -52,7 +52,7 @@ abstract class ITTestBase {
         getOrCreateTrackNumber(getUnusedTrackNumber()).id as IntId
 
     fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
-        val version = trackNumberDao.findVersions(trackNumber, DRAFT).firstOrNull()
+        val version = trackNumberDao.fetchVersions(DRAFT, false, trackNumber).firstOrNull()
             ?: insertNewTrackNumber(trackNumber, false)
         return version.let(trackNumberDao::fetch)
     }

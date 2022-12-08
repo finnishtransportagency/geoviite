@@ -17,6 +17,31 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
 
+    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+        fetchVersions(publicationState, includeDeleted, null)
+
+    fun fetchVersions(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        number: TrackNumber?,
+    ): List<RowVersion<TrackLayoutTrackNumber>> {
+        val sql = """
+            select row_id, row_version
+            from layout.track_number_publication_view
+            where :publication_state = any(publication_states)
+              and (:number::varchar is null or :number = number)
+              and (:include_deleted = true or state != 'DELETED')
+        """.trimIndent()
+        val params = mapOf(
+            "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
+            "number" to number,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
     fun fetchExternalIdToIdMapping(): Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>> {
         val sql = "select id, external_id from layout.track_number where external_id is not null"
         val result: List<Pair<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>> =
@@ -168,21 +193,5 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 number = rs.getTrackNumber("number")
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
-    }
-
-    fun findVersions(number: TrackNumber, publishType: PublishType): List<RowVersion<TrackLayoutTrackNumber>> {
-        val sql = """
-            select row_id, row_version
-            from layout.track_number_publication_view
-            where :number = number
-              and :publication_state = any(publication_states)
-        """.trimIndent()
-        val params = mapOf(
-            "number" to number,
-            "publication_state" to publishType.name,
-        )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
-        }
     }
 }

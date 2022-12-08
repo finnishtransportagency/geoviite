@@ -87,6 +87,6 @@ class LayoutTrackNumberService(
 
     fun find(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> {
         logger.serviceCall("find", "trackNumber" to trackNumber, "publishType" to publishType)
-        return dao.findVersions(trackNumber, publishType).map(dao::fetch)
+        return dao.fetchVersions(publishType, false, trackNumber).map(dao::fetch)
     }
 }

@@ -139,7 +139,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     }
 
     fun fetchVersion(
-        publishType: PublishType,
+        publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): RowVersion<ReferenceLine>? {
         //language=SQL
@@ -151,31 +151,54 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
         )
         return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
     }
 
-    fun fetchVersionsNear(publishType: PublishType, bbox: BoundingBox): List<RowVersion<ReferenceLine>> {
+    override fun fetchVersions(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+    ): List<RowVersion<ReferenceLine>> {
         val sql = """
             select
-              distinct rl.row_id, rl.row_version
+              rl.row_id,
+              rl.row_version
+            from layout.reference_line_publication_view rl
+              left join layout.track_number_publication_view tn
+                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
+            where :publication_state = any(rl.publication_states) 
+              and (:include_deleted = true or tn.state != 'DELETED')
+        """.trimIndent()
+        val params = mapOf(
+            "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
+    fun fetchVersionsNear(
+        publicationState: PublishType,
+        bbox: BoundingBox,
+    ): List<RowVersion<ReferenceLine>> {
+        val sql = """
+            select
+              rl.row_id, 
+              rl.row_version
               from layout.reference_line_publication_view rl
                 inner join layout.segment s on rl.alignment_id = s.alignment_id
-                and postgis.st_intersects(
-                    postgis.st_makeenvelope(
-                    :x_min, :y_min,
-                    :x_max, :y_max,
-                    :layout_srid
-                  ),
-                  s.bounding_box
-                )
-                left join layout.track_number track_number
-                  on rl.track_number_id = track_number.id
-              where :publication_state = any(rl.publication_states) and
-                    track_number.state != 'DELETED'
+                  and postgis.st_intersects(
+                    postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                    s.bounding_box
+                  )
+                left join layout.track_number_publication_view tn
+                  on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
+              where :publication_state = any(rl.publication_states) 
+                and tn.state != 'DELETED'
         """.trimIndent()
 
         val params = mapOf(
@@ -184,7 +207,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -192,44 +215,22 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
-    fun fetchNonLinked(): List<ReferenceLine> {
+    fun fetchVersionsNonLinked(publicationState: PublishType): List<RowVersion<ReferenceLine>> {
         val sql = """
             select
-              row_id,
-              row_version,
-              official_id,
-              draft_id,
-              alignment_id,
-              alignment_version,
-              track_number_id,
-              postgis.st_astext(bounding_box) as bounding_box,
-              length,
-              segment_count,
-              start_address
-            from layout.reference_line_publication_view
-              left join layout.track_number
-                on reference_line_publication_view.track_number_id = track_number.id
-            where
-              track_number.state != 'DELETED' and
-              segment_count = 0
+              rl.row_id,
+              rl.row_version
+            from layout.reference_line_publication_view rl
+              left join layout.track_number_publication_view tn
+                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
+            where :publication_state = any(rl.publication_states) 
+              and tn.state != 'DELETED'
+              and rl.segment_count = 0
         """.trimIndent()
-        val referenceLines = jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
-            ReferenceLine(
-                dataType = DataType.STORED,
-                id = rs.getIntId("official_id"),
-                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = null,
-                trackNumberId = rs.getIntId("track_number_id"),
-                startAddress = rs.getTrackMeter("start_address"),
-                boundingBox = rs.getBboxOrNull("bounding_box"),
-                length = rs.getDouble("length"),
-                segmentCount = rs.getInt("segment_count"),
-                draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let(::Draft),
-                version = rs.getRowVersion("row_id", "row_version"),
-            )
+        val params = mapOf("publication_state" to publicationState.name)
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
         }
-        logger.daoAccess(AccessType.FETCH, ReferenceLine::class)
-        return referenceLines
     }
 
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<ReferenceLinePublishCandidate> {
