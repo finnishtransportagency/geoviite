@@ -182,7 +182,7 @@ data class SwitchPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation
-) :  PublishCandidate<TrackLayoutSwitch> {
+) : PublishCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
 }
 
@@ -194,6 +194,6 @@ data class KmPostPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation
-) :PublishCandidate<TrackLayoutKmPost> {
+) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }

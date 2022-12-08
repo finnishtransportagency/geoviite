@@ -240,8 +240,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             reference_line_version.change_time,
             reference_line_version.track_number_id,
             track_number.number as name,
-            reference_line_version.change_user,
-            track_number.state
+            reference_line_version.change_user
           from publication.reference_line published_reference_line
             left join layout.reference_line_version
               on published_reference_line.reference_line_id = reference_line_version.id

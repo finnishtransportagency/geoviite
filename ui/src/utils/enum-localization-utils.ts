@@ -60,7 +60,6 @@ export const publishOperationTypes: { value: Operation; name: string }[] = [
     { value: 'DELETE', name: i18n.t('enum.publish-operation.DELETE') },
     { value: 'MODIFY', name: i18n.t('enum.publish-operation.MODIFY') },
     { value: 'RESTORE', name: i18n.t('enum.publish-operation.RESTORE') },
-    { value: 'null', name: '' },
 ];
 
 export const ratkoPushErrorTypes: { value: RatkoPushErrorType; name: string }[] = [

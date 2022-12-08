@@ -44,22 +44,15 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidate> {
         val sql = """
-            select
-                draft_reference_line.row_id,
-                draft_reference_line.row_version,
-                draft_reference_line.official_id,
-                draft_reference_line.change_time,
-                draft_reference_line.track_number_id,
-                draft_track_number.number as name,
-                draft_reference_line.change_user
-                from layout.reference_line_publication_view draft_reference_line
-            left join layout.track_number_publication_view draft_track_number on draft_track_number.official_id = draft_reference_line.track_number_id
-                and 'DRAFT' = any(draft_track_number.publication_states)
-            left join layout.reference_line_publication_view official_reference_line on official_reference_line.official_id = draft_reference_line.official_id
-                and 'OFFICIAL' = any(official_reference_line.publication_states)
-            left join layout.track_number_publication_view official_track_number on official_track_number.official_id = official_reference_line.track_number_id
-                and 'OFFICIAL' = any(official_track_number.publication_states)
-            where draft_reference_line.draft = true
+             select 
+              coalesce(reference_line.draft_of_reference_line_id, reference_line.id) as official_id,
+              track_number.number as name, 
+              reference_line.track_number_id, 
+              reference_line.change_time,
+              reference_line.change_user
+            from layout.reference_line
+              left join layout.track_number on track_number.id = reference_line.track_number_id
+            where reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             ReferenceLinePublishCandidate(
