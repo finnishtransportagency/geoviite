@@ -115,7 +115,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             (select array_agg(distinct track_number_id)
               from layout.segment
                 join layout.location_track using(alignment_id)
-              where coalesce(switch.draft_of_switch_id, switch.id) = segment.switch_id) as track_numbers,
+              where coalesce(official_switch.draft_id, draft_switch.row_id) = segment.switch_id) as track_numbers,
             layout.infer_operation_from_state_category_transition(official_switch.state_category, draft_switch.state_category) operation
             from layout.switch_publication_view draft_switch
             left join layout.switch_publication_view official_switch on draft_switch.official_id = official_switch.official_id
@@ -128,7 +128,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = rs.getEnum("operation")
+                operation = rs.getEnum("operation"),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }
@@ -138,18 +138,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
         val sql = """
-            select   
-                case
-                    when draft_km_post.state = 'DELETED' and official_km_post.state != 'DELETED' then 'DELETE'
-                    when draft_km_post.state != 'DELETED' and official_km_post.state = 'DELETED' then 'RESTORE'
-                    when official_km_post.official_id is null then 'CREATE'
-                    else 'MODIFY'
-                end as operation, 
+            select
                 draft_km_post.official_id, 
                 draft_km_post.track_number_id, 
                 draft_km_post.km_number, 
                 draft_km_post.change_time, 
-                draft_km_post.change_user
+                draft_km_post.change_user,
+                layout.infer_operation_from_state_transition(official_km_post.state, draft_km_post.state) operation
             from layout.km_post_publication_view draft_km_post
             left join layout.km_post_publication_view official_km_post on draft_km_post.official_id = official_km_post.official_id
             and 'OFFICIAL' = any(official_km_post.publication_states)

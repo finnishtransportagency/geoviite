@@ -57,46 +57,6 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
         return trackNumber
     }
 
-    fun fetchOfficialTrackNumberPriorToMoment(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        moment: Instant? = null,
-    ): TrackLayoutTrackNumber? {
-        //language=SQL
-        val sql = """
-            select 
-              id, 
-              external_id, 
-              number, 
-              description,
-              state
-            from layout.track_number_version
-            where 
-                id = :id 
-                and change_time < coalesce(:moment, now())
-                and not draft
-            order by change_time desc
-            fetch first row only
-        """.trimIndent()
-        val params = mapOf(
-            "id" to trackNumberId.intValue,
-            "moment" to moment?.atOffset(ZoneOffset.UTC),
-        )
-        val trackNumber = jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            TrackLayoutTrackNumber(
-                number = rs.getTrackNumber("number"),
-                description = rs.getFreeText("description"),
-                state = rs.getEnum("state"),
-                externalId = rs.getOidOrNull("external_id"),
-                id = rs.getIntId("id"),
-                dataType = DataType.STORED,
-            )
-        }
-        if (trackNumber != null) {
-            logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumber.id)
-        }
-        return trackNumber
-    }
-
     fun fetchReferenceLineAtMoment(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant? = null,
@@ -195,80 +155,6 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),
                 version = rs.getRowVersion("id", "version"),
-                duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                topologicalConnectivity = rs.getEnum("topological_connectivity"),
-                topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")
-                    ?.let { id -> TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_start_switch_joint_number"),
-                    ) },
-                topologyEndSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_end_switch_id")
-                    ?.let { id -> TopologyLocationTrackSwitch(
-                        id,
-                        rs.getJointNumber("topology_end_switch_joint_number"),
-                    ) },
-            )
-        }
-        if (locationTrack != null) {
-            logger.daoAccess(AccessType.FETCH, LocationTrack::class, locationTrack.id)
-        }
-        return locationTrack
-    }
-
-    fun fetchOfficialLocationTrackPriorToMoment(locationTrackId: IntId<LocationTrack>, moment: Instant? = null): LocationTrack? {
-        //language=SQL
-        val sql = """
-            select
-              location_track_version.id,
-              location_track_version.version,
-              alignment_id,
-              alignment_version,
-              track_number_id, 
-              external_id, 
-              name, 
-              description, 
-              type, 
-              state, 
-              a.length,
-              a.segment_count,
-              duplicate_of_location_track_id,
-              topological_connectivity,
-              topology_start_switch_id,
-              topology_start_switch_joint_number,
-              topology_end_switch_id,
-              topology_end_switch_joint_number,
-              postgis.st_astext(a.bounding_box) as bounding_box
-            from layout.location_track_version
-            left join layout.alignment_version a on 
-              location_track_version.alignment_id = a.id
-              and location_track_version.alignment_version = a.version
-            where
-              location_track_version.id = :location_track_id
-              and location_track_version.change_time < coalesce(:moment, now())
-              and not location_track_version.draft
-            order by location_track_version.change_time desc
-            fetch first row only
-        """.trimIndent()
-        val params = mapOf(
-            "location_track_id" to locationTrackId.intValue,
-            "moment" to moment?.atOffset(ZoneOffset.UTC),
-        )
-        val locationTrack = jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            LocationTrack(
-                dataType = DataType.STORED,
-                id = rs.getIntId("id"),
-                alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
-                sourceId = null,
-                externalId = rs.getOidOrNull("external_id"),
-                trackNumberId = rs.getIntId("track_number_id"),
-                name = rs.getString("name").let(::AlignmentName),
-                description = rs.getFreeText("description"),
-                type = rs.getEnum("type"),
-                state = rs.getEnum("state"),
-                boundingBox = rs.getBboxOrNull("bounding_box"),
-                length = rs.getDouble("length"),
-                segmentCount = rs.getInt("segment_count"),
-                version = rs.getVersion("version", "version"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 topologicalConnectivity = rs.getEnum("topological_connectivity"),
                 topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")
@@ -438,50 +324,6 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
         return posts
     }
 
-    fun fetchOfficialKmPostPriorToMoment(
-        id: IntId<TrackLayoutKmPost>,
-        moment: Instant? = null,
-    ): TrackLayoutKmPost? {
-        val sql = """
-            select 
-                id,
-                track_number_id,
-                geometry_km_post_id,
-                km_number,
-                postgis.st_x(location) as point_x, 
-                postgis.st_y(location) as point_y,
-                state,
-                version,
-                change_time,
-                deleted
-            from layout.km_post_version
-            where 
-              id = :id 
-              and change_time < coalesce(:moment, now()) 
-              and not draft
-            order by change_time desc
-            fetch first row only
-        """.trimIndent()
-        val params = mapOf(
-            "id" to id.intValue,
-            "moment" to moment?.atOffset(ZoneOffset.UTC),
-        )
-        val post = getOptional(id, jdbcTemplate.query(sql, params) { rs, _ ->
-            TrackLayoutKmPost(
-                id = rs.getIntId("id"),
-                dataType = DataType.STORED,
-                trackNumberId = rs.getIntId("track_number_id"),
-                kmNumber = rs.getKmNumber("km_number"),
-                location = rs.getPointOrNull("point_x", "point_y"),
-                state = rs.getEnum("state"),
-                sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-                version = rs.getVersion("version", "version"),
-            )
-        })
-        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, id)
-        return post
-    }
-
     fun getSwitchAtMoment(
         switchId: IntId<TrackLayoutSwitch>,
         moment: Instant? = null,
@@ -560,39 +402,6 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
         })
         logger.daoAccess(AccessType.FETCH, TrackLayoutSwitch::class, switch.id)
         return switch
-    }
-
-    fun getOfficialSwitchPriorToMoment(
-        switchId: IntId<TrackLayoutSwitch>,
-        moment: Instant? = null,
-    ): TrackLayoutSwitch? {
-        //language=SQL
-        val sql = """
-            select
-              id,
-              version
-            from layout.switch_version
-            where
-              id = :id
-              and change_time < coalesce(:moment, now())
-              and not draft
-            order by change_time desc
-            fetch first row only
-        """.trimIndent()
-        val params = mapOf(
-            "id" to switchId.intValue,
-            "moment" to moment?.atOffset(ZoneOffset.UTC),
-        )
-        val switchVersion = jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            rs.getRowVersion<TrackLayoutSwitch>("id", "version")
-        }
-
-        return if (switchVersion != null) {
-            logger.daoAccess(AccessType.FETCH, TrackLayoutSwitch::class, switchVersion)
-            return getSwitchVersion(switchVersion)
-        } else {
-            null
-        }
     }
 
     private fun fetchSwitchJoints(switchId: RowVersion<TrackLayoutSwitch>): List<TrackLayoutSwitchJoint> {
