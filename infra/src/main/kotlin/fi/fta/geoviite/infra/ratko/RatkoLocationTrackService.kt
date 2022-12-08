@@ -105,14 +105,8 @@ class RatkoLocationTrackService @Autowired constructor(
     private fun createLocationTrackPoints(
         locationTrackOid: RatkoOid<RatkoLocationTrack>,
         addressPoints: List<AddressPoint>
-    ) {
-        addressPoints
-            .map { point -> convertToRatkoPoint(point) }
-            .also { points ->
-                if (points.isNotEmpty()) {
-                    ratkoClient.createLocationTrackPoints(locationTrackOid, points)
-                }
-            }
+    ) = toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
+        ratkoClient.createLocationTrackPoints(locationTrackOid, points)
     }
 
     private fun createLocationTrackMetadata(
@@ -264,16 +258,8 @@ class RatkoLocationTrackService @Autowired constructor(
     private fun updateLocationTrackGeometry(
         locationTrackOid: RatkoOid<RatkoLocationTrack>,
         newPoints: List<AddressPoint>
-    ) {
-        newPoints
-            .groupBy { point -> point.address.kmNumber }
-            .map { (_, addressPointsForKm) ->
-                addressPointsForKm.map { addressPoint -> convertToRatkoPoint(addressPoint) }
-            }.forEach { points ->
-                if (points.isNotEmpty()) {
-                    ratkoClient.updateLocationTrackPoints(locationTrackOid, points)
-                }
-            }
+    ) = toRatkoPointsGroupedByKm(newPoints).forEach { points ->
+        ratkoClient.updateLocationTrackPoints(locationTrackOid, points)
     }
 
     private fun updateLocationTrackProperties(

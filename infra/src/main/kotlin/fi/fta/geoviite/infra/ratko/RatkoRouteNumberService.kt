@@ -127,16 +127,8 @@ class RatkoRouteNumberService @Autowired constructor(
     private fun updateRouteNumberGeometry(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
         newPoints: List<AddressPoint>,
-    ) {
-        newPoints
-            .groupBy { point -> point.address.kmNumber }
-            .map { (_, addressPointsForKm) ->
-                addressPointsForKm.map { addressPoint -> convertToRatkoPoint(addressPoint) }
-            }.forEach { points ->
-                if (points.isNotEmpty()) {
-                    ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
-                }
-            }
+    ) = toRatkoPointsGroupedByKm(newPoints).forEach { points ->
+        ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
     }
 
     private fun createRouteNumber(trackNumber: TrackLayoutTrackNumber) {
@@ -156,15 +148,10 @@ class RatkoRouteNumberService @Autowired constructor(
     private fun createRouteNumberPoints(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
         addressPoints: List<AddressPoint>,
-    ) {
-        addressPoints
-            .map { point -> convertToRatkoPoint(point) }
-            .also { points ->
-                if (points.isNotEmpty()) {
-                    ratkoClient.createRouteNumberPoints(routeNumberOid, points)
-                }
-            }
+    ) = toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
+        ratkoClient.createRouteNumberPoints(routeNumberOid, points)
     }
+
 
     private fun updateRouteNumberProperties(
         trackNumber: TrackLayoutTrackNumber,

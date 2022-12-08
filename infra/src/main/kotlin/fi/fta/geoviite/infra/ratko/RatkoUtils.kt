@@ -85,3 +85,8 @@ fun sortByNullDuplicateOfFirst(duplicateOf: IntId<LocationTrack>?) = if (duplica
 
 fun sortByDeletedStateFirst(layoutStateCategory: LayoutStateCategory) =
     if (layoutStateCategory == LayoutStateCategory.NOT_EXISTING) 0 else 1
+
+fun toRatkoPointsGroupedByKm(addressPoints: List<AddressPoint>): List<List<RatkoPoint>> = addressPoints
+    .groupBy { point -> point.address.kmNumber }
+    .map { (_, addressPointsForKm) -> addressPointsForKm.map { addressPoint -> convertToRatkoPoint(addressPoint) } }
+    .filter { ratkoPoints -> ratkoPoints.isNotEmpty() }
