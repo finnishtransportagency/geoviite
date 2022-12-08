@@ -7,13 +7,12 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 
@@ -68,7 +67,9 @@ class LayoutKmPostServiceIT @Autowired constructor(
             ).id
         )
 
-        assertTrue(kmPostService.getKmPostExistsAtKmNumber(OFFICIAL, trackNumberId, kmPost.kmNumber))
+        val result = kmPostService.getByKmNumber(OFFICIAL, trackNumberId, kmPost.kmNumber)
+        assertNotNull(result)
+        assertMatches(kmPost, result!!)
     }
 
     @Test
@@ -80,11 +81,11 @@ class LayoutKmPostServiceIT @Autowired constructor(
             location = Point(1.0, 1.0),
         ))
 
-        assertFalse(kmPostService.getKmPostExistsAtKmNumber(OFFICIAL, trackNumberId, KmNumber(2)))
+        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumberId, KmNumber(2)))
     }
 
     @Test
-    fun doesntFindKmPostonWrongTrack() {
+    fun doesntFindKmPostOnWrongTrack() {
         val trackNumber1Id = insertOfficialTrackNumber()
         val trackNumber2Id = insertOfficialTrackNumber()
         val kmPost = kmPostService.getOrThrow(
@@ -97,7 +98,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             ).id
         )
 
-        assertFalse(kmPostService.getKmPostExistsAtKmNumber(OFFICIAL, trackNumber2Id, kmPost.kmNumber))
+        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumber2Id, kmPost.kmNumber))
     }
 
     @Test

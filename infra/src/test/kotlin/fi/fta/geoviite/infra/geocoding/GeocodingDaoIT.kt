@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.linking.PublishRequest
 import fi.fta.geoviite.infra.linking.PublishService
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest

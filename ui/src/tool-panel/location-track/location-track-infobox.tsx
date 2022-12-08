@@ -36,15 +36,13 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
-import {
-    getLocationTracksBySearchTerm,
-    getLocationTrackSegmentEnds,
-} from 'track-layout/track-layout-api';
+import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
+import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -72,7 +70,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
-    const startAndEndPoints = useLocationTrackStartAndEnd(locationTrack?.id, publishType);
+    const startAndEndPoints = useLocationTrackStartAndEnd(
+        locationTrack?.id,
+        publishType,
+        locationTrackChangeTime,
+    );
     const changeTimes = useLocationTrackChangeTimes(locationTrack?.id);
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const officialLocationTrack = useLocationTrack(

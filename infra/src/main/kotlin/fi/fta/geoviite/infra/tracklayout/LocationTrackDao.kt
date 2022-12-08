@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_LOCATION_TRACK
 import fi.fta.geoviite.infra.linking.LocationTrackPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
@@ -51,10 +48,10 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 
+              row_id,
+              row_version,
               official_id, 
-              official_version,
               draft_id,
-              draft_version,
               alignment_id,
               alignment_version,
               track_number_id, 
@@ -92,7 +89,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),
                 draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getVersion("official_version", "draft_version"),
+                version = rs.getRowVersion("row_id", "row_version"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 topologicalConnectivity = rs.getEnum("topological_connectivity"),
                 topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")
@@ -247,7 +244,8 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 ),
                 s.bounding_box
               )
-            where :publication_state = any(lt.publication_states)
+            where :publication_state = any(lt.publication_states) 
+              and lt.state != 'DELETED'
         """.trimIndent()
 
         val params = mapOf(

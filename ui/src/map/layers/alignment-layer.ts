@@ -21,7 +21,8 @@ import {
     toLocationTrack,
     toReferenceLine,
 } from 'track-layout/track-layout-model';
-import { getAlignmentsByTiles, getTrackNumbers } from 'track-layout/track-layout-api';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { getAlignmentsByTiles } from 'track-layout/layout-map-api';
 import {
     addBbox,
     getMatchingSegmentDatas,

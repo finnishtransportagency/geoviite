@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.Version
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -40,7 +40,7 @@ data class MapAlignment<T>(
     val length: Double,
     val dataType: DataType,
     val segmentCount: Int,
-    val version: Version,
+    val version: RowVersion<T>?,
 )
 
 data class MapSegment(

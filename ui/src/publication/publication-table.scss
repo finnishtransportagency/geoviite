@@ -1,0 +1,9 @@
+.publication-table__container {
+  overflow-y: auto;
+  height: 100%;
+}
+
+.publication-table__header {
+  position: sticky;
+  top: 0;
+}

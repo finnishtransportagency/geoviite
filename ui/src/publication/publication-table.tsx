@@ -4,9 +4,10 @@ import * as React from 'react';
 import { PublishCandidates } from 'publication/publication-model';
 import { useTranslation } from 'react-i18next';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { getTrackNumbers } from 'track-layout/track-layout-api';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { SelectedChanges } from 'preview/preview-view';
 import { TimeStamp } from 'common/common-model';
+import styles from './publication-table.scss';
 
 type PublicationTableProps = {
     previewChanges: PublishCandidates;
@@ -56,9 +57,11 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         return modifiedCollection;
     }
 
+
     return (
-        <Table wide>
-            <thead>
+        <div className={styles['publication-table__container']}>
+            <Table wide>
+                <thead className={styles['publication-table__header']}>
                 <tr>
                     <Th>{t('publication-table.change-target')}</Th>
                     <Th>{t('publication-table.track-number-short')}</Th>
@@ -69,8 +72,8 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     {showRatkoPushDate && <Th>{t('publication-table.exported-to-ratko')}</Th>}
                     {showActions && <Th>{t('publication-table.actions')}</Th>}
                 </tr>
-            </thead>
-            <tbody>
+                </thead>
+                <tbody>
                 {previewChanges.trackNumbers.map((trackNumber) => (
                     <React.Fragment key={trackNumber.id}>
                         {
@@ -196,7 +199,10 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                     // setSelectedChanges(newSelectedChanges);
                                 }}
                                 itemName={`${t('publication-table.switch')} ${layoutSwitch.name}`}
-                                trackNumber={undefined}
+                                trackNumber={trackNumbers
+                                    .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn == tn.id))
+                                    .map((tn) => tn.number)
+                                    .join(', ')}
                                 errors={layoutSwitch.errors}
                                 changeTime={layoutSwitch.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
@@ -243,8 +249,9 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                         }
                     </React.Fragment>
                 ))}
-            </tbody>
-        </Table>
+                </tbody>
+            </Table>
+        </div>
     );
 };
 

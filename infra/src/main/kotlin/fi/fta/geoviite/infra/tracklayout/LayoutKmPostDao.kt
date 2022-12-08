@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.DataType
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_KM_POST
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
@@ -52,14 +50,38 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
+    fun fetchVersion(
+        publicationState: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        kmNumber: KmNumber,
+    ): RowVersion<TrackLayoutKmPost>? {
+        val sql = """
+            select km_post.row_id, km_post.row_version 
+            from layout.km_post_publication_view km_post
+            where :publication_state = any(km_post.publication_states)
+              and km_post.state != 'DELETED'
+              and km_post.track_number_id = :track_number_id
+              and km_post.km_number = :km_number
+        """.trimIndent()
+        val params = mapOf(
+            "track_number_id" to trackNumberId.intValue,
+            "km_number" to kmNumber.toString(),
+            "publication_state" to publicationState.name,
+        )
+        val result = jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion<TrackLayoutKmPost>("row_id", "row_version")
+        }
+        return result.firstOrNull()
+    }
+
     @Cacheable(CACHE_LAYOUT_KM_POST, sync = true)
     override fun fetch(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
         val sql = """
             select 
+              row_id,
+              row_version,
               official_id, 
-              official_version,
               draft_id,
-              draft_version,
               track_number_id,
               geometry_km_post_id,
               km_number,
@@ -79,7 +101,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 state = rs.getEnum("state"),
                 sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
                 draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getVersion("official_version", "draft_version"),
+                version = rs.getRowVersion("row_id", "row_version"),
             )
         })
         logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, post.id)
@@ -174,24 +196,6 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         } ?: throw IllegalStateException("Failed to generate ID for new km-post")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, rowId)
         return rowVersion
-    }
-
-    fun officialKmPostExists(kmPostId: IntId<TrackLayoutKmPost>): Boolean {
-        val sql = """
-            select exists (select 1 from layout.km_post_publication_view
-            where official_id = :km_post_id 
-            and 'OFFICIAL' = any(publication_states)
-            )
-        """.trimIndent()
-
-        val params = mapOf("km_post_id" to kmPostId.intValue)
-
-        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, kmPostId)
-
-        return jdbcTemplate.queryForObject(sql, params) {rs, _ ->
-            rs.getBoolean(1)
-        } ?: false
-
     }
 
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<KmPostPublishCandidate> {

@@ -140,7 +140,7 @@ fun toTrackLayoutAlignments(
                 length = alignment.elements.sumOf(GeometryElement::calculatedLength),
                 dataType = DataType.TEMP,
                 segmentCount = alignment.elements.size,
-                version = Version.NONE,
+                version = null,
             )
         }
 }

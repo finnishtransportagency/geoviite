@@ -25,10 +25,13 @@ class CommonUiTestUtil {
             pointToCoordinateString(point.x, point.y)
 
         fun pointToCoordinateString(x: Double, y: Double) =
-            String.format("%.3f E %.3f N", x, y).replace(",", ".") //UI uses '.' instead of ','
+            "${asThreeDecimalPlaces(x)} E, ${asThreeDecimalPlaces(y)} N"
 
         fun metersToDouble(meters: String) =
             meters.substringBefore(' ').toDouble()
+
+        //UI uses '.' instead of ','
+        private fun asThreeDecimalPlaces(v: Double) = String.format("%.3f", v).replace(",", ".")
 
     }
 }

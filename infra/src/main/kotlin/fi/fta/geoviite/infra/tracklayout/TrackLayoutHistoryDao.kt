@@ -131,7 +131,7 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
                 sourceId = null,
                 trackNumberId = rs.getIntId("track_number_id"),
                 startAddress = rs.getTrackMeter("start_address"),
-                version = rs.getVersion("version", "version"),
+                version = rs.getRowVersion("id", "version"),
             )
         }
         if (referenceLine != null) {
@@ -194,7 +194,7 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
                 boundingBox = rs.getBboxOrNull("bounding_box"),
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),
-                version = rs.getVersion("version", "version"),
+                version = rs.getRowVersion("id", "version"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 topologicalConnectivity = rs.getEnum("topological_connectivity"),
                 topologyStartSwitch = rs.getIntIdOrNull<TrackLayoutSwitch>("topology_start_switch_id")
@@ -431,7 +431,7 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
                 location = rs.getPointOrNull("point_x", "point_y"),
                 state = rs.getEnum("state"),
                 sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-                version = rs.getVersion("version", "version"),
+                version = rs.getRowVersion("id", "version"),
             )
         }
         logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.map { it.id })
@@ -554,7 +554,7 @@ class TrackLayoutHistoryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : Da
                 joints = fetchSwitchJoints(switchId),
                 trapPoint = rs.getBooleanOrNull("trap_point"),
                 ownerId = rs.getIntId("owner_id"),
-                version = rs.getVersion("version", "version"),
+                version = rs.getRowVersion("id", "version"),
                 source = rs.getEnum("source"),
             )
         })

@@ -3,9 +3,12 @@
         "linking": {
             "generic": "Linkityksessä tapahtui virhe",
             "alignment-geometry": "Uudessa geometriassa on epäjatkuvuuskohtia",
-            "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
-            "save-alignment": "Raiteen tallennus epäonnistui",
-            "save-switch": "Vaihteen tallennus epäonnistui"
+            "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma"
+        },
+        "publication": {
+            "generic": "Julkaisu epäonnistui",
+            "lock-obtain-failed": "Toinen julkaisu käynnissä - yritä hetken kuluttua uudelleen",
+            "validation-failed": "Julkaisuvalidointi epäonnistui"
         },
         "input": {
             "generic": "Tarkasta syötekentät ja yritä uudestaan",

@@ -1,14 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.util.RowVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

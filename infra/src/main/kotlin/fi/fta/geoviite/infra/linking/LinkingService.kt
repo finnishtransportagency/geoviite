@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.calculateDistance
@@ -14,7 +15,6 @@ import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.RowVersion
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -22,38 +22,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.math.PI
 
-
-const val LOCALIZATION_KEY_SHARP_ANGLE = "error.linking.segments-sharp-angle"
-
-fun getLocationTrackEndpoints(
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    bbox: BoundingBox,
-): List<LocationTrackEndpoint> {
-    return locationTracks.flatMap { (locationTrack, alignment) ->
-        listOfNotNull(
-            if (alignment.segments.isNotEmpty()
-                && alignment.start != null
-                && bbox.contains(alignment.start!!)
-            ) {
-                LocationTrackEndpoint(
-                    locationTrack.id as IntId<LocationTrack>,
-                    location = Point(alignment.start!!),
-                    LocationTrackPointUpdateType.START_POINT,
-                )
-            } else null,
-            if (alignment.segments.isNotEmpty()
-                && alignment.end != null
-                && bbox.contains(alignment.end!!)
-            ) {
-                LocationTrackEndpoint(
-                    locationTrack.id as IntId<LocationTrack>,
-                    location = Point(alignment.end!!),
-                    LocationTrackPointUpdateType.END_POINT,
-                )
-            } else null
-        )
-    }
-}
 
 fun isAlignmentConnected(
     location: Point,
@@ -254,7 +222,7 @@ class LinkingService @Autowired constructor(
                 if (diff > PI / 2) throw LinkingFailureException(
                     message = "Linked geometry has over 90 degree angles between segments: " +
                             "segment=${segment.id} angle=${radsToDegrees(diff)}",
-                    localizedMessageKey = LOCALIZATION_KEY_SHARP_ANGLE,
+                    localizedMessageKey = "segments-sharp-angle",
                 )
             }
         }
@@ -350,11 +318,6 @@ class LinkingService @Autowired constructor(
         return linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType)
     }
 
-    fun getLocationTrackEndpoints(bbox: BoundingBox, publishType: PublishType): List<LocationTrackEndpoint> {
-        logger.serviceCall("getLocationTrackEndpoints", "bbox" to bbox)
-        return getLocationTrackEndpoints(locationTrackService.listWithAlignments(publishType), bbox)
-    }
-
     @Transactional
     fun saveKmPostLinking(kmPostLinkingParameters: KmPostLinkingParameters) {
         val geometryKmPost = geometryService.getKmPost(kmPostLinkingParameters.geometryKmPostId)
@@ -385,9 +348,9 @@ class LinkingService @Autowired constructor(
         } catch (e: IllegalArgumentException) {
             logger.warn("Linking selection produces invalid alignment: ${e.message}")
             throw LinkingFailureException(
-                "Linking selection produces invalid alignment",
-                e,
-                "error.linking.alignment-geometry"
+                message = "Linking selection produces invalid alignment",
+                cause = e,
+                localizedMessageKey = "alignment-geometry"
             )
         }
     }

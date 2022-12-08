@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.linking.PublishDao
+import fi.fta.geoviite.infra.linking.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -15,7 +15,7 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 @Disabled
 class RatkoServiceIT @Autowired constructor(
-    val publishDao: PublishDao,
+    val publicationDao: PublicationDao,
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
@@ -40,10 +40,10 @@ class RatkoServiceIT @Autowired constructor(
         }
         val locationTracks = listOf(
             locationTrackService.publish(
-                locationTrackService.saveDraft(draft, alignment).id
+                locationTrackService.saveDraft(draft, alignmentDao.fetch(alignmentVersion)).id
             )
         )
-        publishDao.createPublish(listOf(), listOf(), locationTracks, listOf(), listOf())
+        publicationDao.createPublish(listOf(), listOf(), locationTracks, listOf(), listOf())
 
         ratkoService.pushChangesToRatko(getCurrentUserName())
     }

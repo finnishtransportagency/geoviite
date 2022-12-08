@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.testgroup2
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -35,7 +36,6 @@ import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.REFERENCELINE_1
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.metersToDouble
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.pointToCoordinateString
-import fi.fta.geoviite.infra.util.RowVersion
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.*
 import org.openqa.selenium.TimeoutException

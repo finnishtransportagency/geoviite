@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
@@ -17,16 +14,16 @@ import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
-class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
         val sql = """
             select
-  draft_track_number.official_id, 
-  draft_track_number.number, 
-  draft_track_number.change_time, 
-  draft_track_number.change_user,
-  layout.infer_operation_from_state_transition(official_track_number.state, draft_track_number.state) operation
+                draft_track_number.official_id, 
+                draft_track_number.number, 
+                draft_track_number.change_time, 
+                draft_track_number.change_user,
+                layout.infer_operation_from_state_transition(official_track_number.state, draft_track_number.state) operation
             from layout.track_number_publication_view draft_track_number
             left join layout.track_number_publication_view official_track_number on draft_track_number.official_id = official_track_number.official_id
             and 'OFFICIAL' = any(official_track_number.publication_states)
@@ -47,22 +44,22 @@ class PublishDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidate> {
         val sql = """
-select
-  draft_reference_line.row_id,
-  draft_reference_line.row_version,
-  draft_reference_line.official_id,
-  draft_reference_line.change_time,
-  draft_reference_line.track_number_id,
-  draft_track_number.number as name,
-  draft_reference_line.change_user
-  from layout.reference_line_publication_view draft_reference_line
-    left join layout.track_number_publication_view draft_track_number on draft_track_number.official_id = draft_reference_line.track_number_id
-    and 'DRAFT' = any(draft_track_number.publication_states)
-    left join layout.reference_line_publication_view official_reference_line on official_reference_line.official_id = draft_reference_line.official_id
-    and 'OFFICIAL' = any(official_reference_line.publication_states)
-    left join layout.track_number_publication_view official_track_number on official_track_number.official_id = official_reference_line.track_number_id
-    and 'OFFICIAL' = any(official_track_number.publication_states)
-  where draft_reference_line.draft = true
+            select
+                draft_reference_line.row_id,
+                draft_reference_line.row_version,
+                draft_reference_line.official_id,
+                draft_reference_line.change_time,
+                draft_reference_line.track_number_id,
+                draft_track_number.number as name,
+                draft_reference_line.change_user
+                from layout.reference_line_publication_view draft_reference_line
+            left join layout.track_number_publication_view draft_track_number on draft_track_number.official_id = draft_reference_line.track_number_id
+                and 'DRAFT' = any(draft_track_number.publication_states)
+            left join layout.reference_line_publication_view official_reference_line on official_reference_line.official_id = draft_reference_line.official_id
+                and 'OFFICIAL' = any(official_reference_line.publication_states)
+            left join layout.track_number_publication_view official_track_number on official_track_number.official_id = official_reference_line.track_number_id
+                and 'OFFICIAL' = any(official_track_number.publication_states)
+            where draft_reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             ReferenceLinePublishCandidate(
@@ -81,13 +78,13 @@ select
     fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
         val sql = """
             select 
-  draft_location_track.official_id,
-  draft_location_track.name, 
-  draft_location_track.track_number_id, 
-  draft_location_track.change_time, 
-  draft_location_track.duplicate_of_location_track_id, 
-  draft_location_track.change_user,
-  layout.infer_operation_from_state_transition(official_location_track.state, draft_location_track.state) operation
+                draft_location_track.official_id,
+                draft_location_track.name, 
+                draft_location_track.track_number_id, 
+                draft_location_track.change_time, 
+                draft_location_track.duplicate_of_location_track_id, 
+                draft_location_track.change_user,
+                layout.infer_operation_from_state_transition(official_location_track.state, draft_location_track.state) operation
             from layout.location_track_publication_view draft_location_track
               left join layout.location_track_publication_view official_location_track on official_location_track.official_id = draft_location_track.official_id
               and 'OFFICIAL' = any(official_location_track.publication_states)
@@ -115,6 +112,10 @@ select
             draft_switch.name, 
             draft_switch.change_time,
             draft_switch.change_user,
+            (select array_agg(distinct track_number_id)
+              from layout.segment
+                join layout.location_track using(alignment_id)
+              where coalesce(switch.draft_of_switch_id, switch.id) = segment.switch_id) as track_numbers,
             layout.infer_operation_from_state_category_transition(official_switch.state_category, draft_switch.state_category) operation
             from layout.switch_publication_view draft_switch
             left join layout.switch_publication_view official_switch on draft_switch.official_id = official_switch.official_id
@@ -128,6 +129,7 @@ select
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation")
+                trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }
         logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
@@ -136,13 +138,18 @@ select
 
     fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
         val sql = """
-                        select   case
-    when draft_km_post.state = 'DELETED' and official_km_post.state != 'DELETED' then 'DELETE'
-    when draft_km_post.state != 'DELETED' and official_km_post.state = 'DELETED' then 'RESTORE'
-    when official_km_post.official_id is null then 'CREATE'
-    else 'MODIFY'
-  end as operation, 
-  draft_km_post.official_id, draft_km_post.track_number_id, draft_km_post.km_number, draft_km_post.change_time, draft_km_post.change_user
+            select   
+                case
+                    when draft_km_post.state = 'DELETED' and official_km_post.state != 'DELETED' then 'DELETE'
+                    when draft_km_post.state != 'DELETED' and official_km_post.state = 'DELETED' then 'RESTORE'
+                    when official_km_post.official_id is null then 'CREATE'
+                    else 'MODIFY'
+                end as operation, 
+                draft_km_post.official_id, 
+                draft_km_post.track_number_id, 
+                draft_km_post.km_number, 
+                draft_km_post.change_time, 
+                draft_km_post.change_user
             from layout.km_post_publication_view draft_km_post
             left join layout.km_post_publication_view official_km_post on draft_km_post.official_id = official_km_post.official_id
             and 'OFFICIAL' = any(official_km_post.publication_states)

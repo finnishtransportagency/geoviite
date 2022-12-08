@@ -43,10 +43,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             select 
+              row_id,
+              row_version,
               official_id, 
-              official_version,
               draft_id,
-              draft_version,
               external_id, 
               number, 
               description,
@@ -64,7 +64,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 externalId = rs.getOidOrNull("external_id"),
                 dataType = DataType.STORED,
                 draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getVersion("official_version", "draft_version"),
+                version = rs.getRowVersion("row_id", "row_version"),
             )
         })
         logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumber.id)

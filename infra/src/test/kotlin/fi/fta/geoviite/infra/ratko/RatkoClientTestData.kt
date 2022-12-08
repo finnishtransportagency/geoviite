@@ -46,7 +46,7 @@ fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
         sourceId = null,
         id = IntId(257),
         dataType = DataType.STORED,
-        version = Version(1, 1),
+        version = RowVersion(IntId(257), 1),
         draft = null,
         externalId = Oid("1.2.246.578.3.10002.189390"),
         boundingBox = alignment.boundingBox,

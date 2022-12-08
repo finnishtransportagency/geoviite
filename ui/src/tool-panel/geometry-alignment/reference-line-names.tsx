@@ -8,7 +8,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
-import { getTrackNumbers } from 'track-layout/track-layout-api';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLoader } from 'utils/react-utils';
 import { useTrackLayoutAppDispatch } from 'store/hooks';

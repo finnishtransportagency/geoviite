@@ -17,10 +17,11 @@ import styles from 'tool-panel/km-post/geometry-km-post-linking-infobox.scss';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
-import { getKmPost, getKmPostForLinking } from 'track-layout/track-layout-api';
+import { getKmPost, getKmPostForLinking } from 'track-layout/layout-km-post-api';
 import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-field';
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { updateKmPostChangeTime } from 'common/change-time-api';
+import { filterNotEmpty } from 'utils/array-utils';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -61,7 +62,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
             .filter((linkStatus) => linkStatus.id == geometryKmPost.sourceId)
             .flatMap((linkStatus) => linkStatus.linkedKmPosts);
         const kmPostPromises = kmPostIds.map((kmPostId) => getKmPost(kmPostId, publishType));
-        return Promise.all(kmPostPromises);
+        return Promise.all(kmPostPromises).then((posts) => posts.filter(filterNotEmpty));
     }, [planStatus]);
 
     const kmPosts =
@@ -102,7 +103,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     function handleKmPostInsert(id: LayoutKmPostId) {
         updateKmPostChangeTime().then((kp) => {
             getKmPost(id, publishType, kp).then((kmPost) => {
-                onKmPostSelect(kmPost);
+                if (kmPost) onKmPostSelect(kmPost);
             });
             setShowAddDialog(false);
         });

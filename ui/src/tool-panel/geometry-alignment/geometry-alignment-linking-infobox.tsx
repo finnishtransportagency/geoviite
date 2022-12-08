@@ -32,16 +32,18 @@ import {
     getLocationTracks,
     getLocationTracksNear,
     getNonLinkedLocationTracks,
+} from 'track-layout/layout-location-track-api';
+import {
     getNonLinkedReferenceLines,
     getReferenceLine,
     getReferenceLinesNear,
-} from 'track-layout/track-layout-api';
+} from 'track-layout/layout-reference-line-api';
 import {
     LocationTrackBadge,
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
-import { deduplicateById, fieldComparator, negComparator } from 'utils/array-utils';
+import { deduplicateById, fieldComparator, filterNotEmpty, negComparator } from 'utils/array-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import {
     GeometryLinkingAlignmentLockParameters,
@@ -234,7 +236,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         const referenceLinePromises = referenceLineIds.map((referenceLineId) =>
             getReferenceLine(referenceLineId, publishType),
         );
-        return Promise.all(referenceLinePromises);
+        return Promise.all(referenceLinePromises).then((lines) => lines.filter(filterNotEmpty));
     }, [planStatus, geometryAlignment]);
 
     const linkedLocationTracks = useLoader(() => {
@@ -338,7 +340,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     function handleLocationTrackInsert(id: LocationTrackId) {
         updateLocationTrackChangeTime().then((ts) => {
             getLocationTrack(id, publishType, ts).then((locationTrack) => {
-                onLocationTrackSelect(locationTrack);
+                if (locationTrack) onLocationTrackSelect(locationTrack);
             });
             setShowAddLocationTrackDialog(false);
         });

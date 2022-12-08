@@ -22,7 +22,7 @@ import {
     asTrackLayoutSwitchJointConnection,
     getMatchingLocationTrackIdsForJointNumbers,
 } from 'linking/linking-utils';
-import { getLocationTracksNear } from 'track-layout/track-layout-api';
+import { getLocationTracksNear } from 'track-layout/layout-location-track-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';

@@ -1,10 +1,11 @@
-package fi.fta.geoviite.infra.tracklayout
+package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.queryOptional

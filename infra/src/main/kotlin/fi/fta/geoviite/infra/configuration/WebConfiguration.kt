@@ -73,7 +73,7 @@ class WebConfig : WebMvcConfigurer {
         registry.addStringConstructorConverter(::Srid)
 
         logger.info("Registering version converters")
-        registry.addStringConstructorConverter(::Version)
+        registry.addStringConstructorConverter { RowVersion<Any>(it) }
 
         logger.info("Registering geography converters")
         registry.addStringConstructorConverter(::BoundingBox)

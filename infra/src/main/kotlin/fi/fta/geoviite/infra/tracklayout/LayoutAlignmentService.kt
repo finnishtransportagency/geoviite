@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
-import fi.fta.geoviite.infra.util.RowVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

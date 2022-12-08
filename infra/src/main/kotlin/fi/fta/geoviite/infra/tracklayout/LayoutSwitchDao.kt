@@ -274,10 +274,10 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
         val sql = """
             select 
+              row_id,
+              row_version,
               official_id, 
-              official_version,
               draft_id,
-              draft_version,
               geometry_switch_id, 
               external_id, 
               name, 
@@ -305,7 +305,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 trapPoint = rs.getBooleanOrNull("trap_point"),
                 ownerId = rs.getIntIdOrNull("owner_id"),
                 draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getVersion("official_version", "draft_version"),
+                version = rs.getRowVersion("row_id", "row_version"),
                 source = rs.getEnum("source")
             )
         })
@@ -378,7 +378,11 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               switch_and_previous.name,
               switch_and_previous.version,
               switch_and_previous.change_user,
-              layout.infer_operation_from_state_category_transition(switch_and_previous.old_state_category, switch_and_previous.state_category) operation
+              layout.infer_operation_from_state_category_transition(switch_and_previous.old_state_category, switch_and_previous.state_category) operation,
+              (select array_agg(distinct track_number_id)
+               from layout.segment_version
+                 join layout.location_track_version using(alignment_id, alignment_version)
+               where switch_version.id = segment_version.switch_id) as track_numbers
             from publication.switch published_switch
               left join layout.switch_and_previous_view switch_and_previous
                 on published_switch.switch_id = switch_and_previous.id
@@ -396,8 +400,68 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 draftChangeTime = rs.getInstant("change_time"),
                 name = SwitchName(rs.getString("name")),
                 userName = UserName(rs.getString("change_user")),
-                operation = rs.getEnum("operation")
+                operation = rs.getEnum("operation"),
+                name = SwitchName(rs.getString("name")),
+                trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }
+    }
+
+    data class LocationTrackIdentifiers(
+        val id: IntId<LocationTrack>,
+        val rowVersion: RowVersion<LocationTrack>,
+        val externalId: Oid<LocationTrack>?,
+    )
+
+    fun findLocationTracksLinkedToSwitch(
+        publicationState: PublishType,
+        switchId: IntId<TrackLayoutSwitch>,
+        topologyJointNumber: JointNumber? = null
+    ): List<LocationTrackIdentifiers> {
+        val sql = """ 
+            select 
+              location_track.official_id, 
+              location_track.row_id,
+              location_track.row_version,
+              location_track.external_id
+            from layout.segment
+            inner join layout.location_track_publication_view location_track 
+                         on location_track.alignment_id = segment.alignment_id
+            where :publication_state = any(publication_states)
+             and (
+               segment.switch_id = :switch_id
+                 or (
+                  location_track.topology_start_switch_id = :switch_id 
+                  and (
+                    :topology_joint_number::int is null 
+                    or location_track.topology_start_switch_joint_number = :topology_joint_number::int
+                  )
+                 )
+                 or (
+                  location_track.topology_end_switch_id = :switch_id
+                  and (
+                    :topology_joint_number::int is null 
+                    or location_track.topology_end_switch_joint_number = :topology_joint_number::int
+                  )
+                 )
+               )
+            group by 
+              location_track.official_id, 
+              location_track.row_id, 
+              location_track.row_version, 
+              location_track.external_id
+        """.trimIndent()
+        val params = mapOf(
+            "switch_id" to switchId.intValue,
+            "publication_state" to publicationState.name,
+            "topology_joint_number" to topologyJointNumber?.intValue
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            LocationTrackIdentifiers(
+                id = rs.getIntId("official_id"),
+                rowVersion = rs.getRowVersion("row_id", "row_version"),
+                externalId = rs.getOidOrNull("external_id"),
+            )
+        }
     }
 }

@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_REFERENCE_LINE
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.ReferenceLinePublishCandidate
@@ -26,10 +27,10 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select
+              row_id,
+              row_version,
               official_id, 
-              official_version,
               draft_id,
-              draft_version,
               alignment_id,
               alignment_version,
               track_number_id, 
@@ -53,7 +54,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),
                 draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let { id -> Draft(id) },
-                version = rs.getVersion("official_version", "draft_version"),
+                version = rs.getRowVersion("row_id", "row_version"),
             )
         })
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLine.id)
@@ -189,10 +190,10 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchNonLinked(): List<ReferenceLine> {
         val sql = """
             select
+              row_id,
+              row_version,
               official_id,
-              official_version,
               draft_id,
-              draft_version,
               alignment_id,
               alignment_version,
               track_number_id,
@@ -219,7 +220,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 length = rs.getDouble("length"),
                 segmentCount = rs.getInt("segment_count"),
                 draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let(::Draft),
-                version = rs.getVersion("official_version", "draft_version"),
+                version = rs.getRowVersion("row_id", "row_version"),
             )
         }
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class)

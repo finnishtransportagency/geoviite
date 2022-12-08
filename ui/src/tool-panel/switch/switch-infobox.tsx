@@ -5,9 +5,9 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
-    LayoutSwitchJoint,
     LayoutSwitchJointConnection,
-    SwitchTrackMeter,
+    LocationTrackId,
+    SwitchJointTrackMeter,
 } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
@@ -18,27 +18,28 @@ import { useTranslation } from 'react-i18next';
 import SwitchHand from 'geoviite-design-lib/switch/switch-hand';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import { useLoader } from 'utils/react-utils';
-import { getSwitchOwners, getSwitchStructures } from 'common/common-api';
+import { getSwitchOwners, getSwitchStructures, pointString } from 'common/common-api';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchEditDialog } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import {
-    getLocationTrack,
-    getSwitch,
-    getSwitchJointConnections,
-    getTrackAddress,
-} from 'track-layout/track-layout-api';
-import { PublishType, SwitchOwnerId, SwitchStructure, TrackMeter } from 'common/common-model';
+import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { ChangeTimes } from 'track-layout/track-layout-store';
 import { Point } from 'model/geometry';
-import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track-meters';
-import { filterNotEmpty } from 'utils/array-utils';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
+import { filterNotEmpty } from 'utils/array-utils';
+import { SwitchInfoboxTrackMeters } from 'tool-panel/switch/switch-infobox-track-meters';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getTrackMeter } from 'track-layout/layout-map-api';
+import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
+import { asyncCache } from 'cache/cache';
+
+const switchJointTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -48,76 +49,69 @@ type SwitchInfoboxProps = {
     publishType: PublishType;
     onUnselect: (switchId: LayoutSwitchId) => void;
     placingSwitchLinkingState?: PlacingSwitch;
-    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void
+    startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
 };
 
-const getPresentationJoint = (
-    officialSwitch: LayoutSwitch | undefined,
-    switchStructure: SwitchStructure | undefined,
-) => {
-    return officialSwitch?.joints.find(
-        (j) => j.number === switchStructure?.presentationJointNumber,
-    );
-};
-
-const getPresentationJointConnection = (
-    presentationJoint: LayoutSwitchJoint | undefined,
-    switchJointConnections: LayoutSwitchJointConnection[] | undefined,
-) => switchJointConnections?.find((jointConn) => jointConn.number === presentationJoint?.number);
-
-const mapToSwitchTrackMeter = (
-    track: LayoutLocationTrack,
-    trackAddress: TrackMeter,
-): SwitchTrackMeter => {
+const mapToSwitchJointTrackMeter = (
+    jointNumber: JointNumber,
+    locationTrack: LayoutLocationTrack,
+    trackMeter: TrackMeter,
+): SwitchJointTrackMeter => {
     return {
-        name: track.name,
-        trackMeter: trackAddress,
-        locationTrackId: track.id,
+        locationTrackId: locationTrack.id,
+        locationTrackName: locationTrack.name,
+        trackMeter: trackMeter,
+        jointNumber: jointNumber,
     };
 };
 
-const getSwitchTrackMeter = (
-    locationTrackId: string,
+const getTrackMeterForPoint = async (
+    jointNumber: JointNumber,
+    locationTrackId: LocationTrackId,
+    location: Point,
     publishType: PublishType,
     changeTimes: ChangeTimes,
-    presentationJoint: LayoutSwitchJoint,
 ) => {
-    return getLocationTrack(locationTrackId, publishType, changeTimes.layoutLocationTrack).then((track) =>
-        getTrackAddress(track.trackNumberId, publishType, presentationJoint.location).then(
-            (trackAddress) =>
-                trackAddress ? mapToSwitchTrackMeter(track, trackAddress) : undefined,
-        ),
+    const locationTrack = await getLocationTrack(
+        locationTrackId,
+        publishType,
+        changeTimes.layoutLocationTrack,
     );
+
+    if (!locationTrack) return undefined;
+
+    const cacheKey = `${locationTrack.trackNumberId}_${publishType}_${pointString(location)}`;
+    const trackMeter = await switchJointTrackMeterCache.get(
+        changeTimes.layoutTrackNumber,
+        cacheKey,
+        () => getTrackMeter(locationTrack.trackNumberId, publishType, location),
+    );
+
+    return trackMeter
+        ? mapToSwitchJointTrackMeter(jointNumber, locationTrack, trackMeter)
+        : undefined;
 };
 
-const getSwitchTrackMeters = (
-    layoutSwitch: LayoutSwitch | undefined,
-    switchStructure: SwitchStructure | undefined,
-    switchJointConnections: LayoutSwitchJointConnection[] | undefined,
+const getSwitchJointTrackMeters = async (
+    switchJointConnections: LayoutSwitchJointConnection[],
     publishType: PublishType,
     changeTimes: ChangeTimes,
-): Promise<(SwitchTrackMeter | undefined)[]> => {
-    const presentationJoint: LayoutSwitchJoint | undefined = getPresentationJoint(
-        layoutSwitch,
-        switchStructure,
+): Promise<SwitchJointTrackMeter[]> => {
+    const jointTrackMeters = await Promise.all(
+        switchJointConnections.flatMap((connection) => {
+            return connection.accurateMatches.map(async ({ locationTrackId, location }) =>
+                getTrackMeterForPoint(
+                    connection.number,
+                    locationTrackId,
+                    location,
+                    publishType,
+                    changeTimes,
+                ),
+            );
+        }),
     );
-    const presentationJointConnection = getPresentationJointConnection(
-        presentationJoint,
-        switchJointConnections,
-    );
-    const accurateMatches = presentationJointConnection?.accurateMatches ?? [];
-    const locationTrackIds =
-        accurateMatches.length > 0
-            ? accurateMatches.map((match) => match.locationTrackId)
-            : presentationJointConnection?.fallbackMatches ?? [];
 
-    return presentationJoint?.location ?
-        Promise.all(
-            locationTrackIds.map((id) =>
-                getSwitchTrackMeter(id, publishType, changeTimes, presentationJoint),
-            ),
-        ).then(result => result.filter(filterNotEmpty))
-        : Promise.resolve([]);
+    return jointTrackMeters.filter(filterNotEmpty);
 };
 
 const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
@@ -130,35 +124,30 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     placingSwitchLinkingState,
     startSwitchPlacing,
 }: SwitchInfoboxProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const layoutSwitch = useLoader(
         () => getSwitch(switchId, publishType),
         [switchId, changeTimes.layoutSwitch, publishType],
     );
-    const officialSwitch: LayoutSwitch | undefined = useLoader(
+    const officialSwitch = useLoader(
         () => getSwitch(switchId, 'OFFICIAL'),
         [switchId, changeTimes.layoutSwitch],
     );
     const switchStructure = switchStructures?.find(
         (structure) => structure.id === layoutSwitch?.switchStructureId,
     );
-    const switchJointConnections: LayoutSwitchJointConnection[] | undefined = useLoader(
+    const switchJointConnections = useLoader(
         () => getSwitchJointConnections(publishType, switchId),
         [publishType, layoutSwitch],
     );
-    const switchTrackMeters = useLoader(
-        () =>
-            getSwitchTrackMeters(
-                layoutSwitch,
-                switchStructure,
-                switchJointConnections,
-                publishType,
-                changeTimes,
-            ),
-        [officialSwitch, switchStructure, switchJointConnections, publishType, changeTimes],
-    )?.filter(filterNotEmpty);
+
+    const switchJointTrackMeters = useLoader(() => {
+        return switchJointConnections
+            ? getSwitchJointTrackMeters(switchJointConnections, publishType, changeTimes)
+            : undefined;
+    }, [switchJointConnections, publishType, changeTimes]);
 
     const SwitchImage =
         switchStructure && makeSwitchImage(switchStructure.baseType, switchStructure.hand);
@@ -190,10 +179,10 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         onUnselect(switchId);
     }
 
-    const getOwnerName = (ownerId: SwitchOwnerId | null | undefined) => {
+    function getOwnerName(ownerId: SwitchOwnerId | null | undefined) {
         const name = switchOwners?.find((o) => o.id == ownerId)?.name;
         return name ?? '-';
-    };
+    }
 
     function tryToStartSwitchPlacing() {
         if (layoutSwitch) {
@@ -211,11 +200,12 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxField
                             label={t('tool-panel.switch.layout.km-m')}
                             value={
-                                (
+                                (switchJointTrackMeters && (
                                     <SwitchInfoboxTrackMeters
-                                        switchTrackMeters={switchTrackMeters}
+                                        jointTrackMeters={switchJointTrackMeters}
+                                        presentationJoint={switchStructure?.presentationJointNumber}
                                     />
-                                ) || t('tool-panel.switch.layout.unpublished')
+                                )) || <Spinner />
                             }
                         />
                         <InfoboxField
@@ -233,7 +223,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <InfoboxField
                             label={t('tool-panel.switch.layout.state-category')}
                             value={
-                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory}/>
+                                <LayoutStateCategoryLabel category={layoutSwitch.stateCategory} />
                             }
                             onEdit={openEditSwitchDialog}
                             iconDisabled={isOfficial()}
@@ -256,15 +246,18 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 <InfoboxContent>
                     <p>{switchStructure ? switchStructure.type : ''}</p>
                     {SwitchImage && (
-                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT}/>
+                        <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
                     )}
                     <InfoboxField
                         label={t('tool-panel.switch.layout.hand')}
-                        value={switchStructure && <SwitchHand hand={switchStructure.hand}/>}
+                        value={switchStructure && <SwitchHand hand={switchStructure.hand} />}
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.layout.trap-point')}
-                        value={layoutSwitch && translateSwitchTrapPoint(booleanToTrapPoint(layoutSwitch.trapPoint))}
+                        value={
+                            layoutSwitch &&
+                            translateSwitchTrapPoint(booleanToTrapPoint(layoutSwitch.trapPoint))
+                        }
                     />
                 </InfoboxContent>
             </Infobox>
@@ -284,13 +277,17 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         />
                     )}
                     <InfoboxButtons>
-                        <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}
-                                disabled={!canStartPlacing}
-                                onClick={tryToStartSwitchPlacing}>{t('tool-panel.switch.layout.start-switch-placing')}</Button>
+                        <Button
+                            size={ButtonSize.SMALL}
+                            variant={ButtonVariant.SECONDARY}
+                            disabled={!canStartPlacing}
+                            onClick={tryToStartSwitchPlacing}>
+                            {t('tool-panel.switch.layout.start-switch-placing')}
+                        </Button>
                     </InfoboxButtons>
-                    {placingSwitchLinkingState &&
-                    <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
-                    }
+                    {placingSwitchLinkingState && (
+                        <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
+                    )}
                 </InfoboxContent>
             </Infobox>
             <Infobox

@@ -192,36 +192,6 @@ fun referenceLine(
     length = alignment?.length ?: 0.0
 )
 
-fun referenceLineAndGeocodingContext(
-    from: IPoint,
-    to: IPoint,
-    startAddress: TrackMeter,
-    vararg kmPosts: Pair<KmNumber, IPoint>
-
-): Pair<ReferenceLine, GeocodingContext> {
-    val referenceLineGeometry = alignment(
-        segment(from, to, startLength = 0.0)
-    )
-    val trackNumber = trackNumber(TrackNumber("T001"))
-    val referenceLine = referenceLine(
-        trackNumberId = IntId(1),
-        alignment = referenceLineGeometry,
-        startAddress = startAddress
-    )
-    return referenceLine to GeocodingContext.create(
-        trackNumber = trackNumber,
-        referenceLine = referenceLine,
-        referenceLineGeometry = referenceLineGeometry,
-        kmPosts.map { (kmNumber, point) ->
-            kmPost(
-                trackNumberId = trackNumber.id,
-                km = kmNumber,
-                location = point
-            )
-        }
-    )
-}
-
 fun locationTrackAndAlignment(
     vararg segments: LayoutSegment,
 ): Pair<LocationTrack, LayoutAlignment> =
@@ -625,7 +595,7 @@ fun switchJoint(seed: Int) = TrackLayoutSwitchJoint(
     locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
 )
 
-fun kmPost(trackNumberId: DomainId<TrackLayoutTrackNumber>?, km: KmNumber, location: IPoint? = Point(1.0, 1.0)) =
+fun kmPost(trackNumberId: IntId<TrackLayoutTrackNumber>?, km: KmNumber, location: IPoint? = Point(1.0, 1.0)) =
     TrackLayoutKmPost(
         trackNumberId = trackNumberId,
         kmNumber = km,

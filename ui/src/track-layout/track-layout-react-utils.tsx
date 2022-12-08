@@ -10,31 +10,32 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { useLoader } from 'utils/react-utils';
+import { useLoader, useNullableLoader } from 'utils/react-utils';
+import { ChangeTimes, CoordinateSystem, PublishType, Srid, TimeStamp } from 'common/common-model';
+import { getCoordinateSystem } from 'common/common-api';
+import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
+import { getGeometryPlanHeader } from 'geometry/geometry-api';
+import {
+    getReferenceLine,
+    getReferenceLineChangeTimes,
+    getReferenceLineStartAndEnd,
+    getTrackNumberReferenceLine,
+} from 'track-layout/layout-reference-line-api';
 import {
     getLocationTrack,
     getLocationTrackChangeTimes,
     getLocationTrackDuplicates,
     getLocationTrackStartAndEnd,
-    getReferenceLine,
-    getReferenceLineChangeTimes,
-    getReferenceLineStartAndEnd,
-    getSwitch,
-    getTrackNumberById,
-    getTrackNumberReferenceLine,
-    getTrackNumbers,
-} from 'track-layout/track-layout-api';
-import { ChangeTimes, CoordinateSystem, PublishType, Srid, TimeStamp } from 'common/common-model';
-import { getCoordinateSystem } from 'common/common-api';
-import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
-import { getGeometryPlanHeader } from 'geometry/geometry-api';
+} from 'track-layout/layout-location-track-api';
+import { getSwitch } from 'track-layout/layout-switch-api';
+import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutReferenceLine | undefined {
-    return useLoader(
+    return useNullableLoader(
         () =>
             trackNumberId
                 ? getTrackNumberReferenceLine(trackNumberId, publishType, changeTime)
@@ -48,7 +49,7 @@ export function useReferenceLine(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutReferenceLine | undefined {
-    return useLoader(
+    return useNullableLoader(
         () => (id ? getReferenceLine(id, publishType, changeTime) : undefined),
         [id, publishType, changeTime],
     );
@@ -66,7 +67,7 @@ export function useLocationTrack(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): LayoutLocationTrack | undefined {
-    return useLoader(
+    return useNullableLoader(
         () => (id ? getLocationTrack(id, publishType, changeTime) : undefined),
         [id, publishType, changeTime],
     );
@@ -109,10 +110,11 @@ export function useReferenceLineStartAndEnd(
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
     publishType: PublishType | undefined,
+    changeTime: TimeStamp,
 ): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id && publishType ? getLocationTrackStartAndEnd(id, publishType) : undefined),
-        [id, publishType],
+        [id, publishType, changeTime],
     );
 }
 
@@ -125,13 +127,13 @@ export function usePlanHeader(
 export function useReferenceLineChangeTimes(
     id: ReferenceLineId | undefined,
 ): ChangeTimes | undefined {
-    return useLoader(() => (id ? getReferenceLineChangeTimes(id) : undefined), [id]);
+    return useNullableLoader(() => (id ? getReferenceLineChangeTimes(id) : undefined), [id]);
 }
 
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
 ): ChangeTimes | undefined {
-    return useLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
+    return useNullableLoader(() => (id ? getLocationTrackChangeTimes(id) : undefined), [id]);
 }
 
 export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {

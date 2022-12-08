@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.model.*
@@ -234,9 +236,9 @@ class RatkoLocationTrackService @Autowired constructor(
             existingEndNode = existingEndNode,
         )
 
-        deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
-
         updateLocationTrackProperties(layoutLocationTrack, updatedEndPointNodeCollection)
+
+        deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
 
         updateLocationTrackGeometry(
             locationTrackOid = locationTrackOid,

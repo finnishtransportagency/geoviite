@@ -3,13 +3,13 @@ package fi.fta.geoviite.infra.integration
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.PublishDao
+import fi.fta.geoviite.infra.linking.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
-import fi.fta.geoviite.infra.util.RowVersion
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import org.junit.jupiter.api.BeforeEach
@@ -26,7 +26,7 @@ import kotlin.test.assertNull
 internal class RatkoPushDaoIT @Autowired constructor(
     val ratkoPushDao: RatkoPushDao,
     val locationTrackService: LocationTrackService,
-    val publishDao: PublishDao,
+    val publicationDao: PublicationDao,
 ): ITTestBase() {
     lateinit var layoutPublishId: IntId<Publication>
     lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
@@ -61,7 +61,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         locationTrackId = locationTrackService.publish(
             locationTrackService.saveDraft(locationTrack, alignment).id
         )
-        layoutPublishId = publishDao.createPublish(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
+        layoutPublishId = publicationDao.createPublish(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
     }
 
     @Test
@@ -136,7 +136,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val locationTrack2Id = locationTrackService.publish(
             locationTrackService.saveDraft(locationTrack2, alignment2).id
         )
-        val layoutPublishId2 = publishDao.createPublish(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
+        val layoutPublishId2 = publicationDao.createPublish(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
 
         val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
 

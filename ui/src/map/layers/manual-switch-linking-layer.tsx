@@ -7,11 +7,11 @@ import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/l
 import { LocationTrackEndpoint } from 'linking/linking-model';
 import { Selection } from 'selection/selection-model';
 import { MANUAL_SWITCH_LINKING_ENDPOINT_SELECTION_RESOLUTION } from 'map/layers/layer-visibility-limits';
-import { getLocationTrackEndpointsByTile } from 'linking/linking-api';
 import { flatten } from 'utils/array-utils';
 import { getMatchingEntities, MatchOptions } from 'map/layers/layer-utils';
 import { endPointStyle } from 'map/layers/linking-layer';
 import { PublishType } from 'common/common-model';
+import { getLocationTrackEndpointsByTile } from 'track-layout/layout-location-track-api';
 
 export type ManualSwitchLinkingLayerFeatureType = OLPoint;
 

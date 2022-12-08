@@ -2,9 +2,12 @@ package fi.fta.geoviite.infra.linking
 
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
@@ -21,9 +24,7 @@ class LinkingServiceIT @Autowired constructor(
     private val geometryService: GeometryService,
     private val geometryDao: GeometryDao,
     private val linkingService: LinkingService,
-    private val switchLinkingService: SwitchLinkingService,
     private val locationTrackService: LocationTrackService,
-    private val switchService: LayoutSwitchService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val kmPostService: LayoutKmPostService,
@@ -165,25 +166,6 @@ class LinkingServiceIT @Autowired constructor(
 
     }
 
-    @Test
-    fun switchIdIsReturnedWhenAddingNewSwitch() {
-        val switch = TrackLayoutSwitchSaveRequest(
-            SwitchName("XYZ-987"),
-            IntId(5),
-            LayoutStateCategory.EXISTING,
-            ownerId = IntId(3),
-            trapPoint = null,
-        )
-        val switchId = switchLinkingService.insertSwitch(switch)
-        val fetchedSwitch = switchService.getDraft(switchId)
-        assertNull(switchService.getOfficial(switchId))
-
-        assertEquals(DataType.STORED, fetchedSwitch.dataType)
-        assertEquals(switch.name, fetchedSwitch.name)
-        assertEquals(switch.stateCategory, fetchedSwitch.stateCategory)
-        assertEquals(switch.switchStructureId, fetchedSwitch.switchStructureId)
-    }
-
     fun assertMatches(
         trackAndAlignment1: Pair<LocationTrack, LayoutAlignment>,
         trackAndAlignment2: Pair<LocationTrack, LayoutAlignment>,
@@ -191,5 +173,4 @@ class LinkingServiceIT @Autowired constructor(
         assertMatches(trackAndAlignment1.first.copy(draft = null), trackAndAlignment2.first.copy(draft = null))
         assertMatches(trackAndAlignment1.second, trackAndAlignment2.second)
     }
-
 }

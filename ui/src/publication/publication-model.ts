@@ -57,6 +57,7 @@ export type SwitchPublishCandidate = PublishCandidate & {
     type: DraftChangeType.SWITCH;
     id: LayoutSwitchId;
     name: string;
+    trackNumberIds: LayoutTrackNumberId[];
 };
 
 export type KmPostPublishCandidate = PublishCandidate & {
@@ -73,6 +74,11 @@ export type PublishCandidates = {
     switches: SwitchPublishCandidate[];
     kmPosts: KmPostPublishCandidate[];
 };
+
+export type ValidatedPublishCandidates = {
+    validatedAsPublicationUnit: PublishCandidates;
+    validatedSeparately: PublishCandidates;
+}
 
 export type PublicationListingItem = {
     id: PublicationId;

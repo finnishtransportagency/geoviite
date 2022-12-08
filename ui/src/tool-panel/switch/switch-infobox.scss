@@ -83,10 +83,36 @@
   position: absolute;
 }
 
-.switch-infobox-track-meters__ul {
-    list-style-type: none; /* Remove bullets */
-    padding: 0; /* Remove padding */
-    margin: 0; /* Remove margins */
+.switch-edit-dialog__confirmation-list {
+  margin: 0;
+  padding: 0;
+  list-style: inside;
+}
+
+.switch-infobox-track-meters {
+
+  &__track-meters {
+  list-style-type: none; /* Remove bullets */
+  padding: 0; /* Remove padding */
+  margin: 0; /* Remove margins */
+  }
+
+  &__track-meter {
+    margin-bottom: 4px;
+  }
+
+  &__joint-number {
+    @include typography-caption;
+    color: $color-black-light;
+
+    display: inline-block;
+    margin: 6px 0 2px 0;
+  }
+
+  &__show-more {
+    margin-top: 8px;
+  }
+
 }
 
 .switch-joint-infobox {

@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.integration
 
-import fi.fta.geoviite.infra.logging.daoCall
 import fi.fta.geoviite.infra.util.DaoBase
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -24,8 +23,8 @@ class LockDao @Autowired constructor(
     fun <R> runWithLock(lockName: DatabaseLock, maxLockDuration: Duration, fn: () -> R): R? {
         val lock = obtainLock(lockName, maxLockDuration)
 
-        if (lock == null) logger.daoCall("Could not obtain lock $lockName")
-        else logger.daoCall("Obtained lock $lockName for duration $maxLockDuration")
+        if (lock == null) logger.info("Failed to obtain lock: name=$lockName")
+        else logger.info("Obtained lock: name=$lockName maxDuration=$maxLockDuration")
 
         return lock?.let {
             try {
@@ -34,16 +33,6 @@ class LockDao @Autowired constructor(
                 releaseLock(lockName)
             }
         }
-    }
-
-    private fun releaseLock(lockName: DatabaseLock) {
-        val sql = """
-            update integrations.lock 
-            set locked_until = now()
-            where name = :lock_name
-            """.trimIndent()
-
-        jdbcTemplate.update(sql, mapOf("lock_name" to lockName.name))
     }
 
     private fun obtainLock(lockName: DatabaseLock, duration: Duration): DatabaseLock? {
@@ -62,5 +51,15 @@ class LockDao @Autowired constructor(
 
         val affectedRows = jdbcTemplate.update(sql, params)
         return if (affectedRows == 1) lockName else null
+    }
+
+    private fun releaseLock(lockName: DatabaseLock) {
+        val sql = """
+            update integrations.lock 
+            set locked_until = now()
+            where name = :lock_name
+        """.trimIndent()
+
+        jdbcTemplate.update(sql, mapOf("lock_name" to lockName.name))
     }
 }
