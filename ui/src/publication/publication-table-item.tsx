@@ -6,7 +6,6 @@ import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import { PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
-import { SelectedPublishChange } from 'track-layout/track-layout-store';
 
 export type PreviewTableItemProps = {
     onChange: React.ChangeEventHandler<HTMLInputElement>;
@@ -16,7 +15,8 @@ export type PreviewTableItemProps = {
     changeTime: TimeStamp;
     showRatkoPushDate: boolean;
     ratkoPushDate?: TimeStamp;
-    onPublishItemSelect? :() => void;
+    onPublishItemSelect?: () => void;
+    publish?: boolean;
 };
 
 export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
@@ -27,8 +27,9 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     showRatkoPushDate,
     ratkoPushDate,
     onPublishItemSelect,
+    publish = false,
 }) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
 
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
@@ -65,7 +66,7 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                     onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
                     {!hasErrors && (
                         <span className={styles['preview-table-item__ok-status']}>
-                            <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
+                            <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL}/>
                         </span>
                     )}
                     {errorTexts.length > 0 && (
@@ -79,10 +80,9 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                         </span>
                     )}
                 </td>
-                <td onClick={() => {
-                    console.log("clicked")
-                    onPublishItemSelect && onPublishItemSelect();
-                }}>Toiminnot</td>
+                <td onClick={() => {onPublishItemSelect && onPublishItemSelect();}}>
+                    {publish ? <Icons.Ascending size={IconSize.SMALL}/> : <Icons.Descending size={IconSize.SMALL}/>}
+                </td>
                 <td>{formatDateFull(changeTime)}</td>
                 {showRatkoPushDate && (
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>

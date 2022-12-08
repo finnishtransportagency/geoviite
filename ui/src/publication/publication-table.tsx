@@ -3,7 +3,14 @@ import { PublicationTableItem } from 'publication/publication-table-item';
 import * as React from 'react';
 import { PublishCandidates } from 'publication/publication-model';
 import { useTranslation } from 'react-i18next';
-import { LayoutTrackNumber, LayoutTrackNumberId, ReferenceLineId } from 'track-layout/track-layout-model';
+import {
+    LayoutKmPostId,
+    LayoutSwitchId,
+    LayoutTrackNumber,
+    LayoutTrackNumberId,
+    LocationTrackId,
+    ReferenceLineId,
+} from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { SelectedChanges } from 'preview/preview-view';
 import { TimeStamp } from 'common/common-model';
@@ -15,6 +22,7 @@ type PublicationTableProps = {
     showRatkoPushDate?: boolean;
     ratkoPushDate?: TimeStamp;
     onPreviewSelect?: (selectedChanges: SelectedPublishChange) => void;
+    publish?: boolean;
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
@@ -22,6 +30,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     showRatkoPushDate = false,
     ratkoPushDate = undefined,
     onPreviewSelect = undefined,
+    publish = false,
 }) => {
     const {t} = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -59,12 +68,20 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     enum PreviewSelectType {
         trackNumber = 'trackNumber',
         referenceLine = 'referenceLine',
-        locationTrack = 3,
-        switch = 4,
-        kmPost = 5
+        locationTrack = 'locationTrack',
+        switch = 'switch',
+        kmPost = 'kmPost'
     }
 
-    type publishId = LayoutTrackNumberId | ReferenceLineId
+
+    type PublishChangeId =
+        LayoutTrackNumberId
+        | ReferenceLineId
+        | LocationTrackId
+        | LayoutSwitchId
+        | LayoutKmPostId
+        | undefined
+
 
     const defaultSelectedPublishChange: SelectedPublishChange = {
         trackNumber: undefined,
@@ -74,30 +91,28 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         kmPost: undefined,
     };
 
-    function handlePreviewSelect<T>(id: string, type: T) {
+    function handlePreviewSelect<T>(id: PublishChangeId, type: T) {
         switch (type) {
-            case ('trackNumbers'):
+            case (PreviewSelectType.trackNumber):
                 onPreviewSelect && onPreviewSelect(
-                 //   {...defaultSelectedPublishChange, trackNumber: id});
-                //onPreviewSelect && onPreviewSelect(
-                    {
-                    trackNumber: id,
-                    referenceLine: undefined,
-                    locationTrack: undefined,
-                    switch: undefined,
-                    kmPost: undefined,
-                });
+                    {...defaultSelectedPublishChange, trackNumber: id});
                 break;
-            case ('referencelines'):
+            case (PreviewSelectType.referenceLine):
                 onPreviewSelect && onPreviewSelect(
                     {...defaultSelectedPublishChange, referenceLine: id});
                 break;
-            case ('locationtracks'):
+            case (PreviewSelectType.locationTrack):
                 onPreviewSelect && onPreviewSelect(
                     {...defaultSelectedPublishChange, locationTrack: id});
                 break;
-            // switches
-            // kmPosts
+            case (PreviewSelectType.switch):
+                onPreviewSelect && onPreviewSelect(
+                    {...defaultSelectedPublishChange, locationTrack: id});
+                break;
+            case (PreviewSelectType.kmPost):
+                onPreviewSelect && onPreviewSelect(
+                    {...defaultSelectedPublishChange, locationTrack: id});
+                break;
             default:
                 onPreviewSelect && onPreviewSelect(defaultSelectedPublishChange);
         }
@@ -112,7 +127,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     <Th>{t('publication-table.change-target')}</Th>
                     <Th>{t('publication-table.track-number-short')}</Th>
                     <Th>{t('publication-table.status')}</Th>
-                    <Th>Toiminnot</Th>
+                    <Th>{t('publication-table.functions')}</Th>
                     <Th>{t('publication-table.modified-moment')}</Th>
                     {showRatkoPushDate && <Th>{t('publication-table.exported-to-ratko')}</Th>}
                 </tr>
@@ -122,7 +137,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     <React.Fragment key={trackNumber.id}>
                         {
                             <PublicationTableItem
-                                onPublishItemSelect={() => handlePreviewSelect(trackNumber.id, 'tracknumbers')}
+                                onPublishItemSelect={() => handlePreviewSelect(trackNumber.id, PreviewSelectType.trackNumber)}
                                 onChange={(e) => {
                                     const trackNumbers = addOrRemoveByCheckbox(
                                         selectedChanges.trackNumbers,
@@ -144,6 +159,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={trackNumber.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                publish={publish}
                             />
                         }
                     </React.Fragment>
@@ -152,7 +168,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     <React.Fragment key={referenceLine.id}>
                         {
                             <PublicationTableItem
-                                onPublishItemSelect={() => handlePreviewSelect(referenceLine.id, 'referencelines')}
+                                onPublishItemSelect={() => handlePreviewSelect(referenceLine.id, PreviewSelectType.referenceLine)}
                                 onChange={(e) => {
                                     // Checkbox selection - disabled for MVP to simplify validation
                                     const referenceLines = addOrRemoveByCheckbox(
@@ -178,6 +194,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={referenceLine.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                publish={publish}
                             />
                         }
                     </React.Fragment>
@@ -186,7 +203,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     <React.Fragment key={referenceLine.id}>
                         {
                             <PublicationTableItem
-                                onPublishItemSelect={() => handlePreviewSelect(referenceLine.id, 'locationtracks')}
+                                onPublishItemSelect={() => handlePreviewSelect(referenceLine.id, PreviewSelectType.locationTrack)}
                                 onChange={(e) => {
                                     // Checkbox selection - disabled for MVP to simplify validation
                                     const locationTracks = addOrRemoveByCheckbox(
@@ -212,6 +229,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={referenceLine.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                publish={publish}
                             />
                         }
                     </React.Fragment>
@@ -220,7 +238,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     <React.Fragment key={layoutSwitch.id}>
                         {
                             <PublicationTableItem
-                                onPublishItemSelect={() => handlePreviewSelect(layoutSwitch.id, 'switches')}
+                                onPublishItemSelect={() => handlePreviewSelect(layoutSwitch.id, PreviewSelectType.switch)}
                                 onChange={(e) => {
                                     const switches = addOrRemoveByCheckbox(
                                         selectedChanges.switches,
@@ -243,6 +261,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={layoutSwitch.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                publish={publish}
                             />
                         }
                     </React.Fragment>
@@ -251,6 +270,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     <React.Fragment key={kmPost.id}>
                         {
                             <PublicationTableItem
+                                onPublishItemSelect={() => handlePreviewSelect(kmPost.id, PreviewSelectType.kmPost)}
                                 onChange={(e) => {
                                     const kmPosts = addOrRemoveByCheckbox(
                                         selectedChanges.kmPosts,
@@ -273,6 +293,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                                 changeTime={kmPost.draftChangeTime}
                                 ratkoPushDate={ratkoPushDate}
                                 showRatkoPushDate={showRatkoPushDate}
+                                publish={publish}
                             />
                         }
                     </React.Fragment>

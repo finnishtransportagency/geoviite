@@ -37,6 +37,9 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 
+
+type Candidate = string;
+
 export type SelectedChanges = {
     trackNumbers: LayoutTrackNumberId[];
     referenceLines: ReferenceLineId[];
@@ -79,25 +82,25 @@ const initialCandidates = {
     kmPosts: [],
 };
 
+function isIncluded(candidate: Candidate, candidateIds: Candidate[], reversed: boolean) {
+    return reversed ? !candidateIds.includes(candidate) : candidateIds.includes(candidate);
+}
+
+const getPublishCandidate = (previewChanges: PublishCandidates | undefined, publishPreviewChangesIds: SelectedChanges, reversed: boolean) => {
+    return {
+        trackNumbers: previewChanges?.trackNumbers.filter(tn => isIncluded(tn.id, publishPreviewChangesIds.trackNumbers, reversed)) || [],
+        locationTracks: previewChanges?.locationTracks.filter(lt => isIncluded(lt.id, publishPreviewChangesIds.locationTracks, reversed)) || [],
+        referenceLines: previewChanges?.referenceLines.filter(rl => isIncluded(rl.id, publishPreviewChangesIds.referenceLines, reversed)) || [],
+        switches: previewChanges?.switches.filter(s => isIncluded(s.id, publishPreviewChangesIds.switches, reversed)) || [],
+        kmPosts: previewChanges?.kmPosts.filter(km => isIncluded(km.id, publishPreviewChangesIds.kmPosts, reversed)) || [],
+    };
+};
 
 const getPublishPreviewChanges = (publishPreviewChangesIds: SelectedChanges, previewChanges: PublishCandidates | undefined): PublishCandidates[] => {
     return publishPreviewChangesIds ? [
-        //publishPreviewChanges all candidates to be published
-        {
-            trackNumbers: previewChanges?.trackNumbers.filter(tn => !publishPreviewChangesIds.trackNumbers.includes(tn.id)) || [],
-            locationTracks: previewChanges?.locationTracks.filter(lt => !publishPreviewChangesIds.locationTracks.includes(lt.id)) || [],
-            referenceLines: previewChanges?.referenceLines.filter(rl => !publishPreviewChangesIds.referenceLines.includes(rl.id)) || [],
-            switches: previewChanges?.switches.filter(s => !publishPreviewChangesIds.switches.includes(s.id)) || [],
-            kmPosts: previewChanges?.kmPosts.filter(km => !publishPreviewChangesIds.kmPosts.includes(km.id)) || [],
-        },
-        {
-            trackNumbers: previewChanges?.trackNumbers.filter(tn => publishPreviewChangesIds.trackNumbers.includes(tn.id)) || [],
-            locationTracks: previewChanges?.locationTracks.filter(lt => publishPreviewChangesIds.locationTracks.includes(lt.id)) || [],
-            referenceLines: previewChanges?.referenceLines.filter(rl => publishPreviewChangesIds.referenceLines.includes(rl.id)) || [],
-            switches: previewChanges?.switches.filter(s => publishPreviewChangesIds.switches.includes(s.id)) || [],
-            kmPosts: previewChanges?.kmPosts.filter(km => publishPreviewChangesIds.kmPosts.includes(km.id)) || [],
-        },
-    ] : [(previewChanges || initialCandidates), initialCandidates];
+            getPublishCandidate(previewChanges, publishPreviewChangesIds, true),
+            getPublishCandidate(previewChanges, publishPreviewChangesIds, false)]
+        : [(previewChanges || initialCandidates), initialCandidates];
 };
 
 
@@ -147,7 +150,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PublicationTable
                                     onPreviewSelect={props.onPreviewSelect}
-                                    previewChanges={previewChanges}/>
+                                    previewChanges={previewChanges}
+                                />
                             </section>
 
                             <section className={styles['preview-section']}>
@@ -156,7 +160,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PublicationTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
-                                    previewChanges={publishPreviewChanges}/>
+                                    previewChanges={publishPreviewChanges}
+                                    publish={true}
+                                />
                             </section>
 
                             <div className={styles['preview-section']}>
