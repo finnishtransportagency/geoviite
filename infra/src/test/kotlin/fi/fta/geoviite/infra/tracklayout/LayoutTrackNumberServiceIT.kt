@@ -3,13 +3,14 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,37 +41,37 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         trackNumberService.updateExternalId(trackNumber.id as IntId, externalIdForTrackNumber())
 
         val updatedTrackNumber = trackNumberService.getDraft(id)
-        Assertions.assertNotNull(updatedTrackNumber.externalId)
+        assertNotNull(updatedTrackNumber.externalId)
     }
 
     @Test
     fun deletingDraftOnlyTrackNumberDeletesItAndReferenceLineAndAlignment() {
-        val items = createTrackNumberAndReferenceLineAndAlignment()
-        Assertions.assertNotNull(items.second.first.alignmentVersion)
-        val trackNumberId = items.first.id as IntId<TrackLayoutTrackNumber>
+        val (trackNumber, referenceLine, alignment) = createTrackNumberAndReferenceLineAndAlignment()
+        assertEquals(referenceLine.alignmentVersion?.id, alignment.id)
+        val trackNumberId = trackNumber.id as IntId
 
-        Assertions.assertDoesNotThrow { trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumberId) }
+        assertDoesNotThrow { trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumberId) }
         assertThrows<NoSuchEntityException> {
-            referenceLineService.getOrThrow(PublishType.DRAFT, items.second.first.id as IntId<ReferenceLine>)
+            referenceLineService.getOrThrow(DRAFT, referenceLine.id as IntId)
         }
         assertThrows<NoSuchEntityException> {
-            trackNumberService.getOrThrow(PublishType.DRAFT, trackNumberId)
+            trackNumberService.getOrThrow(DRAFT, trackNumberId)
         }
-        assertThrows<NoSuchEntityException> { alignmentDao.fetch(items.second.first.alignmentVersion!!) }
+        assertFalse(alignmentDao.fetchVersions().map { rv -> rv.id }.contains(alignment.id))
     }
 
     @Test
     fun tryingToDeletePublishedTrackNumberThrows() {
-        val items = createTrackNumberAndReferenceLineAndAlignment()
-        trackNumberService.publish(items.first.id as IntId<TrackLayoutTrackNumber>)
-        referenceLineService.publish(items.second.first.id as IntId<ReferenceLine>)
+        val (trackNumber, referenceLine, _) = createTrackNumberAndReferenceLineAndAlignment()
+        trackNumberService.publish(trackNumber.id as IntId)
+        referenceLineService.publish(referenceLine.id as IntId)
 
         assertThrows<DeletingFailureException> {
-            trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(items.first.id as IntId<TrackLayoutTrackNumber>)
+            trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumber.id as IntId)
         }
     }
 
-    fun createTrackNumberAndReferenceLineAndAlignment(): Pair<TrackLayoutTrackNumber, Pair<ReferenceLine, LayoutAlignment>> {
+    fun createTrackNumberAndReferenceLineAndAlignment(): Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {
         val saveRequest = TrackNumberSaveRequest(
             getUnusedTrackNumber(),
             FreeText(trackNumberDescription),
@@ -82,11 +83,11 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         val id = trackNumberService.insert(saveRequest)
         val trackNumber = trackNumberService.getDraft(id)
 
-        val referenceLineLayoutAlignment = referenceLineService.getByTrackNumberWithAlignment(
-            PublishType.DRAFT,
+        val (referenceLine, alignment) = referenceLineService.getByTrackNumberWithAlignment(
+            DRAFT,
             trackNumber.id as IntId<TrackLayoutTrackNumber>
         )!! // Always exists, since we just created it
 
-        return trackNumber to referenceLineLayoutAlignment
+        return Triple(trackNumber, referenceLine, alignment)
     }
 }

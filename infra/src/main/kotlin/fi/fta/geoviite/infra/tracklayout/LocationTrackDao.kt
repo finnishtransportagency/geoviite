@@ -48,31 +48,37 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
-              alignment_id,
-              alignment_version,
-              track_number_id, 
-              external_id, 
-              name, 
-              description, 
-              type, 
-              state, 
-              postgis.st_astext(bounding_box) as bounding_box,
-              length,
-              segment_count,            
-              duplicate_of_location_track_id,
-              topological_connectivity,
-              topology_start_switch_id,
-              topology_start_switch_joint_number,
-              topology_end_switch_id,
-              topology_end_switch_joint_number
-            from layout.location_track_publication_view
-            where row_id = :location_track_id
+              ltv.id as row_id,
+              ltv.version as row_version,
+              coalesce(ltv.draft_of_location_track_id, ltv.id) official_id, 
+              case when ltv.draft then ltv.id end as draft_id,
+              ltv.alignment_id,
+              ltv.alignment_version,
+              ltv.track_number_id, 
+              ltv.external_id, 
+              ltv.name, 
+              ltv.description, 
+              ltv.type, 
+              ltv.state, 
+              postgis.st_astext(av.bounding_box) as bounding_box,
+              av.length,
+              av.segment_count,            
+              ltv.duplicate_of_location_track_id,
+              ltv.topological_connectivity,
+              ltv.topology_start_switch_id,
+              ltv.topology_start_switch_joint_number,
+              ltv.topology_end_switch_id,
+              ltv.topology_end_switch_joint_number
+            from layout.location_track_version ltv
+              left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
+            where ltv.id = :id
+              and ltv.version = :version
+              and ltv.deleted = false
         """.trimIndent()
-        val params = mapOf("location_track_id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val locationTrack = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrack(
                 dataType = DataType.STORED,

@@ -274,10 +274,10 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_switch_id, id) official_id, 
+              case when draft then id end as draft_id,
               geometry_switch_id, 
               external_id, 
               name, 
@@ -286,10 +286,15 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               trap_point,
               owner_id,
               source
-            from layout.switch_publication_view
-            where row_id = :id
+            from layout.switch_version
+            where id = :id
+              and version = :version
+              and deleted = false
         """.trimIndent()
-        val params = mapOf("id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val switch = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
 
@@ -306,7 +311,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 ownerId = rs.getIntIdOrNull("owner_id"),
                 draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
                 version = rs.getRowVersion("row_id", "row_version"),
-                source = rs.getEnum("source")
+                source = rs.getEnum("source"),
             )
         })
         logger.daoAccess(FETCH, TrackLayoutSwitch::class, switch.id)
@@ -320,15 +325,15 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               postgis.st_x(location) as location_x, 
               postgis.st_y(location) as location_y,
               location_accuracy
-            from layout.switch_joint joint 
-            where 
-                switch_id = :switch_id and
-                switch_version = :switch_version
+            from layout.switch_joint_version joint 
+            where switch_id = :switch_id
+              and switch_version = :switch_version
+              and deleted = false
             order by switch_id, number
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.id.intValue,
-            "switch_version" to switchId.version
+            "switch_version" to switchId.version,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             TrackLayoutSwitchJoint(

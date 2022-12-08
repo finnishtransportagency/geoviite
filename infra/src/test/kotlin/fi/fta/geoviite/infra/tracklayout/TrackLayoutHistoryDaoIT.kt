@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -14,7 +13,6 @@ import java.time.Instant
 class TrackLayoutHistoryDaoIT @Autowired constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val trackLayoutHistoryDao: TrackLayoutHistoryDao,
-    val trackLayoutAlignmentDao: LayoutAlignmentDao
 ): ITTestBase() {
 
     @Test
@@ -62,22 +60,6 @@ class TrackLayoutHistoryDaoIT @Autowired constructor(
         )
         trackLayoutHistoryDao.fetchReferenceLineAtMoment(
             IntId(1),
-        )
-    }
-
-    @Test
-    fun shouldRunFetchLayoutAlignmentByVersionSqlQueryWithoutErrors() {
-        val alignmentVersion = trackLayoutAlignmentDao.insert(
-            alignment(
-                segment(
-                    Point(0.0, 0.0),
-                    Point(1.0, 1.0)
-                )
-            )
-        )
-        // Testing SQL query only
-        trackLayoutHistoryDao.fetchLayoutAlignmentVersion(
-            alignmentVersion
         )
     }
 

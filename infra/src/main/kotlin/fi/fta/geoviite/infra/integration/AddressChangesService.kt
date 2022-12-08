@@ -74,6 +74,7 @@ data class AddressChanges(
 class AddressChangesService(
     val trackLayoutHistoryDao: TrackLayoutHistoryDao,
     val geocodingService: GeocodingService,
+    val layoutAlignmentDao: LayoutAlignmentDao,
 ) {
 
     fun getAddressChangesSinceMoment(
@@ -105,7 +106,7 @@ class AddressChangesService(
         val locationTrack = trackLayoutHistoryDao.fetchLocationTrackAtMoment(locationTrackId, moment)
         if (locationTrack?.alignmentVersion == null) return null
 
-        val locationTrackGeometry = trackLayoutHistoryDao.fetchLayoutAlignmentVersion(locationTrack.alignmentVersion)
+        val locationTrackGeometry = layoutAlignmentDao.fetch(locationTrack.alignmentVersion)
         if (locationTrackGeometry.segments.isEmpty()) return null
 
         val trackNumberId = locationTrack.trackNumberId
@@ -123,7 +124,7 @@ class AddressChangesService(
 
         if (trackNumber == null || referenceLine?.alignmentVersion == null) return null
 
-        val referenceLineGeometry = trackLayoutHistoryDao.fetchLayoutAlignmentVersion(referenceLine.alignmentVersion)
+        val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLine.alignmentVersion)
 
         val kmPosts = trackLayoutHistoryDao.fetchKmPostsAtMoment(trackNumberId, moment)
             .filter(TrackLayoutKmPost::exists)

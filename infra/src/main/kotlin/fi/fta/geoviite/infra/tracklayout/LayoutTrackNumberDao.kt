@@ -43,18 +43,23 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_track_number_id, id) official_id, 
+              case when draft then id end as draft_id,
               external_id, 
               number, 
               description,
               state 
-            from layout.track_number_publication_view
-            where row_id = :id
+            from layout.track_number_version
+            where id = :id
+              and version = :version
+              and deleted = false
         """.trimIndent()
-        val params = mapOf("id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val trackNumber = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             TrackLayoutTrackNumber(
                 id = rs.getIntId("official_id"),

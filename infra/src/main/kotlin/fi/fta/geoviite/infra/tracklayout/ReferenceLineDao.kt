@@ -27,21 +27,27 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
-              alignment_id,
-              alignment_version,
-              track_number_id, 
-              postgis.st_astext(bounding_box) as bounding_box,
-              length,
-              segment_count,
-              start_address
-            from layout.reference_line_publication_view
-            where row_id = :reference_line_id
+              rlv.id as row_id,
+              rlv.version as row_version,
+              coalesce(rlv.draft_of_reference_line_id, rlv.id) official_id, 
+              case when rlv.draft then rlv.id end as draft_id,
+              rlv.alignment_id,
+              rlv.alignment_version,
+              rlv.track_number_id, 
+              postgis.st_astext(av.bounding_box) as bounding_box,
+              av.length,
+              av.segment_count,
+              rlv.start_address
+            from layout.reference_line_version rlv
+              left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
+            where rlv.id = :id
+              and rlv.version = :version
+              and rlv.deleted = false
         """.trimIndent()
-        val params = mapOf("reference_line_id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val referenceLine = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             ReferenceLine(
                 dataType = DataType.STORED,

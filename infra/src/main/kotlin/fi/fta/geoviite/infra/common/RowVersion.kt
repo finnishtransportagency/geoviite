@@ -15,6 +15,9 @@ data class RowVersion<T> @JsonCreator(mode = DISABLED) constructor(val id: IntId
 
     @JsonValue
     override fun toString(): String = "$id$VERSION_SEPARATOR$version"
+
+    fun next() = RowVersion(id, version + 1)
+    fun previous() = if (version > 1) RowVersion(id, version - 1) else null
 }
 
 private fun <T> parseVersionValues(stringVersion: String): Pair<IntId<T>, Int> {
