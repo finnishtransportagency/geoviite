@@ -95,9 +95,13 @@ class GeocodingService(
         }
     }
 
-    fun getGeocodingContext(publishType: PublishType, trackNumberId: DomainId<TrackLayoutTrackNumber>?) =
+    fun getGeocodingContext(
+        publishType: PublishType,
+        trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+        publishKmPostIds: List<IntId<TrackLayoutKmPost>>? = null
+    ) =
         if (trackNumberId is IntId) {
-            geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)
+            geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId, publishKmPostIds)
                 ?.let(geocodingDao::getGeocodingContext)
         } else {
             logger.warn("Cannot get geocoding context for track number: $trackNumberId")

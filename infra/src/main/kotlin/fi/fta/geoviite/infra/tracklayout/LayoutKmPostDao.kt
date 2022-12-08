@@ -55,6 +55,28 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
+    fun fetchVersionsForPublication(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
+    ): List<RowVersion<TrackLayoutKmPost>> {
+        val sql = """
+            select km_post.row_id, km_post.row_version
+            from layout.km_post_publication_view km_post
+            where (('DRAFT' = any(km_post.publication_states)
+                     and km_post.official_id in (:km_post_ids_to_publish))
+                   or ('OFFICIAL' = any(km_post.publication_states)
+                         and (km_post.official_id in (:km_post_ids_to_publish) is distinct from true)))
+              and track_number_id = :track_number_id
+              and km_post.state != 'DELETED'
+        """.trimIndent()
+        return jdbcTemplate.query(sql, mapOf(
+            "track_number_id" to trackNumberId.intValue,
+            "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) })
+        )) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
     fun fetchVersion(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,

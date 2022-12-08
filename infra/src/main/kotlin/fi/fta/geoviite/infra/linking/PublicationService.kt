@@ -119,6 +119,7 @@ class PublishService @Autowired constructor(
                     errors = validateReferenceLine(
                         candidate.id,
                         publishTrackNumberIds,
+                        publishKmPostIds,
                     )
                 )
             },
@@ -145,6 +146,7 @@ class PublishService @Autowired constructor(
                     errors = validateKmPost(
                         candidate.id,
                         publishTrackNumberIds,
+                        publishKmPostIds,
                     )
                 )
             },
@@ -229,13 +231,13 @@ class PublishService @Autowired constructor(
         request.kmPosts.forEach { kmPostId ->
             assertNoErrors(
                 kmPostId,
-                validateKmPost(kmPostId, request.trackNumbers),
+                validateKmPost(kmPostId, request.trackNumbers, request.kmPosts),
             )
         }
         request.referenceLines.forEach { referenceLineId ->
             assertNoErrors(
                 referenceLineId,
-                validateReferenceLine(referenceLineId, request.trackNumbers),
+                validateReferenceLine(referenceLineId, request.trackNumbers, request.kmPosts),
             )
         }
         request.locationTracks.forEach { locationTrackId ->
@@ -319,7 +321,7 @@ class PublishService @Autowired constructor(
                     publishLocationTrackIds,
                 ) +
                 if (trackNumber.exists) {
-                    validateTrackNumberGeocodingContext(id, VALIDATION_TRACK_NUMBER)
+                    validateTrackNumberGeocodingContext(id, VALIDATION_TRACK_NUMBER, publishKmPostIds)
                 } else listOf()
     }
 
@@ -343,13 +345,18 @@ class PublishService @Autowired constructor(
     fun validateKmPost(
         id: IntId<TrackLayoutKmPost>,
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
     ): List<PublishValidationError> {
         val kmPost = getDraftKmPostWithOfficialId(id)
         val trackNumber = kmPost.trackNumberId?.let(trackNumberService::getDraft)
         return validateDraftKmPostFields(kmPost) +
                 validateKmPostReferences(kmPost, trackNumber, publishTrackNumberIds) +
                 if (kmPost.exists) {
-                    validateTrackNumberGeocodingContext(kmPost.trackNumberId as IntId, VALIDATION_KM_POST)
+                    validateTrackNumberGeocodingContext(
+                        kmPost.trackNumberId as IntId,
+                        VALIDATION_KM_POST,
+                        publishKmPostIds
+                    )
                 } else listOf()
     }
 
@@ -388,13 +395,18 @@ class PublishService @Autowired constructor(
     fun validateReferenceLine(
         id: IntId<ReferenceLine>,
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
     ): List<PublishValidationError> {
         val (referenceLine, alignment) = getDraftReferenceLineAndAlignmentWithOfficialId(id)
         val trackNumber = trackNumberService.getDraft(referenceLine.trackNumberId)
         return validateDraftReferenceLineFields(referenceLine) +
                 validateReferenceLineReference(referenceLine, trackNumber, publishTrackNumberIds) +
                 if (trackNumber.exists) {
-                    validateTrackNumberGeocodingContext(referenceLine.trackNumberId, VALIDATION_REFERENCE_LINE) +
+                    validateTrackNumberGeocodingContext(
+                        referenceLine.trackNumberId,
+                        VALIDATION_REFERENCE_LINE,
+                        publishKmPostIds
+                    ) +
                             validateReferenceLineAlignment(alignment) +
                             validateTrackNumberAssociatedTrackAddresses(trackNumber)
                 } else listOf()
@@ -458,8 +470,12 @@ class PublishService @Autowired constructor(
 
     private fun validateTrackNumberGeocodingContext(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        validationType: String
-    ) = validateGeocodingContext(geocodingService.getGeocodingContext(DRAFT, trackNumberId), validationType)
+        validationType: String,
+        publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
+    ) = validateGeocodingContext(
+        geocodingService.getGeocodingContext(DRAFT, trackNumberId, publishKmPostIds),
+        validationType,
+    )
 
     private fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> {
         val segmentsBySwitch: Map<TrackLayoutSwitch, List<LayoutSegment>> = alignment.segments
