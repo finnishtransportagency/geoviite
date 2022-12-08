@@ -139,9 +139,14 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         logger.integrationCall(
             "updateRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
-            "points" to "${points.first().kmM}..${points.last().kmM}"
+            "points" to "${points.first().kmM}..${points.last().kmM}",
         )
-        points.chunked(1000).map { chunk ->
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall("updateRouteNumberPoints",
+                "routeNumberOid" to routeNumberOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
             client
                 .patch()
                 .uri("/api/infra/v1.0/routenumber/points/${routeNumberOid}")
@@ -159,7 +164,12 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             "routeNumberOid" to routeNumberOid,
             "points" to "${points.first().kmM}..${points.last().kmM}"
         )
-        points.chunked(1000).map { chunk ->
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall("createRouteNumberPoints",
+                "routeNumberOid" to routeNumberOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
             client
                 .post()
                 .uri("/api/infra/v1.0/routenumber/points/${routeNumberOid}")
@@ -177,7 +187,12 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             "locationTrackOid" to locationTrackOid,
             "points" to "${points.first().kmM}..${points.last().kmM}"
         )
-        points.chunked(1000).map { chunk ->
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall("updateLocationTrackPoints",
+                "locationTrackOid" to locationTrackOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
             client
                 .patch()
                 .uri("/api/infra/v1.0/points/${locationTrackOid}")
@@ -195,7 +210,12 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             "locationTrackOid" to locationTrackOid,
             "points" to "${points.first().kmM}..${points.last().kmM}"
         )
-        points.chunked(1000).map { chunk ->
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall("createLocationTrackPoints",
+                "locationTrackOid" to locationTrackOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
             client
                 .post()
                 .uri("/api/infra/v1.0/points/${locationTrackOid}")

@@ -130,10 +130,9 @@ class RatkoRouteNumberService @Autowired constructor(
     ) {
         newPoints
             .groupBy { point -> point.address.kmNumber }
-            .flatMap { (_, addressPointsForKm) ->
+            .map { (_, addressPointsForKm) ->
                 addressPointsForKm.map { addressPoint -> convertToRatkoPoint(addressPoint) }
-            }
-            .also { points ->
+            }.forEach { points ->
                 if (points.isNotEmpty()) {
                     ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
                 }
