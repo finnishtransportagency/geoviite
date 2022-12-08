@@ -29,7 +29,6 @@ import java.math.RoundingMode
 import java.time.Duration
 
 val defaultBlockTimeout: Duration = Duration.ofMinutes(6L)
-val extendedBlockTimeout: Duration = Duration.ofMinutes(16L)
 
 @Service
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -155,7 +154,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
                 .toBodilessEntity()
-                .block(extendedBlockTimeout)
+                .block(defaultBlockTimeout)
         }
     }
 
@@ -178,7 +177,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
                 .toBodilessEntity()
-                .block(extendedBlockTimeout)
+                .block(defaultBlockTimeout)
         }
     }
 
@@ -201,7 +200,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
                 .toBodilessEntity()
-                .block(extendedBlockTimeout)
+                .block(defaultBlockTimeout)
         }
     }
 
@@ -224,7 +223,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
                 .retrieve()
                 .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
                 .toBodilessEntity()
-                .block(extendedBlockTimeout)
+                .block(defaultBlockTimeout)
         }
     }
 
@@ -244,7 +243,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .bodyValue(locationTrackOids.map { it.id })
             .retrieve()
             .toBodilessEntity()
-            .block(extendedBlockTimeout)
+            .block(defaultBlockTimeout)
     }
 
     fun newLocationTrack(locationTrack: RatkoLocationTrack): RatkoOid<RatkoLocationTrack>? {
@@ -509,7 +508,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .bodyValue(routeNumberOids.map { it.id })
             .retrieve()
             .toBodilessEntity()
-            .block(extendedBlockTimeout)
+            .block(defaultBlockTimeout)
     }
 
     fun updateRouteNumber(routeNumber: RatkoRouteNumber) {
