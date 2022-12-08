@@ -26,10 +26,15 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
         val sql = """
             select id, geometry_alignment_id
-            from layout.alignment
-            where id = :id
+            from layout.alignment_version
+            where id = :id 
+              and version = :version
+              and deleted = false
         """.trimIndent()
-        val params = mapOf("id" to alignmentVersion.id.intValue)
+        val params = mapOf(
+            "id" to alignmentVersion.id.intValue,
+            "version" to alignmentVersion.version,
+        )
         val alignment = getOne(alignmentVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
             LayoutAlignment(
                 dataType = DataType.STORED,
@@ -157,11 +162,16 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               start,
               length,
               source
-            from layout.segment 
+            from layout.segment_version 
             where alignment_id = :alignment_id
+              and alignment_version = :alignment_version
+              and deleted = false
             order by alignment_id, segment_index
         """.trimIndent()
-        val params = mapOf("alignment_id" to alignmentVersion.id.intValue)
+        val params = mapOf(
+            "alignment_id" to alignmentVersion.id.intValue,
+            "alignment_version" to alignmentVersion.version,
+        )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             LayoutSegment(
                 id = rs.getIndexedId("alignment_id", "segment_index"),

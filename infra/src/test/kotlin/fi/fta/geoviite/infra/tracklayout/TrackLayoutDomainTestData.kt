@@ -183,13 +183,15 @@ fun referenceLine(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     startAddress: TrackMeter = TrackMeter.ZERO,
+    alignmentVersion: RowVersion<LayoutAlignment>? = null,
 ) = ReferenceLine(
     trackNumberId = trackNumberId,
     startAddress = startAddress,
     sourceId = null,
     boundingBox = alignment?.boundingBox,
     segmentCount = alignment?.segments?.size ?: 0,
-    length = alignment?.length ?: 0.0
+    length = alignment?.length ?: 0.0,
+    alignmentVersion = alignmentVersion,
 )
 
 fun locationTrackAndAlignment(
@@ -225,7 +227,8 @@ fun locationTrack(
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LayoutState = LayoutState.IN_USE,
-    externalId: Oid<LocationTrack>? = someOid()
+    externalId: Oid<LocationTrack>? = someOid(),
+    alignmentVersion: RowVersion<LayoutAlignment>? = null,
 ) = LocationTrack(
     name = AlignmentName(name),
     description = FreeText(description),
@@ -242,6 +245,7 @@ fun locationTrack(
     topologicalConnectivity = TopologicalConnectivityType.START,
     topologyStartSwitch = null,
     topologyEndSwitch = null,
+    alignmentVersion = alignmentVersion,
 ).let { lt -> if (id != null) lt.copy(id = id) else lt }
 
 fun <T> someOid() = Oid<T>(
@@ -574,11 +578,12 @@ fun segments(vararg endPoints: IPoint): List<LayoutSegment> {
 fun switch(
     seed: Int = 1,
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
-    joints: List<TrackLayoutSwitchJoint> = joints(seed)
+    joints: List<TrackLayoutSwitchJoint> = joints(seed),
+    name: String = "TV$seed",
 ) = TrackLayoutSwitch(
     externalId = null,
     sourceId = null,
-    name = SwitchName("TV$seed"),
+    name = SwitchName(name),
     stateCategory = getSomeValue(seed),
     joints = joints,
     switchStructureId = structureId,
@@ -587,7 +592,7 @@ fun switch(
     source = GENERATED,
 )
 
-fun joints(seed: Int = 1) = (1..5).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
+fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
 
 fun switchJoint(seed: Int) = TrackLayoutSwitchJoint(
     number = JointNumber(1 + seed % 5),

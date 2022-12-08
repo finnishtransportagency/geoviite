@@ -77,19 +77,24 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_km_post_id, id) official_id, 
+              case when draft then id end as draft_id,
               track_number_id,
               geometry_km_post_id,
               km_number,
               postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
               state
-            from layout.km_post_publication_view
-            where row_id = :id
+            from layout.km_post_version
+            where id = :id 
+              and version = :version
+              and deleted = false
         """.trimIndent()
-        val params = mapOf("id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val post = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             TrackLayoutKmPost(
                 id = rs.getIntId("official_id"),

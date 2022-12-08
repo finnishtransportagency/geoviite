@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -37,28 +37,39 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     @Test
     fun alignmentUpdateWorks() {
         val orig = alignmentWithoutZAndCant(1, 10)
-        val version = insertAndVerify(orig)
-        val updatedVersion = updateAndVerify(orig.copy(
-            id = version.id,
-            segments = segmentsWithoutZAndCant(2, 5)
-        ))
-        assertEquals(version.id, updatedVersion.id)
-        assertEquals(version.version + 1, updatedVersion.version)
-        val updatedVersion2 = updateAndVerify(orig.copy(
-            id = version.id,
-            segments = segmentsWithoutZAndCant(3, 15)
-        ))
-        assertEquals(version.id, updatedVersion2.id)
-        assertEquals(version.version + 2, updatedVersion2.version)
+
+        val insertedVersion = insertAndVerify(orig)
+        val afterInsert = alignmentDao.fetch(insertedVersion)
+
+        val updated = afterInsert.copy(segments = segmentsWithoutZAndCant(2, 5))
+        val updatedVersion = updateAndVerify(updated)
+        assertEquals(insertedVersion.id, updatedVersion.id)
+        assertEquals(insertedVersion.next(), updatedVersion)
+        val afterUpdate = alignmentDao.fetch(updatedVersion)
+        assertMatches(updated, afterUpdate)
+
+        val updated2 = afterUpdate.copy(segments = segmentsWithoutZAndCant(3, 15))
+        val updatedVersion2 = updateAndVerify(updated2)
+        assertEquals(insertedVersion.id, updatedVersion2.id)
+        assertEquals(updatedVersion.next(), updatedVersion2)
+        val afterUpdate2 = alignmentDao.fetch(updatedVersion2)
+        assertMatches(updated2, afterUpdate2)
+
+        // Verify that versioned fetch works
+        assertEquals(afterInsert, alignmentDao.fetch(insertedVersion))
+        assertEquals(afterUpdate, alignmentDao.fetch(updatedVersion))
+        assertEquals(afterUpdate2, alignmentDao.fetch(updatedVersion2))
     }
 
     @Test
     fun alignmentDeleteWorks() {
         val insertedVersion = insertAndVerify(alignmentWithZAndCant(4, 5))
+        val alignmentBeforeDelete = alignmentDao.fetch(insertedVersion)
         val deletedId = alignmentDao.delete(insertedVersion.id)
         assertEquals(insertedVersion.id, deletedId)
         assertFalse(alignmentDao.fetchVersions().any { rv -> rv.id == deletedId })
-        assertThrows<NoSuchEntityException> { alignmentDao.fetch(insertedVersion) }
+        assertEquals(alignmentBeforeDelete, alignmentDao.fetch(insertedVersion))
+        assertThrows<NoSuchEntityException> { alignmentDao.fetch(insertedVersion.next()) }
         assertEquals(0, getDbSegmentCount(deletedId))
     }
 
@@ -68,7 +79,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
         val alignmentOrphan = alignment(someSegment())
         val alignmentLocationTrack = alignment(someSegment())
-        val alignmentReferenceLine= alignment(someSegment())
+        val alignmentReferenceLine = alignment(someSegment())
 
         val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
         val locationTrackAlignmentVersion = alignmentDao.insert(alignmentLocationTrack)
@@ -80,13 +91,15 @@ class LayoutAlignmentDaoIT @Autowired constructor(
             .copy(alignmentVersion = referenceLineAlignmentVersion)
         )
 
-        assertMatches(alignmentOrphan, alignmentDao.fetch(orphanAlignmentVersion))
+        val orphanAlignmentBeforeDelete = alignmentDao.fetch(orphanAlignmentVersion)
+        assertMatches(alignmentOrphan, orphanAlignmentBeforeDelete)
         assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
 
         alignmentDao.deleteOrphanedAlignments()
 
-        assertThrows<NoSuchEntityException> { alignmentDao.fetch(orphanAlignmentVersion) }
+        assertEquals(orphanAlignmentBeforeDelete, alignmentDao.fetch(orphanAlignmentVersion))
+        assertThrows<NoSuchEntityException> { alignmentDao.fetch(orphanAlignmentVersion.next()) }
         assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
     }
@@ -188,6 +201,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     fun insertAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val rowVersion = alignmentDao.insert(alignment)
+        assertNull(rowVersion.previous())
         assertMatches(alignment, alignmentDao.fetch(rowVersion))
         assertEquals(alignment.segments.size, getDbSegmentCount(rowVersion.id))
         return rowVersion
@@ -195,6 +209,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     fun updateAndVerify(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val rowVersion = alignmentDao.update(alignment)
+        assertNotNull(rowVersion.previous())
         assertEquals(alignment.id, rowVersion.id)
         assertMatches(alignment, alignmentDao.fetch(rowVersion))
         assertEquals(alignment.segments.size, getDbSegmentCount(rowVersion.id))

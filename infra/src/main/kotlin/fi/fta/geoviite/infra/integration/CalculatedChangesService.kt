@@ -72,6 +72,7 @@ class CalculatedChangesService(
     val kmPostService: LayoutKmPostService,
     val historyDao: TrackLayoutHistoryDao,
     val geocodingService: GeocodingService,
+    val alignmentDao: LayoutAlignmentDao,
 ) {
     fun getCalculatedChangesSince(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
@@ -222,7 +223,7 @@ class CalculatedChangesService(
         } else {
             historyDao.fetchLocationTrackAtMoment(locationTrackId, moment)?.let { locationTrack ->
                 locationTrack.alignmentVersion?.let { alignmentVersion ->
-                    locationTrack to historyDao.fetchLayoutAlignmentVersion(alignmentVersion)
+                    locationTrack to alignmentDao.fetch(alignmentVersion)
                 }
             }
         } ?: (null to null)

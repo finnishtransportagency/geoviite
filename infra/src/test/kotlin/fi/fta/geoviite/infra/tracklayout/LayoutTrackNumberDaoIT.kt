@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Test
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -44,5 +46,35 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val tn2 = trackNumber(getUnusedTrackNumber()).copy(externalId = oid)
         trackNumberDao.insert(tn1)
         assertThrows<DuplicateKeyException> { trackNumberDao.insert(tn2) }
+    }
+
+    @Test
+    fun trackNumberVersioningWorks() {
+        val trackNumber = getUnusedTrackNumber()
+        val tempTrackNumber = trackNumber(trackNumber, description = "test 1")
+        val insertVersion = trackNumberDao.insert(tempTrackNumber)
+        val inserted = trackNumberDao.fetch(insertVersion)
+        assertMatches(tempTrackNumber, inserted)
+        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(insertVersion.id))
+
+        val tempDraft1 = draft(inserted).copy(description = FreeText("test 2"))
+        val draftVersion1 = trackNumberDao.insert(tempDraft1)
+        val draft1 = trackNumberDao.fetch(draftVersion1)
+        assertMatches(tempDraft1, draft1)
+        assertEquals(VersionPair(insertVersion, draftVersion1), trackNumberDao.fetchVersionPair(insertVersion.id))
+
+        val tempDraft2 = draft1.copy(description = FreeText("test 3"))
+        val draftVersion2 = trackNumberDao.update(tempDraft2)
+        val draft2 = trackNumberDao.fetch(draftVersion2)
+        assertMatches(tempDraft2, draft2)
+        assertEquals(VersionPair(insertVersion, draftVersion2), trackNumberDao.fetchVersionPair(insertVersion.id))
+
+        trackNumberDao.deleteDrafts(insertVersion.id)
+        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(insertVersion.id))
+
+        assertEquals(inserted, trackNumberDao.fetch(insertVersion))
+        assertEquals(draft1, trackNumberDao.fetch(draftVersion1))
+        assertEquals(draft2, trackNumberDao.fetch(draftVersion2))
+        assertThrows<NoSuchEntityException> { trackNumberDao.fetch(draftVersion2.next()) }
     }
 }

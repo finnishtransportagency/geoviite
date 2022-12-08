@@ -97,8 +97,8 @@ class PublicationServiceIT @Autowired constructor(
     fun fetchSwitchTrackNumberLinksFromPublication() {
         val switch = switchService.saveDraft(switch(123))
         val trackNumberIds = listOf(
-            trackNumberService.saveDraft(trackNumber(getUnusedTrackNumber())).id,
-            trackNumberService.saveDraft(trackNumber(getUnusedTrackNumber())).id,
+            insertOfficialTrackNumber(),
+            insertOfficialTrackNumber(),
         )
         val locationTracks = trackNumberIds.map { trackNumberId ->
             val (t, a) = locationTrackAndAlignment(trackNumberId, segment(Point(0.0, 0.0), Point(1.0, 1.0)))
