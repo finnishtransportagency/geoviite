@@ -41,15 +41,20 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    fun ratkoIsOnline(): Boolean {
+    data class RatkoStatus(val statusCode: HttpStatus) {
+        val isOnline = statusCode == HttpStatus.OK
+    }
+
+    fun getRatkoOnlineStatus(): RatkoStatus {
         return client
             .get()
             .uri("/api/versions/v1.0/version")
             .retrieve()
-            .onStatus({ !it.is2xxSuccessful }, { it.createException() }) //only accept 2xx as valid status code
             .toBodilessEntity()
-            .thenReturn(true)
-            .onErrorResume { Mono.just(false) }
+            .thenReturn(RatkoStatus(HttpStatus.OK))
+            .onErrorResume(WebClientResponseException::class.java) {
+                Mono.just(RatkoStatus(it.statusCode))
+            }
             .block(defaultRequestTimeout)!!
     }
 
@@ -101,7 +106,14 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
+                else Mono.error(
+                    RatkoPushException(
+                        RatkoPushErrorType.GEOMETRY,
+                        RatkoOperation.DELETE,
+                        it.responseBodyAsString,
+                        it
+                    )
+                )
             }
             .block(defaultRequestTimeout)
     }
@@ -120,7 +132,14 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it.responseBodyAsString, it))
+                else Mono.error(
+                    RatkoPushException(
+                        RatkoPushErrorType.GEOMETRY,
+                        RatkoOperation.DELETE,
+                        it.responseBodyAsString,
+                        it
+                    )
+                )
             }
             .block(defaultRequestTimeout)
     }
