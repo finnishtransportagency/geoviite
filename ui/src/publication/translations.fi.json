@@ -16,7 +16,7 @@
         "warnings-status-text": "varoituksia ({{0}} kpl)",
         "errors-group-title": "Virheitä",
         "warnings-group-title": "Varoituksia",
-        "functions": "Muutokset"
+        "actions": "Toiminnot"
     },
     "publication-card": {
         "latest": "Viimeisimmät",
