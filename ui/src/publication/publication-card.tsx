@@ -7,7 +7,7 @@ import { ButtonSize } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
 import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
-import Card from 'card/card';
+import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 
 type PublishListProps = {

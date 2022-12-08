@@ -68,7 +68,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
                         </Button>
                     </React.Fragment>
                 }>
-                <div>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</div>
+                <p>{t('tool-panel.track-number.delete-dialog.can-be-deleted')}</p>
             </Dialog>
         </React.Fragment>
     );

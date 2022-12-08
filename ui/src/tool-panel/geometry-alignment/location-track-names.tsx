@@ -39,29 +39,27 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationT
     const clickAction = createSelectAction();
 
     return (
-        <div>
-            <InfoboxField
-                label={trackName}
-                value={
-                    <div>
-                        {sortedLocationTracks?.map((locationTrack) => {
-                            return (
-                                <div
-                                    className={styles['linked-items-list__list-item']}
-                                    key={locationTrack.id}>
-                                    <LocationTrackBadge
-                                        key={locationTrack.id}
-                                        locationTrack={locationTrack}
-                                        status={LocationTrackBadgeStatus.DEFAULT}
-                                        onClick={() => clickAction(locationTrack.id)}
-                                    />
-                                </div>
-                            );
-                        })}
-                    </div>
-                }
-            />
-        </div>
+        <InfoboxField
+            label={trackName}
+            value={
+                <React.Fragment>
+                    {sortedLocationTracks?.map((locationTrack) => {
+                        return (
+                            <div
+                                className={styles['linked-items-list__list-item']}
+                                key={locationTrack.id}>
+                                <LocationTrackBadge
+                                    key={locationTrack.id}
+                                    locationTrack={locationTrack}
+                                    status={LocationTrackBadgeStatus.DEFAULT}
+                                    onClick={() => clickAction(locationTrack.id)}
+                                />
+                            </div>
+                        );
+                    })}
+                </React.Fragment>
+            }
+        />
     );
 };
 

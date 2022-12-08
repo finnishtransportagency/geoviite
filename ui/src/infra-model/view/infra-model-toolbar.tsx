@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem } from 'geoviite-design-lib/breadcrumb/breadcrumb';
 import { InfraModelViewType } from 'infra-model/infra-model-store';
+import { useTranslation } from 'react-i18next';
 
 export type InfraModelToolbarProps = {
     onInfraModelViewChange: (viewType: InfraModelViewType) => void;
@@ -11,21 +12,21 @@ export type InfraModelToolbarProps = {
 export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
     props: InfraModelToolbarProps,
 ) => {
+    const { t } = useTranslation();
+
     return (
         <div className="infra-model-upload__tool-bar">
-            <div className="infra-model-upload__tool-bar-left-section">
-                <Breadcrumb>
-                    <BreadcrumbItem
-                        onClick={() => props.onInfraModelViewChange(InfraModelViewType.LIST)}>
-                        IM-tiedostot
-                    </BreadcrumbItem>
-                    <BreadcrumbItem>
-                        {props.viewType === InfraModelViewType.EDIT ? props.fileName : 'Lataa uusi'}
-                    </BreadcrumbItem>
-                </Breadcrumb>
-            </div>
-
-            <div className={'infra-model-upload__tool-bar-middle-section'}></div>
+            <Breadcrumb>
+                <BreadcrumbItem
+                    onClick={() => props.onInfraModelViewChange(InfraModelViewType.LIST)}>
+                    {t('im-form.toolbar.files')}
+                </BreadcrumbItem>
+                <BreadcrumbItem>
+                    {props.viewType === InfraModelViewType.EDIT
+                        ? props.fileName
+                        : t('im-form.toolbar.upload')}
+                </BreadcrumbItem>
+            </Breadcrumb>
         </div>
     );
 };

@@ -332,7 +332,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             value={
                                 startAndEndPoints?.end
                                     ? formatToTM35FINString(startAndEndPoints?.end.point)
-                                    : ''
+                                    : '-'
                             }
                         />
                     </InfoboxContent>

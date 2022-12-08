@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { User } from 'user/user-model';
-import Card from 'card/card';
+import Card from 'geoviite-design-lib/card/card';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import styles from './user-card.scss';
 import { useTranslation } from 'react-i18next';

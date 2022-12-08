@@ -71,31 +71,27 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                     title={t('tool-panel.switch.geometry.geometry-title')}
                     qa-id="geometry-switch-infobox">
                     <InfoboxContent>
-                        <>
-                            <InfoboxField
-                                label={t('tool-panel.switch.geometry.name')}
-                                value={switchItem?.name}
-                            />
-                            <p>{switchStructure ? switchStructure.type : ''}</p>
-                            {SwitchImage && (
-                                <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
-                            )}
-                            <InfoboxField
-                                label={t('tool-panel.switch.geometry.hand')}
-                                value={
-                                    <SwitchHand hand={switchStructure && switchStructure.hand} />
-                                }
-                            />
-                            <InfoboxButtons>
-                                <Button
-                                    size={ButtonSize.SMALL}
-                                    variant={ButtonVariant.SECONDARY}
-                                    disabled={!switchLocation}
-                                    onClick={() => switchLocation && onShowOnMap(switchLocation)}>
-                                    {t('tool-panel.switch.layout.show-on-map')}
-                                </Button>
-                            </InfoboxButtons>
-                        </>
+                        <InfoboxField
+                            label={t('tool-panel.switch.geometry.name')}
+                            value={switchItem?.name}
+                        />
+                        <p>{switchStructure ? switchStructure.type : ''}</p>
+                        {SwitchImage && (
+                            <SwitchImage size={IconSize.ORIGINAL} color={IconColor.INHERIT} />
+                        )}
+                        <InfoboxField
+                            label={t('tool-panel.switch.geometry.hand')}
+                            value={<SwitchHand hand={switchStructure && switchStructure.hand} />}
+                        />
+                        <InfoboxButtons>
+                            <Button
+                                size={ButtonSize.SMALL}
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={!switchLocation}
+                                onClick={() => switchLocation && onShowOnMap(switchLocation)}>
+                                {t('tool-panel.switch.layout.show-on-map')}
+                            </Button>
+                        </InfoboxButtons>
                     </InfoboxContent>
                 </Infobox>
             )}

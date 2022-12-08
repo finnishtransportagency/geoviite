@@ -1,9 +1,7 @@
 import React from 'react';
 import styles from './form/infra-model-form.module.scss';
-import { CustomValidationError, ErrorType, ValidationResponse } from 'api/inframodel-api';
+import { CustomValidationError, ErrorType, ValidationResponse } from 'infra-model/infra-model-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import InfoboxContent from 'tool-panel/infobox/infobox-content';
-import InfoboxRow from 'tool-panel/infobox/infobox-row';
 import { useTranslation } from 'react-i18next';
 
 type InframodelValidationErrorListProps = {
@@ -19,24 +17,19 @@ const getIcon = (errorType: ErrorType) => {
             return Icons.StatusError;
         case 'OBSERVATION_MAJOR':
         case 'OBSERVATION_MINOR':
-            return Icons.Info;
+            return Icons.StatusError;
     }
 };
 
 const createErrorRow = (errorType: ErrorType, message: string, index: number) => {
     const Icon = getIcon(errorType);
     return (
-        <InfoboxContent key={index}>
-            <InfoboxRow>
-                <div
-                    className={styles['infra-model-upload-error__row']}>
-                    <div className={styles['infra-model-upload-error__icon']}>
-                        <Icon color={IconColor.INHERIT} size={IconSize.MEDIUM} />
-                    </div>
-                    <div className={styles['infra-model-upload-error__message']}>{message}</div>
-                </div>
-            </InfoboxRow>
-        </InfoboxContent>
+        <li key={index}>
+            <div className={styles['infra-model-upload__error']}>
+                <Icon color={IconColor.INHERIT} size={IconSize.MEDIUM} />
+                <span>{message}</span>
+            </div>
+        </li>
     );
 };
 
@@ -56,39 +49,45 @@ const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps
 
         return (
             <div className={styles['infra-model-upload__validation-errors']}>
-                <br />
                 {errors.length > 0 && (
-                    <React.Fragment>
-                        <p className={styles['div__heading--medium']}>
-                            {t('im-form.data-invalid')}
-                        </p>
-                        <p className={styles['div__heading--small']}>
-                            {t('im-form.correct-data')}{' '}
-                        </p>
-                        {errors.map((error: CustomValidationError, index: number) =>
-                            createErrorRow(error.errorType, t(error.localizationKey, error), index),
-                        )}
-                    </React.Fragment>
+                    <section>
+                        <h2 className={styles['infra-model-upload__validation-error-title']}>
+                            {t('im-form.validation-errors')}
+                        </h2>
+                        <ul className={styles['infra-model-upload__errors']}>
+                            {errors.map((error: CustomValidationError, index: number) =>
+                                createErrorRow(
+                                    error.errorType,
+                                    t(error.localizationKey, error),
+                                    index,
+                                ),
+                            )}
+                        </ul>
+                    </section>
                 )}
-                {major.length > 0 && (
-                    <React.Fragment>
-                        <p className={styles['div__heading--medium']}>
-                            {t('im-form.data-observation-major')}
-                        </p>
-                        {major.map((error: CustomValidationError, index: number) =>
-                            createErrorRow(error.errorType, t(error.localizationKey, error), index),
-                        )}
-                    </React.Fragment>
-                )}
-                {minor.length > 0 && (
-                    <React.Fragment>
-                        <p className={styles['div__heading--medium']}>
-                            {t('im-form.data-observation-minor')}
-                        </p>
-                        {minor.map((error: CustomValidationError, index: number) =>
-                            createErrorRow(error.errorType, t(error.localizationKey, error), index),
-                        )}
-                    </React.Fragment>
+                {(major.length > 0 || minor.length > 0) && (
+                    <section>
+                        <h2 className={styles['infra-model-upload__validation-error-title']}>
+                            {t('im-form.validation-warnings')}
+                        </h2>
+                        <ol className={styles['infra-model-upload__errors']}>
+                            {major.map((error, index) =>
+                                createErrorRow(
+                                    error.errorType,
+                                    t(error.localizationKey, error),
+                                    index,
+                                ),
+                            )}
+
+                            {minor.map((error, index) =>
+                                createErrorRow(
+                                    error.errorType,
+                                    t(error.localizationKey, error),
+                                    index,
+                                ),
+                            )}
+                        </ol>
+                    </section>
                 )}
             </div>
         );
@@ -98,7 +97,11 @@ const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps
         return <div>No file selected</div>;
     };
 
-    return <div>{validationResponse ? errorListDiv(validationResponse) : noFileSelected()}</div>;
+    return (
+        <React.Fragment>
+            {validationResponse ? errorListDiv(validationResponse) : noFileSelected()}
+        </React.Fragment>
+    );
 };
 
 export default InfraModelValidationErrorList;

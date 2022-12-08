@@ -73,35 +73,33 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
     }
 
     return (
-        <div>
-            <InfoboxField
-                label={referenceLineName}
-                value={
-                    <div>
-                        {referenceLinesWithoutTrackNumbers?.map((referenceLine) => {
-                            const trackNumber = trackNumbers?.find(
-                                (t) => t.id === referenceLine.trackNumberId,
-                            );
-                            return (
-                                trackNumber && (
-                                    <div
-                                        className={styles['linked-items-list__list-item']}
-                                        key={referenceLine.id}>
-                                        <ReferenceLineBadge
-                                            trackNumber={trackNumber}
-                                            onClick={() =>
-                                                trackNumber &&
-                                                clickAction(trackNumber.id, referenceLine.id)
-                                            }
-                                        />
-                                    </div>
-                                )
-                            );
-                        })}
-                    </div>
-                }
-            />
-        </div>
+        <InfoboxField
+            label={referenceLineName}
+            value={
+                <React.Fragment>
+                    {referenceLinesWithoutTrackNumbers?.map((referenceLine) => {
+                        const trackNumber = trackNumbers?.find(
+                            (t) => t.id === referenceLine.trackNumberId,
+                        );
+                        return (
+                            trackNumber && (
+                                <div
+                                    className={styles['linked-items-list__list-item']}
+                                    key={referenceLine.id}>
+                                    <ReferenceLineBadge
+                                        trackNumber={trackNumber}
+                                        onClick={() =>
+                                            trackNumber &&
+                                            clickAction(trackNumber.id, referenceLine.id)
+                                        }
+                                    />
+                                </div>
+                            )
+                        );
+                    })}
+                </React.Fragment>
+            }
+        />
     );
 };
 

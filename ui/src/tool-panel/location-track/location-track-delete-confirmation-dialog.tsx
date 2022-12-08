@@ -66,7 +66,7 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
                         </Button>
                     </React.Fragment>
                 }>
-                <div>{t('tool-panel.location-track.delete-dialog.can-be-deleted')}</div>
+                <p>{t('tool-panel.location-track.delete-dialog.can-be-deleted')}</p>
             </Dialog>
         </React.Fragment>
     );

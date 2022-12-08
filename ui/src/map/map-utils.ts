@@ -1,7 +1,7 @@
-import { MapTile } from 'map/map-model';
-import OlView from 'ol/View';
-import TileGrid from 'ol/tilegrid/TileGrid';
-import { BoundingBox, Point } from 'model/geometry';
+import { MapTile } from "map/map-model";
+import OlView from "ol/View";
+import TileGrid from "ol/tilegrid/TileGrid";
+import { BoundingBox, Point } from "model/geometry";
 
 // Resolutions to use to load stuff from backend
 const tileResolutions: number[] = [];
@@ -55,7 +55,7 @@ export function calculateTileSize(tileCount: number): number {
 }
 
 export function calculateBoundingBoxToShowAroundLocation(location: Point): BoundingBox {
-    const bbox = {
+    return {
         x: {
             max: location.x + offset,
             min: location.x - offset,
@@ -65,6 +65,4 @@ export function calculateBoundingBoxToShowAroundLocation(location: Point): Bound
             min: location.y - offset,
         },
     };
-
-    return bbox;
 }

@@ -4,24 +4,16 @@
 @import '../../../geoviite-design-lib/geoviite-colors';
 
 .infra-model-upload {
+    width: 100%;
     display: grid;
-    flex: 1;
+    grid-template-rows: 50px auto;
     grid-template-columns: 500px auto;
-    grid-template-rows: 50px;
     column-gap: 0;
     background: $color-white-default;
 
-    .div__heading--small {
-        font-size: 15px;
-        color: $color-red-default;
-    }
-
-    .div__heading--medium {
-        font-size: 20px;
-    }
     .text-area {
         .text-area__input-element {
-            height: 35px;
+            height: 40px;
         }
     }
 }
@@ -29,31 +21,21 @@
 .infra-model-upload__tool-bar {
     @include shadow-4dp;
 
-    grid-column: 1 / -1;
+    padding: 0 16px;
     display: flex;
     background: $color-white-dark;
     z-index: 1;
 
-    > * {
-        margin-left: 1em;
-        grid-column-gap: 1em;
-        display: flex;
-        flex: 1;
-        align-items: center;
-    }
-}
+    grid-row-start: 1;
+    grid-column-start: 1;
 
-.infra-model-upload__tool-bar-left-section {
-}
-
-.infra-model-upload__tool-bar-middle-section {
+    grid-row-end: 2;
+    grid-column-end: 3;
 }
 
 .infra-model-upload__map-container {
     position: relative;
-    flex: 1;
     display: flex;
-    grid-column: 2;
 }
 
 .infra-model-upload__error-photo {
@@ -63,110 +45,101 @@
     background-position: center bottom;
 }
 
+.infra-model-upload__file-info-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 30px;
+    padding-right: 12px;
+
+    h1 {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.infra-model-upload__form-container {
+    padding: 0 30px;
+
+    > .formgroup {
+        margin-bottom: 20px;
+    }
+}
+
 .infra-model-upload__form-column {
-    width: 500px;
     display: flex;
     flex-direction: column;
     overflow: auto;
-
-    .infra-model-upload__file-info-container {
-        padding: 0 30px;
-        display: flex;
-
-        > .title {
-            flex-grow: 1;
-        }
-    }
-
-    .infra-model-upload__form-container {
-        flex: 1;
-        overflow: auto;
-        padding: 0 30px;
-    }
-
-    .infra-model-upload__buttons-container {
-        @include shadow-8dp;
-        display: grid;
-        grid-auto-flow: column;
-        grid-gap: 20px;
-        justify-content: center;
-        padding: 20px 0;
-    }
 }
 
-.infra-model-upload__form {
+.infra-model-upload__buttons-container {
+    @include shadow-8dp;
     display: grid;
-    grid-gap: 10px;
-}
-
-.infra-model-upload__form-formgroups {
-    display: grid;
+    grid-auto-flow: column;
     grid-gap: 20px;
+    justify-content: center;
+    padding: 20px 0;
 }
 
 .infra-model-upload__validation-errors {
+    flex: 1;
     fill: $color-red-dark;
 }
 
-.infra-model-upload__add-track-number {
-    zoom: 1;
+.infra-model-upload__validation-error-title {
+    @include typography-sub-heading;
+
+    padding: 4px 32px;
+    background-color: $color-red-lighter
 }
 
 .infra-model-upload__date-selection {
     display: grid;
     grid-template-columns: auto auto;
-    grid-gap: 1px;
-    padding: 1px;
 }
 
 .infra-model-text-field--has-error {
     color: $color-red-dark;
 }
 
-.infra-model-upload-error__row {
-    display: flex;
-    align-items: center;
-    padding: 5px 0;
+.infra-model-upload__errors {
+    list-style: none;
+    padding-left: 32px;
+    padding-right: 16px;
+
+    li {
+        margin-bottom: 16px;
+    }
 }
 
-.infra-model-upload-error__icon {
-    min-width: 30px;
-}
-
-.infra-model-upload-error__message {
-    margin-left: 15px;
-}
-.infra-model-upload-failed__content {
-    grid-column: 1 / -1;
-    margin-bottom: 9px;
-}
-
-.infra-model-upload-failed__error-list {
-    overflow-y: scroll;
-    align-items: start;
-    margin-bottom: 24px;
-}
-
-.infra-model-upload-failed__checkbox-label {
-    align-self: center;
-}
-
-.infra-model-upload-failed__sub-form {
+.infra-model-upload__error {
     display: grid;
-    grid-template-columns: 1fr 2fr;
-    grid-template-rows: fit-content(96px) auto min-content;
-    margin-bottom: 12px;
-}
-
-.infra-model-upload__title-menu-container {
-    margin-top: 5px;
+    grid-template-columns: auto auto;
+    column-gap: 16px;
+    justify-content: start
 }
 
 .infra-model-upload__title-menu {
-    > div {
+    .menu {
         position: absolute;
         margin-top: 5px;
         z-index: 10;
     }
-    flex-grow: 0;
+}
+
+.infra-model-upload__title-menu-container {
+    margin-left: 16px;
+}
+
+.infra-model-upload-failed__checkbox-label {
+    margin-right: 32px;
+}
+
+.infra-model-upload-failed__encode-container {
+    margin: 8px 0;
+}
+
+.infra-model-upload-failed__errors {
+    padding-left: 0;
+    list-style: inside;
 }

@@ -17,7 +17,7 @@ import DecisionPhase from 'geoviite-design-lib/plan-decision/plan-decision-phase
 import PlanPhase from 'geoviite-design-lib/plan-phase/plan-phase';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { INFRAMODEL_URI } from 'api/inframodel-api';
+import { INFRAMODEL_URI } from 'infra-model/infra-model-api';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
