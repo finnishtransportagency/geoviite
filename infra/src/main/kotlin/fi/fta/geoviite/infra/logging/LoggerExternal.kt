@@ -54,6 +54,10 @@ fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
 
 fun paramsToLog(params: Array<out Pair<String, *>>): List<String> = params.map { p -> "${p.first}=${p.second}" }
 
+fun Logger.integrationCall(method: String, vararg params: Pair<String, *>) {
+    info("method=$method params=${paramsToLog(params)}")
+}
+
 fun Logger.integrationCall(request: ClientRequest) {
     info("Sending API request to external service: ${request.logPrefix()} method=${request.method()} url=${request.url()}")
 }

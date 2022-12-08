@@ -10,6 +10,7 @@ import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
+import fi.fta.geoviite.infra.logging.integrationCall
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.model.*
 import org.slf4j.Logger
@@ -54,10 +55,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {
-        logger.serviceCall(
-            "getLocationTrack",
-            "locationTrackOid" to locationTrackOid
-        )
+        logger.integrationCall("getLocationTrack", "locationTrackOid" to locationTrackOid)
 
         return client
             .get()
@@ -74,7 +72,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun updateLocationTrackProperties(locationTrack: RatkoLocationTrack) {
-        logger.serviceCall("updateLocationTrackProperties", "locationTrack" to locationTrack)
+        logger.integrationCall("updateLocationTrackProperties", "locationTrack" to locationTrack)
 
         client
             .put()
@@ -88,7 +86,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun deleteLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, km: KmNumber?) {
-        logger.serviceCall(
+        logger.integrationCall(
             "deleteLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
             "km" to km
@@ -114,7 +112,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, km: KmNumber?) {
-        logger.serviceCall(
+        logger.integrationCall(
             "deleteRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
             "km" to km
@@ -140,12 +138,11 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun updateRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
-        logger.serviceCall(
+        logger.integrationCall(
             "updateRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
-            "points" to points
+            "points" to "${points.first().kmM}..${points.last().kmM}"
         )
-
         points.chunked(1000).map { chunk ->
             client
                 .patch()
@@ -159,12 +156,11 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun createRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
-        logger.serviceCall(
+        logger.integrationCall(
             "createRouteNumberPoints",
             "routeNumberOid" to routeNumberOid,
-            "points" to points
+            "points" to "${points.first().kmM}..${points.last().kmM}"
         )
-
         points.chunked(1000).map { chunk ->
             client
                 .post()
@@ -178,12 +174,11 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun updateLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
-        logger.serviceCall(
+        logger.integrationCall(
             "updateLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
-            "points" to points
+            "points" to "${points.first().kmM}..${points.last().kmM}"
         )
-
         points.chunked(1000).map { chunk ->
             client
                 .patch()
@@ -197,12 +192,11 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun createLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
-        logger.serviceCall(
+        logger.integrationCall(
             "createLocationTrackPoints",
             "locationTrackOid" to locationTrackOid,
-            "points" to points
+            "points" to "${points.first().kmM}..${points.last().kmM}"
         )
-
         points.chunked(1000).map { chunk ->
             client
                 .post()
@@ -216,7 +210,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun forceRatkoToRedrawLocationTrack(locationTrackOids: List<RatkoOid<RatkoLocationTrack>>) {
-        logger.serviceCall(
+        logger.integrationCall(
             "updateLocationTrackGeometryMValues",
             "locationTrackOids" to locationTrackOids
         )
@@ -235,7 +229,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun newLocationTrack(locationTrack: RatkoLocationTrack): RatkoOid<RatkoLocationTrack>? {
-        logger.serviceCall("newLocationTrack", "locationTrack" to locationTrack)
+        logger.integrationCall("newLocationTrack", "locationTrack" to locationTrack)
 
         return client
             .post()
@@ -248,10 +242,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> newAsset(asset: RatkoAsset): RatkoOid<T>? {
-        logger.serviceCall(
-            "newAsset",
-            "asset" to asset
-        )
+        logger.integrationCall("newAsset", "asset" to asset)
         data class NewRatkoAssetResponse(val id: String)
 
         return client
@@ -267,11 +258,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> replaceAssetLocations(assetOid: RatkoOid<T>, locations: List<RatkoAssetLocation>) {
-        logger.serviceCall(
-            "replaceAssetLocations",
-            "assetOid" to assetOid,
-            "locations" to locations
-        )
+        logger.serviceCall("replaceAssetLocations", "assetOid" to assetOid, "locations" to locations)
 
         client
             .put()
@@ -284,11 +271,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> replaceAssetGeoms(assetOid: RatkoOid<T>, geoms: List<RatkoAssetGeometry>) {
-        logger.serviceCall(
-            "replaceAssetGeoms",
-            "assetOid" to assetOid,
-            "geoms" to geoms
-        )
+        logger.serviceCall("replaceAssetGeoms", "assetOid" to assetOid, "geoms" to geoms)
         client
             .put()
             .uri("/api/assets/v1.2/${assetOid}/geoms")
@@ -337,11 +320,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> updateAssetState(assetOid: RatkoOid<T>, state: RatkoAssetState) {
-        logger.serviceCall(
-            "updateAssetState",
-            "assetOid" to assetOid,
-            "state" to state
-        )
+        logger.serviceCall("updateAssetState", "assetOid" to assetOid, "state" to state)
 
         val responseJson = client
             .get()
@@ -409,11 +388,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> updateAssetProperties(assetOid: RatkoOid<T>, properties: List<RatkoAssetProperty>) {
-        logger.serviceCall(
-            "updateAssetProperties",
-            "assetOid" to assetOid,
-            "properties" to properties
-        )
+        logger.serviceCall("updateAssetProperties", "assetOid" to assetOid, "properties" to properties)
 
         client
             .put()
@@ -490,10 +465,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
-        logger.serviceCall(
-            "newRouteNumber",
-            "routeNumber" to routeNumber
-        )
+        logger.serviceCall("newRouteNumber", "routeNumber" to routeNumber)
 
         return client
             .post()
@@ -506,10 +478,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun forceRatkoToRedrawRouteNumber(routeNumberOids: List<RatkoOid<RatkoRouteNumber>>) {
-        logger.serviceCall(
-            "updateRouteNumberGeometryMValues",
-            "routeNumberOids" to routeNumberOids
-        )
+        logger.serviceCall("updateRouteNumberGeometryMValues", "routeNumberOids" to routeNumberOids)
 
         client
             .patch()
@@ -525,10 +494,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun updateRouteNumber(routeNumber: RatkoRouteNumber) {
-        logger.serviceCall(
-            "updateRouteNumber",
-            "routeNumber" to routeNumber
-        )
+        logger.serviceCall("updateRouteNumber", "routeNumber" to routeNumber)
 
         client
             .put()
