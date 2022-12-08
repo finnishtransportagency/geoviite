@@ -15,6 +15,8 @@ export type PreviewTableItemProps = {
     changeTime: TimeStamp;
     showRatkoPushDate: boolean;
     ratkoPushDate?: TimeStamp;
+    onPublishItemSelect?: () => void;
+    publish?: boolean;
 };
 
 export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
@@ -24,8 +26,10 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     changeTime,
     showRatkoPushDate,
     ratkoPushDate,
+    onPublishItemSelect,
+    publish = false,
 }) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
 
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
@@ -62,7 +66,7 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                     onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
                     {!hasErrors && (
                         <span className={styles['preview-table-item__ok-status']}>
-                            <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
+                            <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL}/>
                         </span>
                     )}
                     {errorTexts.length > 0 && (
@@ -75,6 +79,9 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                             {t('publication-table.warnings-status-text', [warningTexts.length])}
                         </span>
                     )}
+                </td>
+                <td onClick={() => {onPublishItemSelect && onPublishItemSelect();}}>
+                    {publish ? <Icons.Ascending size={IconSize.SMALL}/> : <Icons.Descending size={IconSize.SMALL}/>}
                 </td>
                 <td>{formatDateFull(changeTime)}</td>
                 {showRatkoPushDate && (
