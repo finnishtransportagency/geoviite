@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.logging.integrationCall
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.model.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -258,7 +257,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> replaceAssetLocations(assetOid: RatkoOid<T>, locations: List<RatkoAssetLocation>) {
-        logger.serviceCall("replaceAssetLocations", "assetOid" to assetOid, "locations" to locations)
+        logger.integrationCall("replaceAssetLocations", "assetOid" to assetOid, "locations" to locations)
 
         client
             .put()
@@ -271,7 +270,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> replaceAssetGeoms(assetOid: RatkoOid<T>, geoms: List<RatkoAssetGeometry>) {
-        logger.serviceCall("replaceAssetGeoms", "assetOid" to assetOid, "geoms" to geoms)
+        logger.integrationCall("replaceAssetGeoms", "assetOid" to assetOid, "geoms" to geoms)
         client
             .put()
             .uri("/api/assets/v1.2/${assetOid}/geoms")
@@ -283,7 +282,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> getSwitchAsset(assetOid: RatkoOid<T>): RatkoSwitchAsset? {
-        logger.serviceCall("getSwitchAsset", "assetOid" to assetOid)
+        logger.integrationCall("getSwitchAsset", "assetOid" to assetOid)
 
         return client
             .get()
@@ -320,7 +319,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> updateAssetState(assetOid: RatkoOid<T>, state: RatkoAssetState) {
-        logger.serviceCall("updateAssetState", "assetOid" to assetOid, "state" to state)
+        logger.integrationCall("updateAssetState", "assetOid" to assetOid, "state" to state)
 
         val responseJson = client
             .get()
@@ -388,7 +387,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun <T : RatkoAsset> updateAssetProperties(assetOid: RatkoOid<T>, properties: List<RatkoAssetProperty>) {
-        logger.serviceCall("updateAssetProperties", "assetOid" to assetOid, "properties" to properties)
+        logger.integrationCall("updateAssetProperties", "assetOid" to assetOid, "properties" to properties)
 
         client
             .put()
@@ -401,7 +400,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun getNewLocationTrackOid(): RatkoOid<RatkoLocationTrack>? {
-        logger.serviceCall("getNewLocationTrackOid")
+        logger.integrationCall("getNewLocationTrackOid")
 
         return client
             .post()
@@ -414,7 +413,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun getNewRouteNumberOid(): RatkoOid<RatkoRouteNumber>? {
-        logger.serviceCall("getNewRouteNumberOid")
+        logger.integrationCall("getNewRouteNumberOid")
 
         return client
             .post()
@@ -427,7 +426,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun getNewSwitchOid(): RatkoOid<RatkoSwitchAsset>? {
-        logger.serviceCall("getNewSwitchOid")
+        logger.integrationCall("getNewSwitchOid")
 
         val body = "{\"type\":\"turnout\"}"
 
@@ -444,7 +443,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun getRouteNumber(routeNumberOid: RatkoOid<RatkoRouteNumber>): RatkoRouteNumber? {
-        logger.serviceCall("getRouteNumber", "routeNumberOid" to routeNumberOid)
+        logger.integrationCall("getRouteNumber", "routeNumberOid" to routeNumberOid)
 
         return client
             .get()
@@ -465,7 +464,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun newRouteNumber(routeNumber: RatkoRouteNumber): RatkoOid<RatkoRouteNumber>? {
-        logger.serviceCall("newRouteNumber", "routeNumber" to routeNumber)
+        logger.integrationCall("newRouteNumber", "routeNumber" to routeNumber)
 
         return client
             .post()
@@ -478,7 +477,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun forceRatkoToRedrawRouteNumber(routeNumberOids: List<RatkoOid<RatkoRouteNumber>>) {
-        logger.serviceCall("updateRouteNumberGeometryMValues", "routeNumberOids" to routeNumberOids)
+        logger.integrationCall("updateRouteNumberGeometryMValues", "routeNumberOids" to routeNumberOids)
 
         client
             .patch()
@@ -494,7 +493,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     }
 
     fun updateRouteNumber(routeNumber: RatkoRouteNumber) {
-        logger.serviceCall("updateRouteNumber", "routeNumber" to routeNumber)
+        logger.integrationCall("updateRouteNumber", "routeNumber" to routeNumber)
 
         client
             .put()
