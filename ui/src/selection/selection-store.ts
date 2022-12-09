@@ -66,9 +66,7 @@ function getNewIdCollection<TId extends string>(
     if (flags.isIncremental) {
         return deduplicate([...newIds, ...ids]);
     } else if (flags.isToggle) {
-        const filtered = deduplicate(newIds.filter((newId) => !ids.includes(newId)));
-        console.log('Toggling ids:', 'old', ids, 'new', ids, 'filtered', filtered);
-        return filtered;
+        return deduplicate(newIds.filter((newId) => !ids.includes(newId)));
     } else {
         return deduplicate(newIds);
     }
@@ -142,11 +140,7 @@ function getNewItemCollectionUsingCustomId<TEntity, TId>(
     if (flags.isIncremental) {
         return [...newItems, ...items].filter(filterUniqueById(getId));
     } else if (flags.isToggle) {
-        const filtered = newItems.filter(
-            (newItem) => !items.find((item) => getId(item) == getId(newItem)),
-        );
-        console.log('Toggling item:', 'old', items, 'new', newItems, 'filtered', filtered);
-        return filtered;
+        return newItems.filter((newItem) => !items.find((item) => getId(item) == getId(newItem)));
     } else {
         return newItems;
     }
@@ -156,7 +150,6 @@ function updateItemCollectionsByOptions(
     itemCollections: ItemCollections,
     options: OnSelectOptions,
 ) {
-    console.log('updateItemCollectionsByOptions', options);
     // Repetitive code, but seems that there is no way do make typescript to accept this in a loop
     const flags = options as OnSelectFlags;
     itemCollections['segments'] = getNewItemCollection(

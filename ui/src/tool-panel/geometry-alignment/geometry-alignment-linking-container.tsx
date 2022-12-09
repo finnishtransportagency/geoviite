@@ -57,10 +57,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
 
     return (
         <GeometryAlignmentInfobox
-            onSelect={(a) => {
-                console.log('a', a);
-                delegates.onSelect(a);
-            }}
+            onSelect={delegates.onSelect}
             geometryAlignment={geometryAlignment}
             layoutLocationTrack={selectedLocationTrackId ? locationTrack : undefined}
             layoutReferenceLine={selectedLocationTrackId ? undefined : referenceLine}

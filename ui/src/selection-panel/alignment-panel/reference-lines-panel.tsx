@@ -37,7 +37,6 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
     canSelectReferenceLine,
     max = 16,
 }: ReferenceLinesPanelProps) => {
-    console.log('Selection-Panel bind', selectedTrackNumbers);
     const { t } = useTranslation();
     const [linesCount, setLinesCount] = React.useState(0);
     const [visibleLines, setVisibleLines] = React.useState<LayoutReferenceLine[]>([]);

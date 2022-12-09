@@ -249,16 +249,15 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     };
 
     const onReferenceLineSelect = (rl: LayoutReferenceLine) => {
-        console.log('Select', rl, rl.trackNumberId);
         onSelect({
-            trackNumbers: rl.trackNumberId ? [rl.trackNumberId] : [],
+            trackNumbers: [rl.trackNumberId],
             locationTracks: [],
         });
     };
 
     const onLocationTrackSelect = (lt: LayoutLocationTrack) =>
         onSelect({
-            trackNumbers: lt.trackNumberId ? [lt.trackNumberId] : [],
+            trackNumbers: [],
             locationTracks: [lt.id],
         });
 

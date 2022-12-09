@@ -473,9 +473,8 @@ adapterInfoRegister.add('alignment', {
         const selectionSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
             const found = shownItemsSearchFunction(hitArea, options);
             return {
-                ...found,
                 locationTracks: found.locationTracks.map((t) => t.id),
-                referenceLines: found.referenceLines.map((l) => l.id),
+                trackNumbers: found.referenceLines.map((l) => l.trackNumberId),
             };
         };
 

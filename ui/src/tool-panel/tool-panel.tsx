@@ -87,8 +87,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     setSelectedTabId,
     startSwitchPlacing,
 }: ToolPanelProps) => {
-    console.log('Tool-Panel bind', 'trackNumbers', trackNumberIds, 'referenceLines');
-
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
 
@@ -102,9 +100,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     }, []);
 
     const onUnSelectSwitches = React.useCallback((switchId: LayoutSwitchId) => {
-        onUnselect({
-            switches: [switchId],
-        });
+        onUnselect({ switches: [switchId] });
     }, []);
 
     const tracksSwitchesKmPosts = useLoader(() => {
