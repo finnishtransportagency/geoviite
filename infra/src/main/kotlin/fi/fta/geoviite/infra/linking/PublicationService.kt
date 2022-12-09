@@ -130,6 +130,7 @@ class PublishService @Autowired constructor(
                         publishTrackNumberIds,
                         publishSwitchIds,
                         publishLocationTrackIds,
+                        publishKmPostIds,
                     )
                 )
             },
@@ -243,7 +244,13 @@ class PublishService @Autowired constructor(
         request.locationTracks.forEach { locationTrackId ->
             assertNoErrors(
                 locationTrackId,
-                validateLocationTrack(locationTrackId, request.trackNumbers, request.switches, request.locationTracks)
+                validateLocationTrack(
+                    locationTrackId,
+                    request.trackNumbers,
+                    request.switches,
+                    request.locationTracks,
+                    request.kmPosts
+                )
             )
         }
         request.switches.forEach { switchId ->
@@ -327,13 +334,14 @@ class PublishService @Autowired constructor(
 
     fun validateTrackNumberAssociatedTrackAddresses(
         trackNumber: TrackLayoutTrackNumber,
+        publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
     ): List<PublishValidationError> {
         val locationTracks = publicationDao
             .fetchTrackNumberLocationTrackRows(trackNumber.id as IntId)
             .map(locationTrackDao::fetch)
         return locationTracks.filter(LocationTrack::exists).flatMap { locationTrack ->
             validateAddressPoints(trackNumber, locationTrack, VALIDATION_REFERENCE_LINE) {
-                geocodingService.getAddressPoints(locationTrack.id, DRAFT)
+                geocodingService.getAddressPointsForPublication(locationTrack.id, publishKmPostIds)
             }
         }
     }
@@ -408,7 +416,7 @@ class PublishService @Autowired constructor(
                         publishKmPostIds
                     ) +
                             validateReferenceLineAlignment(alignment) +
-                            validateTrackNumberAssociatedTrackAddresses(trackNumber)
+                            validateTrackNumberAssociatedTrackAddresses(trackNumber, publishKmPostIds)
                 } else listOf()
     }
 
@@ -425,6 +433,7 @@ class PublishService @Autowired constructor(
         publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
         publishLocationTrackIds: List<IntId<LocationTrack>>,
+        publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
     ): List<PublishValidationError> {
         val (locationTrack, alignment) = getDraftLocationTrackAndAlignmentWithOfficialId(id)
         val trackNumber = trackNumberService.getDraft(locationTrack.trackNumberId)
@@ -438,7 +447,7 @@ class PublishService @Autowired constructor(
                 if (locationTrack.exists) {
                     validateLocationTrackAlignment(alignment) +
                             validateAddressPoints(trackNumber, locationTrack, VALIDATION_LOCATION_TRACK) {
-                                geocodingService.getAddressPoints(locationTrack.id, DRAFT)
+                                geocodingService.getAddressPointsForPublication(locationTrack.id, publishKmPostIds)
                             }
                 } else listOf()
     }

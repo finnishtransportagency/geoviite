@@ -33,6 +33,19 @@ class GeocodingService(
             ?.let(addressPointsCache::getAddressPoints)
     }
 
+    fun getAddressPointsForPublication(
+        locationTrackId: DomainId<LocationTrack>,
+        kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>
+    ): AlignmentAddresses? {
+        check(locationTrackId is IntId) { "Location track must be stored in DB before calculating address points" }
+        logger.serviceCall(
+            "getAddressPointsForPublication",
+            "locationTrackId" to locationTrackId, "kmPostIdsToPublish" to kmPostIdsToPublish
+        )
+        return addressPointsCache.getAddressPointCacheKey(PublishType.DRAFT, locationTrackId, kmPostIdsToPublish)
+            ?.let(addressPointsCache::getAddressPoints)
+    }
+
     fun getAddress(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
