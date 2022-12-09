@@ -102,6 +102,35 @@ class RatkoService @Autowired constructor(
         }
     }
 
+    fun pushLocationTracksToRatko(userName: UserName, locationTrackChanges: List<LocationTrackChange>) {
+        lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
+            logger.serviceCall("pushLocationTracksToRatko")
+
+            val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
+
+            check(publishes.isEmpty()) {
+                "Push all publications before pushing location track point manually"
+            }
+
+            check(ratkoClient.ratkoIsOnline()) {
+                "Ratko is offline"
+            }
+
+            val switchChanges = calculatedChangesService.getAllSwitchChangesByLocationTrackChange(locationTrackChanges)
+
+            val pushedLocationTrackOids =
+                ratkoLocationTrackService.pushLocationTrackChangesToRatko(locationTrackChanges)
+
+            ratkoAssetService.pushSwitchChangesToRatko(switchChanges)
+
+            try {
+                ratkoLocationTrackService.forceRedraw(pushedLocationTrackOids.map { RatkoOid(it) })
+            } catch (_: Exception) {
+                logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
+            }
+        }
+    }
+
     private fun pushChanges(
         userName: UserName,
         publishes: List<PublicationHeader>

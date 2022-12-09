@@ -98,7 +98,7 @@ class RatkoLocationTrackService @Autowired constructor(
         }
 
         val switchPoints = addresses.switchJointPoints.filterNot { sp ->
-            ratkoNodes.nodes.any { ltp -> ltp.point.kmM.isSame(sp.address) }
+            sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
         createLocationTrackPoints(locationTrackOid, (addresses.midPoints + switchPoints))
@@ -238,7 +238,7 @@ class RatkoLocationTrackService @Autowired constructor(
         deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
 
         val switchPoints = addresses.switchJointPoints.filterNot { sp ->
-            updatedEndPointNodeCollection?.nodes?.any { ltp -> ltp.point.kmM.isSame(sp.address) } ?: true
+            sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
         updateLocationTrackGeometry(

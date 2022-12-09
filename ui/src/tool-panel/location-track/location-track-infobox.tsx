@@ -1,17 +1,10 @@
 import * as React from 'react';
 import styles from './location-track-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import {
-    LAYOUT_SRID,
-    LayoutLocationTrack,
-    MapAlignment,
-} from 'track-layout/track-layout-model';
+import { LAYOUT_SRID, LayoutLocationTrack, MapAlignment } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     LinkingAlignment,
@@ -52,6 +45,7 @@ import { useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
+import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -91,6 +85,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
+    const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -122,6 +117,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         closeLocationTrackDeleteConfirmation();
         onUnselect(track);
     };
+
+    function showLocationTrackPushDialog() {
+        setShowRatkoPushDialog(true);
+    }
+
+    function closeLocationTrackPushDialog() {
+        setShowRatkoPushDialog(false);
+    }
 
     React.useEffect(() => {
         setCanUpdate(
@@ -359,6 +362,31 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxContent>
                 </Infobox>
             )}
+
+            {officialLocationTrack && (
+                <Infobox
+                    title={t('tool-panel.location-track.ratko-info-heading')}
+                    qa-id="location-track-ratko-infobox">
+                    <InfoboxContent>
+                        <InfoboxButtons>
+                            <Button
+                                onClick={() => showLocationTrackPushDialog()}
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}>
+                                {t('tool-panel.location-track.push-to-ratko')}
+                            </Button>
+                        </InfoboxButtons>
+                    </InfoboxContent>
+                </Infobox>
+            )}
+
+            {showRatkoPushDialog && (
+                <LocationTrackRatkoPushDialog
+                    locationTrackId={locationTrack.id}
+                    onClose={closeLocationTrackPushDialog}
+                />
+            )}
+
             {confirmingDraftDelete && (
                 <LocationTrackDeleteConfirmationDialog
                     id={locationTrack.id}

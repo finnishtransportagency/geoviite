@@ -1,0 +1,34 @@
+@import '../../../vayla-design-lib/colors';
+
+.location-track-ratko-push-dialog {
+    margin-bottom: 40px;
+}
+
+.location-track-ratko-push-dialog .field-layout__label {
+    color: $color-white-darker;
+}
+
+.location-track-ratko-push-dialog__warning-msg {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.location-track-ratko-push-dialog__warning-icon {
+    fill: $color-red-default;
+    margin: 4px 16px 0 6px;
+}
+
+.location-track-ratko-push-dialog__field-separator {
+    margin: 0 10px;
+}
+
+.location-track-ratko-push-dialog__done {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    fill: $color-green-default;
+}
+
+.location-track-ratko-push-dialog__done-icon {
+    margin: 20px;
+}

@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.logging.apiCall
@@ -13,10 +14,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/ratko")
@@ -30,6 +28,14 @@ class RatkoController(private val ratkoService: RatkoService) {
     fun pushChangesToRatko() {
         logger.apiCall("pushChangesToRatko")
         ratkoService.pushChangesToRatko(getCurrentUserName())
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PostMapping("/push-location-tracks")
+    fun pushLocationTracksToRatko(@RequestBody locationTrackChanges: List<LocationTrackChange>): ResponseEntity<String> {
+        logger.apiCall("pushLocationTracksToRatko")
+        ratkoService.pushLocationTracksToRatko(getCurrentUserName(), locationTrackChanges)
+        return ResponseEntity(HttpStatus.OK)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
