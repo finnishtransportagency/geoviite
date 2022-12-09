@@ -24,8 +24,15 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TimeStamp } from 'common/common-model';
 import styles from './publication-table.scss';
 import { SelectedPublishChange } from 'track-layout/track-layout-store';
-import { fieldComparator, negComparator } from 'utils/array-utils';
+import { negComparator } from 'utils/array-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
+import {
+    getSortInfoForProp,
+    InitiallyUnsorted,
+    SortDirection,
+    SortInformation,
+    SortProps,
+} from 'publication/publication-table-sorting';
 
 type PublicationTableProps = {
     previewChanges: PublishCandidates;
@@ -64,88 +71,7 @@ type PublicationEntry = {
     operation: Operation;
 };
 
-enum SortProps {
-    NAME = 'NAME',
-    TRACK_NUMBER = 'TRACK_NUMBER',
-    OPERATION = 'OPERATION',
-    CHANGE_TIME = 'CHANGE_TIME',
-    USER_NAME = 'USER_NAME',
-    ERRORS = 'ERRORS',
-}
-
-enum SortDirection {
-    ASCENDING = 'ASCENDING',
-    DESCENDING = 'DESCENDING',
-    UNSORTED = 'UNSORTED',
-}
-
-type Sort = {
-    propName: string;
-    direction: SortDirection;
-    function: (v1: unknown, v2: unknown) => number;
-};
-
-const includesErrors = (errors: PublishValidationError[]) =>
-    errors.some((err) => err.type == 'ERROR');
-const includesWarnings = (errors: PublishValidationError[]) =>
-    errors.some((err) => err.type == 'WARNING');
-const errorPriority = (errors: PublishValidationError[]) => {
-    let priority = 0;
-    if (includesErrors(errors)) priority += 2;
-    if (includesWarnings(errors)) priority += 1;
-    return priority;
-};
-
-const operationPriority = (operation: Operation) => {
-    if (operation === 'CREATE') return 4;
-    else if (operation === 'MODIFY') return 3;
-    else if (operation === 'DELETE') return 2;
-    else if (operation === 'RESTORE') return 1;
-    else return 0;
-};
-
-const nameCompare = fieldComparator((entry: PublicationEntry) => entry.name);
-const trackNumberCompare = fieldComparator((entry: PublicationEntry) => entry.trackNumber);
-const userNameCompare = fieldComparator((entry: PublicationEntry) => entry.userName);
-const changeTimeCompare = fieldComparator((entry: PublicationEntry) => entry.changeTime);
-const errorCompare = (a: PublicationEntry, b: PublicationEntry) => {
-    console.log(a.name, errorPriority(b.errors), errorPriority(a.errors));
-    return errorPriority(b.errors) - errorPriority(a.errors);
-};
-const operationCompare = (a: PublicationEntry, b: PublicationEntry) =>
-    operationPriority(b.operation) - operationPriority(a.operation);
-
-const sortFunctionsByPropName = {
-    NAME: nameCompare,
-    TRACK_NUMBER: trackNumberCompare,
-    OPERATION: operationCompare,
-    CHANGE_TIME: changeTimeCompare,
-    USER_NAME: userNameCompare,
-    ERRORS: errorCompare,
-};
-
-const nextSortDirection = {
-    ASCENDING: SortDirection.DESCENDING,
-    DESCENDING: SortDirection.UNSORTED,
-    UNSORTED: SortDirection.ASCENDING,
-};
-
-const initiallyUnsorted = {
-    propName: SortProps.NAME,
-    direction: SortDirection.UNSORTED,
-    function: (_a: PublicationEntry, _b: PublicationEntry) => 0,
-};
-
-const getSortInfoForProp = (oldSortInfo: Sort, propName: SortProps) => ({
-    propName,
-    direction:
-        oldSortInfo.propName === propName
-            ? nextSortDirection[oldSortInfo.direction]
-            : SortDirection.ASCENDING,
-    function: sortFunctionsByPropName[propName],
-});
-
-const sortDirectionIcon = (direction: SortDirection) =>
+export const sortDirectionIcon = (direction: SortDirection) =>
     direction === SortDirection.ASCENDING
         ? Icons.Ascending
         : direction === SortDirection.DESCENDING
@@ -167,7 +93,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         getTrackNumbers('DRAFT').then((trackNumbers) => setTrackNumbers(trackNumbers));
     }, []);
 
-    const [sortInfo, setSortInfo] = React.useState<Sort>(initiallyUnsorted);
+    const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 
     const defaultSelectedPublishChange: SelectedPublishChange = {
         trackNumber: undefined,
