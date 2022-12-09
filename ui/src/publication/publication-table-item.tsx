@@ -6,7 +6,6 @@ import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import { Operation, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
-import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 
 export type PreviewTableItemProps = {
     onChange: React.ChangeEventHandler<HTMLInputElement>;
@@ -38,7 +37,7 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     onPublishItemSelect,
     publish = false,
 }) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
 
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
@@ -88,8 +87,15 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>
                 )}
                 {showActions && (
-                    <td onClick={() => {onPublishItemSelect && onPublishItemSelect();}}>
-                        {publish ? <Icons.Ascending size={IconSize.SMALL}/> : <Icons.Descending size={IconSize.SMALL}/>}
+                    <td
+                        onClick={() => {
+                            onPublishItemSelect && onPublishItemSelect();
+                        }}>
+                        {publish ? (
+                            <Icons.Ascending size={IconSize.SMALL} />
+                        ) : (
+                            <Icons.Descending size={IconSize.SMALL} />
+                        )}
                     </td>
                 )}
             </tr>
