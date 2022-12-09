@@ -220,7 +220,7 @@ data class GeocodingContext(
                 address = getAddress(distance, 3),
                 distance = distance,
             ) }
-        }
+        }.distinctBy { addressPoint -> addressPoint.address }
     }
 
     private fun findPreviousPoint(targetDistance: Double): GeocodingReferencePoint {
