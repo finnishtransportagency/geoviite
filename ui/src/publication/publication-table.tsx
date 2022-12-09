@@ -128,9 +128,9 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                         <Th>{t('publication-table.change-target')}</Th>
                         <Th>{t('publication-table.track-number-short')}</Th>
                         <Th>{t('publication-table.change-type')}</Th>
-                        {showStatus && <Th>{t('publication-table.status')}</Th>}
-                        <Th>{t('publication-table.user')}</Th>
                         <Th>{t('publication-table.modified-moment')}</Th>
+                        <Th>{t('publication-table.user')}</Th>
+                        {showStatus && <Th>{t('publication-table.status')}</Th>}
                         {showRatkoPushDate && <Th>{t('publication-table.exported-to-ratko')}</Th>}
                         {showActions && <Th>{t('publication-table.actions')}</Th>}
                     </tr>

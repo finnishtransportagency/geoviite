@@ -60,6 +60,8 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                 <td>{itemName}</td>
                 <td>{trackNumber ? trackNumber : ''}</td>
                 <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
+                <td>{formatDateFull(changeTime)}</td>
+                <td>{userName}</td>
                 {showStatus && (
                     <td
                         className={statusCellClassName}
@@ -81,8 +83,6 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                         )}
                     </td>
                 )}
-                <td>{userName}</td>
-                <td>{formatDateFull(changeTime)}</td>
                 {showRatkoPushDate && (
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>
                 )}
