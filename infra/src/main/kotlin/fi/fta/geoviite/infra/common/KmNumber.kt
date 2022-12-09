@@ -173,6 +173,7 @@ data class TrackMeter(override val kmNumber: KmNumber, override val meters: BigD
     operator fun minus(metersDelta: Double) = minus(metersDelta, meters.scale())
     operator fun minus(metersDelta: BigDecimal) = TrackMeter(kmNumber, meters - metersDelta)
     fun minus(metersDelta: Double, decimals: Int) = minus(round(metersDelta, decimals))
+    fun stripTrailingZeroes() = TrackMeter(kmNumber, limitScale(meters.stripTrailingZeros()))
 }
 
 class StringToKmNumberConverter : Converter<String, KmNumber> {
