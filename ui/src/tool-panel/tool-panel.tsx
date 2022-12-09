@@ -89,6 +89,14 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     setSelectedTabId,
     startSwitchPlacing,
 }: ToolPanelProps) => {
+    console.log(
+        'Tool-Panel bind',
+        'trackNumbers',
+        trackNumberIds,
+        'referenceLines',
+        referenceLineIds,
+    );
+
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
 

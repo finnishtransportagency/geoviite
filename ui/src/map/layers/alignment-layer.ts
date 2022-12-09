@@ -6,7 +6,7 @@ import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
 import OlView from 'ol/View';
 import { LayoutAlignmentsLayer, MapTile, OptionalShownItems } from 'map/map-model';
-import { Selection } from 'selection/selection-model';
+import { ItemCollections, Selection } from 'selection/selection-model';
 import { adapterInfoRegister } from './register';
 import {
     LayoutPoint,
@@ -145,9 +145,8 @@ export function createMapAlignmentBadgeFeature(
                     zIndex: 5,
                     renderer: (coordinates: Coordinate, state: State) => {
                         const ctx = state.context;
-                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${
-                            state.pixelRatio * 12
-                        }px ${mapStyles['alignment-badge-font-family']}`;
+                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${state.pixelRatio * 12
+                            }px ${mapStyles['alignment-badge-font-family']}`;
                         const backgroundWidth =
                             ctx.measureText(badgeStyle.text).width + 16 * state.pixelRatio;
                         const backgroundHeight = 14 * state.pixelRatio;
@@ -182,7 +181,7 @@ export function createMapAlignmentBadgeFeature(
                         ctx.fillText(
                             badgeStyle.text,
                             coordinates[0] +
-                                ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
+                            ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
                             coordinates[1] + 1 * state.pixelRatio,
                         );
 
@@ -218,13 +217,13 @@ function createFeatures(
             ? selected
                 ? selectedReferenceLineStyle
                 : highlighted
-                ? highlightedReferenceLineStyle
-                : referenceLineStyle
+                    ? highlightedReferenceLineStyle
+                    : referenceLineStyle
             : selected
-            ? selectedLocationTrackStyle
-            : highlighted
-            ? highlightedLocationTrackStyle
-            : locationTrackStyle,
+                ? selectedLocationTrackStyle
+                : highlighted
+                    ? highlightedLocationTrackStyle
+                    : locationTrackStyle,
     ]);
 
     const numbersBeforeSegment = Math.floor(segment.start / drawDistance);
@@ -281,9 +280,8 @@ function featureKey(
     alignmentId: LocationTrackId,
     alignmentVersion: string | null,
 ): string {
-    return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${
-        selected ? '1' : '0'
-    }_${highlighted ? '1' : '0'}_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}`;
+    return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${selected ? '1' : '0'
+        }_${highlighted ? '1' : '0'}_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}`;
 }
 
 type DataCollection = {
@@ -354,6 +352,18 @@ function collectSegmentData(
 
 const featureCache: Map<string, Feature<LineString | Point>[]> = new Map();
 
+function isSelected(selection: ItemCollections, alignment: MapAlignment): boolean {
+    switch (alignment.alignmentType) {
+        case 'REFERENCE_LINE': {
+            const tnId = alignment.trackNumberId;
+            return tnId != null && selection.trackNumbers.includes(tnId);
+        }
+        case 'LOCATION_TRACK': {
+            return selection.locationTracks.includes(alignment.id);
+        }
+    }
+}
+
 function createFeaturesCached(
     segmentDatas: SegmentDataHolder[],
     selection: Selection,
@@ -365,13 +375,8 @@ function createFeaturesCached(
     featureCache.clear();
     return segmentDatas
         .map((data) => {
-            const isReference = data.alignment.alignmentType == 'REFERENCE_LINE';
-            const selected = isReference
-                ? selection.selectedItems.referenceLines.includes(data.alignment.id)
-                : selection.selectedItems.locationTracks.includes(data.alignment.id);
-            const highlighted = isReference
-                ? selection.highlightedItems.referenceLines.includes(data.alignment.id)
-                : selection.highlightedItems.locationTracks.includes(data.alignment.id);
+            const selected = isSelected(selection.selectedItems, data.alignment);
+            const highlighted = isSelected(selection.highlightedItems, data.alignment);
             const isLinking =
                 linkingState &&
                 (linkingState.type == LinkingType.LinkingGeometryWithAlignment ||
@@ -395,12 +400,12 @@ function createFeaturesCached(
                 previous !== undefined
                     ? previous
                     : createFeatures(
-                          data,
-                          !!(selected || isLinking),
-                          highlighted,
-                          trackNumberDisplayMode,
-                          trackNumberDrawDistance,
-                      );
+                        data,
+                        !!(selected || isLinking),
+                        highlighted,
+                        trackNumberDisplayMode,
+                        trackNumberDrawDistance,
+                    );
             featureCache.set(key, features);
             return features;
         })
@@ -411,7 +416,7 @@ let alignmentCompare = '';
 let alignmentChangeTimeCompare: TimeStamp | undefined = undefined;
 
 adapterInfoRegister.add('alignment', {
-    createAdapter: function (
+    createAdapter: function(
         mapTiles: MapTile[],
         existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
         mapLayer: LayoutAlignmentsLayer,
@@ -559,10 +564,7 @@ export function getMapAlignmentBadgeStyle(
             ? mapStyles['alignment-badge-background-selected']
             : mapStyles['alignment-badge-background'];
     } else {
-        text =
-            alignment.alignmentType == 'REFERENCE_LINE'
-                ? trackNumber.number
-                : `${trackNumber.number} / ${alignment.name}`;
+        text = getName(alignment, trackNumber);
 
         if (lineHighlighted) {
             color = mapStyles['alignment-badge-color'];
@@ -580,6 +582,15 @@ export function getMapAlignmentBadgeStyle(
         background,
         backgroundBorder,
     };
+}
+
+function getName(alignment: MapAlignment, trackNumber: LayoutTrackNumber): string {
+    switch (alignment.alignmentType) {
+        case 'REFERENCE_LINE':
+            return trackNumber.number;
+        case 'LOCATION_TRACK':
+            return `${trackNumber.number} / ${alignment.name}`;
+    }
 }
 
 export function calculateBadgeRotation(start: Coordinate, end: Coordinate) {

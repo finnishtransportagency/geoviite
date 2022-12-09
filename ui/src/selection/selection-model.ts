@@ -29,7 +29,7 @@ export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trac
 export type ItemCollections = {
     segments: MapSegment[];
     locationTracks: LocationTrackId[];
-    referenceLines: ReferenceLineId[];
+    // referenceLines: ReferenceLineId[];
     kmPosts: LayoutKmPost[];
     geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
     switches: LayoutSwitch[];

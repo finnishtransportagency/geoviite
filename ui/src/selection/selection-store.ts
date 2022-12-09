@@ -27,7 +27,7 @@ export function createEmptyItemCollections(): ItemCollections {
     return {
         segments: [],
         locationTracks: [],
-        referenceLines: [],
+        // referenceLines: [],
         kmPosts: [],
         geometryKmPosts: [],
         switches: [],
@@ -66,7 +66,9 @@ function getNewIdCollection<TId extends string>(
     if (flags.isIncremental) {
         return deduplicate([...newIds, ...ids]);
     } else if (flags.isToggle) {
-        return deduplicate(newIds.filter((newId) => !ids.includes(newId)));
+        const filtered = deduplicate(newIds.filter((newId) => !ids.includes(newId)));
+        console.log('Toggling ids:', 'old', ids, 'new', ids, 'filtered', filtered);
+        return filtered;
     } else {
         return deduplicate(newIds);
     }
@@ -138,19 +140,16 @@ function getNewItemCollectionUsingCustomId<TEntity, TId>(
 
     // Define "new items" collection
     if (flags.isIncremental) {
-        newItems = [...newItems, ...items].filter(filterUniqueById(getId));
+        return [...newItems, ...items].filter(filterUniqueById(getId));
     } else if (flags.isToggle) {
-        newItems = newItems.filter(
+        const filtered = newItems.filter(
             (newItem) => !items.find((item) => getId(item) == getId(newItem)),
         );
+        console.log('Toggling item:', 'old', items, 'new', newItems, 'filtered', filtered);
+        return filtered;
+    } else {
+        return newItems;
     }
-
-    // FIXME: this doesn't work because the ID doesn't change always when the object changes. If these were ids only (no data in selection), this would be fine.
-    // Return "new items" only if it differs from original
-    // if (!itemsEqual(items, newItems, (item1, item2) => getId(item1) == getId(item2))) {
-    return newItems;
-    // }
-    // return items;
 }
 
 function updateItemCollectionsByOptions(
