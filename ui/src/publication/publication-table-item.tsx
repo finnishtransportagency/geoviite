@@ -20,6 +20,8 @@ export type PreviewTableItemProps = {
     ratkoPushDate?: TimeStamp;
     operation: Operation | null;
     userName: string;
+    onPublishItemSelect?: () => void;
+    publish?: boolean;
 };
 
 export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
@@ -33,8 +35,10 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     ratkoPushDate,
     operation,
     userName,
+    onPublishItemSelect,
+    publish = false,
 }) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
 
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
@@ -84,11 +88,8 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>
                 )}
                 {showActions && (
-                    <td>
-                        <div className={'preview-table-item__buttons'}>
-                            <Button variant={ButtonVariant.GHOST} icon={Icons.Descending} />
-                            <Button variant={ButtonVariant.GHOST} icon={Icons.More} />
-                        </div>
+                    <td onClick={() => {onPublishItemSelect && onPublishItemSelect();}}>
+                        {publish ? <Icons.Ascending size={IconSize.SMALL}/> : <Icons.Descending size={IconSize.SMALL}/>}
                     </td>
                 )}
             </tr>

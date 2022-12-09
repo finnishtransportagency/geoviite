@@ -17,13 +17,22 @@
         "errors-status-text": "virheitä ({{0}} kpl)",
         "warnings-status-text": "varoituksia ({{0}} kpl)",
         "errors-group-title": "Virheitä",
-        "warnings-group-title": "Varoituksia"
+        "warnings-group-title": "Varoituksia",
+        "actions": "Toiminnot"
     },
     "publication-card": {
         "latest": "Viimeisimmät",
         "show-more": "Näytä lisää",
         "show-less": "Näytä vähemmän",
         "title": "Julkaisut"
+    },
+    "error-in-ratko-connection": {
+        "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{0}}). ",
+        "integration-error-status-code": "Vika Ratko-integraatiossa ({{0}}) ",
+        "temporary-error-status-code": "Tilapäinen vika Ratko-integraatiossa ({{0}}). Yritä myöhemmin uudelleen.",
+        "contact-geoviite-support": "Ota yhteyttä geoviite.support@solita.fi",
+        "contact-ratko-support": "Ota yhteyttä vayla.asiakkaat.fi@cgi.com",
+        "contact-ratko-support-if-needed": "Tilanteen jatkuessa ota yhteyttä vayla.asiakkaat.fi@cgi.com"
     },
     "publishing": {
         "publish-issues": "Ongelmat Ratko-integraatiossa",

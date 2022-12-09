@@ -27,15 +27,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchChangeTimes(id: IntId<T>): ChangeTimes
 
     fun fetchAllVersions(): List<RowVersion<T>>
-
-    fun fetchVersions(publishType: PublishType): List<RowVersion<T>> =
-        when (publishType) {
-            OFFICIAL -> fetchOfficialVersions()
-            DRAFT -> fetchDraftVersions()
-        }
-
-    fun fetchDraftVersions(): List<RowVersion<T>>
-    fun fetchOfficialVersions(): List<RowVersion<T>>
+    fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
@@ -68,8 +60,31 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     private val table: DbTable,
 ): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
+
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
-    override fun fetchChangeTimes(id: IntId<T>): ChangeTimes = fetchChangeTimes(id, table)
+
+    override fun fetchChangeTimes(id: IntId<T>): ChangeTimes {
+        val sql = """
+            select
+              greatest(main_row.change_time, draft_row.change_time) as change_time,
+              case when main_row.draft then null else main_row.change_time end as official_change_time,
+              case when main_row.draft then main_row.change_time else draft_row.change_time end as draft_change_time,
+              version1.change_time as creation_time
+            from ${table.fullName} main_row
+              left join ${table.fullName} draft_row on draft_row.${table.draftLink} = main_row.id
+              inner join ${table.versionTable} version1 on main_row.id = version1.id and version1.version = 1
+            where (main_row.${table.draftLink} is null)
+              and (main_row.id = :id or draft_row.id = :id)
+        """.trimMargin()
+        return jdbcTemplate.queryForObject(sql, mapOf("id" to id.intValue)) { rs, _ ->
+            ChangeTimes(
+                created = rs.getInstant("creation_time"),
+                changed = rs.getInstant("change_time"),
+                officialChanged = rs.getInstantOrNull("official_change_time"),
+                draftChanged = rs.getInstantOrNull("draft_change_time"),
+            )
+        } ?: throw IllegalStateException("Failed to fetch change times: id=$id table=$table")
+    }
 
     override fun fetchAllVersions(): List<RowVersion<T>> = fetchRowVersions(table)
 
@@ -89,9 +104,6 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             official = versions.find { (draft, _) -> !draft }?.let { (_, version) -> version },
         )
     }
-
-    override fun fetchDraftVersions(): List<RowVersion<T>> = fetchDraftRowVersions(table)
-    override fun fetchOfficialVersions(): List<RowVersion<T>> = fetchOfficialRowVersions(table)
 
     override fun fetchDraftVersion(id: IntId<T>): RowVersion<T>? = fetchDraftRowVersion(id, table)
 
@@ -169,27 +181,6 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     private fun <T> fetchDraftRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, "fetchDraftRowVersion", "id" to id, "table" to table.fullName)
         return queryRowVersionOrNull(draftFetchSql(table), id)
-    }
-
-    private fun <T> fetchOfficialRowVersions(table: DbTable): List<RowVersion<T>> {
-        logger.daoAccess(AccessType.VERSION_FETCH, "fetchOfficialRowVersions", "table" to table.fullName)
-        val sql = "select id, version from ${table.fullName} where draft = false order by ${table.orderBy}"
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }
-    }
-
-    private fun <T> fetchDraftRowVersions(table: DbTable): List<RowVersion<T>> {
-        logger.daoAccess(AccessType.VERSION_FETCH, "fetchDraftRowVersions", "table" to table.fullName)
-        val sql = """
-            select o.id, o.version 
-            from ${table.fullName} o
-            where not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id)
-            order by ${table.orderBy}
-        """
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        }
     }
 }
 

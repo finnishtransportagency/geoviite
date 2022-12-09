@@ -26,8 +26,29 @@ const val MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE = 1.0
 class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
 
+    override fun fetchVersions(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+    ): List<RowVersion<TrackLayoutSwitch>> {
+        val sql = """
+            select
+              row_id,
+              row_version
+            from layout.switch_publication_view 
+            where :publication_state = any(publication_states) 
+              and (:include_deleted = true or state_category != 'NOT_EXISTING')
+        """.trimIndent()
+        val params = mapOf(
+            "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
     fun fetchSegmentSwitchJointConnections(
-        publishType: PublishType,
+        publicationState: PublishType,
         switchId: IntId<TrackLayoutSwitch>
     ): List<TrackLayoutSwitchJointConnection> {
         val sql = """
@@ -82,7 +103,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
             "max_lookup_distance" to MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE,
         )
 

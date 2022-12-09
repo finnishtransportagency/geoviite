@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.tracklayout.ChangeTimes
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -58,29 +57,6 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
         return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             rs.getRowVersion("id", "version")
         }
-    }
-
-    protected fun <T> fetchChangeTimes(id: IntId<T>, table: DbTable): ChangeTimes {
-        val sql = """
-            select 
-              greatest(main_row.change_time, draft_row.change_time) as change_time,
-              case when main_row.draft then null else main_row.change_time end as official_change_time, 
-              case when main_row.draft then main_row.change_time else draft_row.change_time end as draft_change_time,
-              version1.change_time as creation_time
-            from ${table.fullName} main_row
-              left join ${table.fullName} draft_row on draft_row.${table.draftLink} = main_row.id
-              inner join ${table.versionTable} version1 on main_row.id = version1.id and version1.version = 1 
-            where (main_row.${table.draftLink} is null) 
-              and (main_row.id = :id or draft_row.id = :id)
-        """.trimMargin()
-        return jdbcTemplate.queryForObject(sql, mapOf("id" to id.intValue)) { rs, _ ->
-            ChangeTimes(
-                created = rs.getInstant("creation_time"),
-                changed = rs.getInstant("change_time"),
-                officialChanged = rs.getInstantOrNull("official_change_time"),
-                draftChanged = rs.getInstantOrNull("draft_change_time"),
-            )
-        } ?: throw IllegalStateException("Failed to fetch change times: id=$id table=$table")
     }
 
     protected fun fetchLatestChangeTime(table: DbTable): Instant {

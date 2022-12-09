@@ -22,16 +22,20 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST) {
 
+    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+        fetchVersions(publicationState, includeDeleted, null, null)
+
     fun fetchVersions(
-        publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-        bbox: BoundingBox? = null,
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>?,
+        bbox: BoundingBox?,
     ): List<RowVersion<TrackLayoutKmPost>> {
         val sql = """
             select km_post.row_id, km_post.row_version 
             from layout.km_post_publication_view km_post
             where :publication_state = any(km_post.publication_states)
-              and km_post.state != 'DELETED'
+              and (:include_deleted = true or km_post.state != 'DELETED')
               and (:track_number_id::int is null or track_number_id = :track_number_id)
               and (:polygon_wkt::varchar is null or postgis.st_intersects(
                 km_post.location,
@@ -41,8 +45,9 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
         return jdbcTemplate.query(sql, mapOf(
             "track_number_id" to trackNumberId?.intValue,
-            "draft" to (publishType == PublishType.DRAFT),
-            "publication_state" to publishType.name,
+            "publicationState" to publicationState,
+            "include_deleted" to includeDeleted,
+            "publication_state" to publicationState.name,
             "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
             "map_srid" to LAYOUT_SRID.code,
         )) { rs, _ ->

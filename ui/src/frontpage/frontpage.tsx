@@ -7,6 +7,7 @@ import { getPublications } from 'publication/publication-api';
 import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
+import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 
 type FrontPageProps = {
     selectedPublication: PublicationListingItem | undefined;
@@ -18,8 +19,10 @@ const Frontpage: React.FC<FrontPageProps> = ({
     onSelectedPublicationChanged,
 }) => {
     const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
+    const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
 
     useLoaderWithTimer(setPublications, getPublications, [], 30000);
+    useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 
     const hasAnyFailed = () =>
         !!publications && publications?.some((item) => ratkoPushFailed(item.status));
@@ -36,6 +39,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                                     onSelectedPublicationChanged(pub);
                                 }}
                                 anyFailed={hasAnyFailed()}
+                                ratkoStatus={ratkoStatus}
                             />
                         )}
                         <UserCardContainer />

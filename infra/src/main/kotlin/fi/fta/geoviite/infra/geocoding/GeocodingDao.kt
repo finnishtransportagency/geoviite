@@ -74,7 +74,9 @@ class GeocodingDao(
             val referenceLine = referenceLineDao.fetch(referenceLineVersion)
             val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
                 ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
-            val kmPosts = kmPostDao.fetchVersions(key.publishType, key.trackNumberId).map(kmPostDao::fetch)
+            val kmPosts = kmPostDao
+                .fetchVersions(key.publishType, false, key.trackNumberId, null)
+                .map(kmPostDao::fetch)
             if (alignment.segments.isEmpty()) { // If reference line has no geometry, we cannot geocode.
                 null
             } else {
