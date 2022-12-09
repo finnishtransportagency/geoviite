@@ -1,7 +1,16 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { PublicationTableItem } from 'publication/publication-table-item';
 import * as React from 'react';
-import { PublishCandidates } from 'publication/publication-model';
+import {
+    KmPostPublishCandidate,
+    LocationTrackPublishCandidate,
+    Operation,
+    PublishCandidates,
+    PublishValidationError,
+    ReferenceLinePublishCandidate,
+    SwitchPublishCandidate,
+    TrackNumberPublishCandidate,
+} from 'publication/publication-model';
 import { useTranslation } from 'react-i18next';
 import {
     LayoutKmPostId,
@@ -12,7 +21,6 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { SelectedChanges } from 'preview/preview-view';
 import { TimeStamp } from 'common/common-model';
 import styles from './publication-table.scss';
 import { SelectedPublishChange } from 'track-layout/track-layout-store';
@@ -25,6 +33,33 @@ type PublicationTableProps = {
     ratkoPushDate?: TimeStamp;
     onPreviewSelect?: (selectedChanges: SelectedPublishChange) => void;
     publish?: boolean;
+};
+
+enum PreviewSelectType {
+    trackNumber = 'trackNumber',
+    referenceLine = 'referenceLine',
+    locationTrack = 'locationTrack',
+    switch = 'switch',
+    kmPost = 'kmPost',
+}
+
+type PublicationId =
+    | LayoutTrackNumberId
+    | ReferenceLineId
+    | LocationTrackId
+    | LayoutSwitchId
+    | LayoutKmPostId;
+
+type PublicationEntry = {
+    id: LayoutTrackNumberId | LocationTrackId | LayoutSwitchId | ReferenceLineId | LayoutKmPostId;
+    type: PreviewSelectType;
+    name: string;
+    uiName: string;
+    errors: PublishValidationError[];
+    trackNumber: string;
+    changeTime: string;
+    userName: string;
+    operation: Operation;
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
@@ -42,49 +77,6 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         getTrackNumbers('DRAFT').then((trackNumbers) => setTrackNumbers(trackNumbers));
     }, []);
 
-    const [selectedChanges, setSelectedChanges] = React.useState<SelectedChanges>({
-        trackNumbers: [],
-        referenceLines: [],
-        locationTracks: [],
-        switches: [],
-        kmPosts: [],
-    });
-    React.useEffect(() => {
-        setSelectedChanges({
-            trackNumbers: previewChanges ? previewChanges.trackNumbers.map((tn) => tn.id) : [],
-            referenceLines: previewChanges ? previewChanges.referenceLines.map((a) => a.id) : [],
-            locationTracks: previewChanges ? previewChanges.locationTracks.map((a) => a.id) : [],
-            switches: previewChanges ? previewChanges.switches.map((s) => s.id) : [],
-            kmPosts: previewChanges ? previewChanges.kmPosts.map((kmp) => kmp.id) : [],
-        });
-    }, [previewChanges]);
-
-    function addOrRemoveByCheckbox<T>(collection: T[], item: T, checkboxValue: boolean) {
-        let modifiedCollection;
-        if (checkboxValue) {
-            modifiedCollection = [...collection, item];
-        } else {
-            modifiedCollection = collection.filter((existingItem) => existingItem !== item);
-        }
-        return modifiedCollection;
-    }
-
-    enum PreviewSelectType {
-        trackNumber = 'trackNumber',
-        referenceLine = 'referenceLine',
-        locationTrack = 'locationTrack',
-        switch = 'switch',
-        kmPost = 'kmPost',
-    }
-
-    type PublishChangeId =
-        | LayoutTrackNumberId
-        | ReferenceLineId
-        | LocationTrackId
-        | LayoutSwitchId
-        | LayoutKmPostId
-        | undefined;
-
     const defaultSelectedPublishChange: SelectedPublishChange = {
         trackNumber: undefined,
         referenceLine: undefined,
@@ -93,7 +85,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         kmPost: undefined,
     };
 
-    function handlePreviewSelect<T>(id: PublishChangeId, type: T) {
+    function handlePreviewSelect<T>(id: PublicationId, type: T) {
         switch (type) {
             case PreviewSelectType.trackNumber:
                 onPreviewSelect &&
@@ -120,6 +112,84 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         }
     }
 
+    const trackNumberToPublicationEntry = (trackNumber: TrackNumberPublishCandidate) => ({
+        id: trackNumber.id,
+        type: PreviewSelectType.trackNumber,
+        uiName: `${t('publication-table.track-number-long')} ${trackNumber.number}`,
+        name: trackNumber.number,
+        userName: trackNumber.userName,
+        trackNumber: trackNumber.number,
+        changeTime: trackNumber.draftChangeTime,
+        errors: trackNumber.errors,
+        operation: trackNumber.operation,
+    });
+    const referenceLineToPublicationEntry = (referenceLine: ReferenceLinePublishCandidate) => {
+        const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
+        return {
+            id: referenceLine.id,
+            type: PreviewSelectType.referenceLine,
+            uiName: `${t('publication-table.reference-line')} ${referenceLine.name}`,
+            name: referenceLine.name,
+            userName: referenceLine.userName,
+            trackNumber: trackNumber ? trackNumber.number : '',
+            changeTime: referenceLine.draftChangeTime,
+            errors: referenceLine.errors,
+            operation: referenceLine.operation,
+        };
+    };
+    const locationTrackToPublicationEntry = (locationTrack: LocationTrackPublishCandidate) => {
+        const trackNumber = trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId);
+        return {
+            id: locationTrack.id,
+            type: PreviewSelectType.locationTrack,
+            uiName: `${t('publication-table.location-track')} ${locationTrack.name}`,
+            name: locationTrack.name,
+            userName: locationTrack.userName,
+            trackNumber: trackNumber ? trackNumber.number : '',
+            changeTime: locationTrack.draftChangeTime,
+            errors: locationTrack.errors,
+            operation: locationTrack.operation,
+        };
+    };
+    const switchToPublicationEntry = (layoutSwitch: SwitchPublishCandidate) => {
+        const trackNumber = trackNumbers
+            .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn == tn.id))
+            .map((tn) => tn.number)
+            .join(', ');
+        return {
+            id: layoutSwitch.id,
+            type: PreviewSelectType.switch,
+            uiName: `${t('publication-table.switch')} ${layoutSwitch.name}`,
+            name: layoutSwitch.name,
+            userName: layoutSwitch.userName,
+            trackNumber,
+            changeTime: layoutSwitch.draftChangeTime,
+            errors: layoutSwitch.errors,
+            operation: layoutSwitch.operation,
+        };
+    };
+    const kmPostPublicationEntry = (kmPost: KmPostPublishCandidate) => {
+        const trackNumber = trackNumbers.find((tn) => tn.id === kmPost.trackNumberId);
+        return {
+            id: kmPost.id,
+            type: PreviewSelectType.kmPost,
+            uiName: `${t('publication-table.km-post')} ${kmPost.kmNumber}`,
+            name: kmPost.kmNumber,
+            userName: kmPost.userName,
+            trackNumber: trackNumber ? trackNumber.number : '',
+            changeTime: kmPost.draftChangeTime,
+            errors: kmPost.errors,
+            operation: kmPost.operation,
+        };
+    };
+
+    const publicationEntries: PublicationEntry[] = previewChanges.trackNumbers
+        .map(trackNumberToPublicationEntry)
+        .concat(previewChanges.referenceLines.map(referenceLineToPublicationEntry))
+        .concat(previewChanges.locationTracks.map(locationTrackToPublicationEntry))
+        .concat(previewChanges.switches.map(switchToPublicationEntry))
+        .concat(previewChanges.kmPosts.map(kmPostPublicationEntry));
+
     return (
         <div className={styles['publication-table__container']}>
             <Table wide>
@@ -136,218 +206,23 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     </tr>
                 </thead>
                 <tbody>
-                    {previewChanges.trackNumbers.map((trackNumber) => (
-                        <React.Fragment key={trackNumber.id}>
+                    {publicationEntries.map((entry) => (
+                        <React.Fragment key={entry.id}>
                             {
                                 <PublicationTableItem
                                     onPublishItemSelect={() =>
-                                        handlePreviewSelect(
-                                            trackNumber.id,
-                                            PreviewSelectType.trackNumber,
-                                        )
+                                        handlePreviewSelect(entry.id, entry.type)
                                     }
-                                    onChange={(e) => {
-                                        const trackNumbers = addOrRemoveByCheckbox(
-                                            selectedChanges.trackNumbers,
-                                            trackNumber.id,
-                                            e.target.checked,
-                                        );
-                                        const _newSelectedChanges: SelectedChanges = {
-                                            ...selectedChanges,
-                                            trackNumbers,
-                                        };
-                                        // Checkbox selection - disabled for MVP to simplify validation
-                                        // setSelectedChanges(newSelectedChanges);
-                                    }}
-                                    itemName={`${t('publication-table.track-number-long')} ${
-                                        trackNumber.number
-                                    }`}
-                                    trackNumber={trackNumber.number}
-                                    errors={trackNumber.errors}
-                                    changeTime={trackNumber.draftChangeTime}
+                                    itemName={entry.uiName}
+                                    trackNumber={entry.trackNumber}
+                                    errors={entry.errors}
+                                    changeTime={entry.changeTime}
                                     ratkoPushDate={ratkoPushDate}
                                     showRatkoPushDate={showRatkoPushDate}
                                     showStatus={showStatus}
                                     showActions={showActions}
-                                    userName={trackNumber.userName}
-                                    operation={trackNumber.operation}
-                                    publish={publish}
-                                />
-                            }
-                        </React.Fragment>
-                    ))}
-                    {previewChanges.referenceLines.map((referenceLine) => (
-                        <React.Fragment key={referenceLine.id}>
-                            {
-                                <PublicationTableItem
-                                    onPublishItemSelect={() =>
-                                        handlePreviewSelect(
-                                            referenceLine.id,
-                                            PreviewSelectType.referenceLine,
-                                        )
-                                    }
-                                    onChange={(e) => {
-                                        // Checkbox selection - disabled for MVP to simplify validation
-                                        const referenceLines = addOrRemoveByCheckbox(
-                                            selectedChanges.referenceLines,
-                                            referenceLine.id,
-                                            e.target.checked,
-                                        );
-                                        const _newSelectedChanges: SelectedChanges = {
-                                            ...selectedChanges,
-                                            referenceLines,
-                                        };
-                                        // Checkbox selection - disabled for MVP to simplify validation
-                                        // setSelectedChanges(newSelectedChanges);
-                                    }}
-                                    itemName={`${t('publication-table.reference-line')} ${
-                                        referenceLine.name
-                                    }`}
-                                    trackNumber={
-                                        trackNumbers.find(
-                                            (tn) => tn.id === referenceLine.trackNumberId,
-                                        )?.number
-                                    }
-                                    errors={referenceLine.errors}
-                                    changeTime={referenceLine.draftChangeTime}
-                                    ratkoPushDate={ratkoPushDate}
-                                    showRatkoPushDate={showRatkoPushDate}
-                                    showStatus={showStatus}
-                                    showActions={showActions}
-                                    userName={referenceLine.userName}
-                                    operation={referenceLine.operation}
-                                    publish={publish}
-                                />
-                            }
-                        </React.Fragment>
-                    ))}
-                    {previewChanges.locationTracks.map((locationTrack) => (
-                        <React.Fragment key={locationTrack.id}>
-                            {
-                                <PublicationTableItem
-                                    onPublishItemSelect={() =>
-                                        handlePreviewSelect(
-                                            locationTrack.id,
-                                            PreviewSelectType.locationTrack,
-                                        )
-                                    }
-                                    onChange={(e) => {
-                                        // Checkbox selection - disabled for MVP to simplify validation
-                                        const locationTracks = addOrRemoveByCheckbox(
-                                            selectedChanges.locationTracks,
-                                            locationTrack.id,
-                                            e.target.checked,
-                                        );
-                                        const _newSelectedChanges: SelectedChanges = {
-                                            ...selectedChanges,
-                                            locationTracks,
-                                        };
-                                        // Checkbox selection - disabled for MVP to simplify validation
-                                        // setSelectedChanges(newSelectedChanges);
-                                    }}
-                                    itemName={`${t('publication-table.location-track')} ${
-                                        locationTrack.name
-                                    }`}
-                                    trackNumber={
-                                        trackNumbers.find(
-                                            (tn) => tn.id === locationTrack.trackNumberId,
-                                        )?.number
-                                    }
-                                    errors={locationTrack.errors}
-                                    changeTime={locationTrack.draftChangeTime}
-                                    ratkoPushDate={ratkoPushDate}
-                                    showRatkoPushDate={showRatkoPushDate}
-                                    showStatus={showStatus}
-                                    showActions={showActions}
-                                    userName={locationTrack.userName}
-                                    operation={locationTrack.operation}
-                                    publish={publish}
-                                />
-                            }
-                        </React.Fragment>
-                    ))}
-                    {previewChanges.switches.map((layoutSwitch) => (
-                        <React.Fragment key={layoutSwitch.id}>
-                            {
-                                <PublicationTableItem
-                                    onPublishItemSelect={() =>
-                                        handlePreviewSelect(
-                                            layoutSwitch.id,
-                                            PreviewSelectType.switch,
-                                        )
-                                    }
-                                    onChange={(e) => {
-                                        const switches = addOrRemoveByCheckbox(
-                                            selectedChanges.switches,
-                                            layoutSwitch.id,
-                                            e.target.checked,
-                                        );
-                                        const _newSelectedChanges: SelectedChanges = {
-                                            ...selectedChanges,
-                                            switches,
-                                        };
-                                        // Checkbox selection - disabled for MVP to simplify validation
-                                        // setSelectedChanges(newSelectedChanges);
-                                    }}
-                                    itemName={`${t('publication-table.switch')} ${
-                                        layoutSwitch.name
-                                    }`}
-                                    trackNumber={trackNumbers
-                                        .filter((tn) =>
-                                            layoutSwitch.trackNumberIds.some(
-                                                (lstn) => lstn == tn.id,
-                                            ),
-                                        )
-                                        .map((tn) => tn.number)
-                                        .join(', ')}
-                                    errors={layoutSwitch.errors}
-                                    changeTime={layoutSwitch.draftChangeTime}
-                                    ratkoPushDate={ratkoPushDate}
-                                    showRatkoPushDate={showRatkoPushDate}
-                                    showStatus={showStatus}
-                                    showActions={showActions}
-                                    userName={layoutSwitch.userName}
-                                    operation={layoutSwitch.operation}
-                                    publish={publish}
-                                />
-                            }
-                        </React.Fragment>
-                    ))}
-                    {previewChanges.kmPosts.map((kmPost) => (
-                        <React.Fragment key={kmPost.id}>
-                            {
-                                <PublicationTableItem
-                                    onPublishItemSelect={() =>
-                                        handlePreviewSelect(kmPost.id, PreviewSelectType.kmPost)
-                                    }
-                                    onChange={(e) => {
-                                        const kmPosts = addOrRemoveByCheckbox(
-                                            selectedChanges.kmPosts,
-                                            kmPost.id,
-                                            e.target.checked,
-                                        );
-                                        const _newSelectedChanges: SelectedChanges = {
-                                            ...selectedChanges,
-                                            kmPosts,
-                                        };
-                                        // Checkbox selection - disabled for MVP to simplify validation
-                                        // setSelectedChanges(newSelectedChanges);
-                                    }}
-                                    itemName={`${t('publication-table.km-post')} ${
-                                        kmPost.kmNumber
-                                    }`}
-                                    trackNumber={
-                                        trackNumbers.find((tn) => tn.id === kmPost.trackNumberId)
-                                            ?.number
-                                    }
-                                    errors={kmPost.errors}
-                                    changeTime={kmPost.draftChangeTime}
-                                    ratkoPushDate={ratkoPushDate}
-                                    showRatkoPushDate={showRatkoPushDate}
-                                    showStatus={showStatus}
-                                    showActions={showActions}
-                                    userName={kmPost.userName}
-                                    operation={kmPost.operation}
+                                    userName={entry.userName}
+                                    operation={entry.operation}
                                     publish={publish}
                                 />
                             }

@@ -8,7 +8,6 @@ import { Operation, PublishValidationError } from 'publication/publication-model
 import { createClassName } from 'vayla-design-lib/utils';
 
 export type PreviewTableItemProps = {
-    onChange: React.ChangeEventHandler<HTMLInputElement>;
     itemName: string;
     trackNumber?: string;
     errors: PublishValidationError[];
