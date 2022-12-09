@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -239,7 +240,8 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             reference_line_version.id,
             reference_line_version.change_time,
             reference_line_version.track_number_id,
-            track_number.number as name
+            track_number.number as name,
+            reference_line_version.change_user
           from publication.reference_line published_reference_line
             left join layout.reference_line_version
               on published_reference_line.reference_line_id = reference_line_version.id
@@ -259,6 +261,8 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 draftChangeTime = rs.getInstant("change_time"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 name = rs.getTrackNumber("name"),
+                userName = UserName(rs.getString("change_user")),
+                operation = null
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }

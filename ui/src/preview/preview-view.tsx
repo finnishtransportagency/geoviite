@@ -20,10 +20,7 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import {
-    ChangeTimes,
-    SelectedPublishChange,
-} from 'track-layout/track-layout-store';
+import { ChangeTimes, SelectedPublishChange } from 'track-layout/track-layout-store';
 import { PublishType } from 'common/common-model';
 import PublicationTable from 'publication/publication-table';
 import { CalculatedChangesView } from './calculated-changes-view';
@@ -37,8 +34,15 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 
-
-type Candidate = string;
+type CandidateId =
+    | LocationTrackId
+    | LayoutTrackNumberId
+    | ReferenceLineId
+    | LayoutSwitchId
+    | LayoutKmPostId;
+type Candidate = {
+    id: CandidateId;
+};
 
 export type SelectedChanges = {
     trackNumbers: LayoutTrackNumberId[];
@@ -66,13 +70,12 @@ type PreviewProps = {
 };
 
 const publishCandidateIds = (candidates: PublishCandidates): PublishRequest => ({
-    trackNumbers: candidates.trackNumbers.map(tn => tn.id),
-    locationTracks: candidates.locationTracks.map(lt => lt.id),
-    referenceLines: candidates.referenceLines.map(rl => rl.id),
-    switches: candidates.switches.map(s => s.id),
-    kmPosts: candidates.kmPosts.map(s => s.id),
+    trackNumbers: candidates.trackNumbers.map((tn) => tn.id),
+    locationTracks: candidates.locationTracks.map((lt) => lt.id),
+    referenceLines: candidates.referenceLines.map((rl) => rl.id),
+    switches: candidates.switches.map((s) => s.id),
+    kmPosts: candidates.kmPosts.map((s) => s.id),
 });
-
 
 const initialCandidates = {
     trackNumbers: [],
@@ -82,37 +85,70 @@ const initialCandidates = {
     kmPosts: [],
 };
 
-function isIncluded(candidate: Candidate, candidateIds: Candidate[], reversed: boolean) {
-    return reversed ? !candidateIds.includes(candidate) : candidateIds.includes(candidate);
-}
+const filterStaged = (stagedIds: CandidateId[], candidate: Candidate) =>
+    stagedIds.includes(candidate.id);
+const filterUnstaged = (stagedIds: CandidateId[], candidate: Candidate) =>
+    !stagedIds.includes(candidate.id);
 
-const getPublishCandidate = (previewChanges: PublishCandidates | undefined, publishPreviewChangesIds: SelectedChanges, reversed: boolean) => {
-    return {
-        trackNumbers: previewChanges?.trackNumbers.filter(tn => isIncluded(tn.id, publishPreviewChangesIds.trackNumbers, reversed)) || [],
-        locationTracks: previewChanges?.locationTracks.filter(lt => isIncluded(lt.id, publishPreviewChangesIds.locationTracks, reversed)) || [],
-        referenceLines: previewChanges?.referenceLines.filter(rl => isIncluded(rl.id, publishPreviewChangesIds.referenceLines, reversed)) || [],
-        switches: previewChanges?.switches.filter(s => isIncluded(s.id, publishPreviewChangesIds.switches, reversed)) || [],
-        kmPosts: previewChanges?.kmPosts.filter(km => isIncluded(km.id, publishPreviewChangesIds.kmPosts, reversed)) || [],
-    };
-};
+const getStagedChanges = (
+    publishCandidates: PublishCandidates,
+    stagedChangeIds: SelectedChanges,
+) => ({
+    trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
+        filterStaged(stagedChangeIds.trackNumbers, trackNumber),
+    ),
+    locationTracks: publishCandidates.locationTracks.filter((locationTrack) =>
+        filterStaged(stagedChangeIds.locationTracks, locationTrack),
+    ),
+    switches: publishCandidates.switches.filter((layoutSwitch) =>
+        filterStaged(stagedChangeIds.switches, layoutSwitch),
+    ),
+    kmPosts: publishCandidates.kmPosts.filter((trackNumber) =>
+        filterStaged(stagedChangeIds.kmPosts, trackNumber),
+    ),
+    referenceLines: publishCandidates.referenceLines.filter((trackNumber) =>
+        filterStaged(stagedChangeIds.referenceLines, trackNumber),
+    ),
+});
 
-const getPublishPreviewChanges = (publishPreviewChangesIds: SelectedChanges, previewChanges: PublishCandidates | undefined): PublishCandidates[] => {
-    return publishPreviewChangesIds ? [
-            getPublishCandidate(previewChanges, publishPreviewChangesIds, true),
-            getPublishCandidate(previewChanges, publishPreviewChangesIds, false)]
-        : [(previewChanges || initialCandidates), initialCandidates];
-};
-
+const getUnstagedChanges = (
+    publishCandidates: PublishCandidates,
+    stagedChangeIds: SelectedChanges,
+) => ({
+    trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
+        filterUnstaged(stagedChangeIds.trackNumbers, trackNumber),
+    ),
+    locationTracks: publishCandidates.locationTracks.filter((locationTrack) =>
+        filterUnstaged(stagedChangeIds.locationTracks, locationTrack),
+    ),
+    switches: publishCandidates.switches.filter((layoutSwitch) =>
+        filterUnstaged(stagedChangeIds.switches, layoutSwitch),
+    ),
+    kmPosts: publishCandidates.kmPosts.filter((trackNumber) =>
+        filterUnstaged(stagedChangeIds.kmPosts, trackNumber),
+    ),
+    referenceLines: publishCandidates.referenceLines.filter((trackNumber) =>
+        filterUnstaged(stagedChangeIds.referenceLines, trackNumber),
+    ),
+});
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const allChanges = useLoader(() => getPublishCandidates(), []);
-    const allValidatedPreviewChanges: ValidatedPublishCandidates | null | undefined = useLoader(() =>
+    const allValidatedPublishCandidates: ValidatedPublishCandidates | null | undefined = useLoader(
+        () =>
             (allChanges && validatePublishCandidates(publishCandidateIds(allChanges))) ?? undefined,
-        [allChanges]);
+        [allChanges],
+    );
     // GVT-1510 currently all changes are fetched above and hence all validated as a single publication unit
-    const allPreviewChanges: PublishCandidates | undefined = allValidatedPreviewChanges?.validatedAsPublicationUnit;
-    const [previewChanges, publishPreviewChanges]: PublishCandidates[] = getPublishPreviewChanges(props.selectedPublishCandidateIds, allPreviewChanges);
+    const publishCandidates: PublishCandidates | undefined =
+        allValidatedPublishCandidates?.validatedAsPublicationUnit;
+    const unstagedChanges = publishCandidates
+        ? getUnstagedChanges(publishCandidates, props.selectedPublishCandidateIds)
+        : initialCandidates;
+    const stagedChanges = publishCandidates
+        ? getStagedChanges(publishCandidates, props.selectedPublishCandidateIds)
+        : initialCandidates;
 
     const [selectedChanges, setSelectedChanges] = React.useState<SelectedChanges>({
         trackNumbers: [],
@@ -123,13 +159,19 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     });
     React.useEffect(() => {
         setSelectedChanges({
-            trackNumbers: allPreviewChanges ? allPreviewChanges.trackNumbers.map((tn) => tn.id) : [],
-            referenceLines: allPreviewChanges ? allPreviewChanges.referenceLines.map((a) => a.id) : [],
-            locationTracks: allPreviewChanges ? allPreviewChanges.locationTracks.map((a) => a.id) : [],
-            switches: allPreviewChanges ? allPreviewChanges.switches.map((s) => s.id) : [],
-            kmPosts: allPreviewChanges ? allPreviewChanges.kmPosts.map((kmp) => kmp.id) : [],
+            trackNumbers: publishCandidates
+                ? publishCandidates.trackNumbers.map((tn) => tn.id)
+                : [],
+            referenceLines: publishCandidates
+                ? publishCandidates.referenceLines.map((a) => a.id)
+                : [],
+            locationTracks: publishCandidates
+                ? publishCandidates.locationTracks.map((a) => a.id)
+                : [],
+            switches: publishCandidates ? publishCandidates.switches.map((s) => s.id) : [],
+            kmPosts: publishCandidates ? publishCandidates.kmPosts.map((kmp) => kmp.id) : [],
         });
-    }, [allPreviewChanges]);
+    }, [publishCandidates]);
     const calculatedChanges = useLoader(
         () => getCalculatedChanges(selectedChanges),
         [selectedChanges],
@@ -139,10 +181,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
-                <PreviewToolBar onClosePreview={props.onClosePreview}/>
+                <PreviewToolBar onClosePreview={props.onClosePreview} />
                 <div className={styles['preview-view__changes']}>
-
-                    {(previewChanges && publishPreviewChanges && (
+                    {(unstagedChanges && stagedChanges && (
                         <>
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
@@ -150,7 +191,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PublicationTable
                                     onPreviewSelect={props.onPreviewSelect}
-                                    previewChanges={previewChanges}
+                                    previewChanges={unstagedChanges}
+                                    showActions={true}
+                                    showStatus={true}
                                 />
                             </section>
 
@@ -160,19 +203,21 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PublicationTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
-                                    previewChanges={publishPreviewChanges}
+                                    previewChanges={stagedChanges}
                                     publish={true}
+                                    showActions={true}
+                                    showStatus={true}
                                 />
                             </section>
 
                             <div className={styles['preview-section']}>
                                 {calculatedChanges && (
-                                    <CalculatedChangesView calculatedChanges={calculatedChanges}/>
+                                    <CalculatedChangesView calculatedChanges={calculatedChanges} />
                                 )}
-                                {!calculatedChanges && <Spinner/>}
+                                {!calculatedChanges && <Spinner />}
                             </div>
                         </>
-                    )) || <Spinner/>}
+                    )) || <Spinner />}
                 </div>
 
                 <MapView
@@ -194,7 +239,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     onClosePreview={props.onClosePreview}
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
-                    previewChanges={previewChanges == null ? undefined : previewChanges}
+                    previewChanges={unstagedChanges == null ? undefined : unstagedChanges}
                     onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>

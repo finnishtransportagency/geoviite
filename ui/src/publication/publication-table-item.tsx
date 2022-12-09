@@ -4,7 +4,7 @@ import styles from 'publication/publication-table-item.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { PublishValidationError } from 'publication/publication-model';
+import { Operation, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 
 export type PreviewTableItemProps = {
@@ -14,7 +14,11 @@ export type PreviewTableItemProps = {
     errors: PublishValidationError[];
     changeTime: TimeStamp;
     showRatkoPushDate: boolean;
+    showStatus: boolean;
+    showActions: boolean;
     ratkoPushDate?: TimeStamp;
+    operation: Operation | null;
+    userName: string;
     onPublishItemSelect?: () => void;
     publish?: boolean;
 };
@@ -25,11 +29,15 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     errors,
     changeTime,
     showRatkoPushDate,
+    showStatus,
+    showActions,
     ratkoPushDate,
+    operation,
+    userName,
     onPublishItemSelect,
     publish = false,
 }) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
 
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
@@ -49,43 +57,46 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
     return (
         <React.Fragment>
             <tr className={'preview-table-item'}>
-                {/*<td className={styles['preview-table-item__accordion']}>*/}
-                {/*<span>*/}
-                {/*    <AccordionToggle open={false}/>*/}
-                {/*</span>*/}
-                {/*</td>*/}
-                <td>
-                    {/*<span className={styles['preview-table-item__checkbox']}>*/}
-                    {/*    <Checkbox onChange={onChange}/>*/}
-                    {/*</span>*/}
-                    {itemName}
-                </td>
+                <td>{itemName}</td>
                 <td>{trackNumber ? trackNumber : ''}</td>
-                <td
-                    className={statusCellClassName}
-                    onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
-                    {!hasErrors && (
-                        <span className={styles['preview-table-item__ok-status']}>
-                            <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL}/>
-                        </span>
-                    )}
-                    {errorTexts.length > 0 && (
-                        <span className={styles['preview-table-item__error-status']}>
-                            {t('publication-table.errors-status-text', [errorTexts.length])}
-                        </span>
-                    )}
-                    {warningTexts.length > 0 && (
-                        <span className={styles['preview-table-item__warning-status']}>
-                            {t('publication-table.warnings-status-text', [warningTexts.length])}
-                        </span>
-                    )}
-                </td>
-                <td onClick={() => {onPublishItemSelect && onPublishItemSelect();}}>
-                    {publish ? <Icons.Ascending size={IconSize.SMALL}/> : <Icons.Descending size={IconSize.SMALL}/>}
-                </td>
+                <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
+                {showStatus && (
+                    <td
+                        className={statusCellClassName}
+                        onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
+                        {!hasErrors && (
+                            <span className={styles['preview-table-item__ok-status']}>
+                                <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
+                            </span>
+                        )}
+                        {errorTexts.length > 0 && (
+                            <span className={styles['preview-table-item__error-status']}>
+                                {t('publication-table.errors-status-text', [errorTexts.length])}
+                            </span>
+                        )}
+                        {warningTexts.length > 0 && (
+                            <span className={styles['preview-table-item__warning-status']}>
+                                {t('publication-table.warnings-status-text', [warningTexts.length])}
+                            </span>
+                        )}
+                    </td>
+                )}
+                <td>{userName}</td>
                 <td>{formatDateFull(changeTime)}</td>
                 {showRatkoPushDate && (
                     <td>{ratkoPushDate ? formatDateFull(ratkoPushDate) : t('no')}</td>
+                )}
+                {showActions && (
+                    <td
+                        onClick={() => {
+                            onPublishItemSelect && onPublishItemSelect();
+                        }}>
+                        {publish ? (
+                            <Icons.Ascending size={IconSize.SMALL} />
+                        ) : (
+                            <Icons.Descending size={IconSize.SMALL} />
+                        )}
+                    </td>
                 )}
             </tr>
             {isErrorRowExpanded && hasErrors && (

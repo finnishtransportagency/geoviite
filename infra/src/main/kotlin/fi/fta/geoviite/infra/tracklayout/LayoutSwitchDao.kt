@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
 import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
@@ -398,17 +399,20 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<SwitchPublishCandidate> {
         val sql = """
             select
-              switch_version.id,
-              switch_version.change_time,
-              switch_version.name,
+              switch_change_view.id,
+              switch_change_view.change_time,
+              switch_change_view.name,
+              switch_change_view.version,
+              switch_change_view.change_user,
+              layout.infer_operation_from_state_category_transition(switch_change_view.old_state_category, switch_change_view.state_category) operation,
               (select array_agg(distinct track_number_id)
                from layout.segment_version
                  join layout.location_track_version using(alignment_id, alignment_version)
-               where switch_version.id = segment_version.switch_id) as track_numbers
+               where switch_change_view.id = segment_version.switch_id) as track_numbers
             from publication.switch published_switch
-              left join layout.switch_version
-                on published_switch.switch_id = switch_version.id
-                  and published_switch.switch_version = switch_version.version
+              left join layout.switch_change_view
+                on published_switch.switch_id = switch_change_view.id
+                  and published_switch.switch_version = switch_change_view.version
             where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -421,6 +425,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 name = SwitchName(rs.getString("name")),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation"),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }

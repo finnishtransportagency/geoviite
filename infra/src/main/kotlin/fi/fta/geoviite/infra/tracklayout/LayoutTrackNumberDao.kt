@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
+import fi.fta.geoviite.infra.linking.Operation
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.TrackNumberPublishCandidate
 import fi.fta.geoviite.infra.logging.AccessType
@@ -172,13 +174,18 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<TrackNumberPublishCandidate> {
         val sql = """
           select
-            track_number_version.id,
-            track_number_version.change_time,
-            track_number_version.number
+            track_number_change_view.id,
+            track_number_change_view.change_time,
+            track_number_change_view.number,
+            track_number_change_view.change_user,
+            layout.infer_operation_from_state_transition(
+              track_number_change_view.old_state, 
+              track_number_change_view.state
+            ) operation
           from publication.track_number published_track_number
-            left join layout.track_number_version
-              on published_track_number.track_number_id = track_number_version.id
-                and published_track_number.track_number_version = track_number_version.version
+            left join layout.track_number_change_view
+              on published_track_number.track_number_id = track_number_change_view.id
+                and published_track_number.track_number_version = track_number_change_view.version
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -190,7 +197,9 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             TrackNumberPublishCandidate(
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
-                number = rs.getTrackNumber("number")
+                number = rs.getTrackNumber("number"),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum<Operation>("operation")
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }
