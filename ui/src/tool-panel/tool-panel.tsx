@@ -45,7 +45,6 @@ type ToolPanelProps = {
     switchIds: LayoutSwitchId[];
     geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
     locationTrackIds: LocationTrackId[];
-    // referenceLineIds: ReferenceLineId[];
     geometryAlignments: SelectedGeometryItem<MapAlignment>[];
     geometrySegments: SelectedGeometryItem<MapSegment>[];
     suggestedSwitches: SuggestedSwitch[];
