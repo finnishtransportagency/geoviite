@@ -174,18 +174,18 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<TrackNumberPublishCandidate> {
         val sql = """
           select
-            track_number_and_previous.id,
-            track_number_and_previous.change_time,
-            track_number_and_previous.number,
-            track_number_and_previous.change_user,
+            track_number_change_view.id,
+            track_number_change_view.change_time,
+            track_number_change_view.number,
+            track_number_change_view.change_user,
             layout.infer_operation_from_state_transition(
-              track_number_and_previous.old_state, 
-              track_number_and_previous.state
+              track_number_change_view.old_state, 
+              track_number_change_view.state
             ) operation
           from publication.track_number published_track_number
-            left join layout.track_number_and_previous_view track_number_and_previous
-              on published_track_number.track_number_id = track_number_and_previous.id
-                and published_track_number.track_number_version = track_number_and_previous.version
+            left join layout.track_number_change_view
+              on published_track_number.track_number_id = track_number_change_view.id
+                and published_track_number.track_number_version = track_number_change_view.version
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(

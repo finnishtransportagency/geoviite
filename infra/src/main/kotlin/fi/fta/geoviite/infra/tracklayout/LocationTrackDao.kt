@@ -297,16 +297,16 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<LocationTrackPublishCandidate> {
         val sql = """
           select 
-            location_track.id, 
-            location_track.change_time, 
-            location_track.name, 
-            location_track.track_number_id,
-            location_track.change_user,
-            layout.infer_operation_from_state_transition(location_track.old_state, location_track.state) operation
+            location_track_change_view.id, 
+            location_track_change_view.change_time, 
+            location_track_change_view.name, 
+            location_track_change_view.track_number_id,
+            location_track_change_view.change_user,
+            layout.infer_operation_from_state_transition(location_track_change_view.old_state, location_track_change_view.state) operation
           from publication.location_track published_location_track
-            left join layout.location_track_and_previous_view location_track
-              on published_location_track.location_track_id = location_track.id 
-                and published_location_track.location_track_version = location_track.version
+            left join layout.location_track_change_view
+              on published_location_track.location_track_id = location_track_change_view.id 
+                and published_location_track.location_track_version = location_track_change_view.version
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(

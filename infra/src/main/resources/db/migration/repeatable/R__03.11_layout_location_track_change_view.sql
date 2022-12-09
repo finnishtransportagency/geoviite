@@ -1,5 +1,5 @@
-drop view if exists layout.location_track_and_previous_view;
-create view layout.location_track_and_previous_view as
+drop view if exists layout.location_track_change_view;
+create view layout.location_track_change_view as
 (
 select
   location_track_version.id,

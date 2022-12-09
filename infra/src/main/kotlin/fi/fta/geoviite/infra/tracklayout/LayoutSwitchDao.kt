@@ -399,20 +399,20 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<SwitchPublishCandidate> {
         val sql = """
             select
-              switch_and_previous.id,
-              switch_and_previous.change_time,
-              switch_and_previous.name,
-              switch_and_previous.version,
-              switch_and_previous.change_user,
-              layout.infer_operation_from_state_category_transition(switch_and_previous.old_state_category, switch_and_previous.state_category) operation,
+              switch_change_view.id,
+              switch_change_view.change_time,
+              switch_change_view.name,
+              switch_change_view.version,
+              switch_change_view.change_user,
+              layout.infer_operation_from_state_category_transition(switch_change_view.old_state_category, switch_change_view.state_category) operation,
               (select array_agg(distinct track_number_id)
                from layout.segment_version
                  join layout.location_track_version using(alignment_id, alignment_version)
-               where switch_and_previous.id = segment_version.switch_id) as track_numbers
+               where switch_change_view.id = segment_version.switch_id) as track_numbers
             from publication.switch published_switch
-              left join layout.switch_and_previous_view switch_and_previous
-                on published_switch.switch_id = switch_and_previous.id
-                  and published_switch.switch_version = switch_and_previous.version
+              left join layout.switch_change_view
+                on published_switch.switch_id = switch_change_view.id
+                  and published_switch.switch_version = switch_change_view.version
             where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(

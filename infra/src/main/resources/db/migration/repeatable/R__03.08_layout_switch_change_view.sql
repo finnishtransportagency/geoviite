@@ -1,5 +1,5 @@
-drop view if exists layout.switch_and_previous_view;
-create view layout.switch_and_previous_view as
+drop view if exists layout.switch_change_view;
+create view layout.switch_change_view as
 (
 select
   switch_version.id,

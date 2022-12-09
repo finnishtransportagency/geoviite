@@ -1,5 +1,5 @@
-drop view if exists layout.km_post_and_previous_view;
-create view layout.km_post_and_previous_view as
+drop view if exists layout.km_post_change_view;
+create view layout.km_post_change_view as
 (
 select
   km_post_version.id,

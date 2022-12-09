@@ -141,13 +141,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         [allChanges],
     );
     // GVT-1510 currently all changes are fetched above and hence all validated as a single publication unit
-    const publisCandidates: PublishCandidates | undefined =
+    const publishCandidates: PublishCandidates | undefined =
         allValidatedPublishCandidates?.validatedAsPublicationUnit;
-    const unstagedChanges = publisCandidates
-        ? getUnstagedChanges(publisCandidates, props.selectedPublishCandidateIds)
+    const unstagedChanges = publishCandidates
+        ? getUnstagedChanges(publishCandidates, props.selectedPublishCandidateIds)
         : initialCandidates;
-    const stagedChanges = publisCandidates
-        ? getStagedChanges(publisCandidates, props.selectedPublishCandidateIds)
+    const stagedChanges = publishCandidates
+        ? getStagedChanges(publishCandidates, props.selectedPublishCandidateIds)
         : initialCandidates;
 
     const [selectedChanges, setSelectedChanges] = React.useState<SelectedChanges>({
@@ -159,17 +159,19 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     });
     React.useEffect(() => {
         setSelectedChanges({
-            trackNumbers: publisCandidates ? publisCandidates.trackNumbers.map((tn) => tn.id) : [],
-            referenceLines: publisCandidates
-                ? publisCandidates.referenceLines.map((a) => a.id)
+            trackNumbers: publishCandidates
+                ? publishCandidates.trackNumbers.map((tn) => tn.id)
                 : [],
-            locationTracks: publisCandidates
-                ? publisCandidates.locationTracks.map((a) => a.id)
+            referenceLines: publishCandidates
+                ? publishCandidates.referenceLines.map((a) => a.id)
                 : [],
-            switches: publisCandidates ? publisCandidates.switches.map((s) => s.id) : [],
-            kmPosts: publisCandidates ? publisCandidates.kmPosts.map((kmp) => kmp.id) : [],
+            locationTracks: publishCandidates
+                ? publishCandidates.locationTracks.map((a) => a.id)
+                : [],
+            switches: publishCandidates ? publishCandidates.switches.map((s) => s.id) : [],
+            kmPosts: publishCandidates ? publishCandidates.kmPosts.map((kmp) => kmp.id) : [],
         });
-    }, [publisCandidates]);
+    }, [publishCandidates]);
     const calculatedChanges = useLoader(
         () => getCalculatedChanges(selectedChanges),
         [selectedChanges],
