@@ -28,7 +28,6 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import {
-    getLocationTrack,
     getLocationTracks,
     getLocationTracksNear,
     getNonLinkedLocationTracks,
@@ -135,9 +134,9 @@ type GeometryAlignmentLinkingInfoboxProps = {
     alignmentChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?:
-        | LinkingGeometryWithAlignment
-        | LinkingGeometryWithEmptyAlignment
-        | PreliminaryLinkingGeometry;
+    | LinkingGeometryWithAlignment
+    | LinkingGeometryWithEmptyAlignment
+    | PreliminaryLinkingGeometry;
     onLockAlignment: (lockParameters: GeometryLinkingAlignmentLockParameters) => void;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
     onStopLinking: () => void;
@@ -212,9 +211,6 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const [alignmentRefs, setAlignmentRefs] = React.useState<AlignmentRefs>({});
     const [locationTracks, setLocationTracks] = React.useState<LayoutLocationTrack[]>([]);
     const [referenceLines, setReferenceLines] = React.useState<LayoutReferenceLine[]>([]);
-    const [chosenTrackNumberId, setChosenTrackNumberId] = React.useState<
-        LayoutTrackNumberId | undefined
-    >(undefined);
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
     const isLinked =
         geometryAlignment.sourceId && linkedAlignmentIds.includes(geometryAlignment.sourceId);
@@ -252,17 +248,17 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         return !!(key && alignmentRefs[key]);
     };
 
-    const onReferenceLineSelect = (rl: LayoutReferenceLine) =>
+    const onReferenceLineSelect = (rl: LayoutReferenceLine) => {
+        console.log('Select', rl, rl.trackNumberId);
         onSelect({
             trackNumbers: rl.trackNumberId ? [rl.trackNumberId] : [],
-            referenceLines: [rl.id],
             locationTracks: [],
         });
+    };
 
     const onLocationTrackSelect = (lt: LayoutLocationTrack) =>
         onSelect({
             trackNumbers: lt.trackNumberId ? [lt.trackNumberId] : [],
-            referenceLines: [],
             locationTracks: [lt.id],
         });
 
@@ -330,26 +326,12 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         }
     }, [geometryAlignment.boundingBox, alignmentChangeTime]);
 
-    React.useEffect(() => {
-        const line = referenceLines.find((line) => line.trackNumberId === chosenTrackNumberId);
-        updateReferenceLineChangeTime().then(() =>
-            updateTrackNumberChangeTime().then(() => line && onReferenceLineSelect(line)),
-        );
-    }, [referenceLines]);
-
-    function handleLocationTrackInsert(id: LocationTrackId) {
-        updateLocationTrackChangeTime().then((ts) => {
-            getLocationTrack(id, publishType, ts).then((locationTrack) => {
-                if (locationTrack) onLocationTrackSelect(locationTrack);
-            });
-            setShowAddLocationTrackDialog(false);
-        });
+    function handleLocationTrackInsert(_id: LocationTrackId) {
+        updateLocationTrackChangeTime();
     }
 
-    function handleTrackNumberSave(id: LayoutTrackNumberId) {
-        updateReferenceLineChangeTime().then(() =>
-            updateTrackNumberChangeTime().then(() => setChosenTrackNumberId(id)),
-        );
+    function handleTrackNumberSave(_id: LayoutTrackNumberId) {
+        updateReferenceLineChangeTime().then(() => updateTrackNumberChangeTime());
     }
 
     function lockAlignment() {
@@ -476,8 +458,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                         const selection = key ? alignmentRefs[key] : undefined;
                                         const trackNumber = trackNumbers
                                             ? trackNumbers.find(
-                                                  (tn) => tn.id === line.trackNumberId,
-                                              )
+                                                (tn) => tn.id === line.trackNumberId,
+                                            )
                                             : undefined;
                                         if (!selection || !trackNumber) return '';
                                         return (
@@ -588,8 +570,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         <InfoboxButtons>
                             <Button size={ButtonSize.SMALL} onClick={startLinking}>
                                 {t(
-                                    `tool-panel.alignment.geometry.${
-                                        isLinked ? 'add-linking' : 'start-setup'
+                                    `tool-panel.alignment.geometry.${isLinked ? 'add-linking' : 'start-setup'
                                     }`,
                                 )}
                             </Button>

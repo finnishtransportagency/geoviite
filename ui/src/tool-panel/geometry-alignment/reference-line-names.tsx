@@ -2,11 +2,7 @@ import * as React from 'react';
 import styles from './linked-items-list.scss';
 import { useTranslation } from 'react-i18next';
 
-import {
-    LayoutReferenceLine,
-    LayoutTrackNumberId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { LayoutReferenceLine, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { PublishType, TimeStamp } from 'common/common-model';
@@ -26,11 +22,10 @@ type ReferenceLineNamesProps = {
 function createSelectAction() {
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
-    return (trackNumberId: LayoutTrackNumberId, referenceLineId: ReferenceLineId | undefined) =>
+    return (trackNumberId: LayoutTrackNumberId) =>
         delegates.onSelect({
             ...createEmptyItemCollections(),
             trackNumbers: [trackNumberId],
-            referenceLines: referenceLineId ? [referenceLineId] : [],
         });
 }
 
@@ -90,8 +85,7 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
                                         <ReferenceLineBadge
                                             trackNumber={trackNumber}
                                             onClick={() =>
-                                                trackNumber &&
-                                                clickAction(trackNumber.id, referenceLine.id)
+                                                trackNumber && clickAction(trackNumber.id)
                                             }
                                         />
                                     </div>

@@ -452,7 +452,6 @@ export function mergePartialItemSearchResults(
     return searchResults.reduce<OptionalItemCollections>((merged, searchResult) => {
         return {
             locationTracks: mergeOptionalArrays(merged.locationTracks, searchResult.locationTracks),
-            referenceLines: mergeOptionalArrays(merged.referenceLines, searchResult.referenceLines),
             segments: mergeOptionalArrays(merged.segments, searchResult.segments),
             kmPosts: mergeOptionalArrays(merged.kmPosts, searchResult.kmPosts),
             geometryKmPosts: mergeOptionalArrays(

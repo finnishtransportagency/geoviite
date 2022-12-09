@@ -156,6 +156,7 @@ function updateItemCollectionsByOptions(
     itemCollections: ItemCollections,
     options: OnSelectOptions,
 ) {
+    console.log('updateItemCollectionsByOptions', options);
     // Repetitive code, but seems that there is no way do make typescript to accept this in a loop
     const flags = options as OnSelectFlags;
     itemCollections['segments'] = getNewItemCollection(
@@ -166,11 +167,6 @@ function updateItemCollectionsByOptions(
     itemCollections['locationTracks'] = getNewIdCollection(
         itemCollections['locationTracks'],
         options['locationTracks'],
-        flags,
-    );
-    itemCollections['referenceLines'] = getNewIdCollection(
-        itemCollections['referenceLines'],
-        options['referenceLines'],
         flags,
     );
     itemCollections['kmPosts'] = getNewItemCollection(
@@ -251,10 +247,6 @@ function updateItemCollectionsByUnselecting(
     itemCollections['locationTracks'] = filterIdCollection(
         itemCollections['locationTracks'],
         unselectItemCollections['locationTracks'],
-    );
-    itemCollections['referenceLines'] = filterIdCollection(
-        itemCollections['referenceLines'],
-        unselectItemCollections['referenceLines'],
     );
     itemCollections['kmPosts'] = filterItemCollection(
         itemCollections['kmPosts'],
