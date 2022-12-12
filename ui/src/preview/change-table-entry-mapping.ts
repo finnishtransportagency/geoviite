@@ -2,13 +2,10 @@ import {
     KmPostPublishCandidate,
     LocationTrackPublishCandidate,
     Operation,
-    PublishCandidates,
     ReferenceLinePublishCandidate,
     SwitchPublishCandidate,
     TrackNumberPublishCandidate,
 } from 'publication/publication-model';
-import { TimeStamp } from 'common/common-model';
-import { SelectedPublishChange } from 'track-layout/track-layout-store';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
@@ -17,16 +14,6 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-
-export type ChangeTableProps = {
-    previewChanges: PublishCandidates;
-    showRatkoPushDate?: boolean;
-    showStatus?: boolean;
-    showActions?: boolean;
-    ratkoPushDate?: TimeStamp;
-    onPreviewSelect?: (selectedChanges: SelectedPublishChange) => void;
-    publish?: boolean;
-};
 
 type PublicationId =
     | LayoutTrackNumberId

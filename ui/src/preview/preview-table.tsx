@@ -23,7 +23,6 @@ import {
 } from 'preview/change-table-sorting';
 import {
     ChangeTableEntry,
-    ChangeTableProps,
     kmPostChangeTableEntry,
     locationTrackToChangeTableEntry,
     referenceLineToChangeTableEntry,
@@ -53,11 +52,13 @@ enum PreviewSelectType {
     kmPost = 'kmPost',
 }
 
-const PreviewTable: React.FC<ChangeTableProps> = ({
-    previewChanges,
-    onPreviewSelect = undefined,
-    publish = false,
-}) => {
+type PreviewTableProps = {
+    previewChanges: PublishCandidates;
+    onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
+    staged: boolean;
+};
+
+const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSelect, staged }) => {
     const { t } = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     React.useEffect(() => {
@@ -228,7 +229,7 @@ const PreviewTable: React.FC<ChangeTableProps> = ({
                                     changeTime={entry.changeTime}
                                     userName={entry.userName}
                                     operation={entry.operation}
-                                    publish={publish}
+                                    publish={staged}
                                 />
                             }
                         </React.Fragment>

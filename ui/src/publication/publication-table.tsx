@@ -15,7 +15,6 @@ import {
     SortProps,
 } from 'preview/change-table-sorting';
 import {
-    ChangeTableProps,
     trackNumberToChangeTableEntry,
     referenceLineToChangeTableEntry,
     locationTrackToChangeTableEntry,
@@ -23,10 +22,16 @@ import {
     kmPostChangeTableEntry,
 } from 'preview/change-table-entry-mapping';
 import { PublishCandidates } from 'publication/publication-model';
+import { TimeStamp } from 'common/common-model';
 
-const PublicationTable: React.FC<ChangeTableProps> = ({
-    previewChanges,
-    ratkoPushDate = undefined,
+export type PublicationTableProps = {
+    publicationChanges: PublishCandidates;
+    ratkoPushDate: TimeStamp | undefined;
+};
+
+const PublicationTable: React.FC<PublicationTableProps> = ({
+    publicationChanges: changesInPublication,
+    ratkoPushDate,
 }) => {
     const { t } = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -60,7 +65,7 @@ const PublicationTable: React.FC<ChangeTableProps> = ({
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 
-    const publicationEntries = changesToPublicationEntries(previewChanges);
+    const publicationEntries = changesToPublicationEntries(changesInPublication);
 
     const sortedPublicationEntries =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED

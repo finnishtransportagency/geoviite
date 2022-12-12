@@ -192,6 +192,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
                                     previewChanges={unstagedChanges}
+                                    staged={false}
                                 />
                             </section>
 
@@ -202,7 +203,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <PreviewTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
                                     previewChanges={stagedChanges}
-                                    publish={true}
+                                    staged={true}
                                 />
                             </section>
 
