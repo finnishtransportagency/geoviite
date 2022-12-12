@@ -172,6 +172,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     const switchToPublicationEntry = (layoutSwitch: SwitchPublishCandidate) => {
         const trackNumber = trackNumbers
             .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn == tn.id))
+            .sort()
             .map((tn) => tn.number)
             .join(', ');
         return {
