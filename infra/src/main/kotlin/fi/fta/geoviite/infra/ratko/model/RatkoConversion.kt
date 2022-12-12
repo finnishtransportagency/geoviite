@@ -191,7 +191,7 @@ fun convertToRatkoPoint(
     state: RatkoPointStates = RatkoPointStates.VALID,
 ) = RatkoPoint(
     state = RatkoPointState(state),
-    kmM = RatkoTrackMeter(point.address.stripTrailingZeroes()),
+    kmM = RatkoTrackMeter(point.address),
     geometry = RatkoGeometry(point.point),
 )
 

@@ -8,6 +8,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.logging.integrationCall
@@ -345,9 +346,9 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
     private fun replaceKmM(nodeCollection: JsonNode) {
         nodeCollection.get("nodes")?.forEach { node ->
             val point = node.get("point") as ObjectNode
-            val km = point.get("km").textValue().toInt()
-            val m = point.get("m").textValue().toBigDecimal().setScale(3, RoundingMode.DOWN)
-            point.put("kmM", RatkoTrackMeter(KmNumber(km), m).toString())
+            val km = point.get("km").textValue()
+            val m = point.get("m").textValue()
+            point.put("kmM", RatkoTrackMeter(TrackMeter(km, m)).toString())
         }
     }
 

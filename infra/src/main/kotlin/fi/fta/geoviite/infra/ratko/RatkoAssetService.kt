@@ -133,21 +133,7 @@ class RatkoAssetService @Autowired constructor(
                                         && nodeType == node.nodeType
                             }
                         }
-                        //Just to ensure that switch alignments unknown to Geoviite are within location track end points
-                        //This should be unnecessary in the future
-                        .filter { node ->
-                            val locationTrackOid = checkNotNull(node.point.locationtrack) {
-                                "Found unknown location track oid for switch $node at joint ${node.nodeType}"
-                            }
-
-                            val (startTrackMeter, endTrackMeter) = getRatkoLocationTrackEndTrackMeters(
-                                locationTrackOid
-                            )
-
-                            if (startTrackMeter != null && endTrackMeter != null)
-                                node.point.kmM in startTrackMeter..endTrackMeter
-                            else false
-                        }.let { nodes ->
+                        .let { nodes ->
                             location.copy(nodecollection = location.nodecollection.copy(nodes = nodes))
                         }
                 }
@@ -180,10 +166,6 @@ class RatkoAssetService @Autowired constructor(
                 (baseRatkoLocations + changedSwitchLocations).mapIndexed { index, ratkoAssetLocation ->
                     ratkoAssetLocation.copy(priority = index + 1)
                 }
-
-            getNewLocationTrackPoints(changedSwitchLocations).forEach { (locationTrackOid, newPoints) ->
-                ratkoClient.updateLocationTrackPoints(locationTrackOid, newPoints)
-            }
 
             ratkoClient.replaceAssetLocations(switchOid, ratkoSwitchLocations)
         }
@@ -221,10 +203,6 @@ class RatkoAssetService @Autowired constructor(
 
         generateSwitchLocations(jointChanges, switchStructure).also { switchLocations ->
             if (switchLocations.isNotEmpty()) {
-                getNewLocationTrackPoints(switchLocations).forEach { (locationTrackOid, newPoints) ->
-                    ratkoClient.updateLocationTrackPoints(locationTrackOid, newPoints)
-                }
-
                 ratkoClient.replaceAssetLocations(switchOid, switchLocations)
             }
         }
@@ -234,16 +212,6 @@ class RatkoAssetService @Autowired constructor(
             switchBaseType = switchStructure.baseType,
             joints = layoutSwitch.joints,
         )
-    }
-
-    private fun getRatkoLocationTrackEndTrackMeters(
-        locationTrackOid: RatkoOid<RatkoLocationTrack>
-    ): Pair<RatkoTrackMeter?, RatkoTrackMeter?> {
-        val ratkoLocationTrack = ratkoClient.getLocationTrack(locationTrackOid)
-        val existingStartTrackMeter = ratkoLocationTrack?.nodecollection?.getStartNode()?.point?.kmM
-        val existingEndTrackMeter = ratkoLocationTrack?.nodecollection?.getEndNode()?.point?.kmM
-
-        return existingStartTrackMeter to existingEndTrackMeter
     }
 
     private fun generateSwitchLocations(
@@ -256,23 +224,5 @@ class RatkoAssetService @Autowired constructor(
             jointChanges = changedJointsOnly,
             switchType = switchStructure.baseType,
         )
-    }
-
-    private fun getNewLocationTrackPoints(
-        locations: List<RatkoAssetLocation>
-    ): Map<RatkoOid<RatkoLocationTrack>, List<RatkoPoint>> {
-        return locations
-            .flatMap { location -> location.nodecollection.nodes.map { node -> node.point } }
-            .filter { it.locationtrack != null }
-            .groupBy { it.locationtrack!! }
-            .mapValues { (locationTrackOid, points) ->
-                val (startTrackMeter, endTrackMeter) = getRatkoLocationTrackEndTrackMeters(locationTrackOid)
-
-                if (startTrackMeter == null || endTrackMeter == null) emptyList()
-                else points
-                    .filter { point -> startTrackMeter < point.kmM && point.kmM < endTrackMeter }
-                    .sortedBy { it.kmM }
-            }
-            .filter { it.value.isNotEmpty() }
     }
 }
