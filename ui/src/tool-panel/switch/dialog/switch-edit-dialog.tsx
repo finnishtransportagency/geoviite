@@ -501,11 +501,7 @@ export const SwitchEditDialog = ({
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('button.cancel')}
                             </Button>
-                            {isSaving ?
-                                <Spinner/>
-                                : <Button onClick={save}>Is saving : {isSaving} Confirmation dialog{t('button.save')}
-                                </Button>
-                            }
+                            {isSaving ? <Spinner/> : <Button onClick={save}>{t('button.save')}</Button>}
                         </>
                     }>
                     <React.Fragment>
