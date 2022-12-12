@@ -113,7 +113,9 @@ data class GeocodingContext(
                 referenceLineGeometry = referenceLineGeometry,
                 referencePoints = referencePoints,
                 rejectedKmPosts = kmPosts.filterNot { post ->
-                    referencePoints.any { reference -> reference.kmNumber == post.kmNumber }
+                    referencePoints.any { reference ->
+                        reference.kmNumber == post.kmNumber && reference.meters == BigDecimal.ZERO
+                    }
                 },
             )
         }
