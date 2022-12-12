@@ -138,6 +138,49 @@ class CalculatedChangesService(
         )
     }
 
+    fun getAllSwitchChangesByLocationTrackChange(
+        locationTrackChanges: List<LocationTrackChange>,
+    ) = locationTrackChanges.flatMap { locationTrackChange ->
+        val locationTrackId = locationTrackChange.locationTrackId
+
+        val (locationTrack, alignment) = locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
+
+        val trackNumberId = locationTrack.trackNumberId
+
+        val trackNumber = trackNumberService.getOrThrow(OFFICIAL, trackNumberId)
+        val currentGeocodingContext = geocodingService.getGeocodingContext(OFFICIAL, locationTrack.trackNumberId)
+
+        val switches = currentGeocodingContext?.let { context ->
+            getSwitchJointChanges(
+                segments = alignment.segments,
+                geocodingContext = context
+            ) { switchId -> switchService.get(OFFICIAL, switchId) }
+        } ?: emptyList()
+
+        switches
+            .map { (switchId, switchData) ->
+                switchId to switchData.filter { locationTrackChange.changedKmNumbers.contains(it.address.kmNumber) }
+            }
+            .filter { it.second.isNotEmpty() }
+            .map { switch ->
+                SwitchChange(
+                    switchId = switch.first,
+                    changedJoints = switch.second.map { changeData ->
+                        SwitchJointChange(
+                            number = changeData.joint.number,
+                            isRemoved = false,
+                            address = changeData.address,
+                            point = changeData.point.toPoint(),
+                            locationTrackId = locationTrackId,
+                            locationTrackExternalId = locationTrack.externalId,
+                            trackNumberId = trackNumberId,
+                            trackNumberExternalId = trackNumber.externalId
+                        )
+                    }
+                )
+            }
+    }
+
     private fun calculateTrackNumberChangesSinceMoment(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         moment: Instant
@@ -470,7 +513,7 @@ private fun mergeLocationTrackChanges(
         }
 }
 
-private fun mergeSwitchChanges(
+fun mergeSwitchChanges(
     vararg changeLists: List<SwitchChange>,
 ): List<SwitchChange> {
     return changeLists

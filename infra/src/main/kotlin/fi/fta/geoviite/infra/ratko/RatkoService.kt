@@ -116,11 +116,20 @@ class RatkoService @Autowired constructor(
                 moment = latestSuccessfulPushMoment
             )
 
+            //Location track points are always removed per kilometre.
+            //However, there is a slight chance that points used by switches (according to Geoviite)
+            // will not match with the ones in Ratko.
+            //Therefore, Geoviite will also update all switches with joints in the danger zone.
+            val switchChanges = mergeSwitchChanges(
+                calculatedChangesService.getAllSwitchChangesByLocationTrackChange(calculatedChanges.locationTracksChanges),
+                calculatedChanges.switchChanges
+            )
+
             val pushedRouteNumberOids =
                 ratkoRouteNumberService.pushTrackNumberChangesToRatko(calculatedChanges.trackNumberChanges)
             val pushedLocationTrackOids =
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(calculatedChanges.locationTracksChanges)
-            ratkoAssetService.pushSwitchChangesToRatko(calculatedChanges.switchChanges)
+            ratkoAssetService.pushSwitchChangesToRatko(switchChanges)
 
             ratkoPushDao.updatePushStatus(
                 user = userName,
