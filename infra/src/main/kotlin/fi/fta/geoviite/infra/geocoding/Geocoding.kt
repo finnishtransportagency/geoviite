@@ -23,6 +23,7 @@ data class AlignmentAddresses(
     val startIntersect: IntersectType,
     val endIntersect: IntersectType,
     val midPoints: List<AddressPoint>,
+    val switchJointPoints: List<AddressPoint>,
 ) {
     @get:JsonIgnore
     val allPoints: List<AddressPoint> by lazy {
@@ -174,6 +175,7 @@ data class GeocodingContext(
                 alignment,
                 (startPoint.first.address + MIN_METER_LENGTH)..(endPoint.first.address - MIN_METER_LENGTH)
             )
+            val switchPoints = getSwitchPoints(alignment)
 
             AlignmentAddresses(
                 startPoint = startPoint.first,
@@ -181,6 +183,7 @@ data class GeocodingContext(
                 startIntersect = startPoint.second,
                 endIntersect = endPoint.second,
                 midPoints = midPoints,
+                switchJointPoints = switchPoints,
             )
         } else null
     }
@@ -204,6 +207,20 @@ data class GeocodingContext(
     private fun getMidPoints(alignment: LayoutAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {
         val projectionLines = getSublistForRangeInOrderedList(projectionLines, range) { p, e -> p.address.compareTo(e) }
         return getProjectedAddressPoints(projectionLines, alignment)
+    }
+
+    private fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
+        val locations = alignment.segments.flatMap { segment -> listOfNotNull(
+            segment.startJointNumber?.let { segment.points.first() },
+            segment.endJointNumber?.let { segment.points.last() },
+        ) }
+        return locations.mapNotNull { location: LayoutPoint ->
+            getDistance(location)?.first?.let { distance -> AddressPoint(
+                point = location,
+                address = getAddress(distance, 3),
+                distance = distance,
+            ) }
+        }.distinctBy { addressPoint -> addressPoint.address }
     }
 
     private fun findPreviousPoint(targetDistance: Double): GeocodingReferencePoint {

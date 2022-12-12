@@ -26,7 +26,6 @@ class RatkoLocationTrackService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun pushLocationTrackChangesToRatko(locationTrackChanges: List<LocationTrackChange>): List<Oid<LocationTrack>> {
-
         return locationTrackChanges
             .map { change -> change to locationTrackService.getOrThrow(PublishType.OFFICIAL, change.locationTrackId) }
             .sortedWith(
@@ -99,7 +98,12 @@ class RatkoLocationTrackService @Autowired constructor(
         checkNotNull(locationTrackOid) {
             "Did not receive oid from Ratko $ratkoLocationTrack"
         }
-        createLocationTrackPoints(locationTrackOid, addresses.midPoints)
+
+        val switchPoints = addresses.switchJointPoints.filterNot { sp ->
+            ratkoNodes.nodes.any { ltp -> ltp.point.kmM.isSame(sp.address) }
+        }
+
+        createLocationTrackPoints(locationTrackOid, (addresses.midPoints + switchPoints))
         val layoutLocationTrackWithOid = layoutLocationTrack.copy(externalId = Oid(locationTrackOid.id))
         createLocationTrackMetadata(layoutLocationTrackWithOid, trackNumberOid) { _, _ -> true }
     }
@@ -230,13 +234,18 @@ class RatkoLocationTrackService @Autowired constructor(
             existingEndNode = existingEndNode,
         )
 
+        //Update location track end points before deleting anything, otherwise old end points will stay in use
         updateLocationTrackProperties(layoutLocationTrack, updatedEndPointNodeCollection)
 
         deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
 
+        val switchPoints = addresses.switchJointPoints.filterNot { sp ->
+            updatedEndPointNodeCollection?.nodes?.any { ltp -> ltp.point.kmM.isSame(sp.address) } ?: true
+        }
+
         updateLocationTrackGeometry(
             locationTrackOid = locationTrackOid,
-            newPoints = addresses.midPoints.filter { p ->
+            newPoints = (addresses.midPoints + switchPoints).filter { p ->
                 locationTrackChange.changedKmNumbers.contains(p.address.kmNumber)
             },
         )

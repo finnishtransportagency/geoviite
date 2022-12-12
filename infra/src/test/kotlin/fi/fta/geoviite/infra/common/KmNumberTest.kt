@@ -143,4 +143,11 @@ class KmNumberTest {
         assertFalse(TrackMeter("0001+0001.999") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
         assertFalse(TrackMeter("0001+0003.001") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
     }
+
+    @Test
+    fun stripTrailingZeroesWorks() {
+        assertNotEquals(TrackMeter(123, 321), TrackMeter(123, 321.000, 3))
+        assertEquals(TrackMeter(123, 321), TrackMeter(123, 321.000, 3).stripTrailingZeroes())
+        assertEquals(TrackMeter(123, 300), TrackMeter(123, 300.000, 3).stripTrailingZeroes())
+    }
 }

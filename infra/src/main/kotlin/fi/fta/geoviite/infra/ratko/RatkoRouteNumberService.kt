@@ -105,9 +105,10 @@ class RatkoRouteNumberService @Autowired constructor(
             existingEndNode = existingEndNode,
         )
 
-        deleteRouteNumberPoints(routeNumberOid, routeNumberChange.changedKmNumbers)
-
+        //Update route number end points before deleting anything, otherwise old end points will stay in use
         updateRouteNumberProperties(trackNumber, endPointNodeCollection)
+
+        deleteRouteNumberPoints(routeNumberOid, routeNumberChange.changedKmNumbers)
 
         updateRouteNumberGeometry(
             routeNumberOid = routeNumberOid,
@@ -120,10 +121,8 @@ class RatkoRouteNumberService @Autowired constructor(
     private fun deleteRouteNumberPoints(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
         changedKmNumbers: Set<KmNumber>,
-    ) {
-        changedKmNumbers.forEach { kmNumber ->
-            ratkoClient.deleteRouteNumberPoints(routeNumberOid, kmNumber)
-        }
+    ) = changedKmNumbers.forEach { kmNumber ->
+        ratkoClient.deleteRouteNumberPoints(routeNumberOid, kmNumber)
     }
 
     private fun updateRouteNumberGeometry(

@@ -721,6 +721,7 @@ class RatkoAddressPointServiceIT @Autowired constructor(
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
             midPoints = listOf(),
+            switchJointPoints = listOf(),
         )
 
     fun createAddresses(
@@ -752,6 +753,7 @@ class RatkoAddressPointServiceIT @Autowired constructor(
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
             midPoints = addressPoints.slice(1..addressPoints.size-2),
+            switchJointPoints = listOf(),
         )
     }
 
