@@ -23,7 +23,7 @@ fun mapToRatkoRouteNumberState(layoutState: LayoutState) =
         LayoutState.NOT_IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_IN_USE)
         LayoutState.PLANNED -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
         LayoutState.IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
-        // There is no DELETED or corresponding state in Ratko so it will be NOT_VALID
+        // There is no DELETED or corresponding state in Ratko, so it will be NOT_VALID
         LayoutState.DELETED -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_VALID)
     }
 

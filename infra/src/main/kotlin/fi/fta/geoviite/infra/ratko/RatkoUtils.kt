@@ -68,7 +68,6 @@ fun asSwitchTypeString(switchType: SwitchType): String {
     val spread = switchType.parts.spread ?: ""
     val curveRadius = radius
         .mapIndexed { i, r ->
-
             //Adds N/P version to the first curve radius
             if (i == 0) "$r$spread"
             else "$r"

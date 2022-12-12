@@ -148,11 +148,17 @@ enum class RatkoGeometryType(@get:JsonValue val value: String) {
 
 enum class RatkoNodesType(@get:JsonValue val value: String) {
     JOINTS("joint_points"),
-    START("start"),
-    START_MIDDLE_END("start_middle_end"),
-    POINT("point"),
     START_AND_END("start_and_end"),
-    END("end")
+    END("end"),
+
+    @Suppress("unused")
+    START("start"),
+
+    @Suppress("unused")
+    START_MIDDLE_END("start_middle_end"),
+
+    @Suppress("unused")
+    POINT("point"),
 }
 
 enum class RatkoMeasurementMethod(@get:JsonValue val value: String) {
@@ -174,11 +180,23 @@ enum class RatkoAssetGeomAccuracyType(@get:JsonValue val value: String) {
 }
 
 enum class RatkoAccuracyType(@get:JsonValue val value: String) {
-    DESIGNED_TRACK_ADDRESS("DESIGNED TRACKADDRESS"),
-    MEASURED_TRACK_ADDRESS("MEASURED TRACKADDRESS"),
-    OFFICIALLY_MEASURED_GEODETICALLY("OFFICIALLY MEASURED GEODETICALLY"),
-    MEASURED_GEODETICALLY("MEASURED GEODETICALLY"),
-    DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
     GEOMETRY_CALCULATED("GEOMETRY CALCULATED"),
+
+    @Suppress("unused")
+    DESIGNED_TRACK_ADDRESS("DESIGNED TRACKADDRESS"),
+
+    @Suppress("unused")
+    MEASURED_TRACK_ADDRESS("MEASURED TRACKADDRESS"),
+
+    @Suppress("unused")
+    OFFICIALLY_MEASURED_GEODETICALLY("OFFICIALLY MEASURED GEODETICALLY"),
+
+    @Suppress("unused")
+    MEASURED_GEODETICALLY("MEASURED GEODETICALLY"),
+
+    @Suppress("unused")
+    DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
+
+    @Suppress("unused")
     ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
 }

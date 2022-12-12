@@ -24,7 +24,6 @@ class RatkoLocationTrackService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun pushLocationTrackChangesToRatko(locationTrackChanges: List<LocationTrackChange>): List<Oid<LocationTrack>> {
-
         return locationTrackChanges
             .map { change -> change to locationTrackService.getOrThrow(PublishType.OFFICIAL, change.locationTrackId) }
             .sortedWith(
@@ -228,6 +227,7 @@ class RatkoLocationTrackService @Autowired constructor(
             existingEndNode = existingEndNode,
         )
 
+        //Update location track end points before deleting anything, otherwise old end points will stay in use
         updateLocationTrackProperties(layoutLocationTrack, updatedEndPointNodeCollection)
 
         deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
