@@ -637,6 +637,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     onClose={() => setShowAddLocationTrackDialog(false)}
                     onInsert={handleLocationTrackInsert}
                     locationTrackChangeTime={alignmentChangeTime}
+                    publishType={publishType}
                 />
             )}
             {showAddTrackNumberDialog && (
