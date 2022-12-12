@@ -114,6 +114,8 @@ class GeocodingDao(
             """.trimIndent()
         val maxChangeTimeOnKmPosts = jdbcTemplate.queryOptional(sql, mapOf(
             "track_number_id" to trackNumberId.intValue,
+            // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is distinct from true" checks
+            // explicitly for false or null, since "foo in (null)" in SQL is null
             "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) })
         )
         ) { rs, _ ->
