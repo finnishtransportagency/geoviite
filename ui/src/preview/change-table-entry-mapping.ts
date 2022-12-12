@@ -34,7 +34,7 @@ export type ChangeTableEntry = {
 
 type TranslationFunc = (tKey: string) => string;
 
-const changeTableEntry = (
+const changeTableEntryCommonFields = (
     candidate:
         | LocationTrackPublishCandidate
         | TrackNumberPublishCandidate
@@ -52,7 +52,7 @@ export const trackNumberToChangeTableEntry = (
     trackNumber: TrackNumberPublishCandidate,
     t: TranslationFunc,
 ) => ({
-    ...changeTableEntry(trackNumber),
+    ...changeTableEntryCommonFields(trackNumber),
     uiName: `${t('publication-table.track-number-long')} ${trackNumber.number}`,
     name: trackNumber.number,
     trackNumber: trackNumber.number,
@@ -65,7 +65,7 @@ export const referenceLineToChangeTableEntry = (
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
     return {
-        ...changeTableEntry(referenceLine),
+        ...changeTableEntryCommonFields(referenceLine),
         uiName: `${t('publication-table.reference-line')} ${referenceLine.name}`,
         name: referenceLine.name,
         trackNumber: trackNumber ? trackNumber.number : '',
@@ -79,7 +79,7 @@ export const locationTrackToChangeTableEntry = (
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId);
     return {
-        ...changeTableEntry(locationTrack),
+        ...changeTableEntryCommonFields(locationTrack),
         uiName: `${t('publication-table.location-track')} ${locationTrack.name}`,
         name: locationTrack.name,
         trackNumber: trackNumber ? trackNumber.number : '',
@@ -97,7 +97,7 @@ export const switchToChangeTableEntry = (
         .map((tn) => tn.number)
         .join(', ');
     return {
-        ...changeTableEntry(layoutSwitch),
+        ...changeTableEntryCommonFields(layoutSwitch),
         uiName: `${t('publication-table.switch')} ${layoutSwitch.name}`,
         name: layoutSwitch.name,
         trackNumber,
@@ -111,7 +111,7 @@ export const kmPostChangeTableEntry = (
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === kmPost.trackNumberId);
     return {
-        ...changeTableEntry(kmPost),
+        ...changeTableEntryCommonFields(kmPost),
         uiName: `${t('publication-table.km-post')} ${kmPost.kmNumber}`,
         name: kmPost.kmNumber,
         trackNumber: trackNumber ? trackNumber.number : '',
