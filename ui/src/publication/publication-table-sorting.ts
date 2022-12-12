@@ -17,7 +17,7 @@ export enum SortDirection {
 }
 
 export type SortInformation = {
-    propName: string;
+    propName: SortProps;
     direction: SortDirection;
     function: (v1: unknown, v2: unknown) => number;
 };
@@ -73,11 +73,15 @@ export const InitiallyUnsorted = {
     function: (_a: unknown, _b: unknown) => 0,
 };
 
-export const getSortInfoForProp = (oldSortInfo: SortInformation, propName: SortProps) => ({
-    propName,
+export const getSortInfoForProp = (
+    oldSortDirection: SortDirection,
+    oldSortPropName: SortProps,
+    newSortPropName: SortProps,
+) => ({
+    propName: newSortPropName,
     direction:
-        oldSortInfo.propName === propName
-            ? nextSortDirection[oldSortInfo.direction]
+        oldSortPropName === newSortPropName
+            ? nextSortDirection[oldSortDirection]
             : SortDirection.ASCENDING,
-    function: sortFunctionsByPropName[propName],
+    function: sortFunctionsByPropName[newSortPropName],
 });

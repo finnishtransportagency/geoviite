@@ -219,7 +219,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
             : [...publicationEntries];
 
     const sortByProp = (propName: SortProps) => {
-        const newSortInfo = getSortInfoForProp(sortInfo, propName);
+        const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
         setSortInfo(newSortInfo);
     };
 
