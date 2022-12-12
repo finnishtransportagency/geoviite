@@ -219,11 +219,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             return Promise.resolve([]);
         }
 
-        return getLocationTracksBySearchTerm(
-            searchTerm,
-            props.publishType, // As this is temporary, just use "OFFICIAL" for now
-            10,
-        );
+        return getLocationTracksBySearchTerm(searchTerm, props.publishType, 10);
     }
 
     // Use debounced function to collect keystrokes before triggering a search
