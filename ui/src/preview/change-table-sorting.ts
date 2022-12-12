@@ -1,5 +1,6 @@
 import { Operation, PublishValidationError } from 'publication/publication-model';
 import { fieldComparator } from 'utils/array-utils';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 
 export enum SortProps {
     NAME = 'NAME',
@@ -85,3 +86,10 @@ export const getSortInfoForProp = (
             : SortDirection.ASCENDING,
     function: sortFunctionsByPropName[newSortPropName],
 });
+
+export const sortDirectionIcon = (direction: SortDirection) =>
+    direction === SortDirection.ASCENDING
+        ? Icons.Ascending
+        : direction === SortDirection.DESCENDING
+        ? Icons.Descending
+        : undefined;

@@ -22,10 +22,9 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     onPublicationUnselected,
     anyFailed,
 }) => {
-
     const [publicationDetails, setPublicationDetails] = React.useState<PublicationDetails | null>();
     const [waitingAfterFail, setWaitingAfterFail] = React.useState<boolean>();
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     function setPublicationDetailsAndWaitingAfterFail(details?: PublicationDetails) {
         setPublicationDetails(details);
@@ -55,13 +54,12 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
             <div className={styles['publication-details__content']}>
                 {publicationDetails && (
                     <PublicationTable
-                        previewChanges={publicationDetails}
+                        publicationChanges={publicationDetails}
                         ratkoPushDate={
                             publicationDetails.status === RatkoPushStatus.SUCCESSFUL
                                 ? publicationDetails.ratkoPushTime || undefined
                                 : undefined
                         }
-                        showRatkoPushDate={true}
                     />
                 )}
             </div>
@@ -102,7 +100,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                             </span>
                         </div>
                     )}
-                    <RatkoPublishButton/>
+                    <RatkoPublishButton />
                 </footer>
             )}
         </div>

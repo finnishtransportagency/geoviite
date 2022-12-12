@@ -22,7 +22,6 @@ import {
 } from 'selection/selection-model';
 import { ChangeTimes, SelectedPublishChange } from 'track-layout/track-layout-store';
 import { PublishType } from 'common/common-model';
-import PublicationTable from 'publication/publication-table';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PublishCandidates, ValidatedPublishCandidates } from 'publication/publication-model';
@@ -33,6 +32,7 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
+import PreviewTable from 'preview/preview-table';
 
 type CandidateId =
     | LocationTrackId
@@ -189,11 +189,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>{t('preview-view.other-changes-title')}</h3>
                                 </div>
-                                <PublicationTable
+                                <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
                                     previewChanges={unstagedChanges}
-                                    showActions={true}
-                                    showStatus={true}
+                                    staged={false}
                                 />
                             </section>
 
@@ -201,12 +200,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>{t('preview-view.publish-candidates-title')}</h3>
                                 </div>
-                                <PublicationTable
+                                <PreviewTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
                                     previewChanges={stagedChanges}
-                                    publish={true}
-                                    showActions={true}
-                                    showStatus={true}
+                                    staged={true}
                                 />
                             </section>
 
