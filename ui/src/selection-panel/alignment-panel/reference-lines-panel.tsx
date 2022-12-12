@@ -23,7 +23,7 @@ type ReferenceLinesPanelProps = {
         trackNumberId: LayoutTrackNumberId,
         referenceLine: ReferenceLineId,
     ) => void;
-    selectedReferenceLines?: ReferenceLineId[];
+    selectedTrackNumbers?: LayoutTrackNumberId[];
     canSelectReferenceLine: boolean;
     max?: number;
 };
@@ -33,7 +33,7 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
     trackNumberChangeTime,
     referenceLines,
     onToggleReferenceLineSelection,
-    selectedReferenceLines,
+    selectedTrackNumbers,
     canSelectReferenceLine,
     max = 16,
 }: ReferenceLinesPanelProps) => {
@@ -61,13 +61,13 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                 className={styles['reference-lines-panel__reference-lines']}
                 qa-id="reference-lines-list">
                 {visibleLines.map((line) => {
-                    const isSelected = selectedReferenceLines?.some(
-                        (selectedId) => selectedId == line.id,
+                    const isSelected = selectedTrackNumbers?.some(
+                        (selectedId) => selectedId == line.trackNumberId,
                     );
                     const itemClassName = createClassName(
                         'reference-lines-panel__reference-line',
                         canSelectReferenceLine &&
-                            'reference-lines-panel__reference-line--can-select',
+                        'reference-lines-panel__reference-line--can-select',
                     );
                     const trackNumber = trackNumbers?.find((tn) => tn.id == line.trackNumberId);
                     return (

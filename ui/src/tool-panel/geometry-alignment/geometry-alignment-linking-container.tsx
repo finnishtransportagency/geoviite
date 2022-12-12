@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import {
+    LayoutTrackNumberId,
     LocationTrackId,
     MapAlignment,
     MapSegment,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
@@ -12,14 +12,17 @@ import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType } from 'common/common-model';
 import GeometryAlignmentInfobox from 'tool-panel/geometry-alignment/geometry-alignment-infobox';
-import { useLocationTrack, useReferenceLine } from 'track-layout/track-layout-react-utils';
+import {
+    useLocationTrack,
+    useTrackNumberReferenceLine,
+} from 'track-layout/track-layout-react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 
 type GeometryAlignmentLinkingContainerProps = {
     geometryAlignment: MapAlignment;
     segment?: MapSegment;
     selectedLocationTrackId?: LocationTrackId;
-    selectedReferenceLineId?: ReferenceLineId;
+    selectedTrackNumberId?: LayoutTrackNumberId;
     planId: GeometryPlanId;
     linkingState?: LinkingState;
     publishType: PublishType;
@@ -29,7 +32,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     geometryAlignment,
     segment,
     selectedLocationTrackId,
-    selectedReferenceLineId,
+    selectedTrackNumberId,
     planId,
     linkingState,
     publishType,
@@ -46,10 +49,10 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
         publishType,
         changeTimes.layoutLocationTrack,
     );
-    const referenceLine = useReferenceLine(
-        selectedReferenceLineId,
+    const referenceLine = useTrackNumberReferenceLine(
+        selectedTrackNumberId,
         publishType,
-        changeTimes.layoutReferenceLine,
+        changeTimes.layoutTrackNumber,
     );
 
     return (
@@ -57,7 +60,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             onSelect={delegates.onSelect}
             geometryAlignment={geometryAlignment}
             layoutLocationTrack={selectedLocationTrackId ? locationTrack : undefined}
-            layoutReferenceLine={selectedReferenceLineId ? referenceLine : undefined}
+            layoutReferenceLine={selectedLocationTrackId ? undefined : referenceLine}
             segment={segment}
             planId={planId}
             alignmentChangeTime={getMaxTimestamp(

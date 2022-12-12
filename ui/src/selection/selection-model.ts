@@ -29,7 +29,6 @@ export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trac
 export type ItemCollections = {
     segments: MapSegment[];
     locationTracks: LocationTrackId[];
-    referenceLines: ReferenceLineId[];
     kmPosts: LayoutKmPost[];
     geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
     switches: LayoutSwitch[];
@@ -75,7 +74,6 @@ export type SelectableItemType = keyof ItemCollections;
 export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<SelectableItemType>()([
     'segments',
     'locationTracks',
-    'referenceLines',
     'kmPosts',
     'geometryKmPosts',
     'switches',

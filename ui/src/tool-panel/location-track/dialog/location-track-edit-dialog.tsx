@@ -154,6 +154,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 stateActions.onSaveSucceed(locationTrackId);
                                 props.onInsert && props.onInsert(locationTrackId);
                                 Snackbar.success(t('location-track-dialog.created-successfully'));
+                                props.onClose && props.onClose();
                             })
                             .mapErr((_err) => {
                                 stateActions.onSaveFailed();
@@ -174,6 +175,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         ? t('location-track-dialog.deleted-successfully')
                                         : t('location-track-dialog.modified-successfully');
                                 Snackbar.success(successMessage);
+                                props.onClose && props.onClose();
                             })
                             .mapErr((_err) => {
                                 stateActions.onSaveFailed();
@@ -200,8 +202,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`location-track-dialog.${error.reason}`))
+                .filter((error) => error.field == prop)
+                .map((error) => t(`location-track-dialog.${error.reason}`))
             : [];
     }
 
