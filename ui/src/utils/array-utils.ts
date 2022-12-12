@@ -139,3 +139,13 @@ export function first<T>(array: T[]): T {
 export function last<T>(array: T[]): T {
     return array[array.length - 1];
 }
+
+export function removeIfExists<T>(originalCollection: T[], valueToRemove: T | undefined) {
+    return valueToRemove
+        ? originalCollection.filter((changeId) => changeId != valueToRemove)
+        : originalCollection;
+}
+
+export function addIfExists<T>(originalCollection: T[], newValue: T | undefined): T[] {
+    return newValue ? [...originalCollection, newValue] : [...originalCollection];
+}

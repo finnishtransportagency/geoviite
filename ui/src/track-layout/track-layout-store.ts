@@ -22,6 +22,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
+import { addIfExists, removeIfExists } from 'utils/array-utils';
 
 export type SelectedPublishChanges = {
     trackNumbers: LayoutTrackNumberId[];
@@ -139,10 +140,6 @@ function filterItemSelectOptions(
     };
 }
 
-function removeFromPublishCandidates<T>(changeIds: T[], id: T) {
-    return changeIds.filter((changeId) => changeId != id);
-}
-
 const trackLayoutSlice = createSlice({
     name: 'trackLayout',
     initialState: initialTrackLayoutState,
@@ -208,27 +205,26 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             action: PayloadAction<SelectedPublishChange>,
         ): void {
-            const trackNumbers = action.payload.trackNumber
-                ? [...state.selectedPublishCandidateIds.trackNumbers, action.payload.trackNumber]
-                : [...state.selectedPublishCandidateIds.trackNumbers];
-            const referenceLines = action.payload.referenceLine
-                ? [
-                      ...state.selectedPublishCandidateIds.referenceLines,
-                      action.payload.referenceLine,
-                  ]
-                : [...state.selectedPublishCandidateIds.referenceLines];
-            const locationTracks = action.payload.locationTrack
-                ? [
-                      ...state.selectedPublishCandidateIds.locationTracks,
-                      action.payload.locationTrack,
-                  ]
-                : [...state.selectedPublishCandidateIds.locationTracks];
-            const switches = action.payload.switch
-                ? [...state.selectedPublishCandidateIds.switches, action.payload.switch]
-                : [...state.selectedPublishCandidateIds.switches];
-            const kmPosts = action.payload.kmPost
-                ? [...state.selectedPublishCandidateIds.kmPosts, action.payload.kmPost]
-                : [...state.selectedPublishCandidateIds.kmPosts];
+            const trackNumbers = addIfExists(
+                state.selectedPublishCandidateIds.trackNumbers,
+                action.payload.trackNumber,
+            );
+            const referenceLines = addIfExists(
+                state.selectedPublishCandidateIds.referenceLines,
+                action.payload.referenceLine,
+            );
+            const locationTracks = addIfExists(
+                state.selectedPublishCandidateIds.locationTracks,
+                action.payload.locationTrack,
+            );
+            const switches = addIfExists(
+                state.selectedPublishCandidateIds.switches,
+                action.payload.switch,
+            );
+            const kmPosts = addIfExists(
+                state.selectedPublishCandidateIds.kmPosts,
+                action.payload.kmPost,
+            );
 
             state.selectedPublishCandidateIds = {
                 trackNumbers: trackNumbers,
@@ -242,36 +238,26 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             action: PayloadAction<SelectedPublishChange>,
         ): void {
-            const trackNumbers = action.payload.trackNumber
-                ? removeFromPublishCandidates(
-                      [...state.selectedPublishCandidateIds.trackNumbers],
-                      action.payload.trackNumber,
-                  )
-                : [...state.selectedPublishCandidateIds.trackNumbers];
-            const referenceLines = action.payload.referenceLine
-                ? removeFromPublishCandidates(
-                      [...state.selectedPublishCandidateIds.referenceLines],
-                      action.payload.referenceLine,
-                  )
-                : [...state.selectedPublishCandidateIds.referenceLines];
-            const locationTracks = action.payload.locationTrack
-                ? removeFromPublishCandidates(
-                      [...state.selectedPublishCandidateIds.locationTracks],
-                      action.payload.locationTrack,
-                  )
-                : [...state.selectedPublishCandidateIds.locationTracks];
-            const switches = action.payload.switch
-                ? removeFromPublishCandidates(
-                      [...state.selectedPublishCandidateIds.switches],
-                      action.payload.switch,
-                  )
-                : [...state.selectedPublishCandidateIds.switches];
-            const kmPosts = action.payload.kmPost
-                ? removeFromPublishCandidates(
-                      [...state.selectedPublishCandidateIds.kmPosts],
-                      action.payload.kmPost,
-                  )
-                : [...state.selectedPublishCandidateIds.kmPosts];
+            const trackNumbers = removeIfExists(
+                [...state.selectedPublishCandidateIds.trackNumbers],
+                action.payload.trackNumber,
+            );
+            const referenceLines = removeIfExists(
+                [...state.selectedPublishCandidateIds.referenceLines],
+                action.payload.referenceLine,
+            );
+            const locationTracks = removeIfExists(
+                [...state.selectedPublishCandidateIds.locationTracks],
+                action.payload.locationTrack,
+            );
+            const switches = removeIfExists(
+                [...state.selectedPublishCandidateIds.switches],
+                action.payload.switch,
+            );
+            const kmPosts = removeIfExists(
+                [...state.selectedPublishCandidateIds.kmPosts],
+                action.payload.kmPost,
+            );
 
             state.selectedPublishCandidateIds = {
                 trackNumbers: trackNumbers,
