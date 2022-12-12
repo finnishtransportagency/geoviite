@@ -146,7 +146,7 @@ class CalculatedChangesService(
     ) = locationTrackChanges.flatMap { locationTrackChange ->
         val locationTrackId = locationTrackChange.locationTrackId
 
-        val (locationTrack, alignment) = locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
+        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
 
         val trackNumberId = locationTrack.trackNumberId
 
