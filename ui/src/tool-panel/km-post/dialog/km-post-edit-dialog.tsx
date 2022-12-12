@@ -222,7 +222,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                     <React.Fragment>
                         <div className={styles['dialog-footer__content-area']}>
                             <div className={styles['dialog-footer__content--shrink']}>
-                                {officialKmPost === undefined && !state.isNewKmPost && (
+                                {officialKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
                                     <Button
                                         onClick={() =>
                                             props.kmPostId
