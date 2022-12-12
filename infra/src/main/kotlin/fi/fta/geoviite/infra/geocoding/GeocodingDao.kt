@@ -144,7 +144,8 @@ class GeocodingDao(
                  from layout.reference_line_publication_view reference_line
                  where reference_line.track_number_id = :track_number_id
                    and :publication_state = any(reference_line.publication_states)
-              )) as max_change_time
+              )
+            ) as max_change_time
               """
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
