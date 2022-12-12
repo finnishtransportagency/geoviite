@@ -68,6 +68,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                          and (km_post.official_id in (:km_post_ids_to_publish) is distinct from true)))
               and track_number_id = :track_number_id
               and km_post.state != 'DELETED'
+            order by km_post.track_number_id, km_post.km_number
         """.trimIndent()
         return jdbcTemplate.query(sql, mapOf(
             "track_number_id" to trackNumberId.intValue,
