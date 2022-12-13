@@ -46,44 +46,35 @@ const GeometrySegmentInfobox: React.FC<SelectedGeometryItemInfoBoxProps> = ({
                 {chosenGeometryElement && (
                     <React.Fragment>
                         <InfoboxContent>
-                            <React.Fragment>
-                                {chosenGeometryElement.type === GeometryType.LINE && (
-                                    <LineInfoBox
-                                        geometryLine={chosenGeometryElement as GeometryLine}
-                                    />
-                                )}
-                                {chosenGeometryElement.type === GeometryType.CURVE && (
-                                    <CurveInfobox
-                                        chosenSegment={chosenSegment}
-                                        geometryCurve={chosenGeometryElement as GeometryCurve}
-                                    />
-                                )}
-                                {chosenGeometryElement.type === GeometryType.CLOTHOID && (
-                                    <ClothoidInfobox
-                                        chosenSegment={chosenSegment}
-                                        geometryClothoid={
-                                            chosenGeometryElement as GeometryClothoid
-                                        }
-                                    />
-                                )}
-                                {chosenGeometryElement.type ===
-                                    GeometryType.BIQUADRATIC_PARABOLA && (
-                                        <BiquadraticParabolaInfobox
-                                            chosenSegment={chosenSegment}
-                                            geometryBiquadraticParabola={
-                                                chosenGeometryElement as GeometryBiquadraticParabola
-                                            }
-                                        />
-                                    )}
-                            </React.Fragment>
+                            {chosenGeometryElement.type === GeometryType.LINE && (
+                                <LineInfoBox geometryLine={chosenGeometryElement as GeometryLine} />
+                            )}
+                            {chosenGeometryElement.type === GeometryType.CURVE && (
+                                <CurveInfobox
+                                    chosenSegment={chosenSegment}
+                                    geometryCurve={chosenGeometryElement as GeometryCurve}
+                                />
+                            )}
+                            {chosenGeometryElement.type === GeometryType.CLOTHOID && (
+                                <ClothoidInfobox
+                                    chosenSegment={chosenSegment}
+                                    geometryClothoid={chosenGeometryElement as GeometryClothoid}
+                                />
+                            )}
+                            {chosenGeometryElement.type === GeometryType.BIQUADRATIC_PARABOLA && (
+                                <BiquadraticParabolaInfobox
+                                    chosenSegment={chosenSegment}
+                                    geometryBiquadraticParabola={
+                                        chosenGeometryElement as GeometryBiquadraticParabola
+                                    }
+                                />
+                            )}
                         </InfoboxContent>
                         <InfoboxContent>
-                                <React.Fragment>
-                                    <GeometryProfileInfobox
-                                        chosenSegment={chosenSegment}
-                                        planHeader={planHeader}
-                                    />
-                                </React.Fragment>
+                            <GeometryProfileInfobox
+                                chosenSegment={chosenSegment}
+                                planHeader={planHeader}
+                            />
                         </InfoboxContent>
                     </React.Fragment>
                 )}

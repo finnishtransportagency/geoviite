@@ -9,7 +9,7 @@ import {
     saveInfraModelFile,
     updateGeometryPlan,
     ValidationResponse,
-} from 'api/inframodel-api';
+} from 'infra-model/infra-model-api';
 import InfraModelForm from 'infra-model/view/form/infra-model-form';
 import {
     ExtraInfraModelParameters,
@@ -44,9 +44,9 @@ import { useTranslation } from 'react-i18next';
 import { InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { createClassName } from 'vayla-design-lib/utils';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -290,7 +290,6 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             changeTimes={props.changeTimes}
                             validationErrors={props.validationErrors}
                             upLoading={loadingInProgress}
-                            validationResponse={infraModelValidationResponse}
                             geometryPlan={props.plan}
                             onInfraModelOverrideParametersChange={
                                 props.onInfraModelOverrideParametersChange
@@ -305,6 +304,12 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         />
                     )}
                 </div>
+
+                {infraModelValidationResponse && (
+                    <InfraModelValidationErrorList
+                        validationResponse={infraModelValidationResponse}
+                    />
+                )}
 
                 <div className={styles['infra-model-upload__buttons-container']}>
                     {props.viewType === InfraModelViewType.UPLOAD && (
@@ -361,39 +366,38 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 {showMap === false && <div className={styles['infra-model-upload__error-photo']} />}
             </div>
             {showCriticalWarning && (
-                <div>
-                    <Dialog
-                        title={t('im-form.critical-warnings-dialog.title')}
-                        onClose={() => setShowCriticalWarning(false)}
-                        footerContent={
-                            <React.Fragment>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    disabled={loadingInProgress}
-                                    onClick={() => setShowCriticalWarning(false)}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button
-                                    id="infra-model-upload-dialog-save-button"
-                                    onClick={() => onSaveClick()}
-                                    disabled={loadingInProgress}
-                                    isProcessing={loadingInProgress}>
-                                    {t('button.save')}
-                                </Button>
-                            </React.Fragment>
-                        }>
-                        <span>{t('im-form.critical-warnings-dialog.sub-title')}</span>
-                        <ul>
-                            {getFieldValidationWarnings().map((warning) => (
-                                <li key={warning.field}>
-                                    {t(`im-form.critical-warnings-dialog.${warning.field}`)}
-                                </li>
-                            ))}
-                            {props.planLayout != null ||
-                                `${t('im-form.critical-warnings-dialog.error-message')}`}
-                        </ul>
-                    </Dialog>
-                </div>
+                <Dialog
+                    title={t('im-form.critical-warnings-dialog.title')}
+                    onClose={() => setShowCriticalWarning(false)}
+                    footerContent={
+                        <React.Fragment>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={loadingInProgress}
+                                onClick={() => setShowCriticalWarning(false)}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button
+                                id="infra-model-upload-dialog-save-button"
+                                onClick={() => onSaveClick()}
+                                disabled={loadingInProgress}
+                                isProcessing={loadingInProgress}>
+                                {t('button.save')}
+                            </Button>
+                        </React.Fragment>
+                    }>
+                    <span>{t('im-form.critical-warnings-dialog.sub-title')}</span>
+                    <ul>
+                        {getFieldValidationWarnings().map((warning) => (
+                            <li key={warning.field}>
+                                {t(`im-form.critical-warnings-dialog.${warning.field}`)}
+                            </li>
+                        ))}
+                        {props.planLayout != null || (
+                            <li>{t('im-form.critical-warnings-dialog.error-message')}</li>
+                        )}
+                    </ul>
+                </Dialog>
             )}
             {showFileHandlingFailed && (
                 <Dialog
@@ -429,40 +433,28 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             )}
                         </React.Fragment>
                     }>
-                    <div className={styles['infra-model-upload-failed__sub-form']}>
-                        <div
-                            className={createClassName(
-                                styles['infra-model-upload-failed__content'],
-                                styles['infra-model-upload-failed__error-list'],
-                            )}>
-                            {fileHandlingFailedErrors &&
-                                fileHandlingFailedErrors.map((error) => (
-                                    <React.Fragment key={error}>
-                                        <div key={error}>{t(error)}</div>
-                                    </React.Fragment>
-                                ))}
+                    <ul className={styles['infra-model-upload-failed__errors']}>
+                        {fileHandlingFailedErrors.map((error) => (
+                            <li key={error}>{t(error)}</li>
+                        ))}
+                    </ul>
+                    <Checkbox
+                        checked={showCharsetPicker}
+                        onChange={(e) => setShowCharsetPicker(e.target.checked)}>
+                        {t('im-form.file-handling-failed.change-encoding')}
+                    </Checkbox>
+                    {showCharsetPicker && (
+                        <div className={styles['infra-model-upload-failed__encode-container']}>
+                            <label className={styles['infra-model-upload-failed__checkbox-label']}>
+                                {t('im-form.file-handling-failed.encoding')}
+                            </label>
+                            <Dropdown
+                                options={XmlEncodingsToDropdownEntries()}
+                                value={charsetOverride}
+                                onChange={setCharsetOverride}
+                            />
                         </div>
-                        <div className={styles['infra-model-upload-failed__content']}>
-                            <Checkbox
-                                checked={showCharsetPicker}
-                                onChange={(e) => setShowCharsetPicker(e.target.checked)}>
-                                {t('im-form.file-handling-failed.change-encoding')}
-                            </Checkbox>
-                        </div>
-                        {showCharsetPicker && (
-                            <React.Fragment>
-                                <label
-                                    className={styles['infra-model-upload-failed__checkbox-label']}>
-                                    {t('im-form.file-handling-failed.encoding')}
-                                </label>
-                                <Dropdown
-                                    options={XmlEncodingsToDropdownEntries()}
-                                    value={charsetOverride}
-                                    onChange={setCharsetOverride}
-                                />
-                            </React.Fragment>
-                        )}
-                    </div>
+                    )}
                 </Dialog>
             )}
             {showChangeCharsetDialog && (
@@ -472,33 +464,29 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     className={dialogStyles['dialog--wide']}
                     footerContent={
                         <React.Fragment>
-                            <React.Fragment>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    onClick={() => setShowChangeCharsetDialog(false)}>
-                                    {t('button.cancel')}
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        setShowChangeCharsetDialog(false);
-                                        validateFile();
-                                    }}>
-                                    {t('im-form.file-handling-failed.try-again')}
-                                </Button>
-                            </React.Fragment>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={() => setShowChangeCharsetDialog(false)}>
+                                {t('button.cancel')}
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setShowChangeCharsetDialog(false);
+                                    validateFile();
+                                }}>
+                                {t('im-form.file-handling-failed.try-again')}
+                            </Button>
                         </React.Fragment>
                     }>
-                    <div className={styles['infra-model-upload-failed__sub-form']}>
-                        <React.Fragment>
-                            <label className={styles['infra-model-upload-failed__checkbox-label']}>
-                                {t('im-form.file-handling-failed.encoding')}
-                            </label>
-                            <Dropdown
-                                options={XmlEncodingsToDropdownEntries()}
-                                value={charsetOverride}
-                                onChange={setCharsetOverride}
-                            />
-                        </React.Fragment>
+                    <div className={styles['infra-model-upload-failed__encode-container']}>
+                        <label className={styles['infra-model-upload-failed__checkbox-label']}>
+                            {t('im-form.file-handling-failed.encoding')}
+                        </label>
+                        <Dropdown
+                            options={XmlEncodingsToDropdownEntries()}
+                            value={charsetOverride}
+                            onChange={setCharsetOverride}
+                        />
                     </div>
                 </Dialog>
             )}

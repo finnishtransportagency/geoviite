@@ -219,45 +219,41 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                 scrollable={false}
                 footerClassName={'dialog-footer'}
                 footerContent={
-                    <React.Fragment>
-                        <div className={styles['dialog-footer__content-area']}>
-                            <div className={styles['dialog-footer__content--shrink']}>
-                                {officialKmPost === undefined && !state.isNewKmPost && (
-                                    <Button
-                                        onClick={() =>
-                                            props.kmPostId
-                                                ? confirmNonDraftDraftDelete()
-                                                : undefined
-                                        }
-                                        icon={Icons.Delete}
-                                        variant={ButtonVariant.WARNING}>
-                                        {t('km-post-dialog.delete-draft')}
-                                    </Button>
-                                )}
-                            </div>
-                            <div
-                                className={createClassName(
-                                    styles['dialog-footer__content--grow'],
-                                    styles['dialog-footer__content--centered'],
-                                    styles['dialog-footer__content--padded'],
-                                )}>
+                    <div className={styles['dialog-footer__content-area']}>
+                        <div className={styles['dialog-footer__content--shrink']}>
+                            {officialKmPost === undefined && !state.isNewKmPost && (
                                 <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    disabled={state.isSaving}
-                                    onClick={() => cancelSave()}>
-                                    {t('button.return')}
+                                    onClick={() =>
+                                        props.kmPostId ? confirmNonDraftDraftDelete() : undefined
+                                    }
+                                    icon={Icons.Delete}
+                                    variant={ButtonVariant.WARNING}>
+                                    {t('km-post-dialog.delete-draft')}
                                 </Button>
-                                <span onClick={() => stateActions.validate()}>
-                                    <Button
-                                        disabled={!canSaveKmPost(state)}
-                                        isProcessing={state.isSaving}
-                                        onClick={() => saveOrConfirm()}>
-                                        {t('button.save')}
-                                    </Button>
-                                </span>
-                            </div>
+                            )}
                         </div>
-                    </React.Fragment>
+                        <div
+                            className={createClassName(
+                                styles['dialog-footer__content--grow'],
+                                styles['dialog-footer__content--centered'],
+                                styles['dialog-footer__content--padded'],
+                            )}>
+                            <Button
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={state.isSaving}
+                                onClick={() => cancelSave()}>
+                                {t('button.return')}
+                            </Button>
+                            <span onClick={() => stateActions.validate()}>
+                                <Button
+                                    disabled={!canSaveKmPost(state)}
+                                    isProcessing={state.isSaving}
+                                    onClick={() => saveOrConfirm()}>
+                                    {t('button.save')}
+                                </Button>
+                            </span>
+                        </div>
+                    </div>
                 }>
                 <FormLayout>
                     <FormLayoutColumn>
