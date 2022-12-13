@@ -82,6 +82,26 @@ class LayoutKmPostDaoIT @Autowired constructor(
         assertThrows<NoSuchEntityException> { kmPostDao.fetch(draftVersion2.next()) }
     }
 
+    @Test
+    fun fetchVersionsForPublicationReturnsDraftsOnlyForPublishableSet() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val postOneOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
+        val postOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(postOneOfficial)))
+        val postTwoOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
+        val postTwoDraft = kmPostDao.insert(draft(kmPostDao.fetch(postTwoOfficial)))
+        val postThreeOnlyDraft = kmPostDao.insert(draft(kmPost(trackNumberId, KmNumber(3))))
+        val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4)))
+
+        val versionsEmpty = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf())
+        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneOfficial.id))
+        val versionsOneAndThree =
+            kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneOfficial.id, postThreeOnlyDraft.id))
+
+        assertEquals(setOf(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
+        assertEquals(setOf(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
+        assertEquals(setOf(postOneDraft, postTwoOfficial, postThreeOnlyDraft, postFourOnlyOfficial), versionsOneAndThree.toSet())
+    }
+
     fun insertAndVerify(post: TrackLayoutKmPost) {
         val id = kmPostDao.insert(post)
         assertMatches(post, kmPostDao.fetch(id))

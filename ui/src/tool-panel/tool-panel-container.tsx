@@ -27,7 +27,10 @@ const ToolPanelContainer: React.FC = () => {
         [store.selection.selectedItems.switches],
     );
 
-    const startSwitchLinking = React.useCallback(function (suggestedSwitch: SuggestedSwitch, layoutSwitch: LayoutSwitch) {
+    const startSwitchLinking = React.useCallback(function(
+        suggestedSwitch: SuggestedSwitch,
+        layoutSwitch: LayoutSwitch,
+    ) {
         delegates.onSelect({
             suggestedSwitches: [suggestedSwitch],
         });
@@ -35,23 +38,25 @@ const ToolPanelContainer: React.FC = () => {
         delegates.onSelect({
             switches: [layoutSwitch],
         });
-    }, []);
+    },
+        []);
 
-    const startSwitchPlacing = React.useCallback(function (layoutSwitch: LayoutSwitch) {
+    const startSwitchPlacing = React.useCallback(function(layoutSwitch: LayoutSwitch) {
         delegates.startSwitchPlacing(layoutSwitch);
     }, []);
 
     React.useEffect(() => {
         const linkingState = store.linkingState;
-        if (linkingState?.type == LinkingType.PlacingSwitch &&
-            linkingState.location) {
-            getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.switchStructureId)
-                .then((suggestedSwitches) => {
-                    delegates.stopLinking();
-                    if (suggestedSwitches.length) {
-                        startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
-                    }
-                });
+        if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
+            getSuggestedSwitchByPoint(
+                linkingState.location,
+                linkingState.layoutSwitch.switchStructureId,
+            ).then((suggestedSwitches) => {
+                delegates.stopLinking();
+                if (suggestedSwitches.length) {
+                    startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
+                }
+            });
         }
     }, [store.linkingState]);
 
@@ -64,7 +69,6 @@ const ToolPanelContainer: React.FC = () => {
             switchIds={switchIds}
             geometrySwitches={store.selection.selectedItems.geometrySwitches}
             locationTrackIds={store.selection.selectedItems.locationTracks}
-            referenceLineIds={store.selection.selectedItems.referenceLines}
             geometryAlignments={store.selection.selectedItems.geometryAlignments}
             geometrySegments={store.selection.selectedItems.geometrySegments}
             linkingState={store.linkingState}

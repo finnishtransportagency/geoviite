@@ -10,10 +10,14 @@ import fi.fta.geoviite.infra.linking.PublishService
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.queryOptional
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
@@ -75,6 +79,35 @@ class GeocodingDaoIT @Autowired constructor(
             )
         }
     }
+
+    @Test
+    fun cacheKeyWhenPublishingPicksUpLatestChangeInPublicationSet() {
+        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+
+        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
+        val kmPostOneOfficialVersionChangeTime = getChangeTime("km_post", kmPostOneOfficialVersion.id.intValue)
+        val kmPostOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(kmPostOneOfficialVersion)))
+        val kmPostOneDraftChangeTime = getChangeTime("km_post", kmPostOneDraft.id.intValue)
+
+        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2)))
+        val kmPostTwoChangeTime = getChangeTime("km_post", kmPostTwoOnlyDraftVersion.id.intValue)
+
+        fun getCacheKey(vararg kmPostIds: IntId<TrackLayoutKmPost>) =
+            geocodingDao.getGeocodingContextCacheKey(PublishType.DRAFT, trackNumberId, kmPostIds.asList())!!
+
+        val keyPublishingNone = getCacheKey()
+        val keyPublishingFirst = getCacheKey(kmPostOneOfficialVersion.id)
+        val keyPublishingBoth = getCacheKey(kmPostOneOfficialVersion.id, kmPostTwoOnlyDraftVersion.id)
+
+        assertEquals(keyPublishingNone.changeTime, kmPostOneOfficialVersionChangeTime)
+        assertEquals(keyPublishingFirst.changeTime, kmPostOneDraftChangeTime)
+        assertEquals(keyPublishingBoth.changeTime, kmPostTwoChangeTime)
+    }
+
+    private fun getChangeTime(table: String, id: Int): Instant =
+        jdbc.queryOptional("select change_time from layout.$table where id = :id", mapOf("id" to id)) { rs, _ ->
+            rs.getInstant("change_time")
+        }!!
 
     @Test
     fun changeTimePicksUpDeletedKmPostDraft() {

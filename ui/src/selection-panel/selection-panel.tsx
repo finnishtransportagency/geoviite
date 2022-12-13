@@ -129,11 +129,10 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     );
 
     const onToggleReferenceLineSelection = React.useCallback(
-        (trackNumber: string, referenceLine: string) =>
+        (trackNumber: string) =>
             onSelect({
                 ...createEmptyItemCollections(),
                 trackNumbers: [trackNumber],
-                referenceLines: [referenceLine],
                 isToggle: true,
             }),
         [],
@@ -197,9 +196,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             {planHeaders && (
                 <section>
                     <h3 className={styles['selection-panel__title']}>
-                        {`${t('selection-panel.geometries-title')} (${
-                            planHeaders.length
-                        }/${planHeaderCount})`}
+                        {`${t('selection-panel.geometries-title')} (${planHeaders.length
+                            }/${planHeaderCount})`}
                     </h3>
                     <div
                         className={createClassName(
@@ -305,17 +303,16 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             </section>
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {`${t('selection-panel.reference-lines-title')}  (${
-                        filteredReferenceLines.length
-                    })`}
+                    {`${t('selection-panel.reference-lines-title')}  (${filteredReferenceLines.length
+                        })`}
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <ReferenceLinesPanel
                         publishType={publishType}
                         referenceLines={filteredReferenceLines}
                         trackNumberChangeTime={changeTimes.layoutTrackNumber}
-                        selectedReferenceLines={selectedItems?.referenceLines}
-                        canSelectReferenceLine={selectableItemTypes.includes('referenceLines')}
+                        selectedTrackNumbers={selectedItems?.trackNumbers}
+                        canSelectReferenceLine={selectableItemTypes.includes('trackNumbers')}
                         onToggleReferenceLineSelection={onToggleReferenceLineSelection}
                     />
                 </div>

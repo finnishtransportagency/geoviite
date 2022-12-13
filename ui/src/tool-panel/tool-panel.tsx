@@ -13,7 +13,6 @@ import {
     LocationTrackId,
     MapAlignment,
     MapSegment,
-    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
 import SwitchInfobox from 'tool-panel/switch/switch-infobox';
@@ -46,7 +45,6 @@ type ToolPanelProps = {
     switchIds: LayoutSwitchId[];
     geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
     locationTrackIds: LocationTrackId[];
-    referenceLineIds: ReferenceLineId[];
     geometryAlignments: SelectedGeometryItem<MapAlignment>[];
     geometrySegments: SelectedGeometryItem<MapSegment>[];
     suggestedSwitches: SuggestedSwitch[];
@@ -75,7 +73,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     switchIds,
     geometrySwitches,
     locationTrackIds,
-    referenceLineIds,
     geometryAlignments,
     geometrySegments,
     suggestedSwitches,
@@ -102,9 +99,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     }, []);
 
     const onUnSelectSwitches = React.useCallback((switchId: LayoutSwitchId) => {
-        onUnselect({
-            switches: [switchId],
-        });
+        onUnselect({ switches: [switchId] });
     }, []);
 
     const tracksSwitchesKmPosts = useLoader(() => {
@@ -298,7 +293,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     <GeometryAlignmentLinkingContainer
                         geometryAlignment={a.geometryItem}
                         selectedLocationTrackId={locationTrackIds[0]}
-                        selectedReferenceLineId={referenceLineIds[0]}
+                        selectedTrackNumberId={trackNumberIds[0]}
                         segment={geometrySegments[0]?.geometryItem}
                         planId={a.planId}
                         linkingState={linkingState}

@@ -3,18 +3,14 @@ import styles from './location-holder-view.scss';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import { trackLayoutStore } from 'store/store';
 import { Point } from 'model/geometry';
-import {
-    LayoutTrackNumberId,
-    LocationTrackId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { PublishType, TrackMeter as TrackMeterModel } from 'common/common-model';
 import { useDebouncedState, useLoader } from 'utils/react-utils';
 import { getAddress } from 'common/geocoding-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getTrackNumberById } from 'track-layout/layout-track-number-api';
-import { getReferenceLine } from 'track-layout/layout-reference-line-api';
+import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 
 type LocationHolderProps = {
     hoveredCoordinate: Point | null;
@@ -37,11 +33,11 @@ export async function getLocationTrackHoverLocation(
 }
 
 export async function getReferenceLineHoverLocation(
-    referenceLineId: ReferenceLineId,
+    trackNumberId: LayoutTrackNumberId,
     publishType: PublishType,
     coordinate: Point,
 ): Promise<HoverLocation> {
-    return getReferenceLine(referenceLineId, publishType).then((line) => {
+    return getTrackNumberReferenceLine(trackNumberId, publishType).then((line) => {
         if (!line) {
             return emptyHoveredLocation(coordinate);
         } else {
@@ -74,13 +70,13 @@ export async function getHoverLocation(
 }
 
 async function getHoverLocationBySelection(coordinate: Point | null): Promise<HoverLocation> {
-    const referenceLines =
-        trackLayoutStore.getState().trackLayout.selection.selectedItems.referenceLines;
+    const trackNumberIds =
+        trackLayoutStore.getState().trackLayout.selection.selectedItems.trackNumbers;
     const locationTracks =
         trackLayoutStore.getState().trackLayout.selection.selectedItems.locationTracks;
     const publishType = trackLayoutStore.getState().trackLayout.publishType;
-    if (referenceLines.length == 1 && coordinate != null) {
-        return getReferenceLineHoverLocation(referenceLines[0], publishType, coordinate);
+    if (trackNumberIds.length == 1 && coordinate != null) {
+        return getReferenceLineHoverLocation(trackNumberIds[0], publishType, coordinate);
     } else if (locationTracks.length == 1 && coordinate != null) {
         return getLocationTrackHoverLocation(locationTracks[0], publishType, coordinate);
     } else {
