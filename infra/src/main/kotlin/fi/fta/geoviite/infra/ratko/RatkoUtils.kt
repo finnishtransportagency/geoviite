@@ -1,11 +1,15 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 
 private fun sameNodeAddress(node1: RatkoNode?, node2: RatkoNode?): Boolean {
     if (node1 == null || node2 == null) {
@@ -69,7 +73,6 @@ fun asSwitchTypeString(switchType: SwitchType): String {
     val spread = switchType.parts.spread ?: ""
     val curveRadius = radius
         .mapIndexed { i, r ->
-
             //Adds N/P version to the first curve radius
             if (i == 0) "$r$spread"
             else "$r"
@@ -86,3 +89,13 @@ fun sortByNullDuplicateOfFirst(duplicateOf: IntId<LocationTrack>?) = if (duplica
 
 fun sortByDeletedStateFirst(layoutStateCategory: LayoutStateCategory) =
     if (layoutStateCategory == LayoutStateCategory.NOT_EXISTING) 0 else 1
+
+fun toRatkoPointsGroupedByKm(addressPoints: List<AddressPoint>) =
+    addressPoints
+        .groupBy { point -> point.address.kmNumber }
+        .map { (_, addressPointsForKm) ->
+            addressPointsForKm
+                .map(::convertToRatkoPoint)
+                .distinctBy { it.kmM } //track meters 0000+0000.010 and 0000+0000.01 are considered the same
+        }
+        .filter { ratkoPoints -> ratkoPoints.isNotEmpty() }

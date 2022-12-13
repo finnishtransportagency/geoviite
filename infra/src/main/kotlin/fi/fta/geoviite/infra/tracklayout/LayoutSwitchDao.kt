@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
 import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
@@ -25,8 +26,29 @@ const val MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE = 1.0
 class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH) {
 
+    override fun fetchVersions(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+    ): List<RowVersion<TrackLayoutSwitch>> {
+        val sql = """
+            select
+              row_id,
+              row_version
+            from layout.switch_publication_view 
+            where :publication_state = any(publication_states) 
+              and (:include_deleted = true or state_category != 'NOT_EXISTING')
+        """.trimIndent()
+        val params = mapOf(
+            "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
     fun fetchSegmentSwitchJointConnections(
-        publishType: PublishType,
+        publicationState: PublishType,
         switchId: IntId<TrackLayoutSwitch>
     ): List<TrackLayoutSwitchJointConnection> {
         val sql = """
@@ -81,7 +103,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
             "max_lookup_distance" to MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE,
         )
 
@@ -273,10 +295,10 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     override fun fetch(version: RowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_switch_id, id) official_id, 
+              case when draft then id end as draft_id,
               geometry_switch_id, 
               external_id, 
               name, 
@@ -285,10 +307,15 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               trap_point,
               owner_id,
               source
-            from layout.switch_publication_view
-            where row_id = :id
+            from layout.switch_version
+            where id = :id
+              and version = :version
+              and deleted = false
         """.trimIndent()
-        val params = mapOf("id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val switch = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
 
@@ -305,7 +332,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 ownerId = rs.getIntIdOrNull("owner_id"),
                 draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
                 version = rs.getRowVersion("row_id", "row_version"),
-                source = rs.getEnum("source")
+                source = rs.getEnum("source"),
             )
         })
         logger.daoAccess(FETCH, TrackLayoutSwitch::class, switch.id)
@@ -319,15 +346,15 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               postgis.st_x(location) as location_x, 
               postgis.st_y(location) as location_y,
               location_accuracy
-            from layout.switch_joint joint 
-            where 
-                switch_id = :switch_id and
-                switch_version = :switch_version
+            from layout.switch_joint_version joint 
+            where switch_id = :switch_id
+              and switch_version = :switch_version
+              and deleted = false
             order by switch_id, number
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.id.intValue,
-            "switch_version" to switchId.version
+            "switch_version" to switchId.version,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             TrackLayoutSwitchJoint(
@@ -372,17 +399,20 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<SwitchPublishCandidate> {
         val sql = """
             select
-              switch_version.id,
-              switch_version.change_time,
-              switch_version.name,
+              switch_change_view.id,
+              switch_change_view.change_time,
+              switch_change_view.name,
+              switch_change_view.version,
+              switch_change_view.change_user,
+              layout.infer_operation_from_state_category_transition(switch_change_view.old_state_category, switch_change_view.state_category) operation,
               (select array_agg(distinct track_number_id)
                from layout.segment_version
                  join layout.location_track_version using(alignment_id, alignment_version)
-               where switch_version.id = segment_version.switch_id) as track_numbers
+               where switch_change_view.id = segment_version.switch_id) as track_numbers
             from publication.switch published_switch
-              left join layout.switch_version
-                on published_switch.switch_id = switch_version.id
-                  and published_switch.switch_version = switch_version.version
+              left join layout.switch_change_view
+                on published_switch.switch_id = switch_change_view.id
+                  and published_switch.switch_version = switch_change_view.version
             where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -395,6 +425,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 name = SwitchName(rs.getString("name")),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation"),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }

@@ -96,7 +96,7 @@ class RatkoService @Autowired constructor(
             ratkoPushDao.finishStuckPushes(userName)
 
             val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
-            if (publishes.isNotEmpty() && ratkoClient.ratkoIsOnline()) {
+            if (publishes.isNotEmpty() && ratkoClient.getRatkoOnlineStatus().isOnline) {
                 pushChanges(userName, publishes)
             }
         }
@@ -116,11 +116,20 @@ class RatkoService @Autowired constructor(
                 moment = latestSuccessfulPushMoment
             )
 
+            //Location track points are always removed per kilometre.
+            //However, there is a slight chance that points used by switches (according to Geoviite)
+            // will not match with the ones in Ratko.
+            //Therefore, Geoviite will also update all switches with joints in the danger zone.
+            val switchChanges = mergeSwitchChanges(
+                calculatedChangesService.getAllSwitchChangesByLocationTrackChange(calculatedChanges.locationTracksChanges),
+                calculatedChanges.switchChanges
+            )
+
             val pushedRouteNumberOids =
                 ratkoRouteNumberService.pushTrackNumberChangesToRatko(calculatedChanges.trackNumberChanges)
             val pushedLocationTrackOids =
                 ratkoLocationTrackService.pushLocationTrackChangesToRatko(calculatedChanges.locationTracksChanges)
-            ratkoAssetService.pushSwitchChangesToRatko(calculatedChanges.switchChanges)
+            ratkoAssetService.pushSwitchChangesToRatko(switchChanges)
 
             ratkoPushDao.updatePushStatus(
                 user = userName,
@@ -180,7 +189,7 @@ class RatkoService @Autowired constructor(
 
             //dummy check if Ratko is online
             val pushStatus =
-                if (ratkoClient.ratkoIsOnline()) RatkoPushStatus.FAILED else RatkoPushStatus.CONNECTION_ISSUE
+                if (ratkoClient.getRatkoOnlineStatus().isOnline) RatkoPushStatus.FAILED else RatkoPushStatus.CONNECTION_ISSUE
 
             ratkoPushDao.updatePushStatus(
                 user = userName,
@@ -212,8 +221,8 @@ class RatkoService @Autowired constructor(
     }
 
     @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
-    fun ratkoIsOnline(): Boolean {
-        return ratkoClient.ratkoIsOnline()
+    fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
+        return ratkoClient.getRatkoOnlineStatus()
     }
 
 }

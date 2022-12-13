@@ -43,8 +43,8 @@ class RatkoController(private val ratkoService: RatkoService) {
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/is-online")
-    fun ratkoIsOnline(): Boolean {
+    fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
         logger.apiCall("ratkoIsOnline")
-        return ratkoService.ratkoIsOnline()
+        return ratkoService.getRatkoOnlineStatus()
     }
 }

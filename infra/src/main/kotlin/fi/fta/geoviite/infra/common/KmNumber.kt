@@ -130,6 +130,7 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(override val kmN
     operator fun minus(metersDelta: Double) = minus(metersDelta, meters.scale())
     operator fun minus(metersDelta: BigDecimal) = TrackMeter(kmNumber, meters - metersDelta)
     fun minus(metersDelta: Double, decimals: Int) = minus(round(metersDelta, decimals))
+    fun stripTrailingZeroes() = TrackMeter(kmNumber, limitScale(meters.stripTrailingZeros()))
 }
 
 private fun getMetersFormat(decimals: Int) = meterFormats[decimals]

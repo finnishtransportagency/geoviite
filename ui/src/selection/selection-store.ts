@@ -27,7 +27,7 @@ export function createEmptyItemCollections(): ItemCollections {
     return {
         segments: [],
         locationTracks: [],
-        referenceLines: [],
+        // referenceLines: [],
         kmPosts: [],
         geometryKmPosts: [],
         switches: [],
@@ -62,7 +62,6 @@ function getNewIdCollection<TId extends string>(
     // The isExactSelection flag being set is a special case. Empty selections should be respected then
     if (newIds == undefined) return ids;
 
-    // Define "new items" collection
     if (flags.isIncremental) {
         return deduplicate([...newIds, ...ids]);
     } else if (flags.isToggle) {
@@ -136,21 +135,13 @@ function getNewItemCollectionUsingCustomId<TEntity, TId>(
         return items;
     }
 
-    // Define "new items" collection
     if (flags.isIncremental) {
-        newItems = [...newItems, ...items].filter(filterUniqueById(getId));
+        return [...newItems, ...items].filter(filterUniqueById(getId));
     } else if (flags.isToggle) {
-        newItems = newItems.filter(
-            (newItem) => !items.find((item) => getId(item) == getId(newItem)),
-        );
+        return newItems.filter((newItem) => !items.find((item) => getId(item) == getId(newItem)));
+    } else {
+        return newItems;
     }
-
-    // FIXME: this doesn't work because the ID doesn't change always when the object changes. If these were ids only (no data in selection), this would be fine.
-    // Return "new items" only if it differs from original
-    // if (!itemsEqual(items, newItems, (item1, item2) => getId(item1) == getId(item2))) {
-    return newItems;
-    // }
-    // return items;
 }
 
 function updateItemCollectionsByOptions(
@@ -167,11 +158,6 @@ function updateItemCollectionsByOptions(
     itemCollections['locationTracks'] = getNewIdCollection(
         itemCollections['locationTracks'],
         options['locationTracks'],
-        flags,
-    );
-    itemCollections['referenceLines'] = getNewIdCollection(
-        itemCollections['referenceLines'],
-        options['referenceLines'],
         flags,
     );
     itemCollections['kmPosts'] = getNewItemCollection(
@@ -252,10 +238,6 @@ function updateItemCollectionsByUnselecting(
     itemCollections['locationTracks'] = filterIdCollection(
         itemCollections['locationTracks'],
         unselectItemCollections['locationTracks'],
-    );
-    itemCollections['referenceLines'] = filterIdCollection(
-        itemCollections['referenceLines'],
-        unselectItemCollections['referenceLines'],
     );
     itemCollections['kmPosts'] = filterItemCollection(
         itemCollections['kmPosts'],

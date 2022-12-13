@@ -14,6 +14,7 @@ select
   row.state,
   row.change_user,
   row.change_time,
+  row.draft,
   (case
      when row.draft = true then '{"DRAFT"}'
      when exists(select 1 from layout.track_number as d where d.draft_of_track_number_id = row.id) then '{"OFFICIAL"}'

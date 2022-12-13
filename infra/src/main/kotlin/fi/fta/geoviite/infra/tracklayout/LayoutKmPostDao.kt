@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_KM_POST
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
@@ -21,16 +22,20 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST) {
 
+    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+        fetchVersions(publicationState, includeDeleted, null, null)
+
     fun fetchVersions(
-        publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-        bbox: BoundingBox? = null,
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>?,
+        bbox: BoundingBox?,
     ): List<RowVersion<TrackLayoutKmPost>> {
         val sql = """
             select km_post.row_id, km_post.row_version 
             from layout.km_post_publication_view km_post
             where :publication_state = any(km_post.publication_states)
-              and km_post.state != 'DELETED'
+              and (:include_deleted = true or km_post.state != 'DELETED')
               and (:track_number_id::int is null or track_number_id = :track_number_id)
               and (:polygon_wkt::varchar is null or postgis.st_intersects(
                 km_post.location,
@@ -40,10 +45,36 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
         return jdbcTemplate.query(sql, mapOf(
             "track_number_id" to trackNumberId?.intValue,
-            "draft" to (publishType == PublishType.DRAFT),
-            "publication_state" to publishType.name,
+            "publicationState" to publicationState,
+            "include_deleted" to includeDeleted,
+            "publication_state" to publicationState.name,
             "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
             "map_srid" to LAYOUT_SRID.code,
+        )) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
+    fun fetchVersionsForPublication(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
+    ): List<RowVersion<TrackLayoutKmPost>> {
+        val sql = """
+            select km_post.row_id, km_post.row_version
+            from layout.km_post_publication_view km_post
+            where (('DRAFT' = any(km_post.publication_states)
+                     and km_post.official_id in (:km_post_ids_to_publish))
+                   or ('OFFICIAL' = any(km_post.publication_states)
+                         and (km_post.official_id in (:km_post_ids_to_publish) is distinct from true)))
+              and track_number_id = :track_number_id
+              and km_post.state != 'DELETED'
+            order by km_post.track_number_id, km_post.km_number
+        """.trimIndent()
+        return jdbcTemplate.query(sql, mapOf(
+            "track_number_id" to trackNumberId.intValue,
+            // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is distinct from true" checks
+            // explicitly for false or null, since "foo in (null)" in SQL is null
+            "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) })
         )) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
@@ -77,19 +108,24 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_km_post_id, id) official_id, 
+              case when draft then id end as draft_id,
               track_number_id,
               geometry_km_post_id,
               km_number,
               postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
               state
-            from layout.km_post_publication_view
-            where row_id = :id
+            from layout.km_post_version
+            where id = :id 
+              and version = :version
+              and deleted = false
         """.trimIndent()
-        val params = mapOf("id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val post = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             TrackLayoutKmPost(
                 id = rs.getIntId("official_id"),
@@ -200,16 +236,18 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<KmPostPublishCandidate> {
         val sql = """
           select
-            km_post_version.id,
-            km_post_version.change_time,
-            km_post_version.track_number_id,
+            km_post_change_view.id,
+            km_post_change_view.change_time,
+            km_post_change_view.track_number_id,
+            km_post_change_view.change_user,
+            layout.infer_operation_from_state_transition(km_post_change_view.old_state, km_post_change_view.state) operation,
             km_number
           from publication.km_post published_km_post
-            left join layout.km_post_version
-              on published_km_post.km_post_id = km_post_version.id
-                and published_km_post.km_post_version = km_post_version.version
+            left join layout.km_post_change_view
+              on published_km_post.km_post_id = km_post_change_view.id
+                and published_km_post.km_post_version = km_post_change_view.version
             left join layout.track_number
-              on km_post_version.track_number_id = track_number.id
+              on km_post_change_view.track_number_id = track_number.id
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -222,7 +260,9 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                kmNumber = rs.getKmNumber("km_number")
+                kmNumber = rs.getKmNumber("km_number"),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation")
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
     }

@@ -43,39 +43,29 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
 
     override fun createPublished(item: TrackLayoutKmPost) = published(item)
 
-    fun list(
-        publishType: PublishType,
-        filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?,
-    ): List<TrackLayoutKmPost> {
-        logger.serviceCall("getKmPosts", "publishType" to publishType, "filter" to (filter != null))
-        val all = listInternal(publishType)
+    fun list(publicationState: PublishType, filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?): List<TrackLayoutKmPost> {
+        logger.serviceCall("getKmPosts", "publicationState" to publicationState, "filter" to (filter != null))
+        val all = listInternal(publicationState, false)
         return filter?.let(all::filter) ?: all
     }
 
-    fun list(
-        publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmPost> {
-        logger.serviceCall("getKmPosts", "trackNumberId" to trackNumberId)
-        return listInternal(publishType, trackNumberId)
+    fun list(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+        logger.serviceCall("getKmPosts",
+            "publicationState" to publicationState, "trackNumberId" to trackNumberId)
+        return listInternal(publicationState, false, trackNumberId)
     }
 
-    private fun listInternal(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>) =
-        dao.fetchVersions(publishType, trackNumberId = trackNumberId).map(dao::fetch)
+    private fun listInternal(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        boundingBox: BoundingBox? = null,
+    ) = dao.fetchVersions(publicationState, includeDeleted, trackNumberId, boundingBox).map(dao::fetch)
 
-    fun list(
-        publishType: PublishType,
-        boundingBox: BoundingBox,
-        step: Int,
-    ): List<TrackLayoutKmPost> {
-        logger.serviceCall(
-            "getKmPosts",
-            "publishType" to publishType,
-            "boundingBox" to boundingBox,
-            "step" to step
-        )
-        return dao.fetchVersions(publishType, bbox = boundingBox)
-            .map(dao::fetch)
+    fun list(publicationState: PublishType, boundingBox: BoundingBox, step: Int): List<TrackLayoutKmPost> {
+        logger.serviceCall("getKmPosts",
+            "publicationState" to publicationState, "boundingBox" to boundingBox, "step" to step)
+        return listInternal(publicationState, false, boundingBox = boundingBox)
             .filter { p -> (step <= 1 || (p.kmNumber.isPrimary() && p.kmNumber.number % step == 0)) }
     }
 
@@ -89,7 +79,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
     }
 
     fun listNearbyOnTrackPaged(
-        publishType: PublishType,
+        publicationState: PublishType,
         location: Point,
         trackNumberId: IntId<TrackLayoutTrackNumber>?,
         offset: Int,
@@ -97,13 +87,13 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
     ): List<TrackLayoutKmPost> {
         logger.serviceCall(
             "getNearbyKmPostsOnTrackPaged",
-            "publishType" to publishType,
+            "publicationState" to publicationState,
             "location" to location,
             "trackNumberId" to trackNumberId,
             "offset" to offset,
             "limit" to limit
         )
-        val allPosts = trackNumberId?.let { tnId -> listInternal(publishType, tnId) } ?: listInternal(publishType)
+        val allPosts = listInternal(publicationState, false, trackNumberId)
         val postsByDistance = allPosts.map { post -> associateByDistance(post, location) { item -> item.location } }
         return pageToList(postsByDistance, offset, limit, ::compareByDistanceNullsFirst).map { (kmPost, _) -> kmPost }
     }

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_LOCATION_TRACK
 import fi.fta.geoviite.infra.linking.LocationTrackPublishCandidate
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional
 class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK) {
 
-    fun fetchDuplicates(id: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
+    fun fetchDuplicates(id: IntId<LocationTrack>, publicationState: PublishType): List<LocationTrackDuplicate> {
         val sql = """
             select 
               official_id,
@@ -27,10 +28,10 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               name
             from layout.location_track_publication_view
             where duplicate_of_location_track_id = :id
-              and :publishType = any(publication_states)
+              and :publication_state = any(publication_states)
               and state != 'DELETED'
         """.trimIndent()
-        val params = mapOf("id" to id.intValue, "publishType" to publishType.name)
+        val params = mapOf("id" to id.intValue, "publication_state" to publicationState.name)
         val locationTracks = jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrackDuplicate(
                 id = rs.getIntId("official_id"),
@@ -47,31 +48,37 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<LocationTrack>): LocationTrack {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
-              alignment_id,
-              alignment_version,
-              track_number_id, 
-              external_id, 
-              name, 
-              description, 
-              type, 
-              state, 
-              postgis.st_astext(bounding_box) as bounding_box,
-              length,
-              segment_count,            
-              duplicate_of_location_track_id,
-              topological_connectivity,
-              topology_start_switch_id,
-              topology_start_switch_joint_number,
-              topology_end_switch_id,
-              topology_end_switch_joint_number
-            from layout.location_track_publication_view
-            where row_id = :location_track_id
+              ltv.id as row_id,
+              ltv.version as row_version,
+              coalesce(ltv.draft_of_location_track_id, ltv.id) official_id, 
+              case when ltv.draft then ltv.id end as draft_id,
+              ltv.alignment_id,
+              ltv.alignment_version,
+              ltv.track_number_id, 
+              ltv.external_id, 
+              ltv.name, 
+              ltv.description, 
+              ltv.type, 
+              ltv.state, 
+              postgis.st_astext(av.bounding_box) as bounding_box,
+              av.length,
+              av.segment_count,            
+              ltv.duplicate_of_location_track_id,
+              ltv.topological_connectivity,
+              ltv.topology_start_switch_id,
+              ltv.topology_start_switch_joint_number,
+              ltv.topology_end_switch_id,
+              ltv.topology_end_switch_joint_number
+            from layout.location_track_version ltv
+              left join layout.alignment_version av on ltv.alignment_id = av.id and ltv.alignment_version = av.version
+            where ltv.id = :id
+              and ltv.version = :version
+              and ltv.deleted = false
         """.trimIndent()
-        val params = mapOf("location_track_id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val locationTrack = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrack(
                 dataType = DataType.STORED,
@@ -229,7 +236,33 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return result
     }
 
-    fun fetchVersionsNear(publishType: PublishType, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
+    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+        fetchVersions(publicationState, includeDeleted, null)
+
+    fun fetchVersions(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+    ): List<RowVersion<LocationTrack>> {
+        val sql = """
+            select lt.row_id, lt.row_version 
+            from layout.location_track_publication_view lt
+            where 
+              (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
+              and :publication_state = any(lt.publication_states)
+              and (:include_deleted = true or state != 'DELETED')
+        """.trimIndent()
+        val params = mapOf(
+            "track_number_id" to trackNumberId?.intValue,
+            "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
+    fun fetchVersionsNear(publicationState: PublishType, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
         val sql = """
             select
               distinct lt.row_id, lt.row_version
@@ -253,7 +286,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -264,14 +297,16 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<LocationTrackPublishCandidate> {
         val sql = """
           select 
-            location_track_version.id, 
-            location_track_version.change_time, 
-            location_track_version.name, 
-            location_track_version.track_number_id
+            location_track_change_view.id, 
+            location_track_change_view.change_time, 
+            location_track_change_view.name, 
+            location_track_change_view.track_number_id,
+            location_track_change_view.change_user,
+            layout.infer_operation_from_state_transition(location_track_change_view.old_state, location_track_change_view.state) operation
           from publication.location_track published_location_track
-            left join layout.location_track_version
-              on published_location_track.location_track_id = location_track_version.id 
-                and published_location_track.location_track_version = location_track_version.version
+            left join layout.location_track_change_view
+              on published_location_track.location_track_id = location_track_change_view.id 
+                and published_location_track.location_track_version = location_track_change_view.version
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -287,27 +322,9 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
                 duplicateOf = null,
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation")
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
-    }
-
-    fun fetchVersions(
-        publishType: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-    ): List<RowVersion<LocationTrack>> {
-        val sql = """
-            select lt.row_id, lt.row_version 
-            from layout.location_track_publication_view lt
-            where 
-              (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
-              and :publication_state = any(lt.publication_states)
-        """.trimIndent()
-        val params = mapOf(
-            "track_number_id" to trackNumberId?.intValue,
-            "publication_state" to publishType.name,
-        )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
-        }
     }
 }

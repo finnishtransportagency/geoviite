@@ -52,7 +52,7 @@ abstract class ITTestBase {
         getOrCreateTrackNumber(getUnusedTrackNumber()).id as IntId
 
     fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
-        val version = trackNumberDao.findVersions(trackNumber, DRAFT).firstOrNull()
+        val version = trackNumberDao.fetchVersions(DRAFT, false, trackNumber).firstOrNull()
             ?: insertNewTrackNumber(trackNumber, false)
         return version.let(trackNumberDao::fetch)
     }
@@ -68,13 +68,13 @@ abstract class ITTestBase {
     )
 
     fun getUnusedTrackNumber(): TrackNumber {
-        val sql = "select max(id) max_id from layout.track_number"
+        val sql = "select max(id) max_id from layout.track_number_version"
         val maxId = jdbc.queryForObject(sql, mapOf<String,Any>()) { rs, _ -> rs.getInt("max_id") }!!
         val baseName = this::class.simpleName!!.let { className ->
             if (className.length > 24) className.substring(0, 24)
             else className
         }
-        return TrackNumber("$baseName $maxId")
+        return TrackNumber("$baseName ${maxId+1}")
     }
 
     private fun insertNewTrackNumber(trackNumber: TrackNumber, draft: Boolean): RowVersion<TrackLayoutTrackNumber> =

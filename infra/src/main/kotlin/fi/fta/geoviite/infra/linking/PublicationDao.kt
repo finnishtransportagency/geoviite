@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
@@ -17,15 +18,28 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_track_number_id, id) as official_id, number, change_time
-            from layout.track_number
-            where draft = true
+            select
+                draft_track_number.official_id, 
+                draft_track_number.number, 
+                draft_track_number.change_time, 
+                draft_track_number.change_user,
+                layout.infer_operation_from_state_transition(
+                  official_track_number.state, 
+                  draft_track_number.state
+                ) operation
+            from layout.track_number_publication_view draft_track_number
+              left join layout.track_number_publication_view official_track_number 
+                on draft_track_number.official_id = official_track_number.official_id
+                  and 'OFFICIAL' = any(official_track_number.publication_states)
+            where draft_track_number.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             TrackNumberPublishCandidate(
                 id = rs.getIntId("official_id"),
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
+                operation = rs.getEnum("operation"),
+                userName = UserName(rs.getString("change_user"))
             )
         }
         logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidate::id))
@@ -38,7 +52,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               coalesce(reference_line.draft_of_reference_line_id, reference_line.id) as official_id,
               track_number.number as name, 
               reference_line.track_number_id, 
-              reference_line.change_time
+              reference_line.change_time,
+              reference_line.change_user
             from layout.reference_line
               left join layout.track_number on track_number.id = reference_line.track_number_id
             where reference_line.draft = true
@@ -49,6 +64,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 name = rs.getTrackNumber("name"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
+                userName = UserName(rs.getString("change_user")),
+                operation = null,
             )
         }
         logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
@@ -57,9 +74,22 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_location_track_id, id) as official_id, name, track_number_id, change_time, duplicate_of_location_track_id
-            from layout.location_track
-            where draft = true
+            select 
+                draft_location_track.official_id,
+                draft_location_track.name, 
+                draft_location_track.track_number_id, 
+                draft_location_track.change_time, 
+                draft_location_track.duplicate_of_location_track_id, 
+                draft_location_track.change_user,
+                layout.infer_operation_from_state_transition(
+                  official_location_track.state, 
+                  draft_location_track.state
+                ) operation
+            from layout.location_track_publication_view draft_location_track
+              left join layout.location_track_publication_view official_location_track 
+                on official_location_track.official_id = draft_location_track.official_id
+                  and 'OFFICIAL' = any(official_location_track.publication_states)
+            where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             LocationTrackPublishCandidate(
@@ -68,6 +98,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation"),
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
@@ -76,19 +108,32 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_switch_id, id) as official_id, name, change_time,
-                   (select array_agg(distinct track_number_id)
-                    from layout.segment
-                      join layout.location_track using(alignment_id)
-                    where coalesce(switch.draft_of_switch_id, switch.id) = segment.switch_id) as track_numbers
-            from layout.switch
-            where draft = true
+            select 
+            draft_switch.official_id,  
+            draft_switch.name, 
+            draft_switch.change_time,
+            draft_switch.change_user,
+            (select array_agg(distinct track_number_id)
+              from layout.segment
+                join layout.location_track using(alignment_id)
+              where coalesce(official_switch.draft_id, draft_switch.row_id) = segment.switch_id) as track_numbers,
+            layout.infer_operation_from_state_category_transition(
+              official_switch.state_category, 
+              draft_switch.state_category
+            ) operation
+            from layout.switch_publication_view draft_switch
+              left join layout.switch_publication_view official_switch 
+                on draft_switch.official_id = official_switch.official_id
+                  and 'OFFICIAL' = any(official_switch.publication_states)
+            where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             SwitchPublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation"),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
         }
@@ -98,9 +143,21 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
         val sql = """
-            select coalesce(draft_of_km_post_id, id) as official_id, track_number_id, km_number, change_time
-            from layout.km_post
-            where draft = true
+            select
+                draft_km_post.official_id, 
+                draft_km_post.track_number_id, 
+                draft_km_post.km_number, 
+                draft_km_post.change_time, 
+                draft_km_post.change_user,
+                layout.infer_operation_from_state_transition(
+                  official_km_post.state, 
+                  draft_km_post.state
+                ) operation
+            from layout.km_post_publication_view draft_km_post
+              left join layout.km_post_publication_view official_km_post 
+                on draft_km_post.official_id = official_km_post.official_id
+                  and 'OFFICIAL' = any(official_km_post.publication_states)
+            where draft_km_post.draft = true
             order by km_number
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -109,6 +166,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
                 draftChangeTime = rs.getInstant("change_time"),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum("operation"),
             )
         }
         logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))
@@ -329,11 +388,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         publicationId: IntId<Publication>,
         trackNumberKmChanges: Map<IntId<TrackLayoutTrackNumber>, List<KmNumber>>
     ) =
-        jdbcTemplate.query("""
+        jdbcTemplate.query(
+            """
             select track_number_id, start_changed, end_changed
             from publication.calculated_change_to_track_number
             where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)) {rs, _ ->
+        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
+        ) { rs, _ ->
             val id = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
             TrackNumberChange(
                 id,
@@ -357,11 +418,13 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         publicationId: IntId<Publication>,
         locationTrackKmChanges: Map<IntId<LocationTrack>, List<KmNumber>>
     ) =
-        jdbcTemplate.query("""
+        jdbcTemplate.query(
+            """
             select location_track_id, start_changed, end_changed
             from publication.calculated_change_to_location_track
             where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)) {rs, _ ->
+        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
+        ) { rs, _ ->
             val id = rs.getIntId<LocationTrack>("location_track_id")
             LocationTrackChange(
                 id,
@@ -394,7 +457,10 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             )
         }.groupBy({ (s, _) -> s }, { (_, js) -> js })
 
-    private fun fetchSwitchChangesInPublish(publicationId: IntId<Publication>, switchJointChanges: Map<IntId<TrackLayoutSwitch>, List<SwitchJointChange>>) =
+    private fun fetchSwitchChangesInPublish(
+        publicationId: IntId<Publication>,
+        switchJointChanges: Map<IntId<TrackLayoutSwitch>, List<SwitchJointChange>>
+    ) =
         jdbcTemplate.query(
             """
             select switch_id
@@ -418,7 +484,10 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
     }
 
-    private fun saveTrackNumberChangesInPublish(publicationId: IntId<Publication>, trackNumberChanges: List<TrackNumberChange>) {
+    private fun saveTrackNumberChangesInPublish(
+        publicationId: IntId<Publication>,
+        trackNumberChanges: List<TrackNumberChange>
+    ) {
         jdbcTemplate.batchUpdate(
             """insert into publication.calculated_change_to_track_number
                values (:publication_id, :track_number_id, :start_changed, :end_changed)
@@ -449,17 +518,22 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
-    private fun saveLocationTrackChangesInPublish(publicationId: IntId<Publication>, locationTrackChanges: List<LocationTrackChange>) {
+    private fun saveLocationTrackChangesInPublish(
+        publicationId: IntId<Publication>,
+        locationTrackChanges: List<LocationTrackChange>
+    ) {
         jdbcTemplate.batchUpdate(
             """insert into publication.calculated_change_to_location_track
                values (:publication_id, :location_track_id, :start_changed, :end_changed)
             """.trimMargin(),
-            locationTrackChanges.map { ltc -> mapOf(
-                "publication_id" to publicationId.intValue,
-                "location_track_id" to ltc.locationTrackId.intValue,
-                "start_changed" to ltc.isStartChanged,
-                "end_changed" to ltc.isEndChanged
-            ) }.toTypedArray()
+            locationTrackChanges.map { ltc ->
+                mapOf(
+                    "publication_id" to publicationId.intValue,
+                    "location_track_id" to ltc.locationTrackId.intValue,
+                    "start_changed" to ltc.isStartChanged,
+                    "end_changed" to ltc.isEndChanged
+                )
+            }.toTypedArray()
         )
         jdbcTemplate.batchUpdate(
             """insert into publication.calculated_change_to_location_track_km

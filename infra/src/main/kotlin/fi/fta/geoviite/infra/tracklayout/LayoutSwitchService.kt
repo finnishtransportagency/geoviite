@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.pageToList
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -100,38 +101,31 @@ class LayoutSwitchService @Autowired constructor(
         return switch.getJoint(structure.presentationJointNumber)
     }
 
-    override fun listInternal(publishType: PublishType) =
-        dao.fetchVersions(publishType)
-            .map(dao::fetch)
-            .filter(TrackLayoutSwitch::exists)
-
-    fun list(
-        publishType: PublishType,
-        filter: (switch: TrackLayoutSwitch) -> Boolean,
-    ): List<TrackLayoutSwitch> {
+    fun list(publishType: PublishType, filter: (switch: TrackLayoutSwitch) -> Boolean): List<TrackLayoutSwitch> {
         logger.serviceCall("list", "publishType" to publishType, "filter" to true)
-        return listInternal(publishType).filter { s -> s.exists && filter(s) }
+        return listInternal(publishType, false).filter(filter)
     }
 
-    fun list(
-        publishType: PublishType,
-        searchTerm: String,
-        limit: Int?,
-    ): List<TrackLayoutSwitch> {
-        logger.serviceCall(
-            "list",
-            "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
-        )
-        return dao.fetchVersions(publishType)
-            .map(dao::fetch)
-            .filter { switch ->
-                switch.externalId.toString() == searchTerm ||
-                        switch.exists &&
-                        switch.name.contains(searchTerm, true)
-            }
-            .sortedBy { switch -> switch.name }
-            .let { list -> if (limit != null) list.take(limit) else list }
+    fun list(publishType: PublishType, searchTerm: FreeText, limit: Int?): List<TrackLayoutSwitch> {
+        logger.serviceCall("list",
+            "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit)
+        return searchTerm
+            .toString()
+            .trim()
+            .takeIf(String::isNotEmpty)
+            ?.let { term ->
+                listInternal(publishType, true)
+                    .filter { switch -> idMatches(term, switch) || contentMatches(term, switch) }
+                    .sortedBy(TrackLayoutSwitch::name)
+                    .let { list -> if (limit != null) list.take(limit) else list }
+        } ?: listOf()
     }
+
+    private fun idMatches(term: String, switch: TrackLayoutSwitch) =
+        switch.externalId.toString() == term || switch.id.toString() == term
+
+    private fun contentMatches(term: String, switch: TrackLayoutSwitch) =
+        switch.exists && switch.name.contains(term, true)
 
     fun pageSwitches(
         switches: List<TrackLayoutSwitch>,

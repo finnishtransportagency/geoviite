@@ -24,7 +24,7 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
 
     fun list(publishType: PublishType): List<ObjectType> {
         logger.serviceCall("list", "publishType" to publishType)
-        return listInternal(publishType)
+        return listInternal(publishType, false)
     }
 
     fun getOfficial(id: IntId<ObjectType>) = get(OFFICIAL, id)
@@ -57,8 +57,8 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         return dao.fetchChangeTimes(id)
     }
 
-    protected open fun listInternal(publishType: PublishType) =
-        dao.fetchVersions(publishType).map(dao::fetch)
+    protected fun listInternal(publishType: PublishType, includeDeleted: Boolean) =
+        dao.fetchVersions(publishType, includeDeleted).map(dao::fetch)
 
     protected fun getInternal(publishType: PublishType, id: IntId<ObjectType>): ObjectType? = when (publishType) {
         DRAFT -> dao.fetchDraftVersion(id)?.let(dao::fetch)

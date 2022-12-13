@@ -20,7 +20,7 @@ import {
     reducer,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
 import { createDelegates } from 'store/store-utils';
-import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import {
     layoutStates,
     locationTrackTypes,
@@ -47,7 +47,7 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 
 export type LocationTrackDialogProps = {
     locationTrack?: LayoutLocationTrack;
-    publishType?: PublishType;
+    publishType: PublishType;
     onClose?: () => void;
     onInsert?: (locationTrackId: LocationTrackId) => void;
     onUpdate?: () => void;
@@ -62,17 +62,15 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 ) => {
     const { t } = useTranslation();
     const startAndEndPoints =
-        props.locationTrack && props.publishType
-            ? useLocationTrackStartAndEnd(
-                  props.locationTrack.id,
-                  props.publishType,
-                  props.locationTrackChangeTime,
-              )
-            : undefined;
+        props.locationTrack &&
+        useLocationTrackStartAndEnd(
+            props.locationTrack.id,
+            props.publishType,
+            props.locationTrackChangeTime,
+        );
     const officialLocationTrack =
-        props.publishType && props.locationTrack
-            ? useLocationTrack(props.locationTrack.id, 'OFFICIAL', props.locationTrackChangeTime)
-            : undefined;
+        props.locationTrack &&
+        useLocationTrack(props.locationTrack.id, 'OFFICIAL', props.locationTrackChangeTime);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
@@ -156,6 +154,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 stateActions.onSaveSucceed(locationTrackId);
                                 props.onInsert && props.onInsert(locationTrackId);
                                 Snackbar.success(t('location-track-dialog.created-successfully'));
+                                props.onClose && props.onClose();
                             })
                             .mapErr((_err) => {
                                 stateActions.onSaveFailed();
@@ -176,6 +175,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         ? t('location-track-dialog.deleted-successfully')
                                         : t('location-track-dialog.modified-successfully');
                                 Snackbar.success(successMessage);
+                                props.onClose && props.onClose();
                             })
                             .mapErr((_err) => {
                                 stateActions.onSaveFailed();
@@ -202,8 +202,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`location-track-dialog.${error.reason}`))
+                .filter((error) => error.field == prop)
+                .map((error) => t(`location-track-dialog.${error.reason}`))
             : [];
     }
 
@@ -216,52 +216,36 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         type: 'locationTrackSearchItem';
     };
 
-    type SearchItemValue = LocationTrackItemValue;
-
-    function getLocationTrackOptions(searchTerm: string): Promise<Item<SearchItemValue>[]> {
+    function searchLocationTracks(searchTerm: string): Promise<LayoutLocationTrack[]> {
         if (isNullOrBlank(searchTerm)) {
             return Promise.resolve([]);
         }
 
-        return Promise.all([
-            props.publishType &&
-                getLocationTracksBySearchTerm(
-                    searchTerm,
-                    props.publishType, // As this is temporary, just use "OFFICIAL" for now
-                    10,
-                ),
-        ]).then((result) => {
-            const locationTracks = result[0];
-            return props.publishType && locationTracks
-                ? locationTracks.map((locationTrack) => ({
-                      name: `${locationTrack.name}, ${locationTrack.description}`,
-                      value: {
-                          type: 'locationTrackSearchItem',
-                          locationTrack: locationTrack,
-                      },
-                  }))
-                : [];
-        });
+        return getLocationTracksBySearchTerm(searchTerm, props.publishType, 10);
     }
 
     // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetLocationTrackOptions = debounceAsync(getLocationTrackOptions, 250);
+    const debouncedGetLocationTrackOptions = debounceAsync(searchLocationTracks, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
     const getDuplicateTrackOptions = React.useCallback(
         (searchTerm) =>
-            debouncedGetLocationTrackOptions(searchTerm).then((locationTrackItems) =>
-                locationTrackItems.filter((locationTrackItem) => {
-                    const locationTrack = locationTrackItem.value.locationTrack;
-                    return (
-                        locationTrack.id !== props.locationTrack?.id &&
-                        locationTrack.duplicateOf === null
-                    );
-                }),
+            debouncedGetLocationTrackOptions(searchTerm).then((locationTracks) =>
+                locationTracks
+                    .filter((lt) => {
+                        return lt.id !== props.locationTrack?.id && lt.duplicateOf === null;
+                    })
+                    .map((lt) => ({
+                        name: `${lt.name}, ${lt.description}`,
+                        value: {
+                            type: 'locationTrackSearchItem',
+                            locationTrack: lt,
+                        },
+                    })),
             ),
         [props.locationTrack?.id],
     );
 
-    function onDuplicateTrackSelected(duplicateTrack: SearchItemValue | undefined) {
+    function onDuplicateTrackSelected(duplicateTrack: LocationTrackItemValue | undefined) {
         updateProp('duplicateOf', duplicateTrack?.locationTrack?.id ?? null);
         setSelectedDuplicateTrack(duplicateTrack?.locationTrack ?? undefined);
     }
@@ -285,9 +269,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 {officialLocationTrack === undefined && !state.isNewLocationTrack && (
                                     <Button
                                         onClick={() =>
-                                            props.locationTrack
-                                                ? confirmNonDraftDelete()
-                                                : undefined
+                                            props.locationTrack && confirmNonDraftDelete()
                                         }
                                         icon={Icons.Delete}
                                         variant={ButtonVariant.WARNING}>
@@ -402,7 +384,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             errors={getVisibleErrorsByProp('description')}
                         />
 
-                        {props.duplicatesExist || props.publishType === undefined || (
+                        {props.duplicatesExist || (
                             <FieldLayout
                                 label={`${t('location-track-dialog.duplicate-of')}`}
                                 value={
@@ -479,7 +461,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={
                                         startAndEndPoints?.start
                                             ? formatTrackMeter(startAndEndPoints.start.address)
-                                            : ''
+                                            : '-'
                                     }
                                     wide
                                     disabled
@@ -493,7 +475,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={
                                         startAndEndPoints?.end
                                             ? formatTrackMeter(startAndEndPoints.end.address)
-                                            : ''
+                                            : '-'
                                     }
                                     wide
                                     disabled
@@ -510,7 +492,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                                   props.locationTrack.length,
                                                   Precision.alignmentLengthMeters,
                                               )
-                                            : ''
+                                            : '-'
                                     }
                                     wide
                                     disabled

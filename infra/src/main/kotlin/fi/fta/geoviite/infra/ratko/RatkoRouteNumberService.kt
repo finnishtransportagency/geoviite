@@ -105,9 +105,10 @@ class RatkoRouteNumberService @Autowired constructor(
             existingEndNode = existingEndNode,
         )
 
-        deleteRouteNumberPoints(routeNumberOid, routeNumberChange.changedKmNumbers)
-
+        //Update route number end points before deleting anything, otherwise old end points will stay in use
         updateRouteNumberProperties(trackNumber, endPointNodeCollection)
+
+        deleteRouteNumberPoints(routeNumberOid, routeNumberChange.changedKmNumbers)
 
         updateRouteNumberGeometry(
             routeNumberOid = routeNumberOid,
@@ -120,26 +121,15 @@ class RatkoRouteNumberService @Autowired constructor(
     private fun deleteRouteNumberPoints(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
         changedKmNumbers: Set<KmNumber>,
-    ) {
-        changedKmNumbers.forEach { kmNumber ->
-            ratkoClient.deleteRouteNumberPoints(routeNumberOid, kmNumber)
-        }
+    ) = changedKmNumbers.forEach { kmNumber ->
+        ratkoClient.deleteRouteNumberPoints(routeNumberOid, kmNumber)
     }
 
     private fun updateRouteNumberGeometry(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
         newPoints: List<AddressPoint>,
-    ) {
-        newPoints
-            .groupBy { point -> point.address.kmNumber }
-            .flatMap { (_, addressPointsForKm) ->
-                addressPointsForKm.map { addressPoint -> convertToRatkoPoint(addressPoint) }
-            }
-            .also { points ->
-                if (points.isNotEmpty()) {
-                    ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
-                }
-            }
+    ) = toRatkoPointsGroupedByKm(newPoints).forEach { points ->
+        ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
     }
 
     private fun createRouteNumber(trackNumber: TrackLayoutTrackNumber) {
@@ -159,15 +149,10 @@ class RatkoRouteNumberService @Autowired constructor(
     private fun createRouteNumberPoints(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
         addressPoints: List<AddressPoint>,
-    ) {
-        addressPoints
-            .map { point -> convertToRatkoPoint(point) }
-            .also { points ->
-                if (points.isNotEmpty()) {
-                    ratkoClient.createRouteNumberPoints(routeNumberOid, points)
-                }
-            }
+    ) = toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
+        ratkoClient.createRouteNumberPoints(routeNumberOid, points)
     }
+
 
     private fun updateRouteNumberProperties(
         trackNumber: TrackLayoutTrackNumber,

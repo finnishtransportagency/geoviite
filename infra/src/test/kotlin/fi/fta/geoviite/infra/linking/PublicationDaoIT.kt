@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.TEST_USER
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.math.Point
@@ -21,6 +23,7 @@ class PublicationDaoIT @Autowired constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val kmPostDao: LayoutKmPostDao,
     val referenceLineDao: ReferenceLineDao,
+    val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
 ): ITTestBase() {
@@ -53,6 +56,8 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(1, candidates.size)
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
+        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(null, candidates.first().operation)
     }
 
     @Test
@@ -64,6 +69,8 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(track.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
+        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
     }
 
     @Test
@@ -74,6 +81,53 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(1, candidates.size)
         assertEquals(switch.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
+        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
+    }
+
+    @Test
+    fun createOperationIsInferredCorrectly() {
+        val track = insertAndCheck(draft(locationTrack(insertOfficialTrackNumber())))
+        val candidates = publicationDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
+        assertEquals(Operation.CREATE, candidates.first().operation)
+    }
+
+    @Test
+    fun modifyOperationIsInferredCorrectly() {
+        val track = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
+        val draft = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        locationTrackService.publish(draft.id as IntId)
+        locationTrackService.saveDraft(draft(locationTrackService.getOrThrow(PublishType.OFFICIAL, draft.id as IntId).let { lt -> lt.copy(name = AlignmentName("${lt.name} TEST")) }))
+        val candidates = publicationDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
+    }
+
+    @Test
+    fun deleteOperationIsInferredCorrectly() {
+        val track = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
+        val draft = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        locationTrackService.publish(draft.id as IntId)
+        locationTrackService.saveDraft(draft(locationTrackService.getOrThrow(PublishType.OFFICIAL, draft.id as IntId).copy(state = LayoutState.DELETED)))
+        val candidates = publicationDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
+        assertEquals(Operation.DELETE, candidates.first().operation)
+    }
+
+    @Test
+    fun restoreOperationIsInferredCorrectly() {
+        val track = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
+        val draft = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT"), state = LayoutState.DELETED))
+        locationTrackService.publish(draft.id as IntId)
+        locationTrackService.saveDraft(draft(locationTrackService.getOrThrow(PublishType.OFFICIAL, draft.id as IntId).copy(state = LayoutState.IN_USE)))
+        val candidates = publicationDao.fetchLocationTrackPublishCandidates()
+        assertEquals(1, candidates.size)
+        assertEquals(track.id, candidates.first().id)
+        assertEquals(Operation.RESTORE, candidates.first().operation)
     }
 
     @Test

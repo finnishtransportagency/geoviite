@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
+import fi.fta.geoviite.infra.linking.Operation
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.TrackNumberPublishCandidate
 import fi.fta.geoviite.infra.logging.AccessType
@@ -16,6 +18,31 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+
+    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+        fetchVersions(publicationState, includeDeleted, null)
+
+    fun fetchVersions(
+        publicationState: PublishType,
+        includeDeleted: Boolean,
+        number: TrackNumber?,
+    ): List<RowVersion<TrackLayoutTrackNumber>> {
+        val sql = """
+            select row_id, row_version
+            from layout.track_number_publication_view
+            where :publication_state = any(publication_states)
+              and (:number::varchar is null or :number = number)
+              and (:include_deleted = true or state != 'DELETED')
+        """.trimIndent()
+        val params = mapOf(
+            "publication_state" to publicationState.name,
+            "include_deleted" to includeDeleted,
+            "number" to number,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
 
     fun fetchExternalIdToIdMapping(): Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>> {
         val sql = "select id, external_id from layout.track_number where external_id is not null"
@@ -41,18 +68,23 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     override fun fetch(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             select 
-              row_id,
-              row_version,
-              official_id, 
-              draft_id,
+              id as row_id,
+              version as row_version,
+              coalesce(draft_of_track_number_id, id) official_id, 
+              case when draft then id end as draft_id,
               external_id, 
               number, 
               description,
               state 
-            from layout.track_number_publication_view
-            where row_id = :id
+            from layout.track_number_version
+            where id = :id
+              and version = :version
+              and deleted = false
         """.trimIndent()
-        val params = mapOf("id" to version.id.intValue)
+        val params = mapOf(
+            "id" to version.id.intValue,
+            "version" to version.version,
+        )
         val trackNumber = getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ ->
             TrackLayoutTrackNumber(
                 id = rs.getIntId("official_id"),
@@ -142,13 +174,18 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<TrackNumberPublishCandidate> {
         val sql = """
           select
-            track_number_version.id,
-            track_number_version.change_time,
-            track_number_version.number
+            track_number_change_view.id,
+            track_number_change_view.change_time,
+            track_number_change_view.number,
+            track_number_change_view.change_user,
+            layout.infer_operation_from_state_transition(
+              track_number_change_view.old_state, 
+              track_number_change_view.state
+            ) operation
           from publication.track_number published_track_number
-            left join layout.track_number_version
-              on published_track_number.track_number_id = track_number_version.id
-                and published_track_number.track_number_version = track_number_version.version
+            left join layout.track_number_change_view
+              on published_track_number.track_number_id = track_number_change_view.id
+                and published_track_number.track_number_version = track_number_change_view.version
           where publication_id = :id
         """.trimIndent()
         return jdbcTemplate.query(
@@ -160,24 +197,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             TrackNumberPublishCandidate(
                 id = rs.getIntId("id"),
                 draftChangeTime = rs.getInstant("change_time"),
-                number = rs.getTrackNumber("number")
+                number = rs.getTrackNumber("number"),
+                userName = UserName(rs.getString("change_user")),
+                operation = rs.getEnum<Operation>("operation")
             )
         }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
-    }
-
-    fun findVersions(number: TrackNumber, publishType: PublishType): List<RowVersion<TrackLayoutTrackNumber>> {
-        val sql = """
-            select row_id, row_version
-            from layout.track_number_publication_view
-            where :number = number
-              and :publication_state = any(publication_states)
-        """.trimIndent()
-        val params = mapOf(
-            "number" to number,
-            "publication_state" to publishType.name,
-        )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
-        }
     }
 }
