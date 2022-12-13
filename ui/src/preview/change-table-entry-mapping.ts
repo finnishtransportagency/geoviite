@@ -34,17 +34,28 @@ export type ChangeTableEntry = {
 
 type TranslationFunc = (tKey: string) => string;
 
+const changeTableEntryCommonFields = (
+    candidate:
+        | LocationTrackPublishCandidate
+        | TrackNumberPublishCandidate
+        | ReferenceLinePublishCandidate
+        | SwitchPublishCandidate
+        | KmPostPublishCandidate,
+) => ({
+    id: candidate.id,
+    userName: candidate.userName,
+    changeTime: candidate.draftChangeTime,
+    operation: candidate.operation,
+});
+
 export const trackNumberToChangeTableEntry = (
     trackNumber: TrackNumberPublishCandidate,
     t: TranslationFunc,
 ) => ({
-    id: trackNumber.id,
+    ...changeTableEntryCommonFields(trackNumber),
     uiName: `${t('publication-table.track-number-long')} ${trackNumber.number}`,
     name: trackNumber.number,
-    userName: trackNumber.userName,
     trackNumber: trackNumber.number,
-    changeTime: trackNumber.draftChangeTime,
-    operation: trackNumber.operation,
 });
 
 export const referenceLineToChangeTableEntry = (
@@ -54,13 +65,10 @@ export const referenceLineToChangeTableEntry = (
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
     return {
-        id: referenceLine.id,
+        ...changeTableEntryCommonFields(referenceLine),
         uiName: `${t('publication-table.reference-line')} ${referenceLine.name}`,
         name: referenceLine.name,
-        userName: referenceLine.userName,
         trackNumber: trackNumber ? trackNumber.number : '',
-        changeTime: referenceLine.draftChangeTime,
-        operation: referenceLine.operation,
     };
 };
 
@@ -71,13 +79,10 @@ export const locationTrackToChangeTableEntry = (
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId);
     return {
-        id: locationTrack.id,
+        ...changeTableEntryCommonFields(locationTrack),
         uiName: `${t('publication-table.location-track')} ${locationTrack.name}`,
         name: locationTrack.name,
-        userName: locationTrack.userName,
         trackNumber: trackNumber ? trackNumber.number : '',
-        changeTime: locationTrack.draftChangeTime,
-        operation: locationTrack.operation,
     };
 };
 
@@ -92,13 +97,10 @@ export const switchToChangeTableEntry = (
         .map((tn) => tn.number)
         .join(', ');
     return {
-        id: layoutSwitch.id,
+        ...changeTableEntryCommonFields(layoutSwitch),
         uiName: `${t('publication-table.switch')} ${layoutSwitch.name}`,
         name: layoutSwitch.name,
-        userName: layoutSwitch.userName,
         trackNumber,
-        changeTime: layoutSwitch.draftChangeTime,
-        operation: layoutSwitch.operation,
     };
 };
 
@@ -109,12 +111,9 @@ export const kmPostChangeTableEntry = (
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === kmPost.trackNumberId);
     return {
-        id: kmPost.id,
+        ...changeTableEntryCommonFields(kmPost),
         uiName: `${t('publication-table.km-post')} ${kmPost.kmNumber}`,
         name: kmPost.kmNumber,
-        userName: kmPost.userName,
         trackNumber: trackNumber ? trackNumber.number : '',
-        changeTime: kmPost.draftChangeTime,
-        operation: kmPost.operation,
     };
 };

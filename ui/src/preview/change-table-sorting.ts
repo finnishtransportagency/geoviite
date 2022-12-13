@@ -9,6 +9,7 @@ export enum SortProps {
     CHANGE_TIME = 'CHANGE_TIME',
     USER_NAME = 'USER_NAME',
     ERRORS = 'ERRORS',
+    PUSHED_TO_RATKO = 'PUSHED_TO_RATKO',
 }
 
 export enum SortDirection {
@@ -36,16 +37,19 @@ const errorPriority = (errors: PublishValidationError[]) => {
 
 const operationPriority = (operation: Operation) => {
     if (operation === 'CREATE') return 4;
-    else if (operation === 'MODIFY') return 3;
-    else if (operation === 'DELETE') return 2;
-    else if (operation === 'RESTORE') return 1;
-    else return 0;
+    if (operation === 'MODIFY') return 3;
+    if (operation === 'DELETE') return 2;
+    if (operation === 'RESTORE') return 1;
+    return 0;
 };
 
 const nameCompare = fieldComparator((entry: { name: string }) => entry.name);
 const trackNumberCompare = fieldComparator((entry: { trackNumber: string }) => entry.trackNumber);
 const userNameCompare = fieldComparator((entry: { userName: string }) => entry.userName);
 const changeTimeCompare = fieldComparator((entry: { changeTime: string }) => entry.changeTime);
+const pushedToRatkoCompare = fieldComparator(
+    (entry: { ratkoPushDate: string | undefined }) => entry.ratkoPushDate,
+);
 const errorCompare = (
     a: { errors: PublishValidationError[] },
     b: { errors: PublishValidationError[] },
@@ -60,6 +64,7 @@ const sortFunctionsByPropName = {
     CHANGE_TIME: changeTimeCompare,
     USER_NAME: userNameCompare,
     ERRORS: errorCompare,
+    PUSHED_TO_RATKO: pushedToRatkoCompare,
 };
 
 const nextSortDirection = {
@@ -87,9 +92,13 @@ export const getSortInfoForProp = (
     function: sortFunctionsByPropName[newSortPropName],
 });
 
-export const sortDirectionIcon = (direction: SortDirection) =>
-    direction === SortDirection.ASCENDING
-        ? Icons.Ascending
-        : direction === SortDirection.DESCENDING
-        ? Icons.Descending
-        : undefined;
+export const sortDirectionIcon = (direction: SortDirection) => {
+    switch (direction) {
+        case SortDirection.ASCENDING:
+            return Icons.Ascending;
+        case SortDirection.DESCENDING:
+            return Icons.Descending;
+        case SortDirection.UNSORTED:
+            return undefined;
+    }
+};
