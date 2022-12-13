@@ -93,6 +93,14 @@ data class PublishCandidates(
     )
 }
 
+data class PublicationVersions(
+    val trackNumbers: List<RowVersion<TrackLayoutTrackNumber>>,
+    val locationTracks: List<RowVersion<LocationTrack>>,
+    val referenceLines: List<RowVersion<ReferenceLine>>,
+    val switches: List<RowVersion<TrackLayoutSwitch>>,
+    val kmPosts: List<RowVersion<TrackLayoutKmPost>>,
+)
+
 data class PublishRequest(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,

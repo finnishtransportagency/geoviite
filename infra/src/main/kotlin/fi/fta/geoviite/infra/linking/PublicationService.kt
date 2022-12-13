@@ -200,6 +200,15 @@ class PublishService @Autowired constructor(
         }
     }
 
+    @Transactional(readOnly = true)
+    fun getPublicationVersions(request: PublishRequest) = PublicationVersions(
+        trackNumbers = trackNumberDao.fetchVersions(DRAFT, false).filter { v -> request.trackNumbers.contains(v.id) },
+        referenceLines = referenceLineDao.fetchVersions(DRAFT, false).filter { v -> request.referenceLines.contains(v.id) },
+        kmPosts = kmPostDao.fetchVersions(DRAFT, false).filter { v -> request.kmPosts.contains(v.id) },
+        locationTracks = locationTrackDao.fetchVersions(DRAFT, false).filter { v -> request.locationTracks.contains(v.id) },
+        switches = switchDao.fetchVersions(DRAFT, false).filter { v -> request.switches.contains(v.id) },
+    )
+
     private fun updateExternalIdForLocationTrack(locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid = ratkoService?.let { s ->
             s.getNewLocationTrackOid() ?: throw IllegalStateException("No OID received from RATKO")
