@@ -13,7 +13,9 @@
 
     .text-area {
         .text-area__input-element {
+            min-height: 40px;
             height: 40px;
+            resize: vertical;
         }
     }
 }
