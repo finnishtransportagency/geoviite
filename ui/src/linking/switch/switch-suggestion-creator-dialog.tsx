@@ -11,11 +11,15 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchStructures } from 'common/common-api';
-import { PublishType, SwitchAlignmentId, SwitchStructureId } from 'common/common-model';
+import {
+    JointNumber,
+    PublishType,
+    SwitchAlignmentId,
+    SwitchStructureId,
+} from 'common/common-model';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { boundingBoxAroundPoints, expandBoundingBox } from 'model/geometry';
-import { reverse } from 'utils/string-utils';
 import { createSuggestedSwitch } from 'linking/linking-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
@@ -38,7 +42,7 @@ export type SwitchSuggestionCreatorProps = {
 
 type SwitchAlignmentConfig = {
     switchAlignmentId: SwitchAlignmentId;
-    switchAlignmentName: string;
+    switchAlignmentJoints: JointNumber[];
     ascending: boolean | undefined;
     locationTrackId: LocationTrackId | undefined;
 };
@@ -98,10 +102,10 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
 
                 const jointPlainNumbers =
                     switchAlignment.jointNumbers.map(switchJointNumberToString);
-                const name = jointPlainNumbers.join('-');
+
                 return {
                     switchAlignmentId: switchAlignment.id,
-                    switchAlignmentName: name,
+                    switchAlignmentJoints: jointPlainNumbers,
                     ascending: alignmentConfig ? alignmentConfig.ascending : true,
                     locationTrackId: locationTrackId,
                 };
@@ -165,6 +169,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                 if (config.switchAlignmentId == switchAlignmentId) {
                     return {
                         ...config,
+                        switchAlignmentJoints: config.switchAlignmentJoints.reverse(),
                         ascending: !config.ascending,
                     };
                 } else {
@@ -229,9 +234,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                                                     config.switchAlignmentId,
                                                 )
                                             }>
-                                            {config.ascending
-                                                ? config.switchAlignmentName
-                                                : reverse(config.switchAlignmentName)}
+                                            {config.switchAlignmentJoints.join('-')}
                                             <Icons.SwitchDirection
                                                 size={IconSize.SMALL}
                                                 color={IconColor.INHERIT}
