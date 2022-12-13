@@ -1,52 +1,52 @@
-import React from "react";
-import MapView from "map/map-view";
-import { MapViewport } from "map/map-model";
-import styles from "./form/infra-model-form.module.scss";
+import React from 'react';
+import MapView from 'map/map-view';
+import { MapViewport } from 'map/map-model';
+import styles from './form/infra-model-form.module.scss';
 import {
     EMPTY_VALIDATION_RESPONSE,
     getValidationErrorsForGeometryPlan,
     getValidationErrorsForInfraModelFile,
     saveInfraModelFile,
     updateGeometryPlan,
-    ValidationResponse
-} from "infra-model/infra-model-api";
-import InfraModelForm from "infra-model/view/form/infra-model-form";
+    ValidationResponse,
+} from 'infra-model/infra-model-api';
+import InfraModelForm from 'infra-model/view/form/infra-model-form';
 import {
     ExtraInfraModelParameters,
     InfraModelState,
     InfraModelViewType,
     OnPlanFetchReady,
-    OverrideInfraModelParameters
-} from "infra-model/infra-model-store";
+    OverrideInfraModelParameters,
+} from 'infra-model/infra-model-store';
 import {
     GeometryElement,
     GeometryElementId,
     GeometryPlan,
     GeometryPlanId,
     GeometrySwitch,
-    GeometrySwitchId
-} from "geometry/geometry-model";
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
-    OnSelectFunction
-} from "selection/selection-model";
-import { Icons } from "vayla-design-lib/icon/Icon";
-import { convertToNativeFile } from "utils/file-utils";
-import { Title } from "vayla-design-lib/title/title";
-import { Button, ButtonVariant } from "vayla-design-lib/button/button";
-import { Dialog } from "vayla-design-lib/dialog/dialog";
-import { ChangeTimes } from "track-layout/track-layout-store";
-import { Prop } from "utils/type-utils";
-import { ValidationErrorType } from "utils/validation-utils";
-import { useTranslation } from "react-i18next";
-import { InfraModelToolbar } from "infra-model/view/infra-model-toolbar";
-import { Dropdown } from "vayla-design-lib/dropdown/dropdown";
-import { Checkbox } from "vayla-design-lib/checkbox/checkbox";
-import { Menu } from "vayla-design-lib/menu/menu";
-import dialogStyles from "vayla-design-lib/dialog/dialog.scss";
-import InfraModelValidationErrorList from "infra-model/view/infra-model-validation-error-list";
+    OnSelectFunction,
+} from 'selection/selection-model';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { convertToNativeFile } from 'utils/file-utils';
+import { Title } from 'vayla-design-lib/title/title';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Dialog } from 'vayla-design-lib/dialog/dialog';
+import { ChangeTimes } from 'track-layout/track-layout-store';
+import { Prop } from 'utils/type-utils';
+import { ValidationErrorType } from 'utils/validation-utils';
+import { useTranslation } from 'react-i18next';
+import { InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
+import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+import { Menu } from 'vayla-design-lib/menu/menu';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {

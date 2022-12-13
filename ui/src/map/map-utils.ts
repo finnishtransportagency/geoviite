@@ -1,7 +1,7 @@
-import { MapTile } from "map/map-model";
-import OlView from "ol/View";
-import TileGrid from "ol/tilegrid/TileGrid";
-import { BoundingBox, Point } from "model/geometry";
+import { MapTile } from 'map/map-model';
+import OlView from 'ol/View';
+import TileGrid from 'ol/tilegrid/TileGrid';
+import { BoundingBox, Point } from 'model/geometry';
 
 // Resolutions to use to load stuff from backend
 const tileResolutions: number[] = [];
