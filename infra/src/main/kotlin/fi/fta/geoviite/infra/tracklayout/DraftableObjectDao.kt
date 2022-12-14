@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -28,6 +29,9 @@ interface IDraftableObjectReader<T : Draftable<T>> {
 
     fun fetchAllVersions(): List<RowVersion<T>>
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
+
+    fun fetchPublicationVersions(publicationState: PublishType): List<PublicationVersion<T>>
+    fun fetchPublicationVersions(publicationState: PublishType, ids: List<IntId<T>>): List<PublicationVersion<T>>
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
@@ -57,10 +61,46 @@ interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDr
 
 @Transactional(readOnly = true)
 abstract class DraftableDaoBase<T : Draftable<T>>(
-    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+jdbcTemplateParam: NamedParameterJdbcTemplate?,
     private val table: DbTable,
 ): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
 
+    override fun fetchPublicationVersions(publicationState: PublishType): List<PublicationVersion<T>> {
+        val sql = """
+            select official_id, row_id, row_version
+            from ${table.publicationView} 
+            where :publication_state = any(publication_states)
+        """.trimIndent()
+        val params = mapOf("publication_state" to publicationState.name)
+        return jdbcTemplate.query(sql, params) { rs, _ -> PublicationVersion(
+            rs.getIntId("official_id"),
+            rs.getRowVersion("row_id", "row_version"),
+        ) }
+    }
+
+    override fun fetchPublicationVersions(
+        publicationState: PublishType,
+        ids: List<IntId<T>>,
+    ): List<PublicationVersion<T>> {
+        // Empty lists don't play nice in the SQL, but the result would be empty anyhow
+        if (ids.isEmpty()) return listOf()
+        val sql = """
+            select official_id, row_id, row_version
+            from ${table.publicationView} 
+            where official_id in (:ids)
+              and :publication_state = any(publication_states)
+        """.trimIndent()
+        val params = mapOf(
+            "ids" to ids.map { id -> id.intValue },
+            "publication_state" to publicationState.name,
+        )
+        return jdbcTemplate.query<PublicationVersion<T>>(sql, params) { rs, _ -> PublicationVersion(
+            rs.getIntId("official_id"),
+            rs.getRowVersion("row_id", "row_version"),
+        ) }.also { found -> ids.forEach { id ->
+            if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
+        } }
+    }
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
 
     override fun fetchChangeTimes(id: IntId<T>): ChangeTimes {
@@ -83,7 +123,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
                 officialChanged = rs.getInstantOrNull("official_change_time"),
                 draftChanged = rs.getInstantOrNull("draft_change_time"),
             )
-        } ?: throw IllegalStateException("Failed to fetch change times: id=$id table=$table")
+        } ?: throw NoSuchEntityException(table.name, id)
     }
 
     override fun fetchAllVersions(): List<RowVersion<T>> = fetchRowVersions(table)

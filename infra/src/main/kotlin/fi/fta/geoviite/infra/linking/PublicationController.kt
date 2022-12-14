@@ -72,9 +72,11 @@ class PublicationController @Autowired constructor(
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publishService.validatePublishRequest(request)
             publishService.updateExternalId(request)
-            publishService.publishChanges(request)
+            val versions = publishService.getPublicationVersions(request)
+            publishService.validatePublishRequest(versions)
+//            publishService.validatePublishRequest(request)
+            publishService.publishChanges(versions)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",

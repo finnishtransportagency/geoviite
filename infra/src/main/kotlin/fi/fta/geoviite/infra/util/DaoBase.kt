@@ -30,6 +30,7 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     val fullName: String = "$schema.$table"
     val versionTable = "$schema.${table}_version"
     val draftLink: String = "draft_of_${table}_id"
+    val publicationView: String = "$schema.${table}_publication_view"
     val orderBy: String = sortColumns.joinToString(",")
 }
 
