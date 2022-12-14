@@ -82,6 +82,10 @@ module.exports = (env) => {
                     loader: 'ts-loader',
                 },
                 {
+                    test: /\.woff?$/,
+                    loader: 'file-loader',
+                },
+                {
                     test: /\.(png|jp(e*)g|gif)$/,
                     type: 'asset/resource',
                 },

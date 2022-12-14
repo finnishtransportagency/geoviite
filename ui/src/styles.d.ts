@@ -1,3 +1,6 @@
+declare module '*.woff';
+declare module '*.woff2';
+
 declare module '*.module.scss' {
     const styles: { [key: string]: string };
     export default styles;

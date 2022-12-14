@@ -18,38 +18,40 @@ import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
 import { useTranslation } from 'react-i18next';
 // fontsource requires fonts to be imported somewhere in code
-import "@fontsource/open-sans/400.css";
-import "@fontsource/open-sans/600.css";
+
+import '@fontsource/open-sans/400.css';
+import '@fontsource/open-sans/600.css';
 
 type MainProps = {
     layoutMode: LayoutMode;
 };
 
 const Main: React.VFC<MainProps> = (props: MainProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     return (
         <div className={styles.main}>
+
             <EnvRestricted restrictTo="test">
                 <div className={styles['main__env-banner']}>{t('environment.test')}</div>
             </EnvRestricted>
-            <AppBar />
+            <AppBar/>
             <div className={styles.main__content} qa-id="main-content-container">
                 <Routes>
-                    <Route path="/" element={<FrontpageContainer />} />
+                    <Route path="/" element={<FrontpageContainer/>}/>
                     <Route
                         path="/track-layout"
                         element={
                             props.layoutMode == 'DEFAULT' ? (
-                                <TrackLayoutContainer />
+                                <TrackLayoutContainer/>
                             ) : (
-                                <PreviewContainer />
+                                <PreviewContainer/>
                             )
                         }
                     />
-                    <Route path="/infra-model" element={<InfraModelMainContainerWithProvider />} />
-                    <Route path="/design-lib-demo" element={<GeoviiteLibDemo />} />
-                    <Route path="/localization-demo" element={<I18nDemo />} />
-                    <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
+                    <Route path="/infra-model" element={<InfraModelMainContainerWithProvider/>}/>
+                    <Route path="/design-lib-demo" element={<GeoviiteLibDemo/>}/>
+                    <Route path="/localization-demo" element={<I18nDemo/>}/>
+                    <Route path="/monitoring" element={<HttpStatusCodeGenerator/>}/>
                 </Routes>
             </div>
             <ToastContainer
@@ -61,7 +63,7 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                 pauseOnFocusLoss={false}
                 limit={3}
             />
-            <VersionHolderView />
+            <VersionHolderView/>
         </div>
     );
 };
