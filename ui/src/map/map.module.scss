@@ -118,58 +118,6 @@ $font-family: 'Open Sans';
     right: 0;
 }
 
-.map__overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 0;
-}
-
-.map__tooltip-anchor {
-    position: absolute;
-}
-
-.map__tooltip {
-    position: absolute;
-    left: 10px;
-    bottom: 10px;
-    background: $color-white-default;
-    box-shadow: 0 0 10px rgba($color-black-default, 0.2);
-}
-
-.map__tooltip-item {
-    white-space: nowrap;
-}
-
-.map__tools {
-    position: absolute;
-    top: 5px;
-    left: 0;
-    right: 0;
-    z-index: 10;
-
-    display: inline-flex;
-    justify-content: center;
-}
-
-.map__tool {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: $color-black-default;
-    background: $color-white-default;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-    margin: 2px;
-}
-
-.map__tool--active {
-    color: $color-white-default;
-    background: $color-geoviite-blue;
-}
-
 .map .ol-scale-line {
     left: auto;
     right: 18px;

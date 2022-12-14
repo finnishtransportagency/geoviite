@@ -14,7 +14,6 @@ import Geometry from 'ol/geom/Geometry';
  * This tool is used to select items on map by drawing polygons.
  */
 export const selectToolPolygon: MapTool = {
-    icon: 'fas fa-pencil-alt',
     activate: (map: OlMap, layerAdapters: OlLayerAdapter[], options: MapToolActivateOptions) => {
         // Create OL objects (layer, source etc.) to make it possible to draw polygons
         const drawFeatures = new Collection<Feature<Geometry>>();

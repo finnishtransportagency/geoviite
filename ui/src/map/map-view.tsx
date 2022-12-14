@@ -125,8 +125,8 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
         },
         resolution: view.getResolution() as number,
         area: {
-            x: {min: extent[0], max: extent[2]},
-            y: {min: extent[1], max: extent[3]},
+            x: { min: extent[0], max: extent[2] },
+            y: { min: extent[1], max: extent[3] },
         },
         source: 'Map',
     };
@@ -142,7 +142,7 @@ const MapView: React.FC<MapViewProps> = ({
     onViewportUpdate,
     ...props
 }: MapViewProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap | null>(null);
@@ -299,7 +299,9 @@ const MapView: React.FC<MapViewProps> = ({
                             mapLayer,
                             mapTiles,
                             olView.getResolution(),
-                            existingOlLayer as VectorLayer<VectorSource<ManualSwitchLinkingLayerFeatureType>>,
+                            existingOlLayer as VectorLayer<
+                                VectorSource<ManualSwitchLinkingLayerFeatureType>
+                            >,
                             selection,
                             publishType,
                         );
@@ -307,7 +309,9 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'debug1mPoints':
                         layerAdapter = createDebug1mPointsLayerAdapter(
                             mapLayer,
-                            existingOlLayer as VectorLayer<VectorSource<Debug1mPointsLayerFeatureType>>,
+                            existingOlLayer as VectorLayer<
+                                VectorSource<Debug1mPointsLayerFeatureType>
+                            >,
                             selection,
                             publishType,
                             olView.getResolution(),
@@ -420,7 +424,7 @@ const MapView: React.FC<MapViewProps> = ({
                 )}
             </div>
 
-            <LocationHolderView hoveredCoordinate={map.hoveredLocation}/>
+            <LocationHolderView hoveredCoordinate={map.hoveredLocation} />
         </div>
     );
 };
