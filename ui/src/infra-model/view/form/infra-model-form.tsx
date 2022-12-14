@@ -1,7 +1,4 @@
 import React from 'react';
-import styles from './infra-model-form.module.scss';
-import { ValidationResponse } from 'api/inframodel-api';
-import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import {
     Author,
     GeometryAlignment,
@@ -47,7 +44,6 @@ type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
     validationErrors: ValidationError<ExtraInfraModelParameters & OverrideInfraModelParameters>[];
     upLoading: boolean;
-    validationResponse: ValidationResponse | null;
     geometryPlan: GeometryPlan;
     onInfraModelOverrideParametersChange: (
         overrideInfraModelParameters: OverrideInfraModelParameters,
@@ -92,7 +88,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     changeTimes,
     validationErrors,
     upLoading,
-    validationResponse,
     geometryPlan,
     onInfraModelOverrideParametersChange,
     onInfraModelExtraParametersChange,
@@ -211,9 +206,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     }
 
     return (
-        <div className={styles['infra-model-upload__form']}>
+        <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-
             <Formgroup>
                 <FieldLayout
                     label={t('im-form.observations-field')}
@@ -232,279 +226,268 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 />
             </Formgroup>
 
-            <div className={styles['infra-model-upload__form-formgroups']}>
-                <Formgroup qa-id="im-form-project">
-                    <FormgroupContent title={t('im-form.project-information')}>
-                        <FormgroupField
-                            label={t('im-form.name-field')}
-                            inEditMode={fieldInEdit === 'planName'}
-                            onEdit={() => setFieldInEdit('planName')}
-                            onClose={() => setFieldInEdit(undefined)}>
-                            {fieldInEdit !== 'planName' ? (
-                                geometryPlan.project.name
-                            ) : (
-                                <FieldLayout
-                                    value={
-                                        <Dropdown
-                                            wide
-                                            wideList
-                                            value={geometryPlan.project.id}
-                                            options={
-                                                projects
-                                                    ? projects.map((project) => ({
-                                                          name: project.name,
-                                                          value: project.id,
-                                                      }))
-                                                    : []
-                                            }
-                                            onChange={(projectId) => {
-                                                projectId &&
-                                                    projectId != geometryPlan.project.id &&
-                                                    changeInOverrideParametersField(
-                                                        projectId,
-                                                        'projectId',
-                                                    );
-                                            }}
-                                            onAddClick={() => setShowNewProjectDialog(true)}
-                                        />
-                                    }
-                                    help={t('im-form.name-help')}
-                                />
-                            )}
-                        </FormgroupField>
-
-                        <FormgroupField
-                            label={t('im-form.oid-field')}
-                            inEditMode={fieldInEdit === 'planOid'}
-                            onEdit={() => setFieldInEdit('planOid')}
-                            onClose={() => setFieldInEdit(undefined)}>
-                            {fieldInEdit !== 'planOid' ? (
-                                <FieldLayout
-                                    value={
-                                        <InfraModelTextField hasError={hasErrors('oid')}>
-                                            {extraInframodelParameters.oid
-                                                ? extraInframodelParameters.oid
-                                                : t('im-form.information-missing')}
-                                        </InfraModelTextField>
-                                    }
-                                    errors={getVisibleErrorsByProp('oid')}
-                                />
-                            ) : (
-                                <FieldLayout
-                                    value={
-                                        <TextField
-                                            id="inframodel_oid"
-                                            value={extraInframodelParameters.oid}
-                                            hasError={hasErrors('oid')}
-                                            onBlur={() => onCommitField('oid')}
-                                            onChange={(e) =>
-                                                changeInExtraParametersField(e.target.value, 'oid')
-                                            }
-                                            wide
-                                        />
-                                    }
-                                    help={t('im-form.oid-help')}
-                                    errors={getVisibleErrorsByProp('oid')}
-                                />
-                            )}
-                        </FormgroupField>
-
-                        <FormgroupField
-                            label={t('im-form.company')}
-                            inEditMode={fieldInEdit === 'author'}
-                            onEdit={() => setFieldInEdit('author')}
-                            onClose={() => setFieldInEdit(undefined)}>
-                            {fieldInEdit === 'author' ? (
-                                <FieldLayout
-                                    value={
-                                        <Dropdown
-                                            wide
-                                            value={geometryPlan.author?.id}
-                                            options={
-                                                authors
-                                                    ? authors.map((author) => ({
-                                                          name: author.companyName,
-                                                          value: author.id,
-                                                      }))
-                                                    : []
-                                            }
-                                            onChange={(authorId) => {
-                                                authorId &&
-                                                    authorId != geometryPlan.author?.id &&
-                                                    changeInOverrideParametersField(
-                                                        authorId,
-                                                        'authorId',
-                                                    );
-                                            }}
-                                            onAddClick={() => setShowNewAuthorDialog(true)}
-                                        />
-                                    }
-                                />
-                            ) : (
-                                geometryPlan.author?.companyName
-                            )}
-                        </FormgroupField>
-                    </FormgroupContent>
-                </Formgroup>
-
-                <Formgroup qa-id="im-form-location">
-                    <FormgroupContent title={t('im-form.location-formgroup-title')}>
-                        <FormgroupField
-                            label={t('im-form.tracknumberfield')}
-                            inEditMode={fieldInEdit === 'trackNumbers'}
-                            onEdit={() => setFieldInEdit('trackNumbers')}
-                            onClose={() => setFieldInEdit(undefined)}>
-                            {trackNumberList && fieldInEdit !== 'trackNumbers' ? (
-                                getTrackNumberName()
-                            ) : (
-                                <React.Fragment>
-                                    <FieldLayout
-                                        value={
-                                            <Dropdown
-                                                placeholder={t(
-                                                    'im-form.coordinate-system-dropdown',
-                                                )}
-                                                value={
-                                                    overrideInfraModelParameters.trackNumberId
-                                                        ? overrideInfraModelParameters.trackNumberId
-                                                        : geometryPlan.trackNumberId
-                                                }
-                                                options={
-                                                    trackNumberList
-                                                        ? trackNumberList.map((tn) => ({
-                                                              name: `${tn.number}`,
-                                                              value: tn.id,
-                                                          }))
-                                                        : []
-                                                }
-                                                canUnselect
-                                                onChange={(tn) =>
-                                                    changeInOverrideParametersField(
-                                                        tn,
-                                                        'trackNumberId',
-                                                    )
-                                                }
-                                                onAddClick={openAddTrackNumberDialog}
-                                            />
+            <Formgroup qa-id="im-form-project">
+                <FormgroupContent title={t('im-form.project-information')}>
+                    <FormgroupField
+                        label={t('im-form.name-field')}
+                        inEditMode={fieldInEdit === 'planName'}
+                        onEdit={() => setFieldInEdit('planName')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {fieldInEdit !== 'planName' ? (
+                            geometryPlan.project.name
+                        ) : (
+                            <FieldLayout
+                                value={
+                                    <Dropdown
+                                        wide
+                                        wideList
+                                        value={geometryPlan.project.id}
+                                        options={
+                                            projects
+                                                ? projects.map((project) => ({
+                                                      name: project.name,
+                                                      value: project.id,
+                                                  }))
+                                                : []
                                         }
+                                        onChange={(projectId) => {
+                                            projectId &&
+                                                projectId != geometryPlan.project.id &&
+                                                changeInOverrideParametersField(
+                                                    projectId,
+                                                    'projectId',
+                                                );
+                                        }}
+                                        onAddClick={() => setShowNewProjectDialog(true)}
                                     />
-                                </React.Fragment>
-                            )}
-                        </FormgroupField>
+                                }
+                                help={t('im-form.name-help')}
+                            />
+                        )}
+                    </FormgroupField>
 
-                        <FormgroupField label={t('im-form.km-interval-field')}>
-                            {getKmRangePresentation(geometryPlan.kmPosts)}
-                        </FormgroupField>
+                    <FormgroupField
+                        label={t('im-form.oid-field')}
+                        inEditMode={fieldInEdit === 'planOid'}
+                        onEdit={() => setFieldInEdit('planOid')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {fieldInEdit !== 'planOid' ? (
+                            <FieldLayout
+                                value={
+                                    <InfraModelTextField hasError={hasErrors('oid')}>
+                                        {extraInframodelParameters.oid
+                                            ? extraInframodelParameters.oid
+                                            : t('im-form.information-missing')}
+                                    </InfraModelTextField>
+                                }
+                                errors={getVisibleErrorsByProp('oid')}
+                            />
+                        ) : (
+                            <FieldLayout
+                                value={
+                                    <TextField
+                                        id="inframodel_oid"
+                                        value={extraInframodelParameters.oid}
+                                        hasError={hasErrors('oid')}
+                                        onBlur={() => onCommitField('oid')}
+                                        onChange={(e) =>
+                                            changeInExtraParametersField(e.target.value, 'oid')
+                                        }
+                                        wide
+                                    />
+                                }
+                                help={t('im-form.oid-help')}
+                                errors={getVisibleErrorsByProp('oid')}
+                            />
+                        )}
+                    </FormgroupField>
 
-                        <FormgroupField
-                            label={t('im-form.coordinate-system-field')}
-                            inEditMode={fieldInEdit === 'coordinateSystem'}
-                            onEdit={() => setFieldInEdit('coordinateSystem')}
-                            onClose={() => setFieldInEdit(undefined)}>
-                            {fieldInEdit !== 'coordinateSystem' ? (
-                                coordinateSystem ? (
-                                    <CoordinateSystem coordinateSystem={coordinateSystem} />
-                                ) : (
-                                    t('im-form.information-missing')
-                                )
-                            ) : (
+                    <FormgroupField
+                        label={t('im-form.company')}
+                        inEditMode={fieldInEdit === 'author'}
+                        onEdit={() => setFieldInEdit('author')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {fieldInEdit === 'author' ? (
+                            <FieldLayout
+                                value={
+                                    <Dropdown
+                                        wide
+                                        value={geometryPlan.author?.id}
+                                        options={
+                                            authors
+                                                ? authors.map((author) => ({
+                                                      name: author.companyName,
+                                                      value: author.id,
+                                                  }))
+                                                : []
+                                        }
+                                        onChange={(authorId) => {
+                                            authorId &&
+                                                authorId != geometryPlan.author?.id &&
+                                                changeInOverrideParametersField(
+                                                    authorId,
+                                                    'authorId',
+                                                );
+                                        }}
+                                        onAddClick={() => setShowNewAuthorDialog(true)}
+                                    />
+                                }
+                            />
+                        ) : (
+                            geometryPlan.author?.companyName
+                        )}
+                    </FormgroupField>
+                </FormgroupContent>
+            </Formgroup>
+
+            <Formgroup qa-id="im-form-location">
+                <FormgroupContent title={t('im-form.location-formgroup-title')}>
+                    <FormgroupField
+                        label={t('im-form.tracknumberfield')}
+                        inEditMode={fieldInEdit === 'trackNumbers'}
+                        onEdit={() => setFieldInEdit('trackNumbers')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {trackNumberList && fieldInEdit !== 'trackNumbers' ? (
+                            getTrackNumberName()
+                        ) : (
+                            <React.Fragment>
                                 <FieldLayout
                                     value={
                                         <Dropdown
                                             placeholder={t('im-form.coordinate-system-dropdown')}
-                                            value={coordinateSystem?.srid}
+                                            value={
+                                                overrideInfraModelParameters.trackNumberId
+                                                    ? overrideInfraModelParameters.trackNumberId
+                                                    : geometryPlan.trackNumberId
+                                            }
                                             options={
-                                                sridList
-                                                    ? sridList.map((srid) => ({
-                                                          name: `${srid.name} ${srid.srid}`,
-                                                          value: srid.srid,
+                                                trackNumberList
+                                                    ? trackNumberList.map((tn) => ({
+                                                          name: `${tn.number}`,
+                                                          value: tn.id,
                                                       }))
                                                     : []
                                             }
                                             canUnselect
-                                            onChange={(srid) =>
-                                                changeInOverrideParametersField(
-                                                    srid,
-                                                    'coordinateSystemSrid',
-                                                )
+                                            onChange={(tn) =>
+                                                changeInOverrideParametersField(tn, 'trackNumberId')
                                             }
+                                            onAddClick={openAddTrackNumberDialog}
                                         />
                                     }
                                 />
-                            )}
-                        </FormgroupField>
+                            </React.Fragment>
+                        )}
+                    </FormgroupField>
 
-                        <InfraModelVerticalCoordinateInfoboxField
-                            fieldInEdit={fieldInEdit}
-                            setFieldInEdit={setFieldInEdit}
-                            value={
-                                overrideInfraModelParameters.verticalCoordinateSystem ||
-                                geometryPlan.units.verticalCoordinateSystem ||
-                                ''
-                            }
-                            changeInOverrideParametersField={changeInOverrideParametersField}
-                            getVisibleErrorsByProp={
-                                profileInformationAvailable(geometryPlan.alignments)
-                                    ? getVisibleErrorsByProp
-                                    : undefined
-                            }
-                        />
-                    </FormgroupContent>
-                </Formgroup>
+                    <FormgroupField label={t('im-form.km-interval-field')}>
+                        {getKmRangePresentation(geometryPlan.kmPosts)}
+                    </FormgroupField>
 
-                <Formgroup qa-id="im-form-phase-quality">
-                    <FormgroupContent title={t('im-form.phase-measurement-method-formgroup-title')}>
-                        <InfraModelPhaseField
-                            fieldInEdit={fieldInEdit}
-                            setFieldInEdit={setFieldInEdit}
-                            extraInframodelParameters={extraInframodelParameters}
-                            changeInExtraParametersField={changeInExtraParametersField}
-                        />
-                        <InfraModelDecisionPhaseField
-                            fieldInEdit={fieldInEdit}
-                            setFieldInEdit={setFieldInEdit}
-                            extraInframodelParameters={extraInframodelParameters}
-                            changeInExtraParametersField={changeInExtraParametersField}
-                        />
-                        <InfraModelMeasurementMethodField
-                            fieldInEdit={fieldInEdit}
-                            setFieldInEdit={setFieldInEdit}
-                            extraInframodelParameters={extraInframodelParameters}
-                            changeInExtraParametersField={changeInExtraParametersField}
-                        />
-                    </FormgroupContent>
-                </Formgroup>
-
-                <Formgroup qa-id="im-form-log">
-                    <FormgroupContent title={t('im-form.log-formgroup-title')}>
-                        <FormgroupField
-                            label={t('im-form.plan-time-field')}
-                            inEditMode={fieldInEdit === 'createdTime'}
-                            onEdit={() => setFieldInEdit('createdTime')}
-                            onClose={() => setFieldInEdit(undefined)}>
-                            {fieldInEdit !== 'createdTime' ? (
-                                (overrideInfraModelParameters.createdDate &&
-                                    formatDateShort(overrideInfraModelParameters.createdDate)) ||
-                                (geometryPlan.planTime
-                                    ? formatDateShort(geometryPlan.planTime)
-                                    : t('im-form.information-missing'))
+                    <FormgroupField
+                        label={t('im-form.coordinate-system-field')}
+                        inEditMode={fieldInEdit === 'coordinateSystem'}
+                        onEdit={() => setFieldInEdit('coordinateSystem')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {fieldInEdit !== 'coordinateSystem' ? (
+                            coordinateSystem ? (
+                                <CoordinateSystem coordinateSystem={coordinateSystem} />
                             ) : (
-                                <InfraModelFormChosenDateDropDowns
-                                    date={
-                                        overrideInfraModelParameters.createdDate ||
-                                        (geometryPlan.planTime ? geometryPlan.planTime : new Date())
-                                    }
-                                    handleDayChange={handleDayChange}
-                                />
-                            )}
-                        </FormgroupField>
-                    </FormgroupContent>
-                </Formgroup>
-            </div>
+                                t('im-form.information-missing')
+                            )
+                        ) : (
+                            <FieldLayout
+                                value={
+                                    <Dropdown
+                                        placeholder={t('im-form.coordinate-system-dropdown')}
+                                        value={coordinateSystem?.srid}
+                                        options={
+                                            sridList
+                                                ? sridList.map((srid) => ({
+                                                      name: `${srid.name} ${srid.srid}`,
+                                                      value: srid.srid,
+                                                  }))
+                                                : []
+                                        }
+                                        canUnselect
+                                        onChange={(srid) =>
+                                            changeInOverrideParametersField(
+                                                srid,
+                                                'coordinateSystemSrid',
+                                            )
+                                        }
+                                    />
+                                }
+                            />
+                        )}
+                    </FormgroupField>
 
-            {validationResponse && (
-                <InfraModelValidationErrorList validationResponse={validationResponse} />
-            )}
+                    <InfraModelVerticalCoordinateInfoboxField
+                        fieldInEdit={fieldInEdit}
+                        setFieldInEdit={setFieldInEdit}
+                        value={
+                            overrideInfraModelParameters.verticalCoordinateSystem ||
+                            geometryPlan.units.verticalCoordinateSystem ||
+                            ''
+                        }
+                        changeInOverrideParametersField={changeInOverrideParametersField}
+                        getVisibleErrorsByProp={
+                            profileInformationAvailable(geometryPlan.alignments)
+                                ? getVisibleErrorsByProp
+                                : undefined
+                        }
+                    />
+                </FormgroupContent>
+            </Formgroup>
+
+            <Formgroup qa-id="im-form-phase-quality">
+                <FormgroupContent title={t('im-form.phase-measurement-method-formgroup-title')}>
+                    <InfraModelPhaseField
+                        fieldInEdit={fieldInEdit}
+                        setFieldInEdit={setFieldInEdit}
+                        extraInframodelParameters={extraInframodelParameters}
+                        changeInExtraParametersField={changeInExtraParametersField}
+                    />
+                    <InfraModelDecisionPhaseField
+                        fieldInEdit={fieldInEdit}
+                        setFieldInEdit={setFieldInEdit}
+                        extraInframodelParameters={extraInframodelParameters}
+                        changeInExtraParametersField={changeInExtraParametersField}
+                    />
+                    <InfraModelMeasurementMethodField
+                        fieldInEdit={fieldInEdit}
+                        setFieldInEdit={setFieldInEdit}
+                        extraInframodelParameters={extraInframodelParameters}
+                        changeInExtraParametersField={changeInExtraParametersField}
+                    />
+                </FormgroupContent>
+            </Formgroup>
+
+            <Formgroup qa-id="im-form-log">
+                <FormgroupContent title={t('im-form.log-formgroup-title')}>
+                    <FormgroupField
+                        label={t('im-form.plan-time-field')}
+                        inEditMode={fieldInEdit === 'createdTime'}
+                        onEdit={() => setFieldInEdit('createdTime')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {fieldInEdit !== 'createdTime' ? (
+                            (overrideInfraModelParameters.createdDate &&
+                                formatDateShort(overrideInfraModelParameters.createdDate)) ||
+                            (geometryPlan.planTime
+                                ? formatDateShort(geometryPlan.planTime)
+                                : t('im-form.information-missing'))
+                        ) : (
+                            <InfraModelFormChosenDateDropDowns
+                                date={
+                                    overrideInfraModelParameters.createdDate ||
+                                    (geometryPlan.planTime ? geometryPlan.planTime : new Date())
+                                }
+                                handleDayChange={handleDayChange}
+                            />
+                        )}
+                    </FormgroupField>
+                </FormgroupContent>
+            </Formgroup>
 
             {showNewAuthorDialog && (
                 <NewAuthorDialog
@@ -534,7 +517,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                     }}
                 />
             )}
-        </div>
+        </React.Fragment>
     );
 };
 

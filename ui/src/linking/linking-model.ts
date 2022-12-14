@@ -42,14 +42,6 @@ export type LocationTrackSaveRequest = {
     topologicalConnectivity?: TopologicalConnectivityType;
 };
 
-export type LocationTrackTypeUpdateRequest = {
-    updateType: LocationTrackPointUpdateType;
-};
-
-export type LocationTrackEndPointConnectedUpdateRequest = LocationTrackTypeUpdateRequest & {
-    connectedLocationTrackId: LocationTrackId;
-};
-
 export type LocationTrackSaveError = {
     validationErrors: string[];
 };
@@ -96,7 +88,7 @@ export type LinkInterval = {
     start?: LinkPoint;
     end?: LinkPoint;
 };
-export const emptyLinkInterval = {start: undefined, end: undefined};
+export const emptyLinkInterval = { start: undefined, end: undefined };
 
 type LinkingBaseType = {
     type: LinkingType;
@@ -149,7 +141,7 @@ export type LinkingSwitch = LinkingBaseType & {
 
 export type PlacingSwitch = LinkingBaseType & {
     type: LinkingType.PlacingSwitch;
-    layoutSwitch: LayoutSwitch,
+    layoutSwitch: LayoutSwitch;
     location?: Point;
 };
 
@@ -157,7 +149,6 @@ export type LinkingKmPost = LinkingBaseType & {
     type: LinkingType.LinkingKmPost;
     geometryKmPostId: GeometryKmPostId;
 };
-
 
 export type KmPostSaveRequest = {
     kmNumber: KmNumber;
@@ -312,8 +303,6 @@ export type LocationTrackEndpoint = {
     location: Point;
     updateType: LocationTrackPointUpdateType;
 };
-
-export type LinkingIssue = LocationTrackEndpoint;
 
 export type SuggestedSwitchCreateParamsAlignmentMapping = {
     switchAlignmentId: SwitchAlignmentId;

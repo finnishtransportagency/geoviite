@@ -302,7 +302,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                         </InfoboxButtons>
                     )}
                     {linkingState && (
-                        <div>
+                        <React.Fragment>
                             <InfoboxContentSpread>
                                 <MessageBox pop={showInvalidSwitchError}>
                                     {t(
@@ -326,7 +326,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                     {t('tool-panel.switch.geometry.save-link')}
                                 </Button>
                             </InfoboxButtons>
-                        </div>
+                        </React.Fragment>
                     )}
                 </InfoboxContent>
             </Infobox>

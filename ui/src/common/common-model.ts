@@ -1,10 +1,5 @@
 import { Point } from 'model/geometry';
-import {
-    LayoutPoint,
-    LayoutSwitchId,
-    LocationTrackId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -132,11 +127,5 @@ export enum LayoutEndPoint {
     HAAPARANTA = 'HAAPARANTA',
     */
 }
-
-export type LocationTrackEndPoint = {
-    type: LayoutEndPoint;
-    alignmentId: LocationTrackId | ReferenceLineId;
-    switchId: LayoutSwitchId;
-};
 
 export type TimeStamp = string;

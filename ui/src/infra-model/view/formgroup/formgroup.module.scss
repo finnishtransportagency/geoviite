@@ -3,9 +3,6 @@
 @import '../../../vayla-design-lib/shadows';
 
 .formgroup {
-    display: flex;
-    flex-direction: column;
-
     &__title {
         @include typography-heading-small;
         padding: 5px 0;
@@ -13,8 +10,7 @@
     }
 
     &__content {
-        margin: 0;
-        padding: 0 0 10px 0;
+        margin-bottom: 10px;
     }
 
     &__field {
@@ -26,17 +22,15 @@
 
     &__field-label {
         @include typography-caption;
+        line-height: 20px;
         color: $color-black-light;
-        display: flex;
-        align-items: start;
         width: 50%;
         max-width: 120px;
     }
 
     &__field-value {
         @include typography-body;
-        flex: 1;
-        align-items: start;
+        width: 100%;
         margin-left: 24px;
     }
 
@@ -44,19 +38,5 @@
         padding: 0 5px;
         cursor: pointer;
         margin-right: 20px;
-    }
-
-    &__text {
-        display: flex;
-        margin-bottom: 12px;
-        align-items: center;
-
-        & > * {
-            margin-right: 10px;
-        }
-    }
-
-    &__row {
-        margin-bottom: 12px;
     }
 }

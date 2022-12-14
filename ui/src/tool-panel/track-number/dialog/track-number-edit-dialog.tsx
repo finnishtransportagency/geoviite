@@ -302,7 +302,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                     value={
                                         startAndEndPoints?.end
                                             ? formatTrackMeter(startAndEndPoints.end.address)
-                                            : ''
+                                            : '-'
                                     }
                                     wide
                                     disabled

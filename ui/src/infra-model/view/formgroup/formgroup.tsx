@@ -1,5 +1,4 @@
 import React from 'react';
-import styles from './formgroup.module.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
 export type FormGroupProps = {
@@ -7,7 +6,7 @@ export type FormGroupProps = {
 };
 
 const Formgroup: React.FC<FormGroupProps> = (props: FormGroupProps) => {
-    const className = createClassName(styles.formgroup);
+    const className = createClassName('formgroup');
     return (
         <div className={className} {...props}>
             {props.children}

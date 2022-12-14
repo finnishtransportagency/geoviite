@@ -152,66 +152,31 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
         setSortInfo(newSortInfo);
     };
 
+    const sortableTableHeader = (prop: SortProps, translationKey: string) => (
+        <Th
+            onClick={() => sortByProp(prop)}
+            icon={sortInfo.propName === prop ? sortDirectionIcon(sortInfo.direction) : undefined}>
+            {t(translationKey)}
+        </Th>
+    );
+
     return (
         <div className={styles['publication-table__container']}>
             <Table wide>
                 <thead className={styles['publication-table__header']}>
                     <tr>
-                        <Th
-                            onClick={() => sortByProp(SortProps.NAME)}
-                            icon={
-                                sortInfo.propName === SortProps.NAME
-                                    ? sortDirectionIcon(sortInfo.direction)
-                                    : undefined
-                            }>
-                            {t('publication-table.change-target')}
-                        </Th>
-                        <Th
-                            onClick={() => sortByProp(SortProps.TRACK_NUMBER)}
-                            icon={
-                                sortInfo.propName === SortProps.TRACK_NUMBER
-                                    ? sortDirectionIcon(sortInfo.direction)
-                                    : undefined
-                            }>
-                            {t('publication-table.track-number-short')}
-                        </Th>
-                        <Th
-                            onClick={() => sortByProp(SortProps.OPERATION)}
-                            icon={
-                                sortInfo.propName === SortProps.OPERATION
-                                    ? sortDirectionIcon(sortInfo.direction)
-                                    : undefined
-                            }>
-                            {t('publication-table.change-type')}
-                        </Th>
-                        <Th
-                            onClick={() => sortByProp(SortProps.CHANGE_TIME)}
-                            icon={
-                                sortInfo.propName === SortProps.CHANGE_TIME
-                                    ? sortDirectionIcon(sortInfo.direction)
-                                    : undefined
-                            }>
-                            {t('publication-table.modified-moment')}
-                        </Th>
-                        <Th
-                            onClick={() => sortByProp(SortProps.USER_NAME)}
-                            icon={
-                                sortInfo.propName === SortProps.USER_NAME
-                                    ? sortDirectionIcon(sortInfo.direction)
-                                    : undefined
-                            }>
-                            {t('publication-table.user')}
-                        </Th>
-                        <Th
-                            onClick={() => sortByProp(SortProps.ERRORS)}
-                            icon={
-                                sortInfo.propName === SortProps.ERRORS
-                                    ? sortDirectionIcon(sortInfo.direction)
-                                    : undefined
-                            }>
-                            {t('publication-table.status')}
-                        </Th>
-
+                        {sortableTableHeader(SortProps.NAME, 'publication-table.change-target')}
+                        {sortableTableHeader(
+                            SortProps.TRACK_NUMBER,
+                            'publication-table.track-number-short',
+                        )}
+                        {sortableTableHeader(SortProps.OPERATION, 'publication-table.change-type')}
+                        {sortableTableHeader(
+                            SortProps.CHANGE_TIME,
+                            'publication-table.modified-moment',
+                        )}
+                        {sortableTableHeader(SortProps.USER_NAME, 'publication-table.user')}
+                        {sortableTableHeader(SortProps.ERRORS, 'publication-table.status')}
                         <Th>{t('publication-table.actions')}</Th>
                     </tr>
                 </thead>

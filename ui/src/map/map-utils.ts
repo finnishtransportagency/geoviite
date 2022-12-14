@@ -55,7 +55,7 @@ export function calculateTileSize(tileCount: number): number {
 }
 
 export function calculateBoundingBoxToShowAroundLocation(location: Point): BoundingBox {
-    const bbox = {
+    return {
         x: {
             max: location.x + offset,
             min: location.x - offset,
@@ -65,6 +65,4 @@ export function calculateBoundingBoxToShowAroundLocation(location: Point): Bound
             min: location.y - offset,
         },
     };
-
-    return bbox;
 }

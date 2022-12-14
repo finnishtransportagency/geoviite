@@ -9,6 +9,7 @@ export enum SortProps {
     CHANGE_TIME = 'CHANGE_TIME',
     USER_NAME = 'USER_NAME',
     ERRORS = 'ERRORS',
+    PUSHED_TO_RATKO = 'PUSHED_TO_RATKO',
 }
 
 export enum SortDirection {
@@ -27,7 +28,7 @@ const includesErrors = (errors: PublishValidationError[]) =>
     errors.some((err) => err.type == 'ERROR');
 const includesWarnings = (errors: PublishValidationError[]) =>
     errors.some((err) => err.type == 'WARNING');
-const errorPriority = (errors: PublishValidationError[]) => {
+const errorSeverityPriority = (errors: PublishValidationError[]) => {
     let priority = 0;
     if (includesErrors(errors)) priority += 2;
     if (includesWarnings(errors)) priority += 1;
@@ -36,20 +37,26 @@ const errorPriority = (errors: PublishValidationError[]) => {
 
 const operationPriority = (operation: Operation) => {
     if (operation === 'CREATE') return 4;
-    else if (operation === 'MODIFY') return 3;
-    else if (operation === 'DELETE') return 2;
-    else if (operation === 'RESTORE') return 1;
-    else return 0;
+    if (operation === 'MODIFY') return 3;
+    if (operation === 'DELETE') return 2;
+    if (operation === 'RESTORE') return 1;
+    return 0;
 };
 
-const nameCompare = fieldComparator((entry: { name: string }) => entry.name);
+const nameCompare = fieldComparator((entry: { name: string }) => entry.name.toLocaleLowerCase());
 const trackNumberCompare = fieldComparator((entry: { trackNumber: string }) => entry.trackNumber);
 const userNameCompare = fieldComparator((entry: { userName: string }) => entry.userName);
 const changeTimeCompare = fieldComparator((entry: { changeTime: string }) => entry.changeTime);
-const errorCompare = (
+const pushedToRatkoCompare = fieldComparator(
+    (entry: { ratkoPushDate: string | undefined }) => entry.ratkoPushDate,
+);
+const errorListCompare = (
     a: { errors: PublishValidationError[] },
     b: { errors: PublishValidationError[] },
-) => errorPriority(b.errors) - errorPriority(a.errors);
+) => {
+    const priorityBySeverity = errorSeverityPriority(b.errors) - errorSeverityPriority(a.errors);
+    return priorityBySeverity !== 0 ? priorityBySeverity : b.errors.length - a.errors.length;
+};
 const operationCompare = (a: { operation: Operation }, b: { operation: Operation }) =>
     operationPriority(b.operation) - operationPriority(a.operation);
 
@@ -59,7 +66,8 @@ const sortFunctionsByPropName = {
     OPERATION: operationCompare,
     CHANGE_TIME: changeTimeCompare,
     USER_NAME: userNameCompare,
-    ERRORS: errorCompare,
+    ERRORS: errorListCompare,
+    PUSHED_TO_RATKO: pushedToRatkoCompare,
 };
 
 const nextSortDirection = {
@@ -87,9 +95,13 @@ export const getSortInfoForProp = (
     function: sortFunctionsByPropName[newSortPropName],
 });
 
-export const sortDirectionIcon = (direction: SortDirection) =>
-    direction === SortDirection.ASCENDING
-        ? Icons.Ascending
-        : direction === SortDirection.DESCENDING
-        ? Icons.Descending
-        : undefined;
+export const sortDirectionIcon = (direction: SortDirection) => {
+    switch (direction) {
+        case SortDirection.ASCENDING:
+            return Icons.Ascending;
+        case SortDirection.DESCENDING:
+            return Icons.Descending;
+        case SortDirection.UNSORTED:
+            return undefined;
+    }
+};

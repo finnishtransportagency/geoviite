@@ -11,7 +11,3 @@ export function isEqualWithoutWhitespace(str1: string, str2: string): boolean {
 export function isEmpty(str: string) {
     return str.length == 0 || isNullOrBlank(str);
 }
-
-export function reverse(str: string) {
-    return str.split('').reverse().join('');
-}

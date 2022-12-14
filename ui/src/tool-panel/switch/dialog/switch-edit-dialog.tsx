@@ -495,7 +495,8 @@ export const SwitchEditDialog = ({
                         <>
                             <Button
                                 onClick={() => setShowConfirmationDialog(false)}
-                                variant={ButtonVariant.SECONDARY}>
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={isSaving}>
                                 {t('button.cancel')}
                             </Button>
                             {isSaving ? <Spinner/> : <Button onClick={save}>{t('button.save')}</Button>}

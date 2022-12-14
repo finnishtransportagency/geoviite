@@ -76,18 +76,6 @@
         "continue": "Jatka",
         "yes": "Kyllä"
     },
-    "critical-warnings-dialog": {
-        "title": "Haluatko varmasti tallentaa?",
-        "sub-title": "Seuraavat kriittiset tiedot puuttuvat",
-        "oid": "Projektin OID",
-        "trackNumberId": "Ratanumero",
-        "planPhase": "Suunnitteluvaihe",
-        "decisionPhase": "Vaiheen tarkennus",
-        "measurementMethod": "Laatu",
-        "coordinateSystemSrid": "Koordinaattijärjestelmä",
-        "verticalCoordinateSystem": "Korkeusjärjestelmä",
-        "error-message": "Tiedostossa on virheitä"
-    },
     "yes": "Kyllä",
     "no": "Ei",
     "test": {
