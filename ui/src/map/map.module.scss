@@ -122,17 +122,41 @@ $font-family: 'Open Sans';
     left: auto;
     right: 18px;
     background-color: rgba($color-white-default, 0.6);
+    padding: 4px 8px;
 
     .ol-scale-line-inner {
         @include typography-body-strong;
 
         $map-scale-line-color: $color-black-light;
         color: $map-scale-line-color;
-
+        margin: 0;
         border: 2px solid $map-scale-line-color;
         border-top: none;
         border-bottom-left-radius: 2px;
         border-bottom-right-radius: 2px;
+    }
+}
+
+.ol-zoom {
+    background-color: rgba($color-white-default, 0.6);
+    padding: 2px 4px;
+    margin: 0;
+    top: 5px;
+    left: 10px;
+
+    .ol-zoom-in,
+    .ol-zoom-out {
+        margin: 2px 0;
+        cursor: pointer;
+        background-color: $color-blue-default;
+
+        &:focus {
+            background-color: $color-blue-default;
+        }
+
+        &:hover {
+            background-color: $color-blue-light;
+        }
     }
 }
 
