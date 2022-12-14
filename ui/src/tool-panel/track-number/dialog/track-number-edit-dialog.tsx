@@ -59,12 +59,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
 }: TrackNumberEditDialogContainerProps) => {
     const trackNumbers = useTrackNumbers('DRAFT');
     const editReferenceLine = useTrackNumberReferenceLine(editTrackNumberId, 'DRAFT');
-    const officialTrackNumbers = useTrackNumbers('OFFICIAL');
-    const isDeletable =
-        officialTrackNumbers &&
-        !officialTrackNumbers.some(
-            (officialTrackNumber) => officialTrackNumber.id === editTrackNumberId,
-        );
+    const isDeletable = editReferenceLine?.draftType === 'NEW_DRAFT';
 
     if (trackNumbers !== undefined && (!editTrackNumberId || editReferenceLine)) {
         return (
