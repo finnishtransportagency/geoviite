@@ -5,8 +5,8 @@ export enum Precision {
     TM35FIN,
     profileMeters,
     alignmentLengthMeters,
-    kmNumberMeters,
-    kmNumberMillimeters,
+    measurementMeterDistance,
+    measurementKmDistance,
 }
 
 export function roundToPrecision(n: number, precision: Precision): string {
@@ -23,9 +23,9 @@ export function roundToPrecision(n: number, precision: Precision): string {
             return n.toFixed(3);
         case Precision.alignmentLengthMeters:
             return n.toFixed(1);
-        case Precision.kmNumberMeters:
-            return n.toFixed(0);
-        case Precision.kmNumberMillimeters:
+        case Precision.measurementKmDistance:
+            return n.toFixed(1);
+        case Precision.measurementMeterDistance:
             return n.toFixed(3);
     }
 }

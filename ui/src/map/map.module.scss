@@ -103,6 +103,12 @@ $font-family: 'Open Sans';
     notLinkedSwitchLabelBorder: rgba($color-black-default, 0.5);
 }
 
+//Measure tooltip styling
+:export {
+    measureTooltipStroke: $color-black-lighter;
+    measureTooltipCircleStroke: $color-black-light;
+}
+
 .map {
     position: relative;
     color: $color-black-default;
@@ -118,73 +124,44 @@ $font-family: 'Open Sans';
     right: 0;
 }
 
-.map__overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 0;
-    height: 0;
-}
-
-.map__tooltip-anchor {
-    position: absolute;
-}
-
-.map__tooltip {
-    position: absolute;
-    left: 10px;
-    bottom: 10px;
-    background: $color-white-default;
-    box-shadow: 0 0 10px rgba($color-black-default, 0.2);
-}
-
-.map__tooltip-item {
-    white-space: nowrap;
-}
-
-.map__tools {
-    position: absolute;
-    top: 5px;
-    left: 0;
-    right: 0;
-    z-index: 10;
-
-    display: inline-flex;
-    justify-content: center;
-}
-
-.map__tool {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: $color-black-default;
-    background: $color-white-default;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-    margin: 2px;
-}
-
-.map__tool--active {
-    color: $color-white-default;
-    background: $color-geoviite-blue;
-}
-
 .map .ol-scale-line {
     left: auto;
     right: 18px;
     background-color: rgba($color-white-default, 0.6);
+    padding: 4px 8px;
 
     .ol-scale-line-inner {
         @include typography-body-strong;
 
-        $map-scale-line-color: $color-black-light;
-        color: $map-scale-line-color;
-
-        border: 2px solid $map-scale-line-color;
+        color: $color-black-default;
+        margin: 0;
+        border: 2px solid $color-black-default;
         border-top: none;
         border-bottom-left-radius: 2px;
         border-bottom-right-radius: 2px;
+    }
+}
+
+.ol-zoom {
+    background-color: rgba($color-white-default, 0.6);
+    padding: 2px 4px;
+    margin: 0;
+    top: 5px;
+    left: 10px;
+
+    .ol-zoom-in,
+    .ol-zoom-out {
+        margin: 2px 0;
+        cursor: pointer;
+        background-color: $color-blue-default;
+
+        &:focus {
+            background-color: $color-blue-default;
+        }
+
+        &:hover {
+            background-color: $color-blue-light;
+        }
     }
 }
 
@@ -202,4 +179,46 @@ $font-family: 'Open Sans';
     &:hover {
         background: $color-blue-dark;
     }
+}
+
+.map__map-tools {
+    position: absolute;
+    top: 5px;
+    right: 15px;
+    z-index: 20;
+    list-style: none;
+    margin: 0;
+    padding: 2px;
+    border-radius: 4px;
+
+    background-color: rgba($color-white-default, 0.6);
+}
+
+.map__map-tool {
+    cursor: pointer;
+    padding: 2px;
+
+    &:not(:last-child) {
+        margin-bottom: 4px;
+    }
+
+    .icon {
+        fill: $color-black-default;
+    }
+
+    &:hover,
+    &--active {
+        .icon {
+            fill: $color-blue-dark;
+        }
+    }
+}
+
+.ol-tooltip-measure {
+    @include typography-caption;
+
+    color: $color-white-default;
+    background-color: rgba($color-black-default, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
