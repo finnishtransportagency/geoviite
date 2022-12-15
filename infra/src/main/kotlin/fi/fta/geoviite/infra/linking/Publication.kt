@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
@@ -69,20 +70,20 @@ data class PublishCandidates(
     val switches: List<SwitchPublishCandidate>,
     val kmPosts: List<KmPostPublishCandidate>,
 ) {
-    fun filteredToRequest(publishRequest: PublishRequest): PublishCandidates {
-        val trackNumberIds = publishRequest.trackNumbers.toSet()
-        val locationTrackIds = publishRequest.locationTracks.toSet()
-        val referenceLineIds = publishRequest.referenceLines.toSet()
-        val switchIds = publishRequest.switches.toSet()
-        val kmPostIds = publishRequest.kmPosts.toSet()
-        return PublishCandidates(
-            trackNumbers.filter { candidate -> trackNumberIds.contains(candidate.id) },
-            locationTracks.filter { candidate -> locationTrackIds.contains(candidate.id) },
-            referenceLines.filter { candidate -> referenceLineIds.contains(candidate.id) },
-            switches.filter { candidate -> switchIds.contains(candidate.id) },
-            kmPosts.filter { candidate -> kmPostIds.contains(candidate.id) },
+    fun splitByRequest(versions: PublicationVersions) =
+        PublishCandidates(
+            trackNumbers.filter { candidate -> versions.contains(candidate.id) },
+            locationTracks.filter { candidate -> versions.contains(candidate.id) },
+            referenceLines.filter { candidate -> versions.contains(candidate.id) },
+            switches.filter { candidate -> versions.contains(candidate.id) },
+            kmPosts.filter { candidate -> versions.contains(candidate.id) },
+        ) to PublishCandidates(
+            trackNumbers.filterNot { candidate -> versions.contains(candidate.id) },
+            locationTracks.filterNot { candidate -> versions.contains(candidate.id) },
+            referenceLines.filterNot { candidate -> versions.contains(candidate.id) },
+            switches.filterNot { candidate -> versions.contains(candidate.id) },
+            kmPosts.filterNot { candidate -> versions.contains(candidate.id) },
         )
-    }
 
     fun ids(): PublishRequest = PublishRequest(
         trackNumbers.map { candidate -> candidate.id },
@@ -91,15 +92,30 @@ data class PublishCandidates(
         switches.map { candidate -> candidate.id },
         kmPosts.map { candidate -> candidate.id },
     )
+
+    fun getTrackNumber(id: IntId<TrackLayoutTrackNumber>): TrackNumberPublishCandidate = getOrThrow(trackNumbers, id)
+    fun getLocationTrack(id: IntId<LocationTrack>): LocationTrackPublishCandidate = getOrThrow(locationTracks, id)
+    fun getReferenceLine(id: IntId<ReferenceLine>): ReferenceLinePublishCandidate = getOrThrow(referenceLines, id)
+    fun getKmPost(id: IntId<TrackLayoutKmPost>): KmPostPublishCandidate = getOrThrow(kmPosts, id)
+    fun getSwitch(id: IntId<TrackLayoutSwitch>): SwitchPublishCandidate = getOrThrow(switches, id)
 }
+private inline fun <reified T, reified S: PublishCandidate<T>> getOrThrow(all: List<S>, id: IntId<T>) =
+    all.find { c -> c.id == id } ?: throw NoSuchEntityException(S::class, id)
 
 data class PublicationVersions(
+    // TODO: switch the structures for maps
     val trackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
     val locationTracks: List<PublicationVersion<LocationTrack>>,
     val referenceLines: List<PublicationVersion<ReferenceLine>>,
     val switches: List<PublicationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
-)
+) {
+    fun contains(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.any { it.officialId == id }
+    fun contains(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
+    fun contains(id: IntId<ReferenceLine>) = referenceLines.any { it.officialId == id }
+    fun contains(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
+    fun contains(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
+}
 
 data class PublicationVersion<T>(val officialId: IntId<T>, val rowVersion: RowVersion<T>)
 

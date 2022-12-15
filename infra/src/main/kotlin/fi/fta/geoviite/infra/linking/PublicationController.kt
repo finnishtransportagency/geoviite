@@ -39,7 +39,7 @@ class PublicationController @Autowired constructor(
     @PostMapping("/validate")
     fun validatePublishCandidates(@RequestBody publishRequest: PublishRequest): ValidatedPublishCandidates {
         logger.apiCall("validatePublishCandidates")
-        return publishService.validatePublishCandidates(publishRequest)
+        return publishService.validatePublishCandidates(publishService.getPublicationVersions(publishRequest))
     }
 
     @PreAuthorize(AUTH_ALL_READ)

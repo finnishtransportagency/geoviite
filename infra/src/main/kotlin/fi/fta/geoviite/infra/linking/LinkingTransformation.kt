@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -303,3 +304,8 @@ fun getSegmentsWithoutSwitchInformation(segments: List<MapSegment>): List<Layout
         )
     }
 }
+
+fun isLinkedToSwitch(locationTrack: LocationTrack, alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>) =
+    locationTrack.topologyStartSwitch?.switchId == switchId ||
+            locationTrack.topologyEndSwitch?.switchId == switchId ||
+            alignment.segments.any { seg -> seg.switchId == switchId }

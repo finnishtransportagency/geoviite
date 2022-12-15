@@ -359,7 +359,8 @@ fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?
     if (previous == null || next == null) true
     else previous.distance < next.distance
 
-fun validateAddressPoints(
+// TODO
+fun validateAddressPointsNOTFIXED(
     trackNumber: TrackLayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,

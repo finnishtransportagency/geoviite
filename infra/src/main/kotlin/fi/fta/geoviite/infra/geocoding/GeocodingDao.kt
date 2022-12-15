@@ -16,32 +16,33 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-interface GeocodingContextCacheKey {
-    val trackNumberId: IntId<TrackLayoutTrackNumber>;
-    val changeTime: Instant;
-    val publishType: PublishType
+data class GeocodingContextCacheKey (
+    val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
+    val referenceLineVersion: RowVersion<ReferenceLine>,
+    val kmPostVersions: RowVersion<TrackLayoutKmPost>,
+//    val changeTime: Instant
+//    val publishType: PublishType
+//    fun fetchVersions(kmPostDao: LayoutKmPostDao): List<RowVersion<TrackLayoutKmPost>>
+ )
 
-    fun fetchVersions(kmPostDao: LayoutKmPostDao): List<RowVersion<TrackLayoutKmPost>>
-}
-
-data class OrdinaryGeocodingContextCacheKey(
-    override val publishType: PublishType,
-    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    override val changeTime: Instant,
-) : GeocodingContextCacheKey {
-    override fun fetchVersions(kmPostDao: LayoutKmPostDao): List<RowVersion<TrackLayoutKmPost>> =
-        kmPostDao.fetchVersions(publishType, false, trackNumberId, null)
-}
-
-data class PublicationGeocodingContextCacheKey(
-    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    override val changeTime: Instant,
-    val kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
-) : GeocodingContextCacheKey {
-    override val publishType = PublishType.DRAFT
-    override fun fetchVersions(kmPostDao: LayoutKmPostDao): List<RowVersion<TrackLayoutKmPost>> =
-        kmPostDao.fetchVersionsForPublication(trackNumberId, kmPostIdsToPublish)
-}
+//data class OrdinaryGeocodingContextCacheKey(
+//    override val publishType: PublishType,
+//    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
+//    override val changeTime: Instant,
+//) : GeocodingContextCacheKey {
+//    override fun fetchVersions(kmPostDao: LayoutKmPostDao): List<RowVersion<TrackLayoutKmPost>> =
+//        kmPostDao.fetchVersions(publishType, false, trackNumberId, null)
+//}
+//
+//data class PublicationGeocodingContextCacheKey(
+//    override val trackNumberId: IntId<TrackLayoutTrackNumber>,
+//    override val changeTime: Instant,
+//    val kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
+//) : GeocodingContextCacheKey {
+//    override val publishType = PublishType.DRAFT
+//    override fun fetchVersions(kmPostDao: LayoutKmPostDao): List<RowVersion<TrackLayoutKmPost>> =
+////        kmPostDao.fetchVersionsForPublication(trackNumberId, kmPostIdsToPublish)
+//}
 
 @Transactional(readOnly = true)
 @Component
