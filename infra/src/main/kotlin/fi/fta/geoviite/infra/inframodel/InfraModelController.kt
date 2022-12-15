@@ -86,6 +86,7 @@ class InfraModelController @Autowired constructor(
             infraModelService.saveInfraModel(file, overrideParameters, extraInfoParameters).id)
     }
 
+    @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/validate")
     fun validateFile(
         @RequestPart(value = "file") file: MultipartFile,
