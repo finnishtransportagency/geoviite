@@ -28,7 +28,7 @@ import { createEmptyItemCollections } from 'selection/selection-store';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
-    request: PublishRequest;
+    request: PublishRequest | undefined;
     onClosePreview: () => void;
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;
@@ -83,12 +83,13 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     const [isPublishing, setPublishing] = React.useState(false);
     const [isReverting, setReverting] = React.useState(false);
 
-    const emptyRequest =
-        props.request.trackNumbers.length == 0 &&
-        props.request.kmPosts.length == 0 &&
-        props.request.referenceLines.length == 0 &&
-        props.request.locationTracks.length == 0 &&
-        props.request.switches.length == 0;
+    const emptyRequest = props.request
+        ? props.request.trackNumbers.length == 0 &&
+          props.request.kmPosts.length == 0 &&
+          props.request.referenceLines.length == 0 &&
+          props.request.locationTracks.length == 0 &&
+          props.request.switches.length == 0
+        : true;
 
     const revert = () => {
         setReverting(true);
@@ -110,20 +111,22 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     };
 
     const publish = () => {
-        setPublishing(true);
-        publishCandidates(props.request)
-            .then((r) => {
-                if (r.isOk()) {
-                    const result = r.unwrapOr(null);
-                    Snackbar.success(t('publish.publish-success'), describeResult(result));
-                    updateChangeTimes(result);
-                    props.onClosePreview();
-                }
-            })
-            .finally(() => {
-                setPublishConfirmVisible(false);
-                setPublishing(false);
-            });
+        if (props.request) {
+            setPublishing(true);
+            publishCandidates(props.request)
+                .then((r) => {
+                    if (r.isOk()) {
+                        const result = r.unwrapOr(null);
+                        Snackbar.success(t('publish.publish-success'), describeResult(result));
+                        updateChangeTimes(result);
+                        props.onClosePreview();
+                    }
+                })
+                .finally(() => {
+                    setPublishConfirmVisible(false);
+                    setPublishing(false);
+                });
+        }
     };
 
     return (

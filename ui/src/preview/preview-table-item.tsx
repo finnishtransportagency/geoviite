@@ -6,6 +6,7 @@ import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import { Operation, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 export type PreviewTableItemProps = {
     itemName: string;
@@ -14,6 +15,7 @@ export type PreviewTableItemProps = {
     changeTime: TimeStamp;
     operation: Operation | null;
     userName: string;
+    pendingValidation: boolean;
     onPublishItemSelect?: () => void;
     publish?: boolean;
 };
@@ -25,6 +27,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     changeTime,
     operation,
     userName,
+    pendingValidation,
     onPublishItemSelect,
     publish = false,
 }) => {
@@ -53,25 +56,31 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
                 <td>{formatDateFull(changeTime)}</td>
                 <td>{userName}</td>
-                <td
-                    className={statusCellClassName}
-                    onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
-                    {!hasErrors && (
-                        <span className={styles['preview-table-item__ok-status']}>
-                            <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
-                        </span>
-                    )}
-                    {errorTexts.length > 0 && (
-                        <span className={styles['preview-table-item__error-status']}>
-                            {t('publication-table.errors-status-text', [errorTexts.length])}
-                        </span>
-                    )}
-                    {warningTexts.length > 0 && (
-                        <span className={styles['preview-table-item__warning-status']}>
-                            {t('publication-table.warnings-status-text', [warningTexts.length])}
-                        </span>
-                    )}
-                </td>
+                {pendingValidation ? (
+                    <td>
+                        <Spinner />
+                    </td>
+                ) : (
+                    <td
+                        className={statusCellClassName}
+                        onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
+                        {!hasErrors && (
+                            <span className={styles['preview-table-item__ok-status']}>
+                                <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
+                            </span>
+                        )}
+                        {errorTexts.length > 0 && (
+                            <span className={styles['preview-table-item__error-status']}>
+                                {t('publication-table.errors-status-text', [errorTexts.length])}
+                            </span>
+                        )}
+                        {warningTexts.length > 0 && (
+                            <span className={styles['preview-table-item__warning-status']}>
+                                {t('publication-table.warnings-status-text', [warningTexts.length])}
+                            </span>
+                        )}
+                    </td>
+                )}
                 <td
                     onClick={() => {
                         onPublishItemSelect && onPublishItemSelect();
