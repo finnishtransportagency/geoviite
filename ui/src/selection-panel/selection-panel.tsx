@@ -176,7 +176,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     );
     const filteredReferenceLines = React.useMemo(() => {
         return referenceLines.filter((l) => filterByTrackNumberId(l.trackNumberId));
-    }, [referenceLines]);
+    }, [referenceLines, trackNumberFilter]);
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
     return (

@@ -73,6 +73,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                     )}
                 </td>
                 <td
+                    className={'preview-table-item preview-table-item__actions--cell'}
                     onClick={() => {
                         onPublishItemSelect && onPublishItemSelect();
                     }}>

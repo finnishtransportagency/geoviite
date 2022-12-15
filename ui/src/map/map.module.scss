@@ -133,10 +133,9 @@ $font-family: 'Open Sans';
     .ol-scale-line-inner {
         @include typography-body-strong;
 
-        $map-scale-line-color: $color-black-light;
-        color: $map-scale-line-color;
+        color: $color-black-default;
         margin: 0;
-        border: 2px solid $map-scale-line-color;
+        border: 2px solid $color-black-default;
         border-top: none;
         border-bottom-left-radius: 2px;
         border-bottom-right-radius: 2px;
