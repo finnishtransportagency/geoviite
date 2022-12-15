@@ -345,12 +345,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     request={
                         stagedChangesValidated
                             ? publishCandidateIds(stagedChangesValidated)
-                            : undefined
+                            : emptyChanges
                     }
                     onClosePreview={props.onClosePreview}
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
-                    previewChanges={stagedChangesValidated ? stagedChangesValidated : undefined}
+                    previewChanges={stagedPreviewChanges ? stagedPreviewChanges : emptyChanges}
                     onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>

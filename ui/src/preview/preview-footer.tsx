@@ -25,14 +25,15 @@ import { PublishType } from 'common/common-model';
 import { PublishCandidates, PublishValidationError } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { createEmptyItemCollections } from 'selection/selection-store';
+import { PreviewCandidates } from 'preview/preview-view';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
-    request: PublishRequest | undefined;
+    request: PublishRequest;
     onClosePreview: () => void;
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;
-    previewChanges: PublishCandidates | undefined;
+    previewChanges: PreviewCandidates;
     onPublishPreviewRevert: () => void;
 };
 
@@ -83,13 +84,19 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     const [isPublishing, setPublishing] = React.useState(false);
     const [isReverting, setReverting] = React.useState(false);
 
-    const emptyRequest = props.request
-        ? props.request.trackNumbers.length == 0 &&
-          props.request.kmPosts.length == 0 &&
-          props.request.referenceLines.length == 0 &&
-          props.request.locationTracks.length == 0 &&
-          props.request.switches.length == 0
-        : true;
+    const emptyRequest =
+        props.request.trackNumbers.length == 0 &&
+        props.request.kmPosts.length == 0 &&
+        props.request.referenceLines.length == 0 &&
+        props.request.locationTracks.length == 0 &&
+        props.request.switches.length == 0;
+
+    const validationPending =
+        props.previewChanges.trackNumbers.some((tn) => tn.pendingValidation) ||
+        props.previewChanges.referenceLines.some((rl) => rl.pendingValidation) ||
+        props.previewChanges.locationTracks.some((lt) => lt.pendingValidation) ||
+        props.previewChanges.switches.some((sw) => sw.pendingValidation) ||
+        props.previewChanges.kmPosts.some((km) => km.pendingValidation);
 
     const revert = () => {
         setReverting(true);
@@ -111,22 +118,20 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     };
 
     const publish = () => {
-        if (props.request) {
-            setPublishing(true);
-            publishCandidates(props.request)
-                .then((r) => {
-                    if (r.isOk()) {
-                        const result = r.unwrapOr(null);
-                        Snackbar.success(t('publish.publish-success'), describeResult(result));
-                        updateChangeTimes(result);
-                        props.onClosePreview();
-                    }
-                })
-                .finally(() => {
-                    setPublishConfirmVisible(false);
-                    setPublishing(false);
-                });
-        }
+        setPublishing(true);
+        publishCandidates(props.request)
+            .then((r) => {
+                if (r.isOk()) {
+                    const result = r.unwrapOr(null);
+                    Snackbar.success(t('publish.publish-success'), describeResult(result));
+                    updateChangeTimes(result);
+                    props.onClosePreview();
+                }
+            })
+            .finally(() => {
+                setPublishConfirmVisible(false);
+                setPublishing(false);
+            });
     };
 
     return (
@@ -147,6 +152,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         emptyRequest ||
                         revertConfirmVisible ||
                         publishConfirmVisible ||
+                        validationPending ||
                         (allPublishErrors && allPublishErrors?.length > 0)
                     }>
                     {t('preview-footer.publish-changes')}
