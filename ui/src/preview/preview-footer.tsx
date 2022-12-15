@@ -25,6 +25,7 @@ import { PublishType } from 'common/common-model';
 import { PublishCandidates, PublishValidationError } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { createEmptyItemCollections } from 'selection/selection-store';
+import { PreviewCandidates } from 'preview/preview-view';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
@@ -32,7 +33,7 @@ type PreviewFooterProps = {
     onClosePreview: () => void;
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;
-    previewChanges: PublishCandidates | undefined;
+    previewChanges: PreviewCandidates;
     onPublishPreviewRevert: () => void;
 };
 
@@ -90,6 +91,13 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         props.request.locationTracks.length == 0 &&
         props.request.switches.length == 0;
 
+    const validationPending =
+        props.previewChanges.trackNumbers.some((tn) => tn.pendingValidation) ||
+        props.previewChanges.referenceLines.some((rl) => rl.pendingValidation) ||
+        props.previewChanges.locationTracks.some((lt) => lt.pendingValidation) ||
+        props.previewChanges.switches.some((sw) => sw.pendingValidation) ||
+        props.previewChanges.kmPosts.some((km) => km.pendingValidation);
+
     const revert = () => {
         setReverting(true);
         revertCandidates()
@@ -144,6 +152,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         emptyRequest ||
                         revertConfirmVisible ||
                         publishConfirmVisible ||
+                        validationPending ||
                         (allPublishErrors && allPublishErrors?.length > 0)
                     }>
                     {t('preview-footer.publish-changes')}
