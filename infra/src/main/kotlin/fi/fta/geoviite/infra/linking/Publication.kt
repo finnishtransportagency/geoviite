@@ -115,6 +115,12 @@ data class PublicationVersions(
     fun contains(id: IntId<ReferenceLine>) = referenceLines.any { it.officialId == id }
     fun contains(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
     fun contains(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
+
+    fun find(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
+    fun find(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
+    fun find(id: IntId<ReferenceLine>) = referenceLines.find { it.officialId == id }
+    fun find(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
+    fun find(id: IntId<TrackLayoutKmPost>) = kmPosts.find { it.officialId == id }
 }
 
 data class PublicationVersion<T>(val officialId: IntId<T>, val rowVersion: RowVersion<T>)

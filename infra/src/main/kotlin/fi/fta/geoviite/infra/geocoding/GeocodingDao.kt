@@ -2,8 +2,11 @@ package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
+import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.PublicationVersions
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.*
@@ -19,7 +22,7 @@ import java.time.Instant
 data class GeocodingContextCacheKey (
     val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
     val referenceLineVersion: RowVersion<ReferenceLine>,
-    val kmPostVersions: RowVersion<TrackLayoutKmPost>,
+    val kmPostVersions: List<RowVersion<TrackLayoutKmPost>>,
 //    val changeTime: Instant
 //    val publishType: PublishType
 //    fun fetchVersions(kmPostDao: LayoutKmPostDao): List<RowVersion<TrackLayoutKmPost>>
@@ -58,9 +61,37 @@ class GeocodingDao(
     fun getGeocodingContextCacheKey(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ) = GeocodingContextCacheKey(
+        trackNumberVersion = trackNumberDao.fetchVersionOrThrow(trackNumberId, publishType),
+        referenceLineVersion = referenceLineDao.fetchVersionOrThrow(publishType, trackNumberId),
+        kmPostVersions = kmPostDao.fetchVersions(publishType, true, trackNumberId)
+            .sortedBy { p -> p.id.intValue },
+    )
+
+    fun getGeocodingContextCacheKey(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        publicationVersions: PublicationVersions,
+    ) = getGeocodingContextCacheKey(OFFICIAL, trackNumberId).let { official ->
+        val publicationTrackNumber = publicationVersions.find(official.trackNumberVersion.id)?.rowVersion
+            ?: official.trackNumberVersion
+        val publicationReferenceLine = publicationVersions.find(official.referenceLineVersion.id)?.rowVersion
+            ?: official.referenceLineVersion
+        val officialKmPosts = official.kmPostVersions.filter { kmPostVersion ->
+            !publicationVersions.contains(kmPostVersion.id)
+        }
+        val draftKmPosts = publicationVersions.kmPosts.filter { draftPost ->
+            kmPostDao.fetch(draftPost.rowVersion).trackNumberId == trackNumberId
+        }.map(PublicationVersion<TrackLayoutKmPost>::rowVersion)
+        val publicationKmPosts = (officialKmPosts + draftKmPosts).sortedBy { p -> p.id.intValue }
+        GeocodingContextCacheKey(publicationTrackNumber, publicationReferenceLine, publicationKmPosts)
+    }
+
+    fun getGeocodingContextCacheKey(
+        publishType: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>? = null,
     ): GeocodingContextCacheKey? {
-        assert(!(publishType == PublishType.OFFICIAL && kmPostIdsToPublish != null)) {
+        assert(!(publishType == OFFICIAL && kmPostIdsToPublish != null)) {
             "Trying to get geocoding context cache key for in OFFICIAL mode but intending to publish km post ids"
         }
         // if the track has been saved at all, it will have a change time, and if not, it can't have any km posts
@@ -160,17 +191,13 @@ class GeocodingDao(
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
     fun getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
-        return referenceLineDao.fetchVersion(key.publishType, key.trackNumberId)?.let { referenceLineVersion ->
-            val trackNumber = trackNumberDao.fetch(trackNumberDao.fetchVersionOrThrow(key.trackNumberId, key.publishType))
-            val referenceLine = referenceLineDao.fetch(referenceLineVersion)
-            val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
-                ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
-            val kmPosts = key.fetchVersions(kmPostDao).map(kmPostDao::fetch)
-            if (alignment.segments.isEmpty()) { // If reference line has no geometry, we cannot geocode.
-                null
-            } else {
-                GeocodingContext.create(trackNumber, referenceLine, alignment, kmPosts)
-            }
-        }
+        val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
+        val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
+        val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
+            ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
+        // If the tracknumber is deleted or reference line has no geometry, we cannot geocode.
+        if (!trackNumber.exists || alignment.segments.isEmpty()) return null
+        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).filter { post -> post.exists }
+        return GeocodingContext.create(trackNumber, referenceLine, alignment, kmPosts)
     }
 }

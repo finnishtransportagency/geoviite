@@ -29,8 +29,8 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     fun fetchVersions(
         publicationState: PublishType,
         includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>?,
-        bbox: BoundingBox?,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        bbox: BoundingBox? = null,
     ): List<RowVersion<TrackLayoutKmPost>> {
         val sql = """
             select km_post.row_id, km_post.row_version 
