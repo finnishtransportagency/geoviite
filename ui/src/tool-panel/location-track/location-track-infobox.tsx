@@ -42,6 +42,7 @@ import { useLoader } from 'utils/react-utils';
 import { OnSelectFunction } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
+import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 
 type LocationTrackInfoboxProps = {
@@ -86,6 +87,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
+    const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -117,6 +119,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         closeLocationTrackDeleteConfirmation();
         onUnselect(track);
     };
+
+    function showLocationTrackPushDialog() {
+        setShowRatkoPushDialog(true);
+    }
+
+    function closeLocationTrackPushDialog() {
+        setShowRatkoPushDialog(false);
+    }
 
     React.useEffect(() => {
         setCanUpdate(
@@ -365,6 +375,32 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxContent>
                 </Infobox>
             )}
+
+            {officialLocationTrack && (
+                <Infobox
+                    title={t('tool-panel.location-track.ratko-info-heading')}
+                    qa-id="location-track-ratko-infobox">
+                    <InfoboxContent>
+                        <InfoboxButtons>
+                            <Button
+                                onClick={() => showLocationTrackPushDialog()}
+                                variant={ButtonVariant.SECONDARY}
+                                size={ButtonSize.SMALL}>
+                                {t('tool-panel.location-track.push-to-ratko')}
+                            </Button>
+                        </InfoboxButtons>
+                    </InfoboxContent>
+                </Infobox>
+            )}
+
+            {showRatkoPushDialog && (
+                <LocationTrackRatkoPushDialog
+                    locationTrackId={locationTrack.id}
+                    onClose={closeLocationTrackPushDialog}
+                    locationTrackChangeTime={locationTrackChangeTime}
+                />
+            )}
+
             {confirmingDraftDelete && (
                 <LocationTrackDeleteConfirmationDialog
                     id={locationTrack.id}
