@@ -303,12 +303,12 @@ fun getCauseForRejection(kmPost: TrackLayoutKmPost, geocodingContext: GeocodingC
     return if (kmPost.location == null) {
         PublishValidationError(ERROR, "$VALIDATION_GEOCODING.km-post-no-location", params)
     } else if (TrackMeter(kmPost.kmNumber, 0) <= geocodingContext.referenceLine.startAddress) {
-        PublishValidationError(ERROR, "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start", params)
+        PublishValidationError(WARNING, "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start", params)
     } else {
         val intersectType = geocodingContext.referenceLineGeometry.getLengthUntil(kmPost.location)?.second
         if (intersectType == IntersectType.BEFORE || intersectType == IntersectType.AFTER) {
             val localizationKey = "$VALIDATION_GEOCODING.km-post-outside-line-${intersectType.name.lowercase()}"
-            PublishValidationError(ERROR, localizationKey, params)
+            PublishValidationError(WARNING, localizationKey, params)
         } else {
             PublishValidationError(ERROR, "$VALIDATION_GEOCODING.km-post-rejected", params)
         }
