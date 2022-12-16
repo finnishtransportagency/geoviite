@@ -125,7 +125,7 @@ class LayoutSwitchService @Autowired constructor(
         switch.externalId.toString() == term || switch.id.toString() == term
 
     private fun contentMatches(term: String, switch: TrackLayoutSwitch) =
-        switch.exists && switch.name.contains(term, true)
+        switch.exists && switch.name.toString().replace("  ", " ").contains(term, true)
 
     fun pageSwitches(
         switches: List<TrackLayoutSwitch>,
