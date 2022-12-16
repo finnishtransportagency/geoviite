@@ -359,26 +359,20 @@ fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?
     if (previous == null || next == null) true
     else previous.distance < next.distance
 
-// TODO
-fun validateAddressPointsNOTFIXED(
+fun validateAddressPoints(
     trackNumber: TrackLayoutTrackNumber,
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
     geocode: () -> AlignmentAddresses?,
 ): List<PublishValidationError> =
     try {
-        val addresses = geocode()
-        if (addresses == null) {
-            listOf(
-                PublishValidationError(
-                    ERROR,
-                    "$validationTargetLocalizationPrefix.no-context",
-                    listOf(trackNumber.number.toString())
-                )
-            )
-        } else {
+        geocode()?.let { addresses ->
             validateAddressPoints(trackNumber, locationTrack, addresses)
-        }
+        } ?: listOf(PublishValidationError(
+            ERROR,
+            "$validationTargetLocalizationPrefix.no-context",
+            listOf(trackNumber.number.toString())
+        ))
     } catch (e: ClientException) {
         listOf(PublishValidationError(ERROR, e.localizedMessageKey))
     }

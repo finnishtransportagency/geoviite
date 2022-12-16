@@ -97,69 +97,38 @@ class PublishService @Autowired constructor(
 
     fun validateAsPublicationUnit(candidates: PublishCandidates, versions: PublicationVersions) = PublishCandidates(
         trackNumbers = versions.trackNumbers.map { version ->
-            candidates.getTrackNumber(version.officialId).copy(
-                errors = validateTrackNumber(version, versions.kmPosts, versions.referenceLines, versions.locationTracks)
-            )
+            candidates.getTrackNumber(version.officialId).copy(errors = validateTrackNumber(version, versions))
         },
         referenceLines = versions.referenceLines.map { version ->
-            candidates.getReferenceLine(version.officialId).copy(
-                errors = validateReferenceLine(version, versions.trackNumbers, versions.kmPosts)
-            )
+            candidates.getReferenceLine(version.officialId).copy(errors = validateReferenceLine(version, versions))
         },
         locationTracks = versions.locationTracks.map { version ->
-            candidates.getLocationTrack(version.officialId).copy(
-                errors = validateLocationTrack(version, versions.trackNumbers, versions.switches, versions.locationTracks, versions.kmPosts)
-            )
+            candidates.getLocationTrack(version.officialId).copy(errors = validateLocationTrack(version, versions))
         },
         switches = versions.switches.map { version ->
-            candidates.getSwitch(version.officialId).copy(
-                errors = validateSwitch(version, versions.locationTracks)
-            )
+            candidates.getSwitch(version.officialId).copy(errors = validateSwitch(version, versions))
         },
         kmPosts = versions.kmPosts.map { version ->
-            candidates.getKmPost(version.officialId).copy(
-                errors = validateKmPost(version, versions.trackNumbers, versions.kmPosts)
-            )
+            candidates.getKmPost(version.officialId).copy(errors = validateKmPost(version, versions))
         },
     )
 
     fun validatePublishRequest(versions: PublicationVersions) {
         logger.serviceCall("validate", "versions" to versions)
         versions.trackNumbers.forEach { version ->
-            assertNoErrors(
-                version,
-                validateTrackNumber(version, versions.kmPosts, versions.referenceLines, versions.locationTracks),
-            )
+            assertNoErrors(version, validateTrackNumber(version, versions))
         }
         versions.kmPosts.forEach { version ->
-            assertNoErrors(
-                version,
-                validateKmPost(version, versions.trackNumbers, versions.kmPosts),
-            )
+            assertNoErrors(version, validateKmPost(version, versions))
         }
         versions.referenceLines.forEach { version ->
-            assertNoErrors(
-                version,
-                validateReferenceLine(version, versions.trackNumbers, versions.kmPosts),
-            )
+            assertNoErrors(version, validateReferenceLine(version, versions))
         }
         versions.locationTracks.forEach { version ->
-            assertNoErrors(
-                version,
-                validateLocationTrack(
-                    version,
-                    versions.trackNumbers,
-                    versions.switches,
-                    versions.locationTracks,
-                    versions.kmPosts
-                )
-            )
+            assertNoErrors(version, validateLocationTrack(version, versions))
         }
         versions.switches.forEach { version ->
-            assertNoErrors(
-                version,
-                validateSwitch(version, versions.locationTracks)
-            )
+            assertNoErrors(version, validateSwitch(version, versions))
         }
     }
 
@@ -211,11 +180,11 @@ class PublishService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getPublicationVersions(request: PublishRequest) = PublicationVersions(
-        trackNumbers = trackNumberDao.fetchPublicationVersions(DRAFT, request.trackNumbers),
-        referenceLines = referenceLineDao.fetchPublicationVersions(DRAFT, request.referenceLines),
-        kmPosts = kmPostDao.fetchPublicationVersions(DRAFT, request.kmPosts),
-        locationTracks = locationTrackDao.fetchPublicationVersions(DRAFT, request.locationTracks),
-        switches = switchDao.fetchPublicationVersions(DRAFT, request.switches),
+        trackNumbers = trackNumberDao.fetchPublicationVersions(request.trackNumbers),
+        referenceLines = referenceLineDao.fetchPublicationVersions(request.referenceLines),
+        kmPosts = kmPostDao.fetchPublicationVersions(request.kmPosts),
+        locationTracks = locationTrackDao.fetchPublicationVersions(request.locationTracks),
+        switches = switchDao.fetchPublicationVersions(request.switches),
     )
 
     private fun updateExternalIdForLocationTrack(locationTrackId: IntId<LocationTrack>) {
@@ -264,11 +233,11 @@ class PublishService @Autowired constructor(
             versions.switches.map(PublicationVersion<TrackLayoutSwitch>::officialId),
         )
 
-        val trackNumbers = request.trackNumbers.map(trackNumberService::publish)
-        val kmPosts = request.kmPosts.map(kmPostService::publish)
-        val switches = request.switches.map(switchService::publish)
-        val referenceLines = request.referenceLines.map(referenceLineService::publish)
-        val locationTracks = request.locationTracks.map(locationTrackService::publish)
+        val trackNumbers = versions.trackNumbers.map(trackNumberService::publish)
+        val kmPosts = versions.kmPosts.map(kmPostService::publish)
+        val switches = versions.switches.map(switchService::publish)
+        val referenceLines = versions.referenceLines.map(referenceLineService::publish)
+        val locationTracks = versions.locationTracks.map(locationTrackService::publish)
 
         val publishId = publicationDao.createPublish(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
 
@@ -290,42 +259,24 @@ class PublishService @Autowired constructor(
 
     fun validateTrackNumber(
         version: PublicationVersion<TrackLayoutTrackNumber>,
-        publicationKmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
-        publicationReferenceLines: List<PublicationVersion<ReferenceLine>>,
-        publicationLocationTracks: List<PublicationVersion<LocationTrack>>,
+        publicationVersions: PublicationVersions,
     ): List<PublishValidationError> {
-        val trackNumber = trackNumberDao.fetch(version.rowVersion)
-        val kmPosts = getPublicationKmPostsByTrackNumber(version.officialId, publicationKmPosts)
-        val locationTracks = getPublicationLocationTracksByTrackNumber(version.officialId, publicationLocationTracks)
+        val trackNumber = trackNumberDao.fetch(version.draftVersion)
+        val kmPosts = getKmPostsByTrackNumber(version.officialId, publicationVersions)
+        val locationTracks = getLocationTracksByTrackNumber(version.officialId, publicationVersions)
         val fieldErrors = validateDraftTrackNumberFields(trackNumber)
         val referenceErrors = validateTrackNumberReferences(
             trackNumber,
             kmPosts,
             locationTracks,
-            publicationKmPosts.map(PublicationVersion<TrackLayoutKmPost>::officialId),
-            publicationLocationTracks.map(PublicationVersion<LocationTrack>::officialId),
+            publicationVersions.kmPosts.map { it.officialId },
+            publicationVersions.locationTracks.map { it.officialId },
         )
         val geocodingErrors =
             if (trackNumber.exists) {
-                validateTrackNumberGeocodingContext(version, VALIDATION_TRACK_NUMBER, publishKmPostIds)
+                validateTrackNumberGeocodingContext(version.officialId, publicationVersions, VALIDATION_TRACK_NUMBER)
             } else listOf()
         return fieldErrors + referenceErrors + geocodingErrors
-    }
-
-
-    // TODO
-    fun validateTrackNumberAssociatedTrackAddressesNOTFIXED(
-        trackNumber: TrackLayoutTrackNumber,
-        publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
-    ): List<PublishValidationError> {
-        val locationTracks = publicationDao
-            .fetchTrackNumberLocationTrackRows(trackNumber.id as IntId)
-            .map(locationTrackDao::fetch)
-        return locationTracks.filter(LocationTrack::exists).flatMap { locationTrack ->
-            validateAddressPoints(trackNumber, locationTrack, VALIDATION_REFERENCE_LINE) {
-                geocodingService.getAddressPointsForPublication(locationTrack.id, publishKmPostIds)
-            }
-        }
     }
 
     fun validateKmPostOwnInformation(id: IntId<TrackLayoutKmPost>): List<PublishValidationError> =
@@ -333,20 +284,19 @@ class PublishService @Autowired constructor(
 
     fun validateKmPost(
         version: PublicationVersion<TrackLayoutKmPost>,
-        publicationTrackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
-        publicationKmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
+        publicationVersions: PublicationVersions,
     ): List<PublishValidationError> {
-        val kmPost = kmPostDao.fetch(version.rowVersion)
-        val trackNumber = kmPost.trackNumberId?.let { id -> getPublicationTrackNumber(id, publicationTrackNumbers) }
+        val kmPost = kmPostDao.fetch(version.draftVersion)
+        val trackNumber = kmPost.trackNumberId?.let { id -> getTrackNumber(id, publicationVersions) }
         val fieldErrors = validateDraftKmPostFields(kmPost)
         val referenceErrors = validateKmPostReferences(
             kmPost,
             trackNumber,
-            publicationTrackNumbers.map(PublicationVersion<TrackLayoutTrackNumber>::officialId)
+            publicationVersions.trackNumbers.map { it.officialId }
         )
         val geocodingErrors =
             if (kmPost.exists && trackNumber != null) {
-                validateTrackNumberGeocodingContext(kmPost.trackNumberId, VALIDATION_KM_POST, publicationKmPosts)
+                validateTrackNumberGeocodingContext(kmPost.trackNumberId, publicationVersions, VALIDATION_KM_POST)
             } else listOf()
         return fieldErrors + referenceErrors + geocodingErrors
     }
@@ -356,17 +306,16 @@ class PublishService @Autowired constructor(
 
     fun validateSwitch(
         version: PublicationVersion<TrackLayoutSwitch>,
-        publicationLocationTracks: List<PublicationVersion<LocationTrack>>,
+        publicationVersions: PublicationVersions,
     ): List<PublishValidationError> {
-        val switch = switchDao.fetch(version.rowVersion)
+        val switch = switchDao.fetch(version.draftVersion)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-        val linkedTracksAndAlignments = getLinkedTracksAndAlignments(version.officialId, publicationLocationTracks)
-        val linkedTracks = linkedTracksAndAlignments.map(Pair<LocationTrack,*>::first)
+        val linkedTracksAndAlignments = getLinkedTracksAndAlignments(version.officialId, publicationVersions)
         val fieldErrors = validateDraftSwitchFields(switch)
         val referenceErrors = validateSwitchSegmentReferences(
             switch,
-            linkedTracks,
-            publicationLocationTracks.map(PublicationVersion<LocationTrack>::officialId),
+            linkedTracksAndAlignments.map(Pair<LocationTrack,*>::first),
+            publicationVersions.locationTracks.map { it.officialId },
         )
         val structureErrors = validateSwitchSegmentStructure(switch, structure, linkedTracksAndAlignments)
         return fieldErrors + referenceErrors + structureErrors
@@ -384,24 +333,23 @@ class PublishService @Autowired constructor(
 
     fun validateReferenceLine(
         version: PublicationVersion<ReferenceLine>,
-        publicationTrackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
-        publishKmPostVersions: List<PublicationVersion<TrackLayoutKmPost>>,
+        publicationVersions: PublicationVersions,
     ): List<PublishValidationError> {
-        val (referenceLine, alignment) = getReferenceLineAndAlignment(version.rowVersion)
-        val trackNumber = getPublicationTrackNumberOrThrow(referenceLine.trackNumberId, publicationTrackNumbers)
+        val (referenceLine, alignment) = getReferenceLineAndAlignment(version.draftVersion)
+        val trackNumber = getTrackNumberOrThrow(referenceLine.trackNumberId, publicationVersions)
         val fieldErrors = validateDraftReferenceLineFields(referenceLine)
         val referenceErrors = validateReferenceLineReference(
             referenceLine,
             trackNumber,
-            publicationTrackNumbers.map(PublicationVersion<TrackLayoutTrackNumber>::officialId),
+            publicationVersions.trackNumbers.map { it.officialId },
         )
         val alignmentErrors = if (trackNumber.exists) validateReferenceLineAlignment(alignment) else listOf()
         val geocodingErrors: List<PublishValidationError> =
             if (trackNumber.exists) validateTrackNumberGeocodingContext(
                 referenceLine.trackNumberId,
+                publicationVersions,
                 VALIDATION_REFERENCE_LINE,
-                publishKmPostVersions
-            ) + validateTrackNumberAssociatedTrackAddresses(trackNumber, publishKmPostVersions)
+            ) + validateTrackNumberAssociatedTrackAddresses(trackNumber, publicationVersions)
             else listOf()
         return fieldErrors + referenceErrors + alignmentErrors + geocodingErrors
     }
@@ -415,99 +363,110 @@ class PublishService @Autowired constructor(
 
     fun validateLocationTrack(
         version: PublicationVersion<LocationTrack>,
-        publicationTrackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
-        publicationSwitches: List<PublicationVersion<TrackLayoutSwitch>>,
-        publicationLocationTracks: List<PublicationVersion<LocationTrack>>,
-        publicationKmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
+        publicationVersions: PublicationVersions,
     ): List<PublishValidationError> {
-        val (locationTrack, alignment) = getLocationTrackAndAlignment(version.rowVersion)
-        val trackNumber = getPublicationTrackNumber(locationTrack.trackNumberId, publicationTrackNumbers)
+        val (locationTrack, alignment) = getLocationTrackAndAlignment(version.draftVersion)
+        val trackNumber = getTrackNumberOrThrow(locationTrack.trackNumberId, publicationVersions)
         val duplicateOfLocationTrack = locationTrack.duplicateOf?.let { duplicateId ->
-            getPublicationLocationTrack(duplicateId, publicationLocationTracks)
+            getLocationTrack(duplicateId, publicationVersions)
         }
         val fieldErrors = validateDraftLocationTrackFields(locationTrack)
-        val referenceErrors = validateLocationTrackReference(locationTrack, trackNumber, publicationTrackNumbers)
-        val switchErrors = validateSegmentSwitchReferences(locationTrack, getSegmentSwitches(alignment), publicationSwitches)
-        val duplicateErrors = validateDuplicateOfState(locationTrack, duplicateOfLocationTrack, publicationLocationTracks)
-        val alignmentErrors = if (locationTrack.exists) validateLocationTrackAlignment(alignment) else listOf()
+        val referenceErrors = validateLocationTrackReference(
+            locationTrack,
+            trackNumber,
+            publicationVersions.trackNumbers.map { it.officialId },
+        )
+        val switchErrors = validateSegmentSwitchReferences(
+            locationTrack,
+            getSegmentSwitches(alignment),
+            publicationVersions.switches.map { it.officialId },
+        )
+        val duplicateErrors = validateDuplicateOfState(
+            locationTrack,
+            duplicateOfLocationTrack,
+            publicationVersions.locationTracks.map { it.officialId },
+        )
+        val alignmentErrors =
+            if (locationTrack.exists) validateLocationTrackAlignment(alignment)
+            else listOf()
         val geocodingErrors =
             if (locationTrack.exists) {
-                validateAddressPoints(trackNumber, locationTrack, VALIDATION_LOCATION_TRACK) {
-                    geocodingService.getAddressPointsForPublication(locationTrack.id, publicationKmPosts)
-                }
+                validateAddressPoints(trackNumber, locationTrack, publicationVersions, VALIDATION_LOCATION_TRACK)
             } else listOf()
         return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors
     }
 
     private fun getLinkedTracksAndAlignments(
         switchId: IntId<TrackLayoutSwitch>,
-        publicationLocationTracks: List<PublicationVersion<LocationTrack>>,
+        versions: PublicationVersions,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         // Include official tracks that are connected and not overridden in the publication
         val linkedOfficial = publicationDao.fetchLinkedLocationTracks(switchId, OFFICIAL)
-            .filter { track -> publicationLocationTracks.none { plt -> plt.officialId == track.officialId } }
-            .map{ track -> getLocationTrackAndAlignment(track.rowVersion) }
+            .filter { version -> !versions.containsLocationTrack(version.id) }
+            .map(::getLocationTrackAndAlignment)
         // Include publication tracks that are connected
-        val linkedDraft = publicationLocationTracks.map { plt -> getLocationTrackAndAlignment(plt.rowVersion) }
+        val linkedDraft = versions.locationTracks
+            .map { plt -> getLocationTrackAndAlignment(plt.draftVersion) }
             .filter { (track, alignment) -> isLinkedToSwitch(track, alignment, switchId) }
         return linkedOfficial + linkedDraft
     }
 
-    private fun getPublicationTrackNumberOrThrow(
-        id: IntId<TrackLayoutTrackNumber>,
-        publicationTrackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
-    ) = getPublicationTrackNumber(id, publicationTrackNumbers)
-        ?: throw NoSuchEntityException(TrackLayoutTrackNumber::class, id)
+    private fun getTrackNumberOrThrow(id: IntId<TrackLayoutTrackNumber>, versions: PublicationVersions) =
+        getTrackNumber(id, versions) ?: throw NoSuchEntityException(TrackLayoutTrackNumber::class, id)
 
-    private fun getPublicationTrackNumber(
+    private fun getTrackNumber(
         id: IntId<TrackLayoutTrackNumber>,
-        publicationTrackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
+        publicationVersions: PublicationVersions,
     ): TrackLayoutTrackNumber? {
-        val publicationVersion = publicationTrackNumbers.find { tn -> tn.officialId == id }?.rowVersion
-        val version = publicationVersion ?: trackNumberDao.fetchOfficialVersion(id)
+        val version = publicationVersions.findTrackNumber(id)?.draftVersion ?: trackNumberDao.fetchOfficialVersion(id)
         return version?.let(trackNumberDao::fetch)
     }
-    private fun getPublicationLocationTrack(
-        id: IntId<LocationTrack>,
-        publicationLocationTracks: List<PublicationVersion<LocationTrack>>,
-    ): Pair<LocationTrack, LayoutAlignment> {
-        val version = publicationLocationTracks.find { plt -> plt.officialId == id }?.rowVersion
+
+    private fun getLocationTrackOrThrow(id: IntId<LocationTrack>, versions: PublicationVersions) =
+        getLocationTrack(id, versions) ?: throw NoSuchEntityException(LocationTrack::class, id)
+
+    private fun getLocationTrack(id: IntId<LocationTrack>, publicationVersions: PublicationVersions): LocationTrack? {
+        val version = publicationVersions.findLocationTrack(id)?.draftVersion ?: locationTrackDao.fetchOfficialVersion(id)
+        return version?.let(locationTrackDao::fetch)
     }
 
-    private fun getPublicationKmPostsByTrackNumber(
+    private fun getLocationTrackAndAlignmentOrThrow(id: IntId<LocationTrack>, versions: PublicationVersions) =
+        getLocationTrackAndAlignment(id, versions) ?: throw NoSuchEntityException(LocationTrack::class, id)
+
+    private fun getLocationTrackAndAlignment(
+        id: IntId<LocationTrack>,
+        publicationVersions: PublicationVersions,
+    ): Pair<LocationTrack, LayoutAlignment>? {
+        val version = publicationVersions.findLocationTrack(id)?.draftVersion ?: locationTrackDao.fetchOfficialVersion(id)
+        return version?.let { v -> locationTrackWithAlignment(locationTrackDao, alignmentDao, v) }
+    }
+
+    private fun getKmPostsByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publishKmPostVersions: List<PublicationVersion<TrackLayoutKmPost>>,
+        publicationVersions: PublicationVersions,
     ) = combineVersions(
-        official = kmPostDao.fetchPublicationVersions(OFFICIAL, trackNumberId),
-        draft = publishKmPostVersions,
+        official = kmPostDao.fetchVersions(OFFICIAL, false, trackNumberId),
+        draft = publicationVersions.kmPosts,
     ).map(kmPostDao::fetch)
 
-    private fun getPublicationLocationTracksByTrackNumber(
+    private fun getLocationTracksByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationLocationTrackVersions: List<PublicationVersion<LocationTrack>>,
+        publicationVersions: PublicationVersions,
     ) = combineVersions(
-        official = locationTrackDao.fetchPublicationVersions(OFFICIAL, trackNumberId),
-        draft = publicationLocationTrackVersions,
+        official = locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId),
+        draft = publicationVersions.locationTracks,
     ).map(locationTrackDao::fetch)
 
-    private fun <T> combineVersions(official: List<PublicationVersion<T>>, draft: List<PublicationVersion<T>>) =
-        (official.groupBy(PublicationVersion<T>::officialId) + draft.groupBy(PublicationVersion<T>::officialId))
-            .values.flatten()
-            .map(PublicationVersion<T>::rowVersion)
+    private fun <T> combineVersions(
+        official: List<RowVersion<T>>, draft: List<PublicationVersion<T>>) =
+        (official.associateBy { it.id } + draft.associate { it.officialId to it.draftVersion })
+            .values
 
     private fun getReferenceLineAndAlignment(version: RowVersion<ReferenceLine>) =
-        referenceLineDao.fetch(version).let { line ->
-            line to alignmentDao.fetch(line.alignmentVersion
-                ?: throw IllegalStateException("ReferenceLine from DB must have an alignment")
-            )
-        }
+        referenceLineWithAlignment(referenceLineDao, alignmentDao, version)
 
     private fun getLocationTrackAndAlignment(version: RowVersion<LocationTrack>) =
-        locationTrackDao.fetch(version).let { track ->
-            track to alignmentDao.fetch(track.alignmentVersion
-                ?: throw IllegalStateException("LocationTrack from DB must have an alignment")
-            )
-        }
+        locationTrackWithAlignment(locationTrackDao, alignmentDao, version)
 
     fun getPublicationListing(): List<PublicationListingItem> =
         publicationDao.fetchRatkoPublicationListing()
@@ -534,13 +493,35 @@ class PublishService @Autowired constructor(
         )
     }
 
+    fun validateTrackNumberAssociatedTrackAddresses(
+        trackNumber: TrackLayoutTrackNumber,
+        publicationVersions: PublicationVersions,
+    ): List<PublishValidationError> {
+        val locationTracks = getLocationTracksByTrackNumber(trackNumber.id as IntId, publicationVersions)
+        return locationTracks.flatMap { locationTrack ->
+            validateAddressPoints(trackNumber, locationTrack, publicationVersions, VALIDATION_REFERENCE_LINE)
+        }
+    }
+
+    fun validateAddressPoints(
+        trackNumber: TrackLayoutTrackNumber,
+        locationTrack: LocationTrack,
+        publicationVersions: PublicationVersions,
+        validationTargetLocalizationPrefix: String,
+    ) =
+        if (!locationTrack.exists) listOf()
+        else {
+            validateAddressPoints(trackNumber, locationTrack, validationTargetLocalizationPrefix) {
+                geocodingService.getAddressPointsForPublication(locationTrack.id as IntId, publicationVersions)
+            }
+        }
+
     private fun validateTrackNumberGeocodingContext(
-        trackNumber: PublicationVersion<TrackLayoutTrackNumber>,
-        publicationReferenceLines: List<PublicationVersion<ReferenceLine>>,
-        publicationKmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        publicationVersions: PublicationVersions,
         validationType: String,
     ) = validateGeocodingContext(
-        geocodingService.getGeocodingContext(DRAFT, trackNumberId, publishKmPostIds),
+        geocodingService.getGeocodingContext(trackNumberId, publicationVersions),
         validationType,
     )
 
@@ -557,34 +538,4 @@ class PublishService @Autowired constructor(
             )
         }
     }
-
-//    private fun getTrackNumber(
-//        id: IntId<TrackLayoutTrackNumber>,
-//        publicationVersions: List<PublicationVersion<TrackLayoutTrackNumber>>,
-//    ): TrackLayoutTrackNumber {
-//        val version = publicationVersions.find { tn -> tn.officialId == id }?.rowVersion
-//            ?: trackNumberDao.fetchVersionOrThrow(id, OFFICIAL)
-//        return trackNumberDao.fetch(version)
-//    }
-
-//    private fun getDraftKmPostWithOfficialId(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost =
-//        kmPostService.getDraft(version)
-//            .also { kmPost -> require(kmPost.id == version) { "Attempting to publish km-post via draft ID" } }
-//
-//    private fun getDraftSwitchWithOfficialId(version: RowVersion<TrackLayoutSwitch>) =
-//        switchDao.fetch(version).also { switch ->
-//            require(switch.id == version) { "Attempting to publish switch via draft ID" }
-//        }
-//
-//    private fun getAndVerifyTrackNumber(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber =
-//        trackNumberService.getDraft(version)
-//            .also { trackNumber -> require(trackNumber.id == version) { "Attempting to publish track number via draft ID" } }
-//
-//    private fun getDraftReferenceLineAndAlignmentWithOfficialId(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
-//        referenceLineService.getWithAlignmentOrThrow(DRAFT, version)
-//            .also { (referenceLine, _) -> require(referenceLine.id == version) { "Attempting to publish ReferenceLine via draft ID" } }
-//
-//    private fun getDraftLocationTrackAndAlignmentWithOfficialId(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
-//        locationTrackService.getWithAlignmentOrThrow(DRAFT, version)
-//            .also { (locationTrack, _) -> require(locationTrack.id == version) { "Attempting to publish LocationTrack via draft ID" } }
 }

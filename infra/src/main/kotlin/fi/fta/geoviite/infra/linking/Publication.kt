@@ -72,17 +72,17 @@ data class PublishCandidates(
 ) {
     fun splitByRequest(versions: PublicationVersions) =
         PublishCandidates(
-            trackNumbers.filter { candidate -> versions.contains(candidate.id) },
-            locationTracks.filter { candidate -> versions.contains(candidate.id) },
-            referenceLines.filter { candidate -> versions.contains(candidate.id) },
-            switches.filter { candidate -> versions.contains(candidate.id) },
-            kmPosts.filter { candidate -> versions.contains(candidate.id) },
+            trackNumbers.filter { candidate -> versions.containsTrackNumber(candidate.id) },
+            locationTracks.filter { candidate -> versions.containsLocationTrack(candidate.id) },
+            referenceLines.filter { candidate -> versions.containsReferenceLine(candidate.id) },
+            switches.filter { candidate -> versions.containsSwitch(candidate.id) },
+            kmPosts.filter { candidate -> versions.containsKmPost(candidate.id) },
         ) to PublishCandidates(
-            trackNumbers.filterNot { candidate -> versions.contains(candidate.id) },
-            locationTracks.filterNot { candidate -> versions.contains(candidate.id) },
-            referenceLines.filterNot { candidate -> versions.contains(candidate.id) },
-            switches.filterNot { candidate -> versions.contains(candidate.id) },
-            kmPosts.filterNot { candidate -> versions.contains(candidate.id) },
+            trackNumbers.filterNot { candidate -> versions.containsTrackNumber(candidate.id) },
+            locationTracks.filterNot { candidate -> versions.containsLocationTrack(candidate.id) },
+            referenceLines.filterNot { candidate -> versions.containsReferenceLine(candidate.id) },
+            switches.filterNot { candidate -> versions.containsSwitch(candidate.id) },
+            kmPosts.filterNot { candidate -> versions.containsKmPost(candidate.id) },
         )
 
     fun ids(): PublishRequest = PublishRequest(
@@ -103,27 +103,33 @@ private inline fun <reified T, reified S: PublishCandidate<T>> getOrThrow(all: L
     all.find { c -> c.id == id } ?: throw NoSuchEntityException(S::class, id)
 
 data class PublicationVersions(
-    // TODO: switch the structures for maps
     val trackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
     val locationTracks: List<PublicationVersion<LocationTrack>>,
     val referenceLines: List<PublicationVersion<ReferenceLine>>,
     val switches: List<PublicationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
 ) {
-    fun contains(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.any { it.officialId == id }
-    fun contains(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
-    fun contains(id: IntId<ReferenceLine>) = referenceLines.any { it.officialId == id }
-    fun contains(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
-    fun contains(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
+//    // TODO: switch the structures for maps?
+//    private val trackNumberMap by lazy { trackNumbers.associateBy { it.officialId } }
+//    private val locationTrackMap by lazy { locationTracks.associateBy { it.officialId } }
+//    private val referenceLineMap by lazy { referenceLines.associateBy { it.officialId } }
+//    private val switchMap by lazy { switches.associateBy { it.officialId } }
+//    private val kmPostsMap by lazy { kmPosts.associateBy { it.officialId } }
 
-    fun find(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
-    fun find(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
-    fun find(id: IntId<ReferenceLine>) = referenceLines.find { it.officialId == id }
-    fun find(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
-    fun find(id: IntId<TrackLayoutKmPost>) = kmPosts.find { it.officialId == id }
+    fun containsTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.any { it.officialId == id }
+    fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
+    fun containsReferenceLine(id: IntId<ReferenceLine>) = referenceLines.any { it.officialId == id }
+    fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
+    fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
+
+    fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
+    fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
+    fun findReferenceLine(id: IntId<ReferenceLine>) = referenceLines.find { it.officialId == id }
+    fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
+    fun findKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.find { it.officialId == id }
 }
 
-data class PublicationVersion<T>(val officialId: IntId<T>, val rowVersion: RowVersion<T>)
+data class PublicationVersion<T>(val officialId: IntId<T>, val draftVersion: RowVersion<T>)
 
 data class PublishRequest(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,

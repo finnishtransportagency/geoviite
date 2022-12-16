@@ -297,7 +297,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     fun fetchLinkedLocationTracks(
         switchId: IntId<TrackLayoutSwitch>,
         publicationStatus: PublishType,
-    ): List<PublicationVersion<LocationTrack>> {
+    ): List<RowVersion<LocationTrack>> {
         val sql = """
             select 
               location_track.official_id,
@@ -325,23 +325,6 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             "switch_id" to switchId.intValue,
             "publication_status" to publicationStatus.name,
         )
-        return jdbcTemplate.query(sql, params) { rs, _ -> PublicationVersion(
-            officialId = rs.getIntId("official_id"),
-            rowVersion = rs.getRowVersion("row_id", "row_version"),
-        ) }
-    }
-
-    fun fetchTrackNumberLocationTrackRows(
-        trackNumberId: IntId<TrackLayoutTrackNumber>
-    ): List<RowVersion<LocationTrack>> {
-        val sql = """
-            select row_id, row_version 
-            from layout.location_track_publication_view location_track
-            where location_track.track_number_id = :track_number_id 
-              and 'DRAFT' = any(location_track.publication_states)
-              and location_track.state != 'DELETED'
-        """.trimIndent()
-        val params = mapOf("track_number_id" to trackNumberId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }

@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.PublicationDao
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -28,8 +29,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
     val locationTrackService: LocationTrackService,
     val publicationDao: PublicationDao,
 ): ITTestBase() {
-    lateinit var layoutPublishId: IntId<Publication>
     lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
+    lateinit var layoutPublishId: IntId<Publication>
     lateinit var locationTrackId: RowVersion<LocationTrack>
 
     @BeforeEach
@@ -57,12 +58,11 @@ internal class RatkoPushDaoIT @Autowired constructor(
         }
 
         trackNumberId = insertOfficialTrackNumber()
-        val (locationTrack, alignment) = locationTrackAndAlignment(trackNumberId)
-        locationTrackId = locationTrackService.publish(
-            locationTrackService.saveDraft(locationTrack, alignment).id
-        )
+        locationTrackId = insertAndPublishLocationTrack()
         layoutPublishId = publicationDao.createPublish(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
     }
+
+
 
     @Test
     fun shouldStartANewPublish() {
@@ -132,10 +132,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldReturnMultipleUnpublishedLayoutPublishes() {
-        val (locationTrack2, alignment2) = locationTrackAndAlignment(trackNumberId)
-        val locationTrack2Id = locationTrackService.publish(
-            locationTrackService.saveDraft(locationTrack2, alignment2).id
-        )
+        val locationTrack2Id = insertAndPublishLocationTrack()
         val layoutPublishId2 = publicationDao.createPublish(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
 
         val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
@@ -175,5 +172,10 @@ internal class RatkoPushDaoIT @Autowired constructor(
     fun shouldRunGetLatestSuccessfulPublish() {
         // For now test SQL execution only
         ratkoPushDao.getLatestSuccessfulPushMoment()
+    }
+
+    fun insertAndPublishLocationTrack() = locationTrackAndAlignment(trackNumberId).let { (track, alignment) ->
+        val draftVersion = locationTrackService.saveDraft(track, alignment)
+        locationTrackService.publish(PublicationVersion(track.id as IntId, draftVersion))
     }
 }

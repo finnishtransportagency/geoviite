@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.linking.KmPostPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -54,22 +53,6 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         )) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
-    }
-
-    fun fetchPublicationVersions(
-        publicationState: PublishType,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): List<PublicationVersion<TrackLayoutKmPost>> {
-        val sql = """
-            select official_id, row_id, row_version
-            from layout.km_post_publication_view
-            where :publication_state = any(publication_states)
-              and :track_number_id = track_number_id
-        """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> PublicationVersion(
-            rs.getIntId("official_id"),
-            rs.getRowVersion("row_id", "row_version"),
-        ) }
     }
 
     fun fetchVersionsForPublication(

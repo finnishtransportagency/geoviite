@@ -19,6 +19,7 @@ import java.time.Instant
 interface IDraftableObjectWriter<T : Draftable<T>> {
     fun insert(newItem: T): RowVersion<T>
     fun update(updatedItem: T): RowVersion<T>
+    fun updateAndVerifyVersion(previousVersion: RowVersion<T>, updatedItem: T): RowVersion<T>
 }
 
 interface IDraftableObjectReader<T : Draftable<T>> {
@@ -30,8 +31,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchAllVersions(): List<RowVersion<T>>
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
 
-    fun fetchPublicationVersions(publicationState: PublishType): List<PublicationVersion<T>>
-    fun fetchPublicationVersions(publicationState: PublishType, ids: List<IntId<T>>): List<PublicationVersion<T>>
+    fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>>
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
@@ -65,34 +65,33 @@ jdbcTemplateParam: NamedParameterJdbcTemplate?,
     private val table: DbTable,
 ): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
 
-    override fun fetchPublicationVersions(publicationState: PublishType): List<PublicationVersion<T>> {
-        val sql = """
-            select official_id, row_id, row_version
-            from ${table.publicationView} 
-            where :publication_state = any(publication_states)
-        """.trimIndent()
-        val params = mapOf("publication_state" to publicationState.name)
-        return jdbcTemplate.query(sql, params) { rs, _ -> PublicationVersion(
-            rs.getIntId("official_id"),
-            rs.getRowVersion("row_id", "row_version"),
-        ) }
-    }
+    @Transactional
+    override fun updateAndVerifyVersion(previousVersion: RowVersion<T>, updatedItem: T): RowVersion<T> =
+        update(updatedItem).also { updatedVersion ->
+            require (updatedVersion.id == previousVersion.id) {
+                "Updated the wrong object: previous=$previousVersion updated=$updatedVersion"
+            }
+            if (updatedVersion.version != previousVersion.version+1) {
+                // We could do optimistic locking here by throwing
+                logger.warn("Updated version isn't the next one: a concurrent change may have been overwritten: " +
+                        "previous=$previousVersion updated=$updatedVersion")
+            }
+        }
 
-    override fun fetchPublicationVersions(
-        publicationState: PublishType,
-        ids: List<IntId<T>>,
-    ): List<PublicationVersion<T>> {
+    override fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
         if (ids.isEmpty()) return listOf()
         val sql = """
-            select official_id, row_id, row_version
-            from ${table.publicationView} 
+            select 
+              coalesce(${table.draftLink}, id) as official_id,
+              id as row_id, 
+              version as row_version
+            from ${table.fullName} 
             where official_id in (:ids)
-              and :publication_state = any(publication_states)
+              and draft = true
         """.trimIndent()
         val params = mapOf(
             "ids" to ids.map { id -> id.intValue },
-            "publication_state" to publicationState.name,
         )
         return jdbcTemplate.query<PublicationVersion<T>>(sql, params) { rs, _ -> PublicationVersion(
             rs.getIntId("official_id"),

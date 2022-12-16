@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.linking.PublishRequest
 import fi.fta.geoviite.infra.linking.PublishService
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import publish
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -68,15 +68,7 @@ class GeocodingDaoIT @Autowired constructor(
             )
         }
         assertChangeTimeProceedsWhen(trackNumberId, PublishType.OFFICIAL) {
-            publishService.publishChanges(
-                PublishRequest(
-                    listOf(),
-                    listOf(),
-                    listOf(),
-                    listOf(),
-                    listOf(kmPostVersion.id)
-                )
-            )
+            publish(publishService, kmPosts = listOf(kmPostVersion.id))
         }
     }
 
@@ -119,10 +111,15 @@ class GeocodingDaoIT @Autowired constructor(
         }
     }
 
-    fun assertChangeTimeProceedsWhen(trackNumberId: IntId<TrackLayoutTrackNumber>, publishType: PublishType, block: () -> Unit) {
+    fun <T> assertChangeTimeProceedsWhen(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        publishType: PublishType,
+        block: () -> T,
+    ): T {
         val before = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
-        block()
+        val result = block()
         val after = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
         assertTrue(before.isBefore(after), "on track number $trackNumberId, expected $before before $after")
+        return result
     }
 }
