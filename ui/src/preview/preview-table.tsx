@@ -40,13 +40,13 @@ type PublicationId =
     | LayoutSwitchId
     | LayoutKmPostId;
 
-type PreviewTableEntry = {
+export type PreviewTableEntry = {
     type: PreviewSelectType;
     errors: PublishValidationError[];
     pendingValidation: boolean;
 } & ChangeTableEntry;
 
-enum PreviewSelectType {
+export enum PreviewSelectType {
     trackNumber = 'trackNumber',
     referenceLine = 'referenceLine',
     locationTrack = 'locationTrack',
@@ -57,10 +57,16 @@ enum PreviewSelectType {
 type PreviewTableProps = {
     previewChanges: PreviewCandidates;
     onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
+    onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
 };
 
-const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSelect, staged }) => {
+const PreviewTable: React.FC<PreviewTableProps> = ({
+    previewChanges,
+    onPreviewSelect,
+    onRevert,
+    staged,
+}) => {
     const { t } = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     React.useEffect(() => {
@@ -195,6 +201,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
                                     onPublishItemSelect={() =>
                                         handlePreviewSelect(entry.id, entry.type)
                                     }
+                                    onRevert={() => onRevert(entry)}
                                     itemName={entry.uiName}
                                     trackNumber={entry.trackNumber}
                                     errors={entry.errors}

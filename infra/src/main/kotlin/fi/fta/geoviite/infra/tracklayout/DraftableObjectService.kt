@@ -101,6 +101,11 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         return dao.deleteUnpublishedDraft(id)
     }
 
+    fun revertDraft(id: IntId<ObjectType>): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
+        logger.serviceCall("revertDraft")
+        return dao.deleteDrafts(id)
+    }
+
     @Transactional
     open fun publish(id: IntId<ObjectType>): RowVersion<ObjectType> {
         logger.serviceCall("Publish", "id" to id)

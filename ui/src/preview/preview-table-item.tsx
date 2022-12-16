@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { Operation, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Menu } from 'vayla-design-lib/menu/menu';
 
 export type PreviewTableItemProps = {
     itemName: string;
@@ -17,6 +19,7 @@ export type PreviewTableItemProps = {
     userName: string;
     pendingValidation: boolean;
     onPublishItemSelect?: () => void;
+    onRevert: () => void;
     publish?: boolean;
 };
 
@@ -29,6 +32,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     userName,
     pendingValidation,
     onPublishItemSelect,
+    onRevert,
     publish = false,
 }) => {
     const { t } = useTranslation();
@@ -37,6 +41,13 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
+    };
+    const [menuVisible, setMenuVisible] = React.useState(false);
+
+    const menuItems = [{ value: 'revert', name: t('publish.revert-change') }];
+    const handleMenuItemSelection = (item: string) => {
+        if (item == 'revert') onRevert();
+        setMenuVisible(false);
     };
 
     const errorTexts = errorsToStrings(errors, 'ERROR');
@@ -81,21 +92,41 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         )}
                     </td>
                 )}
-                <td
-                    className={'preview-table-item preview-table-item__actions--cell'}
-                    onClick={() => {
-                        onPublishItemSelect && onPublishItemSelect();
-                    }}>
-                    {publish ? (
-                        <Icons.Ascending size={IconSize.SMALL} />
-                    ) : (
-                        <Icons.Descending size={IconSize.SMALL} />
-                    )}
+                <td className={'preview-table-item preview-table-item__actions--cell'}>
+                    <div>
+                        <div>
+                            <Button
+                                variant={ButtonVariant.GHOST}
+                                onClick={() => {
+                                    onPublishItemSelect && onPublishItemSelect();
+                                }}
+                                icon={publish ? Icons.Ascending : Icons.Descending}
+                            />
+                        </div>
+                        <div>
+                            <Button
+                                variant={ButtonVariant.GHOST}
+                                onClick={() => {
+                                    setMenuVisible(!menuVisible);
+                                }}
+                                icon={Icons.More}
+                            />
+                            {menuVisible && (
+                                <div className={styles['preview-table-item__title-menu']}>
+                                    <Menu
+                                        items={menuItems}
+                                        onChange={(item) =>
+                                            item && handleMenuItemSelection(item)
+                                        }></Menu>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </td>
             </tr>
             {isErrorRowExpanded && hasErrors && (
                 <tr className={'preview-table-item preview-table-item--error'}>
-                    <td colSpan={4}>
+                    <td colSpan={6}>
                         {errorTexts.length > 0 && (
                             <div className="preview-table-item__msg-group preview-table-item__msg-group--errors">
                                 <div className="preview-table-item__group-title">

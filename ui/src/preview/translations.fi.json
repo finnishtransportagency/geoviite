@@ -28,11 +28,17 @@
             "confirm": "Julkaise"
         },
         "revert-confirm": {
-            "title": "Hylkää muutokset?",
-            "description": "Haluatko varmasti hylätä kaikki luonnostilassa tehdyt muutokset?",
+            "title": "Muutoksen hylkääminen",
+            "description": "Haluatko hylätä muutoksen",
             "cancel": "Peruuta",
-            "confirm": "Hylkää kaikki"
+            "confirm": "Hylkää",
+            "location-track": "sijaintiraiteeseen",
+            "track-number": "ratanumeroon",
+            "reference-line": "pituusmittauslinjaan",
+            "switch": "vaihteeseen",
+            "km-post": "tasakilometripisteeseen"
         },
+        "revert-change": "Hylkää muutos",
         "publish-success": "Muutokset julkaistu paikannuspohjaan",
         "revert-success": "Luonnosmuutokset peruttu",
         "track-numbers": "Ratanumeroita",

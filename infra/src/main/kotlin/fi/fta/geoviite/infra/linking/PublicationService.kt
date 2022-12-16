@@ -155,14 +155,14 @@ class PublishService @Autowired constructor(
     }
 
     @Transactional
-    fun revertPublishCandidates(): PublishResult {
+    fun revertPublishCandidates(toDelete: PublishRequest): PublishResult {
         logger.serviceCall("revertPublishCandidates")
-        val locationTrackCount = locationTrackService.deleteDrafts().size
-        val referenceLineCount = referenceLineService.deleteDrafts().size
+        val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.revertDraft(id) }.size
+        val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.revertDraft(id) }.size
         alignmentDao.deleteOrphanedAlignments()
-        val switchCount = switchService.deleteDrafts().size
-        val kmPostCount = kmPostService.deleteDrafts().size
-        val trackNumberCount = trackNumberService.deleteDrafts().size
+        val switchCount = toDelete.switches.map { id -> switchService.revertDraft(id) }.size
+        val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.revertDraft(id) }.size
+        val trackNumberCount = toDelete.trackNumbers.map { id -> trackNumberService.revertDraft(id) }.size
 
         return PublishResult(
             publishId = null,

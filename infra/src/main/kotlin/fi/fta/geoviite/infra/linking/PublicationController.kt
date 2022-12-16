@@ -57,10 +57,10 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @DeleteMapping("/candidates")
-    fun revertPublishCandidates(): PublishResult {
+    fun revertPublishCandidates(@RequestBody toDelete: PublishRequest): PublishResult {
         logger.apiCall("revertPublishCandidates")
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publishService.revertPublishCandidates()
+            publishService.revertPublishCandidates(toDelete)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
