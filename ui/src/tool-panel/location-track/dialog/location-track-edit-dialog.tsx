@@ -30,10 +30,7 @@ import { Heading, HeadingSize } from 'vayla-design-lib/heading/heading';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { useTranslation } from 'react-i18next';
-import {
-    useLocationTrack,
-    useLocationTrackStartAndEnd,
-} from 'track-layout/track-layout-react-utils';
+import { useLocationTrackStartAndEnd } from 'track-layout/track-layout-react-utils';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PublishType, TimeStamp } from 'common/common-model';
@@ -68,9 +65,6 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             props.publishType,
             props.locationTrackChangeTime,
         );
-    const officialLocationTrack =
-        props.locationTrack &&
-        useLocationTrack(props.locationTrack.id, 'OFFICIAL', props.locationTrackChangeTime);
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const [state, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
     const [selectedDuplicateTrack, setSelectedDuplicateTrack] = React.useState<
@@ -266,7 +260,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     <React.Fragment>
                         <div className={dialogStyles['dialog-footer__content-area']}>
                             <div className={dialogStyles['dialog-footer__content--shrink']}>
-                                {officialLocationTrack === undefined && !state.isNewLocationTrack && (
+                                {props.locationTrack?.draftType === 'NEW_DRAFT' && !state.isNewLocationTrack && (
                                     <Button
                                         onClick={() =>
                                             props.locationTrack && confirmNonDraftDelete()

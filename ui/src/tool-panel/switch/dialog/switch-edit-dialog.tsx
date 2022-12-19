@@ -69,7 +69,6 @@ export const SwitchEditDialog = ({
     const [switchOwners, setSwitchOwners] = React.useState<SwitchOwner[]>([]);
     const [switchOwnerId, setSwitchOwnerId] = React.useState<SwitchOwnerId>();
     const [existingSwitch, setExistingSwitch] = React.useState<LayoutSwitch>();
-    const [officialSwitch, setOfficialSwitch] = React.useState<LayoutSwitch>();
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const isExistingSwitch = !!switchId;
     const canEditSwitchStructure = !prefilledSwitchStructureId;
@@ -91,8 +90,6 @@ export const SwitchEditDialog = ({
                 setTrapPoint(booleanToTrapPoint(s.trapPoint));
                 firstInputRef.current?.focus();
             });
-
-            getSwitch(switchId, 'OFFICIAL').then((r) => setOfficialSwitch(r));
         } else {
             firstInputRef.current?.focus();
         }
@@ -298,7 +295,7 @@ export const SwitchEditDialog = ({
                 footerClassName={'dialog-footer'}
                 footerContent={
                     <div className={dialogStyles['dialog-footer__content-area']}>
-                        {officialSwitch === undefined && isExistingSwitch && (
+                        {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (
                             <div className={dialogStyles['dialog-footer__content--shrink']}>
                                 <Button
                                     onClick={() => setShowDeleteDialog(true)}
@@ -502,8 +499,7 @@ export const SwitchEditDialog = ({
                                 disabled={isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            {isSaving ? <Spinner/> :
-                                <Button onClick={save} disabled={isSaving}>{t('button.save')}</Button>}
+                            {isSaving ? <Spinner/> : <Button onClick={save}>{t('button.save')}</Button>}
                         </>
                     }>
                     <React.Fragment>

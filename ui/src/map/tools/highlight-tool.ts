@@ -6,7 +6,6 @@ import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
 
 let currentItemsCompare = '';
 export const highlightTool: MapTool = {
-    icon: '',
     activate: (map: OlMap, layerAdapters: OlLayerAdapter[], options: MapToolActivateOptions) => {
         const debouncedMoveHandlerHighlight = debounce(
             (e) => {

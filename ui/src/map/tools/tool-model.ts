@@ -17,10 +17,9 @@ export type MapToolActivateOptions = {
 };
 
 export type MapTool = {
-    icon: string;
     activate: (
         map: OlMap,
-        layerAdapter: OlLayerAdapter[],
-        options: MapToolActivateOptions,
+        layerAdapter?: OlLayerAdapter[],
+        options?: MapToolActivateOptions,
     ) => DeactiveToolFun;
 };

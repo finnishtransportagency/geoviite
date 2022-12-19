@@ -53,6 +53,11 @@ import {
     createDebug1mPointsLayerAdapter,
     Debug1mPointsLayerFeatureType,
 } from './layers/debug-1m-points-layer';
+import { measurementTool } from 'map/tools/measurement-tool';
+import { createClassName } from 'vayla-design-lib/utils';
+import cursorDefaultClick from 'geoviite-design-lib/glyphs/material-design/cursor-default-click.svg';
+import ruler from 'geoviite-design-lib/glyphs/material-design/ruler.svg';
+import { IconColor, makeHigherOrderSvgIcon } from 'vayla-design-lib/icon/Icon';
 
 declare global {
     interface Window {
@@ -125,8 +130,8 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
         },
         resolution: view.getResolution() as number,
         area: {
-            x: {min: extent[0], max: extent[2]},
-            y: {min: extent[1], max: extent[3]},
+            x: { min: extent[0], max: extent[2] },
+            y: { min: extent[1], max: extent[3] },
         },
         source: 'Map',
     };
@@ -142,12 +147,13 @@ const MapView: React.FC<MapViewProps> = ({
     onViewportUpdate,
     ...props
 }: MapViewProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap | null>(null);
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [layerAdapters, setLayerAdapters] = React.useState<OlLayerAdapter[]>([]);
+    const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
 
     const handleClusterPointClick = (clickType: string) => {
         const clusterPoint = selection.selectedItems.clusterPoints[0];
@@ -299,7 +305,9 @@ const MapView: React.FC<MapViewProps> = ({
                             mapLayer,
                             mapTiles,
                             olView.getResolution(),
-                            existingOlLayer as VectorLayer<VectorSource<ManualSwitchLinkingLayerFeatureType>>,
+                            existingOlLayer as VectorLayer<
+                                VectorSource<ManualSwitchLinkingLayerFeatureType>
+                            >,
                             selection,
                             publishType,
                         );
@@ -307,7 +315,9 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'debug1mPoints':
                         layerAdapter = createDebug1mPointsLayerAdapter(
                             mapLayer,
-                            existingOlLayer as VectorLayer<VectorSource<Debug1mPointsLayerFeatureType>>,
+                            existingOlLayer as VectorLayer<
+                                VectorSource<Debug1mPointsLayerFeatureType>
+                            >,
                             selection,
                             publishType,
                             olView.getResolution(),
@@ -356,27 +366,24 @@ const MapView: React.FC<MapViewProps> = ({
             onHoverLocation: props.onHoverLocation,
             onClickLocation: props.onClickLocation,
         };
-        const deactivateToolFunc = selectToolBasic.activate(olMap, layerAdapters, toolActivateOptions);
 
-        // Always activate e.g. highlight tool
-        const deactivateHighlightTool = highlightTool.activate(
-            olMap,
-            layerAdapters,
-            toolActivateOptions,
-        );
-        const deactivatePointLocationTool = pointLocationTool.activate(
-            olMap,
-            layerAdapters,
-            toolActivateOptions,
-        );
+        const deactiveToolFunctions = [
+            pointLocationTool.activate(olMap, layerAdapters, toolActivateOptions),
+        ];
+
+        if (!measurementToolActive) {
+            deactiveToolFunctions.push(
+                selectToolBasic.activate(olMap, layerAdapters, toolActivateOptions),
+            );
+
+            deactiveToolFunctions.push(
+                highlightTool.activate(olMap, layerAdapters, toolActivateOptions),
+            );
+        }
 
         // Return function to clean up initialized stuff
         return () => {
-            if (deactivateToolFunc) {
-                deactivateToolFunc();
-            }
-            deactivatePointLocationTool();
-            deactivateHighlightTool();
+            deactiveToolFunctions.forEach((f) => f());
         };
     }, [
         olMap,
@@ -387,11 +394,41 @@ const MapView: React.FC<MapViewProps> = ({
         changeTimes,
         publishType,
         linkingState,
+        measurementToolActive,
     ]);
+
+    React.useEffect(() => {
+        if (measurementToolActive && olMap) {
+            return measurementTool.activate(olMap);
+        }
+    }, [olMap, measurementToolActive]);
+
+    function getToolIcon(svg: string) {
+        return makeHigherOrderSvgIcon(svg)({ color: IconColor.INHERIT });
+    }
 
     return (
         <div className={styles.map}>
-            <div ref={olMapContainer} className={styles['map__ol-map']}/>
+            <ol className="map__map-tools">
+                <li
+                    onClick={() => setMeasurementToolActive(false)}
+                    className={createClassName(
+                        styles['map__map-tool'],
+                        !measurementToolActive && styles['map__map-tool--active'],
+                    )}>
+                    {getToolIcon(cursorDefaultClick)}
+                </li>
+                <li
+                    onClick={() => setMeasurementToolActive(true)}
+                    className={createClassName(
+                        styles['map__map-tool'],
+                        measurementToolActive && styles['map__map-tool--active'],
+                    )}>
+                    {getToolIcon(ruler)}
+                </li>
+            </ol>
+
+            <div ref={olMapContainer} className={styles['map__ol-map']} />
 
             <div id="clusteroverlay">
                 {selection.selectedItems.clusterPoints[0] && (
@@ -420,7 +457,7 @@ const MapView: React.FC<MapViewProps> = ({
                 )}
             </div>
 
-            <LocationHolderView hoveredCoordinate={map.hoveredLocation}/>
+            <LocationHolderView hoveredCoordinate={map.hoveredLocation} />
         </div>
     );
 };

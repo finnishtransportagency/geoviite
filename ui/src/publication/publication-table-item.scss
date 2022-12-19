@@ -51,6 +51,10 @@ $color-warning: #9f6700;
     cursor: pointer;
 }
 
+.preview-table-item__actions--cell {
+    cursor: pointer;
+}
+
 .preview-table-item--error {
     cursor: default;
 }

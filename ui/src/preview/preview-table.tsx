@@ -30,7 +30,8 @@ import {
     trackNumberToChangeTableEntry,
 } from 'preview/change-table-entry-mapping';
 import { PreviewTableItem } from 'preview/preview-table-item';
-import { PublishCandidates, PublishValidationError } from 'publication/publication-model';
+import { PublishValidationError } from 'publication/publication-model';
+import { PreviewCandidates } from 'preview/preview-view';
 
 type PublicationId =
     | LayoutTrackNumberId
@@ -42,6 +43,7 @@ type PublicationId =
 export type PreviewTableEntry = {
     type: PreviewSelectType;
     errors: PublishValidationError[];
+    pendingValidation: boolean;
 } & ChangeTableEntry;
 
 enum PreviewSelectType {
@@ -53,7 +55,7 @@ enum PreviewSelectType {
 }
 
 type PreviewTableProps = {
-    previewChanges: PublishCandidates;
+    previewChanges: PreviewCandidates;
     onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
     staged: boolean;
 };
@@ -100,18 +102,20 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
         }
     }
 
-    const changesToPublicationEntries = (previewChanges: PublishCandidates): PreviewTableEntry[] =>
+    const changesToPublicationEntries = (previewChanges: PreviewCandidates): PreviewTableEntry[] =>
         previewChanges.trackNumbers
             .map((trackNumberCandidate) => ({
                 ...trackNumberToChangeTableEntry(trackNumberCandidate, t),
                 errors: trackNumberCandidate.errors,
                 type: PreviewSelectType.trackNumber,
+                pendingValidation: trackNumberCandidate.pendingValidation,
             }))
             .concat(
                 previewChanges.referenceLines.map((referenceLineCandidate) => ({
                     ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers, t),
                     errors: referenceLineCandidate.errors,
                     type: PreviewSelectType.referenceLine,
+                    pendingValidation: referenceLineCandidate.pendingValidation,
                 })),
             )
             .concat(
@@ -119,6 +123,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
                     ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers, t),
                     errors: locationTrackCandidate.errors,
                     type: PreviewSelectType.locationTrack,
+                    pendingValidation: locationTrackCandidate.pendingValidation,
                 })),
             )
             .concat(
@@ -126,6 +131,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
                     ...switchToChangeTableEntry(switchCandidate, trackNumbers, t),
                     errors: switchCandidate.errors,
                     type: PreviewSelectType.switch,
+                    pendingValidation: switchCandidate.pendingValidation,
                 })),
             )
             .concat(
@@ -133,6 +139,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
                     ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers, t),
                     errors: kmPostCandidate.errors,
                     type: PreviewSelectType.kmPost,
+                    pendingValidation: kmPostCandidate.pendingValidation,
                 })),
             );
 
@@ -193,6 +200,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
                                     errors={entry.errors}
                                     changeTime={entry.changeTime}
                                     userName={entry.userName}
+                                    pendingValidation={entry.pendingValidation}
                                     operation={entry.operation}
                                     publish={staged}
                                 />

@@ -196,8 +196,9 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             {planHeaders && (
                 <section>
                     <h3 className={styles['selection-panel__title']}>
-                        {`${t('selection-panel.geometries-title')} (${planHeaders.length
-                            }/${planHeaderCount})`}
+                        {`${t('selection-panel.geometries-title')} (${
+                            planHeaders.length
+                        }/${planHeaderCount})`}
                     </h3>
                     <div
                         className={createClassName(
@@ -285,7 +286,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             )}
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {`${t('selection-panel.km-posts-title')}  (${filteredKmPosts.length})`}
+                    {t('selection-panel.km-posts-title')} ({filteredKmPosts.length}/{kmPosts.length}
+                    )
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <KmPostsPanel
@@ -303,8 +305,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             </section>
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {`${t('selection-panel.reference-lines-title')}  (${filteredReferenceLines.length
-                        })`}
+                    {t('selection-panel.reference-lines-title')} ({filteredReferenceLines.length}/
+                    {referenceLines.length})
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <ReferenceLinesPanel
@@ -319,7 +321,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             </section>
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {`${t('selection-panel.location-tracks-title')}  (${locationTracks.length})`}
+                    {t('selection-panel.location-tracks-title')} ({filteredLocationTracks.length}/
+                    {locationTracks.length})
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <LocationTracksPanel
@@ -332,7 +335,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             </section>
             <section>
                 <h3 className={styles['selection-panel__title']}>
-                    {`${t('selection-panel.switches-title')}  (${switches.length})`}
+                    {t('selection-panel.switches-title')} ({switches.length})
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <SwitchPanel

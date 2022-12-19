@@ -24,7 +24,15 @@ import { ChangeTimes, SelectedPublishChange } from 'track-layout/track-layout-st
 import { PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { PublishCandidates, ValidatedPublishCandidates } from 'publication/publication-model';
+import {
+    KmPostPublishCandidate,
+    LocationTrackPublishCandidate,
+    PublishCandidate,
+    PublishCandidates,
+    ReferenceLinePublishCandidate,
+    SwitchPublishCandidate,
+    TrackNumberPublishCandidate,
+} from 'publication/publication-model';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
@@ -52,6 +60,18 @@ export type SelectedChanges = {
     kmPosts: LayoutKmPostId[];
 };
 
+type PendingValidation = {
+    pendingValidation: boolean;
+};
+
+export type PreviewCandidates = {
+    trackNumbers: (TrackNumberPublishCandidate & PendingValidation)[];
+    referenceLines: (ReferenceLinePublishCandidate & PendingValidation)[];
+    locationTracks: (LocationTrackPublishCandidate & PendingValidation)[];
+    switches: (SwitchPublishCandidate & PendingValidation)[];
+    kmPosts: (KmPostPublishCandidate & PendingValidation)[];
+};
+
 type PreviewProps = {
     map: Map;
     selection: Selection;
@@ -77,7 +97,7 @@ const publishCandidateIds = (candidates: PublishCandidates): PublishRequest => (
     kmPosts: candidates.kmPosts.map((s) => s.id),
 });
 
-const initialCandidates = {
+const emptyChanges = {
     trackNumbers: [],
     locationTracks: [],
     referenceLines: [],
@@ -103,11 +123,11 @@ const getStagedChanges = (
     switches: publishCandidates.switches.filter((layoutSwitch) =>
         filterStaged(stagedChangeIds.switches, layoutSwitch),
     ),
-    kmPosts: publishCandidates.kmPosts.filter((trackNumber) =>
-        filterStaged(stagedChangeIds.kmPosts, trackNumber),
+    kmPosts: publishCandidates.kmPosts.filter((kmPost) =>
+        filterStaged(stagedChangeIds.kmPosts, kmPost),
     ),
-    referenceLines: publishCandidates.referenceLines.filter((trackNumber) =>
-        filterStaged(stagedChangeIds.referenceLines, trackNumber),
+    referenceLines: publishCandidates.referenceLines.filter((referenceLine) =>
+        filterStaged(stagedChangeIds.referenceLines, referenceLine),
     ),
 });
 
@@ -124,57 +144,147 @@ const getUnstagedChanges = (
     switches: publishCandidates.switches.filter((layoutSwitch) =>
         filterUnstaged(stagedChangeIds.switches, layoutSwitch),
     ),
-    kmPosts: publishCandidates.kmPosts.filter((trackNumber) =>
-        filterUnstaged(stagedChangeIds.kmPosts, trackNumber),
+    kmPosts: publishCandidates.kmPosts.filter((kmPost) =>
+        filterUnstaged(stagedChangeIds.kmPosts, kmPost),
     ),
-    referenceLines: publishCandidates.referenceLines.filter((trackNumber) =>
-        filterUnstaged(stagedChangeIds.referenceLines, trackNumber),
+    referenceLines: publishCandidates.referenceLines.filter((referenceLine) =>
+        filterUnstaged(stagedChangeIds.referenceLines, referenceLine),
     ),
+});
+
+// Validating the change set takes time. After a change is staged, it should be regarded as staged, but pending
+// validation until validation is complete
+const pendingValidation = (
+    allStaged: CandidateId[],
+    allValidated: CandidateId[],
+    id: CandidateId,
+) => allStaged.includes(id) && !allValidated.includes(id);
+
+const previewChanges = (
+    stagedValidatedChanges: PublishCandidates,
+    allSelectedChanges: PublishRequest,
+    entireChangeset: PublishCandidates,
+) => {
+    const validatedIds = publishCandidateIds(stagedValidatedChanges);
+
+    return {
+        trackNumbers: [
+            ...stagedValidatedChanges.trackNumbers.map(nonPendingCandidate),
+            ...entireChangeset.trackNumbers
+                .filter((change) =>
+                    pendingValidation(
+                        allSelectedChanges.trackNumbers,
+                        validatedIds.trackNumbers,
+                        change.id,
+                    ),
+                )
+                .map(pendingCandidate),
+        ],
+        referenceLines: [
+            ...stagedValidatedChanges.referenceLines.map(nonPendingCandidate),
+            ...entireChangeset.referenceLines
+                .filter((change) =>
+                    pendingValidation(
+                        allSelectedChanges.referenceLines,
+                        validatedIds.referenceLines,
+                        change.id,
+                    ),
+                )
+                .map(pendingCandidate),
+        ],
+        locationTracks: [
+            ...stagedValidatedChanges.locationTracks.map(nonPendingCandidate),
+            ...entireChangeset.locationTracks
+                .filter((change) =>
+                    pendingValidation(
+                        allSelectedChanges.locationTracks,
+                        validatedIds.locationTracks,
+                        change.id,
+                    ),
+                )
+                .map(pendingCandidate),
+        ],
+        switches: [
+            ...stagedValidatedChanges.switches.map(nonPendingCandidate),
+            ...entireChangeset.switches
+                .filter((change) =>
+                    pendingValidation(
+                        allSelectedChanges.switches,
+                        validatedIds.switches,
+                        change.id,
+                    ),
+                )
+                .map(pendingCandidate),
+        ],
+        kmPosts: [
+            ...stagedValidatedChanges.kmPosts.map(nonPendingCandidate),
+            ...entireChangeset.kmPosts
+                .filter((change) =>
+                    pendingValidation(allSelectedChanges.kmPosts, validatedIds.kmPosts, change.id),
+                )
+                .map(pendingCandidate),
+        ],
+    };
+};
+
+const nonPendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
+    ...candidate,
+    pendingValidation: false,
+});
+const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
+    ...candidate,
+    pendingValidation: true,
 });
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
-    const allChanges = useLoader(() => getPublishCandidates(), []);
-    const allValidatedPublishCandidates: ValidatedPublishCandidates | null | undefined = useLoader(
+    const entireChangeset = useLoader(() => getPublishCandidates(), []);
+    const entireChangesetValidation = useLoader(
         () =>
-            (allChanges && validatePublishCandidates(publishCandidateIds(allChanges))) ?? undefined,
-        [allChanges],
+            validatePublishCandidates(
+                publishCandidateIds(entireChangeset ? entireChangeset : emptyChanges),
+            ),
+        [entireChangeset],
     );
-    // GVT-1510 currently all changes are fetched above and hence all validated as a single publication unit
-    const publishCandidates: PublishCandidates | undefined =
-        allValidatedPublishCandidates?.validatedAsPublicationUnit;
-    const unstagedChanges = publishCandidates
-        ? getUnstagedChanges(publishCandidates, props.selectedPublishCandidateIds)
-        : initialCandidates;
-    const stagedChanges = publishCandidates
-        ? getStagedChanges(publishCandidates, props.selectedPublishCandidateIds)
-        : initialCandidates;
+    const stagedValidation = useLoader(
+        () => validatePublishCandidates(props.selectedPublishCandidateIds),
+        [props.selectedPublishCandidateIds],
+    );
+    const unstagedChanges = entireChangesetValidation
+        ? getUnstagedChanges(
+              entireChangesetValidation?.validatedAsPublicationUnit,
+              props.selectedPublishCandidateIds,
+          )
+        : undefined;
+    const stagedChangesValidated = stagedValidation
+        ? getStagedChanges(
+              stagedValidation.validatedAsPublicationUnit,
+              props.selectedPublishCandidateIds,
+          )
+        : undefined;
 
-    const [selectedChanges, setSelectedChanges] = React.useState<SelectedChanges>({
-        trackNumbers: [],
-        referenceLines: [],
-        locationTracks: [],
-        switches: [],
-        kmPosts: [],
-    });
-    React.useEffect(() => {
-        setSelectedChanges({
-            trackNumbers: publishCandidates
-                ? publishCandidates.trackNumbers.map((tn) => tn.id)
-                : [],
-            referenceLines: publishCandidates
-                ? publishCandidates.referenceLines.map((a) => a.id)
-                : [],
-            locationTracks: publishCandidates
-                ? publishCandidates.locationTracks.map((a) => a.id)
-                : [],
-            switches: publishCandidates ? publishCandidates.switches.map((s) => s.id) : [],
-            kmPosts: publishCandidates ? publishCandidates.kmPosts.map((kmp) => kmp.id) : [],
-        });
-    }, [publishCandidates]);
+    const unstagedPreviewChanges: PreviewCandidates = unstagedChanges
+        ? {
+              trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
+              referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
+              locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
+              switches: unstagedChanges.switches.map(nonPendingCandidate),
+              kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
+          }
+        : emptyChanges;
+
+    const stagedPreviewChanges: PreviewCandidates =
+        stagedChangesValidated && entireChangeset
+            ? previewChanges(
+                  stagedChangesValidated,
+                  props.selectedPublishCandidateIds,
+                  entireChangeset,
+              )
+            : emptyChanges;
+
     const calculatedChanges = useLoader(
-        () => getCalculatedChanges(selectedChanges),
-        [selectedChanges],
+        () => getCalculatedChanges(props.selectedPublishCandidateIds),
+        [props.selectedPublishCandidateIds],
     );
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
 
@@ -183,7 +293,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             <div className={styles['preview-view']} qa-id="preview-content">
                 <PreviewToolBar onClosePreview={props.onClosePreview} />
                 <div className={styles['preview-view__changes']}>
-                    {(unstagedChanges && stagedChanges && (
+                    {(unstagedChanges && stagedChangesValidated && (
                         <>
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
@@ -191,7 +301,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
-                                    previewChanges={unstagedChanges}
+                                    previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                 />
                             </section>
@@ -202,7 +312,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
-                                    previewChanges={stagedChanges}
+                                    previewChanges={stagedPreviewChanges}
                                     staged={true}
                                 />
                             </section>
@@ -232,11 +342,15 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                 <PreviewFooter
                     onSelect={props.onSelect}
-                    request={selectedChanges}
+                    request={
+                        stagedChangesValidated
+                            ? publishCandidateIds(stagedChangesValidated)
+                            : emptyChanges
+                    }
                     onClosePreview={props.onClosePreview}
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
-                    previewChanges={stagedChanges == null ? undefined : stagedChanges}
+                    previewChanges={unstagedChanges ? unstagedChanges : emptyChanges}
                     onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>
