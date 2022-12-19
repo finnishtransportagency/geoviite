@@ -367,23 +367,23 @@ const MapView: React.FC<MapViewProps> = ({
             onClickLocation: props.onClickLocation,
         };
 
-        const deactiveToolFunctions = [
+        const deactivateCallbacks = [
             pointLocationTool.activate(olMap, layerAdapters, toolActivateOptions),
         ];
 
         if (!measurementToolActive) {
-            deactiveToolFunctions.push(
+            deactivateCallbacks.push(
                 selectToolBasic.activate(olMap, layerAdapters, toolActivateOptions),
             );
 
-            deactiveToolFunctions.push(
+            deactivateCallbacks.push(
                 highlightTool.activate(olMap, layerAdapters, toolActivateOptions),
             );
         }
 
         // Return function to clean up initialized stuff
         return () => {
-            deactiveToolFunctions.forEach((f) => f());
+            deactivateCallbacks.forEach((f) => f());
         };
     }, [
         olMap,

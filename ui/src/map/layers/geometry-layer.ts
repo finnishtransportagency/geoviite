@@ -21,6 +21,7 @@ import { filterUniqueById } from 'utils/array-utils';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { toMapAlignmentResolution } from 'track-layout/layout-map-api';
 import { getMaxTimestamp } from 'utils/date-utils';
+import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
 
 const unlinkedAlignmentStyle = new Style({
     stroke: new Stroke({
@@ -108,7 +109,7 @@ function createFeatures(
                 return styles;
             });
 
-            feature.set('segment-data', {
+            feature.set(FEATURE_PROPERTY_SEGMENT_DATA, {
                 trackNumber: null,
                 segment: segment,
                 alignment: alignment,
