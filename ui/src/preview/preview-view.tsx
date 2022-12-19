@@ -237,7 +237,7 @@ const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
 });
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
-    const { t } = useTranslation();
+    const {t} = useTranslation();
     const entireChangeset = useLoader(() => getPublishCandidates(), []);
     const entireChangesetValidation = useLoader(
         () =>
@@ -252,34 +252,34 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
     const unstagedChanges = entireChangesetValidation
         ? getUnstagedChanges(
-              entireChangesetValidation?.validatedAsPublicationUnit,
-              props.selectedPublishCandidateIds,
-          )
+            entireChangesetValidation?.validatedAsPublicationUnit,
+            props.selectedPublishCandidateIds,
+        )
         : undefined;
     const stagedChangesValidated = stagedValidation
         ? getStagedChanges(
-              stagedValidation.validatedAsPublicationUnit,
-              props.selectedPublishCandidateIds,
-          )
+            stagedValidation.validatedAsPublicationUnit,
+            props.selectedPublishCandidateIds,
+        )
         : undefined;
 
     const unstagedPreviewChanges: PreviewCandidates = unstagedChanges
         ? {
-              trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
-              referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
-              locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
-              switches: unstagedChanges.switches.map(nonPendingCandidate),
-              kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
-          }
+            trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
+            referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
+            locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
+            switches: unstagedChanges.switches.map(nonPendingCandidate),
+            kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
+        }
         : emptyChanges;
 
     const stagedPreviewChanges: PreviewCandidates =
         stagedChangesValidated && entireChangeset
             ? previewChanges(
-                  stagedChangesValidated,
-                  props.selectedPublishCandidateIds,
-                  entireChangeset,
-              )
+                stagedChangesValidated,
+                props.selectedPublishCandidateIds,
+                entireChangeset,
+            )
             : emptyChanges;
 
     const calculatedChanges = useLoader(
@@ -291,13 +291,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
-                <PreviewToolBar onClosePreview={props.onClosePreview} />
+                <PreviewToolBar onClosePreview={props.onClosePreview}/>
                 <div className={styles['preview-view__changes']}>
                     {(unstagedChanges && stagedChangesValidated && (
                         <>
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <h3>{t('preview-view.other-changes-title')}</h3>
+                                    <h3>{t('preview-view.unstaged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
@@ -308,7 +308,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <h3>{t('preview-view.publish-candidates-title')}</h3>
+                                    <h3>{t('preview-view.staged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
@@ -319,12 +319,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                             <div className={styles['preview-section']}>
                                 {calculatedChanges && (
-                                    <CalculatedChangesView calculatedChanges={calculatedChanges} />
+                                    <CalculatedChangesView calculatedChanges={calculatedChanges}/>
                                 )}
-                                {!calculatedChanges && <Spinner />}
+                                {!calculatedChanges && <Spinner/>}
                             </div>
                         </>
-                    )) || <Spinner />}
+                    )) || <Spinner/>}
                 </div>
 
                 <MapView
