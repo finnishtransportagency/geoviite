@@ -97,7 +97,7 @@ const publishCandidateIds = (candidates: PublishCandidates): PublishRequest => (
     kmPosts: candidates.kmPosts.map((s) => s.id),
 });
 
-const emptyChanges = {
+const emptyChanges  = {
     trackNumbers: [],
     locationTracks: [],
     referenceLines: [],
@@ -350,7 +350,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     onClosePreview={props.onClosePreview}
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
-                    previewChanges={unstagedChanges ? unstagedChanges : emptyChanges}
+                    previewChanges={stagedPreviewChanges ? stagedPreviewChanges : emptyChanges}
                     onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>

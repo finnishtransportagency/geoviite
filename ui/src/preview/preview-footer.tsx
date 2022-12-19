@@ -37,8 +37,7 @@ type PreviewFooterProps = {
     onPublishPreviewRevert: () => void;
 };
 
-function previewChangesCanBePublished(previewChanges: PublishCandidates | undefined){
-    if (previewChanges === undefined) return false;
+function previewChangesCanBePublished(previewChanges: PublishCandidates){
     return previewChanges.kmPosts.length != 0 ||
     previewChanges.trackNumbers.length != 0 ||
     previewChanges.locationTracks.length != 0 ||
@@ -164,7 +163,6 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         revertConfirmVisible ||
                         publishConfirmVisible ||
                         validationPending ||
-                        (allPublishErrors && allPublishErrors?.length > 0)
                         (allPublishErrors && allPublishErrors?.length > 0) ||
                         !publishPreviewChanges
                     }>
