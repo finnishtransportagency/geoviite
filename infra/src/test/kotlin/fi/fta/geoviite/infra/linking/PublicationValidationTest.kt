@@ -558,7 +558,7 @@ class PublicationValidationTest {
                         kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0)),
                         kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0)),
                     ),
-                ), ""
+                )
             ),
             error,
         )
@@ -572,7 +572,7 @@ class PublicationValidationTest {
                         kmPost(IntId(1), KmNumber(2), Point(18.0, 0.0)),
                         kmPost(IntId(1), KmNumber(1), Point(12.0, 0.0)),
                     ),
-                ), ""
+                )
             ),
             error,
         )
@@ -589,7 +589,7 @@ class PublicationValidationTest {
                 geocodingContext(
                     toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(15.0, 0.0))),
-                ), ""
+                )
             ),
             error,
         )
@@ -599,7 +599,7 @@ class PublicationValidationTest {
                 geocodingContext(
                     toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(5.0, 0.0))),
-                ), ""
+                )
             ),
             kmPostsOutsideLineErrorBefore,
         )
@@ -609,7 +609,7 @@ class PublicationValidationTest {
                 geocodingContext(
                     toTrackLayoutPoints(Point(10.0, 0.0), Point(20.0, 0.0)),
                     listOf(kmPost(IntId(1), KmNumber(1), Point(25.0, 0.0))),
-                ), ""
+                )
             ),
             kmPostsOutsideLineErrorAfter,
         )
@@ -734,7 +734,7 @@ class PublicationValidationTest {
         hasError: Boolean,
         context: GeocodingContext,
         error: String,
-    ) = assertContainsError(hasError, validateGeocodingContext(context, ""), error)
+    ) = assertContainsError(hasError, validateGeocodingContext(context), error)
 
     private fun assertSegmentSwitchError(
         hasError: Boolean,

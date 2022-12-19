@@ -196,7 +196,7 @@ inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? {
     return if (arrayObj is Array<*>) {
         (arrayObj as Array<out Any?>).toList().mapNotNull { o ->
             if (o is T) o
-            else throw IllegalStateException("Array contains value of unexpected type")
+            else throw IllegalStateException("Array contains value of unexpected type: expectedType=${T::class.simpleName} found=$o")
         }
     } else {
         null

@@ -1,24 +1,16 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.linking.PublishService
-import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
-import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.getInstant
-import fi.fta.geoviite.infra.util.queryOptional
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import publish
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import publicationVersions
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -27,99 +19,107 @@ class GeocodingDaoIT @Autowired constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val referenceLineDao: ReferenceLineDao,
     val alignmentDao: LayoutAlignmentDao,
-    val referenceLineService: ReferenceLineService,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
-    val publishService: PublishService,
 ) : ITTestBase() {
 
     @Test
-    fun changeTimePicksUpReferenceLineChange() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
-        val alignment = alignment(segment(Point(0.0, 0.0), Point(1.1, 1.1)))
-        val alignmentVersion = alignmentDao.insert(alignment)
-        val referenceLineVersion = referenceLineDao.insert(
-            ReferenceLine(
-                trackNumberId = trackNumberId,
-                startAddress = TrackMeter.ZERO,
-                alignmentVersion = alignmentVersion,
-                sourceId = null,
-            )
+    fun trackNumberWithoutReferenceLineHasNoContext() {
+        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        assertNull(geocodingDao.getGeocodingContextCacheKey(DRAFT, id))
+        assertNull(geocodingDao.getGeocodingContextCacheKey(OFFICIAL, id))
+    }
+
+    @Test
+    fun trackNumberWithoutKmPostsHasAContext() {
+        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val alignmentVersion = alignmentDao.insert(alignment())
+        referenceLineDao.insert(referenceLine(id).copy(alignmentVersion = alignmentVersion))
+        assertNotNull(geocodingDao.getGeocodingContextCacheKey(DRAFT, id))
+        assertNotNull(geocodingDao.getGeocodingContextCacheKey(OFFICIAL, id))
+    }
+
+    @Test
+    fun cacheKeysAreCalculatedCorrectly() {
+        val tnOfficialVersion = trackNumberDao.insert(trackNumber(getUnusedTrackNumber()))
+        val tnId = tnOfficialVersion.id
+        val tnDraftVersion = trackNumberDao.insert(draft(trackNumberDao.fetch(tnOfficialVersion)))
+
+        val alignmentVersion = alignmentDao.insert(alignment())
+        val rlOfficialVersion = referenceLineDao.insert(referenceLine(tnId).copy(alignmentVersion = alignmentVersion))
+        val rlDraftVersion = referenceLineDao.insert(draft(referenceLineDao.fetch(rlOfficialVersion)))
+
+        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1)))
+        val kmPostOneDraftVersion = kmPostDao.insert(draft(kmPostDao.fetch(kmPostOneOfficialVersion)))
+        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(tnId, KmNumber(2)))
+        val kmPostThreeOnlyOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3)))
+
+        val officialKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, tnOfficialVersion.id)!!
+        assertEquals(
+            GeocodingContextCacheKey(
+                trackNumberVersion = tnOfficialVersion,
+                referenceLineVersion = rlOfficialVersion,
+                kmPostVersions = listOf(kmPostOneOfficialVersion, kmPostThreeOnlyOfficialVersion)
+            ),
+            officialKey,
         )
-        val referenceLine = referenceLineDao.fetch(referenceLineVersion)
-        assertChangeTimeProceedsWhen(trackNumberId, PublishType.DRAFT) {
-            referenceLineService.saveDraft(referenceLine.copy(), alignment)
-        }
-    }
 
-    @Test
-    fun changeTimePicksUpEditedKmPost() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val draftKey = geocodingDao.getGeocodingContextCacheKey(DRAFT, tnOfficialVersion.id)!!
+        assertEquals(
+            GeocodingContextCacheKey(
+                trackNumberVersion = tnDraftVersion,
+                referenceLineVersion = rlDraftVersion,
+                kmPostVersions = listOf(kmPostOneDraftVersion, kmPostTwoOnlyDraftVersion, kmPostThreeOnlyOfficialVersion)
+            ),
+            draftKey,
+        )
 
-        val kmPostVersion = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
-        val kmPost = kmPostDao.fetch(kmPostVersion)
-        assertChangeTimeProceedsWhen(trackNumberId, PublishType.DRAFT) {
-            kmPostService.updateKmPost(
-                kmPostVersion.id, TrackLayoutKmPostSaveRequest(
-                    kmNumber = KmNumber(1, "A"),
-                    state = kmPost.state,
-                    trackNumberId = kmPost.trackNumberId as IntId
-                )
-            )
-        }
-        assertChangeTimeProceedsWhen(trackNumberId, PublishType.OFFICIAL) {
-            publish(publishService, kmPosts = listOf(kmPostVersion.id))
-        }
-    }
+        // Publishing nothing is the same as regular official
+        assertEquals(
+            officialKey,
+            geocodingDao.getGeocodingContextCacheKey(tnOfficialVersion.id, publicationVersions()),
+        )
 
-    @Test
-    fun cacheKeyWhenPublishingPicksUpLatestChangeInPublicationSet() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        // Publishing everything is the same as regular draft
+        assertEquals(
+            draftKey,
+            geocodingDao.getGeocodingContextCacheKey(tnOfficialVersion.id, publicationVersions(
+                trackNumbers = listOf(tnId to tnDraftVersion),
+                referenceLines = listOf(rlOfficialVersion.id to rlDraftVersion),
+                kmPosts = listOf(
+                    kmPostOneOfficialVersion.id to kmPostOneDraftVersion,
+                    kmPostTwoOnlyDraftVersion.id to kmPostTwoOnlyDraftVersion,
+                ),
+            )),
+        )
 
-        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
-        val kmPostOneOfficialVersionChangeTime = getChangeTime("km_post", kmPostOneOfficialVersion.id.intValue)
-        val kmPostOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(kmPostOneOfficialVersion)))
-        val kmPostOneDraftChangeTime = getChangeTime("km_post", kmPostOneDraft.id.intValue)
-
-        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2)))
-        val kmPostTwoChangeTime = getChangeTime("km_post", kmPostTwoOnlyDraftVersion.id.intValue)
-
-        fun getCacheKey(vararg kmPostIds: IntId<TrackLayoutKmPost>) =
-            geocodingDao.getGeocodingContextCacheKey(PublishType.DRAFT, trackNumberId, kmPostIds.asList())!!
-
-        val keyPublishingNone = getCacheKey()
-        val keyPublishingFirst = getCacheKey(kmPostOneOfficialVersion.id)
-        val keyPublishingBoth = getCacheKey(kmPostOneOfficialVersion.id, kmPostTwoOnlyDraftVersion.id)
-
-        assertEquals(keyPublishingNone.changeTime, kmPostOneOfficialVersionChangeTime)
-        assertEquals(keyPublishingFirst.changeTime, kmPostOneDraftChangeTime)
-        assertEquals(keyPublishingBoth.changeTime, kmPostTwoChangeTime)
-    }
-
-    private fun getChangeTime(table: String, id: Int): Instant =
-        jdbc.queryOptional("select change_time from layout.$table where id = :id", mapOf("id" to id)) { rs, _ ->
-            rs.getInstant("change_time")
-        }!!
-
-    @Test
-    fun changeTimePicksUpDeletedKmPostDraft() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
-        val kmPostDraft =
-            kmPostService.insertKmPost(TrackLayoutKmPostSaveRequest(KmNumber(1), LayoutState.IN_USE, trackNumberId))
-        assertChangeTimeProceedsWhen(trackNumberId, PublishType.DRAFT) {
-            kmPostService.deleteDraft(kmPostDraft)
-        }
-    }
-
-    fun <T> assertChangeTimeProceedsWhen(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publishType: PublishType,
-        block: () -> T,
-    ): T {
-        val before = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
-        val result = block()
-        val after = geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId)!!.changeTime
-        assertTrue(before.isBefore(after), "on track number $trackNumberId, expected $before before $after")
-        return result
+        // Publishing partial combines official with requested draft parts
+        assertEquals(
+            officialKey.copy(trackNumberVersion = tnDraftVersion),
+            geocodingDao.getGeocodingContextCacheKey(tnOfficialVersion.id, publicationVersions(
+                trackNumbers = listOf(tnId to tnDraftVersion),
+            )),
+        )
+        assertEquals(
+            officialKey.copy(referenceLineVersion = rlDraftVersion),
+            geocodingDao.getGeocodingContextCacheKey(tnOfficialVersion.id, publicationVersions(
+                referenceLines = listOf(rlOfficialVersion.id to rlDraftVersion),
+            )),
+        )
+        assertEquals(
+            officialKey.copy(kmPostVersions = listOf(kmPostOneDraftVersion, kmPostTwoOnlyDraftVersion, kmPostThreeOnlyOfficialVersion)),
+            geocodingDao.getGeocodingContextCacheKey(tnOfficialVersion.id, publicationVersions(
+                kmPosts = listOf(
+                    kmPostOneOfficialVersion.id to kmPostOneDraftVersion,
+                    kmPostTwoOnlyDraftVersion.id to kmPostTwoOnlyDraftVersion,
+                ),
+            )),
+        )
+        assertEquals(
+            officialKey.copy(kmPostVersions = listOf(kmPostOneDraftVersion, kmPostThreeOnlyOfficialVersion)),
+            geocodingDao.getGeocodingContextCacheKey(tnOfficialVersion.id, publicationVersions(
+                kmPosts = listOf(kmPostOneOfficialVersion.id to kmPostOneDraftVersion),
+            )),
+        )
     }
 }

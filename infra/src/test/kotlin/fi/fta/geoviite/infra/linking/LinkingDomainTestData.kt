@@ -1,7 +1,6 @@
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.linking.PublishRequest
-import fi.fta.geoviite.infra.linking.PublishResult
-import fi.fta.geoviite.infra.linking.PublishService
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.tracklayout.*
 
 fun publishRequest(
@@ -16,6 +15,20 @@ fun publishRequest(
     switches = switches,
     referenceLines = referenceLines,
     locationTracks = locationTracks,
+)
+
+fun publicationVersions(
+    trackNumbers: List<Pair<IntId<TrackLayoutTrackNumber>, RowVersion<TrackLayoutTrackNumber>>> = listOf(),
+    referenceLines: List<Pair<IntId<ReferenceLine>, RowVersion<ReferenceLine>>> = listOf(),
+    kmPosts: List<Pair<IntId<TrackLayoutKmPost>, RowVersion<TrackLayoutKmPost>>> = listOf(),
+    locationTracks: List<Pair<IntId<LocationTrack>, RowVersion<LocationTrack>>> = listOf(),
+    switches: List<Pair<IntId<TrackLayoutSwitch>, RowVersion<TrackLayoutSwitch>>> = listOf(),
+) = PublicationVersions(
+    trackNumbers = trackNumbers.map { (id,version) -> PublicationVersion(id, version) },
+    referenceLines = referenceLines.map { (id,version) -> PublicationVersion(id, version) },
+    kmPosts = kmPosts.map { (id,version) -> PublicationVersion(id, version) },
+    locationTracks = locationTracks.map { (id,version) -> PublicationVersion(id, version) },
+    switches = switches.map { (id,version) -> PublicationVersion(id, version) },
 )
 
 fun publish(

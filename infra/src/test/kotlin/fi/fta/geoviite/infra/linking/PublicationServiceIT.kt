@@ -1,12 +1,9 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -26,16 +23,17 @@ import kotlin.test.*
 @SpringBootTest
 class PublicationServiceIT @Autowired constructor(
     val publicationService: PublishService,
-    val locationTrackService: LocationTrackService,
-    val referenceLineService: ReferenceLineService,
-    val switchService: LayoutSwitchService,
-    val switchDao: LayoutSwitchDao,
-    val referenceLineDao: ReferenceLineDao,
-    val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
+    val referenceLineDao: ReferenceLineDao,
+    val referenceLineService: ReferenceLineService,
+    val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
+    val locationTrackDao: LocationTrackDao,
+    val locationTrackService: LocationTrackService,
+    val switchDao: LayoutSwitchDao,
+    val switchService: LayoutSwitchService,
     val calculatedChangesService: CalculatedChangesService,
     val publicationDao: PublicationDao,
 ): ITTestBase() {
@@ -108,7 +106,11 @@ class PublicationServiceIT @Autowired constructor(
                 alignmentDao.insert(a.copy(segments = listOf(a.segments[0].copy(switchId = switch.id))))))
         }
 
-        val publishResult = publish(publicationService, locationTracks = locationTracks.map { it.id })
+        val publishResult = publish(
+            publicationService,
+            locationTracks = locationTracks.map { it.id },
+            switches = listOf(switch.id),
+        )
         val publish = publicationService.getPublication(publishResult.publishId!!)
         assertEquals(trackNumberIds.sortedBy { it.intValue }, publish.switches[0].trackNumberIds.sortedBy { it.intValue })
     }
@@ -431,6 +433,59 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(publishResult.publishId, publicationCountAfterPublishing.last().id)
     }
 
+    @Test
+    fun publishingTrackNumberWorks() {
+        verifyPublishingWorks(
+            trackNumberDao,
+            trackNumberService,
+            { trackNumber(getUnusedTrackNumber()) },
+            { orig -> draft(orig.copy(description = FreeText("${orig.description}_edit"))) },
+        )
+    }
+
+    @Test
+    fun publishingReferenceLineWorks() {
+        val tnId = insertOfficialTrackNumber()
+        verifyPublishingWorks(
+            referenceLineDao,
+            referenceLineService,
+            { referenceLine(tnId) },
+            { orig -> draft(orig.copy(startAddress = TrackMeter(12, 34))) },
+        )
+    }
+
+    @Test
+    fun publishingKmPostWorks() {
+        val tnId = insertOfficialTrackNumber()
+        verifyPublishingWorks(
+            kmPostDao,
+            kmPostService,
+            { kmPost(tnId, KmNumber(123)) },
+            { orig -> draft(orig.copy(kmNumber = KmNumber(321))) },
+        )
+    }
+
+    @Test
+    fun publishingLocationTrackWorks() {
+        val tnId = insertOfficialTrackNumber()
+        verifyPublishingWorks(
+            locationTrackDao,
+            locationTrackService,
+            { locationTrack(tnId) },
+            { orig -> draft(orig.copy(description = FreeText("${orig.description}_edit"))) },
+        )
+    }
+
+    @Test
+    fun publishingSwitchWorks() {
+        verifyPublishingWorks(
+            switchDao,
+            switchService,
+            { switch() },
+            { orig -> draft(orig.copy(name = SwitchName("${orig.name}A"))) },
+        )
+    }
+
     private fun someTrackNumber() = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
 
     private fun getCalculatedChangesInRequest(req: PublishRequest): CalculatedChanges =
@@ -441,4 +496,53 @@ class PublicationServiceIT @Autowired constructor(
             req.locationTracks,
             req.switches
         )
+}
+
+private fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublishingWorks(
+    dao: S,
+    service: DraftableObjectService<T, S>,
+    create: () -> T,
+    mutate: (orig: T) -> T,
+) {
+    val draftVersion1 = service.saveDraft(create())
+    val officialId = draftVersion1.id // First id remains official
+    assertEquals(1, draftVersion1.version)
+
+    val officialVersion1 = publishAndCheck(draftVersion1, dao, service).first
+    assertEquals(officialId, officialVersion1.id)
+    assertEquals(2, officialVersion1.version)
+
+    val draftVersion2 = service.saveDraft(mutate(dao.fetch(officialVersion1)))
+    assertNotEquals(officialId, draftVersion2.id)
+    assertEquals(1, draftVersion2.version)
+
+    val officialVersion2 = publishAndCheck(draftVersion2, dao, service).first
+    assertEquals(officialId, officialVersion2.id)
+    assertEquals(3, officialVersion2.version)
+}
+
+fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
+    rowVersion: RowVersion<T>,
+    dao: S,
+    service: DraftableObjectService<T, S>,
+): Pair<RowVersion<T>, T> {
+    val draft = dao.fetch(rowVersion)
+    val id = draft.id
+
+    assertTrue(id is IntId)
+    assertNotEquals(rowVersion, dao.fetchOfficialVersion(id))
+    assertEquals(rowVersion, dao.fetchDraftVersion(id))
+    assertNotNull(draft.draft)
+    assertEquals(DataType.STORED, draft.dataType)
+
+    val publishedVersion = service.publish(PublicationVersion(id, rowVersion))
+    assertEquals(publishedVersion, dao.fetchOfficialVersionOrThrow(id))
+    assertEquals(publishedVersion, dao.fetchDraftVersion(id))
+    assertEquals(VersionPair(publishedVersion, null), dao.fetchVersionPair(id))
+
+    val publishedItem = dao.fetch(publishedVersion)
+    assertNull(publishedItem.draft)
+    assertEquals(id, publishedVersion.id)
+
+    return publishedVersion to publishedItem
 }

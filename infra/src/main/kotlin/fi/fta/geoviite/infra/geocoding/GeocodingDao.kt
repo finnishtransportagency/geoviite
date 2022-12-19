@@ -53,8 +53,10 @@ class GeocodingDao(
               tn.row_version tn_row_version,
               rl.row_id rl_row_id,
               rl.row_version rl_row_version,
-              array_agg(kmp.row_id order by kmp.row_id, kmp.row_version) kmp_row_ids,
-              array_agg(kmp.row_version order by kmp.row_id, kmp.row_version) kmp_row_versions
+              array_agg(kmp.row_id order by kmp.row_id, kmp.row_version) 
+                filter (where kmp.row_id is not null) kmp_row_ids,
+              array_agg(kmp.row_version order by kmp.row_id, kmp.row_version) 
+                filter (where kmp.row_id is not null) kmp_row_versions
             from layout.track_number_publication_view tn
               left join layout.reference_line_publication_view rl on rl.track_number_id = tn.official_id
                 and :publication_state = any(rl.publication_states)
@@ -70,14 +72,19 @@ class GeocodingDao(
             "tn_id" to trackNumberId.intValue,
             "publication_state" to publicationState.name,
         )
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> GeocodingContextCacheKey(
-            trackNumberVersion = rs.getRowVersion("tn_row_id", "tn_row_version"),
-            referenceLineVersion = rs.getRowVersion("rl_row_id", "rl_row_version"),
-            kmPostVersions = toRowVersions(
-                ids = rs.getIntIdArray("kmp_row_ids"),
-                versions = rs.getIntArray("kmp_row_versions"),
-            ),
-        ) }
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+            val tnVersion = rs.getRowVersion<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
+            val rlVersion = rs.getRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
+            if (rlVersion == null) null
+            else GeocodingContextCacheKey(
+                trackNumberVersion = tnVersion,
+                referenceLineVersion = rlVersion,
+                kmPostVersions = toRowVersions(
+                    ids = rs.getIntIdArray("kmp_row_ids"),
+                    versions = rs.getIntArrayOrNull("kmp_row_versions") ?: listOf(),
+                ),
+            )
+        }
     }
 
     fun getGeocodingContextCacheKey(

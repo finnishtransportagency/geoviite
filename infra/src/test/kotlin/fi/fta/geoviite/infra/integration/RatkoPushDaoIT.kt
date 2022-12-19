@@ -176,6 +176,6 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     fun insertAndPublishLocationTrack() = locationTrackAndAlignment(trackNumberId).let { (track, alignment) ->
         val draftVersion = locationTrackService.saveDraft(track, alignment)
-        locationTrackService.publish(PublicationVersion(track.id as IntId, draftVersion))
+        locationTrackService.publish(PublicationVersion(draftVersion.id, draftVersion))
     }
 }
