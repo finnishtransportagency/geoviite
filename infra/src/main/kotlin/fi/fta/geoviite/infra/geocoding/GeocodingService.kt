@@ -118,6 +118,4 @@ class GeocodingService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         publicationVersions: PublicationVersions,
     ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, publicationVersions)
-
-
 }

@@ -109,13 +109,6 @@ data class PublicationVersions(
     val switches: List<PublicationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
 ) {
-//    // TODO: switch the structures for maps?
-//    private val trackNumberMap by lazy { trackNumbers.associateBy { it.officialId } }
-//    private val locationTrackMap by lazy { locationTracks.associateBy { it.officialId } }
-//    private val referenceLineMap by lazy { referenceLines.associateBy { it.officialId } }
-//    private val switchMap by lazy { switches.associateBy { it.officialId } }
-//    private val kmPostsMap by lazy { kmPosts.associateBy { it.officialId } }
-
     fun containsTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.any { it.officialId == id }
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
     fun containsReferenceLine(id: IntId<ReferenceLine>) = referenceLines.any { it.officialId == id }

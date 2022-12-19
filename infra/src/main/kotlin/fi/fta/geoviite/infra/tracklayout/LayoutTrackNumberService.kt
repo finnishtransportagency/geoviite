@@ -62,9 +62,7 @@ class LayoutTrackNumberService(
     }
 
     @Transactional
-    fun deleteDraftOnlyTrackNumberAndReferenceLine(
-        id: IntId<TrackLayoutTrackNumber>,
-    ): IntId<TrackLayoutTrackNumber> {
+    fun deleteDraftOnlyTrackNumberAndReferenceLine(id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
         val trackNumber = getDraft(id)
         val referenceLine = referenceLineService.getByTrackNumber(DRAFT, id)
             ?: throw IllegalStateException("Found Track Number without Reference Line $id")

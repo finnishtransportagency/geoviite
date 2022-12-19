@@ -61,7 +61,7 @@ interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDr
 
 @Transactional(readOnly = true)
 abstract class DraftableDaoBase<T : Draftable<T>>(
-jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
     private val table: DbTable,
 ): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
 
