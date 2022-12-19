@@ -37,12 +37,12 @@ type PreviewFooterProps = {
     onPublishPreviewRevert: () => void;
 };
 
-function previewChangesCanBePublished(previewChanges: PublishCandidates){
+function previewChangesCanBePublished(previewChanges: PublishCandidates) {
     return previewChanges.kmPosts.length != 0 ||
-    previewChanges.trackNumbers.length != 0 ||
-    previewChanges.locationTracks.length != 0 ||
-    previewChanges.switches.length != 0 ||
-    previewChanges.referenceLines.length != 0;
+        previewChanges.trackNumbers.length != 0 ||
+        previewChanges.locationTracks.length != 0 ||
+        previewChanges.switches.length != 0 ||
+        previewChanges.referenceLines.length != 0;
 }
 
 function describe(name: string, value: number | undefined): string | undefined {
@@ -86,7 +86,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         if (result?.switches || 0 > 0) updateSwitchChangeTime();
     };
 
-    const { t } = useTranslation();
+    const {t} = useTranslation();
 
     const [revertConfirmVisible, setRevertConfirmVisible] = React.useState(false);
     const [publishConfirmVisible, setPublishConfirmVisible] = React.useState(false);
