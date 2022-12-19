@@ -1,7 +1,7 @@
 {
     "preview-view": {
-        "publish-candidates-title": "Julkaistavat muutokset",
-        "other-changes-title": "Muutokset",
+        "unstaged-changes-title": "Muutokset",
+        "staged-changes-title": "Julkaistavat muutokset",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
         "track-number": "Ratanumero {{number}} {{disabled}}",

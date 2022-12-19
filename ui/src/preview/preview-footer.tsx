@@ -52,6 +52,8 @@ function publishErrors(previewChanges: PublishCandidates): PublishValidationErro
 }
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
+
+    console.log('props',props)
     const allPublishErrors =
         props.previewChanges &&
         publishErrors(props.previewChanges).filter((error) => error.type == 'ERROR');
@@ -66,6 +68,8 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             .filter(filterNotEmpty)
             .join('\n');
     };
+
+    console.log('allpublisherrors', allPublishErrors)
 
     const updateChangeTimes = (result: PublishResult | null) => {
         if (result?.trackNumbers || 0 > 0) updateTrackNumberChangeTime();

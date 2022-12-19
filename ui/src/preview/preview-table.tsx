@@ -39,7 +39,7 @@ type PublicationId =
     | LayoutSwitchId
     | LayoutKmPostId;
 
-type PreviewTableEntry = {
+export type PreviewTableEntry = {
     type: PreviewSelectType;
     errors: PublishValidationError[];
 } & ChangeTableEntry;
@@ -136,7 +136,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({ previewChanges, onPreviewSe
                 })),
             );
 
-    const publicationEntries = changesToPublicationEntries(previewChanges);
+    const publicationEntries: PreviewTableEntry[] = changesToPublicationEntries(previewChanges);
 
     const sortedPublicationEntries =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED

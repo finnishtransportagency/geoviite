@@ -187,7 +187,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         <>
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <h3>{t('preview-view.other-changes-title')}</h3>
+                                    <h3>{t('preview-view.unstaged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
