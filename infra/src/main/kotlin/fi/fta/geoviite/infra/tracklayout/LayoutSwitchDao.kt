@@ -406,7 +406,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               switch_change_view.change_user,
               layout.infer_operation_from_state_category_transition(switch_change_view.old_state_category, switch_change_view.state_category) operation,
               (select array_agg(sltn)
-                from layout.switch_linked_track_numbers(switch_change_view.id) sltn)
+                from layout.switch_linked_track_numbers(switch_change_view.id, :publication_state) sltn)
                as track_numbers
             from publication.switch published_switch
               left join layout.switch_change_view
@@ -417,7 +417,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         return jdbcTemplate.query(
             sql,
             mapOf(
-                "id" to publicationId.intValue
+                "id" to publicationId.intValue,
+                "publication_state" to PublishType.OFFICIAL.name,
             )
         ) { rs, _ ->
             SwitchPublishCandidate(
