@@ -1422,18 +1422,19 @@ class GeometryDao @Autowired constructor(
         return mapOf("${name}_x" to point?.x, "${name}_y" to point?.y)
     }
 
-    fun getMeasurementMethodForLayoutSegment(id: IndexedId<LayoutSegment>): MeasurementMethod? {
+    fun getMeasurementMethodForSwitch(id: IntId<GeometrySwitch>): MeasurementMethod? {
         val sql = """
             select plan.measurement_method
             from geometry.plan
-              join geometry.alignment on plan.id = alignment.plan_id
-              join layout.segment on segment.geometry_alignment_id = alignment.id
-              where segment.alignment_id = :layout_alignment_id and segment.segment_index = :segment_index
+                join geometry.switch on plan.id = switch.plan_id
+            where switch.id = :switch_id
         """.trimIndent()
 
         return jdbcTemplate.query(
             sql,
-            mapOf("layout_alignment_id" to id.parentId, "segment_index" to id.index)
+            mapOf(
+                "switch_id" to id.intValue
+            )
         ) { rs, _ ->
             rs.getEnumOrNull<MeasurementMethod>("measurement_method")
         }.firstOrNull()
