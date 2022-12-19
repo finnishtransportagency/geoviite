@@ -126,7 +126,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             </Infobox>
             <Infobox title={t('tool-panel.km-post.layout.change-info-heading')}>
                 <InfoboxContent>
-                    {officialKmPost === undefined && (
+                    {officialKmPost?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button
                                 onClick={() => showDeleteConfirmation()}

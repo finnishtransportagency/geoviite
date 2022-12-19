@@ -304,7 +304,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 title={t('tool-panel.switch.layout.change-info-heading')}
                 qa-id="switch-heading-infobox">
                 <InfoboxContent>
-                    {officialSwitch === undefined && (
+                    {officialSwitch?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button
                                 onClick={() => setShowDeleteDialog(true)}
