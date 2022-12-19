@@ -36,6 +36,15 @@ type PreviewFooterProps = {
     onPublishPreviewRevert: () => void;
 };
 
+function previewChangesCanBePublished(previewChanges: PublishCandidates | undefined){
+    if (previewChanges === undefined) return false;
+    return previewChanges.kmPosts.length != 0 ||
+    previewChanges.trackNumbers.length != 0 ||
+    previewChanges.locationTracks.length != 0 ||
+    previewChanges.switches.length != 0 ||
+    previewChanges.referenceLines.length != 0;
+}
+
 function describe(name: string, value: number | undefined): string | undefined {
     return value !== undefined && value > 0 ? `${name}: ${value}` : undefined;
 }
@@ -53,7 +62,6 @@ function publishErrors(previewChanges: PublishCandidates): PublishValidationErro
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
 
-    console.log('props',props)
     const allPublishErrors =
         props.previewChanges &&
         publishErrors(props.previewChanges).filter((error) => error.type == 'ERROR');
@@ -69,7 +77,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             .join('\n');
     };
 
-    console.log('allpublisherrors', allPublishErrors)
+    const publishPreviewChanges = previewChangesCanBePublished(props.previewChanges);
 
     const updateChangeTimes = (result: PublishResult | null) => {
         if (result?.trackNumbers || 0 > 0) updateTrackNumberChangeTime();
@@ -148,7 +156,8 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         emptyRequest ||
                         revertConfirmVisible ||
                         publishConfirmVisible ||
-                        (allPublishErrors && allPublishErrors?.length > 0)
+                        (allPublishErrors && allPublishErrors?.length > 0) ||
+                        !publishPreviewChanges
                     }>
                     {t('preview-footer.publish-changes')}
                 </Button>

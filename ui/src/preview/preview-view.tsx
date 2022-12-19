@@ -198,7 +198,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                             <section className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
-                                    <h3>{t('preview-view.publish-candidates-title')}</h3>
+                                    <h3>{t('preview-view.staged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
@@ -236,7 +236,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     onClosePreview={props.onClosePreview}
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
-                    previewChanges={unstagedChanges == null ? undefined : unstagedChanges}
+                    previewChanges={stagedChanges == null ? undefined : stagedChanges}
                     onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>
