@@ -315,45 +315,40 @@ fun getCauseForRejection(kmPost: TrackLayoutKmPost, geocodingContext: GeocodingC
     }
 }
 
+fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
+    PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", listOf())
 
-fun validateGeocodingContext(
-    context: GeocodingContext?,
-    validationTargetLocalizationPrefix: String,
-): List<PublishValidationError> =
-    if (context == null) listOf(
-        PublishValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", listOf())
-    )
-    else {
-        val kmPostsInWrongOrder = context.referencePoints
-            .filter { point -> point.intersectType == WITHIN }
-            .filterIndexed { index, point ->
-                val previous = context.referencePoints.getOrNull(index - 1)
-                val next = context.referencePoints.getOrNull(index + 1)
-                !isOrderOk(previous, point) || !isOrderOk(point, next)
-            }.let { invalidPoints ->
-                validateWithParams(invalidPoints.isEmpty()) {
-                    "$VALIDATION_GEOCODING.km-posts-invalid" to listOf(
-                        context.trackNumber.number.toString(),
-                        invalidPoints.joinToString(",") { point -> point.kmNumber.toString() },
-                    )
-                }
+fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationError> {
+    val kmPostsInWrongOrder = context.referencePoints
+        .filter { point -> point.intersectType == WITHIN }
+        .filterIndexed { index, point ->
+            val previous = context.referencePoints.getOrNull(index - 1)
+            val next = context.referencePoints.getOrNull(index + 1)
+            !isOrderOk(previous, point) || !isOrderOk(point, next)
+        }.let { invalidPoints ->
+            validateWithParams(invalidPoints.isEmpty()) {
+                "$VALIDATION_GEOCODING.km-posts-invalid" to listOf(
+                    context.trackNumber.number.toString(),
+                    invalidPoints.joinToString(",") { point -> point.kmNumber.toString() },
+                )
             }
-        val kmPostsFarFromLine = context.referencePoints
-            .filter { point -> point.intersectType == WITHIN }
-            .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
-            .let { farAwayPoints ->
-                validateWithParams(farAwayPoints.isEmpty(), WARNING) {
-                    "$VALIDATION_GEOCODING.km-posts-far-from-line" to listOf(
-                        context.trackNumber.number.toString(),
-                        farAwayPoints.joinToString(",") { point -> point.kmNumber.toString() },
-                    )
-                }
-            }
-        val kmPostsRejected = context.rejectedKmPosts.map { kmPost ->
-            getCauseForRejection(kmPost, context)
         }
-        kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder)
+    val kmPostsFarFromLine = context.referencePoints
+        .filter { point -> point.intersectType == WITHIN }
+        .filter { point -> point.kmPostOffset > MAX_KM_POST_OFFSET }
+        .let { farAwayPoints ->
+            validateWithParams(farAwayPoints.isEmpty(), WARNING) {
+                "$VALIDATION_GEOCODING.km-posts-far-from-line" to listOf(
+                    context.trackNumber.number.toString(),
+                    farAwayPoints.joinToString(",") { point -> point.kmNumber.toString() },
+                )
+            }
+        }
+    val kmPostsRejected = context.rejectedKmPosts.map { kmPost ->
+        getCauseForRejection(kmPost, context)
     }
+    return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder)
+}
 
 fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?) =
     if (previous == null || next == null) true

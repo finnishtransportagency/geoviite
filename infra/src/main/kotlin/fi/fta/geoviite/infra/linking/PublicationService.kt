@@ -7,6 +7,8 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.PublicationFailureException
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
+import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -19,12 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-const val ENFORCE_VALIDITY = true
-
 @Service
 class PublishService @Autowired constructor(
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
+    private val geocodingDao: GeocodingDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val switchService: LayoutSwitchService,
     private val kmPostService: LayoutKmPostService,
@@ -95,37 +96,45 @@ class PublishService @Autowired constructor(
         },
     )
 
-    fun validateAsPublicationUnit(candidates: PublishCandidates, versions: PublicationVersions) = PublishCandidates(
-        trackNumbers = versions.trackNumbers.map { version ->
-            candidates.getTrackNumber(version.officialId).copy(errors = validateTrackNumber(version, versions))
-        },
-        referenceLines = versions.referenceLines.map { version ->
-            candidates.getReferenceLine(version.officialId).copy(errors = validateReferenceLine(version, versions))
-        },
-        locationTracks = versions.locationTracks.map { version ->
-            candidates.getLocationTrack(version.officialId).copy(errors = validateLocationTrack(version, versions))
-        },
-        switches = versions.switches.map { version ->
-            candidates.getSwitch(version.officialId).copy(errors = validateSwitch(version, versions))
-        },
-        kmPosts = versions.kmPosts.map { version ->
-            candidates.getKmPost(version.officialId).copy(errors = validateKmPost(version, versions))
-        },
-    )
+    fun validateAsPublicationUnit(candidates: PublishCandidates, versions: PublicationVersions) =
+        collectCacheKeys(versions).let { cacheKeys -> PublishCandidates(
+            trackNumbers = versions.trackNumbers.map { version ->
+                candidates.getTrackNumber(version.officialId)
+                    .copy(errors = validateTrackNumber(version, versions, cacheKeys))
+            },
+            referenceLines = versions.referenceLines.map { version ->
+                candidates.getReferenceLine(version.officialId)
+                    .copy(errors = validateReferenceLine(version, versions, cacheKeys))
+            },
+            locationTracks = versions.locationTracks.map { version ->
+                candidates.getLocationTrack(version.officialId)
+                    .copy(errors = validateLocationTrack(version, versions, cacheKeys))
+            },
+            switches = versions.switches.map { version ->
+                candidates.getSwitch(version.officialId)
+                    .copy(errors = validateSwitch(version, versions))
+            },
+            kmPosts = versions.kmPosts.map { version ->
+                candidates.getKmPost(version.officialId)
+                    .copy(errors = validateKmPost(version, versions, cacheKeys))
+            },
+        ) }
+
 
     fun validatePublishRequest(versions: PublicationVersions) {
         logger.serviceCall("validate", "versions" to versions)
+        val cacheKeys = collectCacheKeys(versions)
         versions.trackNumbers.forEach { version ->
-            assertNoErrors(version, validateTrackNumber(version, versions))
+            assertNoErrors(version, validateTrackNumber(version, versions, cacheKeys))
         }
         versions.kmPosts.forEach { version ->
-            assertNoErrors(version, validateKmPost(version, versions))
+            assertNoErrors(version, validateKmPost(version, versions, cacheKeys))
         }
         versions.referenceLines.forEach { version ->
-            assertNoErrors(version, validateReferenceLine(version, versions))
+            assertNoErrors(version, validateReferenceLine(version, versions, cacheKeys))
         }
         versions.locationTracks.forEach { version ->
-            assertNoErrors(version, validateLocationTrack(version, versions))
+            assertNoErrors(version, validateLocationTrack(version, versions, cacheKeys))
         }
         versions.switches.forEach { version ->
             assertNoErrors(version, validateSwitch(version, versions))
@@ -212,7 +221,7 @@ class PublishService @Autowired constructor(
         val severeErrors = errors.filter { error -> error.type == PublishValidationErrorType.ERROR }
         if (severeErrors.isNotEmpty()) {
             logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$severeErrors")
-            if (ENFORCE_VALIDITY) throw PublicationFailureException(
+            throw PublicationFailureException(
                 message = "Cannot publish ${T::class.simpleName} due to validation errors: $version",
                 localizedMessageKey = "validation-failed",
             )
@@ -260,6 +269,7 @@ class PublishService @Autowired constructor(
     fun validateTrackNumber(
         version: PublicationVersion<TrackLayoutTrackNumber>,
         publicationVersions: PublicationVersions,
+        cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     ): List<PublishValidationError> {
         val trackNumber = trackNumberDao.fetch(version.draftVersion)
         val kmPosts = getKmPostsByTrackNumber(version.officialId, publicationVersions)
@@ -274,7 +284,7 @@ class PublishService @Autowired constructor(
         )
         val geocodingErrors =
             if (trackNumber.exists) {
-                validateTrackNumberGeocodingContext(version.officialId, publicationVersions, VALIDATION_TRACK_NUMBER)
+                validateGeocodingContext(cacheKeys[version.officialId], VALIDATION_TRACK_NUMBER)
             } else listOf()
         return fieldErrors + referenceErrors + geocodingErrors
     }
@@ -285,6 +295,7 @@ class PublishService @Autowired constructor(
     fun validateKmPost(
         version: PublicationVersion<TrackLayoutKmPost>,
         publicationVersions: PublicationVersions,
+        cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     ): List<PublishValidationError> {
         val kmPost = kmPostDao.fetch(version.draftVersion)
         val trackNumber = kmPost.trackNumberId?.let { id -> getTrackNumber(id, publicationVersions) }
@@ -296,7 +307,7 @@ class PublishService @Autowired constructor(
         )
         val geocodingErrors =
             if (kmPost.exists && trackNumber != null) {
-                validateTrackNumberGeocodingContext(kmPost.trackNumberId, publicationVersions, VALIDATION_KM_POST)
+                validateGeocodingContext(cacheKeys[kmPost.trackNumberId], VALIDATION_KM_POST)
             } else listOf()
         return fieldErrors + referenceErrors + geocodingErrors
     }
@@ -334,6 +345,7 @@ class PublishService @Autowired constructor(
     fun validateReferenceLine(
         version: PublicationVersion<ReferenceLine>,
         publicationVersions: PublicationVersions,
+        cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     ): List<PublishValidationError> {
         val (referenceLine, alignment) = getReferenceLineAndAlignment(version.draftVersion)
         val trackNumber = getTrackNumberOrThrow(referenceLine.trackNumberId, publicationVersions)
@@ -345,12 +357,17 @@ class PublishService @Autowired constructor(
         )
         val alignmentErrors = if (trackNumber.exists) validateReferenceLineAlignment(alignment) else listOf()
         val geocodingErrors: List<PublishValidationError> =
-            if (trackNumber.exists) validateTrackNumberGeocodingContext(
-                referenceLine.trackNumberId,
-                publicationVersions,
-                VALIDATION_REFERENCE_LINE,
-            ) + validateTrackNumberAssociatedTrackAddresses(trackNumber, publicationVersions)
-            else listOf()
+            if (trackNumber.exists) {
+                val contextKey = cacheKeys[referenceLine.trackNumberId]
+                val contextErrors = validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE)
+                val addressErrors = contextKey?.let { key ->
+                    val locationTracks = getLocationTracksByTrackNumber(trackNumber.id as IntId, publicationVersions)
+                    locationTracks.flatMap { track ->
+                        validateAddressPoints(trackNumber, key, track, VALIDATION_REFERENCE_LINE)
+                    }
+                } ?: listOf()
+                contextErrors + addressErrors
+            } else listOf()
         return fieldErrors + referenceErrors + alignmentErrors + geocodingErrors
     }
 
@@ -364,6 +381,7 @@ class PublishService @Autowired constructor(
     fun validateLocationTrack(
         version: PublicationVersion<LocationTrack>,
         publicationVersions: PublicationVersions,
+        cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     ): List<PublishValidationError> {
         val (locationTrack, alignment) = getLocationTrackAndAlignment(version.draftVersion)
         val trackNumber = getTrackNumberOrThrow(locationTrack.trackNumberId, publicationVersions)
@@ -391,7 +409,9 @@ class PublishService @Autowired constructor(
             else listOf()
         val geocodingErrors =
             if (locationTrack.exists) {
-                validateAddressPoints(trackNumber, locationTrack, publicationVersions, VALIDATION_LOCATION_TRACK)
+                cacheKeys[locationTrack.trackNumberId]?.let { key ->
+                    validateAddressPoints(trackNumber, key, locationTrack, VALIDATION_LOCATION_TRACK)
+                } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
             } else listOf()
         return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors
     }
@@ -493,37 +513,23 @@ class PublishService @Autowired constructor(
         )
     }
 
-    fun validateTrackNumberAssociatedTrackAddresses(
-        trackNumber: TrackLayoutTrackNumber,
-        publicationVersions: PublicationVersions,
-    ): List<PublishValidationError> {
-        val locationTracks = getLocationTracksByTrackNumber(trackNumber.id as IntId, publicationVersions)
-        return locationTracks.flatMap { locationTrack ->
-            validateAddressPoints(trackNumber, locationTrack, publicationVersions, VALIDATION_REFERENCE_LINE)
-        }
-    }
+    fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
+        cacheKey?.let(geocodingDao::getGeocodingContext)
+            ?.let { context -> validateGeocodingContext(context) }
+            ?: listOf(noGeocodingContext(localizationKey))
 
     fun validateAddressPoints(
         trackNumber: TrackLayoutTrackNumber,
-        locationTrack: LocationTrack,
-        publicationVersions: PublicationVersions,
+        contextKey: GeocodingContextCacheKey,
+        track: LocationTrack,
         validationTargetLocalizationPrefix: String,
     ) =
-        if (!locationTrack.exists) listOf()
+        if (!track.exists || track.alignmentVersion == null) listOf()
         else {
-            validateAddressPoints(trackNumber, locationTrack, validationTargetLocalizationPrefix) {
-                geocodingService.getAddressPointsForPublication(locationTrack.id as IntId, publicationVersions)
+            validateAddressPoints(trackNumber, track, validationTargetLocalizationPrefix) {
+                geocodingService.getAddressPoints(contextKey, track.alignmentVersion)
             }
         }
-
-    private fun validateTrackNumberGeocodingContext(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationVersions: PublicationVersions,
-        validationType: String,
-    ) = validateGeocodingContext(
-        geocodingService.getGeocodingContext(trackNumberId, publicationVersions),
-        validationType,
-    )
 
     private fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> {
         val segmentsBySwitch: Map<TrackLayoutSwitch, List<LayoutSegment>> = alignment.segments
@@ -536,6 +542,16 @@ class PublishService @Autowired constructor(
                 switchStructure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
                 segments = segments,
             )
+        }
+    }
+
+    fun collectCacheKeys(versions: PublicationVersions): Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?> {
+        val trackNumberIds = versions.trackNumbers.map { version -> version.officialId } +
+                versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.draftVersion).trackNumberId } +
+                versions.locationTracks.map { v -> locationTrackDao.fetch(v.draftVersion).trackNumberId } +
+                versions.referenceLines.map { v-> referenceLineDao.fetch(v.draftVersion).trackNumberId }
+        return trackNumberIds.associateWith { tnId ->
+            geocodingService.getGeocodingContextCacheKey(tnId, versions)
         }
     }
 }

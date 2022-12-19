@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.linking.PublicationVersions
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
@@ -33,16 +30,15 @@ class GeocodingService(
             ?.let(addressPointsCache::getAddressPoints)
     }
 
-    fun getAddressPointsForPublication(
-        locationTrackId: IntId<LocationTrack>,
-        publicationVersions: PublicationVersions,
+    fun getAddressPoints(
+        contextKey: GeocodingContextCacheKey,
+        alignmentVersion: RowVersion<LayoutAlignment>,
     ): AlignmentAddresses? {
         logger.serviceCall(
             "getAddressPointsForPublication",
-            "locationTrackId" to locationTrackId, "publicationVersions" to publicationVersions
+            "alignmentVersion" to alignmentVersion, "contextKey" to contextKey
         )
-        return addressPointsCache.getAddressPointCacheKey(locationTrackId, publicationVersions)
-            ?.let(addressPointsCache::getAddressPoints)
+        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
     }
 
     fun getAddress(
@@ -118,10 +114,10 @@ class GeocodingService(
     ) = geocodingDao.getGeocodingContextCacheKey(publicationState, trackNumberId)
         ?.let(geocodingDao::getGeocodingContext)
 
-    fun getGeocodingContext(
+    fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         publicationVersions: PublicationVersions,
     ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, publicationVersions)
-        ?.let(geocodingDao::getGeocodingContext)
+
 
 }

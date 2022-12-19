@@ -87,7 +87,7 @@ jdbcTemplateParam: NamedParameterJdbcTemplate?,
               id as row_id, 
               version as row_version
             from ${table.fullName} 
-            where official_id in (:ids)
+            where coalesce(${table.draftLink}, id) in (:ids)
               and draft = true
         """.trimIndent()
         val params = mapOf(

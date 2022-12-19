@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.linking.PublicationVersions
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.*
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -19,7 +19,17 @@ data class GeocodingContextCacheKey (
     val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
     val referenceLineVersion: RowVersion<ReferenceLine>,
     val kmPostVersions: List<RowVersion<TrackLayoutKmPost>>,
- )
+) {
+    init {
+        kmPostVersions.forEachIndexed { index, version ->
+            kmPostVersions.getOrNull(index+1)?.let { next ->
+                require(next.id.intValue > version.id.intValue) {
+                    "Cache key km-posts must be in order: index=$index version=$version next=$next"
+                }
+            }
+        }
+    }
+}
 
 @Transactional(readOnly = true)
 @Component
@@ -33,34 +43,57 @@ class GeocodingDao(
 ) : DaoBase(jdbcTemplateParam) {
 
     fun getGeocodingContextCacheKey(
-        publishType: PublishType,
+        publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): GeocodingContextCacheKey? {
-        val trackNumberVersion = trackNumberDao.fetchVersion(trackNumberId, publishType)
-        val referenceLineVersion = referenceLineDao.fetchVersion(publishType, trackNumberId)
-        return if (trackNumberVersion != null && referenceLineVersion != null) {
-            val kmPostVersions = kmPostDao.fetchVersions(publishType, false, trackNumberId)
-                .sortedBy { p -> p.id.intValue }
-            GeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)
-        } else null
+        //language=SQL
+        val sql = """
+            select
+              tn.row_id tn_row_id,
+              tn.row_version tn_row_version,
+              rl.row_id rl_row_id,
+              rl.row_version rl_row_version,
+              array_agg(kmp.row_id order by kmp.row_id, kmp.row_version) kmp_row_ids,
+              array_agg(kmp.row_version order by kmp.row_id, kmp.row_version) kmp_row_versions
+            from layout.track_number_publication_view tn
+              left join layout.reference_line_publication_view rl on rl.track_number_id = tn.official_id
+                and :publication_state = any(rl.publication_states)
+              left join layout.km_post_publication_view kmp on kmp.track_number_id = tn.official_id
+                and :publication_state = any(kmp.publication_states)
+                and kmp.state != 'DELETED'
+            where :publication_state = any(tn.publication_states)
+              and :tn_id = tn.official_id
+              and tn.state != 'DELETED'
+            group by tn.row_id, tn.row_version, rl.row_id, rl.row_version
+        """.trimIndent()
+        val params = mapOf(
+            "tn_id" to trackNumberId.intValue,
+            "publication_state" to publicationState.name,
+        )
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> GeocodingContextCacheKey(
+            trackNumberVersion = rs.getRowVersion("tn_row_id", "tn_row_version"),
+            referenceLineVersion = rs.getRowVersion("rl_row_id", "rl_row_version"),
+            kmPostVersions = toRowVersions(
+                ids = rs.getIntIdArray("kmp_row_ids"),
+                versions = rs.getIntArray("kmp_row_versions"),
+            ),
+        ) }
     }
-
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationVersions: PublicationVersions,
+        versions: PublicationVersions,
     ): GeocodingContextCacheKey? {
-        val trackNumberVersion = publicationVersions.findTrackNumber(trackNumberId)?.draftVersion
-            ?: trackNumberDao.fetchVersion(trackNumberId, OFFICIAL)
+        val official = getGeocodingContextCacheKey(OFFICIAL, trackNumberId)
+        val trackNumberVersion = versions.findTrackNumber(trackNumberId)?.draftVersion ?: official?.trackNumberVersion
         // We have to fetch the actual objects (reference line & km-post) here to check references
         // However, when this is done, the objects are needed elsewhere as well -> they should always be in cache
-        val referenceLineVersion = publicationVersions.referenceLines
+        val referenceLineVersion = versions.referenceLines
             .find { v -> referenceLineDao.fetch(v.draftVersion).trackNumberId == trackNumberId }?.draftVersion
-            ?: referenceLineDao.fetchVersion(OFFICIAL, trackNumberId)
+            ?: official?.referenceLineVersion
         return if (trackNumberVersion != null && referenceLineVersion != null) {
-            val officialKmPosts = kmPostDao.fetchVersions(OFFICIAL, false, trackNumberId)
-                .filter { version -> !publicationVersions.containsKmPost(version.id) }
-            val draftKmPosts = publicationVersions.kmPosts.filter { draftPost ->
+            val officialKmPosts = official?.kmPostVersions?.filter { v -> !versions.containsKmPost(v.id) } ?: listOf()
+            val draftKmPosts = versions.kmPosts.filter { draftPost ->
                 kmPostDao.fetch(draftPost.draftVersion).trackNumberId == trackNumberId
             }.map { v -> v.draftVersion }
             val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.id.intValue }
@@ -77,7 +110,13 @@ class GeocodingDao(
             ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
         // If the tracknumber is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
-        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).filter { post -> post.exists }
+        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch)
+            .sortedBy { post -> post.kmNumber }
+            .filter { post -> post.exists }
         return GeocodingContext.create(trackNumber, referenceLine, alignment, kmPosts)
     }
+
+    private fun <T> toRowVersions(ids: List<IntId<T>>, versions: List<Int>) =
+        if (ids.size == versions.size) ids.mapIndexed { index, id -> RowVersion(id, versions[index]) }
+        else throw IllegalStateException("Unmatched row-versions: ids=$ids versions=$versions")
 }

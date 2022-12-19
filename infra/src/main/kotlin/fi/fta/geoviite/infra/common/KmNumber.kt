@@ -92,10 +92,10 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(override val kmN
 
     init {
         require(meters in metersValidRange) {
-            "Track address meters outside valid range: value=$meters"
+            "Track address meters outside valid range: km=$kmNumber value=$meters"
         }
         require(meters.scale() in metersDecimalsValidRange) {
-            "Track address meters have too many decimals: value=$meters"
+            "Track address meters have too many decimals: km=$kmNumber value=$meters"
         }
     }
 
