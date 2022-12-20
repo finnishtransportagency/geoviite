@@ -131,10 +131,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         () => getSwitch(switchId, publishType),
         [switchId, changeTimes.layoutSwitch, publishType],
     );
-    const officialSwitch = useLoader(
-        () => getSwitch(switchId, 'OFFICIAL'),
-        [switchId, changeTimes.layoutSwitch],
-    );
     const switchStructure = switchStructures?.find(
         (structure) => structure.id === layoutSwitch?.switchStructureId,
     );
@@ -304,7 +300,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 title={t('tool-panel.switch.layout.change-info-heading')}
                 qa-id="switch-heading-infobox">
                 <InfoboxContent>
-                    {officialSwitch?.draftType === 'NEW_DRAFT' && (
+                    {layoutSwitch?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button
                                 onClick={() => setShowDeleteDialog(true)}

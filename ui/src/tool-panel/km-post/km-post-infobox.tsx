@@ -33,21 +33,12 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     onDataChange,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
-    const [officialKmPost, setOfficialKmPost] = React.useState<LayoutKmPost>();
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const updatedKmPost = useLoader(
         () => getKmPost(kmPost.id, publishType),
         [kmPost, kmPostChangeTime, publishType],
     );
-
-    React.useEffect(() => {
-        if (kmPost.id) {
-            getKmPost(kmPost.id, 'OFFICIAL', kmPostChangeTime).then((kmPost) => {
-                if (kmPost) setOfficialKmPost(kmPost);
-            });
-        }
-    }, [kmPost.id, kmPostChangeTime]);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -126,7 +117,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             </Infobox>
             <Infobox title={t('tool-panel.km-post.layout.change-info-heading')}>
                 <InfoboxContent>
-                    {officialKmPost?.draftType === 'NEW_DRAFT' && (
+                    {kmPost?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
                             <Button
                                 onClick={() => showDeleteConfirmation()}
