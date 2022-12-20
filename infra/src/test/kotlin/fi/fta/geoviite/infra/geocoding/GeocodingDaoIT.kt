@@ -115,7 +115,7 @@ class GeocodingDaoIT @Autowired constructor(
         val kmPostDraft =
             kmPostService.insertKmPost(TrackLayoutKmPostSaveRequest(KmNumber(1), LayoutState.IN_USE, trackNumberId))
         assertChangeTimeProceedsWhen(trackNumberId, PublishType.DRAFT) {
-            kmPostService.deleteDraft(kmPostDraft)
+            kmPostService.deleteUnpublishedDraft(kmPostDraft)
         }
     }
 

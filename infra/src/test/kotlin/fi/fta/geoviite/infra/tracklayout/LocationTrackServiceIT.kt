@@ -32,9 +32,9 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        locationTrackService.deleteDrafts()
+        locationTrackService.deleteAllDrafts()
         alignmentDao.deleteOrphanedAlignments()
-        switchService.deleteDrafts()
+        switchService.deleteAllDrafts()
     }
 
     @Test
