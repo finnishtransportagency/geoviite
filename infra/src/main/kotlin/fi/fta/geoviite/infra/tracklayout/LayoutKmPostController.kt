@@ -101,6 +101,6 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
     @DeleteMapping("/draft/{id}")
     fun deleteDraftKmPost(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
         logger.apiCall("deleteDraftKmPost", "kmPostId" to kmPostId)
-        return kmPostService.deleteDraft(kmPostId)
+        return kmPostService.deleteUnpublishedDraftById(kmPostId)
     }
 }

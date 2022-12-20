@@ -1,12 +1,9 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -14,6 +11,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -493,6 +491,20 @@ class PublicationServiceIT @Autowired constructor(
 
         assertEquals(publicationCountBeforePublishing + 1, publicationCountAfterPublishing.size)
         assertEquals(publishResult.publishId, publicationCountAfterPublishing.last().id)
+    }
+
+    @Test
+    fun revertingOnlyGivenChangesWorks() {
+        val switch1 = switchService.saveDraft(switch(123)).id
+        val switch2 = switchService.saveDraft(switch(234)).id
+
+        val revertResult = publicationService.revertPublishCandidates(
+            PublishRequest(listOf(), listOf(), listOf(), listOf(switch1), listOf())
+        )
+
+        assertEquals(revertResult.switches, 1)
+        assertThrows<NoSuchEntityException> { switchService.getDraft(switch1) }
+        assertDoesNotThrow { switchService.getDraft(switch2) }
     }
 
     private fun someTrackNumber() = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id

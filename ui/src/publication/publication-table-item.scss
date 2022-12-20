@@ -1,4 +1,5 @@
 @import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
 @import '../vayla-design-lib/typography';
 
 $color-ok: $color-green-dark;
@@ -52,7 +53,11 @@ $color-warning: #9f6700;
 }
 
 .preview-table-item__actions--cell {
-    cursor: pointer;
+    display: contents;
+
+    > div {
+        display: inline-flex;
+    }
 }
 
 .preview-table-item--error {
@@ -60,21 +65,8 @@ $color-warning: #9f6700;
 }
 
 .table .preview-table-item--error td {
-    position: relative;
     padding: 5px 30px;
 }
-
-// If there is need to show an "expanded" status line at left :
-//.preview-table-item--error td::before {
-//  position: absolute;
-//  top: 0;
-//  bottom: 0;
-//  left: 0;
-//  width: 4px;
-//  background: $color-red-dark;
-//  font-size: 0;
-//  content: ' ';
-//}
 
 .preview-table-item__msg-group {
     margin-top: 10px;

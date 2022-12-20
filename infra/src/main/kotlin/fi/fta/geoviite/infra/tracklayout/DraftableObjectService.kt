@@ -91,9 +91,15 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         }
     }
 
-    fun deleteDrafts(): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
+    @Deprecated("Should only be used for cleaning up before/after tests")
+    fun deleteAllDrafts(): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
         logger.serviceCall("deleteDrafts")
         return dao.deleteDrafts()
+    }
+
+    fun deleteDraft(id: IntId<ObjectType>): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
+        logger.serviceCall("deleteDraft")
+        return dao.deleteDrafts(id)
     }
 
     open fun deleteUnpublishedDraft(id: IntId<ObjectType>): RowVersion<ObjectType> {

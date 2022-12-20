@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-require('dotenv').config();
+const dotenv = require('dotenv');
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const LicensePlugin = require('webpack-license-plugin');
 const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+
+dotenv.config();
 
 // If non-allowed licenses are found, you may have added a dependency with a new license type.
 // First, ensure it's licensing conditions are compatible with EUPL and our use.
@@ -47,7 +49,7 @@ module.exports = (env) => {
                 '/api': {
                     target: 'http://localhost:8080',
                     logLevel: 'debug',
-                    pathRewrite: {'^/api': ''},
+                    pathRewrite: { '^/api': '' },
                 },
                 '/map': {
                     target: 'http://localhost:8081/geoserver/Geoviite/wms',
@@ -58,7 +60,7 @@ module.exports = (env) => {
                     '/location-map/': {
                         target: process.env.MML_MAP_URL,
                         logLevel: 'debug',
-                        pathRewrite: {'^/location-map': ''},
+                        pathRewrite: { '^/location-map': '' },
                         changeOrigin: true,
                         headers: {
                             'X-API-Key': process.env.MML_MAP_API_KEY,
@@ -121,34 +123,36 @@ module.exports = (env) => {
                 {
                     test: /\.css$/i,
                     include: /node_modules/,
-                    use: [MiniCssExtractPlugin.loader, "css-loader"],
+                    use: [MiniCssExtractPlugin.loader, 'css-loader'],
                 },
-
             ],
         },
         plugins: [
             new HtmlWebpackPlugin({
                 template: './src/index.html',
             }),
-            new MiniCssExtractPlugin({insert: ":last-child(meta)"}),
+            new MiniCssExtractPlugin({ insert: ':last-child(meta)' }),
             // NOTE: According to this post this plugin is bad and headers should be used instead
             // https://towardsdatascience.com/content-security-policy-how-to-create-an-iron-clad-nonce-based-csp3-policy-with-webpack-and-nginx-ce5a4605db90
-            new CspHtmlWebpackPlugin({
-                'base-uri': "'self'",
-                'object-src': "'none'",
-                'img-src': "data: http: https:", // http: is for running locally
-                // Remove explicit style-src and favor nonces when react-select can be made to use non-inline styles
-                'style-src': "'unsafe-inline' http: https:",
-                'default-src': "'self'"
-            }, {
-                enabled: true,
-                hashingMethod: 'sha256',
-                nonceEnabled: {
-                    'script-src': true,
-                    // Enable nonce for style-src when react-select can be made to use non-inline styles
-                    'style-src': false,
-                }
-            }),
+            new CspHtmlWebpackPlugin(
+                {
+                    'base-uri': "'self'",
+                    'object-src': "'none'",
+                    'img-src': 'data: http: https:', // http: is for running locally
+                    // Remove explicit style-src and favor nonces when react-select can be made to use non-inline styles
+                    'style-src': "'unsafe-inline' http: https:",
+                    'default-src': "'self'",
+                },
+                {
+                    enabled: true,
+                    hashingMethod: 'sha256',
+                    nonceEnabled: {
+                        'script-src': true,
+                        // Enable nonce for style-src when react-select can be made to use non-inline styles
+                        'style-src': false,
+                    },
+                },
+            ),
             new ESLintWebpackPlugin({
                 extensions: ['js', 'jsx', 'ts', 'tsx'],
             }),
@@ -158,6 +162,9 @@ module.exports = (env) => {
                 unacceptableLicenseTest: (licenseIdentifier) => {
                     return !acceptedLicenses.includes(licenseIdentifier);
                 },
+            }),
+            new webpack.DefinePlugin({
+                'process.env': JSON.stringify(dotenv.config().parsed),
             }),
         ],
     };

@@ -6,6 +6,7 @@ import {
     getCalculatedChanges,
     getPublishCandidates,
     PublishRequest,
+    revertCandidates,
     validatePublishCandidates,
 } from 'publication/publication-api';
 
@@ -27,6 +28,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
     KmPostPublishCandidate,
     LocationTrackPublishCandidate,
+    PublicationId,
     PublishCandidate,
     PublishCandidates,
     ReferenceLinePublishCandidate,
@@ -40,7 +42,12 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import PreviewTable from 'preview/preview-table';
+import PreviewTable, { PreviewSelectType, PreviewTableEntry } from 'preview/preview-table';
+import { updateAllChangeTimes } from 'common/change-time-api';
+import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
 
 type CandidateId =
     | LocationTrackId
@@ -236,9 +243,27 @@ const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
     pendingValidation: true,
 });
 
+const typeTranslationKey = (type: PreviewSelectType | undefined) => {
+    switch (type) {
+        case PreviewSelectType.trackNumber:
+            return 'track-number';
+        case PreviewSelectType.referenceLine:
+            return 'reference-line';
+        case PreviewSelectType.locationTrack:
+            return 'location-track';
+        case PreviewSelectType.switch:
+            return 'switch';
+        case PreviewSelectType.kmPost:
+            return 'km-post';
+        default:
+            return '';
+    }
+};
+
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const {t} = useTranslation();
-    const entireChangeset = useLoader(() => getPublishCandidates(), []);
+
+    const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
     const entireChangesetValidation = useLoader(
         () =>
             validatePublishCandidates(
@@ -248,7 +273,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
     const stagedValidation = useLoader(
         () => validatePublishCandidates(props.selectedPublishCandidateIds),
-        [props.selectedPublishCandidateIds],
+        [props.selectedPublishCandidateIds, props.changeTimes],
     );
     const unstagedChanges = entireChangesetValidation
         ? getUnstagedChanges(
@@ -287,6 +312,33 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         [props.selectedPublishCandidateIds],
     );
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
+    const [isReverting, setIsReverting] = React.useState(false);
+    const [revertConfirmVisible, setRevertConfirmVisible] = React.useState(false);
+    const [entryBeingReverted, setEntryBeingReverted] = React.useState<PreviewTableEntry>();
+
+    const onRevertRow = (id: PublicationId, type: PreviewSelectType) => {
+        const selectedChange = {
+            trackNumber: type === PreviewSelectType.trackNumber ? id : undefined,
+            referenceLine: type === PreviewSelectType.referenceLine ? id : undefined,
+            locationTrack: type === PreviewSelectType.locationTrack ? id : undefined,
+            switch: type === PreviewSelectType.switch ? id : undefined,
+            kmPost: type === PreviewSelectType.kmPost ? id : undefined,
+        };
+        const request = {
+            trackNumbers: type === PreviewSelectType.trackNumber ? [id] : [],
+            referenceLines: type === PreviewSelectType.referenceLine ? [id] : [],
+            locationTracks: type === PreviewSelectType.locationTrack ? [id] : [],
+            switches: type === PreviewSelectType.switch ? [id] : [],
+            kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
+        };
+        revertCandidates(request)
+            .then(() => props.onPublishPreviewRemove(selectedChange))
+            .finally(() => {
+                setRevertConfirmVisible(false);
+                setIsReverting(false);
+                updateAllChangeTimes();
+            });
+    };
 
     return (
         <React.Fragment>
@@ -301,6 +353,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
+                                    onRevert={(entry) => {
+                                        setEntryBeingReverted(entry);
+                                        setRevertConfirmVisible(true);
+                                    }}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                 />
@@ -312,6 +368,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPublishPreviewRemove}
+                                    onRevert={(entry) => {
+                                        setEntryBeingReverted(entry);
+                                        setRevertConfirmVisible(true);
+                                    }}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                 />
@@ -354,6 +414,40 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>
+            {revertConfirmVisible && (
+                <Dialog
+                    title={t('publish.revert-confirm.title')}
+                    variant={DialogVariant.LIGHT}
+                    allowClose={false}
+                    className={dialogStyles['dialog--wide']}
+                    footerContent={
+                        <React.Fragment>
+                            <Button
+                                onClick={() => setRevertConfirmVisible(false)}
+                                disabled={isReverting}
+                                variant={ButtonVariant.SECONDARY}>
+                                {t('publish.revert-confirm.cancel')}
+                            </Button>
+                            <Button
+                                icon={Icons.Delete}
+                                disabled={isReverting}
+                                isProcessing={isReverting}
+                                variant={ButtonVariant.WARNING}
+                                onClick={() => {
+                                    if (entryBeingReverted) {
+                                        setIsReverting(true);
+                                        onRevertRow(entryBeingReverted.id, entryBeingReverted.type);
+                                    }
+                                }}>
+                                {t('publish.revert-confirm.confirm')}
+                            </Button>
+                        </React.Fragment>
+                    }>
+                    <div>{`${t('publish.revert-confirm.description')} ${t(
+                        `publish.revert-confirm.${typeTranslationKey(entryBeingReverted?.type)}`,
+                    )} ${entryBeingReverted?.name}?`}</div>
+                </Dialog>
+            )}
         </React.Fragment>
     );
 };

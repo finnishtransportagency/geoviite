@@ -4,11 +4,16 @@ import styles from 'publication/publication-table-item.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { Operation, PublishValidationError } from 'publication/publication-model';
+import { Operation, PublicationId, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Menu, Item, useContextMenu } from 'react-contexify';
+import { PreviewSelectType } from 'preview/preview-table';
 
 export type PreviewTableItemProps = {
+    id: PublicationId;
+    type: PreviewSelectType;
     itemName: string;
     trackNumber?: string;
     errors: PublishValidationError[];
@@ -17,10 +22,13 @@ export type PreviewTableItemProps = {
     userName: string;
     pendingValidation: boolean;
     onPublishItemSelect?: () => void;
+    onRevert: () => void;
     publish?: boolean;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
+    id,
+    type,
     itemName,
     trackNumber,
     errors,
@@ -29,6 +37,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     userName,
     pendingValidation,
     onPublishItemSelect,
+    onRevert,
     publish = false,
 }) => {
     const { t } = useTranslation();
@@ -38,6 +47,10 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
+    const menuId = () => `contextmenu_${id}_${type}`;
+    const { show } = useContextMenu({
+        id: menuId(),
+    });
 
     const errorTexts = errorsToStrings(errors, 'ERROR');
     const warningTexts = errorsToStrings(errors, 'WARNING');
@@ -81,21 +94,39 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         )}
                     </td>
                 )}
-                <td
-                    className={'preview-table-item preview-table-item__actions--cell'}
-                    onClick={() => {
-                        onPublishItemSelect && onPublishItemSelect();
-                    }}>
-                    {publish ? (
-                        <Icons.Ascending size={IconSize.SMALL} />
-                    ) : (
-                        <Icons.Descending size={IconSize.SMALL} />
-                    )}
+                <td className={'preview-table-item preview-table-item__actions--cell'}>
+                    <div>
+                        <div>
+                            <Button
+                                variant={ButtonVariant.GHOST}
+                                onClick={() => {
+                                    onPublishItemSelect && onPublishItemSelect();
+                                }}
+                                icon={publish ? Icons.Ascending : Icons.Descending}
+                            />
+                        </div>
+                        <div>
+                            <Button
+                                variant={ButtonVariant.GHOST}
+                                icon={Icons.More}
+                                onClick={(event: React.MouseEvent) => {
+                                    show(event, {});
+                                }}
+                            />
+                            <div>
+                                <Menu animation={false} id={menuId()}>
+                                    <Item id="1" onClick={() => onRevert()}>
+                                        {t('publish.revert-change')}
+                                    </Item>
+                                </Menu>
+                            </div>
+                        </div>
+                    </div>
                 </td>
             </tr>
             {isErrorRowExpanded && hasErrors && (
                 <tr className={'preview-table-item preview-table-item--error'}>
-                    <td colSpan={4}>
+                    <td colSpan={7}>
                         {errorTexts.length > 0 && (
                             <div className="preview-table-item__msg-group preview-table-item__msg-group--errors">
                                 <div className="preview-table-item__group-title">
