@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.RatkoService
@@ -228,19 +229,18 @@ class PublishService @Autowired constructor(
         }
     }
 
-    @Transactional
-    fun publishChanges(versions: PublicationVersions): PublishResult {
-        logger.serviceCall("publishChanges", "versions" to versions)
-
-        // TODO: calculated changes could be done on top of versions as well (perf benefit)
-        // TODO: calculated changes could be done outside the transaction
-        val calculatedChanges = calculatedChangesService.getCalculatedChangesInDraft(
+    fun getCalculatedChanges(versions: PublicationVersions): CalculatedChanges =
+        calculatedChangesService.getCalculatedChangesInDraft(
             versions.trackNumbers.map(PublicationVersion<TrackLayoutTrackNumber>::officialId),
             versions.referenceLines.map(PublicationVersion<ReferenceLine>::officialId),
             versions.kmPosts.map(PublicationVersion<TrackLayoutKmPost>::officialId),
             versions.locationTracks.map(PublicationVersion<LocationTrack>::officialId),
             versions.switches.map(PublicationVersion<TrackLayoutSwitch>::officialId),
         )
+
+    @Transactional
+    fun publishChanges(versions: PublicationVersions, calculatedChanges: CalculatedChanges): PublishResult {
+        logger.serviceCall("publishChanges", "versions" to versions)
 
         val trackNumbers = versions.trackNumbers.map(trackNumberService::publish)
         val kmPosts = versions.kmPosts.map(kmPostService::publish)

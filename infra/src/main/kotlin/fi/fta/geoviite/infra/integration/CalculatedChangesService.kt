@@ -4,7 +4,10 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.PublicationVersions
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -64,11 +67,16 @@ data class CalculatedChanges(
 @Service
 class CalculatedChangesService(
     val addressChangesService: AddressChangesService,
+    val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,
+    val switchDao: LayoutSwitchDao,
     val switchService: LayoutSwitchService,
     val switchLibraryService: SwitchLibraryService,
+    val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
+    val referenceLineDao: ReferenceLineDao,
     val referenceLineService: ReferenceLineService,
+    val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
     val historyDao: TrackLayoutHistoryDao,
     val geocodingService: GeocodingService,
@@ -106,23 +114,20 @@ class CalculatedChangesService(
         )
     }
 
-    fun getCalculatedChangesInDraft(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-        referenceLineIds: List<IntId<ReferenceLine>>,
-        kmPostIds: List<IntId<TrackLayoutKmPost>>,
-        locationTrackIds: List<IntId<LocationTrack>>,
-        switchIds: List<IntId<TrackLayoutSwitch>>,
-    ): CalculatedChanges {
+    fun getCalculatedChangesInDraft(versions: PublicationVersions): CalculatedChanges {
         val allTrackNumberIds = (
-                trackNumberIds
-                        + kmPostIds.map { id -> kmPostService.getDraft(id).trackNumberId as IntId }
-                        + referenceLineIds.map { id -> referenceLineService.getDraft(id).trackNumberId }
+                versions.trackNumbers.map { v -> v.officialId }
+                        + versions.kmPosts.map { v -> kmPostDao.fetch(v.draftVersion).trackNumberId!! }
+                        + versions.referenceLines.map { v -> referenceLineDao.fetch(v.draftVersion).trackNumberId }
                 ).distinct()
 
-        val (trackNumberChanges, affectedLocationTracksIds) = calculateTrackNumberChangesInDraft(allTrackNumberIds)
-        val locationTrackGeometryChanges = calculateLocationTrackChangesInDraft(
-            (locationTrackIds + affectedLocationTracksIds.flatten()).distinct(),
-        )
+        val contextChanges = allTrackNumberIds.associateWith { id -> Change(
+            geocodingService.getGeocodingContextCacheKey(id, OFFICIAL),
+            geocodingService.getGeocodingContextCacheKey(id, versions),
+        ) }
+        val (trackNumberChanges, affectedLocationTracksIds) = calculateTrackNumberChanges(contextChanges)
+        val trackChanges = getLocationTrackChanges(versions, affectedLocationTracksIds.flatten().distinct())
+        val locationTrackGeometryChanges = calculateLocationTrackChanges(trackChanges, contextChanges)
 
         val directSwitchChanges = getDirectSwitchChanges(switchIds)
 
@@ -184,41 +189,51 @@ class CalculatedChangesService(
             }
     }
 
-    private fun calculateTrackNumberChangesSinceMoment(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-        moment: Instant
-    ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
-        val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
-            getTrackNumberChange(
-                trackNumberId,
-                addressChangesService.getGeocodingContextAtMoment(trackNumberId, moment),
-                addressChangesService.getGeocodingContextAtMoment(trackNumberId),
-            )
-        }.unzip()
-        return tnChanges to affectedTracks
-    }
+//    private fun calculateTrackNumberChangesSinceMoment(
+//        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+//        moment: Instant
+//    ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
+//        val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
+//            getTrackNumberChange(
+//                trackNumberId,
+//                geocodingService.getGeocodingContextCacheKey(trackNumberId, moment),
+//                geocodingService.getGeocodingContextCacheKey(trackNumberId, OFFICIAL),
+//            )
+//        }.unzip()
+//        return tnChanges to affectedTracks
+//    }
+//
+//    private fun calculateTrackNumberChangesInDraft(
+//        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+//        publicationVersions: PublicationVersions,
+//    ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
+//        val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
+//            getTrackNumberChange(
+//                trackNumberId,
+//                geocodingService.getGeocodingContextCacheKey(trackNumberId, OFFICIAL),
+//                geocodingService.getGeocodingContextCacheKey(trackNumberId, publicationVersions),
+//            )
+//        }.unzip()
+//        return tnChanges to affectedTracks
+//    }
 
-    private fun calculateTrackNumberChangesInDraft(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    private fun calculateTrackNumberChanges(
+        changes: Map<IntId<TrackLayoutTrackNumber>, Change<GeocodingContextCacheKey>>,
     ): Pair<List<TrackNumberChange>, List<List<IntId<LocationTrack>>>> {
-        val (tnChanges, affectedTracks) = trackNumberIds.map { trackNumberId ->
-            getTrackNumberChange(
-                trackNumberId,
-                geocodingService.getGeocodingContext(OFFICIAL, trackNumberId),
-                geocodingService.getGeocodingContext(DRAFT, trackNumberId),
-            )
+        val (tnChanges, affectedTracks) = changes.map { (id, change) ->
+            getTrackNumberChange(id, change.before, change.after)
         }.unzip()
         return tnChanges to affectedTracks
     }
 
     private fun getTrackNumberChange(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        beforeContext: GeocodingContext?,
-        afterContext: GeocodingContext?,
+        beforeContextKey: GeocodingContextCacheKey?,
+        afterContextKey: GeocodingContextCacheKey?,
     ): Pair<TrackNumberChange, List<IntId<LocationTrack>>> {
         val addressChanges = getAddressChanges(
-            beforeContext?.referenceLineAddresses,
-            afterContext?.referenceLineAddresses,
+            beforeContextKey?.let(geocodingService::getReferenceLineAddressPoints),
+            afterContextKey?.let(geocodingService::getReferenceLineAddressPoints),
         )
         val trackNumberChange = TrackNumberChange(
             trackNumberId = trackNumberId,
@@ -226,7 +241,7 @@ class CalculatedChangesService(
             isStartChanged = addressChanges.startPointChanged,
             isEndChanged = addressChanges.endPointChanged,
         )
-        val affectedTracks = geocodingService.getGeocodingContext(OFFICIAL, trackNumberId)?.let { context ->
+        val affectedTracks = beforeContextKey?.let(geocodingService::getGeocodingContext)?.let { context ->
             calculateOverlappingLocationTracks(
                 geocodingContext = context,
                 kilometers = addressChanges.changedKmNumbers,
@@ -236,23 +251,26 @@ class CalculatedChangesService(
         return trackNumberChange to affectedTracks
     }
 
-    private fun calculateLocationTrackChangesSinceMoment(
-        locationTrackIds: List<IntId<LocationTrack>>,
-        moment: Instant,
-    ) = locationTrackIds.map { locationTrackId ->
-        LocationTrackChange.create(
-            locationTrackId,
-            addressChangesService.getAddressChangesSinceMoment(locationTrackId, moment)
-        )
-    }
+//    private fun calculateLocationTrackChangesSinceMoment(
+//        locationTrackIds: List<IntId<LocationTrack>>,
+//        moment: Instant,
+//    ) = locationTrackIds.map { locationTrackId ->
+//        LocationTrackChange.create(
+//            locationTrackId,
+//            addressChangesService.getAddressChangesSinceMoment(locationTrackId, moment)
+//        )
+//    }
 
-    private fun calculateLocationTrackChangesInDraft(
-        locationTrackIds: List<IntId<LocationTrack>>,
-    ) = locationTrackIds.map { locationTrackId ->
-        LocationTrackChange.create(
-            locationTrackId,
-            addressChangesService.getAddressChangesInDraft(locationTrackId)
-        )
+    private fun calculateLocationTrackChanges(
+        trackChanges: List<RowChange<LocationTrack>>,
+        contextChanges: Map<IntId<TrackLayoutTrackNumber>, Change<GeocodingContextCacheKey>>,
+    ) = trackChanges.map { trackChange ->
+        val addressChanges = addressChangesService.getAddressChanges(trackChange, contextChanges)
+        if (trackChange.before == trackChange.after && addressChanges == null) {
+            null
+        } else {
+            LocationTrackChange.create(trackChange.id, addressChanges)
+        }
     }
 
     private fun getSwitchChangesByLocationTrack(
@@ -497,6 +515,16 @@ class CalculatedChangesService(
             )
         )
     }
+
+    fun getLocationTrackChanges(
+        versions: PublicationVersions,
+        affectedLocationTracksIds: List<IntId<LocationTrack>>,
+    ): List<RowChange<LocationTrack>> {
+        val tracksWithAddressChanges: List<RowChange<LocationTrack>> = affectedLocationTracksIds
+            .filterNot(versions::containsLocationTrack)
+            .map { id -> officialNoChange(id, locationTrackDao) }
+        return tracksWithAddressChanges + versionChanges(versions.locationTracks, locationTrackDao)
+    }
 }
 
 private fun mergeLocationTrackChanges(
@@ -595,3 +623,16 @@ private fun findSwitchJointDifferences(
         }
         .filter { it.second.isNotEmpty() }
 }
+
+data class Change<T>(val before: T?, val after:T?)
+data class RowChange<T>(val id: IntId<T>, private val change: Change<RowVersion<T>>) {
+    constructor(id: IntId<T>, before: RowVersion<T>?, after: RowVersion<T>?) : this(id, Change(before, after))
+    val before get() = change.before
+    val after get() = change.after
+}
+
+fun <T : Draftable<T>> versionChanges(drafts: List<PublicationVersion<T>>, dao: DraftableDaoBase<T>) =
+    drafts.map { v -> RowChange(v.officialId, dao.fetchOfficialVersion(v.officialId), v.draftVersion) }
+
+fun <T : Draftable<T>> officialNoChange(id: IntId<T>, dao: DraftableDaoBase<T>) =
+    dao.fetchOfficialVersionOrThrow(id).let { v -> RowChange(id, v, v) }

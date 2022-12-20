@@ -75,7 +75,8 @@ class PublicationController @Autowired constructor(
             publishService.updateExternalId(request)
             val versions = publishService.getPublicationVersions(request)
             publishService.validatePublishRequest(versions)
-            publishService.publishChanges(versions)
+            val calculatedChanges = publishService.getCalculatedChanges(versions)
+            publishService.publishChanges(versions, calculatedChanges)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",

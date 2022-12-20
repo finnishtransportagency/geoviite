@@ -2,11 +2,7 @@ package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.geocoding.AddressPoint
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.springframework.stereotype.Service
 import java.time.Instant
@@ -72,26 +68,62 @@ data class AddressChanges(
 
 @Service
 class AddressChangesService(
+    val locationTrackDao: LocationTrackDao,
     val trackLayoutHistoryDao: TrackLayoutHistoryDao,
     val geocodingService: GeocodingService,
     val layoutAlignmentDao: LayoutAlignmentDao,
 ) {
 
-    fun getAddressChangesSinceMoment(
-        locationTrackId: IntId<LocationTrack>,
-        moment: Instant
-    ): AddressChanges? {
-        val oldAddresses = getAlignmentAddressesAtMoment(locationTrackId, moment)
-        val currentAddresses = getAlignmentAddressesAtMoment(locationTrackId)
-        return getAddressChanges(oldAddresses, currentAddresses)
-    }
+//    fun getAddressChangesSinceMoment(
+//        locationTrackId: IntId<LocationTrack>,
+//        moment: Instant
+//    ): AddressChanges? {
+//        val oldAddresses = getAlignmentAddressesAtMoment(locationTrackId, moment)
+//        val currentAddresses = getAlignmentAddressesAtMoment(locationTrackId)
+//        return getAddressChanges(oldAddresses, currentAddresses)
+//    }
+//
+//    fun getAddressChangesInDraft(
+//        version: PublicationVersion<LocationTrack>,
+//        publicationVersions: PublicationVersions,
+//    ): AddressChanges? {
+//        val officialAlignmentVersion = locationTrackDao.fetchOfficialVersion(version.officialId)?.let(locationTrackDao::fetch)
+//        val draftAlignmentVersion = locationTrackDao.fetch(version.draftVersion)
+//        val officialCac
+//        val officialAddresses = geocodingService.getAddressPoints(AddressPointCacheKey(officialAlignmentVersion), locationTrackId, OFFICIAL)
+//        val draftAddresses = geocodingService.getAddressPoints(locationTrackId, DRAFT)
+//        return getAddressChanges(officialAddresses, draftAddresses)
+//    }
 
-    fun getAddressChangesInDraft(
-        locationTrackId: IntId<LocationTrack>,
-    ): AddressChanges? {
-        val officialAddresses = geocodingService.getAddressPoints(locationTrackId, PublishType.OFFICIAL)
-        val draftAddresses = geocodingService.getAddressPoints(locationTrackId, PublishType.DRAFT)
-        return getAddressChanges(officialAddresses, draftAddresses)
+    fun getAddressChanges(
+        change: RowChange<LocationTrack>,
+        contextChanges: Map<IntId<TrackLayoutTrackNumber>, Change<GeocodingContextCacheKey>>,
+    ): AddressChanges {
+        val beforeTrack = change.before?.let(locationTrackDao::fetch)
+        val afterTrack = change.after?.let(locationTrackDao::fetch)
+        val beforeContextKey = beforeTrack?.let { t -> getContextChange(t.trackNumberId, contextChanges).before }
+        val afterContextKey = afterTrack?.let { t -> getContextChange(t.trackNumberId, contextChanges).after }
+        return if (change.before == change.after && beforeContextKey == afterContextKey) {
+            AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
+        } else {
+            getAddressChanges(
+                getAddresses(beforeTrack, beforeContextKey),
+                getAddresses(afterTrack, afterContextKey),
+            )
+        }
+    }
+    private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?) =
+        if (track == null || contextKey == null) null
+        else geocodingService.getAddressPoints(
+            contextKey = contextKey,
+            alignmentVersion = requireNotNull(track.alignmentVersion) { "DB LocationTrack must have an alignment" },
+        )
+
+    private fun getContextChange(
+        id: IntId<TrackLayoutTrackNumber>,
+        contextChanges: Map<IntId<TrackLayoutTrackNumber>, Change<GeocodingContextCacheKey>>,
+    ): Change<GeocodingContextCacheKey> = requireNotNull(contextChanges[id]) {
+        "All tracknumbers should have a context change: id=$id"
     }
 
     /**
