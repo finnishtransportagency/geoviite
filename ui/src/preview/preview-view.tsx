@@ -273,7 +273,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
     const stagedValidation = useLoader(
         () => validatePublishCandidates(props.selectedPublishCandidateIds),
-        [props.selectedPublishCandidateIds],
+        [props.selectedPublishCandidateIds, props.changeTimes],
     );
     const unstagedChanges = entireChangesetValidation
         ? getUnstagedChanges(
@@ -317,6 +317,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const [entryBeingReverted, setEntryBeingReverted] = React.useState<PreviewTableEntry>();
 
     const onRevertRow = (id: PublicationId, type: PreviewSelectType) => {
+        const selectedChange = {
+            trackNumber: type === PreviewSelectType.trackNumber ? id : undefined,
+            referenceLine: type === PreviewSelectType.referenceLine ? id : undefined,
+            locationTrack: type === PreviewSelectType.locationTrack ? id : undefined,
+            switch: type === PreviewSelectType.switch ? id : undefined,
+            kmPost: type === PreviewSelectType.kmPost ? id : undefined,
+        };
         const request = {
             trackNumbers: type === PreviewSelectType.trackNumber ? [id] : [],
             referenceLines: type === PreviewSelectType.referenceLine ? [id] : [],
@@ -324,11 +331,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             switches: type === PreviewSelectType.switch ? [id] : [],
             kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
         };
-        revertCandidates(request).finally(() => {
-            setRevertConfirmVisible(false);
-            setIsReverting(false);
-            updateAllChangeTimes();
-        });
+        revertCandidates(request)
+            .then(() => props.onPublishPreviewRemove(selectedChange))
+            .finally(() => {
+                setRevertConfirmVisible(false);
+                setIsReverting(false);
+                updateAllChangeTimes();
+            });
     };
 
     return (

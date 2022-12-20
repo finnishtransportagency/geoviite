@@ -4,13 +4,17 @@ import styles from 'publication/publication-table-item.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { Operation, PublishValidationError } from 'publication/publication-model';
+import { Operation, PublicationId, PublishValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { Menu, Item, useContextMenu } from 'react-contexify';
+import 'react-contexify/dist/ReactContexify.css';
+import { PreviewSelectType } from 'preview/preview-table';
 
 export type PreviewTableItemProps = {
+    id: PublicationId;
+    type: PreviewSelectType;
     itemName: string;
     trackNumber?: string;
     errors: PublishValidationError[];
@@ -24,6 +28,8 @@ export type PreviewTableItemProps = {
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
+    id,
+    type,
     itemName,
     trackNumber,
     errors,
@@ -42,13 +48,10 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
-    const [menuVisible, setMenuVisible] = React.useState(false);
-
-    const menuItems = [{ value: 'revert', name: t('publish.revert-change') }];
-    const handleMenuItemSelection = (item: string) => {
-        if (item == 'revert') onRevert();
-        setMenuVisible(false);
-    };
+    const menuId = () => `contextmenu_${id}_${type}`;
+    const { show } = useContextMenu({
+        id: menuId(),
+    });
 
     const errorTexts = errorsToStrings(errors, 'ERROR');
     const warningTexts = errorsToStrings(errors, 'WARNING');
@@ -106,20 +109,18 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         <div>
                             <Button
                                 variant={ButtonVariant.GHOST}
-                                onClick={() => {
-                                    setMenuVisible(!menuVisible);
-                                }}
                                 icon={Icons.More}
+                                onClick={(event: React.MouseEvent) => {
+                                    show(event, {});
+                                }}
                             />
-                            {menuVisible && (
-                                <div className={styles['preview-table-item__title-menu']}>
-                                    <Menu
-                                        items={menuItems}
-                                        onChange={(item) =>
-                                            item && handleMenuItemSelection(item)
-                                        }></Menu>
-                                </div>
-                            )}
+                            <div className={styles['preview-table-item__title-menu']}>
+                                <Menu animation={false} id={menuId()}>
+                                    <Item id="1" onClick={() => onRevert()}>
+                                        {t('publish.revert-change')}
+                                    </Item>
+                                </Menu>
+                            </div>
                         </div>
                     </div>
                 </td>

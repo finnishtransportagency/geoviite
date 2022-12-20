@@ -33,7 +33,7 @@ import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
 import { PreviewCandidates } from 'preview/preview-view';
 
-type PublicationId =
+export type PublicationId =
     | LayoutTrackNumberId
     | ReferenceLineId
     | LocationTrackId
@@ -201,6 +201,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     onPublishItemSelect={() =>
                                         handlePreviewSelect(entry.id, entry.type)
                                     }
+                                    id={entry.id}
+                                    type={entry.type}
                                     onRevert={() => onRevert(entry)}
                                     itemName={entry.uiName}
                                     trackNumber={entry.trackNumber}
