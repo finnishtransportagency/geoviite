@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.linking.PublicationVersions
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
@@ -23,75 +21,72 @@ class GeocodingService(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun getAddressPoints(locationTrackId: DomainId<LocationTrack>, publishType: PublishType): AlignmentAddresses? {
-        check(locationTrackId is IntId) { "Location track must be stored in DB before calculating address points" }
+    fun getAddressPoints(locationTrackId: IntId<LocationTrack>, publicationState: PublishType): AlignmentAddresses? {
         logger.serviceCall(
             "getAddressPoints",
-            "locationTrackId" to locationTrackId, "publishType" to publishType
+            "locationTrackId" to locationTrackId, "publicationState" to publicationState
         )
-        return addressPointsCache.getAddressPointCacheKey(publishType, locationTrackId)
+        return addressPointsCache.getAddressPointCacheKey(publicationState, locationTrackId)
             ?.let(addressPointsCache::getAddressPoints)
     }
 
-    fun getAddressPointsForPublication(
-        locationTrackId: DomainId<LocationTrack>,
-        kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>
+    fun getAddressPoints(
+        contextKey: GeocodingContextCacheKey,
+        alignmentVersion: RowVersion<LayoutAlignment>,
     ): AlignmentAddresses? {
-        check(locationTrackId is IntId) { "Location track must be stored in DB before calculating address points" }
         logger.serviceCall(
             "getAddressPointsForPublication",
-            "locationTrackId" to locationTrackId, "kmPostIdsToPublish" to kmPostIdsToPublish
+            "alignmentVersion" to alignmentVersion, "contextKey" to contextKey
         )
-        return addressPointsCache.getAddressPointCacheKey(PublishType.DRAFT, locationTrackId, kmPostIdsToPublish)
-            ?.let(addressPointsCache::getAddressPoints)
+        return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
     }
 
     fun getAddress(
-        publishType: PublishType,
+        publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         location: IPoint,
     ): Pair<TrackMeter, IntersectType>? {
         logger.serviceCall(
             "getAddress",
-            "trackNumberId" to trackNumberId, "location" to location, "publishType" to publishType
+            "trackNumberId" to trackNumberId, "location" to location, "publicationState" to publicationState
         )
-        return getGeocodingContext(publishType, trackNumberId)?.getAddress(location)
+        return getGeocodingContext(publicationState, trackNumberId)?.getAddress(location)
     }
 
     fun getAddressIfWithin(
-        publishType: PublishType,
+        publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         location: IPoint,
     ): TrackMeter? {
         logger.serviceCall(
             "getAddressIfWithin",
-            "trackNumberId" to trackNumberId, "location" to location, "publishType" to publishType
+            "trackNumberId" to trackNumberId, "location" to location, "publicationState" to publicationState
         )
-        return getGeocodingContext(publishType, trackNumberId)?.getAddress(location)
+        return getGeocodingContext(publicationState, trackNumberId)?.getAddress(location)
             ?.let { (address, intersect) -> if (intersect != WITHIN) null else address }
     }
 
     fun getLocationTrackStartAndEnd(
-        publishType: PublishType,
+        publicationState: PublishType,
         locationTrackId: IntId<LocationTrack>,
     ): AlignmentStartAndEnd? {
         logger.serviceCall(
             "getLocationTrackStartAndEnd",
-            "publishType" to publishType, "locationTrackId" to locationTrackId)
-        return locationTrackService.getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
-            val geocodingContext = getGeocodingContext(publishType, track.trackNumberId)
+            "publicationState" to publicationState, "locationTrackId" to locationTrackId)
+        return locationTrackService.getWithAlignment(publicationState, locationTrackId)?.let { (track, alignment) ->
+            val geocodingContext = getGeocodingContext(publicationState, track.trackNumberId)
             geocodingContext?.getStartAndEnd(alignment)
         }
     }
 
     fun getReferenceLineStartAndEnd(
-        publishType: PublishType,
+        publicationState: PublishType,
         referenceLineId: IntId<ReferenceLine>,
     ): AlignmentStartAndEnd? {
         logger.serviceCall("getReferenceLineStartAndEnd",
-            "publishType" to publishType, "referenceLineId" to referenceLineId)
-        return referenceLineService.getWithAlignment(publishType, referenceLineId)?.let { (line, alignment) ->
-            val geocodingContext = getGeocodingContext(publishType, line.trackNumberId)
+            "publicationState" to publicationState, "referenceLineId" to referenceLineId)
+        return referenceLineService.getWithAlignment(publicationState, referenceLineId)?.let { (line, alignment) ->
+            val geocodingContext = getGeocodingContext(publicationState, line.trackNumberId)
             geocodingContext?.getStartAndEnd(alignment)
         }
     }
@@ -99,25 +94,28 @@ class GeocodingService(
     fun getTrackLocation(
         locationTrackId: IntId<LocationTrack>,
         address: TrackMeter,
-        publishType: PublishType,
+        publicationState: PublishType,
     ): AddressPoint? {
         logger.serviceCall("getTrackLocation",
-            "locationTrackId" to locationTrackId, "address" to address, "publishType" to publishType)
-        return locationTrackService.getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
-            getGeocodingContext(publishType, track.trackNumberId)?.getTrackLocation(alignment, address)
+            "locationTrackId" to locationTrackId, "address" to address, "publicationState" to publicationState)
+        return locationTrackService.getWithAlignment(publicationState, locationTrackId)?.let { (track, alignment) ->
+            getGeocodingContext(publicationState, track.trackNumberId)?.getTrackLocation(alignment, address)
         }
     }
 
     fun getGeocodingContext(
-        publishType: PublishType,
+        publicationState: PublishType,
         trackNumberId: DomainId<TrackLayoutTrackNumber>?,
-        publishKmPostIds: List<IntId<TrackLayoutKmPost>>? = null
-    ) =
-        if (trackNumberId is IntId) {
-            geocodingDao.getGeocodingContextCacheKey(publishType, trackNumberId, publishKmPostIds)
-                ?.let(geocodingDao::getGeocodingContext)
-        } else {
-            logger.warn("Cannot get geocoding context for track number: $trackNumberId")
-            null
-        }
+    ) = if (trackNumberId is IntId) getGeocodingContext(publicationState, trackNumberId) else null
+
+    fun getGeocodingContext(
+        publicationState: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ) = geocodingDao.getGeocodingContextCacheKey(publicationState, trackNumberId)
+        ?.let(geocodingDao::getGeocodingContext)
+
+    fun getGeocodingContextCacheKey(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        publicationVersions: PublicationVersions,
+    ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, publicationVersions)
 }

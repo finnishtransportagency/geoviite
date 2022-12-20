@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -18,6 +19,7 @@ import java.time.Instant
 interface IDraftableObjectWriter<T : Draftable<T>> {
     fun insert(newItem: T): RowVersion<T>
     fun update(updatedItem: T): RowVersion<T>
+    fun updateAndVerifyVersion(previousVersion: RowVersion<T>, updatedItem: T): RowVersion<T>
 }
 
 interface IDraftableObjectReader<T : Draftable<T>> {
@@ -28,6 +30,8 @@ interface IDraftableObjectReader<T : Draftable<T>> {
 
     fun fetchAllVersions(): List<RowVersion<T>>
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
+
+    fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>>
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
@@ -61,6 +65,41 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     private val table: DbTable,
 ): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
 
+    @Transactional
+    override fun updateAndVerifyVersion(previousVersion: RowVersion<T>, updatedItem: T): RowVersion<T> =
+        update(updatedItem).also { updatedVersion ->
+            require (updatedVersion.id == previousVersion.id) {
+                "Updated the wrong object: previous=$previousVersion updated=$updatedVersion"
+            }
+            if (updatedVersion.version != previousVersion.version+1) {
+                // We could do optimistic locking here by throwing
+                logger.warn("Updated version isn't the next one: a concurrent change may have been overwritten: " +
+                        "previous=$previousVersion updated=$updatedVersion")
+            }
+        }
+
+    override fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>> {
+        // Empty lists don't play nice in the SQL, but the result would be empty anyhow
+        if (ids.isEmpty()) return listOf()
+        val sql = """
+            select 
+              coalesce(${table.draftLink}, id) as official_id,
+              id as row_id, 
+              version as row_version
+            from ${table.fullName} 
+            where coalesce(${table.draftLink}, id) in (:ids)
+              and draft = true
+        """.trimIndent()
+        val params = mapOf(
+            "ids" to ids.map { id -> id.intValue },
+        )
+        return jdbcTemplate.query<PublicationVersion<T>>(sql, params) { rs, _ -> PublicationVersion(
+            rs.getIntId("official_id"),
+            rs.getRowVersion("row_id", "row_version"),
+        ) }.also { found -> ids.forEach { id ->
+            if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
+        } }
+    }
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
 
     override fun fetchChangeTimes(id: IntId<T>): ChangeTimes {
@@ -83,7 +122,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
                 officialChanged = rs.getInstantOrNull("official_change_time"),
                 draftChanged = rs.getInstantOrNull("draft_change_time"),
             )
-        } ?: throw IllegalStateException("Failed to fetch change times: id=$id table=$table")
+        } ?: throw NoSuchEntityException(table.name, id)
     }
 
     override fun fetchAllVersions(): List<RowVersion<T>> = fetchRowVersions(table)

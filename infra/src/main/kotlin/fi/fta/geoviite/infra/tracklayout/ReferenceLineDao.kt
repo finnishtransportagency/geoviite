@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_REFERENCE_LINE
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.ReferenceLinePublishCandidate
 import fi.fta.geoviite.infra.logging.AccessType
@@ -138,6 +139,10 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, rowId)
         return result
     }
+
+    fun fetchVersionOrThrow(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>) =
+        fetchVersion(publicationState, trackNumberId)
+            ?: throw NoSuchEntityException(ReferenceLine::class, trackNumberId)
 
     fun fetchVersion(
         publicationState: PublishType,

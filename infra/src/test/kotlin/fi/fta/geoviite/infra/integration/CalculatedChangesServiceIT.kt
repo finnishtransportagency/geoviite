@@ -2,10 +2,7 @@ package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
-import fi.fta.geoviite.infra.linking.SwitchLinkingParameters
-import fi.fta.geoviite.infra.linking.SwitchLinkingSegment
-import fi.fta.geoviite.infra.linking.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
@@ -917,14 +914,21 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val publishedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
             val id = locationTrack.id as IntId
-            val (edited, editedAlignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, id)
-            if (edited.draft != null) locationTrackService.getWithAlignment(locationTrackService.publish(id))
-            else edited to editedAlignment
+            val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(id)
+            val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
+            if (edited.draft != null) {
+                val publishedVersion = locationTrackService.publish(PublicationVersion(id, rowVersion))
+                locationTrackService.getWithAlignment(publishedVersion)
+            } else edited to editedAlignment
         }
         val publishedSwitches = switches.map { switch ->
             val id = switch.id as IntId
-            val edited = switchService.getDraft(id)
-            if (edited.draft != null) switchDao.fetch(switchService.publish(id))
+            val rowVersion = switchDao.fetchDraftVersionOrThrow(id)
+            val edited = switchDao.fetch(rowVersion)
+            if (edited.draft != null) {
+                val publishedVersion = switchService.publish(PublicationVersion(id, rowVersion))
+                switchDao.fetch(publishedVersion)
+            }
             else edited
         }
 

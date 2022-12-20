@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -64,7 +64,7 @@ class RatkoClientIT @Autowired constructor(
     @Test
     fun shouldAddNewTrackAlignment() {
         val track = locationTrackService.getOrThrow(PublishType.OFFICIAL, IntId(997))
-        val addresses = geocodingService.getAddressPoints(track.id, PublishType.OFFICIAL)
+        val addresses = geocodingService.getAddressPoints(track.id as IntId, PublishType.OFFICIAL)
             ?: throw IllegalStateException("Cannot calculate addresses for location track ${track.id}")
         val ratkoNodes = convertToRatkoNodeCollection(addresses)
         val ratkoAlignment =

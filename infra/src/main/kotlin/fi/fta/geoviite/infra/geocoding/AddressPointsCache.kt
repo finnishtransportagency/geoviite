@@ -5,7 +5,10 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_ADDRESS_POINTS
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
@@ -13,7 +16,6 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 data class AddressPointCacheKey(
-    val locationTrackVersion: RowVersion<LocationTrack>,
     val alignmentVersion: RowVersion<LayoutAlignment>,
     val geocodingContextCacheKey: GeocodingContextCacheKey,
 )
@@ -30,14 +32,12 @@ class AddressPointsCache(
     fun getAddressPointCacheKey(
         publishType: PublishType,
         locationTrackId: IntId<LocationTrack>,
-        kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>? = null,
     ): AddressPointCacheKey? {
         return locationTrackDao.fetchVersion(locationTrackId, publishType)?.let { trackVersion ->
             val track = locationTrackDao.fetch(trackVersion)
-            val contextCacheKey =
-                geocodingDao.getGeocodingContextCacheKey(publishType, track.trackNumberId, kmPostIdsToPublish)
+            val contextCacheKey = geocodingDao.getGeocodingContextCacheKey(publishType, track.trackNumberId)
             if (track.alignmentVersion != null && contextCacheKey != null) {
-                AddressPointCacheKey(trackVersion, track.alignmentVersion, contextCacheKey)
+                AddressPointCacheKey(track.alignmentVersion, contextCacheKey)
             } else {
                 null
             }
