@@ -197,7 +197,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun fetchOfficialSwitchTrackNumbers() {
         val trackNumberId = insertOfficialTrackNumber()
-        val switch = insertAndCheck(switch(234, name = "Foo"))
+        val (_, switch) = insertAndCheck(switch(234, name = "Foo"))
         val switchId = switch.id as IntId
         insertAndCheck(
             locationTrack(trackNumberId).copy(
@@ -214,7 +214,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun fetchDraftOnlySwitchTrackNumbers() {
         val trackNumberId = insertOfficialTrackNumber()
-        val switch = insertAndCheck(draft(switch(345, name = "Foo")))
+        val (_, switch) = insertAndCheck(draft(switch(345, name = "Foo")))
         val switchId = switch.id as IntId
         insertAndCheck(
             draft(
