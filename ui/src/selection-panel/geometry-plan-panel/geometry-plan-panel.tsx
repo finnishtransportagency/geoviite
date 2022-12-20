@@ -113,6 +113,8 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     });
 
     React.useEffect(() => {
+        const planHeaderSelected = !!selectedPlanLayouts?.some((p) => p.planId == planHeader.id);
+
         const allAlignmentsSelected = !!planLayout?.alignments.every((a) =>
             selectedPlanLayouts?.some((p) => p.alignments.some((pa) => pa.id === a.id)),
         );
@@ -126,7 +128,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         );
 
         setVisibilities({
-            planHeader: allAlignmentsSelected && allSwitchesSelected && allKmPostsSelected,
+            planHeader: planHeaderSelected,
             alignments: allAlignmentsSelected,
             switches: allSwitchesSelected,
             kmPosts: allKmPostsSelected,
