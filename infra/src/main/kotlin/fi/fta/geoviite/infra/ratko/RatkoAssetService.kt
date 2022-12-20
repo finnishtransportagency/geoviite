@@ -178,6 +178,7 @@ class RatkoAssetService @Autowired constructor(
     ) {
         ratkoClient.updateAssetProperties(switchOid, updatedRatkoSwitch.properties)
 
+        //Switch state is only touched by Geoviite when the category is different
         if (updatedRatkoSwitch.state != currentRatkoSwitch.state) {
             ratkoClient.updateAssetState(switchOid, updatedRatkoSwitch.state)
         }

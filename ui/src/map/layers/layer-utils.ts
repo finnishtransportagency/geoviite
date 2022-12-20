@@ -28,6 +28,7 @@ import {
     coordsToPoint,
     createLine,
 } from 'model/geometry';
+import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
 
 function toWgs84(coordinate: number[]): number[] {
     return proj4(LAYOUT_SRID, 'WGS84', coordinate);
@@ -300,7 +301,7 @@ export function getMatchingSegmentDatas(
         shape,
         features,
         (feature) => {
-            const segmentData = feature.get('segment-data') as SegmentDataHolder;
+            const segmentData = feature.get(FEATURE_PROPERTY_SEGMENT_DATA) as SegmentDataHolder;
             return segmentData ? [segmentData.segment.id, segmentData] : undefined;
         },
         options,

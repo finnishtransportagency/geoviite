@@ -7,9 +7,11 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.someOid
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import kotlin.math.PI
 
@@ -47,6 +49,7 @@ fun clothoidFromOrigin(rotation: RotationDirection, dirStartGrads: Double) = clo
     start = Point(0.0, 0.0),
     // End point doesn't matter as the spiral is steepening (calculated from the start)
     dirEndGrads = 0.0, end = Point(1.0, 1.0),
+    pi = pointInDirection(0.5, gradsToRads(dirStartGrads)),
 )
 
 fun clothoidToOrigin(rotation: RotationDirection, dirEndGrads: Double) = clothoid(
@@ -57,6 +60,7 @@ fun clothoidToOrigin(rotation: RotationDirection, dirEndGrads: Double) = clothoi
     end = Point(0.0, 0.0),
     // Start point doesn't matter as the spiral is flattening (calculated from the end)
     dirStartGrads = 0.0, start = Point(1.0, 1.0),
+    pi = Point(0.0,0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
 )
 
 fun biquadraticParabolaFromOrigin(rotation: RotationDirection, dirStartGrads: Double) = biquadraticParabola(
@@ -67,6 +71,7 @@ fun biquadraticParabolaFromOrigin(rotation: RotationDirection, dirStartGrads: Do
     start = Point(0.0, 0.0),
     // End point doesn't matter as the spiral is steepening (calculated from the start)
     dirEndGrads = 0.0, end = Point(1.0, 1.0),
+    pi = pointInDirection(0.5, gradsToRads(dirStartGrads)),
 )
 
 fun biquadraticParabolaToOrigin(rotation: RotationDirection, dirEndGrads: Double) = biquadraticParabola(
@@ -77,6 +82,7 @@ fun biquadraticParabolaToOrigin(rotation: RotationDirection, dirEndGrads: Double
     end = Point(0.0, 0.0),
     // Start point doesn't matter as the spiral is flattening (calculated from the end)
     dirStartGrads = 0.0, start = Point(1.0, 1.0),
+    pi = Point(0.0,0.0) - pointInDirection(0.5, gradsToRads(dirEndGrads)),
 )
 
 fun line(
@@ -87,6 +93,68 @@ fun line(
     name: String = "Test",
     switchData: SwitchData = emptySwitchData(),
 ) = line(start, end, length, staStart, PlanElementName(name), switchData)
+
+fun minimalLine(start: Point = Point(0.0, 0.0), end: Point = Point(1.0, 1.0)) = GeometryLine(
+    ElementData(
+        name = null,
+        oidPart = null,
+        start = start,
+        end = end,
+        staStart = BigDecimal.ZERO.setScale(6),
+        length = lineLength(start, end).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+    ),
+    switchData = emptySwitchData(),
+)
+
+fun minimalCurve(
+    start: Point = Point(0.0, 0.0),
+    end: Point = Point(1.0, 1.0),
+    center: Point = Point(0.0, 1.0),
+    rotation: RotationDirection = CCW,
+) = GeometryCurve(
+    ElementData(
+        name = null,
+        oidPart = null,
+        start = start,
+        end = end,
+        staStart = BigDecimal.ZERO.setScale(6),
+        length = circleArcLength(lineLength(center, start)).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+    ),
+    switchData = emptySwitchData(),
+    curveData = CurveData(
+        rotation = rotation,
+        center = center,
+        radius = lineLength(center, start).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+        chord = lineLength(start, end).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+    )
+)
+
+fun minimalClothoid(
+    start: Point = Point(0.0, 0.0),
+    end: Point = Point(1.0, 1.0),
+    pi: Point = Point(0.0, 1.0),
+    rotation: RotationDirection = CCW,
+    constant: Double = 200.0,
+) = GeometryClothoid(
+    ElementData(
+        name = null,
+        oidPart = null,
+        start = start,
+        end = end,
+        staStart = BigDecimal.ZERO.setScale(6),
+        length = lineLength(start, end).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+    ),
+    switchData = emptySwitchData(),
+    spiralData = SpiralData(
+        rotation = rotation,
+        pi = pi,
+        directionEnd = null,
+        directionStart = null,
+        radiusStart = null,
+        radiusEnd = BigDecimal.ONE.setScale(6),
+    ),
+    constant = constant.toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+)
 
 fun line(
     start: Point,
@@ -147,12 +215,21 @@ fun clothoidSteepening(
     if (rotation == CW) idealOffset = Point(idealOffset.x, -1 * idealOffset.y)
     val offset = rotateAroundOrigin(startAngle, idealOffset)
     val endPoint = startPoint + offset
+    val piPoint = piPoint(startPoint, endPoint, startAngle, endAngle)
     return clothoid(
         constant = constant, rotation = rotation,
         radiusStart = null, dirStartGrads = radsToGrads(startAngle), start = startPoint,
         radiusEnd = endRadius, dirEndGrads = radsToGrads(endAngle), end = endPoint,
+        pi = piPoint,
     )
 }
+
+fun piPoint(start: Point, end: Point, startDir: Double, endDir: Double): Point = lineIntersection(
+    start1 = start,
+    end1 = start + pointInDirection(10.0, startDir),
+    start2 = end - pointInDirection(10.0, endDir),
+    end2 = end,
+)!!.point
 
 fun clothoidFlattening(
     constant: Double,
@@ -167,20 +244,45 @@ fun clothoidFlattening(
     if (rotation == CCW) idealOffset = Point(idealOffset.x, -1 * idealOffset.y)
     val offset = rotateAroundOrigin(endAngle - PI, idealOffset)
     val startPoint = endPoint + offset
+    val piPoint = piPoint(startPoint, endPoint, startAngle, endAngle)
     return clothoid(
         constant = constant, rotation = rotation,
         radiusStart = startRadius, dirStartGrads = radsToGrads(startAngle), start = startPoint,
         radiusEnd = null, dirEndGrads = radsToGrads(endAngle), end = endPoint,
+        pi = piPoint,
     )
 }
 
 fun clothoid(
     constant: Double,
     rotation: RotationDirection,
-    dirStartGrads: Double, dirEndGrads: Double,
     radiusStart: Double?, radiusEnd: Double?,
     start: Point, end: Point,
+    dirStartGrads: Double,
+    dirEndGrads: Double,
     length: Double = clothoidLength(constant, radiusStart, radiusEnd),
+) = clothoid(
+    constant = constant,
+    rotation = rotation,
+    radiusStart = radiusStart,
+    radiusEnd = radiusEnd,
+    start = start,
+    end = end,
+    pi = piPoint(start, end, gradsToRads(dirStartGrads), gradsToRads(dirEndGrads)),
+    dirStartGrads = dirStartGrads,
+    dirEndGrads = dirEndGrads,
+    length = length,
+)
+
+
+fun clothoid(
+    constant: Double,
+    rotation: RotationDirection,
+    radiusStart: Double?, radiusEnd: Double?,
+    start: Point, end: Point, pi: Point,
+    length: Double = clothoidLength(constant, radiusStart, radiusEnd),
+    dirStartGrads: Double? = null,
+    dirEndGrads: Double? = null,
 ) = GeometryClothoid(
     ElementData(
         name = PlanElementName("Test"),
@@ -192,9 +294,10 @@ fun clothoid(
     ),
     SpiralData(
         rotation = rotation,
-        directionStart = Grads(dirStartGrads.toBigDecimal()), directionEnd = Grads(dirEndGrads.toBigDecimal()),
+        directionStart = dirStartGrads?.let { d -> Grads(d.toBigDecimal()) },
+        directionEnd = dirEndGrads?.let { d -> Grads(d.toBigDecimal()) },
         radiusStart = radiusStart?.toBigDecimal(), radiusEnd = radiusEnd?.toBigDecimal(),
-        pi = Point(x = 0.0, y = 0.0),
+        pi = pi,
     ),
     constant = constant.toBigDecimal(),
     switchData = emptySwitchData(),
@@ -203,9 +306,28 @@ fun clothoid(
 fun biquadraticParabola(
     length: Double,
     rotation: RotationDirection,
-    dirStartGrads: Double, dirEndGrads: Double,
     radiusStart: Double?, radiusEnd: Double?,
     start: Point, end: Point,
+    dirStartGrads: Double,
+    dirEndGrads: Double,
+) = biquadraticParabola(
+    length = length,
+    rotation = rotation,
+    radiusStart = radiusStart,
+    radiusEnd = radiusEnd,
+    start = start, end = end,
+    pi = piPoint(start, end, gradsToRads(dirStartGrads), gradsToRads(dirEndGrads)),
+    dirStartGrads = dirStartGrads,
+    dirEndGrads = dirEndGrads,
+)
+
+fun biquadraticParabola(
+    length: Double,
+    rotation: RotationDirection,
+    radiusStart: Double?, radiusEnd: Double?,
+    start: Point, end: Point, pi: Point,
+    dirStartGrads: Double? = null,
+    dirEndGrads: Double? = null,
 ) = BiquadraticParabola(
     ElementData(
         name = PlanElementName("Test"),
@@ -217,11 +339,17 @@ fun biquadraticParabola(
     ),
     SpiralData(
         rotation = rotation,
-        directionStart = Grads(dirStartGrads.toBigDecimal()), directionEnd = Grads(dirEndGrads.toBigDecimal()),
+        directionStart = dirStartGrads?.let { d -> Grads(d.toBigDecimal()) },
+        directionEnd = dirEndGrads?.let { d -> Grads(d.toBigDecimal()) },
         radiusStart = radiusStart?.toBigDecimal(), radiusEnd = radiusEnd?.toBigDecimal(),
-        pi = Point(x = 0.0, y = 0.0),
+        pi = pi,
     ),
     switchData = emptySwitchData(),
+)
+
+fun infraModelFile(name: String = "test_file.xml") = InfraModelFile(
+    name = FileName(name),
+    content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><LandXml></LandXml>",
 )
 
 fun plan(
@@ -236,27 +364,63 @@ fun plan(
     alignments: List<GeometryAlignment> = listOf(geometryAlignment(trackNumberId)),
     switches: List<GeometrySwitch> = listOf(),
     measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    fileName: FileName = FileName("test_file.xml"),
 ): GeometryPlan {
     return GeometryPlan(
         project = project(),
         application = application(),
-        author = null,
-        planTime = null,
+        author = author("TEST Company"),
+        planTime = Instant.EPOCH,
         units = geometryUnits(srid),
         trackNumberId = trackNumberId,
-        trackNumberDescription = PlanElementName(""),
+        trackNumberDescription = PlanElementName("TNDesc"),
         alignments = alignments,
         switches = switches,
         kmPosts = kmPosts(trackNumberId),
-        fileName = FileName("ratapiha.xml"),
-        oid = null,
+        fileName = fileName,
+        oid = someOid(),
         planPhase = PlanPhase.RAILWAY_PLAN,
         decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
         measurementMethod = measurementMethod,
-        message = null,
+        message = FreeText("test text description"),
         uploadTime = Instant.now(),
     )
 }
+
+fun minimalPlan(
+    fileName: FileName = FileName("TEST_FILE.xml"),
+) = GeometryPlan(
+    fileName = fileName,
+    units = GeometryUnits(
+        null,
+        null,
+        null,
+        AngularUnit.GRADS,
+        LinearUnit.METER,
+    ),
+    trackNumberDescription = PlanElementName("TEST_TN_DESC"),
+    project = Project(
+        name = ProjectName("TEST Project"),
+        description = null,
+    ),
+    application = Application(
+        name = MetaDataName("TEST Application"),
+        manufacturer = MetaDataName("TEST APP Company"),
+        version = MetaDataName("v1.0.0"),
+    ),
+    author = null,
+    message = null,
+    planPhase = null,
+    decisionPhase = null,
+    planTime = null,
+    switches = listOf(),
+    alignments = listOf(),
+    kmPosts = listOf(),
+    oid = null,
+    measurementMethod = null,
+    trackNumberId = null,
+    uploadTime = null,
+)
 
 fun geometryLine(
     name: String,

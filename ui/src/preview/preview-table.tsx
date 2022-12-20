@@ -149,7 +149,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 })),
             );
 
-    const publicationEntries = changesToPublicationEntries(previewChanges);
+    const publicationEntries: PreviewTableEntry[] = changesToPublicationEntries(previewChanges);
 
     const sortedPublicationEntries =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED

@@ -44,6 +44,8 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 
+export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
+
 const locationTrackStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.alignmentColor,
@@ -145,8 +147,9 @@ export function createMapAlignmentBadgeFeature(
                     zIndex: 5,
                     renderer: (coordinates: Coordinate, state: State) => {
                         const ctx = state.context;
-                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${state.pixelRatio * 12
-                            }px ${mapStyles['alignment-badge-font-family']}`;
+                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${
+                            state.pixelRatio * 12
+                        }px ${mapStyles['alignment-badge-font-family']}`;
                         const backgroundWidth =
                             ctx.measureText(badgeStyle.text).width + 16 * state.pixelRatio;
                         const backgroundHeight = 14 * state.pixelRatio;
@@ -181,7 +184,7 @@ export function createMapAlignmentBadgeFeature(
                         ctx.fillText(
                             badgeStyle.text,
                             coordinates[0] +
-                            ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
+                                ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
                             coordinates[1] + 1 * state.pixelRatio,
                         );
 
@@ -217,13 +220,13 @@ function createFeatures(
             ? selected
                 ? selectedReferenceLineStyle
                 : highlighted
-                    ? highlightedReferenceLineStyle
-                    : referenceLineStyle
+                ? highlightedReferenceLineStyle
+                : referenceLineStyle
             : selected
-                ? selectedLocationTrackStyle
-                : highlighted
-                    ? highlightedLocationTrackStyle
-                    : locationTrackStyle,
+            ? selectedLocationTrackStyle
+            : highlighted
+            ? highlightedLocationTrackStyle
+            : locationTrackStyle,
     ]);
 
     const numbersBeforeSegment = Math.floor(segment.start / drawDistance);
@@ -264,7 +267,7 @@ function createFeatures(
         features.push(...alignmentBadgeFeatures);
     }
 
-    segmentFeature.set('segment-data', dataHolder);
+    segmentFeature.set(FEATURE_PROPERTY_SEGMENT_DATA, dataHolder);
     return features;
 }
 
@@ -280,8 +283,9 @@ function featureKey(
     alignmentId: LocationTrackId,
     alignmentVersion: string | null,
 ): string {
-    return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${selected ? '1' : '0'
-        }_${highlighted ? '1' : '0'}_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}`;
+    return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${
+        selected ? '1' : '0'
+    }_${highlighted ? '1' : '0'}_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}`;
 }
 
 type DataCollection = {
@@ -400,12 +404,12 @@ function createFeaturesCached(
                 previous !== undefined
                     ? previous
                     : createFeatures(
-                        data,
-                        !!(selected || isLinking),
-                        highlighted,
-                        trackNumberDisplayMode,
-                        trackNumberDrawDistance,
-                    );
+                          data,
+                          !!(selected || isLinking),
+                          highlighted,
+                          trackNumberDisplayMode,
+                          trackNumberDrawDistance,
+                      );
             featureCache.set(key, features);
             return features;
         })
@@ -416,7 +420,7 @@ let alignmentCompare = '';
 let alignmentChangeTimeCompare: TimeStamp | undefined = undefined;
 
 adapterInfoRegister.add('alignment', {
-    createAdapter: function(
+    createAdapter: function (
         mapTiles: MapTile[],
         existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
         mapLayer: LayoutAlignmentsLayer,
