@@ -127,7 +127,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             </tr>
             {isErrorRowExpanded && hasErrors && (
                 <tr className={'preview-table-item preview-table-item--error'}>
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                         {errorTexts.length > 0 && (
                             <div className="preview-table-item__msg-group preview-table-item__msg-group--errors">
                                 <div className="preview-table-item__group-title">
