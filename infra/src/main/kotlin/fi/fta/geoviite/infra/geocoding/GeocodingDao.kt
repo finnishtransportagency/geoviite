@@ -101,7 +101,8 @@ class GeocodingDao(
         return if (trackNumberVersion != null && referenceLineVersion != null) {
             val officialKmPosts = official?.kmPostVersions?.filter { v -> !versions.containsKmPost(v.id) } ?: listOf()
             val draftKmPosts = versions.kmPosts.filter { draftPost ->
-                kmPostDao.fetch(draftPost.draftVersion).trackNumberId == trackNumberId
+                val draft = kmPostDao.fetch(draftPost.draftVersion)
+                draft.trackNumberId == trackNumberId && draft.exists
             }.map { v -> v.draftVersion }
             val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.id.intValue }
             GeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)
@@ -117,9 +118,7 @@ class GeocodingDao(
             ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
         // If the tracknumber is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
-        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch)
-            .sortedBy { post -> post.kmNumber }
-            .filter { post -> post.exists }
+        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
         return GeocodingContext.create(trackNumber, referenceLine, alignment, kmPosts)
     }
 
