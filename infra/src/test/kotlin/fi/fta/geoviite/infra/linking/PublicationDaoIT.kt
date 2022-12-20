@@ -172,6 +172,43 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(changes, fetchedChanges)
     }
 
+    @Test
+    fun fetchOfficialSwitchTrackNumbers() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val switch = insertAndCheck(switch(234, name = "Foo"))
+        val switchId = switch.id as IntId
+        insertAndCheck(
+            locationTrack(trackNumberId).copy(
+                topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1))
+            )
+        )
+        insertAndCheck(draft(switch.copy(name = SwitchName("FooEdited"))))
+
+        val publishCandidates = publicationDao.fetchSwitchPublishCandidates()
+        val editedCandidate = publishCandidates.first { switch -> switch.name == SwitchName("FooEdited") }
+        assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
+    }
+
+    @Test
+    fun fetchDraftOnlySwitchTrackNumbers() {
+        val trackNumberId = insertOfficialTrackNumber()
+        val switch = insertAndCheck(draft(switch(345, name = "Foo")))
+        val switchId = switch.id as IntId
+        insertAndCheck(
+            draft(
+                locationTrack(trackNumberId).copy(
+                    topologyEndSwitch = TopologyLocationTrackSwitch(
+                        switchId,
+                        JointNumber(1)
+                    )
+                )
+            )
+        )
+        val publishCandidates = publicationDao.fetchSwitchPublishCandidates()
+        val editedCandidate = publishCandidates.first { switch -> switch.name == SwitchName("Foo") }
+        assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
+    }
+
     private fun insertAndCheck(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber {
         val dbVersion = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(dbVersion)

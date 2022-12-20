@@ -113,10 +113,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             draft_switch.name, 
             draft_switch.change_time,
             draft_switch.change_user,
-            (select array_agg(distinct track_number_id)
-              from layout.segment
-                join layout.location_track using(alignment_id)
-              where coalesce(official_switch.draft_id, draft_switch.row_id) = segment.switch_id) as track_numbers,
+            (select array_agg(sltn)
+             from layout.switch_linked_track_numbers(coalesce(official_switch.row_id, draft_switch.row_id), :publication_state) sltn)
+              as track_numbers,
             layout.infer_operation_from_state_category_transition(
               official_switch.state_category, 
               draft_switch.state_category
@@ -127,7 +126,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                   and 'OFFICIAL' = any(official_switch.publication_states)
             where draft_switch.draft = true
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>(
+            "publication_state" to PublishType.DRAFT.name,
+        )) { rs, _ ->
             SwitchPublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = SwitchName(rs.getString("name")),
