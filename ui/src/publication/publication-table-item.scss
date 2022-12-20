@@ -1,4 +1,5 @@
 @import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
 @import '../vayla-design-lib/typography';
 
 $color-ok: $color-green-dark;
@@ -87,12 +88,4 @@ $color-warning: #9f6700;
 
 .preview-table-item__msg {
     margin: 10px 0;
-}
-
-.preview-table-item__title-menu {
-    .menu {
-        position: absolute;
-        margin-top: 5px;
-        z-index: 10;
-    }
 }

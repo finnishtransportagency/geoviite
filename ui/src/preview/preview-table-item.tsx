@@ -9,7 +9,6 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Menu, Item, useContextMenu } from 'react-contexify';
-import 'react-contexify/dist/ReactContexify.css';
 import { PreviewSelectType } from 'preview/preview-table';
 
 export type PreviewTableItemProps = {
@@ -114,7 +113,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                                     show(event, {});
                                 }}
                             />
-                            <div className={styles['preview-table-item__title-menu']}>
+                            <div>
                                 <Menu animation={false} id={menuId()}>
                                     <Item id="1" onClick={() => onRevert()}>
                                         {t('publish.revert-change')}
