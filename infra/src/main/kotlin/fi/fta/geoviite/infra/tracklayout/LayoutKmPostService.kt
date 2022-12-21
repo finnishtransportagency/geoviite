@@ -97,10 +97,4 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
         val postsByDistance = allPosts.map { post -> associateByDistance(post, location) { item -> item.location } }
         return pageToList(postsByDistance, offset, limit, ::compareByDistanceNullsFirst).map { (kmPost, _) -> kmPost }
     }
-
-    @Transactional
-    fun deleteUnpublishedDraftById(kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
-        logger.serviceCall("deleteDraftKmPost", "kmPostId" to kmPostId)
-        return dao.deleteUnpublishedDraft(kmPostId).id
-    }
 }

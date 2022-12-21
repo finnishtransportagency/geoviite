@@ -93,6 +93,15 @@ class LinkingTestUI @Autowired constructor(
     val ESPOO_TRACK_NUMBER_2 = "ESP2"
     val ESPOO_TRACK_NUMBER_3 = "ESP3"
 
+    fun clearDrafts () {
+        locationTrackDao.deleteDrafts()
+        referenceLineDao.deleteDrafts()
+        alignmentDao.deleteOrphanedAlignments()
+        switchDao.deleteDrafts()
+        kmPostDao.deleteDrafts()
+        trackNumberDao.deleteDrafts()
+    }
+
     @BeforeAll
     fun createTestData() {
         clearAllTestData()
@@ -149,6 +158,7 @@ class LinkingTestUI @Autowired constructor(
 
     @BeforeEach
     fun goToMapPage() {
+        clearDrafts()
         openBrowser()
 
         mapPage = PageModel.openGeoviite(url).navigationBar().kartta()
@@ -874,6 +884,7 @@ class LinkingTestUI @Autowired constructor(
     fun publishChanges(expectedPublishMessage: String = "Muutokset julkaistu") {
         val previewChangesPage = mapPage.esikatselu()
         previewChangesPage.logChanges()
+        previewChangesPage.lisaaMuutoksetJulkaisuun()
         val notificationAfterSave = previewChangesPage.julkaise()
         assertThat(notificationAfterSave.message).contains(expectedPublishMessage)
     }
@@ -882,7 +893,6 @@ class LinkingTestUI @Autowired constructor(
         val previewChangesPage = mapPage.esikatselu()
         previewChangesPage.logChanges()
         val notificationAfterDiscardingChanges = previewChangesPage.hylkaaMuutokset()
-        assertThat(notificationAfterDiscardingChanges.message).contains("Luonnosmuutokset peruttu")
     }
 
 
