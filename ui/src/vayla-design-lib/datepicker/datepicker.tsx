@@ -4,6 +4,7 @@ import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepic
 import { format } from 'date-fns';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
+import { TextField, TextInputIconPosition } from 'vayla-design-lib/text-field/text-field';
 
 type DatePickerProps = {
     onChange?: () => void;
@@ -52,6 +53,20 @@ function getHeaderElement({
     );
 }
 
+const DatePickerInput = React.forwardRef<
+    HTMLInputElement,
+    React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>
+>((props, ref) => (
+    <TextField
+        {...props}
+        Icon={Icons.SetDate}
+        iconPosition={TextInputIconPosition.RIGHT}
+        ref={ref}
+    />
+));
+
+DatePickerInput.displayName = 'DatePickerInput';
+
 export const DatePicker: React.FC<DatePickerProps> = () => {
     const [startDate, setStartDate] = React.useState(new Date());
 
@@ -71,6 +86,7 @@ export const DatePicker: React.FC<DatePickerProps> = () => {
                         },
                     },
                 ]}
+                customInput={<DatePickerInput />}
             />
         </div>
     );
