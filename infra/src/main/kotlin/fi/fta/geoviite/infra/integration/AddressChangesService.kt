@@ -101,15 +101,12 @@ class AddressChangesService(
 //    }
 
     fun getAddressChanges(
-        change: RowChange<LocationTrack>,
-        keysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
-        keysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
-    ): AddressChanges {
-        val beforeTrack = change.before?.let(locationTrackDao::fetch)
-        val afterTrack = change.after?.let(locationTrackDao::fetch)
-        val beforeContextKey = beforeTrack?.let { t -> keysBefore[t.trackNumberId] }
-        val afterContextKey = afterTrack?.let { t -> keysAfter[t.trackNumberId] }
-        return if (change.before == change.after && beforeContextKey == afterContextKey) {
+        beforeTrack: LocationTrack?,
+        afterTrack: LocationTrack,
+        beforeContextKey: GeocodingContextCacheKey?,
+        afterContextKey: GeocodingContextCacheKey?,
+    ): AddressChanges =
+        if (beforeTrack == afterTrack && beforeContextKey == afterContextKey) {
             AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
         } else {
             getAddressChanges(
@@ -117,7 +114,6 @@ class AddressChangesService(
                 getAddresses(afterTrack, afterContextKey),
             )
         }
-    }
 
     private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?) =
         if (track == null || contextKey == null) null

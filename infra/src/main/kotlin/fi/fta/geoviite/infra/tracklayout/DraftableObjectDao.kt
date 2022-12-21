@@ -43,6 +43,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
             OFFICIAL -> fetchOfficialVersion(id)
             DRAFT -> fetchDraftVersion(id)
         }
+    fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 
     fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> =
@@ -156,6 +157,9 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     override fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T> = fetchOfficialRowVersionOrThrow(id, table)
 
     override fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T> = fetchDraftRowVersionOrThrow(id, table)
+
+    override fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T> =
+        fetchOfficialVersionAtMoment(id, moment) ?: throw NoSuchEntityException(table.name, id)
 
     override fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>? {
         //language=SQL
