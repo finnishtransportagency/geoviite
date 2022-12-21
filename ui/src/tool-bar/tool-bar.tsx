@@ -70,6 +70,46 @@ type SwitchItemValue = {
 
 type SearchItemValue = LocationTrackItemValue | SwitchItemValue;
 
+function getOptions(
+    publishType: PublishType,
+    searchTerm: string,
+): Promise<Item<SearchItemValue>[]> {
+    if (isNullOrBlank(searchTerm)) {
+        return Promise.resolve([]);
+    }
+
+    const locationTracks: Promise<Item<LocationTrackItemValue>[]> = getLocationTracksBySearchTerm(
+        searchTerm,
+        publishType,
+        10,
+    ).then((locationTracks) => {
+        return locationTracks.map((locationTrack) => ({
+            name: `${locationTrack.name}, ${locationTrack.description}`,
+            value: {
+                type: 'locationTrackSearchItem',
+                locationTrack: locationTrack,
+            },
+        }));
+    });
+    const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(
+        searchTerm,
+        publishType,
+        10,
+    ).then((switches) => {
+        return switches.map((layoutSwitch) => ({
+            name: `${layoutSwitch.name}`,
+            value: {
+                type: 'switchSearchItem',
+                layoutSwitch: layoutSwitch,
+            },
+        }));
+    });
+    return Promise.all([locationTracks, switches]).then((result) => {
+        const allItems: Item<SearchItemValue>[] = [...result[0], ...result[1]];
+        return allItems;
+    });
+}
+
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     const { t } = useTranslation();
     const selectedItems = props.selection.selectedItems;
@@ -98,46 +138,13 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
         showAddDialog(item);
     };
 
-    function getOptions(searchTerm: string): Promise<Item<SearchItemValue>[]> {
-        if (isNullOrBlank(searchTerm)) {
-            return Promise.resolve([]);
-        }
-
-        const locationTracks: Promise<Item<LocationTrackItemValue>[]> =
-            getLocationTracksBySearchTerm(searchTerm, props.publishType, 10).then(
-                (locationTracks) => {
-                    return locationTracks.map((locationTrack) => ({
-                        name: `${locationTrack.name}, ${locationTrack.description}`,
-                        value: {
-                            type: 'locationTrackSearchItem',
-                            locationTrack: locationTrack,
-                        },
-                    }));
-                },
-            );
-        const switches: Promise<Item<SwitchItemValue>[]> = getSwitchesBySearchTerm(
-            searchTerm,
-            props.publishType,
-            10,
-        ).then((switches) => {
-            return switches.map((layoutSwitch) => ({
-                name: `${layoutSwitch.name}`,
-                value: {
-                    type: 'switchSearchItem',
-                    layoutSwitch: layoutSwitch,
-                },
-            }));
-        });
-        return Promise.all([locationTracks, switches]).then((result) => {
-            const allItems: Item<SearchItemValue>[] = [...result[0], ...result[1]];
-            return allItems;
-        });
-    }
-
     // Use debounced function to collect keystrokes before triggering a search
     const debouncedGetOptions = debounceAsync(getOptions, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
-    const memoizedDebouncedGetOptions = React.useCallback(debouncedGetOptions, []);
+    const memoizedDebouncedGetOptions = React.useCallback(
+        (searchTerm: string) => debouncedGetOptions(props.publishType, searchTerm),
+        [props.publishType],
+    );
 
     function onItemSelected(item: SearchItemValue | undefined) {
         if (item?.type == 'locationTrackSearchItem') {
