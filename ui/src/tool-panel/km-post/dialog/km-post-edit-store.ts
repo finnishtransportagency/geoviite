@@ -85,9 +85,9 @@ function validateLinkingKmPost(kmPost: KmPostSaveRequest): ValidationError<KmPos
 
 function kmNumberMatchesRegExp(kmPost: KmPostSaveRequest): boolean {
     if (kmPost.kmNumber.length <= 4) {
-        return /(\d{4})/.test(kmPost.kmNumber);
+        return /^\d{4}$/.test(kmPost.kmNumber);
     } else if (kmPost.kmNumber.length <= 6) {
-        return /(\d{4}[A-Z]{1,2})/.test(kmPost.kmNumber);
+        return /^\d{4}[A-Z]{1,2}$/.test(kmPost.kmNumber);
     }
     return false;
 }
