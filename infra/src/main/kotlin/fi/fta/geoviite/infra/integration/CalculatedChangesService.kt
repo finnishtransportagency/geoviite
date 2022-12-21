@@ -294,49 +294,26 @@ class CalculatedChangesService(
 
     private fun getSwitchChangesByLocationTrack(
         rowChange: RowChange<LocationTrack>,
-//        locationTrackId: IntId<LocationTrack>,
-//        moment: Instant?
         keysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
         keysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
+        oldSwitchVersions: LazyMap<IntId<TrackLayoutSwitch>, RowVersion<TrackLayoutSwitch>?>,
+        newSwitchVersions: LazyMap<IntId<TrackLayoutSwitch>, RowVersion<TrackLayoutSwitch>>,
+        oldTrackNumberVersions: LazyMap<IntId<TrackLayoutTrackNumber>, RowVersion<TrackLayoutTrackNumber>?>,
+        newTrackNumberVersions: LazyMap<IntId<TrackLayoutTrackNumber>, RowVersion<TrackLayoutTrackNumber>>,
     ): List<SwitchChange> {
-//        val currentPublishType = if (moment == null) DRAFT else OFFICIAL
-
         val (oldLocationTrack, oldAlignment) = rowChange.before?.let(locationTrackService::getWithAlignment) ?: (null to null)
-        val (currentLocationTrack, currentAlignment) = locationTrackService.getWithAlignment(rowChange.after)
-//        val (oldLocationTrack, oldAlignment) = if (moment == null) {
-//            locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
-//        } else {
-//            historyDao.fetchLocationTrackAtMoment(locationTrackId, moment)?.let { locationTrack ->
-//                locationTrack.alignmentVersion?.let { alignmentVersion ->
-//                    locationTrack to alignmentDao.fetch(alignmentVersion)
-//                }
-//            }
-//        } ?: (null to null)
+        val (newLocationTrack, newAlignment) = locationTrackService.getWithAlignment(rowChange.after)
 
-        val oldTrackNumber = oldLocationTrack?.let {
-            if (moment == null) trackNumberService.get(OFFICIAL, oldLocationTrack.trackNumberId)
-            else historyDao.fetchTrackNumberAtMoment(oldLocationTrack.trackNumberId, moment)
-        }
+        val oldTrackNumber = oldLocationTrack
+            ?.let { track -> oldTrackNumberVersions[track.trackNumberId] }
+            ?.let(trackNumberDao::fetch)
+        val newTrackNumber = trackNumberDao.fetch(newTrackNumberVersions[newLocationTrack.trackNumberId])
 
-//        val (currentLocationTrack, currentAlignment) = locationTrackService.getWithAlignmentOrThrow(
-//            currentPublishType,
-//            locationTrackId
-//        )
-
-        val currentTrackNumber = trackNumberService.getOrThrow(
-            currentPublishType,
-            currentLocationTrack.trackNumberId
-        )
-
-        val currentGeocodingContext = geocodingService.getGeocodingContext(
-            currentPublishType,
-            currentLocationTrack.trackNumberId
-        )
-
-        val oldGeocodingContext = oldLocationTrack?.trackNumberId?.let { trackNumberId ->
-            if (moment == null) geocodingService.getGeocodingContext(OFFICIAL, trackNumberId)
-            else addressChangesService.getGeocodingContextAtMoment(trackNumberId, moment)
-        }
+        val oldGeocodingContext = oldLocationTrack?.trackNumberId
+            ?.let(keysBefore::get)
+            ?.let(geocodingService::getGeocodingContext)
+        val currentGeocodingContext = keysAfter[newLocationTrack.trackNumberId]
+            ?.let(geocodingService::getGeocodingContext)
 
         val oldTopologySwitches =
             if (oldLocationTrack != null && oldAlignment != null && oldGeocodingContext != null)
@@ -344,8 +321,7 @@ class CalculatedChangesService(
                     oldLocationTrack,
                     oldAlignment,
                     getSwitchPresentationJoint = { switchId ->
-                        val switch = if (moment == null) switchService.get(OFFICIAL, switchId)
-                        else historyDao.getSwitchAtMoment(switchId, moment)
+                        val switch = oldSwitchVersions[switchId]?.let(switchDao::fetch)
                         switchLibraryService.getSwitchStructure(switch!!.switchStructureId).presentationJointNumber
                     },
                     getAddress = { point -> oldGeocodingContext.getAddress(point)!!.first }
@@ -358,30 +334,27 @@ class CalculatedChangesService(
                     getSwitchJointChanges(
                         segments = segments,
                         geocodingContext = context
-                    ) { switchId ->
-                        if (moment == null) switchService.get(OFFICIAL, switchId)
-                        else historyDao.getSwitchAtMoment(switchId, moment)
-                    }
+                    ) { switchId -> oldSwitchVersions[switchId]?.let(switchDao::fetch) }
                 }
             } ?: emptyList()) +
                 oldTopologySwitches
 
         val currentTopologySwitches = if (currentGeocodingContext != null)
             getTopologySwitchJoints(
-                currentLocationTrack,
-                currentAlignment,
+                newLocationTrack,
+                newAlignment,
                 getSwitchPresentationJoint = { switchId ->
-                    val switch = switchService.get(currentPublishType, switchId)
-                    switchLibraryService.getSwitchStructure(switch!!.switchStructureId).presentationJointNumber
+                    val switch = switchDao.fetch(newSwitchVersions[switchId])
+                    switchLibraryService.getSwitchStructure(switch.switchStructureId).presentationJointNumber
                 },
                 getAddress = { point -> currentGeocodingContext.getAddress(point)!!.first })
         else listOf()
 
         val currentSwitches = (currentGeocodingContext?.let { context ->
             getSwitchJointChanges(
-                segments = currentAlignment.segments,
+                segments = newAlignment.segments,
                 geocodingContext = context
-            ) { switchId -> switchService.get(currentPublishType, switchId) }
+            ) { switchId -> switchDao.fetch(newSwitchVersions[switchId]) }
         } ?: emptyList()) +
                 currentTopologySwitches
 
@@ -391,7 +364,6 @@ class CalculatedChangesService(
             oldLocationTrack?.let {
                 SwitchChange(
                     switchId = switch.first,
-                    switchVersion = ,
                     changedJoints = switch.second.map { changeData ->
                         SwitchJointChange(
                             number = changeData.joint.number,
@@ -413,17 +385,16 @@ class CalculatedChangesService(
         }.map { switch ->
             SwitchChange(
                 switchId = switch.first,
-                switchVersion = ,
                 changedJoints = switch.second.map { changeData ->
                     SwitchJointChange(
                         number = changeData.joint.number,
                         isRemoved = false,
                         address = changeData.address,
                         point = changeData.point.toPoint(),
-                        locationTrackId = currentLocationTrack.id as IntId,
-                        locationTrackExternalId = currentLocationTrack.externalId,
-                        trackNumberId = currentLocationTrack.trackNumberId,
-                        trackNumberExternalId = currentTrackNumber.externalId
+                        locationTrackId = newLocationTrack.id as IntId,
+                        locationTrackExternalId = newLocationTrack.externalId,
+                        trackNumberId = newLocationTrack.trackNumberId,
+                        trackNumberExternalId = newTrackNumber.externalId
                     )
                 }
             )
@@ -668,5 +639,5 @@ fun <T : Draftable<T>> officialNoChange(id: IntId<T>, dao: DraftableDaoBase<T>) 
 
 class LazyMap<K, V>(private val compute: (K) -> V) {
     private val map = mutableMapOf<K, V>()
-    operator fun get(key: K): V? = map.getOrPut(key) { compute(key) }
+    operator fun get(key: K): V = map.getOrPut(key) { compute(key) }
 }
