@@ -64,7 +64,12 @@ data class AddressChanges(
     val changedKmNumbers: Set<KmNumber>,
     val startPointChanged: Boolean,
     val endPointChanged: Boolean,
-)
+) {
+    companion object {
+        fun empty() = AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
+    }
+    fun isChanged() = changedKmNumbers.isNotEmpty() || startPointChanged || endPointChanged
+}
 
 @Service
 class AddressChangesService(
@@ -97,12 +102,13 @@ class AddressChangesService(
 
     fun getAddressChanges(
         change: RowChange<LocationTrack>,
-        contextChanges: Map<IntId<TrackLayoutTrackNumber>, Change<GeocodingContextCacheKey>>,
+        keysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
+        keysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     ): AddressChanges {
         val beforeTrack = change.before?.let(locationTrackDao::fetch)
         val afterTrack = change.after?.let(locationTrackDao::fetch)
-        val beforeContextKey = beforeTrack?.let { t -> getContextChange(t.trackNumberId, contextChanges).before }
-        val afterContextKey = afterTrack?.let { t -> getContextChange(t.trackNumberId, contextChanges).after }
+        val beforeContextKey = beforeTrack?.let { t -> keysBefore[t.trackNumberId] }
+        val afterContextKey = afterTrack?.let { t -> keysAfter[t.trackNumberId] }
         return if (change.before == change.after && beforeContextKey == afterContextKey) {
             AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
         } else {
@@ -112,19 +118,13 @@ class AddressChangesService(
             )
         }
     }
+
     private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?) =
         if (track == null || contextKey == null) null
         else geocodingService.getAddressPoints(
             contextKey = contextKey,
             alignmentVersion = requireNotNull(track.alignmentVersion) { "DB LocationTrack must have an alignment" },
         )
-
-    private fun getContextChange(
-        id: IntId<TrackLayoutTrackNumber>,
-        contextChanges: Map<IntId<TrackLayoutTrackNumber>, Change<GeocodingContextCacheKey>>,
-    ): Change<GeocodingContextCacheKey> = requireNotNull(contextChanges[id]) {
-        "All tracknumbers should have a context change: id=$id"
-    }
 
     /**
      * Returns addresses of a location track at a moment OR null if addresses

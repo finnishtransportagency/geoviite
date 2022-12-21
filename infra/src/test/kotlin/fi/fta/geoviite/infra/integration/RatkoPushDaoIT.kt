@@ -59,7 +59,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         trackNumberId = insertOfficialTrackNumber()
         locationTrackId = insertAndPublishLocationTrack()
-        layoutPublishId = publicationDao.createPublish(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
+        layoutPublishId = publicationDao.createPublication(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
     }
 
 
@@ -133,7 +133,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
     @Test
     fun shouldReturnMultipleUnpublishedLayoutPublishes() {
         val locationTrack2Id = insertAndPublishLocationTrack()
-        val layoutPublishId2 = publicationDao.createPublish(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
+        val layoutPublishId2 = publicationDao.createPublication(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
 
         val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
 

@@ -43,6 +43,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
             OFFICIAL -> fetchOfficialVersion(id)
             DRAFT -> fetchDraftVersion(id)
         }
+    fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 
     fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> =
         when (publishType) {
@@ -155,6 +156,30 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     override fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T> = fetchOfficialRowVersionOrThrow(id, table)
 
     override fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T> = fetchDraftRowVersionOrThrow(id, table)
+
+    override fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>? {
+        //language=SQL
+        val sql = """
+            select
+              case when version.deleted then null else version.id end as id,
+              case when version.deleted then null else version.version end as version
+            from ${table.versionTable} version
+            where
+              version.id = :id
+              and version.change_time <= :moment
+              and not version.draft
+            order by version.change_time desc
+            fetch first row only
+        """.trimIndent()
+        val params = mapOf(
+            "id" to id.intValue,
+            "moment" to moment,
+        )
+        logger.daoAccess(AccessType.VERSION_FETCH, LocationTrack::class, id)
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }
+    }
 
     @Transactional
     override fun deleteUnpublishedDraft(id: IntId<T>): RowVersion<T> {

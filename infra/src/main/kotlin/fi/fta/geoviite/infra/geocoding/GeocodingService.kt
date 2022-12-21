@@ -120,6 +120,12 @@ class GeocodingService(
     ): GeocodingContext? =
         geocodingDao.getGeocodingContextCacheKey(publicationState, trackNumberId)?.let(::getGeocodingContext)
 
+    fun getGeocodingContextAtMoment(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): GeocodingContext? =
+        geocodingDao.getGeocodingContextCacheKey(trackNumberId, moment)?.let(::getGeocodingContext)
+
     fun getGeocodingContext(cacheKey: GeocodingContextCacheKey) = geocodingDao.getGeocodingContext(cacheKey)
 
     fun getGeocodingContextCacheKey(

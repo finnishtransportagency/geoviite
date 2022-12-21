@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class LocationTrackService(
@@ -198,6 +199,11 @@ class LocationTrackService(
     fun getWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
         logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
         return dao.fetchVersion(id, publishType)?.let(::getWithAlignmentInternal)
+    }
+
+    fun getOfficialWithAlignmentAtMoment(id: IntId<LocationTrack>, moment: Instant): Pair<LocationTrack, LayoutAlignment>? {
+        logger.serviceCall("getOfficialWithAlignmentAtMoment", "id" to id, "moment" to moment)
+        return dao.fetchOfficialVersionAtMoment(id, moment)?.let(::getWithAlignmentInternal)
     }
 
     fun getWithAlignment(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {

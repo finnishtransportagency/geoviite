@@ -230,13 +230,7 @@ class PublishService @Autowired constructor(
     }
 
     fun getCalculatedChanges(versions: PublicationVersions): CalculatedChanges =
-        calculatedChangesService.getCalculatedChangesInDraft(
-            versions.trackNumbers.map(PublicationVersion<TrackLayoutTrackNumber>::officialId),
-            versions.referenceLines.map(PublicationVersion<ReferenceLine>::officialId),
-            versions.kmPosts.map(PublicationVersion<TrackLayoutKmPost>::officialId),
-            versions.locationTracks.map(PublicationVersion<LocationTrack>::officialId),
-            versions.switches.map(PublicationVersion<TrackLayoutSwitch>::officialId),
-        )
+        calculatedChangesService.getCalculatedChangesInDraft(versions)
 
     @Transactional
     fun publishChanges(versions: PublicationVersions, calculatedChanges: CalculatedChanges): PublishResult {
@@ -248,7 +242,7 @@ class PublishService @Autowired constructor(
         val referenceLines = versions.referenceLines.map(referenceLineService::publish)
         val locationTracks = versions.locationTracks.map(locationTrackService::publish)
 
-        val publishId = publicationDao.createPublish(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
+        val publishId = publicationDao.createPublication(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
 
         publicationDao.savePublishCalculatedChanges(publishId, calculatedChanges)
 

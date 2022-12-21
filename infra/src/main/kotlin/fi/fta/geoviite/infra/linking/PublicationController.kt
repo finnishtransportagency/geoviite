@@ -47,11 +47,7 @@ class PublicationController @Autowired constructor(
     fun getCalculatedChanges(@RequestBody request: PublishRequest): CalculatedChanges {
         logger.apiCall("getCalculatedChanges")
         return calculatedChangesService.getCalculatedChangesInDraft(
-            trackNumberIds = request.trackNumbers,
-            referenceLineIds = request.referenceLines,
-            kmPostIds = request.kmPosts,
-            locationTrackIds = request.locationTracks,
-            switchIds = request.switches,
+            publishService.getPublicationVersions(request)
         )
     }
 
