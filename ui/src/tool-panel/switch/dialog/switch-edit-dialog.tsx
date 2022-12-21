@@ -53,7 +53,7 @@ export const SwitchEditDialog = ({
     onUpdate,
     onDelete,
 }: SwitchDialogProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [showConfirmationDialog, setShowConfirmationDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
     const [switchStateCategory, setSwitchStateCategory] = React.useState<LayoutStateCategory>();
@@ -62,7 +62,9 @@ export const SwitchEditDialog = ({
     const [switchStructureId, setSwitchStructureId] = React.useState<SwitchStructureId | undefined>(
         prefilledSwitchStructureId,
     );
-    const [validationErrors, setValidationErrors] = React.useState<ValidationError<TrackLayoutSwitchSaveRequest>[]>([]);
+    const [validationErrors, setValidationErrors] = React.useState<
+        ValidationError<TrackLayoutSwitchSaveRequest>[]
+    >([]);
     const [visitedFields, setVisitedFields] = React.useState<string[]>([]);
     const [isSaving, setIsSaving] = React.useState(false);
     const [switchStructures, setSwitchStructures] = React.useState<SwitchStructure[]>([]);
@@ -78,7 +80,7 @@ export const SwitchEditDialog = ({
 
     const switchStateCategoryOptions = layoutStateCategories
         .filter((ls) => isExistingSwitch || ls.value != 'NOT_EXISTING')
-        .map((sc) => ({...sc, disabled: sc.value === 'FUTURE_EXISTING'}));
+        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING' }));
 
     React.useEffect(() => {
         if (isExistingSwitch) {
@@ -336,7 +338,7 @@ export const SwitchEditDialog = ({
                                     onChange={(e) => updateName(e.target.value)}
                                     hasError={hasErrors('name')}
                                     onBlur={() => visitField('name')}
-                                    inputRef={firstInputRef}
+                                    ref={firstInputRef}
                                     wide
                                 />
                             }
@@ -499,7 +501,11 @@ export const SwitchEditDialog = ({
                                 disabled={isSaving}>
                                 {t('button.cancel')}
                             </Button>
-                            {isSaving ? <Spinner/> : <Button onClick={save}>{t('button.save')}</Button>}
+                            {isSaving ? (
+                                <Spinner />
+                            ) : (
+                                <Button onClick={save}>{t('button.save')}</Button>
+                            )}
                         </>
                     }>
                     <React.Fragment>

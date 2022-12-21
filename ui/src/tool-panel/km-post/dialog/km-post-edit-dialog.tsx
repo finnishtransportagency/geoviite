@@ -273,7 +273,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                                     onChange={(e) => updateProp('kmNumber', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('kmNumber')}
                                     hasError={hasErrors('kmNumber')}
-                                    inputRef={firstInputRef}
+                                    ref={firstInputRef}
                                     wide
                                 />
                             }
