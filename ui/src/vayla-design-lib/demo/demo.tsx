@@ -12,11 +12,13 @@ import { TextAreaExamples } from 'vayla-design-lib/demo/examples/text-area-examp
 import { DropdownExamples } from 'vayla-design-lib/demo/examples/dropdown-examples';
 import { MenuExample } from 'vayla-design-lib/demo/examples/menu-example';
 import { SpinnerExamples } from 'vayla-design-lib/demo/examples/spinner-examples';
+import { DatepickerExamples } from 'vayla-design-lib/demo/examples/datepicker-examples';
 
 export const DesignLibDemo: React.FC = () => {
     return (
         <div className={styles['design-demo']}>
             <h1>Väylä Design Library Demo</h1>
+            <DatepickerExamples />
             <ButtonExamples />
             <CheckboxExamples />
             <RadioExamples />
