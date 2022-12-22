@@ -23,7 +23,7 @@ import kotlin.test.*
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class PublicationServiceIT @Autowired constructor(
-    final val publicationService: PublishService,
+    val publicationService: PublishService,
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,

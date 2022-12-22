@@ -246,7 +246,6 @@ class RatkoService @Autowired constructor(
         }
     }
 
-    // TODO: This should respect publication versions, not just fetch the latest objects
     fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
         return ratkoPushDao.getLatestRatkoPushErrorFor(publishId)?.let { ratkoError ->
             val asset = when (ratkoError.assetType) {
