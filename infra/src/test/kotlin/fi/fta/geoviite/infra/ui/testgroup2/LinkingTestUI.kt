@@ -287,7 +287,7 @@ class LinkingTestUI @Autowired constructor(
         locationInfoBox.valmis()
 
         assertEquals(pointToCoordinateString(startPoint), locationInfoBox.alkukoordinaatti())
-        assertEquals(pointToCoordinateString(newEndPoint), locationInfoBox.loppukoordinaatti())
+        locationInfoBox.waitForLoppukoordinaatti(pointToCoordinateString(newEndPoint))
 
         publishChanges()
 
@@ -309,7 +309,7 @@ class LinkingTestUI @Autowired constructor(
 
         locationInfoBox.valmis()
 
-        assertEquals(pointToCoordinateString(newStartPoint), locationInfoBox.alkukoordinaatti())
+        locationInfoBox.waitForAlkukoordinaatti(pointToCoordinateString(newStartPoint))
         assertEquals(pointToCoordinateString(endPoint), locationInfoBox.loppukoordinaatti())
 
         publishChanges("Muutokset julkaistu paikannuspohjaan")
