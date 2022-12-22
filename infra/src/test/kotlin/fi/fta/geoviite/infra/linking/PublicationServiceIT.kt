@@ -480,11 +480,21 @@ class PublicationServiceIT @Autowired constructor(
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
         val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges)
         assertNotNull(publishResult.publishId)
-        verifyPublished(versions.trackNumbers, trackNumberDao) { expected, actual -> assertMatches(expected, actual) }
-        verifyPublished(versions.referenceLines, referenceLineDao) { expected, actual -> assertMatches(expected, actual) }
-        verifyPublished(versions.kmPosts, kmPostDao) { expected, actual -> assertMatches(expected, actual) }
-        verifyPublished(versions.locationTracks, locationTrackDao) { expected, actual -> assertMatches(expected, actual) }
-        verifyPublished(versions.switches, switchDao) { expected, actual -> assertMatches(expected, actual) }
+        verifyPublished(versions.trackNumbers, trackNumberDao) { draft, published ->
+            assertMatches(draft.copy(draft = null), published)
+        }
+        verifyPublished(versions.referenceLines, referenceLineDao) { draft, published ->
+            assertMatches(draft.copy(draft = null), published)
+        }
+        verifyPublished(versions.kmPosts, kmPostDao) { draft, published ->
+            assertMatches(draft.copy(draft = null), published)
+        }
+        verifyPublished(versions.locationTracks, locationTrackDao) { draft, published ->
+            assertMatches(draft.copy(draft = null), published)
+        }
+        verifyPublished(versions.switches, switchDao) { draft, published ->
+            assertMatches(draft.copy(draft = null), published)
+        }
         val fetchedCalculatedChanges = publicationDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
         assertEquals(draftCalculatedChanges, fetchedCalculatedChanges)
         return publishResult
@@ -557,13 +567,13 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
 fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
     publicationVersions: List<PublicationVersion<T>>,
     dao: S,
-    checkMatch: (expected: T, actual: T) -> Unit,
+    checkMatch: (draft: T, published: T) -> Unit,
 ) = publicationVersions.forEach { v -> verifyPublished(v, dao, checkMatch) }
 
 fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
     publicationVersion: PublicationVersion<T>,
     dao: S,
-    checkMatch: (expected: T, actual: T) -> Unit,
+    checkMatch: (draft: T, published: T) -> Unit,
 ) {
     val currentOfficialVersion = dao.fetchOfficialVersionOrThrow(publicationVersion.officialId)
     val currentDraftVersion = dao.fetchDraftVersionOrThrow(publicationVersion.officialId)

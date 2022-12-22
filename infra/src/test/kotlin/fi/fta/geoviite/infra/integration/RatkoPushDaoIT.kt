@@ -38,26 +38,16 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @BeforeEach
     fun cleanUp() {
+        // Mark off any old junk as done
         transactional {
-            val clearEverything = """
-                delete from integrations.ratko_push_content where true;
-                delete from integrations.ratko_push_error where true;
-                delete from integrations.ratko_push where true;
-                delete from publication.switch where true;
-                delete from publication.km_post where true;
-                delete from publication.reference_line where true;
-                delete from publication.location_track where true;
-                delete from publication.track_number where true;
-                delete from publication.calculated_change_to_switch_joint where true;
-                delete from publication.calculated_change_to_switch where true;
-                delete from publication.calculated_change_to_location_track_km where true;
-                delete from publication.calculated_change_to_location_track where true;
-                delete from publication.calculated_change_to_track_number_km where true;
-                delete from publication.calculated_change_to_track_number where true;
-                delete from publication.publication where true;
-            """.trimIndent()
-
-            jdbc.update(clearEverything, mapOf<String, Unit>())
+            val lastSuccessTime = ratkoPushDao.getLatestPushedPublicationMoment()
+            val hangingPublications = ratkoPushDao.fetchPublicationsAfter(lastSuccessTime)
+            if (hangingPublications.isNotEmpty()) ratkoPushDao.startPushing(
+                getCurrentUserName(),
+                hangingPublications.map { publication -> publication.id },
+            )
+            val markEverythingComplete = "update integrations.ratko_push set status='SUCCESSFUL' where 1=1"
+            jdbc.update(markEverythingComplete, mapOf<String, Unit>())
         }
 
         trackNumberId = insertOfficialTrackNumber()
@@ -127,17 +117,17 @@ internal class RatkoPushDaoIT @Autowired constructor(
     }
 
     @Test
-    fun shouldReturnAlignmentsWithFailedPublish() {
+    fun shouldReturnAlignmentsWithFailedPublication() {
         val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
         ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.FAILED)
 
         val latestMoment = ratkoPushDao.getLatestPushedPublicationMoment()
         assertTrue(latestMoment < layoutPublishMoment)
-        val publishes = ratkoPushDao.fetchPublicationsAfter(latestMoment)
+        val publications = ratkoPushDao.fetchPublicationsAfter(latestMoment)
 
-        assertEquals(1, publishes.size)
-        assertEquals(layoutPublishId, publishes[0].id)
-        assertEquals(locationTrackId.id, publishes[0].locationTracks[0])
+        assertEquals(1, publications.size)
+        assertEquals(layoutPublishId, publications[0].id)
+        assertEquals(locationTrackId.id, publications[0].locationTracks[0])
     }
 
     @Test
