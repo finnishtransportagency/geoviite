@@ -23,7 +23,7 @@ import kotlin.test.*
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class PublicationServiceIT @Autowired constructor(
-    val publicationService: PublishService,
+    final val publicationService: PublishService,
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
@@ -77,8 +77,9 @@ class PublicationServiceIT @Autowired constructor(
             kmPosts.map { it.id }
         )
 
-        val draftCalculatedChanges = getCalculatedChangesInRequest(publishRequest)
-        val publishResult = publicationService.publishChanges(publicationService.getPublicationVersions(publishRequest))
+        val publicationVersions = publicationService.getPublicationVersions(publishRequest)
+        val draftCalculatedChanges = getCalculatedChangesInRequest(publicationVersions)
+        val publishResult = publicationService.publishChanges(publicationVersions, draftCalculatedChanges)
         val afterInsert = getDbTime()
         assertNotNull(publishResult.publishId)
         val publish = publicationService.getPublication(publishResult.publishId!!)
@@ -124,8 +125,9 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(draftId, referenceLineService.getDraft(draftId).id)
 
         val publishRequest = publishRequest(referenceLines = listOf(draftId))
-        val draftCalculatedChanges = getCalculatedChangesInRequest(publishRequest)
-        val publishResult = publish(publicationService, publishRequest)
+        val versions = publicationService.getPublicationVersions(publishRequest)
+        val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
+        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges)
         assertNotNull(publishResult.publishId)
         assertEquals(0, publishResult.trackNumbers)
         assertEquals(1, publishResult.referenceLines)
@@ -196,16 +198,7 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(1, referenceLineService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments.size)
         assertEquals(2, referenceLineService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments.size)
 
-        val publishRequest = publishRequest(referenceLines = listOf(officialId))
-        val draftCalculatedChanges = getCalculatedChangesInRequest(publishRequest)
-        val publishResult = publish(publicationService, publishRequest)
-
-        assertNotNull(publishResult.publishId)
-        assertEquals(0, publishResult.trackNumbers)
-        assertEquals(1, publishResult.referenceLines)
-        assertEquals(0, publishResult.locationTracks)
-        assertEquals(0, publishResult.switches)
-        assertEquals(0, publishResult.kmPosts)
+        publishAndVerify(publishRequest(referenceLines = listOf(officialId)))
 
         assertEquals(
             referenceLineService.getOfficial(officialId)!!.startAddress,
@@ -216,8 +209,6 @@ class PublicationServiceIT @Autowired constructor(
             referenceLineService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments,
             referenceLineService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments,
         )
-        val fetchedCalculatedChanges = publicationDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
-        assertEquals(draftCalculatedChanges, fetchedCalculatedChanges)
     }
 
     @Test
@@ -251,16 +242,7 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(1, locationTrackService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments.size)
         assertEquals(2, locationTrackService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments.size)
 
-        val publishRequest = publishRequest(locationTracks = listOf(officialId))
-        val draftCalculatedChanges = getCalculatedChangesInRequest(publishRequest)
-        val publishResult = publish(publicationService, publishRequest)
-
-        assertNotNull(publishResult.publishId)
-        assertEquals(0, publishResult.trackNumbers)
-        assertEquals(0, publishResult.referenceLines)
-        assertEquals(1, publishResult.locationTracks)
-        assertEquals(0, publishResult.switches)
-        assertEquals(0, publishResult.kmPosts)
+        publishAndVerify(publishRequest(locationTracks = listOf(officialId)))
 
         assertEquals(
             locationTrackService.getOfficial(officialId)!!.name,
@@ -271,9 +253,6 @@ class PublicationServiceIT @Autowired constructor(
             locationTrackService.getWithAlignmentOrThrow(OFFICIAL, officialId).second.segments,
             locationTrackService.getWithAlignmentOrThrow(DRAFT, officialId).second.segments,
         )
-
-        val fetchedCalculatedChanges = publicationDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
-        assertEquals(draftCalculatedChanges, fetchedCalculatedChanges)
     }
 
     @Test
@@ -318,16 +297,7 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(2, switchService.getOfficial(officialId)!!.joints.size)
         assertEquals(3, switchService.getDraft(officialId).joints.size)
 
-        val publishRequest = publishRequest(switches = listOf(officialId))
-
-        val draftCalculatedChanges = getCalculatedChangesInRequest(publishRequest)
-        val publishResult = publish(publicationService, publishRequest)
-        assertNotNull(publishResult.publishId)
-        assertEquals(0, publishResult.trackNumbers)
-        assertEquals(0, publishResult.referenceLines)
-        assertEquals(0, publishResult.locationTracks)
-        assertEquals(1, publishResult.switches)
-        assertEquals(0, publishResult.kmPosts)
+        publishAndVerify(publishRequest(switches = listOf(officialId)))
 
         assertEquals(
             switchService.getOfficial(officialId)!!.name,
@@ -338,8 +308,6 @@ class PublicationServiceIT @Autowired constructor(
             switchService.getOfficial(officialId)!!.joints,
             switchService.getDraft(officialId).joints,
         )
-        val fetchedCalculatedChanges = publicationDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
-        assertEquals(draftCalculatedChanges, fetchedCalculatedChanges)
     }
 
     @Test
@@ -503,15 +471,39 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun someTrackNumber() = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
 
-    private fun getCalculatedChangesInRequest(req: PublishRequest): CalculatedChanges =
-        calculatedChangesService.getCalculatedChangesInDraft(
-            req.trackNumbers,
-            req.referenceLines,
-            req.kmPosts,
-            req.locationTracks,
-            req.switches
-        )
+    private fun getCalculatedChangesInRequest(versions: PublicationVersions): CalculatedChanges =
+        calculatedChangesService.getCalculatedChangesInDraft(versions)
+
+    private fun publishAndVerify(request: PublishRequest): PublishResult {
+        val versions = publicationService.getPublicationVersions(request)
+        verifyVersions(request, versions)
+        val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
+        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges)
+        assertNotNull(publishResult.publishId)
+        verifyPublished(versions.trackNumbers, trackNumberDao) { expected, actual -> assertMatches(expected, actual) }
+        verifyPublished(versions.referenceLines, referenceLineDao) { expected, actual -> assertMatches(expected, actual) }
+        verifyPublished(versions.kmPosts, kmPostDao) { expected, actual -> assertMatches(expected, actual) }
+        verifyPublished(versions.locationTracks, locationTrackDao) { expected, actual -> assertMatches(expected, actual) }
+        verifyPublished(versions.switches, switchDao) { expected, actual -> assertMatches(expected, actual) }
+        val fetchedCalculatedChanges = publicationDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
+        assertEquals(draftCalculatedChanges, fetchedCalculatedChanges)
+        return publishResult
+    }
 }
+
+private fun verifyVersions(publishRequest: PublishRequest, publicationVersions: PublicationVersions) {
+    verifyVersions(publishRequest.trackNumbers, publicationVersions.trackNumbers)
+    verifyVersions(publishRequest.referenceLines, publicationVersions.referenceLines)
+    verifyVersions(publishRequest.kmPosts, publicationVersions.kmPosts)
+    verifyVersions(publishRequest.locationTracks, publicationVersions.locationTracks)
+    verifyVersions(publishRequest.switches, publicationVersions.switches)
+}
+
+private fun <T : Draftable<T>> verifyVersions(ids: List<IntId<T>>, versions: List<PublicationVersion<T>>) {
+    assertEquals(ids.size, versions.size)
+    ids.forEach { id -> assertTrue(versions.any { v -> v.officialId == id }) }
+}
+
 
 private fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublishingWorks(
     dao: S,
@@ -560,4 +552,22 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
     assertEquals(id, publishedVersion.id)
 
     return publishedVersion to publishedItem
+}
+
+fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
+    publicationVersions: List<PublicationVersion<T>>,
+    dao: S,
+    checkMatch: (expected: T, actual: T) -> Unit,
+) = publicationVersions.forEach { v -> verifyPublished(v, dao, checkMatch) }
+
+fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
+    publicationVersion: PublicationVersion<T>,
+    dao: S,
+    checkMatch: (expected: T, actual: T) -> Unit,
+) {
+    val currentOfficialVersion = dao.fetchOfficialVersionOrThrow(publicationVersion.officialId)
+    val currentDraftVersion = dao.fetchDraftVersionOrThrow(publicationVersion.officialId)
+    assertEquals(currentDraftVersion.id, currentOfficialVersion.id)
+    assertEquals(currentOfficialVersion, currentDraftVersion)
+    checkMatch(dao.fetch(publicationVersion.draftVersion), dao.fetch(currentOfficialVersion))
 }

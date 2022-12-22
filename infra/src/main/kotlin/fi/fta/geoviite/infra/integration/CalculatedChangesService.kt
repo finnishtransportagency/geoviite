@@ -199,7 +199,7 @@ class CalculatedChangesService(
             isStartChanged = addressChanges.startPointChanged,
             isEndChanged = addressChanges.endPointChanged,
         )
-        // TODO: GVT-1568 This fetches latest versions, not one in changecontext
+        // TODO: GVT-1568 This fetches latest versions, not ones in changecontext
         // Affected tracks are those that aren't directly changed, but are changed by the geocoding context change
         // That is: all those that used the former one as ones that started using new context must have changed anyhow
         val affectedTracks = beforeContext?.let { context ->

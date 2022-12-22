@@ -18,9 +18,11 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -32,6 +34,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
     lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
     lateinit var layoutPublishId: IntId<Publication>
     lateinit var locationTrackId: RowVersion<LocationTrack>
+    lateinit var layoutPublishMoment: Instant
 
     @BeforeEach
     fun cleanUp() {
@@ -60,6 +63,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         trackNumberId = insertOfficialTrackNumber()
         locationTrackId = insertAndPublishLocationTrack()
         layoutPublishId = publicationDao.createPublication(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
+        layoutPublishMoment = publicationDao.fetchPublishTime(layoutPublishId).publishTime
     }
 
 
@@ -101,7 +105,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldReturnPublishableAlignments() {
-        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
+        val latestMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+        assertTrue(latestMoment < layoutPublishMoment)
+        val publishes = ratkoPushDao.fetchPublicationsAfter(latestMoment)
 
         assertEquals(1, publishes.size)
         assertEquals(layoutPublishId, publishes[0].id)
@@ -113,7 +119,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
         ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
 
-        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
+        val latestMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+        assertEquals(layoutPublishMoment, latestMoment)
+        val publishes = ratkoPushDao.fetchPublicationsAfter(latestMoment)
 
         assertEquals(0, publishes.size)
     }
@@ -123,7 +131,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
         ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.FAILED)
 
-        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
+        val latestMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+        assertTrue(latestMoment < layoutPublishMoment)
+        val publishes = ratkoPushDao.fetchPublicationsAfter(latestMoment)
 
         assertEquals(1, publishes.size)
         assertEquals(layoutPublishId, publishes[0].id)
@@ -135,7 +145,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val locationTrack2Id = insertAndPublishLocationTrack()
         val layoutPublishId2 = publicationDao.createPublication(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
 
-        val publishes = ratkoPushDao.fetchNotPushedLayoutPublishes()
+        val latestMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+        assertTrue(latestMoment < layoutPublishMoment)
+        val publishes = ratkoPushDao.fetchPublicationsAfter(latestMoment)
 
         val fetchedLayoutPublish = publishes.find { it.id == layoutPublishId }
         val fetchedLayoutPublish2 = publishes.find { it.id == layoutPublishId2 }
@@ -166,12 +178,6 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         assertNotNull(ratkoPushError)
         assertEquals(trackNumberId, ratkoPushError.assetId)
-    }
-
-    @Test
-    fun shouldRunGetLatestSuccessfulPublish() {
-        // For now test SQL execution only
-        ratkoPushDao.getLatestSuccessfulPushMoment()
     }
 
     fun insertAndPublishLocationTrack() = locationTrackAndAlignment(trackNumberId).let { (track, alignment) ->
