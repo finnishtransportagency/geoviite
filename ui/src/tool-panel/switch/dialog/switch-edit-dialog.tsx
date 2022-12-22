@@ -71,7 +71,6 @@ export const SwitchEditDialog = ({
     const [existingSwitch, setExistingSwitch] = React.useState<LayoutSwitch>();
     const firstInputRef = React.useRef<HTMLInputElement>(null);
     const isExistingSwitch = !!switchId;
-    const canEditSwitchStructure = !prefilledSwitchStructureId;
 
     const switchStructureChanged =
         isExistingSwitch && switchStructureId != existingSwitch?.switchStructureId;
@@ -130,10 +129,8 @@ export const SwitchEditDialog = ({
     }
 
     function updateStructureId(structureId: SwitchStructureId) {
-        if (!prefilledSwitchStructureId) {
-            setSwitchStructureId(structureId);
-            visitField('switchStructureId');
-        }
+        setSwitchStructureId(structureId);
+        visitField('switchStructureId');
     }
 
     function updateTrapPoint(trapPoint: TrapPoint) {
@@ -370,7 +367,6 @@ export const SwitchEditDialog = ({
                                     onBlur={() => visitField('switchStructureId')}
                                     hasError={hasErrors('switchStructureId')}
                                     wide
-                                    disabled={!canEditSwitchStructure}
                                     searchable
                                 />
                             }
