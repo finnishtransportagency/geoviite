@@ -1,17 +1,11 @@
 import * as React from 'react';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
 import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
-import {
-    publishCandidates,
-    PublishRequest,
-    PublishResult,
-    revertCandidates,
-} from 'publication/publication-api';
+import { publishCandidates, PublishRequest, PublishResult } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     updateKmPostChangeTime,
@@ -24,7 +18,6 @@ import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import { PublishType } from 'common/common-model';
 import { PublishCandidates, PublishValidationError } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
-import { createEmptyItemCollections } from 'selection/selection-store';
 import { PreviewCandidates } from 'preview/preview-view';
 
 type PreviewFooterProps = {
@@ -87,12 +80,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     };
 
     const {t} = useTranslation();
-
-    const [revertConfirmVisible, setRevertConfirmVisible] = React.useState(false);
     const [publishConfirmVisible, setPublishConfirmVisible] = React.useState(false);
 
     const [isPublishing, setPublishing] = React.useState(false);
-    const [isReverting, setReverting] = React.useState(false);
 
     const emptyRequest =
         props.request.trackNumbers.length == 0 &&
@@ -107,25 +97,6 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         props.previewChanges.locationTracks.some((lt) => lt.pendingValidation) ||
         props.previewChanges.switches.some((sw) => sw.pendingValidation) ||
         props.previewChanges.kmPosts.some((km) => km.pendingValidation);
-
-    const revert = () => {
-        setReverting(true);
-        revertCandidates()
-            .then((r) => {
-                if (r.isOk()) {
-                    const result = r.unwrapOr(null);
-                    Snackbar.success(t('publish.revert-success'), describeResult(result));
-                    updateChangeTimes(result);
-                    props.onClosePreview();
-                }
-            })
-            .finally(() => {
-                props.onSelect(createEmptyItemCollections());
-                props.onPublishPreviewRevert();
-                setRevertConfirmVisible(false);
-                setReverting(false);
-            });
-    };
 
     const publish = () => {
         setPublishing(true);
@@ -148,19 +119,10 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         <footer className={styles['preview-footer']}>
             <div className={styles['preview-footer__action-buttons']}>
                 <Button
-                    onClick={() => setRevertConfirmVisible(true)}
-                    variant={ButtonVariant.WARNING}
-                    icon={Icons.Delete}
-                    disabled={emptyRequest || revertConfirmVisible || publishConfirmVisible}>
-                    {t('preview-footer.reject-changes')}
-                </Button>
-
-                <Button
                     onClick={() => setPublishConfirmVisible(true)}
                     variant={ButtonVariant.PRIMARY}
                     disabled={
                         emptyRequest ||
-                        revertConfirmVisible ||
                         publishConfirmVisible ||
                         validationPending ||
                         (allPublishErrors && allPublishErrors?.length > 0) ||
@@ -186,12 +148,12 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         <React.Fragment>
                             <Button
                                 onClick={() => setPublishConfirmVisible(false)}
-                                disabled={emptyRequest || isReverting || isPublishing}
+                                disabled={emptyRequest || isPublishing}
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('publish.publish-confirm.cancel')}
                             </Button>
                             <Button
-                                disabled={isReverting || isPublishing}
+                                disabled={isPublishing}
                                 isProcessing={isPublishing}
                                 onClick={publish}>
                                 {t('publish.publish-confirm.confirm')}
@@ -199,33 +161,6 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         </React.Fragment>
                     }>
                     <div>{t('publish.publish-confirm.description')}</div>
-                </Dialog>
-            )}
-            {revertConfirmVisible && (
-                <Dialog
-                    title={t('publish.revert-confirm.title')}
-                    variant={DialogVariant.LIGHT}
-                    allowClose={false}
-                    className={dialogStyles['dialog--normal']}
-                    footerContent={
-                        <React.Fragment>
-                            <Button
-                                onClick={() => setRevertConfirmVisible(false)}
-                                disabled={emptyRequest || isReverting || isPublishing}
-                                variant={ButtonVariant.SECONDARY}>
-                                {t('publish.revert-confirm.cancel')}
-                            </Button>
-                            <Button
-                                icon={Icons.Delete}
-                                disabled={isReverting || isPublishing}
-                                isProcessing={isReverting}
-                                variant={ButtonVariant.WARNING}
-                                onClick={revert}>
-                                {t('publish.revert-confirm.confirm')}
-                            </Button>
-                        </React.Fragment>
-                    }>
-                    <div>{t('publish.revert-confirm.description')}</div>
                 </Dialog>
             )}
         </footer>

@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -117,12 +118,12 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun publish(id: IntId<LocationTrack>): RowVersion<LocationTrack> {
-        logger.serviceCall("publish", "id" to id)
-        val versions = dao.fetchVersionPair(id)
-        val oldDraft = versions.draft?.let(dao::fetch) ?: throw IllegalStateException("Draft doesn't exist")
-        val oldOfficial = versions.official?.let(dao::fetch)
-        val publishedVersion = publishInternal(versions)
+    override fun publish(version: PublicationVersion<LocationTrack>): RowVersion<LocationTrack> {
+        logger.serviceCall("publish", "version" to version)
+        val officialVersion = dao.fetchOfficialVersion(version.officialId)
+        val oldDraft = dao.fetch(version.draftVersion)
+        val oldOfficial = officialVersion?.let(dao::fetch)
+        val publishedVersion = publishInternal(VersionPair(officialVersion, version.draftVersion))
         if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
             // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
             oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)
@@ -221,14 +222,8 @@ class LocationTrackService(
     private fun getWithAlignmentInternal(publishType: PublishType, id: IntId<LocationTrack>) =
         dao.fetchVersion(id, publishType)?.let { v -> getWithAlignmentInternal(v) }
 
-    private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
-        val locationTrack = dao.fetch(version)
-        val alignment = alignmentDao.fetch(
-            locationTrack.alignmentVersion
-                ?: throw IllegalStateException("LocationTrack in DB must have an alignment")
-        )
-        return locationTrack to alignment
-    }
+    private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
+        locationTrackWithAlignment(dao, alignmentDao, version)
 
     fun getDuplicates(duplicateOf: IntId<LocationTrack>, publishType: PublishType): List<LocationTrackDuplicate> {
         return dao.fetchDuplicates(duplicateOf, publishType)
@@ -344,4 +339,14 @@ fun getLocationTrackEndpoints(
             LocationTrackEndpoint(trackId, p.toPoint(), END_POINT)
         },
     )
+}
+
+fun locationTrackWithAlignment(
+    locationTrackDao: LocationTrackDao,
+    alignmentDao: LayoutAlignmentDao,
+    rowVersion: RowVersion<LocationTrack>,
+) = locationTrackDao.fetch(rowVersion).let { track ->
+    val alignmentVersion = track.alignmentVersion
+        ?: throw IllegalStateException("LocationTrack in DB must have an alignment")
+    track to alignmentDao.fetch(alignmentVersion)
 }

@@ -99,7 +99,7 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
     }
 
     @Transactional
-    fun deleteDraft(kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
+    fun deleteUnpublishedDraftById(kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
         logger.serviceCall("deleteDraftKmPost", "kmPostId" to kmPostId)
         return dao.deleteUnpublishedDraft(kmPostId).id
     }

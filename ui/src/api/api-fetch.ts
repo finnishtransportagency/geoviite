@@ -62,7 +62,9 @@ export function queryParams(params: Record<string, unknown>): string {
     const nonNull = Object.keys(params)
         .map((key) => {
             const value = params[key];
-            return value != null ? `${key}=${value}` : null;
+            return value != null
+                ? `${key}=${encodeURIComponent(value.toString())}`
+                : null;
         })
         .filter((p) => p != null);
     return nonNull.length == 0 ? '' : `?${nonNull.join('&')}`;

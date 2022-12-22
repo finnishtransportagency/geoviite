@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -91,9 +92,15 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         }
     }
 
-    fun deleteDrafts(): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
+    @Deprecated("Should only be used for cleaning up before/after tests")
+    fun deleteAllDrafts(): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
         logger.serviceCall("deleteDrafts")
         return dao.deleteDrafts()
+    }
+
+    fun deleteDraft(id: IntId<ObjectType>): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
+        logger.serviceCall("deleteDraft")
+        return dao.deleteDrafts(id)
     }
 
     open fun deleteUnpublishedDraft(id: IntId<ObjectType>): RowVersion<ObjectType> {
@@ -102,9 +109,9 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
     }
 
     @Transactional
-    open fun publish(id: IntId<ObjectType>): RowVersion<ObjectType> {
-        logger.serviceCall("Publish", "id" to id)
-        return publishInternal(dao.fetchVersionPair(id))
+    open fun publish(version: PublicationVersion<ObjectType>): RowVersion<ObjectType> {
+        logger.serviceCall("Publish", "version" to version)
+        return publishInternal(VersionPair(dao.fetchOfficialVersion(version.officialId), version.draftVersion))
     }
 
     protected fun publishInternal(versions: VersionPair<ObjectType>): RowVersion<ObjectType> {
@@ -114,7 +121,7 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         val published = createPublished(draft)
         if (published.draft != null) throw IllegalStateException("Published object is still a draft")
 
-        val publishedVersion = dao.update(published)
+        val publishedVersion = dao.updateAndVerifyVersion(versions.official ?: versions.draft, published)
         if (versions.official != null && versions.draft.id != versions.official.id) {
             // Draft data is saved on official id -> delete the draft row
             dao.deleteDrafts(versions.draft.id)

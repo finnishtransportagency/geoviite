@@ -113,10 +113,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             draft_switch.name, 
             draft_switch.change_time,
             draft_switch.change_user,
-            (select array_agg(distinct track_number_id)
-              from layout.segment
-                join layout.location_track using(alignment_id)
-              where coalesce(official_switch.draft_id, draft_switch.row_id) = segment.switch_id) as track_numbers,
+            (select array_agg(sltn)
+             from layout.switch_linked_track_numbers(coalesce(official_switch.row_id, draft_switch.row_id), :publication_state) sltn)
+              as track_numbers,
             layout.infer_operation_from_state_category_transition(
               official_switch.state_category, 
               draft_switch.state_category
@@ -127,7 +126,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                   and 'OFFICIAL' = any(official_switch.publication_states)
             where draft_switch.draft = true
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>(
+            "publication_state" to PublishType.DRAFT.name,
+        )) { rs, _ ->
             SwitchPublishCandidate(
                 id = rs.getIntId("official_id"),
                 name = SwitchName(rs.getString("name")),
@@ -293,45 +294,37 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             )
         }.toTypedArray()
 
-    fun fetchLinkedAlignmentRows(
+    fun fetchLinkedLocationTracks(
         switchId: IntId<TrackLayoutSwitch>,
-    ): List<Pair<RowVersion<LocationTrack>, RowVersion<LayoutAlignment>>> {
-        val sql = """
-            select 
-                location_track.row_id,
-                location_track.row_version,
-                location_track.alignment_id,
-                location_track.alignment_version 
-            from layout.location_track_publication_view location_track
-                left join layout.segment on segment.alignment_id = location_track.alignment_id
-            where segment.switch_id = :switch_id 
-              and 'DRAFT' = any(location_track.publication_states)
-              and location_track.state != 'DELETED'
-            group by 
-                location_track.row_id,
-                location_track.row_version, 
-                location_track.alignment_id, 
-                location_track.alignment_version 
-        """.trimIndent()
-        val params = mapOf("switch_id" to switchId.intValue)
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            val trackVersion = rs.getRowVersion<LocationTrack>("row_id", "row_version")
-            val alignmentVersion = rs.getRowVersion<LayoutAlignment>("alignment_id", "alignment_version")
-            trackVersion to alignmentVersion
-        }
-    }
-
-    fun fetchTrackNumberLocationTrackRows(
-        trackNumberId: IntId<TrackLayoutTrackNumber>
+        publicationStatus: PublishType,
     ): List<RowVersion<LocationTrack>> {
         val sql = """
-            select row_id, row_version 
+            select 
+              location_track.official_id,
+              location_track.row_id,
+              location_track.row_version,
+              location_track.alignment_id,
+              location_track.alignment_version 
             from layout.location_track_publication_view location_track
-            where location_track.track_number_id = :track_number_id 
-              and 'DRAFT' = any(location_track.publication_states)
+              left join layout.segment on segment.alignment_id = location_track.alignment_id
+            where :publication_status = any(location_track.publication_states)
               and location_track.state != 'DELETED'
+              and (
+                location_track.topology_start_switch_id = :switch_id or
+                location_track.topology_end_switch_id = :switch_id or
+                segment.switch_id = :switch_id 
+              )
+            group by 
+              location_track.official_id,
+              location_track.row_id,
+              location_track.row_version, 
+              location_track.alignment_id, 
+              location_track.alignment_version 
         """.trimIndent()
-        val params = mapOf("track_number_id" to trackNumberId.intValue)
+        val params = mapOf(
+            "switch_id" to switchId.intValue,
+            "publication_status" to publicationStatus.name,
+        )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }

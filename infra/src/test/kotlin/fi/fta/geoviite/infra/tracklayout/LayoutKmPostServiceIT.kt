@@ -111,7 +111,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
         assertEquals(1, kmPostService.list(DRAFT, { k -> k == draftFromDb }).size)
 
-        kmPostService.deleteDraft(draftId)
+        kmPostService.deleteUnpublishedDraft(draftId)
 
         assertEquals(0, kmPostService.list(DRAFT, { k -> k == draftFromDb }).size)
     }

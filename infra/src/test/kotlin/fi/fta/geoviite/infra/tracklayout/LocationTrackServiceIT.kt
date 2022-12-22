@@ -26,15 +26,16 @@ import org.springframework.test.context.ActiveProfiles
 @SpringBootTest
 class LocationTrackServiceIT @Autowired constructor(
     private val locationTrackService: LocationTrackService,
+    private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val switchService: LayoutSwitchService,
 ): ITTestBase() {
 
     @BeforeEach
     fun setup() {
-        locationTrackService.deleteDrafts()
+        locationTrackService.deleteAllDrafts()
         alignmentDao.deleteOrphanedAlignments()
-        switchService.deleteDrafts()
+        switchService.deleteAllDrafts()
     }
 
     @Test
@@ -53,7 +54,7 @@ class LocationTrackServiceIT @Autowired constructor(
     fun deletingOfficialLocationTrackThrowsException() {
         val (track, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), someSegment())
         val version = locationTrackService.saveDraft(track, alignment)
-        locationTrackService.publish(version.id)
+        publish(version.id)
         assertThrows<NoSuchEntityException> { locationTrackService.deleteUnpublishedDraft(version.id) }
     }
 
@@ -398,12 +399,12 @@ class LocationTrackServiceIT @Autowired constructor(
     fun fetchDuplicatesIsVersioned() {
         val trackNumberId = getUnusedTrackNumberId()
         val originalLocationTrackId = locationTrackService.insert(saveRequest(trackNumberId, 1)).id
-        locationTrackService.publish(originalLocationTrackId)
+        publish(originalLocationTrackId)
         val officialCopy = insertAndFetch(
             locationTrack(getUnusedTrackNumberId()).copy(duplicateOf = originalLocationTrackId),
             alignment()
         )
-        locationTrackService.publish(officialCopy.first.id as IntId<LocationTrack>)
+        publish(officialCopy.first.id as IntId<LocationTrack>)
 
         val draftCopyVersion = locationTrackService.update(
             officialCopy.first.id as IntId,
@@ -454,7 +455,7 @@ class LocationTrackServiceIT @Autowired constructor(
         val (draft, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         assertNotNull(draft.draft)
 
-        val publishedVersion = locationTrackService.publish(draft.id as IntId)
+        val publishedVersion = publish(draft.id as IntId)
         val (published, publishedAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, publishedVersion.id)
         assertNull(published.draft)
         assertEquals(draft.id, published.id)
@@ -508,4 +509,9 @@ class LocationTrackServiceIT @Autowired constructor(
         duplicateOf = null,
         topologicalConnectivity = TopologicalConnectivityType.START_AND_END
     )
+
+    private fun publish(id: IntId<LocationTrack>) =
+        locationTrackDao.fetchPublicationVersions(listOf(id))
+            .first()
+            .let { version -> locationTrackService.publish(version) }
 }

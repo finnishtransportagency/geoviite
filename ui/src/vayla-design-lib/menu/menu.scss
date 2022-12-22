@@ -3,14 +3,16 @@
 @import '../typography';
 @import '../transitions';
 
-.menu {
+.menu,
+.react-contexify {
     @include typography-body;
     @include shadow-8dp;
     background: $color-white-default;
     border-radius: 4px;
 }
 
-.menu__item {
+.menu__item,
+.react-contexify__item {
     height: 36px;
     color: $color-black-default;
     fill: $color-white-default;
@@ -26,6 +28,12 @@
     &:hover {
         background: $color-blue-lighter;
     }
+}
+
+.react-contexify {
+    position: absolute;
+    margin-top: 5px;
+    z-index: 10;
 }
 
 .menu__item--selected {

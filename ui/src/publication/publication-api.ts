@@ -78,10 +78,10 @@ export const getPublishCandidates = () =>
     getIgnoreError<PublishCandidates>(`${PUBLISH_URI}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequest) =>
-    postIgnoreError<PublishRequest, ValidatedPublishCandidates>(`${PUBLISH_URI}/validate`, request)
+    postIgnoreError<PublishRequest, ValidatedPublishCandidates>(`${PUBLISH_URI}/validate`, request);
 
-export const revertCandidates = () =>
-    deleteAdt<null, PublishResult>(`${PUBLISH_URI}/candidates`, null, true);
+export const revertCandidates = (request: PublishRequest) =>
+    deleteAdt<PublishRequest, PublishResult>(`${PUBLISH_URI}/candidates`, request, true);
 
 export const publishCandidates = (request: PublishRequest) => {
     return postAdt<PublishRequest, PublishResult>(`${PUBLISH_URI}`, request, true);

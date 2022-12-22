@@ -39,7 +39,7 @@ class PublicationController @Autowired constructor(
     @PostMapping("/validate")
     fun validatePublishCandidates(@RequestBody publishRequest: PublishRequest): ValidatedPublishCandidates {
         logger.apiCall("validatePublishCandidates")
-        return publishService.validatePublishCandidates(publishRequest)
+        return publishService.validatePublishCandidates(publishService.getPublicationVersions(publishRequest))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -57,10 +57,10 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @DeleteMapping("/candidates")
-    fun revertPublishCandidates(): PublishResult {
+    fun revertPublishCandidates(@RequestBody toDelete: PublishRequest): PublishResult {
         logger.apiCall("revertPublishCandidates")
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publishService.revertPublishCandidates()
+            publishService.revertPublishCandidates(toDelete)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
@@ -72,9 +72,10 @@ class PublicationController @Autowired constructor(
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publishService.validatePublishRequest(request)
             publishService.updateExternalId(request)
-            publishService.publishChanges(request)
+            val versions = publishService.getPublicationVersions(request)
+            publishService.validatePublishRequest(versions)
+            publishService.publishChanges(versions)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",

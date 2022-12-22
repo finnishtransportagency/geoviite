@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.*
@@ -24,26 +25,27 @@ import org.springframework.test.context.ActiveProfiles
 class ReferenceLineServiceIT @Autowired constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val referenceLineService: ReferenceLineService,
+    private val referenceLineDao: ReferenceLineDao,
 ): ITTestBase() {
 
     @Test
     fun creatingAndDeletingUnpublishedReferenceLineWithAlignmentWorks() {
-        val trackNumber = createTrackNumber() // automatically creates first version of reference line
-        val (savedLine, savedAlignment) = referenceLineService.getByTrackNumberWithAlignment(DRAFT, trackNumber)
+        val trackNumberId = createTrackNumber().id // automatically creates first version of reference line
+        val (savedLine, savedAlignment) = referenceLineService.getByTrackNumberWithAlignment(DRAFT, trackNumberId)
             ?: throw IllegalStateException("Reference line was not automatically created")
         assertTrue(alignmentExists(savedLine.alignmentVersion!!.id))
         assertEquals(savedLine.alignmentVersion?.id, savedAlignment.id as IntId)
-        assertThrows<DataIntegrityViolationException> { trackNumberService.deleteUnpublishedDraft(trackNumber) }
+        assertThrows<DataIntegrityViolationException> { trackNumberService.deleteUnpublishedDraft(trackNumberId) }
         referenceLineService.deleteUnpublishedDraft(savedLine.id as IntId)
         assertFalse(alignmentExists(savedLine.alignmentVersion!!.id))
-        assertDoesNotThrow { trackNumberService.deleteUnpublishedDraft(trackNumber) }
+        assertDoesNotThrow { trackNumberService.deleteUnpublishedDraft(trackNumberId) }
     }
 
     @Test
     fun deletingOfficialAlignmentThrowsException() {
         val trackNumber = createAndPublishTrackNumber()
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumber)?.id as IntId
-        referenceLineService.publish(referenceLineId)
+        publish(referenceLineId)
         val (line, _) = referenceLineService.getWithAlignmentOrThrow(OFFICIAL, referenceLineId)
         assertNull(line.draft)
         assertThrows<NoSuchEntityException> { referenceLineService.deleteUnpublishedDraft(referenceLineId) }
@@ -51,7 +53,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun referenceLineAddAndUpdateWorks() {
-        val trackNumberId = createTrackNumber() // First version is created automatically
+        val trackNumberId = createTrackNumber().id // First version is created automatically
 
         val referenceLine = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)
         assertNotNull(referenceLine)
@@ -77,8 +79,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun updatingThroughTrackNumberCreatesDraft() {
-        val trackNumberId = createTrackNumber() // First version is created automatically
-        trackNumberService.publish(trackNumberId)
+        val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
         val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
@@ -103,8 +104,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun savingCreatesDraft() {
-        val trackNumberId = createTrackNumber() // First version is created automatically
-        trackNumberService.publish(trackNumberId)
+        val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
         val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
@@ -129,8 +129,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun savingWithAlignmentCreatesDraft() {
-        val trackNumberId = createTrackNumber() // First version is created automatically
-        trackNumberService.publish(trackNumberId)
+        val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
         val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
@@ -187,7 +186,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         assertEquals(draft, referenceLineService.getByTrackNumber(DRAFT, trackNumberId))
         assertNull(referenceLineService.getByTrackNumber(OFFICIAL, trackNumberId))
 
-        val publishedVersion = referenceLineService.publish(draft.id as IntId)
+        val publishedVersion = publish(draft.id as IntId)
         val (published, publishedAlignment) = referenceLineService.getWithAlignmentOrThrow(OFFICIAL, publishedVersion.id)
         val publishedByTrackNumber = referenceLineService.getByTrackNumber(OFFICIAL, trackNumberId)
         assertEquals(published, publishedByTrackNumber)
@@ -207,7 +206,9 @@ class ReferenceLineServiceIT @Autowired constructor(
             ?: throw IllegalStateException("Exists-check failed")
     }
 
-    private fun createAndPublishTrackNumber() = trackNumberService.publish(createTrackNumber()).id
+    private fun createAndPublishTrackNumber() = createTrackNumber().let { version ->
+        trackNumberService.publish(PublicationVersion(version.id, version)).id
+    }
 
     private fun createTrackNumber() = trackNumberService.insert(
         TrackNumberSaveRequest(
@@ -219,4 +220,9 @@ class ReferenceLineServiceIT @Autowired constructor(
     )
 
     private fun address(seed: Int = 0) = TrackMeter(KmNumber(seed), seed*100)
+
+    private fun publish(id: IntId<ReferenceLine>) =
+        referenceLineDao.fetchPublicationVersions(listOf(id))
+            .first()
+            .let { version -> referenceLineService.publish(version) }
 }

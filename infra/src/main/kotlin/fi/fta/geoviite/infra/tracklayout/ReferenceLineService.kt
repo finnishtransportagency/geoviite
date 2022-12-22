@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import org.springframework.stereotype.Service
@@ -91,12 +92,12 @@ class ReferenceLineService(
         else line.alignmentVersion
 
     @Transactional
-    override fun publish(id: IntId<ReferenceLine>): RowVersion<ReferenceLine> {
-        logger.serviceCall("publish", "id" to id)
-        val versions = dao.fetchVersionPair(id)
-        val oldDraft = versions.draft?.let(dao::fetch) ?: throw IllegalStateException("Draft doesn't exist")
-        val oldOfficial = versions.official?.let(dao::fetch)
-        val publishedVersion = publishInternal(versions)
+    override fun publish(version: PublicationVersion<ReferenceLine>): RowVersion<ReferenceLine> {
+        logger.serviceCall("publish", "version" to version)
+        val officialVersion = dao.fetchOfficialVersion(version.officialId)
+        val oldDraft = dao.fetch(version.draftVersion)
+        val oldOfficial = officialVersion?.let(dao::fetch)
+        val publishedVersion = publishInternal(VersionPair(officialVersion, version.draftVersion))
         if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
             // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
             oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)
@@ -165,12 +166,8 @@ class ReferenceLineService(
     private fun getWithAlignmentInternal(publishType: PublishType, id: IntId<ReferenceLine>) =
         dao.fetchVersion(id, publishType)?.let { v -> getWithAlignmentInternal(v) }
 
-    private fun getWithAlignmentInternal(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        val referenceLine = dao.fetch(version)
-        val alignment = alignmentDao.fetch(referenceLine.alignmentVersion
-            ?: throw IllegalStateException("ReferenceLine in DB must have an alignment"))
-        return referenceLine to alignment
-    }
+    private fun getWithAlignmentInternal(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
+        referenceLineWithAlignment(dao, alignmentDao, version)
 
     fun listNonLinked(): List<ReferenceLine> {
         logger.serviceCall("listNonLinked")
@@ -181,4 +178,14 @@ class ReferenceLineService(
         logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
         return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch)
     }
+}
+
+fun referenceLineWithAlignment(
+    referenceLineDao: ReferenceLineDao,
+    alignmentDao: LayoutAlignmentDao,
+    rowVersion: RowVersion<ReferenceLine>,
+) = referenceLineDao.fetch(rowVersion).let { track ->
+    val alignmentVersion = track.alignmentVersion
+        ?: throw IllegalStateException("ReferenceLine in DB must have an alignment")
+    track to alignmentDao.fetch(alignmentVersion)
 }

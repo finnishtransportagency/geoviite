@@ -15,40 +15,43 @@ class LayoutTrackNumberService(
 ) : DraftableObjectService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
+    fun insert(saveRequest: TrackNumberSaveRequest): RowVersion<TrackLayoutTrackNumber> {
         logger.serviceCall("insert", "trackNumber" to saveRequest.number)
-        val trackNumberId = saveDraftInternal(
+        val trackNumberVersion = saveDraftInternal(
             TrackLayoutTrackNumber(
                 number = saveRequest.number,
                 description = saveRequest.description,
                 state = saveRequest.state,
                 externalId = null,
             )
-        ).id
-        referenceLineService.addTrackNumberReferenceLine(trackNumberId, saveRequest.startAddress)
-        return trackNumberId
+        )
+        referenceLineService.addTrackNumberReferenceLine(trackNumberVersion.id, saveRequest.startAddress)
+        return trackNumberVersion
     }
 
     @Transactional
-    fun update(id: IntId<TrackLayoutTrackNumber>, saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
+    fun update(
+        id: IntId<TrackLayoutTrackNumber>,
+        saveRequest: TrackNumberSaveRequest,
+    ): RowVersion<TrackLayoutTrackNumber> {
         logger.serviceCall("update", "trackNumber" to saveRequest.number)
         val original = getInternalOrThrow(DRAFT, id)
-        val trackNumberId = saveDraftInternal(
+        val trackNumberVersion = saveDraftInternal(
             original.copy(
                 number = saveRequest.number,
                 description = saveRequest.description,
                 state = saveRequest.state,
             )
-        ).id
+        )
         referenceLineService.updateTrackNumberReferenceLine(id, saveRequest.startAddress)
-        return trackNumberId
+        return trackNumberVersion
     }
 
 
     @Transactional
     fun updateExternalId(
         id: IntId<TrackLayoutTrackNumber>,
-        oid: Oid<TrackLayoutTrackNumber>
+        oid: Oid<TrackLayoutTrackNumber>,
     ): RowVersion<TrackLayoutTrackNumber> {
         logger.serviceCall("updateExternalIdForTrackNumber", "id" to id, "oid" to oid)
 
@@ -59,8 +62,7 @@ class LayoutTrackNumberService(
     }
 
     @Transactional
-    fun deleteDraftOnlyTrackNumberAndReferenceLine(id: IntId<TrackLayoutTrackNumber>):
-            IntId<TrackLayoutTrackNumber> {
+    fun deleteDraftOnlyTrackNumberAndReferenceLine(id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
         val trackNumber = getDraft(id)
         val referenceLine = referenceLineService.getByTrackNumber(DRAFT, id)
             ?: throw IllegalStateException("Found Track Number without Reference Line $id")

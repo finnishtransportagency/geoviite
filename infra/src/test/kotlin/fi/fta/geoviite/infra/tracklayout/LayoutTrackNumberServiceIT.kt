@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.util.FreeText
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -23,6 +22,8 @@ import org.springframework.test.context.ActiveProfiles
 class LayoutTrackNumberServiceIT @Autowired constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val referenceLineService: ReferenceLineService,
+    private val trackNumberDao: LayoutTrackNumberDao,
+    private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
 ): ITTestBase() {
 
@@ -33,10 +34,10 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 KmNumber(5555), 5.5, 1
             )
         )
-        val id = trackNumberService.insert(saveRequest)
+        val id = trackNumberService.insert(saveRequest).id
         val trackNumber = trackNumberService.getDraft(id)
 
-        Assertions.assertNull(trackNumber.externalId)
+        assertNull(trackNumber.externalId)
 
         trackNumberService.updateExternalId(trackNumber.id as IntId, externalIdForTrackNumber())
 
@@ -63,8 +64,8 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     @Test
     fun tryingToDeletePublishedTrackNumberThrows() {
         val (trackNumber, referenceLine, _) = createTrackNumberAndReferenceLineAndAlignment()
-        trackNumberService.publish(trackNumber.id as IntId)
-        referenceLineService.publish(referenceLine.id as IntId)
+        publishTrackNumber(trackNumber.id as IntId)
+        publishReferenceLine(referenceLine.id as IntId)
 
         assertThrows<DeletingFailureException> {
             trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumber.id as IntId)
@@ -80,7 +81,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 KmNumber(5555), 5.5, 1
             )
         )
-        val id = trackNumberService.insert(saveRequest)
+        val id = trackNumberService.insert(saveRequest).id
         val trackNumber = trackNumberService.getDraft(id)
 
         val (referenceLine, alignment) = referenceLineService.getByTrackNumberWithAlignment(
@@ -90,4 +91,14 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
         return Triple(trackNumber, referenceLine, alignment)
     }
+
+    private fun publishTrackNumber(id: IntId<TrackLayoutTrackNumber>) =
+        trackNumberDao.fetchPublicationVersions(listOf(id))
+            .first()
+            .let { version -> trackNumberService.publish(version) }
+
+    private fun publishReferenceLine(id: IntId<ReferenceLine>) =
+        referenceLineDao.fetchPublicationVersions(listOf(id))
+            .first()
+            .let { version -> referenceLineService.publish(version) }
 }

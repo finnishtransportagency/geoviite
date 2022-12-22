@@ -40,7 +40,7 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
     @PostMapping("/draft")
     fun insertTrackNumber(@RequestBody saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("insertTrackNumber", "trackNumber" to saveRequest)
-        return trackNumberService.insert(saveRequest)
+        return trackNumberService.insert(saveRequest).id
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -50,7 +50,8 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
         @RequestBody saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("updateTrackNumber", "id" to id, "trackNumber" to saveRequest)
-        return trackNumberService.update(id, saveRequest)
+        trackNumberService.update(id, saveRequest)
+        return id
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

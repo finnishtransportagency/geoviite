@@ -78,10 +78,10 @@ interface SpiralContent {
     val rotation: RotationDirection
 
     /** Forward direction of the rail at segment start **/
-    val directionStart: Angle
+    val directionStart: Angle?
 
     /** Forward direction of the rail at segment end **/
-    val directionEnd: Angle
+    val directionEnd: Angle?
 
     /** Spiral steepness at segment start, expressed as the circle radius of the curve **/
     val radiusStart: BigDecimal?
@@ -95,8 +95,8 @@ interface SpiralContent {
 
 data class SpiralData(
     override val rotation: RotationDirection,
-    override val directionStart: Angle,
-    override val directionEnd: Angle,
+    override val directionStart: Angle?,
+    override val directionEnd: Angle?,
     override val radiusStart: BigDecimal?,
     override val radiusEnd: BigDecimal?,
     override val pi: Point,
@@ -214,17 +214,17 @@ sealed class GeometrySpiral : SpiralContent, GeometryElement() {
         // Rotate the curved end's point so that the flat part starts with positive X and curves up/down
         // Define minimal bounding corners in this rotated coordinate system and then rotate them back
         if (isSteepening) {
-            val rotatedEnd = rotateAroundPoint(start, -directionStart.rads, end)
+            val rotatedEnd = rotateAroundPoint(start, -startDirectionRads, end)
             val rotatedCorners = boundingBoxAroundPoints(start, rotatedEnd).corners
-            rotatedCorners.map { point -> rotateAroundPoint(start, directionStart.rads, point) }
+            rotatedCorners.map { point -> rotateAroundPoint(start, startDirectionRads, point) }
         } else {
-            val rotatedStart = rotateAroundPoint(end, -directionEnd.rads, start)
+            val rotatedStart = rotateAroundPoint(end, -endDirectionRads, start)
             val rotatedCorners = boundingBoxAroundPoints(end, rotatedStart).corners
-            rotatedCorners.map { point -> rotateAroundPoint(end, directionEnd.rads, point) }
+            rotatedCorners.map { point -> rotateAroundPoint(end, endDirectionRads, point) }
         }
     }
-    override val startDirectionRads: Double by lazy { directionStart.rads }
-    override val endDirectionRads: Double by lazy { directionEnd.rads }
+    override val startDirectionRads: Double by lazy { directionBetweenPoints(start, pi) }
+    override val endDirectionRads: Double by lazy { directionBetweenPoints(pi, end) }
 
     /**
      * We calculate everything from the first segment point along the spiral.
@@ -244,7 +244,7 @@ sealed class GeometrySpiral : SpiralContent, GeometryElement() {
     // If we're going the other direction, we have to treat the end as the start-point and vice versa.
     protected val segmentStart: Point by lazy { if (isSteepening) start else end }
     protected val segmentStartRadius: Double? by lazy { if (isSteepening) radiusStart?.toDouble() else radiusEnd?.toDouble() }
-    protected val segmentStartAngle: Double by lazy { if (isSteepening) directionStart.rads else directionEnd.rads - PI }
+    protected val segmentStartAngle: Double by lazy { if (isSteepening) startDirectionRads else endDirectionRads - PI }
 }
 
 data class GeometryClothoid(

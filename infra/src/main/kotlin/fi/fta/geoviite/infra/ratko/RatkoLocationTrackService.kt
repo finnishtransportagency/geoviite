@@ -79,7 +79,7 @@ class RatkoLocationTrackService @Autowired constructor(
     private fun createLocationTrack(layoutLocationTrack: LocationTrack) {
         logger.serviceCall("createRatkoLocationTrack", "layoutLocationTrack" to layoutLocationTrack)
 
-        val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id, PublishType.OFFICIAL)
+        val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id as IntId, PublishType.OFFICIAL)
         checkNotNull(addresses) {
             "Cannot update location track without location track address points $layoutLocationTrack"
         }
@@ -145,13 +145,13 @@ class RatkoLocationTrackService @Autowired constructor(
                 val startTrackMeter = geocodingService.getAddress(
                     trackNumberId = layoutLocationTrack.trackNumberId,
                     location = metadata.startPoint,
-                    publishType = PublishType.OFFICIAL
+                    publicationState = PublishType.OFFICIAL
                 )?.first
 
                 val endTrackMeter = geocodingService.getAddress(
                     trackNumberId = layoutLocationTrack.trackNumberId,
                     location = metadata.endPoint,
-                    publishType = PublishType.OFFICIAL
+                    publicationState = PublishType.OFFICIAL
                 )?.first
 
                 if (startTrackMeter != null
@@ -186,7 +186,7 @@ class RatkoLocationTrackService @Autowired constructor(
         logger.serviceCall("deleteLocationTrack", "layoutLocationTrack" to layoutLocationTrack)
         requireNotNull(layoutLocationTrack.externalId) { "Cannot delete location track without oid $layoutLocationTrack" }
 
-        val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id, PublishType.OFFICIAL)
+        val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id as IntId, PublishType.OFFICIAL)
         checkNotNull(addresses) {
             "Cannot delete location track without location track address points $layoutLocationTrack"
         }
@@ -218,7 +218,7 @@ class RatkoLocationTrackService @Autowired constructor(
         requireNotNull(layoutLocationTrack.externalId) { "Cannot update location track without oid $layoutLocationTrack" }
         val locationTrackOid = RatkoOid<RatkoLocationTrack>(layoutLocationTrack.externalId)
 
-        val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id, PublishType.OFFICIAL)
+        val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id as IntId, PublishType.OFFICIAL)
         checkNotNull(addresses) {
             "Cannot update location track without location track address points $layoutLocationTrack"
         }

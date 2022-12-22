@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.linking.PublicationDao
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -33,16 +34,14 @@ class RatkoServiceIT @Autowired constructor(
         val trackNumber = trackNumber().copy()
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         val alignmentVersion = alignmentDao.insert(alignment())
-        val trackVersion =
-            locationTrackDao.insert(locationTrack(trackNumberId = trackNumberId).copy(alignmentVersion = alignmentVersion))
-        val draft = locationTrackService.getDraft(trackVersion.id).let { orig ->
+        val officialVersion = locationTrackDao.insert(
+            locationTrack(trackNumberId = trackNumberId).copy(alignmentVersion = alignmentVersion)
+        )
+        val draft = locationTrackService.getDraft(officialVersion.id).let { orig ->
             orig.copy(name = AlignmentName("${orig.name}-draft"))
         }
-        val locationTracks = listOf(
-            locationTrackService.publish(
-                locationTrackService.saveDraft(draft, alignmentDao.fetch(alignmentVersion)).id
-            )
-        )
+        val draftVersion = locationTrackService.saveDraft(draft, alignmentDao.fetch(alignmentVersion))
+        val locationTracks = listOf(locationTrackService.publish(PublicationVersion(officialVersion.id, draftVersion)))
         publicationDao.createPublish(listOf(), listOf(), locationTracks, listOf(), listOf())
 
         ratkoService.pushChangesToRatko(getCurrentUserName())
