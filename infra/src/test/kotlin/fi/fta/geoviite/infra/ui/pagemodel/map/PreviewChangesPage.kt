@@ -52,6 +52,9 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
     fun palaaLuonnostilaan() {
         logger.info("Return to draft view")
         getElementWhenVisible(By.xpath("//span[text() = 'Palaa luonnostilaan']")).click()
+        // utter hack: Somehow the map doesn't update the visible items when clicking that in tests; so let's force
+        // it to notice something changed by forcefully wiggling it
+        MapPage().also { map -> map.scrollMap(1, 1) }.also { map -> map.scrollMap(-1, -1) }
     }
 
     fun changesTable(): ChangePreviewTable =
