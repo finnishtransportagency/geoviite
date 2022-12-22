@@ -3,10 +3,10 @@ package fi.fta.geoviite.infra.integration
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geocoding.AddressPoint
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
@@ -17,12 +17,15 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
 import kotlin.math.ceil
 import kotlin.test.*
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class RatkoAddressPointServiceIT @Autowired constructor(
+class AddressChangesServiceIT @Autowired constructor(
+    val geocodingService: GeocodingService,
+    val geocodingDao: GeocodingDao,
     val locationTrackDao: LocationTrackDao,
     val locationTrackService: LocationTrackService,
     val referenceLineDao: ReferenceLineDao,
@@ -32,82 +35,120 @@ class RatkoAddressPointServiceIT @Autowired constructor(
     val layoutKmPostDao: LayoutKmPostDao,
     val addressChangesService: AddressChangesService,
 ): ITTestBase() {
+
     @Test
-    fun getAddressesAtMomentReturnsNullIfThereIsNoGeometry() {
+    fun addressChangesAreEmptyIfNothingCanBeGeocoded() {
+        val setupData1 = createAndInsertTrackNumberAndLocationTrack()
+        val setupData2 = createAndInsertTrackNumberAndLocationTrack()
+        val changes = addressChangesService.getAddressChanges(
+            beforeTrack = setupData1.locationTrack,
+            afterTrack = setupData2.locationTrack,
+            beforeContextKey = null,
+            afterContextKey = null,
+        )
+        assertFalse(changes.isChanged())
+    }
+
+    @Test
+    fun addressChangesAreEmptyIfNothingIsChanged() {
+        val setupData = createAndInsertTrackNumberAndLocationTrack()
+        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val changes = addressChangesService.getAddressChanges(
+            beforeTrack = setupData.locationTrack,
+            afterTrack = setupData.locationTrack,
+            beforeContextKey = contextKey,
+            afterContextKey = contextKey,
+        )
+        assertFalse(changes.isChanged())
+    }
+
+    @Test
+    fun addressChangesContainAllAddressesIfThereIsNoBeforeVersion() {
+        val setupData = createAndInsertTrackNumberAndLocationTrack()
+        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val changes = addressChangesService.getAddressChanges(
+            beforeTrack = null,
+            afterTrack = setupData.locationTrack,
+            beforeContextKey = null,
+            afterContextKey = contextKey,
+        )
+        assertTrue(changes.isChanged())
+        assertTrue(changes.startPointChanged)
+        assertTrue(changes.endPointChanged)
+        val allKms = getAllKms(
+            contextKey,
+            setupData.locationTrackGeometry.start!!,
+            setupData.locationTrackGeometry.end!!,
+        )
+        assertEquals(allKms, changes.changedKmNumbers)
+    }
+
+    @Test
+    fun addressChangesContainAllAddressesIfAfterVersionHasNoGeometry() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
         val initialLocationTrack = setupData.locationTrack
         val locationTrackId = initialLocationTrack.id as IntId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
+        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
 
-        val addressesAfterInsert = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
-        )
-
-        removeLocationTrackGeometryAndUpdate(
-            initialLocationTrack,
-            setupData.locationTrackGeometry
-        )
+        removeLocationTrackGeometryAndUpdate(initialLocationTrack, setupData.locationTrackGeometry)
         val updateMoment = locationTrackDao.fetchChangeTime()
 
-        val addressesAfterUpdateAtInitialMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
+        val changes = addressChangesService.getAddressChanges(
+            getTrackAtMoment(locationTrackId, initialChangeMoment),
+            getTrackAtMoment(locationTrackId, updateMoment)!!,
+            getContextKeyAtMoment(initialLocationTrack.trackNumberId, initialChangeMoment),
+            getContextKeyAtMoment(initialLocationTrack.trackNumberId, updateMoment),
         )
-        val addressesAfterUpdateAtUpdateMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            updateMoment
+        assertTrue(changes.isChanged())
+        assertTrue(changes.startPointChanged)
+        assertTrue(changes.endPointChanged)
+        val allKms = getAllKms(
+            contextKey,
+            setupData.locationTrackGeometry.start!!,
+            setupData.locationTrackGeometry.end!!,
         )
-
-        assertNotNull(addressesAfterInsert)
-        assertAreEqual(addressesAfterInsert, addressesAfterUpdateAtInitialMoment)
-        assertNull(addressesAfterUpdateAtUpdateMoment)
+        assertEquals(allKms, changes.changedKmNumbers)
     }
 
-
     @Test
-    fun canGetAddressesAtSpecificMomentWhenAlignmentGeometryIsChanged() {
+    fun addressChangesFoundWhenAlignmentChanges() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
         val initialLocationTrack = setupData.locationTrack
         val locationTrackId = initialLocationTrack.id as IntId
+        val trackNumberId = initialLocationTrack.trackNumberId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
 
-        val addressesAfterInsert = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
-        )
-
-        moveLocationTrackGeometryPointsAndUpdate(
-            initialLocationTrack,
-            setupData.locationTrackGeometry
-        ) { point -> point + 1.1 }
+        // Move start-point a bit
+        updateAndPublish(initialLocationTrack, setupData.locationTrackGeometry.copy(
+            segments = setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
+                if (index == 0) segment.copy(
+                    points = listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1)
+                ) else segment
+            }
+        ))
         val updateMoment = locationTrackDao.fetchChangeTime()
 
-        val addressesAfterUpdateAtInitialMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
+        val changes = addressChangesService.getAddressChanges(
+            getTrackAtMoment(locationTrackId, initialChangeMoment),
+            getTrackAtMoment(locationTrackId, updateMoment)!!,
+            getContextKeyAtMoment(trackNumberId, initialChangeMoment),
+            getContextKeyAtMoment(trackNumberId, updateMoment),
         )
-        val addressesAfterUpdateAtUpdateMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            updateMoment
-        )
-
-        assertNotNull(addressesAfterInsert)
-        assertAreEqual(addressesAfterInsert, addressesAfterUpdateAtInitialMoment)
-        assertAreNotEqual(addressesAfterInsert, addressesAfterUpdateAtUpdateMoment)
+        assertTrue(changes.isChanged())
+        assertTrue(changes.startPointChanged)
+        assertFalse(changes.endPointChanged)
+        val startAddress = geocodingService.getAddress(OFFICIAL, trackNumberId, setupData.locationTrackGeometry.start!!)!!.first
+        assertEquals(setOf(startAddress.kmNumber), changes.changedKmNumbers)
     }
 
     @Test
-    fun canGetAddressesAtSpecificMomentWhenReferenceGeometryIsChanged() {
+    fun addressChangesFoundWhenReferenceLineChanges() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val initialAlignment = setupData.locationTrack
-        val locationTrackId = initialAlignment.id as IntId
+        val initialLocationTrack = setupData.locationTrack
+        val locationTrackId = initialLocationTrack.id as IntId
+        val trackNumberId = initialLocationTrack.trackNumberId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
-
-        val addressesAfterInsert = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
-        )
 
         moveReferenceLineGeometryPointsAndUpdate(
             setupData.referenceLine,
@@ -115,45 +156,44 @@ class RatkoAddressPointServiceIT @Autowired constructor(
         ) { point -> point + 1.1 }
         val updateMoment = referenceLineDao.fetchChangeTime()
 
-        val addressesAfterUpdateAtInitialMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
+        val changes = addressChangesService.getAddressChanges(
+            getTrackAtMoment(locationTrackId, initialChangeMoment),
+            getTrackAtMoment(locationTrackId, updateMoment)!!,
+            getContextKeyAtMoment(trackNumberId, initialChangeMoment),
+            getContextKeyAtMoment(trackNumberId, updateMoment),
         )
-        val addressesAfterUpdateAtUpdateMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            updateMoment
+        assertTrue(changes.isChanged())
+        assertTrue(changes.startPointChanged)
+        assertTrue(changes.endPointChanged)
+        val allKms = getAllKms(
+            geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!,
+            setupData.locationTrackGeometry.start!!,
+            setupData.locationTrackGeometry.end!!,
         )
-
-        assertAreEqual(addressesAfterInsert, addressesAfterUpdateAtInitialMoment)
-        assertAreNotEqual(addressesAfterInsert, addressesAfterUpdateAtUpdateMoment)
+        assertEquals(allKms, changes.changedKmNumbers)
     }
 
     @Test
-    fun canGetAddressesAtSpecificMomentWhenKmPostIsChanged() {
+    fun addressChangesFoundWhenKmPostChanges() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val initialAlignment = setupData.locationTrack
-        val locationTrackId = initialAlignment.id as IntId
+        val initialLocationTrack = setupData.locationTrack
+        val locationTrackId = initialLocationTrack.id as IntId
+        val trackNumberId = initialLocationTrack.trackNumberId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
-
-        val addressesAfterInsert = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
-        )
 
         moveKmPostAndUpdate(setupData.kmPost) { point -> point + 1.1 }
         val updateMoment = layoutKmPostDao.fetchChangeTime()
 
-        val addressesAfterUpdateAtInitialMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            initialChangeMoment
+        val changes = addressChangesService.getAddressChanges(
+            getTrackAtMoment(locationTrackId, initialChangeMoment),
+            getTrackAtMoment(locationTrackId, updateMoment)!!,
+            getContextKeyAtMoment(trackNumberId, initialChangeMoment),
+            getContextKeyAtMoment(trackNumberId, updateMoment),
         )
-        val addressesAfterUpdateAtUpdateMoment = addressChangesService.getAlignmentAddressesAtMoment(
-            locationTrackId,
-            updateMoment
-        )
-
-        assertAreEqual(addressesAfterInsert, addressesAfterUpdateAtInitialMoment)
-        assertAreNotEqual(addressesAfterInsert, addressesAfterUpdateAtUpdateMoment)
+        assertTrue(changes.isChanged())
+        assertFalse(changes.startPointChanged)
+        assertFalse(changes.endPointChanged)
+        assertEquals(setOf(setupData.kmPost.kmNumber), changes.changedKmNumbers)
     }
 
     @Test
@@ -609,11 +649,11 @@ class RatkoAddressPointServiceIT @Autowired constructor(
         )
     }
 
-    fun removeLocationTrackGeometryAndUpdate(
-        locationTrack: LocationTrack,
-        alignment: LayoutAlignment
-    ) {
-        val version = locationTrackService.saveDraft(locationTrack, alignment.copy(segments = listOf()))
+    fun removeLocationTrackGeometryAndUpdate(locationTrack: LocationTrack, alignment: LayoutAlignment) =
+        updateAndPublish(locationTrack, alignment.copy(segments = listOf()))
+
+    fun updateAndPublish(locationTrack: LocationTrack, alignment: LayoutAlignment) {
+        val version = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(PublicationVersion(version.id, version))
     }
 
@@ -758,4 +798,25 @@ class RatkoAddressPointServiceIT @Autowired constructor(
         TrackMeter(0, 0),
         0.0,
     )
+
+    fun getAllKms(geocodingContextCacheKey: GeocodingContextCacheKey, start: IPoint, end: IPoint): Set<KmNumber> {
+        val context = geocodingDao.getGeocodingContext(geocodingContextCacheKey)!!
+        val startKm = context.getAddress(start)!!.first.kmNumber
+        val endKm = context.getAddress(end)!!.first.kmNumber
+        return context.referencePoints.map { r -> r.kmNumber }.filter { km -> km in startKm..endKm }.toSet()
+    }
+
+    fun movePoint(point: LayoutPoint, delta: Double) = LayoutPoint(
+        x = point.x + delta,
+        y = point.y + delta,
+        z = point.z,
+        m = point.m,
+        cant = point.cant,
+    )
+
+    fun getTrackAtMoment(locationTrackId: IntId<LocationTrack>, moment: Instant) =
+        locationTrackService.getOfficialAtMoment(locationTrackId, moment)
+
+    fun getContextKeyAtMoment(trackNumberId: IntId<TrackLayoutTrackNumber>, moment: Instant) =
+        geocodingService.getGeocodingContextCacheKey(trackNumberId, moment)
 }

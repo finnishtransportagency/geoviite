@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import org.springframework.stereotype.Service
 
 
@@ -76,7 +75,6 @@ data class AddressChanges(
 
 @Service
 class AddressChangesService(
-    val locationTrackDao: LocationTrackDao,
     val geocodingService: GeocodingService,
     val layoutAlignmentDao: LayoutAlignmentDao,
 ) {
