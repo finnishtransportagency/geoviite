@@ -148,7 +148,7 @@ fun createSuggestedSwitch(
     alignmentEndPoint: LocationTrackEndpoint?,
     geometrySwitch: GeometrySwitch? = null,
     geometryPlanId: IntId<GeometryPlan>? = null,
-    getMeasurementMethod: (segment: IndexedId<LayoutSegment>) -> MeasurementMethod?,
+    getMeasurementMethod: (switchId: IntId<GeometrySwitch>) -> MeasurementMethod?,
 ): SuggestedSwitch {
     val jointMatchTolerance = 0.2 // TODO: There could be tolerance per joint point in switch structure
 
@@ -168,7 +168,7 @@ fun createSuggestedSwitch(
 
     val suggestedJoints = (matchByJoint + jointsWithoutMatches)
         .map { (joint, matches) ->
-            val locationAccuracy = switchJointLocationAccuracy(matches, getMeasurementMethod, geometrySwitch)
+            val locationAccuracy = switchJointLocationAccuracy(getMeasurementMethod, geometrySwitch)
 
             SuggestedSwitchJoint(
                 number = joint.number,
@@ -239,33 +239,14 @@ private fun getEndJoints(matchesByLocationTrack: Map<LocationTrack, List<Suggest
         }
 
 private fun switchJointLocationAccuracy(
-    matches: List<SuggestedSwitchJointMatch>,
-    getMeasurementMethod: (match: IndexedId<LayoutSegment>) -> MeasurementMethod?,
+    getMeasurementMethod: (match: IntId<GeometrySwitch>) -> MeasurementMethod?,
     geometrySwitch: GeometrySwitch?
 ): LocationAccuracy? {
-    val worstMatchMeasurementMethod =
-        matches.mapNotNull { match -> match.segmentId() }
-            .distinct()
-            .map(getMeasurementMethod)
-            .maxByOrNull(::measurementMethodQualityRank)
-    return if (geometrySwitch == null) {
-        if (worstMatchMeasurementMethod == null) {
-            null
-        } else {
-            LocationAccuracy.GEOMETRY_CALCULATED
-        }
+    return if (geometrySwitch != null) {
+        getMeasurementMethod(geometrySwitch.id as IntId)?.let(::mapMeasurementMethodToLocationAccuracy)
     } else {
-        worstMatchMeasurementMethod?.let(::mapMeasurementMethodToLocationAccuracy)
+        LocationAccuracy.GEOMETRY_CALCULATED
     }
-}
-
-private fun measurementMethodQualityRank(mm: MeasurementMethod?) = when (mm) {
-    MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY -> 0
-    MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY -> 1
-    MeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY -> 2
-    MeasurementMethod.TRACK_INSPECTION -> 3
-    MeasurementMethod.DIGITIZED_AERIAL_IMAGE -> 4
-    null -> 5
 }
 
 private fun mapMeasurementMethodToLocationAccuracy(mm: MeasurementMethod): LocationAccuracy = when (mm) {
@@ -385,7 +366,7 @@ fun createSuggestedSwitch(
     alignmentMappings: List<SuggestedSwitchCreateParamsAlignmentMapping>,
     nearbyAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
     alignmentById: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-    getMeasurementMethod: (segment: IndexedId<LayoutSegment>) -> MeasurementMethod?,
+    getMeasurementMethod: (switchId: IntId<GeometrySwitch>) -> MeasurementMethod?,
 ): SuggestedSwitch? {
     val mappedAlignments = alignmentMappings.map { mapping ->
         alignmentById[mapping.locationTrackId]
@@ -1219,7 +1200,7 @@ class SwitchLinkingService @Autowired constructor(
     }
 
 
-    private fun getMeasurementMethod(id: IndexedId<LayoutSegment>): MeasurementMethod? =
-        geometryDao.getMeasurementMethodForLayoutSegment(id)
+    private fun getMeasurementMethod(id: IntId<GeometrySwitch>): MeasurementMethod? =
+        geometryDao.getMeasurementMethodForSwitch(id)
 
 }
