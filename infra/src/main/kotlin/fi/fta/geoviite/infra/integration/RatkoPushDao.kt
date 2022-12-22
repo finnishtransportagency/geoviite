@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
 import java.time.Instant
 
 @Transactional(readOnly = true)
@@ -142,7 +143,8 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             group by publication.id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ ->
+        val params = mapOf("moment" to Timestamp.from(moment))
+        return jdbcTemplate.query(sql, params) { rs, _ ->
             val trackNumberIds = listOf(
                 "published_track_numbers",
                 "published_reference_line_track_numbers",

@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
+import java.sql.Timestamp
 import java.time.Instant
 
 data class GeocodingContextCacheKey (
@@ -26,7 +27,11 @@ data class GeocodingContextCacheKey (
         kmPostVersions.forEachIndexed { index, version ->
             kmPostVersions.getOrNull(index+1)?.let { next ->
                 require(next.id.intValue > version.id.intValue) {
-                    "Cache key km-posts must be in order: index=$index version=$version next=$next"
+                    "Cache key km-posts must be in order: " +
+                            "index=$index " +
+                            "trackNumberVersion=$trackNumberVersion " +
+                            "kmPostVersion=$version " +
+                            "nextKmPostVersion=$next"
                 }
             }
         }
@@ -103,14 +108,13 @@ class GeocodingDao(
                 fetch first row only 
               ),
               kmp as (
-                select 
-                  last_value(id) over (partition by id order by version desc) as id, 
-                  last_value(version) over (partition by id order by version desc) as version, 
-                  last_value(deleted) over (partition by id order by version desc) as deleted
+                select distinct on (id)
+                  id, version, deleted
                 from layout.km_post_version
                 where track_number_id = :tn_id
                   and draft = false
                   and change_time <= :moment
+                order by id, version desc
               )
             select
               tn.id tn_row_id,
@@ -128,7 +132,7 @@ class GeocodingDao(
         """.trimIndent()
         val params = mapOf(
             "tn_id" to trackNumberId.intValue,
-            "moment" to moment,
+            "moment" to Timestamp.from(moment),
         )
         return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }

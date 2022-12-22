@@ -213,20 +213,16 @@ class CalculatedChangesService(
     }
 
     private fun calculateLocationTrackChanges(trackIds: List<IntId<LocationTrack>>, changeContext: ChangeContext) =
-        trackIds.mapNotNull { trackId ->
+        trackIds.map { trackId ->
             val trackBefore = changeContext.locationTracks.getBefore(trackId)
             val trackAfter = changeContext.locationTracks.getAfter(trackId)
             val addressChanges = addressChangesService.getAddressChanges(
                 beforeTrack = trackBefore,
                 afterTrack = trackAfter,
                 beforeContextKey = trackBefore?.let { t -> changeContext.geocodingKeysBefore[t.trackNumberId] },
-                afterContextKey = changeContext.geocodingKeysBefore[trackAfter.trackNumberId],
+                afterContextKey = changeContext.geocodingKeysAfter[trackAfter.trackNumberId],
             )
-            if (trackBefore == trackAfter && !addressChanges.isChanged()) {
-                null
-            } else {
-                LocationTrackChange.create(trackId, addressChanges)
-            }
+            LocationTrackChange.create(trackId, addressChanges)
         }
 
     private fun getSwitchChangesByLocationTrack(

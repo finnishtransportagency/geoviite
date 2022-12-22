@@ -153,7 +153,10 @@ class AddressChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             setupData.referenceLine,
             setupData.referenceLineGeometry
-        ) { point -> point + 1.1 }
+        ) { index, point ->
+            // The reference-line is parallel to track, so alter the shape a bit to force all addresses changing
+            point + if (index % 2 == 0) Point(0.5, 0.5) else Point(0.5, 0.4)
+        }
         val updateMoment = referenceLineDao.fetchChangeTime()
 
         val changes = addressChangesService.getAddressChanges(
@@ -163,8 +166,8 @@ class AddressChangesServiceIT @Autowired constructor(
             getContextKeyAtMoment(trackNumberId, updateMoment),
         )
         assertTrue(changes.isChanged())
-        assertTrue(changes.startPointChanged)
-        assertTrue(changes.endPointChanged)
+        assertTrue(changes.startPointChanged, "Start should change: changes=$changes")
+        assertTrue(changes.endPointChanged, "End should change: changes=$changes")
         val allKms = getAllKms(
             geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!,
             setupData.locationTrackGeometry.start!!,
@@ -181,7 +184,7 @@ class AddressChangesServiceIT @Autowired constructor(
         val trackNumberId = initialLocationTrack.trackNumberId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
 
-        moveKmPostAndUpdate(setupData.kmPost) { point -> point + 1.1 }
+        moveKmPostAndUpdate(setupData.kmPosts[0]) { point -> point + 0.5 }
         val updateMoment = layoutKmPostDao.fetchChangeTime()
 
         val changes = addressChangesService.getAddressChanges(
@@ -193,7 +196,7 @@ class AddressChangesServiceIT @Autowired constructor(
         assertTrue(changes.isChanged())
         assertFalse(changes.startPointChanged)
         assertFalse(changes.endPointChanged)
-        assertEquals(setOf(setupData.kmPost.kmNumber), changes.changedKmNumbers)
+        assertEquals(setOf(setupData.kmPosts[0].kmNumber), changes.changedKmNumbers)
     }
 
     @Test
@@ -585,7 +588,7 @@ class AddressChangesServiceIT @Autowired constructor(
         val locationTrackGeometry: LayoutAlignment,
         val referenceLine: ReferenceLine,
         val referenceLineGeometry: LayoutAlignment,
-        val kmPost: TrackLayoutKmPost,
+        val kmPosts: List<TrackLayoutKmPost>,
     )
 
 
@@ -595,12 +598,21 @@ class AddressChangesServiceIT @Autowired constructor(
         val trackNumber = layoutTrackNumberDao.fetch(
             layoutTrackNumberDao.insert(trackNumber(TrackNumber("TEST TN $sequence")))
         )
-        val kmPost = layoutKmPostDao.fetch(
+        val kmPost1 = layoutKmPostDao.fetch(
             layoutKmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumber.id as IntId,
                     km = KmNumber(1),
-                    location = refPoint + 1.0
+                    location = refPoint + 5.0
+                )
+            )
+        )
+        val kmPost2 = layoutKmPostDao.fetch(
+            layoutKmPostDao.insert(
+                kmPost(
+                    trackNumberId = trackNumber.id as IntId,
+                    km = KmNumber(2),
+                    location = refPoint + 10.0
                 )
             )
         )
@@ -645,7 +657,7 @@ class AddressChangesServiceIT @Autowired constructor(
             locationTrackGeometry,
             referenceLine,
             referenceLineGeometry,
-            kmPost
+            listOf(kmPost1, kmPost2),
         )
     }
 
@@ -685,22 +697,24 @@ class AddressChangesServiceIT @Autowired constructor(
     fun moveReferenceLineGeometryPointsAndUpdate(
         referenceLine: ReferenceLine,
         alignment: LayoutAlignment,
-        moveFunc: (point: IPoint) -> IPoint,
+        moveFunc: (index: Int, point: IPoint) -> IPoint,
     ) {
+        var index = 0
         val version = referenceLineService.saveDraft(
             referenceLine,
             alignment.copy(
-                segments = alignment.segments.map { segment ->
+                segments = fixSegmentStarts(alignment.segments.map { segment ->
                     segment.copy(
-                        points = segment.points.map { point ->
-                            val newPoint = moveFunc(point)
+                        points = fixMValues(segment.points.mapIndexed { inSegmentIndex, point ->
+                            val newPoint = moveFunc(index, point)
+                            if (inSegmentIndex < segment.points.lastIndex) index++
                             point.copy(
                                 x = newPoint.x,
                                 y = newPoint.y
                             )
-                        }
+                        } )
                     )
-                }
+                } )
             )
         )
         referenceLineService.publish(PublicationVersion(version.id, version))

@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
 import java.time.Instant
 
 interface IDraftableObjectWriter<T : Draftable<T>> {
@@ -177,7 +178,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         """.trimIndent()
         val params = mapOf(
             "id" to id.intValue,
-            "moment" to moment,
+            "moment" to Timestamp.from(moment),
         )
         logger.daoAccess(AccessType.VERSION_FETCH, LocationTrack::class, id)
         return jdbcTemplate.queryOptional(sql, params) { rs, _ ->

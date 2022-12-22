@@ -643,7 +643,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         )
         assertContains(
             changes.locationTracksChanges, LocationTrackChange(
-                locationTrackId = locationTrack1.id as IntId<LocationTrack>,
+                locationTrackId = locationTrack1.id as IntId,
                 changedKmNumbers = setOf(
                     KmNumber(6),
                 ),
