@@ -158,9 +158,8 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         val params = mapOf(
             "track_number_id" to newItem.trackNumberId.intValue,
             "external_id" to newItem.externalId,
-            "alignment_id" to (newItem.alignmentVersion?.id?.intValue
-                ?: throw IllegalStateException("LocationTrack in DB needs an alignment")),
-            "alignment_version" to newItem.alignmentVersion.version,
+            "alignment_id" to newItem.getAlignmentVersionOrThrow().id.intValue,
+            "alignment_version" to newItem.getAlignmentVersionOrThrow().version,
             "name" to newItem.name,
             "description" to newItem.description,
             "type" to newItem.type.name,

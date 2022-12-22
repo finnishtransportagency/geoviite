@@ -95,13 +95,9 @@ class LocationTrackService(
             if (draft.dataType == TEMP || draft.draft == null) {
                 alignmentService.saveAsNew(alignment)
             }
-            // Otherwise update -> should have alignment already
-            else if (draft.alignmentVersion == null) {
-                throw IllegalStateException("DB Location track should have an alignment")
-            }
             // Ensure that we update the correct one.
-            else if (draft.alignmentVersion.id != alignment.id) {
-                alignmentService.save(alignment.copy(id = draft.alignmentVersion.id, dataType = STORED))
+            else if (draft.getAlignmentVersionOrThrow().id != alignment.id) {
+                alignmentService.save(alignment.copy(id = draft.getAlignmentVersionOrThrow().id, dataType = STORED))
             } else {
                 alignmentService.save(alignment)
             }
@@ -352,7 +348,5 @@ fun locationTrackWithAlignment(
     alignmentDao: LayoutAlignmentDao,
     rowVersion: RowVersion<LocationTrack>,
 ) = locationTrackDao.fetch(rowVersion).let { track ->
-    val alignmentVersion = track.alignmentVersion
-        ?: throw IllegalStateException("LocationTrack in DB must have an alignment")
-    track to alignmentDao.fetch(alignmentVersion)
+    track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
 }
