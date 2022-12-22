@@ -802,9 +802,9 @@ class LinkingTestUI @Autowired constructor(
             .muokkaaTietoja()
             .editTila(TilaTyyppi.POISTETTU)
             .tallenna()
-
-        val locationTrackNames = mapPage.navigationPanel.locationTracks().map { it.name() }
-        assertThat(locationTrackNames).noneMatch { it == LOCATION_TRACK_J.first.name.toString() }
+        mapPage.navigationPanel.waitForLocationTrackNamesTo { names ->
+            names.none { it == LOCATION_TRACK_J.first.name.toString() }
+        }
 
         val locationTrackJ = LOCATION_TRACK_J.second.segments.first().points.first()
         val pointNearLocationTrackJStart = locationTrackJ.plus(Point(x = 2.0, y = 2.0))
