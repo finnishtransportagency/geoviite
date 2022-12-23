@@ -1171,8 +1171,8 @@ class GeometryDao @Autowired constructor(
 
     private fun getSpiralData(rs: ResultSet, units: GeometryUnits): SpiralData = SpiralData(
         rotation = rs.getEnum("rotation"),
-        directionStart = toAngle(rs.getBigDecimal("spiral_dir_start"), units.directionUnit),
-        directionEnd = toAngle(rs.getBigDecimal("spiral_dir_end"), units.directionUnit),
+        directionStart = rs.getBigDecimal("spiral_dir_start")?.let { bd -> toAngle(bd, units.directionUnit) },
+        directionEnd = rs.getBigDecimal("spiral_dir_end")?.let { bd -> toAngle(bd, units.directionUnit) },
         radiusStart = rs.getBigDecimal("spiral_radius_start"),
         radiusEnd = rs.getBigDecimal("spiral_radius_end"),
         pi = rs.getPoint("spiral_pi_x", "spiral_pi_y"),
@@ -1308,8 +1308,8 @@ class GeometryDao @Autowired constructor(
                     .plus(getPointSqlParams("curve_center_point", element.center))
                 is GeometrySpiral -> mapOf(
                     "rotation" to element.rotation.name,
-                    "spiral_dir_start" to element.directionStart.original,
-                    "spiral_dir_end" to element.directionEnd.original,
+                    "spiral_dir_start" to element.directionStart?.original,
+                    "spiral_dir_end" to element.directionEnd?.original,
                     "spiral_radius_start" to element.radiusStart,
                     "spiral_radius_end" to element.radiusEnd,
                 )

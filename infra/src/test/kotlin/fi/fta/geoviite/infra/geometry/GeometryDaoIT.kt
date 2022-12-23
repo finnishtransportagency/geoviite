@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.geometry
 
+import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -136,4 +138,41 @@ class GeometryDaoIT @Autowired constructor(
         }
     }
 
+    @Test
+    fun insertPlanWorks() {
+        val plan = plan(insertOfficialTrackNumber())
+        val fileContent = "<a></a>"
+        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent))
+        val fetchedPlan = geometryDao.fetchPlan(id)
+        val file = geometryDao.getPlanFile(id.id)
+        assertPlansMatch(plan, fetchedPlan)
+        assertEquals(fileContent, file.content)
+        assertEquals(plan.fileName, file.name)
+    }
+
+    @Test
+    fun minimalPlanInsertWorks() {
+        val file = infraModelFile("${TEST_NAME_PREFIX}_file_min.xml")
+        val plan = minimalPlan(fileName = file.name)
+        val version = geometryDao.insertPlan(plan, file)
+        assertPlansMatch(plan, geometryDao.fetchPlan(version))
+    }
+
+    @Test
+    fun minimalElementInsertsWork() {
+        val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
+        val plan = plan(
+            trackNumberId = insertOfficialTrackNumber(),
+            fileName = file.name,
+            alignments = listOf(geometryAlignment(
+                elements = listOf(
+                    minimalLine(),
+                    minimalCurve(),
+                    minimalClothoid(),
+                ),
+            )),
+        )
+        val version = geometryDao.insertPlan(plan, file)
+        assertPlansMatch(plan, geometryDao.fetchPlan(version))
+    }
 }

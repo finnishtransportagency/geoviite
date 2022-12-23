@@ -269,8 +269,8 @@ fun toGvtGeometryElement(
             val endAngle = angle("$name end direction", element.dirEnd ?: "", units.directionUnit)
             val spiralData = SpiralData(
                 rotation = parseEnum("$name spiral curvature direction", element.rot),
-                directionStart = startAngle ?: angleBetween(start, pi, units.directionUnit),
-                directionEnd = endAngle ?: angleBetween(pi, end, units.directionUnit),
+                directionStart = startAngle,
+                directionEnd = endAngle,
                 radiusStart = spiralRadius(element.radiusStart),
                 radiusEnd = spiralRadius(element.radiusEnd),
                 pi = pi,
