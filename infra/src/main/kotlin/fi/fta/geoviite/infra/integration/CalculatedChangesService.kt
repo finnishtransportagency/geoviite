@@ -199,14 +199,14 @@ class CalculatedChangesService(
             isStartChanged = addressChanges.startPointChanged,
             isEndChanged = addressChanges.endPointChanged,
         )
-        // TODO: GVT-1568 This fetches latest versions, not ones in changecontext
         // Affected tracks are those that aren't directly changed, but are changed by the geocoding context change
         // That is: all those that used the former one as ones that started using new context must have changed anyhow
         val affectedTracks = beforeContext?.let { context ->
             calculateOverlappingLocationTracks(
                 geocodingContext = context,
                 kilometers = addressChanges.changedKmNumbers,
-                locationTracks = locationTrackService.listWithAlignments(OFFICIAL, trackNumberId),
+                locationTracks = changeContext.getTrackNumberTracksBefore(trackNumberId)
+                    .map(locationTrackService::getWithAlignment),
             )
         } ?: listOf()
         return trackNumberChange to affectedTracks
@@ -386,6 +386,9 @@ class CalculatedChangesService(
         geocodingKeysAfter = LazyMap { id: IntId<TrackLayoutTrackNumber> ->
             geocodingService.getGeocodingContextCacheKey(id, publicationVersions)
         },
+        getTrackNumberTracksBefore = { trackNumberId: IntId<TrackLayoutTrackNumber> ->
+            locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId)
+        },
     )
 
     fun createChangeContext(before: Instant, after: Instant) = ChangeContext(
@@ -400,6 +403,9 @@ class CalculatedChangesService(
         },
         geocodingKeysAfter = LazyMap { id: IntId<TrackLayoutTrackNumber> ->
             geocodingService.getGeocodingContextCacheKey(id, after)
+        },
+        getTrackNumberTracksBefore = { id: IntId<TrackLayoutTrackNumber> ->
+            locationTrackDao.fetchOfficialVersionsAtMoment(id, before)
         },
     )
 }

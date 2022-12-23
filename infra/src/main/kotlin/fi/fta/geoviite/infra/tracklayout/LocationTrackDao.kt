@@ -14,6 +14,7 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -255,6 +256,29 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "track_number_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
             "include_deleted" to includeDeleted,
+        )
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion("row_id", "row_version")
+        }
+    }
+
+    fun fetchOfficialVersionsAtMoment(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): List<RowVersion<LocationTrack>> {
+        val sql = """
+            select distinct on (id)
+              case when deleted then null else id end as row_id, 
+              case when deleted then null else version end as row_version
+            from layout.location_track_version
+            where track_number_id = :track_number_id 
+              and draft = false
+              and change_time <= :moment
+            order by id, version desc
+        """.trimIndent()
+        val params = mapOf(
+            "track_number_id" to trackNumberId.intValue,
+            "moment" to moment,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")

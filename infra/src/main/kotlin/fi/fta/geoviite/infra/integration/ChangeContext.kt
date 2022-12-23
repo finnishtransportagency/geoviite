@@ -22,6 +22,8 @@ class ChangeContext(
 
     val geocodingKeysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     val geocodingKeysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
+
+    val getTrackNumberTracksBefore: (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<RowVersion<LocationTrack>>,
 ) {
 
     fun getGeocodingContextBefore(id: IntId<TrackLayoutTrackNumber>) =
