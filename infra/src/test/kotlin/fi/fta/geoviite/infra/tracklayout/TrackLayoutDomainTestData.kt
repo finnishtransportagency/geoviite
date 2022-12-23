@@ -154,11 +154,12 @@ fun trackNumber(
     draft: Boolean = false,
     externalId: Oid<TrackLayoutTrackNumber>? = Oid(
         "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
-    )
+    ),
+    state: LayoutState = LayoutState.IN_USE,
 ) = TrackLayoutTrackNumber(
     number = number,
     description = FreeText(description),
-    state = LayoutState.IN_USE,
+    state = state,
     externalId = externalId,
 ).let { tn -> if (draft) draft(tn) else tn }
 

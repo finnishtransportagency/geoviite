@@ -14,6 +14,7 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
 import java.time.Instant
 
 @Transactional(readOnly = true)
@@ -278,7 +279,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
-            "moment" to moment,
+            "moment" to Timestamp.from(moment),
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
