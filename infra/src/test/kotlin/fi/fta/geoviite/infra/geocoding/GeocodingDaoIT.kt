@@ -56,6 +56,9 @@ class GeocodingDaoIT @Autowired constructor(
         val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(tnId, KmNumber(2)))
         val kmPostThreeOnlyOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3)))
 
+        // Add a deleted post - should not appear in results
+        kmPostDao.insert(kmPost(tnId, KmNumber(4), state = LayoutState.DELETED))
+
         val officialKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, tnOfficialVersion.id)!!
         assertEquals(
             GeocodingContextCacheKey(
@@ -149,13 +152,15 @@ class GeocodingDaoIT @Autowired constructor(
         // Add some draft changes as well. These shouldn't affect the results
         trackNumberDao.insert(draft(trackNumberDao.fetch(tnOfficialVersion)))
         createDraftReferenceLine(rlOfficialVersion)
-        kmPostService.saveDraft(kmPost(tnId, KmNumber(2)))
+        kmPostService.saveDraft(kmPost(tnId, KmNumber(10)))
 
         // Update the official stuff
         val updatedTrackNumberVersion = updateTrackNumber(tnOfficialVersion)
         val updatedReferenceLineVersion = updateReferenceLine(rlOfficialVersion)
         val updatedKmPostOneOfficialVersion = updateKmPost(kmPostOneOfficialVersion)
-        val kmPostTwoOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3)))
+        val kmPostTwoOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(2)))
+        // Add a deleted post - should not appear in results
+        kmPostDao.insert(kmPost(tnId, KmNumber(3), state = LayoutState.DELETED))
 
         val updatedTime = kmPostDao.fetchChangeTime()
 

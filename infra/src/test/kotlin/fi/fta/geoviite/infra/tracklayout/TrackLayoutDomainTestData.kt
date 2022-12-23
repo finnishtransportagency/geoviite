@@ -619,14 +619,18 @@ fun switchJoint(seed: Int) = TrackLayoutSwitchJoint(
     locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
 )
 
-fun kmPost(trackNumberId: IntId<TrackLayoutTrackNumber>?, km: KmNumber, location: IPoint? = Point(1.0, 1.0)) =
-    TrackLayoutKmPost(
-        trackNumberId = trackNumberId,
-        kmNumber = km,
-        location = location?.toPoint(),
-        state = LayoutState.IN_USE,
-        sourceId = null,
-    )
+fun kmPost(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    km: KmNumber,
+    location: IPoint? = Point(1.0, 1.0),
+    state: LayoutState = LayoutState.IN_USE,
+) = TrackLayoutKmPost(
+    trackNumberId = trackNumberId,
+    kmNumber = km,
+    location = location?.toPoint(),
+    state = state,
+    sourceId = null,
+)
 
 fun point(x: Double, y: Double, m: Double = 1.0) =
     LayoutPoint(x, y, null, m, null)

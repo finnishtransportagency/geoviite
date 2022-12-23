@@ -90,7 +90,7 @@ class GeocodingDao(
         val sql = """
             with 
               tn as (
-                select id, version, deleted 
+                select id, version, state, deleted 
                 from layout.track_number_version
                 where id = :tn_id
                   and draft = false
@@ -109,7 +109,8 @@ class GeocodingDao(
               ),
               kmp as (
                 select distinct on (id)
-                  id, version, deleted
+                  id, version, state, 
+                  case when deleted or state = 'DELETED' then true else false end as hide
                 from layout.km_post_version
                 where track_number_id = :tn_id
                   and draft = false
@@ -122,11 +123,12 @@ class GeocodingDao(
               rl.id rl_row_id,
               rl.version rl_row_version,
               array_agg(kmp.id order by kmp.id, kmp.version) 
-                filter (where kmp.id is not null and kmp.deleted = false) kmp_row_ids,
+                filter (where kmp.id is not null and kmp.hide = false) kmp_row_ids,
               array_agg(kmp.version order by kmp.id, kmp.version) 
-                filter (where kmp.id is not null and kmp.deleted = false) kmp_row_versions
+                filter (where kmp.id is not null and kmp.hide = false) kmp_row_versions
             from tn left join rl on 1=1 left join kmp on 1=1
               where tn.deleted = false
+                and tn.state != 'DELETED'
                 and rl.deleted = false
             group by tn.id, tn.version, rl.id, rl.version
         """.trimIndent()
