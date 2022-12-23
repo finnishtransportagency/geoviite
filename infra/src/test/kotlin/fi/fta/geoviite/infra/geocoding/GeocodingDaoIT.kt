@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -19,6 +20,7 @@ class GeocodingDaoIT @Autowired constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val referenceLineDao: ReferenceLineDao,
     val alignmentDao: LayoutAlignmentDao,
+    val alignmentService: LayoutAlignmentService,
     val kmPostDao: LayoutKmPostDao,
     val kmPostService: LayoutKmPostService,
 ) : ITTestBase() {
@@ -47,7 +49,7 @@ class GeocodingDaoIT @Autowired constructor(
 
         val alignmentVersion = alignmentDao.insert(alignment())
         val rlOfficialVersion = referenceLineDao.insert(referenceLine(tnId).copy(alignmentVersion = alignmentVersion))
-        val rlDraftVersion = referenceLineDao.insert(draft(referenceLineDao.fetch(rlOfficialVersion)))
+        val rlDraftVersion = createDraftReferenceLine(rlOfficialVersion)
 
         val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1)))
         val kmPostOneDraftVersion = kmPostDao.insert(draft(kmPostDao.fetch(kmPostOneOfficialVersion)))
@@ -120,6 +122,78 @@ class GeocodingDaoIT @Autowired constructor(
             geocodingDao.getGeocodingContextCacheKey(tnOfficialVersion.id, publicationVersions(
                 kmPosts = listOf(kmPostOneOfficialVersion.id to kmPostOneDraftVersion),
             )),
+        )
+    }
+
+    @Test
+    fun cacheKeysAreCorrectlyFetchedByMoment() {
+        val tnOfficialVersion = trackNumberDao.insert(trackNumber(getUnusedTrackNumber()))
+        val tnId = tnOfficialVersion.id
+        val alignmentVersion = alignmentDao.insert(alignment())
+        val rlOfficialVersion = referenceLineDao.insert(referenceLine(tnId).copy(alignmentVersion = alignmentVersion))
+        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1)))
+
+        val originalTime = kmPostDao.fetchChangeTime()
+        Thread.sleep(1)
+
+        val originalKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        assertEquals(
+            GeocodingContextCacheKey(
+                trackNumberVersion = tnOfficialVersion,
+                referenceLineVersion = rlOfficialVersion,
+                kmPostVersions = listOf(kmPostOneOfficialVersion)
+            ),
+            originalKey,
+        )
+
+        // Add some draft changes as well. These shouldn't affect the results
+        trackNumberDao.insert(draft(trackNumberDao.fetch(tnOfficialVersion)))
+        createDraftReferenceLine(rlOfficialVersion)
+        kmPostService.saveDraft(kmPost(tnId, KmNumber(2)))
+
+        // Update the official stuff
+        val updatedTrackNumberVersion = updateTrackNumber(tnOfficialVersion)
+        val updatedReferenceLineVersion = updateReferenceLine(rlOfficialVersion)
+        val updatedKmPostOneOfficialVersion = updateKmPost(kmPostOneOfficialVersion)
+        val kmPostTwoOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3)))
+
+        val updatedTime = kmPostDao.fetchChangeTime()
+
+        val updatedKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        assertEquals(
+            GeocodingContextCacheKey(
+                trackNumberVersion = updatedTrackNumberVersion,
+                referenceLineVersion = updatedReferenceLineVersion,
+                kmPostVersions = listOf(updatedKmPostOneOfficialVersion, kmPostTwoOfficialVersion)
+            ),
+            updatedKey,
+        )
+
+        // Verify fetching each key with time
+        assertEquals(originalKey, geocodingDao.getGeocodingContextCacheKey(tnId, originalTime))
+        assertEquals(updatedKey, geocodingDao.getGeocodingContextCacheKey(tnId, updatedTime))
+    }
+
+    private fun updateTrackNumber(version: RowVersion<TrackLayoutTrackNumber>): RowVersion<TrackLayoutTrackNumber> {
+        val original = trackNumberDao.fetch(version)
+        return trackNumberDao.update(original.copy(description = original.description+"_update"))
+    }
+
+    private fun updateReferenceLine(version: RowVersion<ReferenceLine>): RowVersion<ReferenceLine> {
+        val original = referenceLineDao.fetch(version)
+        return referenceLineDao.update(original.copy(startAddress = original.startAddress + 1.0))
+    }
+
+    private fun updateKmPost(version: RowVersion<TrackLayoutKmPost>): RowVersion<TrackLayoutKmPost> {
+        val original = kmPostDao.fetch(version)
+        return kmPostDao.update(original.copy(location = original.location!!.copy(x = original.location!!.x + 1.0)))
+    }
+
+    private fun createDraftReferenceLine(officialVersion: RowVersion<ReferenceLine>): RowVersion<ReferenceLine> {
+        val original = referenceLineDao.fetch(officialVersion)
+        assertNull(original.draft)
+        return referenceLineDao.insert(
+            draft(original).copy(alignmentVersion = alignmentService.duplicate(original.alignmentVersion!!))
         )
     }
 }
