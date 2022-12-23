@@ -4,7 +4,7 @@
 @import '../transitions';
 
 .menu,
-.react-contexify {
+.contexify {
     @include typography-body;
     @include shadow-8dp;
     background: $color-white-default;
@@ -12,7 +12,7 @@
 }
 
 .menu__item,
-.react-contexify__item {
+.contexify_item {
     height: 36px;
     color: $color-black-default;
     fill: $color-white-default;
@@ -30,7 +30,7 @@
     }
 }
 
-.react-contexify {
+.contexify {
     position: absolute;
     margin-top: 5px;
     z-index: 10;

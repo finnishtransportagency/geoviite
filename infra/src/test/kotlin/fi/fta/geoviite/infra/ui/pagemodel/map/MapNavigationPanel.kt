@@ -2,12 +2,15 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.*
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.browser
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenVisible
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementsWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
+import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Duration
 
 class MapNavigationPanel {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -79,6 +82,16 @@ class MapNavigationPanel {
             logger.warn("No location tracks found")
             emptyList()
         }
+    }
+
+    fun waitForLocationTrackNamesTo(namePredicate: (names: List<String>) -> Boolean) {
+        logger.info("Wait for location track names")
+        WebDriverWait(browser(), Duration.ofSeconds(5))
+            .until { _ ->
+                namePredicate(DynamicList(By.xpath("//ol[@qa-id='location-tracks-list']")).listElements()
+                    .map { element -> TrackLayoutAlignment(element) }.also { logger.info("Location tracks $it") }
+                    .map { alignment -> alignment.name() })
+            }
     }
 
     fun selectTrackLayoutSwitch(switchName: String) {

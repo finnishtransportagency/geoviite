@@ -58,6 +58,9 @@ class ChangePreviewRow(header: List<String>, row: WebElement): TableRow(header, 
             Tila.OK
         }
     }
+
+    fun nuolinappi(): WebElement = getColumnByName("Toiminnot").findElement(By.xpath("//button[@qa-id='stage-change-button']"))
+    fun menu(): WebElement = getColumnByName("Toiminnot").findElement(By.xpath("//button[@qa-id='menu-button']"))
 }
 
 

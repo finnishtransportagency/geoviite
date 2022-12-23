@@ -149,7 +149,7 @@ class PublishService @Autowired constructor(
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(id) }.size
         alignmentDao.deleteOrphanedAlignments()
         val switchCount = toDelete.switches.map { id -> switchService.deleteDraft(id) }.size
-        val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.deleteUnpublishedDraft(id) }.size
+        val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.deleteDraft(id) }.size
         val trackNumberCount = toDelete.trackNumbers.map { id -> trackNumberService.deleteDraft(id) }.size
 
         return PublishResult(

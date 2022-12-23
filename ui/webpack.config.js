@@ -163,9 +163,6 @@ module.exports = (env) => {
                     return !acceptedLicenses.includes(licenseIdentifier);
                 },
             }),
-            new webpack.DefinePlugin({
-                'process.env': JSON.stringify(dotenv.config().parsed),
-            }),
         ],
     };
 };
