@@ -43,6 +43,11 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         return dao.fetch(rowVersion)
     }
 
+    fun getOfficialAtMoment(id: IntId<ObjectType>, moment: Instant): ObjectType? {
+        logger.serviceCall("get", "id" to id, "moment" to moment)
+        return dao.fetchOfficialVersionAtMoment(id, moment)?.let(dao::fetch)
+    }
+
     fun getOrThrow(publishType: PublishType, id: IntId<ObjectType>): ObjectType {
         logger.serviceCall("get", "publishType" to publishType, "id" to id)
         return getInternalOrThrow(publishType, id)

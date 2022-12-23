@@ -40,5 +40,8 @@ fun publish(
     locationTracks: List<IntId<LocationTrack>> = listOf(),
 ) = publish(publicationService, publishRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks))
 
-fun publish(publicationService: PublishService, request: PublishRequest): PublishResult =
-    publicationService.publishChanges(publicationService.getPublicationVersions(request))
+fun publish(publicationService: PublishService, request: PublishRequest): PublishResult {
+    val versions = publicationService.getPublicationVersions(request)
+    val calculatedChanges = publicationService.getCalculatedChanges(versions)
+    return publicationService.publishChanges(versions, calculatedChanges)
+}

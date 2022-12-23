@@ -177,6 +177,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
 
     fun fetchRatkoPublicationListing(): List<PublicationListingItem> {
+        //language=SQL
         val sql = """
             select
               publication.id,
@@ -234,7 +235,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
 
     @Transactional
-    fun createPublish(
+    fun createPublication(
         trackNumbers: List<RowVersion<TrackLayoutTrackNumber>>,
         referenceLines: List<RowVersion<ReferenceLine>>,
         locationTracks: List<RowVersion<LocationTrack>>,

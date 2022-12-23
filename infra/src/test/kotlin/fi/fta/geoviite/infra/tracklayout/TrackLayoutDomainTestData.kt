@@ -528,6 +528,24 @@ fun to3DMPoints(points: List<IPoint>): List<IPoint3DM> {
     }
 }
 
+fun fixMValues(points: List<LayoutPoint>): List<LayoutPoint> {
+    var m = 0.0
+    return points.mapIndexed { i, p ->
+        val previous = points.getOrNull(i-1)
+        if (previous != null) m += lineLength(previous, p)
+        p.copy(m = m)
+    }
+}
+
+fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
+    var start = 0.0
+    return segments.mapIndexed { index, segment ->
+        val previous = segments.getOrNull(index - 1)
+        if (previous != null) start += previous.length
+        segment.copy(start = start)
+    }
+}
+
 fun someSegment() = segment(3, 10.0, 20.0, 10.0, 20.0)
 
 fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) = LayoutSegment(

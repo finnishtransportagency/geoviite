@@ -42,7 +42,7 @@ class RatkoServiceIT @Autowired constructor(
         }
         val draftVersion = locationTrackService.saveDraft(draft, alignmentDao.fetch(alignmentVersion))
         val locationTracks = listOf(locationTrackService.publish(PublicationVersion(officialVersion.id, draftVersion)))
-        publicationDao.createPublish(listOf(), listOf(), locationTracks, listOf(), listOf())
+        publicationDao.createPublication(listOf(), listOf(), locationTracks, listOf(), listOf())
 
         ratkoService.pushChangesToRatko(getCurrentUserName())
     }

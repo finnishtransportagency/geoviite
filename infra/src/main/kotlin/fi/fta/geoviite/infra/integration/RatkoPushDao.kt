@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
 import java.time.Instant
 
 @Transactional(readOnly = true)
@@ -102,7 +103,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         }
     }
 
-    fun fetchNotPushedLayoutPublishes(): List<PublicationHeader> {
+    fun fetchPublicationsAfter(moment: Instant): List<PublicationHeader> {
         val sql = """
             select
               publication.id,
@@ -113,10 +114,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               array_agg(distinct location_track.id) as published_location_tracks,
               array_agg(distinct switch.id) as published_switches
             from publication.publication
-              left join integrations.ratko_push_content
-                on ratko_push_content.publication_id = publication.id
-              left join integrations.ratko_push
-                on ratko_push.id = ratko_push_content.ratko_push_id
               --published reference_lines
               left join publication.reference_line published_reference_line
                 on publication.id = published_reference_line.publication_id
@@ -142,11 +139,12 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 on published_switch.publication_id = publication.id
               left join layout.switch 
                 on switch.id = published_switch.switch_id
-            where ratko_push is null or ratko_push.status in ('FAILED', 'CONNECTION_ISSUE')
+            where publication.publication_time > :moment
             group by publication.id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ ->
+        val params = mapOf("moment" to Timestamp.from(moment))
+        return jdbcTemplate.query(sql, params) { rs, _ ->
             val trackNumberIds = listOf(
                 "published_track_numbers",
                 "published_reference_line_track_numbers",
@@ -280,16 +278,18 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         }?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
     }
 
-    fun getLatestSuccessfulPushMoment(): Instant {
+    fun getLatestPushedPublicationMoment(): Instant {
         val sql = """
             select 
-              coalesce(max(start_time), now()) as latest_push_time
+              max(publication.publication_time) as latest_publication_time
             from integrations.ratko_push
-            where status = 'SUCCESSFUL'
+              left join integrations.ratko_push_content on ratko_push.id = ratko_push_content.ratko_push_id
+              left join publication.publication on ratko_push_content.publication_id = publication.id
+            where ratko_push.status = 'SUCCESSFUL'
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->
-            rs.getInstant("latest_push_time")
+            rs.getInstantOrNull("latest_publication_time") ?: Instant.EPOCH
         }.first()
     }
 }
