@@ -101,7 +101,17 @@ data class ReferenceLine(
     val segmentCount: Int = 0,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore override val draft: Draft<ReferenceLine>? = null,
-) : Draftable<ReferenceLine>
+) : Draftable<ReferenceLine> {
+
+    init {
+        require(dataType == DataType.TEMP || alignmentVersion != null) {
+            "ReferenceLine in DB must have an alignment"
+        }
+    }
+
+    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> = alignmentVersion
+        ?: throw IllegalStateException("ReferenceLine has no an alignment")
+}
 
 data class TopologyLocationTrackSwitch(
     val switchId: IntId<TrackLayoutSwitch>,
@@ -137,7 +147,13 @@ data class LocationTrack(
         require(description.length in 4..256) {
             "LocationTrack description length ${description.length} not in range 4-256"
         }
+        require(dataType == DataType.TEMP || alignmentVersion != null) {
+            "LocationTrack in DB must have an alignment"
+        }
     }
+
+    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> = alignmentVersion
+        ?: throw IllegalStateException("LocationTrack has no alignment")
 }
 
 

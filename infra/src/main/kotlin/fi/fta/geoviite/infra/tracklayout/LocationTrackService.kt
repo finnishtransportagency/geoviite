@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class LocationTrackService(
@@ -94,13 +95,9 @@ class LocationTrackService(
             if (draft.dataType == TEMP || draft.draft == null) {
                 alignmentService.saveAsNew(alignment)
             }
-            // Otherwise update -> should have alignment already
-            else if (draft.alignmentVersion == null) {
-                throw IllegalStateException("DB Location track should have an alignment")
-            }
             // Ensure that we update the correct one.
-            else if (draft.alignmentVersion.id != alignment.id) {
-                alignmentService.save(alignment.copy(id = draft.alignmentVersion.id, dataType = STORED))
+            else if (draft.getAlignmentVersionOrThrow().id != alignment.id) {
+                alignmentService.save(alignment.copy(id = draft.getAlignmentVersionOrThrow().id, dataType = STORED))
             } else {
                 alignmentService.save(alignment)
             }
@@ -198,6 +195,11 @@ class LocationTrackService(
     fun getWithAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
         logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
         return dao.fetchVersion(id, publishType)?.let(::getWithAlignmentInternal)
+    }
+
+    fun getOfficialWithAlignmentAtMoment(id: IntId<LocationTrack>, moment: Instant): Pair<LocationTrack, LayoutAlignment>? {
+        logger.serviceCall("getOfficialWithAlignmentAtMoment", "id" to id, "moment" to moment)
+        return dao.fetchOfficialVersionAtMoment(id, moment)?.let(::getWithAlignmentInternal)
     }
 
     fun getWithAlignment(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
@@ -346,7 +348,5 @@ fun locationTrackWithAlignment(
     alignmentDao: LayoutAlignmentDao,
     rowVersion: RowVersion<LocationTrack>,
 ) = locationTrackDao.fetch(rowVersion).let { track ->
-    val alignmentVersion = track.alignmentVersion
-        ?: throw IllegalStateException("LocationTrack in DB must have an alignment")
-    track to alignmentDao.fetch(alignmentVersion)
+    track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
 }

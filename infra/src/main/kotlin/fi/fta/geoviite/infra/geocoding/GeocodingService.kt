@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Instant
 
 @Service
 class GeocodingService(
@@ -39,6 +40,11 @@ class GeocodingService(
             "alignmentVersion" to alignmentVersion, "contextKey" to contextKey
         )
         return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
+    }
+
+    fun getReferenceLineAddressPoints(contextKey: GeocodingContextCacheKey): AlignmentAddresses? {
+        logger.serviceCall("getReferenceLineAddressPoints", "contextKey" to contextKey)
+        return geocodingDao.getGeocodingContext(contextKey)?.referenceLineAddresses
     }
 
     fun getAddress(
@@ -111,11 +117,29 @@ class GeocodingService(
     fun getGeocodingContext(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ): GeocodingContext? =
+        geocodingDao.getGeocodingContextCacheKey(publicationState, trackNumberId)?.let(::getGeocodingContext)
+
+    fun getGeocodingContextAtMoment(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): GeocodingContext? =
+        geocodingDao.getGeocodingContextCacheKey(trackNumberId, moment)?.let(::getGeocodingContext)
+
+    fun getGeocodingContext(cacheKey: GeocodingContextCacheKey) = geocodingDao.getGeocodingContext(cacheKey)
+
+    fun getGeocodingContextCacheKey(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        publicationState: PublishType,
     ) = geocodingDao.getGeocodingContextCacheKey(publicationState, trackNumberId)
-        ?.let(geocodingDao::getGeocodingContext)
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         publicationVersions: PublicationVersions,
     ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, publicationVersions)
+
+    fun getGeocodingContextCacheKey(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, moment)
 }

@@ -14,6 +14,9 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 
 data class GeocodingContextCacheKey (
     val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
@@ -24,7 +27,11 @@ data class GeocodingContextCacheKey (
         kmPostVersions.forEachIndexed { index, version ->
             kmPostVersions.getOrNull(index+1)?.let { next ->
                 require(next.id.intValue > version.id.intValue) {
-                    "Cache key km-posts must be in order: index=$index version=$version next=$next"
+                    "Cache key km-posts must be in order: " +
+                            "index=$index " +
+                            "trackNumberVersion=$trackNumberVersion " +
+                            "kmPostVersion=$version " +
+                            "nextKmPostVersion=$next"
                 }
             }
         }
@@ -72,19 +79,79 @@ class GeocodingDao(
             "tn_id" to trackNumberId.intValue,
             "publication_state" to publicationState.name,
         )
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
-            val tnVersion = rs.getRowVersion<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
-            val rlVersion = rs.getRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
-            if (rlVersion == null) null
-            else GeocodingContextCacheKey(
-                trackNumberVersion = tnVersion,
-                referenceLineVersion = rlVersion,
-                kmPostVersions = toRowVersions(
-                    ids = rs.getIntIdArray("kmp_row_ids"),
-                    versions = rs.getIntArrayOrNull("kmp_row_versions") ?: listOf(),
-                ),
-            )
-        }
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
+    }
+
+    fun getGeocodingContextCacheKey(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): GeocodingContextCacheKey? {
+        //language=SQL
+        val sql = """
+            with 
+              tn as (
+                select id, version, state, deleted 
+                from layout.track_number_version
+                where id = :tn_id
+                  and draft = false
+                  and change_time <= :moment
+                order by version desc
+                fetch first row only 
+              ),
+              rl as (
+                select id, version, deleted
+                from layout.reference_line_version
+                where track_number_id = :tn_id
+                  and draft = false
+                  and change_time <= :moment
+                order by version desc
+                fetch first row only 
+              ),
+              kmp as (
+                select distinct on (id)
+                  id, version, state, 
+                  case when deleted or state != 'IN_USE' then true else false end as hide
+                from layout.km_post_version
+                where track_number_id = :tn_id
+                  and draft = false
+                  and change_time <= :moment
+                order by id, version desc
+              )
+            select
+              tn.id tn_row_id,
+              tn.version tn_row_version,
+              rl.id rl_row_id,
+              rl.version rl_row_version,
+              array_agg(kmp.id order by kmp.id, kmp.version) 
+                filter (where kmp.id is not null and kmp.hide = false) kmp_row_ids,
+              array_agg(kmp.version order by kmp.id, kmp.version) 
+                filter (where kmp.id is not null and kmp.hide = false) kmp_row_versions
+            from tn left join rl on 1=1 left join kmp on 1=1
+              where tn.deleted = false
+                and tn.state != 'DELETED'
+                and rl.deleted = false
+            group by tn.id, tn.version, rl.id, rl.version
+        """.trimIndent()
+        val params = mapOf(
+            "tn_id" to trackNumberId.intValue,
+            "moment" to Timestamp.from(moment),
+        )
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
+    }
+
+    private fun toGeocodingContextCacheKey(rs: ResultSet): GeocodingContextCacheKey? {
+        val tnVersion = rs.getRowVersionOrNull<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
+        val rlVersion = rs.getRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
+        return if (tnVersion == null || rlVersion == null) {
+            null
+        } else GeocodingContextCacheKey(
+            trackNumberVersion = tnVersion,
+            referenceLineVersion = rlVersion,
+            kmPostVersions = toRowVersions(
+                ids = rs.getIntIdArray("kmp_row_ids"),
+                versions = rs.getIntArrayOrNull("kmp_row_versions") ?: listOf(),
+            ),
+        )
     }
 
     fun getGeocodingContextCacheKey(

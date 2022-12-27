@@ -1,15 +1,12 @@
 package fi.fta.geoviite.infra.integration
 
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import org.springframework.stereotype.Service
-import java.time.Instant
 
 
 fun addressPointsAreEqual(point1: AddressPoint?, point2: AddressPoint?) =
@@ -68,74 +65,34 @@ data class AddressChanges(
     val changedKmNumbers: Set<KmNumber>,
     val startPointChanged: Boolean,
     val endPointChanged: Boolean,
-)
+) {
+    companion object {
+        fun empty() = AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
+    }
+    fun isChanged() = changedKmNumbers.isNotEmpty() || startPointChanged || endPointChanged
+}
 
 @Service
-class AddressChangesService(
-    val trackLayoutHistoryDao: TrackLayoutHistoryDao,
-    val geocodingService: GeocodingService,
-    val layoutAlignmentDao: LayoutAlignmentDao,
-) {
+class AddressChangesService(val geocodingService: GeocodingService) {
 
-    fun getAddressChangesSinceMoment(
-        locationTrackId: IntId<LocationTrack>,
-        moment: Instant
-    ): AddressChanges? {
-        val oldAddresses = getAlignmentAddressesAtMoment(locationTrackId, moment)
-        val currentAddresses = getAlignmentAddressesAtMoment(locationTrackId)
-        return getAddressChanges(oldAddresses, currentAddresses)
-    }
+    fun getAddressChanges(
+        beforeTrack: LocationTrack?,
+        afterTrack: LocationTrack,
+        beforeContextKey: GeocodingContextCacheKey?,
+        afterContextKey: GeocodingContextCacheKey?,
+    ): AddressChanges =
+        if (beforeTrack == afterTrack && beforeContextKey == afterContextKey) {
+            AddressChanges(setOf(), startPointChanged = false, endPointChanged = false)
+        } else {
+            getAddressChanges(
+                getAddresses(beforeTrack, beforeContextKey),
+                getAddresses(afterTrack, afterContextKey),
+            )
+        }
 
-    fun getAddressChangesInDraft(
-        locationTrackId: IntId<LocationTrack>,
-    ): AddressChanges? {
-        val officialAddresses = geocodingService.getAddressPoints(locationTrackId, PublishType.OFFICIAL)
-        val draftAddresses = geocodingService.getAddressPoints(locationTrackId, PublishType.DRAFT)
-        return getAddressChanges(officialAddresses, draftAddresses)
-    }
-
-    /**
-     * Returns addresses of a location track at a moment OR null if addresses
-     * cannot be resolved for the given moment (e.g. the location track or
-     * geometry does not exist at the moment).
-     */
-    fun getAlignmentAddressesAtMoment(
-        locationTrackId: IntId<LocationTrack>,
-        moment: Instant? = null,
-    ): AlignmentAddresses? {
-        val locationTrack = trackLayoutHistoryDao.fetchLocationTrackAtMoment(locationTrackId, moment)
-        if (locationTrack?.alignmentVersion == null) return null
-
-        val locationTrackGeometry = layoutAlignmentDao.fetch(locationTrack.alignmentVersion)
-        if (locationTrackGeometry.segments.isEmpty()) return null
-
-        val trackNumberId = locationTrack.trackNumberId
-        val geocodingContext = getGeocodingContextAtMoment(trackNumberId, moment)
-        return geocodingContext?.getAddressPoints(locationTrackGeometry)
-    }
-
-    fun getGeocodingContextAtMoment(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        moment: Instant? = null,
-    ): GeocodingContext? {
-        val trackNumber = trackLayoutHistoryDao.fetchTrackNumberAtMoment(trackNumberId, moment)
-
-        val referenceLine = trackLayoutHistoryDao.fetchReferenceLineAtMoment(trackNumberId, moment)
-
-        if (trackNumber == null || referenceLine?.alignmentVersion == null) return null
-
-        val referenceLineGeometry = layoutAlignmentDao.fetch(referenceLine.alignmentVersion)
-
-        val kmPosts = trackLayoutHistoryDao.fetchKmPostsAtMoment(trackNumberId, moment)
-            .filter(TrackLayoutKmPost::exists)
-
-        return GeocodingContext.create(
-            trackNumber,
-            referenceLine,
-            referenceLineGeometry,
-            kmPosts,
-        )
-    }
+    private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?) =
+        if (track == null || contextKey == null) null
+        else geocodingService.getAddressPoints(contextKey, track.getAlignmentVersionOrThrow())
 
 }
 

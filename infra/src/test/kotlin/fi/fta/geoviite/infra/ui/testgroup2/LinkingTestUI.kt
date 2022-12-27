@@ -93,6 +93,15 @@ class LinkingTestUI @Autowired constructor(
     val ESPOO_TRACK_NUMBER_2 = "ESP2"
     val ESPOO_TRACK_NUMBER_3 = "ESP3"
 
+    fun clearDrafts () {
+        locationTrackDao.deleteDrafts()
+        referenceLineDao.deleteDrafts()
+        alignmentDao.deleteOrphanedAlignments()
+        switchDao.deleteDrafts()
+        kmPostDao.deleteDrafts()
+        trackNumberDao.deleteDrafts()
+    }
+
     @BeforeAll
     fun createTestData() {
         clearAllTestData()
@@ -149,6 +158,7 @@ class LinkingTestUI @Autowired constructor(
 
     @BeforeEach
     fun goToMapPage() {
+        clearDrafts()
         openBrowser()
 
         mapPage = PageModel.openGeoviite(url).navigationBar().kartta()
@@ -277,7 +287,7 @@ class LinkingTestUI @Autowired constructor(
         locationInfoBox.valmis()
 
         assertEquals(pointToCoordinateString(startPoint), locationInfoBox.alkukoordinaatti())
-        assertEquals(pointToCoordinateString(newEndPoint), locationInfoBox.loppukoordinaatti())
+        locationInfoBox.waitForLoppukoordinaatti(pointToCoordinateString(newEndPoint))
 
         publishChanges()
 
@@ -299,7 +309,7 @@ class LinkingTestUI @Autowired constructor(
 
         locationInfoBox.valmis()
 
-        assertEquals(pointToCoordinateString(newStartPoint), locationInfoBox.alkukoordinaatti())
+        locationInfoBox.waitForAlkukoordinaatti(pointToCoordinateString(newStartPoint))
         assertEquals(pointToCoordinateString(endPoint), locationInfoBox.loppukoordinaatti())
 
         publishChanges("Muutokset julkaistu paikannuspohjaan")
@@ -792,9 +802,9 @@ class LinkingTestUI @Autowired constructor(
             .muokkaaTietoja()
             .editTila(TilaTyyppi.POISTETTU)
             .tallenna()
-
-        val locationTrackNames = mapPage.navigationPanel.locationTracks().map { it.name() }
-        assertThat(locationTrackNames).noneMatch { it == LOCATION_TRACK_J.first.name.toString() }
+        mapPage.navigationPanel.waitForLocationTrackNamesTo { names ->
+            names.none { it == LOCATION_TRACK_J.first.name.toString() }
+        }
 
         val locationTrackJ = LOCATION_TRACK_J.second.segments.first().points.first()
         val pointNearLocationTrackJStart = locationTrackJ.plus(Point(x = 2.0, y = 2.0))
@@ -874,6 +884,7 @@ class LinkingTestUI @Autowired constructor(
     fun publishChanges(expectedPublishMessage: String = "Muutokset julkaistu") {
         val previewChangesPage = mapPage.esikatselu()
         previewChangesPage.logChanges()
+        previewChangesPage.lisaaMuutoksetJulkaisuun()
         val notificationAfterSave = previewChangesPage.julkaise()
         assertThat(notificationAfterSave.message).contains(expectedPublishMessage)
     }
@@ -882,7 +893,6 @@ class LinkingTestUI @Autowired constructor(
         val previewChangesPage = mapPage.esikatselu()
         previewChangesPage.logChanges()
         val notificationAfterDiscardingChanges = previewChangesPage.hylkaaMuutokset()
-        assertThat(notificationAfterDiscardingChanges.message).contains("Luonnosmuutokset peruttu")
     }
 
 

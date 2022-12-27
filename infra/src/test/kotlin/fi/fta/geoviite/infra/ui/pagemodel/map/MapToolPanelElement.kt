@@ -42,7 +42,9 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
     fun todellinenPituus(): String = fieldValue("Todellinen pituus (m)")
     fun todellinenPituusDoube(): Double = Regex("[0-9.]*").find(todellinenPituus())?.value?.toDouble() ?: -1.0
     fun alkukoordinaatti(): String = fieldValue("Alkukoordinaatit TM35FIN")
+    fun waitForAlkukoordinaatti(text: String) = waitUntilFieldValueChanges("Alkukoordinaatit TM35FIN", text)
     fun loppukoordinaatti(): String = fieldValue("Loppukoordinaatit TM35FIN")
+    fun waitForLoppukoordinaatti(text: String) = waitUntilFieldValueChanges("Loppukoordinaatit TM35FIN", text)
 
     fun muokkaaAlkuLoppupistetta() {
         logger.info("Edit start/end point")
