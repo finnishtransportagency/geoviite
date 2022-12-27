@@ -91,6 +91,6 @@ fun toRatkoPointsGroupedByKm(addressPoints: List<AddressPoint>) =
         .map { (_, addressPointsForKm) ->
             addressPointsForKm
                 .map(::convertToRatkoPoint)
-                .distinctBy { it.kmM } //track meters 0000+0000.010 and 0000+0000.01 are considered the same
+                .distinctBy { it.kmM.meters } //track meters 0000+0000.010 and 0000+0000.01 are considered the same
         }
         .filter { ratkoPoints -> ratkoPoints.isNotEmpty() }
