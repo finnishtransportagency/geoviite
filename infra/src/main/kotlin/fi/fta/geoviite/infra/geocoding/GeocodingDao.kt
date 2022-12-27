@@ -69,7 +69,7 @@ class GeocodingDao(
                 and :publication_state = any(rl.publication_states)
               left join layout.km_post_publication_view kmp on kmp.track_number_id = tn.official_id
                 and :publication_state = any(kmp.publication_states)
-                and kmp.state != 'DELETED'
+                and kmp.state = 'IN_USE'
             where :publication_state = any(tn.publication_states)
               and :tn_id = tn.official_id
               and tn.state != 'DELETED'
@@ -110,7 +110,7 @@ class GeocodingDao(
               kmp as (
                 select distinct on (id)
                   id, version, state, 
-                  case when deleted or state = 'DELETED' then true else false end as hide
+                  case when deleted or state != 'IN_USE' then true else false end as hide
                 from layout.km_post_version
                 where track_number_id = :tn_id
                   and draft = false
@@ -169,7 +169,7 @@ class GeocodingDao(
             val officialKmPosts = official?.kmPostVersions?.filter { v -> !versions.containsKmPost(v.id) } ?: listOf()
             val draftKmPosts = versions.kmPosts.filter { draftPost ->
                 val draft = kmPostDao.fetch(draftPost.draftVersion)
-                draft.trackNumberId == trackNumberId && draft.exists
+                draft.trackNumberId == trackNumberId && draft.state == LayoutState.IN_USE
             }.map { v -> v.draftVersion }
             val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.id.intValue }
             GeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)

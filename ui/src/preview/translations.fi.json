@@ -65,6 +65,7 @@
                 }
             },
             "km-post": {
+                "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava tasakilometripiste ei ole luonnos",
                 "state": {
                     "PLANNED": "Tasakilometripiste on tilassa \"Suunniteltu\""
