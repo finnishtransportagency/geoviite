@@ -19,11 +19,11 @@ function getHeaderElement({
     nextMonthButtonDisabled,
 }: ReactDatePickerCustomHeaderProps) {
     return (
-        <div className={styles['react-datepicker__navigation']}>
+        <div className={styles['datepicker__navigation']}>
             <div
                 className={createClassName(
-                    styles['react-datepicker__navigate-month'],
-                    styles['react-datepicker__navigate-month--previous'],
+                    styles['datepicker__navigate-month'],
+                    styles['datepicker__navigate-month--previous'],
                 )}
                 onClick={() => {
                     prevMonthButtonDisabled || decreaseMonth();
@@ -33,13 +33,13 @@ function getHeaderElement({
                     color={prevMonthButtonDisabled ? IconColor.DISABLED : IconColor.ORIGINAL}
                 />
             </div>
-            <span className={styles['react-datepicker__current-month']}>
+            <span className={styles['datepicker__current-month']}>
                 {format(date, 'MMMM')} {date.getFullYear()}
             </span>
             <div
                 className={createClassName(
-                    styles['react-datepicker__navigate-month'],
-                    styles['react-datepicker__navigate-month--next'],
+                    styles['datepicker__navigate-month'],
+                    styles['datepicker__navigate-month--next'],
                 )}
                 onClick={() => {
                     nextMonthButtonDisabled || increaseMonth();
@@ -78,6 +78,7 @@ export const DatePicker: React.FC<DatePickerProps> = () => {
                 selected={startDate}
                 onChange={(date: Date) => setStartDate(date)}
                 calendarStartDay={1}
+                showWeekNumbers
                 popperModifiers={[
                     {
                         name: 'offset',
