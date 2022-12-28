@@ -91,6 +91,7 @@ type PreviewProps = {
     onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
     onShownItemsChange: (shownItems: OptionalShownItems) => void;
+    onPublish: () => void;
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
     onPublishPreviewRemove: (selectedChange: SelectedPublishChange) => void;
@@ -415,7 +416,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                             ? publishCandidateIds(stagedChangesValidated)
                             : emptyChanges
                     }
-                    onClosePreview={props.onClosePreview}
+                    onPublish={props.onPublish}
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
                     previewChanges={stagedPreviewChanges ? stagedPreviewChanges : emptyChanges}
