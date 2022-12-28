@@ -73,27 +73,25 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     @Test
-    fun linkingExistingGeometrySwitchGetsWorstTrackSegmentAccuracy() {
+    fun linkingExistingGeometrySwitchGetsSwitchAccuracyForJoints() {
         setupJointLocationAccuracyTest()
         val suggestedSwitch = switchLinkingService.getSuggestedSwitches(BoundingBox(
             x = Range(0.0, 100.0),
             y = Range(0.0, 100.0),
         ))[0]
-        assertJointPointLocationAccuracy(suggestedSwitch, 1, null)
-        assertJointPointLocationAccuracy(suggestedSwitch, 5, LocationAccuracy.DIGITIZED_AERIAL_IMAGE)
-        assertJointPointLocationAccuracy(suggestedSwitch, 2, LocationAccuracy.DIGITIZED_AERIAL_IMAGE)
-        assertJointPointLocationAccuracy(suggestedSwitch, 3, null)
+        for (joint in suggestedSwitch.joints.map { j -> j.number }) {
+            assertJointPointLocationAccuracy(suggestedSwitch, joint, LocationAccuracy.DIGITIZED_AERIAL_IMAGE)
+        }
     }
 
     @Test
-    fun linkingManualSwitchGetsAtBestGeometryCalculatedAccuracy() {
+    fun linkingManualSwitchGetsGeometryCalculatedAccuracy() {
         val suggestedSwitchCreateParams = setupJointLocationAccuracyTest()
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(suggestedSwitchCreateParams)!!
 
-        assertJointPointLocationAccuracy(suggestedSwitch, 1, null)
-        assertJointPointLocationAccuracy(suggestedSwitch, 5, LocationAccuracy.GEOMETRY_CALCULATED)
-        assertJointPointLocationAccuracy(suggestedSwitch, 2, LocationAccuracy.GEOMETRY_CALCULATED)
-        assertJointPointLocationAccuracy(suggestedSwitch, 3, null)
+        for (joint in suggestedSwitch.joints.map { j -> j.number }) {
+            assertJointPointLocationAccuracy(suggestedSwitch, joint, LocationAccuracy.GEOMETRY_CALCULATED)
+        }
     }
 
     @Test
@@ -308,8 +306,10 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
     )
 
-    private fun assertJointPointLocationAccuracy(switch: SuggestedSwitch, jointNumber: Int, locationAccuracy: LocationAccuracy?) {
-        assertEquals(locationAccuracy, switch.joints.find { j -> j.number.intValue == jointNumber }!!.locationAccuracy)
-    }
+    private fun assertJointPointLocationAccuracy(
+        switch: SuggestedSwitch,
+        jointNumber: JointNumber,
+        locationAccuracy: LocationAccuracy?,
+    ) = assertEquals(locationAccuracy, switch.joints.find { j -> j.number == jointNumber }!!.locationAccuracy)
 
 }

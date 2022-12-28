@@ -154,11 +154,12 @@ fun trackNumber(
     draft: Boolean = false,
     externalId: Oid<TrackLayoutTrackNumber>? = Oid(
         "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
-    )
+    ),
+    state: LayoutState = LayoutState.IN_USE,
 ) = TrackLayoutTrackNumber(
     number = number,
     description = FreeText(description),
-    state = LayoutState.IN_USE,
+    state = state,
     externalId = externalId,
 ).let { tn -> if (draft) draft(tn) else tn }
 
@@ -528,6 +529,24 @@ fun to3DMPoints(points: List<IPoint>): List<IPoint3DM> {
     }
 }
 
+fun fixMValues(points: List<LayoutPoint>): List<LayoutPoint> {
+    var m = 0.0
+    return points.mapIndexed { i, p ->
+        val previous = points.getOrNull(i-1)
+        if (previous != null) m += lineLength(previous, p)
+        p.copy(m = m)
+    }
+}
+
+fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
+    var start = 0.0
+    return segments.mapIndexed { index, segment ->
+        val previous = segments.getOrNull(index - 1)
+        if (previous != null) start += previous.length
+        segment.copy(start = start)
+    }
+}
+
 fun someSegment() = segment(3, 10.0, 20.0, 10.0, 20.0)
 
 fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) = LayoutSegment(
@@ -600,14 +619,18 @@ fun switchJoint(seed: Int) = TrackLayoutSwitchJoint(
     locationAccuracy = getSomeNullableValue<LocationAccuracy>(seed),
 )
 
-fun kmPost(trackNumberId: IntId<TrackLayoutTrackNumber>?, km: KmNumber, location: IPoint? = Point(1.0, 1.0)) =
-    TrackLayoutKmPost(
-        trackNumberId = trackNumberId,
-        kmNumber = km,
-        location = location?.toPoint(),
-        state = LayoutState.IN_USE,
-        sourceId = null,
-    )
+fun kmPost(
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    km: KmNumber,
+    location: IPoint? = Point(1.0, 1.0),
+    state: LayoutState = LayoutState.IN_USE,
+) = TrackLayoutKmPost(
+    trackNumberId = trackNumberId,
+    kmNumber = km,
+    location = location?.toPoint(),
+    state = state,
+    sourceId = null,
+)
 
 fun point(x: Double, y: Double, m: Double = 1.0) =
     LayoutPoint(x, y, null, m, null)

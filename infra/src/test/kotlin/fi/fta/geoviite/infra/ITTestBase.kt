@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.configuration.USER_HEADER
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -77,13 +78,18 @@ abstract class ITTestBase {
         return TrackNumber("$baseName ${maxId+1}")
     }
 
-    private fun insertNewTrackNumber(trackNumber: TrackNumber, draft: Boolean): RowVersion<TrackLayoutTrackNumber> =
+    fun insertNewTrackNumber(
+        trackNumber: TrackNumber,
+        draft: Boolean,
+        state: LayoutState = LayoutState.IN_USE,
+    ): RowVersion<TrackLayoutTrackNumber> =
         transactional {
             jdbc.setUser()
             trackNumberDao.insert(trackNumber(
                 number = trackNumber,
                 description = trackNumberDescription,
                 draft = draft,
+                state = state,
             ))
         }
 

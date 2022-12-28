@@ -98,6 +98,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                     <div>
                         <div>
                             <Button
+                                qa-id={'stage-change-button'}
                                 variant={ButtonVariant.GHOST}
                                 onClick={() => {
                                     onPublishItemSelect && onPublishItemSelect();
@@ -107,10 +108,11 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         </div>
                         <div>
                             <Button
+                                qa-id={'menu-button'}
                                 variant={ButtonVariant.GHOST}
                                 icon={Icons.More}
                                 onClick={(event: React.MouseEvent) => {
-                                    show(event, {});
+                                    show({ event });
                                 }}
                             />
                             <div>

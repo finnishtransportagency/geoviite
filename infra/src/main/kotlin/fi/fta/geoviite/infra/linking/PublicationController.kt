@@ -47,11 +47,7 @@ class PublicationController @Autowired constructor(
     fun getCalculatedChanges(@RequestBody request: PublishRequest): CalculatedChanges {
         logger.apiCall("getCalculatedChanges")
         return calculatedChangesService.getCalculatedChangesInDraft(
-            trackNumberIds = request.trackNumbers,
-            referenceLineIds = request.referenceLines,
-            kmPostIds = request.kmPosts,
-            locationTrackIds = request.locationTracks,
-            switchIds = request.switches,
+            publishService.getPublicationVersions(request)
         )
     }
 
@@ -75,7 +71,8 @@ class PublicationController @Autowired constructor(
             publishService.updateExternalId(request)
             val versions = publishService.getPublicationVersions(request)
             publishService.validatePublishRequest(versions)
-            publishService.publishChanges(versions)
+            val calculatedChanges = publishService.getCalculatedChanges(versions)
+            publishService.publishChanges(versions, calculatedChanges)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",

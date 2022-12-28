@@ -29,20 +29,39 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
         return waitAndGetToasterElement()
     }
 
-    fun hylkaaMuutokset(): Toaster {
-        logger.info("Discard changes")
-        getElementWhenClickable(By.xpath("//span[text() = 'Hylkää muutokset']")).click()
-        PreviewChangesSaveOrDiscardDialog().hylkaaKaikki()
-        return waitAndGetToasterElement()
+    fun lisaaMuutoksetJulkaisuun() {
+        logger.info("Stage changes")
+        changesTable().changeRows().forEach {row -> row.nuolinappi().click()}
+    }
+
+    fun hylkaaMuutos(name: String) {
+        logger.info("Revert ${name}")
+        val row = changesTable().changeRows().find { row -> row.muutoskohde().contains(name) }
+            ?: stagedChangesTable().changeRows().find { row -> row.muutoskohde().contains(name) }
+        row?.menu()?.click()
+        getElementWhenClickable(By.xpath("//div[text() = 'Hylkää muutos']")).click()
+        PreviewChangesSaveOrDiscardDialog().hylkaa()
+        waitAndGetToasterElement()
+    }
+
+    fun hylkaaMuutokset() {
+        val changes = changesTable().changeRows().map { row -> row.muutoskohde() }
+        changes.forEach { change -> hylkaaMuutos(change) }
     }
 
     fun palaaLuonnostilaan() {
         logger.info("Return to draft view")
         getElementWhenVisible(By.xpath("//span[text() = 'Palaa luonnostilaan']")).click()
+        // utter hack: Somehow the map doesn't update the visible items when clicking that in tests; so let's force
+        // it to notice something changed by forcefully wiggling it
+        MapPage().also { map -> map.scrollMap(1, 1) }.also { map -> map.scrollMap(-1, -1) }
     }
 
     fun changesTable(): ChangePreviewTable =
-        ChangePreviewTable(getElementWhenVisible(By.cssSelector("div.preview-view__changes table.table")))
+        ChangePreviewTable(getElementWhenVisible(By.cssSelector("section[qa-id=unstaged-changes] table.table")))
+
+    fun stagedChangesTable(): ChangePreviewTable =
+        ChangePreviewTable(getElementWhenVisible(By.cssSelector("section[qa-id=staged-changes] table.table")))
 
     fun logChanges() =
         changesTable().changeRows().forEach { logger.info(it.toString()) }
@@ -54,7 +73,7 @@ class PreviewChangesSaveOrDiscardDialog(): DialogPopUp() {
     fun julkaise() =
         clickButton("Julkaise")
 
-    fun hylkaaKaikki() =
-        clickButton("Hylkää kaikki")
+    fun hylkaa() =
+        clickButton("Hylkää")
 
 }

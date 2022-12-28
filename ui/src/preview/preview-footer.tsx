@@ -23,7 +23,7 @@ import { PreviewCandidates } from 'preview/preview-view';
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
     request: PublishRequest;
-    onClosePreview: () => void;
+    onPublish: () => void;
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;
     previewChanges: PreviewCandidates;
@@ -31,11 +31,13 @@ type PreviewFooterProps = {
 };
 
 function previewChangesCanBePublished(previewChanges: PublishCandidates) {
-    return previewChanges.kmPosts.length != 0 ||
+    return (
+        previewChanges.kmPosts.length != 0 ||
         previewChanges.trackNumbers.length != 0 ||
         previewChanges.locationTracks.length != 0 ||
         previewChanges.switches.length != 0 ||
-        previewChanges.referenceLines.length != 0;
+        previewChanges.referenceLines.length != 0
+    );
 }
 
 function describe(name: string, value: number | undefined): string | undefined {
@@ -79,7 +81,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         if (result?.switches || 0 > 0) updateSwitchChangeTime();
     };
 
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [publishConfirmVisible, setPublishConfirmVisible] = React.useState(false);
 
     const [isPublishing, setPublishing] = React.useState(false);
@@ -106,7 +108,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     const result = r.unwrapOr(null);
                     Snackbar.success(t('publish.publish-success'), describeResult(result));
                     updateChangeTimes(result);
-                    props.onClosePreview();
+                    props.onPublish();
                 }
             })
             .finally(() => {

@@ -146,10 +146,13 @@ class BasicMapTestUI @Autowired constructor(
         val changedAligment =
             changePreviewTable.changeRows().first { row -> row.muutoskohde().contains(editedTunnus) }
 
-        assertEquals("Sijaintiraide $editedTunnus", changedAligment.muutoskohde())
+        val nameColumnValue = "Sijaintiraide $editedTunnus"
+        assertEquals(nameColumnValue, changedAligment.muutoskohde())
         assertEquals(HKI_TRACKNUMBER_2, changedAligment.ratanumero())
 
-        previewChangesPage.hylkaaMuutokset()
+        changedAligment.menu().click()
+        previewChangesPage.hylkaaMuutos(nameColumnValue)
+        previewChangesPage.palaaLuonnostilaan()
         navigationPanel.selectLocationTrack(locationTrackToBeEdited)
 
         val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo()
@@ -201,6 +204,7 @@ class BasicMapTestUI @Autowired constructor(
 
         assertEquals("Sijaintiraide $editedTunnus", changedAligment.muutoskohde())
         assertEquals(HKI_TRACKNUMBER_1, changedAligment.ratanumero())
+        changedAligment.nuolinappi().click()
 
         val notificationAfterSave = previewChangesPage.julkaise()
         assertContains(notificationAfterSave.message, "Muutokset julkaistu")

@@ -48,6 +48,7 @@ import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 
 type CandidateId =
     | LocationTrackId
@@ -90,6 +91,7 @@ type PreviewProps = {
     onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
     onShownItemsChange: (shownItems: OptionalShownItems) => void;
+    onPublish: () => void;
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
     onPublishPreviewRemove: (selectedChange: SelectedPublishChange) => void;
@@ -261,7 +263,7 @@ const typeTranslationKey = (type: PreviewSelectType | undefined) => {
 };
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
     const entireChangesetValidation = useLoader(
@@ -277,34 +279,34 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
     const unstagedChanges = entireChangesetValidation
         ? getUnstagedChanges(
-            entireChangesetValidation?.validatedAsPublicationUnit,
-            props.selectedPublishCandidateIds,
-        )
+              entireChangesetValidation?.validatedAsPublicationUnit,
+              props.selectedPublishCandidateIds,
+          )
         : undefined;
     const stagedChangesValidated = stagedValidation
         ? getStagedChanges(
-            stagedValidation.validatedAsPublicationUnit,
-            props.selectedPublishCandidateIds,
-        )
+              stagedValidation.validatedAsPublicationUnit,
+              props.selectedPublishCandidateIds,
+          )
         : undefined;
 
     const unstagedPreviewChanges: PreviewCandidates = unstagedChanges
         ? {
-            trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
-            referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
-            locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
-            switches: unstagedChanges.switches.map(nonPendingCandidate),
-            kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
-        }
+              trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
+              referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
+              locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
+              switches: unstagedChanges.switches.map(nonPendingCandidate),
+              kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
+          }
         : emptyChanges;
 
     const stagedPreviewChanges: PreviewCandidates =
         stagedChangesValidated && entireChangeset
             ? previewChanges(
-                stagedChangesValidated,
-                props.selectedPublishCandidateIds,
-                entireChangeset,
-            )
+                  stagedChangesValidated,
+                  props.selectedPublishCandidateIds,
+                  entireChangeset,
+              )
             : emptyChanges;
 
     const calculatedChanges = useLoader(
@@ -332,7 +334,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
         };
         revertCandidates(request)
-            .then(() => props.onPublishPreviewRemove(selectedChange))
+            .then((r) => {
+                if (r.isOk()) {
+                    Snackbar.success(t('publish.revert-success'));
+                    props.onPublishPreviewRemove(selectedChange);
+                }
+            })
             .finally(() => {
                 setRevertConfirmVisible(false);
                 setIsReverting(false);
@@ -343,11 +350,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
-                <PreviewToolBar onClosePreview={props.onClosePreview}/>
+                <PreviewToolBar onClosePreview={props.onClosePreview} />
                 <div className={styles['preview-view__changes']}>
                     {(unstagedChanges && stagedChangesValidated && (
                         <>
-                            <section className={styles['preview-section']}>
+                            <section
+                                qa-id={'unstaged-changes'}
+                                className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>{t('preview-view.unstaged-changes-title')}</h3>
                                 </div>
@@ -362,7 +371,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 />
                             </section>
 
-                            <section className={styles['preview-section']}>
+                            <section qa-id={'staged-changes'} className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>{t('preview-view.staged-changes-title')}</h3>
                                 </div>
@@ -379,12 +388,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                             <div className={styles['preview-section']}>
                                 {calculatedChanges && (
-                                    <CalculatedChangesView calculatedChanges={calculatedChanges}/>
+                                    <CalculatedChangesView calculatedChanges={calculatedChanges} />
                                 )}
-                                {!calculatedChanges && <Spinner/>}
+                                {!calculatedChanges && <Spinner />}
                             </div>
                         </>
-                    )) || <Spinner/>}
+                    )) || <Spinner />}
                 </div>
 
                 <MapView
@@ -407,7 +416,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                             ? publishCandidateIds(stagedChangesValidated)
                             : emptyChanges
                     }
-                    onClosePreview={props.onClosePreview}
+                    onPublish={props.onPublish}
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
                     previewChanges={stagedPreviewChanges ? stagedPreviewChanges : emptyChanges}

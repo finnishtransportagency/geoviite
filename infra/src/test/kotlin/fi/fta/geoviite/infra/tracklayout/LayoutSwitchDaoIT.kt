@@ -2,16 +2,19 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -96,4 +99,58 @@ class LayoutSwitchDaoIT @Autowired constructor(
         }
     }
 
+    @Test
+    fun listingSwitchVersionsWorks() {
+        val officialVersion = insertOfficial()
+        val undeletedDraftVersion = insertDraft()
+        val deleteStateDraftVersion = insertDraft(LayoutStateCategory.NOT_EXISTING)
+        val deletedDraftVersion = insertDraft()
+        switchDao.deleteDrafts(deletedDraftVersion.id)
+
+        val official = switchDao.fetchVersions(OFFICIAL, false)
+        assertContains(official, officialVersion)
+        assertFalse(official.contains(undeletedDraftVersion))
+        assertFalse(official.contains(deleteStateDraftVersion))
+        assertFalse(official.contains(deletedDraftVersion))
+
+        val draftWithoutDeleted = switchDao.fetchVersions(DRAFT, false)
+        assertContains(draftWithoutDeleted, undeletedDraftVersion)
+        assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
+        assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
+
+        val draftWithDeleted = switchDao.fetchVersions(DRAFT, true)
+        assertContains(draftWithDeleted, undeletedDraftVersion)
+        assertContains(draftWithDeleted, deleteStateDraftVersion)
+        assertFalse(draftWithDeleted.contains(deletedDraftVersion))
+    }
+
+    @Test
+    fun fetchOfficialVersionByMomentWorks() {
+        val beforeCreationTime = switchDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
+        val firstVersion = insertOfficial()
+        val firstVersionTime = switchDao.fetchChangeTime()
+
+        Thread.sleep(1) // Ensure that they get different timestamps
+        val updatedVersion = updateOfficial(firstVersion)
+        val updatedVersionTime = switchDao.fetchChangeTime()
+
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(firstVersion.id, beforeCreationTime))
+        assertEquals(firstVersion, switchDao.fetchOfficialVersionAtMoment(firstVersion.id, firstVersionTime))
+        assertEquals(updatedVersion, switchDao.fetchOfficialVersionAtMoment(firstVersion.id, updatedVersionTime))
+    }
+
+    private fun insertOfficial(): RowVersion<TrackLayoutSwitch> {
+        return switchDao.insert(switch(456).copy(draft = null))
+    }
+
+    private fun insertDraft(state: LayoutStateCategory = LayoutStateCategory.EXISTING): RowVersion<TrackLayoutSwitch> {
+        return switchDao.insert(draft(switch(654)).copy(stateCategory = state))
+    }
+
+    private fun updateOfficial(originalVersion: RowVersion<TrackLayoutSwitch>): RowVersion<TrackLayoutSwitch> {
+        val original = switchDao.fetch(originalVersion)
+        assertNull(original.draft)
+        return switchDao.update(original.copy(name = SwitchName("${original.name}U")))
+    }
 }
