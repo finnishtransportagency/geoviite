@@ -16,7 +16,7 @@ type PublicationListProps = {
     anyFailed: boolean;
 };
 
-const MAX_TRUNCATED_PUBLICATIONS_SHOWN = 8;
+const PUBLICATIONS_PER_PAGE = 8;
 
 export const PublicationList: React.FC<PublicationListProps> = ({
     publications,
@@ -24,30 +24,39 @@ export const PublicationList: React.FC<PublicationListProps> = ({
     anyFailed,
 }) => {
     const { t } = useTranslation();
-    const canShowMore = publications.length > MAX_TRUNCATED_PUBLICATIONS_SHOWN;
-    const [truncated, setTruncated] = React.useState(true);
-    const [shownPublications, setShownPublications] = React.useState<PublicationListingItem[]>([]);
+    const [page, setPage] = React.useState(1);
+    const [visiblePublications, setVisiblePublications] = React.useState<PublicationListingItem[]>(
+        [],
+    );
     const trackNumbers = useTrackNumbers('OFFICIAL');
 
-    const truncateOrExpandPublications = () => {
-        setTruncated(!truncated);
-    };
+    React.useEffect(() => {
+        setVisiblePublications(publications.slice(0, page * PUBLICATIONS_PER_PAGE));
+    }, [page]);
 
     React.useEffect(() => {
-        truncated
-            ? setShownPublications(publications.slice(0, MAX_TRUNCATED_PUBLICATIONS_SHOWN))
-            : setShownPublications(publications);
-    }, [publications, truncated]);
+        setPage(1);
+    }, [publications]);
+
+    const canExpand = visiblePublications.length < publications.length;
 
     const className = createClassName(
         styles['publication-list__more'],
-        !truncated && styles['publication-list__more--open'],
+        !canExpand && styles['publication-list__more--open'],
     );
+
+    const showMoreOrHide = () => {
+        if (visiblePublications.length < publications.length) {
+            setPage(page + 1);
+        } else {
+            setPage(1);
+        }
+    };
 
     return (
         <React.Fragment>
             <div>
-                {shownPublications.map((publication, publicationIndex) => {
+                {visiblePublications.map((publication, publicationIndex) => {
                     const isWaitingAfterFailure = anyFailed && publication.status === null;
 
                     return (
@@ -129,20 +138,12 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                     );
                 })}
             </div>
-            {canShowMore && (
-                <React.Fragment>
-                    <Link disabled={canShowMore} onClick={truncateOrExpandPublications}>
-                        <span className={className}>
-                            <Icons.Down size={IconSize.SMALL} color={IconColor.INHERIT} />
-                        </span>
-                        <span>
-                            {truncated
-                                ? t('publication-card.show-more')
-                                : t('publication-card.show-less')}
-                        </span>
-                    </Link>
-                </React.Fragment>
-            )}
+            <Link onClick={showMoreOrHide}>
+                <span className={className}>
+                    <Icons.Down size={IconSize.SMALL} color={IconColor.INHERIT} />
+                </span>
+                {canExpand ? t('publication-card.show-more') : t('publication-card.show-less')}
+            </Link>
         </React.Fragment>
     );
 };
