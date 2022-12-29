@@ -7,9 +7,9 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { TextField, TextInputIconPosition } from 'vayla-design-lib/text-field/text-field';
 
 type DatePickerProps = {
-    onChange?: () => void;
-    hasError?: () => void;
-} & React.InputHTMLAttributes<HTMLInputElement>;
+    value: Date | undefined;
+    onChange?: (date: Date) => void;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 function getHeaderElement({
     date,
@@ -67,16 +67,14 @@ const DatePickerInput = React.forwardRef<
 
 DatePickerInput.displayName = 'DatePickerInput';
 
-export const DatePicker: React.FC<DatePickerProps> = () => {
-    const [startDate, setStartDate] = React.useState(new Date());
-
+export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...props }) => {
     return (
         <div className={styles['datepicker']}>
             <ReactDatePicker
                 renderCustomHeader={getHeaderElement}
                 dateFormat="dd.MM.yyyy"
-                selected={startDate}
-                onChange={(date: Date) => setStartDate(date)}
+                selected={value}
+                onChange={(date: Date) => onChange && onChange(date)}
                 calendarStartDay={1}
                 showWeekNumbers
                 popperModifiers={[
@@ -87,7 +85,7 @@ export const DatePicker: React.FC<DatePickerProps> = () => {
                         },
                     },
                 ]}
-                customInput={<DatePickerInput />}
+                customInput={<DatePickerInput {...props} />}
             />
         </div>
     );
