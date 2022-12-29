@@ -196,8 +196,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationErrors
-                .filter((error) => error.field == prop)
-                .map((error) => t(`location-track-dialog.${error.reason}`))
+                  .filter((error) => error.field == prop)
+                  .map((error) => t(`location-track-dialog.${error.reason}`))
             : [];
     }
 
@@ -260,16 +260,17 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                     <React.Fragment>
                         <div className={dialogStyles['dialog-footer__content-area']}>
                             <div className={dialogStyles['dialog-footer__content--shrink']}>
-                                {props.locationTrack?.draftType === 'NEW_DRAFT' && !state.isNewLocationTrack && (
-                                    <Button
-                                        onClick={() =>
-                                            props.locationTrack && confirmNonDraftDelete()
-                                        }
-                                        icon={Icons.Delete}
-                                        variant={ButtonVariant.WARNING}>
-                                        {t('location-track-dialog.delete-draft')}
-                                    </Button>
-                                )}
+                                {props.locationTrack?.draftType === 'NEW_DRAFT' &&
+                                    !state.isNewLocationTrack && (
+                                        <Button
+                                            onClick={() =>
+                                                props.locationTrack && confirmNonDraftDelete()
+                                            }
+                                            icon={Icons.Delete}
+                                            variant={ButtonVariant.WARNING}>
+                                            {t('location-track-dialog.delete-draft')}
+                                        </Button>
+                                    )}
                             </div>
                             <div
                                 className={createClassName(
@@ -309,7 +310,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     onChange={(e) => updateProp('name', e.target.value)}
                                     onBlur={() => stateActions.onCommitField('name')}
                                     hasError={hasErrors('name')}
-                                    inputRef={firstInputRef}
+                                    ref={firstInputRef}
                                     wide
                                 />
                             }

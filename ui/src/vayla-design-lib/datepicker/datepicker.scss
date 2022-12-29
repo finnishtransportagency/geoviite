@@ -1,0 +1,95 @@
+@import '../colors';
+@import '../shadows';
+@import '../typography';
+
+.datepicker {
+    &__current-month {
+        @include typography-sub-heading;
+
+        line-height: 24px;
+        color: $color-blue-dark;
+    }
+
+    &__navigation {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+    }
+
+    &__navigate-month {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        &--previous svg {
+            transform: rotate(180deg);
+        }
+
+        &--next svg {
+            transform: rotate(0);
+        }
+    }
+
+    .react-datepicker {
+        @include shadow-16dp;
+        @include typography-caption;
+
+        user-select: none;
+        padding: 12px;
+        background-color: $color-white-default;
+        border-radius: 8px;
+
+        &__day {
+            cursor: pointer;
+            border-radius: 50%;
+            transition: background-color 50ms;
+
+            &--today {
+                color: $color-blue-default;
+            }
+
+            &--outside-month {
+                color: $color-black-lighter;
+            }
+
+            &--selected {
+                background-color: $color-blue-default;
+                color: $color-white-default;
+            }
+
+            &:hover:not(&--selected) {
+                background-color: $color-blue-lighter;
+            }
+
+            &:focus,
+            &:focus-visible {
+                outline: 1px solid $color-blue-default;
+            }
+        }
+
+        &__week-number {
+            border-right: 1px solid $color-white-darker;
+        }
+
+        &__day,
+        &__day-names,
+        &__week-number {
+            text-align: center;
+            line-height: 24px;
+        }
+
+        &__day-names {
+            color: $color-black-light;
+            margin-bottom: 2px;
+        }
+
+        &__day-names,
+        &__week {
+            display: grid;
+            grid-template-columns: repeat(8, 24px);
+            grid-template-rows: 24px;
+            grid-column-gap: 4px;
+        }
+    }
+}

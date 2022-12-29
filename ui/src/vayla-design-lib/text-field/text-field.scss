@@ -9,12 +9,14 @@ $text-field-input-border-default: 1px;
 $text-field-input-border-thick: 2px;
 $text-field-input-border-error: 1.5px;
 
-@mixin text-field-border($color, $width, $has-icon) {
+@mixin text-field-border($color, $width, $icon: no-icon) {
     border: $width solid $color;
     $border-width-diff: $width - $text-field-input-border-default;
 
-    @if ($has-icon) {
+    @if $icon == left {
         padding: 8px (12px - $border-width-diff) 8px (32px - $border-width-diff);
+    } @else if $icon == right {
+        padding: 8px (32px - $border-width-diff) 8px (12px - $border-width-diff);
     } @else {
         padding: 8px (12px - $border-width-diff);
     }
@@ -36,7 +38,6 @@ $text-field-input-border-error: 1.5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    left: 8px;
     top: 8px;
     width: 20px;
     height: 20px;
@@ -54,8 +55,7 @@ $text-field-input-border-error: 1.5px;
     outline: none;
     @include text-field-border(
         $color: $color-black-lighter,
-        $width: $text-field-input-border-default,
-        $has-icon: false
+        $width: $text-field-input-border-default
     );
     border-radius: 4px;
 }
@@ -72,8 +72,24 @@ $text-field-input-border-error: 1.5px;
     margin-right: -0.5px;
 }
 
-.text-field--with-icon .text-field__input-element {
-    padding-left: 32px;
+.text-field--with-left-icon {
+    .text-field__icon {
+        left: 8px;
+    }
+
+    .text-field__input-element {
+        padding-left: 32px;
+    }
+}
+
+.text-field--with-right-icon {
+    .text-field__icon {
+        right: 8px;
+    }
+
+    .text-field__input-element {
+        padding-right: 32px;
+    }
 }
 
 .text-field--wide {
@@ -95,16 +111,23 @@ $text-field-input-border-error: 1.5px;
     .text-field__input-element {
         @include text-field-border(
             $color: $color-black-lighter,
-            $width: $text-field-input-border-thick,
-            $has-icon: false
+            $width: $text-field-input-border-thick
         );
     }
 
-    &.text-field--with-icon .text-field__input-element {
+    &.text-field--with-left-icon .text-field__input-element {
         @include text-field-border(
             $color: $color-black-lighter,
             $width: $text-field-input-border-thick,
-            $has-icon: true
+            $icon: left
+        );
+    }
+
+    &.text-field--with-right-icon .text-field__input-element {
+        @include text-field-border(
+            $color: $color-black-lighter,
+            $width: $text-field-input-border-thick,
+            $icon: right
         );
     }
 }
@@ -112,19 +135,30 @@ $text-field-input-border-error: 1.5px;
 // Focus
 
 .text-field--focus {
+    .text-field__icon svg {
+        fill: $color-blue-dark;
+    }
+
     .text-field__input-element {
         @include text-field-border(
             $color: $color-blue-dark,
-            $width: $text-field-input-border-thick,
-            $has-icon: false
+            $width: $text-field-input-border-thick
         );
     }
 
-    &.text-field--with-icon .text-field__input-element {
+    &.text-field--with-left-icon .text-field__input-element {
         @include text-field-border(
             $color: $color-blue-dark,
             $width: $text-field-input-border-thick,
-            $has-icon: true
+            $icon: left
+        );
+    }
+
+    &.text-field--with-right-icon .text-field__input-element {
+        @include text-field-border(
+            $color: $color-blue-dark,
+            $width: $text-field-input-border-thick,
+            $icon: right
         );
     }
 }
@@ -134,18 +168,22 @@ $text-field-input-border-error: 1.5px;
 .text-field--has-error {
     .text-field__input-element {
         color: $color-red-dark;
+        @include text-field-border($color: $color-red-dark, $width: $text-field-input-border-error);
+    }
+
+    &.text-field--with-left-icon .text-field__input-element {
         @include text-field-border(
             $color: $color-red-dark,
             $width: $text-field-input-border-error,
-            $has-icon: false
+            $icon: left
         );
     }
 
-    &.text-field--with-icon .text-field__input-element {
+    &.text-field--with-right-icon .text-field__input-element {
         @include text-field-border(
             $color: $color-red-dark,
             $width: $text-field-input-border-error,
-            $has-icon: true
+            $icon: right
         );
     }
 }
@@ -160,17 +198,24 @@ $text-field-input-border-error: 1.5px;
     .text-field__input-element {
         @include text-field-border(
             $color: $color-white-darker,
-            $width: $text-field-input-border-default,
-            $has-icon: false
+            $width: $text-field-input-border-default
         );
         color: $color-black-lighter;
     }
 
-    &.text-field--with-icon .text-field__input-element {
+    &.text-field--with-left-icon .text-field__input-element {
         @include text-field-border(
             $color: $color-white-darker,
             $width: $text-field-input-border-default,
-            $has-icon: true
+            $icon: left
+        );
+    }
+
+    &.text-field--with-right-icon .text-field__input-element {
+        @include text-field-border(
+            $color: $color-white-darker,
+            $width: $text-field-input-border-default,
+            $icon: right
         );
     }
 }
