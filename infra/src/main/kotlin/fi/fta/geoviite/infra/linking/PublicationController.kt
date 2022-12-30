@@ -12,9 +12,13 @@ import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.time.Duration
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneOffset
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
@@ -80,10 +84,24 @@ class PublicationController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping
+    @GetMapping("/frontpage")
+    //merge with getPublications
     fun getRatkoPublicationListing(): List<PublicationListingItem> {
         logger.apiCall("getRatkoPublicationListing")
         return publicationService.getPublicationListing()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping
+    fun getPublications(
+        @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
+        @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate
+    ): List<PublicationDetails> {
+        logger.apiCall("getPublications", "from" to from, "to" to to)
+        return publicationService.fetchPublicationDetails(
+            from.atStartOfDay().toInstant(ZoneOffset.UTC),
+            to.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC),
+        )
     }
 
     @PreAuthorize(AUTH_ALL_READ)

@@ -485,6 +485,7 @@ class PublicationService @Autowired constructor(
     private fun getLocationTrackAndAlignment(version: RowVersion<LocationTrack>) =
         locationTrackWithAlignment(locationTrackDao, alignmentDao, version)
 
+    //merge with fetchPublicationDetails
     fun getPublicationListing(): List<PublicationListingItem> =
         publicationDao.fetchRatkoPublicationListing()
 
@@ -520,6 +521,11 @@ class PublicationService @Autowired constructor(
     fun fetchPublications(from: Instant, to: Instant = Instant.now()): List<Publication> {
         logger.serviceCall("fetchPublications", "from" to from, "to" to to)
         return publicationDao.fetchPublications(from, to)
+    }
+
+    fun fetchPublicationDetails(from: Instant, to: Instant): List<PublicationDetails> {
+        logger.serviceCall("fetchPublicationDetails", "from" to from, "to" to to)
+        return publicationDao.fetchPublications(from, to).map { getPublicationDetails(it.id) }
     }
 
     fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
