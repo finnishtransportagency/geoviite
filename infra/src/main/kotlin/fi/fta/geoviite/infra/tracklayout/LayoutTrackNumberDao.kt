@@ -1,11 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
-import fi.fta.geoviite.infra.linking.Operation
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.TrackNumberPublishCandidate
+import fi.fta.geoviite.infra.linking.PublishedTrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
@@ -171,36 +169,29 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return result
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<TrackNumberPublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedTrackNumber> {
         val sql = """
           select
-            track_number_change_view.id,
-            track_number_change_view.change_time,
-            track_number_change_view.number,
-            track_number_change_view.change_user,
+            ptn.track_number_id as id,
+            ptn.track_number_version as version,
+            tn.number,
             layout.infer_operation_from_state_transition(
-              track_number_change_view.old_state, 
-              track_number_change_view.state
-            ) operation
-          from publication.track_number published_track_number
-            left join layout.track_number_change_view
-              on published_track_number.track_number_id = track_number_change_view.id
-                and published_track_number.track_number_version = track_number_change_view.version
-          where publication_id = :id
+              tn.old_state, 
+              tn.state
+            ) as operation
+          from publication.track_number ptn
+            left join layout.track_number_change_view tn
+              on ptn.track_number_id = tn.id
+                and ptn.track_number_version = tn.version
+          where publication_id = :publication_id
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "id" to publicationId.intValue
-            )
-        ) { rs, _ ->
-            TrackNumberPublishCandidate(
-                id = rs.getIntId("id"),
-                draftChangeTime = rs.getInstant("change_time"),
+
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            PublishedTrackNumber(
+                version = rs.getRowVersion("id", "version"),
                 number = rs.getTrackNumber("number"),
-                userName = UserName(rs.getString("change_user")),
-                operation = rs.getEnum<Operation>("operation")
+                operation = rs.getEnum("operation")
             )
-        }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
+        }.onEach { trackNumber -> logger.daoAccess(AccessType.FETCH, PublishedTrackNumber::class, trackNumber.version) }
     }
 }

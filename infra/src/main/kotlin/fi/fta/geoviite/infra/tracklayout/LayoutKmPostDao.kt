@@ -1,12 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_KM_POST
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
-import fi.fta.geoviite.infra.linking.KmPostPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
+import fi.fta.geoviite.infra.linking.PublishedKmPost
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -233,37 +232,27 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return rowVersion
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<KmPostPublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedKmPost> {
         val sql = """
-          select
-            km_post_change_view.id,
-            km_post_change_view.change_time,
-            km_post_change_view.track_number_id,
-            km_post_change_view.change_user,
-            layout.infer_operation_from_state_transition(km_post_change_view.old_state, km_post_change_view.state) operation,
-            km_number
-          from publication.km_post published_km_post
-            left join layout.km_post_change_view
-              on published_km_post.km_post_id = km_post_change_view.id
-                and published_km_post.km_post_version = km_post_change_view.version
-            left join layout.track_number
-              on km_post_change_view.track_number_id = track_number.id
-          where publication_id = :id
+            select
+              published_km_post.km_post_id as id,
+              published_km_post.km_post_version as version,
+              layout.infer_operation_from_state_transition(km_post.old_state, km_post.state) as operation,
+              km_post.km_number,
+              km_post.track_number_id
+            from publication.km_post published_km_post
+            left join layout.km_post_change_view km_post
+              on km_post.id = published_km_post.km_post_id
+                and km_post.version = published_km_post.km_post_version
+            where publication_id = :publication_id
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "id" to publicationId.intValue,
-            )
-        ) { rs, _ ->
-            KmPostPublishCandidate(
-                id = rs.getIntId("id"),
-                draftChangeTime = rs.getInstant("change_time"),
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            PublishedKmPost(
+                version = rs.getRowVersion("id", "version"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
-                userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation")
             )
-        }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
+        }.onEach { kmPost -> logger.daoAccess(AccessType.FETCH, PublishedKmPost::class, kmPost.version) }
     }
 }

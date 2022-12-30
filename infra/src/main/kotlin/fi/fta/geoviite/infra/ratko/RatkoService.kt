@@ -4,9 +4,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.PublicationDao
-import fi.fta.geoviite.infra.linking.PublicationHeader
+import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
@@ -47,7 +45,7 @@ class RatkoService @Autowired constructor(
     private val ratkoRouteNumberService: RatkoRouteNumberService,
     private val ratkoAssetService: RatkoAssetService,
     private val ratkoPushDao: RatkoPushDao,
-    private val publicationDao: PublicationDao,
+    private val publicationService: PublicationService,
     private val calculatedChangesService: CalculatedChangesService,
     private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
@@ -92,8 +90,13 @@ class RatkoService @Autowired constructor(
             } else if (!ratkoClient.getRatkoOnlineStatus().isOnline) {
                 logger.info("Ratko push cancelled because ratko connection is offline")
             } else {
-                val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
-                val publications = ratkoPushDao.fetchPublicationsAfter(lastPublicationMoment)
+                val lastPushedPublication = ratkoPushDao.getLatestPushedPublication()
+                val lastPublicationMoment = lastPushedPublication?.publicationTime ?: Instant.EPOCH
+
+                //Inclusive search, therefore the already pushed one is also returned
+                val publications = publicationService.fetchPublications(lastPublicationMoment)
+                    .filterNot { it.id == lastPushedPublication?.id }
+
                 if (publications.isNotEmpty()) {
                     pushChanges(userName, publications, getCalculatedChanges(lastPublicationMoment, publications))
                 }
@@ -135,13 +138,28 @@ class RatkoService @Autowired constructor(
 
     private fun getCalculatedChanges(
         lastPublicationMoment: Instant,
-        publications: List<PublicationHeader>,
+        publications: List<Publication>,
     ): CalculatedChanges {
-        val publicationMoment = publications.maxOf { header -> header.publishTime }
+        val publicationMoment = publications.maxOf { it.publicationTime }
+        val publicationDetails = publications.map { publicationService.getPublicationDetails(it.id) }
+
+        val locationTrackIds =
+            publicationDetails.flatMap(PublicationDetails::locationTracks).map { it.version.id }.distinct()
+        val switchIds =
+            publicationDetails.flatMap(PublicationDetails::switches).map { it.version.id }.distinct()
+        val trackNumberIds = publicationDetails
+            .flatMap { p ->
+                p.trackNumbers.map { it.version.id } +
+                        p.kmPosts.map { it.trackNumberId } +
+                        p.referenceLines.map { it.trackNumberId }
+            }
+            .distinct()
+
+
         val calculatedChanges = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = publications.flatMap { it.trackNumbers }.distinct(),
-            locationTrackIds = publications.flatMap { it.locationTracks }.distinct(),
-            switchIds = publications.flatMap { it.switches }.distinct(),
+            trackNumberIds = trackNumberIds,
+            locationTrackIds = locationTrackIds,
+            switchIds = switchIds,
             startMoment = lastPublicationMoment,
             endMoment = publicationMoment,
         )
@@ -165,7 +183,7 @@ class RatkoService @Autowired constructor(
 
     private fun pushChanges(
         userName: UserName,
-        publications: List<PublicationHeader>,
+        publications: List<Publication>,
         calculatedChanges: CalculatedChanges,
     ) {
         val ratkoPushId = ratkoPushDao.startPushing(userName, publications.map { it.id })

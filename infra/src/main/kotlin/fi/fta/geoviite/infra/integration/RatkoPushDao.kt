@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.integration
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.PublicationHeader
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -13,8 +12,6 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -100,69 +97,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             )
         }.firstOrNull()?.also {
             logger.daoAccess(AccessType.FETCH, RatkoPush::class, it)
-        }
-    }
-
-    fun fetchPublicationsAfter(moment: Instant): List<PublicationHeader> {
-        val sql = """
-            select
-              publication.id,
-              publication.publication_time,
-              array_agg(distinct track_number.id) as published_track_numbers,
-              array_agg(distinct reference_line.track_number_id) as published_reference_line_track_numbers,
-              array_agg(distinct km_post.track_number_id) as published_km_post_track_numbers,
-              array_agg(distinct location_track.id) as published_location_tracks,
-              array_agg(distinct switch.id) as published_switches
-            from publication.publication
-              --published reference_lines
-              left join publication.reference_line published_reference_line
-                on publication.id = published_reference_line.publication_id
-              left join layout.reference_line
-                on reference_line.id = published_reference_line.reference_line_id
-              --published km_posts
-              left join publication.km_post published_km_post
-                on publication.id = published_km_post.publication_id
-              left join layout.km_post
-                on km_post.id = published_km_post.km_post_id
-              --published track_numbers
-              left join publication.track_number published_track_number
-                on publication.id = published_track_number.publication_id
-              left join layout.track_number
-                on track_number.id = published_track_number.track_number_id
-              --published location_tracks
-              left join publication.location_track published_location_track
-                on publication.id = published_location_track.publication_id
-              left join layout.location_track
-                on location_track.id = published_location_track.location_track_id
-              --published switches
-              left join publication.switch published_switch
-                on published_switch.publication_id = publication.id
-              left join layout.switch 
-                on switch.id = published_switch.switch_id
-            where publication.publication_time > :moment
-            group by publication.id
-        """.trimIndent()
-
-        val params = mapOf("moment" to Timestamp.from(moment))
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            val trackNumberIds = listOf(
-                "published_track_numbers",
-                "published_reference_line_track_numbers",
-                "published_km_post_track_numbers"
-            )
-                .flatMap { column -> rs.getNullableIntArray(column) }
-                .filterNotNull()
-                .distinct()
-
-            PublicationHeader(
-                id = rs.getIntId("id"),
-                publishTime = rs.getInstant("publication_time"),
-                locationTracks = rs.getNullableIntArray("published_location_tracks").filterNotNull().map(::IntId),
-                switches = rs.getNullableIntArray("published_switches").filterNotNull().map(::IntId),
-                trackNumbers = trackNumberIds.map(::IntId),
-            )
-        }.also {
-            logger.daoAccess(AccessType.FETCH, Publication::class, it)
         }
     }
 
@@ -278,18 +212,49 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         }?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
     }
 
-    fun getLatestPushedPublicationMoment(): Instant {
+    fun getLatestPushedPublication(): Publication? {
         val sql = """
             select 
-              max(publication.publication_time) as latest_publication_time
+              publication.id,
+              publication.publication_time,
+              publication.publication_user
             from integrations.ratko_push
-              left join integrations.ratko_push_content on ratko_push.id = ratko_push_content.ratko_push_id
-              left join publication.publication on ratko_push_content.publication_id = publication.id
+            inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+            inner join publication.publication on publication.id = ratko_push_content.publication_id
             where ratko_push.status = 'SUCCESSFUL'
+            order by publication_time desc
+            limit 1
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->
-            rs.getInstantOrNull("latest_publication_time") ?: Instant.EPOCH
-        }.first()
+            Publication(
+                id = rs.getIntId("id"),
+                publicationTime = rs.getInstant("publication_time"),
+                publicationUser = rs.getString("publication_user").let(::UserName)
+            )
+        }.firstOrNull()?.also { logger.daoAccess(AccessType.FETCH, Publication::class, it.id) }
+    }
+
+    fun getRatkoStatus(publicationId: IntId<Publication>): List<RatkoPush> {
+        val sql = """
+            select
+              ratko_push.id,
+              ratko_push.start_time,
+              ratko_push.end_time,
+              ratko_push.status
+            from integrations.ratko_push
+            inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+            inner join publication.publication on publication.id = ratko_push_content.publication_id
+            where publication.id = :publication_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            RatkoPush(
+                id = rs.getIntId("id"),
+                startTime = rs.getInstant("start_time"),
+                endTime = rs.getInstantOrNull("end_time"),
+                status = rs.getEnum("status"),
+            )
+        }.onEach { push -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, push.id) }
     }
 }
