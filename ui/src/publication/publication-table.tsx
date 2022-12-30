@@ -1,9 +1,8 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
-import { PublicationTableItem } from 'publication/publication-table-item';
+import { PreviewTableItemProps, PublicationTableItem } from 'publication/publication-table-item';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import styles from './publication-table.scss';
 import { negComparator } from 'utils/array-utils';
 import {
@@ -14,70 +13,85 @@ import {
     SortInformation,
     SortProps,
 } from 'preview/change-table-sorting';
+import { PublicationDetails } from 'publication/publication-model';
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { RatkoPushStatus } from 'ratko/ratko-model';
 import {
-    trackNumberToChangeTableEntry,
-    referenceLineToChangeTableEntry,
-    locationTrackToChangeTableEntry,
-    switchToChangeTableEntry,
-    kmPostChangeTableEntry,
-    ChangeTableEntry,
+    getKmPostUiName,
+    getLocationTrackUiName,
+    getReferenceLineUiName,
+    getSwitchUiName,
+    getTrackNumberUiName,
 } from 'preview/change-table-entry-mapping';
-import { PublishCandidates } from 'publication/publication-model';
-import { TimeStamp } from 'common/common-model';
 
 export type PublicationTableProps = {
-    publicationChanges: PublishCandidates;
-    ratkoPushDate: TimeStamp | undefined;
+    publication: PublicationDetails;
 };
 
-type PublicationTableEntry = ChangeTableEntry & { pushedToRatko: string | undefined };
+const toPublicationEntries = (
+    publication: PublicationDetails,
+    trackNumbers: LayoutTrackNumber[],
+): PreviewTableItemProps[] => {
+    const getTrackNumber = (id: LayoutTrackNumberId) => {
+        return trackNumbers.find((tn) => tn.id == id)?.number;
+    };
 
-const PublicationTable: React.FC<PublicationTableProps> = ({
-    publicationChanges: changesInPublication,
-    ratkoPushDate,
-}) => {
+    const publicationInfo = {
+        changeTime: publication.publicationTime,
+        userName: publication.publicationUser,
+        ratkoPushDate:
+            publication.ratkoPushStatus === RatkoPushStatus.SUCCESSFUL
+                ? publication.ratkoPushTime
+                : null,
+    };
+
+    const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({
+        itemName: getTrackNumberUiName(trackNumber.number),
+        trackNumber: trackNumber.number,
+        operation: trackNumber.operation,
+        ...publicationInfo,
+    }));
+
+    const referenceLines = publication.referenceLines.map((referenceLine) => ({
+        itemName: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)),
+        trackNumber: getTrackNumber(referenceLine.trackNumberId),
+        operation: null,
+        ...publicationInfo,
+    }));
+
+    const locationTracks = publication.locationTracks.map((locationTrack) => ({
+        itemName: getLocationTrackUiName(locationTrack.name),
+        trackNumber: getTrackNumber(locationTrack.trackNumberId),
+        operation: locationTrack.operation,
+        ...publicationInfo,
+    }));
+
+    const switches = publication.switches.map((s) => ({
+        itemName: getSwitchUiName(s.name),
+        trackNumber: s.trackNumberIds
+            .map((id) => getTrackNumber(id))
+            .sort()
+            .join(', '),
+        operation: s.operation,
+        ...publicationInfo,
+    }));
+
+    const kmPosts = publication.kmPosts.map((kmPost) => ({
+        itemName: getKmPostUiName(kmPost.kmNumber),
+        trackNumber: getTrackNumber(kmPost.trackNumberId),
+        operation: kmPost.operation,
+        ...publicationInfo,
+    }));
+
+    return [...trackNumberItems, ...referenceLines, ...locationTracks, ...switches, ...kmPosts];
+};
+
+const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
     const { t } = useTranslation();
-    const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
-    React.useEffect(() => {
-        getTrackNumbers('OFFICIAL').then((trackNumbers) => setTrackNumbers(trackNumbers));
-    }, []);
-
-    const changesToPublicationEntries = (
-        previewChanges: PublishCandidates,
-    ): PublicationTableEntry[] =>
-        previewChanges.trackNumbers
-            .map((trackNumberCandidate) => ({
-                ...trackNumberToChangeTableEntry(trackNumberCandidate, t),
-                pushedToRatko: ratkoPushDate,
-            }))
-            .concat(
-                previewChanges.referenceLines.map((referenceLineCandidate) => ({
-                    ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers, t),
-                    pushedToRatko: ratkoPushDate,
-                })),
-            )
-            .concat(
-                previewChanges.locationTracks.map((locationTrackCandidate) => ({
-                    ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers, t),
-                    pushedToRatko: ratkoPushDate,
-                })),
-            )
-            .concat(
-                previewChanges.switches.map((switchCandidate) => ({
-                    ...switchToChangeTableEntry(switchCandidate, trackNumbers, t),
-                    pushedToRatko: ratkoPushDate,
-                })),
-            )
-            .concat(
-                previewChanges.kmPosts.map((kmPostCandidate) => ({
-                    ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers, t),
-                    pushedToRatko: ratkoPushDate,
-                })),
-            );
+    const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
-
-    const publicationEntries = changesToPublicationEntries(changesInPublication);
+    const publicationEntries = toPublicationEntries(publication, trackNumbers);
 
     const sortedPublicationEntries =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED
@@ -125,18 +139,15 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                 </thead>
                 <tbody>
                     {sortedPublicationEntries.map((entry) => (
-                        <React.Fragment key={entry.id}>
-                            {
-                                <PublicationTableItem
-                                    itemName={entry.uiName}
-                                    trackNumber={entry.trackNumber}
-                                    changeTime={entry.changeTime}
-                                    ratkoPushDate={ratkoPushDate}
-                                    userName={entry.userName}
-                                    operation={entry.operation}
-                                />
-                            }
-                        </React.Fragment>
+                        <PublicationTableItem
+                            key={entry.itemName}
+                            itemName={entry.itemName}
+                            trackNumber={entry.trackNumber}
+                            changeTime={entry.changeTime}
+                            ratkoPushDate={entry.ratkoPushDate}
+                            userName={entry.userName}
+                            operation={entry.operation}
+                        />
                     ))}
                 </tbody>
             </Table>

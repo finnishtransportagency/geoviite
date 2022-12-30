@@ -8,7 +8,7 @@ export type PreviewTableItemProps = {
     itemName: string;
     trackNumber?: string;
     changeTime: TimeStamp;
-    ratkoPushDate?: TimeStamp;
+    ratkoPushDate: TimeStamp | null;
     operation: Operation | null;
     userName: string;
 };

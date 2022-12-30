@@ -5,6 +5,7 @@ import {
     PublicationId,
     PublicationListingItem,
     PublishCandidates,
+    ValidatedPublishCandidates,
 } from 'publication/publication-model';
 import {
     LayoutKmPostId,
@@ -67,11 +68,6 @@ export interface CalculatedChanges {
     trackNumberChanges: TrackNumberChange[];
     locationTracksChanges: LocationTrackChange[];
     switchChanges: SwitchChange[];
-}
-
-export interface ValidatedPublishCandidates {
-    validatedAsPublicationUnit: PublishCandidates;
-    validatedSeparately: PublishCandidates;
 }
 
 export const getPublishCandidates = () =>

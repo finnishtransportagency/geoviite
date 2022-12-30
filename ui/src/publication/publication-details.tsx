@@ -9,7 +9,7 @@ import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { useLoaderWithTimer } from 'utils/react-utils';
-import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
+import { ratkoPushFailed } from 'ratko/ratko-model';
 
 export type PublicationDetailsProps = {
     publication: PublicationListingItem;
@@ -28,7 +28,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
 
     function setPublicationDetailsAndWaitingAfterFail(details?: PublicationDetails) {
         setPublicationDetails(details);
-        setWaitingAfterFail(publicationDetails?.status === null && anyFailed);
+        setWaitingAfterFail(publicationDetails?.ratkoPushStatus === null && anyFailed);
     }
 
     useLoaderWithTimer(
@@ -48,20 +48,12 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                     {t('frontpage.frontpage-link')}
                 </Link>
                 <span className={styles['publication-details__publication-time']}>
-                    {publicationDetails && ' > ' + formatDateFull(publicationDetails.publishTime)}
+                    {publicationDetails &&
+                        ' > ' + formatDateFull(publicationDetails.publicationTime)}
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
-                {publicationDetails && (
-                    <PublicationTable
-                        publicationChanges={publicationDetails}
-                        ratkoPushDate={
-                            publicationDetails.status === RatkoPushStatus.SUCCESSFUL
-                                ? publicationDetails.ratkoPushTime || undefined
-                                : undefined
-                        }
-                    />
-                )}
+                {publicationDetails && <PublicationTable publication={publicationDetails} />}
             </div>
             {(ratkoPushFailed(publication.status) || waitingAfterFail) && (
                 <footer className={styles['publication-details__footer']}>

@@ -111,14 +111,14 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     const changesToPublicationEntries = (previewChanges: PreviewCandidates): PreviewTableEntry[] =>
         previewChanges.trackNumbers
             .map((trackNumberCandidate) => ({
-                ...trackNumberToChangeTableEntry(trackNumberCandidate, t),
+                ...trackNumberToChangeTableEntry(trackNumberCandidate),
                 errors: trackNumberCandidate.errors,
                 type: PreviewSelectType.trackNumber,
                 pendingValidation: trackNumberCandidate.pendingValidation,
             }))
             .concat(
                 previewChanges.referenceLines.map((referenceLineCandidate) => ({
-                    ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers, t),
+                    ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers),
                     errors: referenceLineCandidate.errors,
                     type: PreviewSelectType.referenceLine,
                     pendingValidation: referenceLineCandidate.pendingValidation,
@@ -126,7 +126,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             )
             .concat(
                 previewChanges.locationTracks.map((locationTrackCandidate) => ({
-                    ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers, t),
+                    ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers),
                     errors: locationTrackCandidate.errors,
                     type: PreviewSelectType.locationTrack,
                     pendingValidation: locationTrackCandidate.pendingValidation,
@@ -134,7 +134,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             )
             .concat(
                 previewChanges.switches.map((switchCandidate) => ({
-                    ...switchToChangeTableEntry(switchCandidate, trackNumbers, t),
+                    ...switchToChangeTableEntry(switchCandidate, trackNumbers),
                     errors: switchCandidate.errors,
                     type: PreviewSelectType.switch,
                     pendingValidation: switchCandidate.pendingValidation,
@@ -142,7 +142,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             )
             .concat(
                 previewChanges.kmPosts.map((kmPostCandidate) => ({
-                    ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers, t),
+                    ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers),
                     errors: kmPostCandidate.errors,
                     type: PreviewSelectType.kmPost,
                     pendingValidation: kmPostCandidate.pendingValidation,
