@@ -22,7 +22,9 @@ const Frontpage: React.FC<FrontPageProps> = ({
 }) => {
     const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
-    const [publicationLog, setPublicationLog] = React.useState<boolean>(false);
+    const [showPublicationLogItems, setShowPublicationLogItems] = React.useState<
+        PublicationListingItem[] | undefined
+    >(undefined);
 
     useLoaderWithTimer(setPublications, getPublications, [], 30000);
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
@@ -32,13 +34,16 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     return (
         <React.Fragment>
-            {!selectedPublication && !publicationLog && (
+            {!selectedPublication && !showPublicationLogItems && (
                 <React.Fragment>
                     <div className={styles['frontpage']}>
-
-                        {publications &&
-                            <PublicationLogLink setPublicationLog={setPublicationLog}/>
-                        }
+                        {publications && (
+                            <PublicationLogLink
+                                setShowPublicationLogItems={() =>
+                                    setShowPublicationLogItems(publications)
+                                }
+                            />
+                        )}
                         {publications && (
                             <PublicationCard
                                 publications={publications}
@@ -49,16 +54,17 @@ const Frontpage: React.FC<FrontPageProps> = ({
                                 ratkoStatus={ratkoStatus}
                             />
                         )}
-                        <UserCardContainer/>
+                        <UserCardContainer />
                     </div>
-                    <div className={styles['frontpage__photo']}/>
+                    <div className={styles['frontpage__photo']} />
                 </React.Fragment>
             )}
-            {!selectedPublication && publicationLog &&
+            {!selectedPublication && showPublicationLogItems && (
                 <PublicationLogView
-                    onLogUnselected={() => setPublicationLog(false)}
+                    onLogUnselected={() => setShowPublicationLogItems(undefined)}
+                    selectedPublication={selectedPublication}
                 />
-            }
+            )}
             {selectedPublication !== undefined && (
                 <PublicationDetails
                     publication={selectedPublication}
