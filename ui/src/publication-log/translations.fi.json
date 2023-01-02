@@ -2,5 +2,14 @@
     "publication-log": {
         "link-text": "Julkaisuloki",
         "breadcrumbs-text": "> Julkaisuloki"
+    },
+    "publication-log-table": {
+        "change-target": "Muutoskohde",
+        "track-number-short": "Ratanro",
+        "kilometers": "Kilometrit",
+        "operation": "Muutos",
+        "change-time": "Aika",
+        "user": "Käyttäjä",
+        "definition": "Selite"
     }
 }

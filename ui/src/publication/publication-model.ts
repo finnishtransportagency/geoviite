@@ -25,6 +25,7 @@ export enum DraftChangeType {
 export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE';
 
 export type PublicationId = string;
+export type PublicationUserName = string;
 
 export type PublishCandidate = {
     draftChangeTime: TimeStamp;
@@ -135,3 +136,16 @@ export type PublishedKmPost = {
     kmNumber: KmNumber;
     operation: Operation;
 };
+
+// data class PublicationDetails(
+//     override val id: IntId<Publication>,
+//     override val publicationTime: Instant,
+//     override val publicationUser: UserName,
+//     val trackNumbers: List<PublishedTrackNumber>,
+//     val referenceLines: List<PublishedReferenceLine>,
+//     val locationTracks: List<PublishedLocationTrack>,
+//     val switches: List<PublishedSwitch>,
+//     val kmPosts: List<PublishedKmPost>,
+//     val ratkoPushStatus: RatkoPushStatus?,
+//     val ratkoPushTime: Instant?,
+// ) : Publication(id, publicationTime, publicationUser)

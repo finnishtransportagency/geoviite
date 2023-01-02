@@ -2,11 +2,10 @@ import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
-import { PublicationListingItem } from 'publication/publication-model';
+import PublicationLogTable from 'publication-log/publication-log-table';
 
 export type PublicationLogViewProps = {
     onLogUnselected: () => void;
-    selectedPublication: PublicationListingItem | undefined;
 };
 
 const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onLogUnselected }) => {
@@ -24,6 +23,9 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onLogUnselected
                 <span className={styles['publication-log__breadcrumbs']}>
                     {t('publication-log.breadcrumbs-text')}
                 </span>
+            </div>
+            <div className={styles['publication-log__content']}>
+                <PublicationLogTable publicationDetails={[]} />
             </div>
         </div>
     );

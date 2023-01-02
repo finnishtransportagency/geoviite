@@ -5,13 +5,33 @@
 
 $color-link: $color-blue-dark;
 
-.publication-log__link {
-    color: $color-link;
-    padding: 0 20px;
-    cursor: pointer;
+//.publication-log__link {
+//    color: $color-link;
+//    padding: 0 20px;
+//    cursor: pointer;
+//}
+
+.publication-table__container {
+    overflow-y: auto;
+    height: 100%;
+}
+
+.publication-table__header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 .publication-log {
+    &-card {
+        padding-top: 0;
+    }
+
+    &__link {
+        color: $color-link;
+        padding: 0 20px;
+        cursor: pointer;
+    }
 
     &__view {
         display: flex;

@@ -20,7 +20,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
+    const [publications, setPublications] = React.useState<PublicationListingItem[] | undefined>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLogItems, setShowPublicationLogItems] = React.useState<
         PublicationListingItem[] | undefined
@@ -60,10 +60,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                 </React.Fragment>
             )}
             {!selectedPublication && showPublicationLogItems && (
-                <PublicationLogView
-                    onLogUnselected={() => setShowPublicationLogItems(undefined)}
-                    selectedPublication={selectedPublication}
-                />
+                <PublicationLogView onLogUnselected={() => setShowPublicationLogItems(undefined)} />
             )}
             {selectedPublication !== undefined && (
                 <PublicationDetails
