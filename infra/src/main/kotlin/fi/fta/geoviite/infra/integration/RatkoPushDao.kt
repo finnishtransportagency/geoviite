@@ -279,17 +279,24 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     }
 
     fun getLatestPushedPublicationMoment(): Instant {
+        //language=SQL
         val sql = """
             select 
-              max(publication.publication_time) as latest_publication_time
+              coalesce(max(publication.publication_time), '2000-01-01 00:00:00'::timestamptz) as latest_publication_time
             from integrations.ratko_push
               left join integrations.ratko_push_content on ratko_push.id = ratko_push_content.ratko_push_id
               left join publication.publication on ratko_push_content.publication_id = publication.id
             where ratko_push.status = 'SUCCESSFUL'
         """.trimIndent()
+        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
+    }
 
-        return jdbcTemplate.query(sql) { rs, _ ->
-            rs.getInstantOrNull("latest_publication_time") ?: Instant.EPOCH
-        }.first()
+    fun getLatestPublicationMoment(): Instant {
+        //language=SQL
+        val sql = """
+            select coalesce(max(publication.publication_time), now()) as latest_publication_time
+            from publication.publication
+        """.trimIndent()
+        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
     }
 }

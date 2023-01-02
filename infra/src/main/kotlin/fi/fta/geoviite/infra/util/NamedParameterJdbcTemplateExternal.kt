@@ -18,8 +18,8 @@ inline fun <reified T> NamedParameterJdbcTemplate.queryOptional(
 
 inline fun <reified T> NamedParameterJdbcTemplate.queryOne(
     sql: String,
-    params: Map<String, *>,
-    identifier: String,
+    params: Map<String, *> = mapOf<String, Any>(),
+    identifier: String = "value",
     noinline mapper: (rs: ResultSet, index: Int) -> T,
 ): T = queryOptional(sql, params, mapper) ?: throw NoSuchEntityException(T::class, identifier)
 

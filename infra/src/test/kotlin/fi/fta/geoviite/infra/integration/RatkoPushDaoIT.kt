@@ -52,8 +52,11 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         trackNumberId = insertOfficialTrackNumber()
         locationTrackId = insertAndPublishLocationTrack()
+        val beforePublish = ratkoPushDao.getLatestPublicationMoment()
         layoutPublishId = publicationDao.createPublication(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
-        layoutPublishMoment = publicationDao.fetchPublishTime(layoutPublishId).publishTime
+        layoutPublishMoment = ratkoPushDao.getLatestPublicationMoment()
+        assertTrue(layoutPublishMoment > beforePublish)
+        assertEquals(layoutPublishMoment, publicationDao.fetchPublishTime(layoutPublishId).publishTime)
     }
 
 
@@ -135,9 +138,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val locationTrack2Id = insertAndPublishLocationTrack()
         val layoutPublishId2 = publicationDao.createPublication(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
 
-        val latestMoment = ratkoPushDao.getLatestPushedPublicationMoment()
-        assertTrue(latestMoment < layoutPublishMoment)
-        val publishes = ratkoPushDao.fetchPublicationsAfter(latestMoment)
+        val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment()
+        assertTrue(latestPushedMoment < layoutPublishMoment)
+        val publishes = ratkoPushDao.fetchPublicationsAfter(latestPushedMoment)
 
         val fetchedLayoutPublish = publishes.find { it.id == layoutPublishId }
         val fetchedLayoutPublish2 = publishes.find { it.id == layoutPublishId2 }

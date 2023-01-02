@@ -114,10 +114,11 @@ class RatkoService @Autowired constructor(
                 "Ratko is offline"
             }
 
-            // Here, we only care about current moment
+            // Here, we only care about current moment, but fix it to the latest publication DB time, pushed or not
+            val latestPublicationMoment = ratkoPushDao.getLatestPublicationMoment()
             val switchChanges = calculatedChangesService.getAllSwitchChangesByLocationTrackChange(
                 locationTrackChanges = locationTrackChanges,
-                moment = Instant.now(),
+                moment = latestPublicationMoment,
             )
 
             val pushedLocationTrackOids =
