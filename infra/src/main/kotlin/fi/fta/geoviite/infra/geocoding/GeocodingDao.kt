@@ -25,7 +25,7 @@ data class GeocodingContextCacheKey (
 ) {
     init {
         kmPostVersions.forEachIndexed { index, version ->
-            kmPostVersions.getOrNull(index+1)?.let { next ->
+            kmPostVersions.getOrNull(index+1)?.also { next ->
                 require(next.id.intValue > version.id.intValue) {
                     "Cache key km-posts must be in order: " +
                             "index=$index " +
