@@ -56,9 +56,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     @Test
     fun updatingSwitchLinkingChangesSourceToGenerated() {
         val insertedSwitch = switchDao.fetch(
-            switchDao.insert(
-                switch(665)
-            )
+            switchDao.insert(switch(665)).rowVersion
         )
         val switchLinkingParameters =
             SwitchLinkingParameters(
@@ -67,7 +65,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 geometrySwitchId = null,
                 switchStructureId = insertedSwitch.switchStructureId
             )
-        val rowVersion = switchLinkingService.saveSwitchLinking(switchLinkingParameters)
+        val rowVersion = switchLinkingService.saveSwitchLinking(switchLinkingParameters).rowVersion
         val switch = switchDao.fetch(rowVersion)
         assertEquals(switch.source, GeometrySource.GENERATED)
     }
@@ -108,7 +106,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val (locationTrack, locationTrackAlignment) = locationTrackAndAlignment(trackNumberId, segments)
         val locationTrackId = locationTrackService.saveDraft(locationTrack, locationTrackAlignment)
 
-        val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665)))
+        val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665)).rowVersion)
 
         val linkingJoints = listOf(
             SwitchLinkingJoint(
@@ -183,7 +181,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val (locationTrack, locationTrackAlignment) = locationTrackAndAlignment(trackNumberId, segments)
         val locationTrackId = locationTrackService.saveDraft(locationTrack, locationTrackAlignment)
 
-        val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665)))
+        val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665)).rowVersion)
 
         val linkingJoints = listOf(
             SwitchLinkingJoint(

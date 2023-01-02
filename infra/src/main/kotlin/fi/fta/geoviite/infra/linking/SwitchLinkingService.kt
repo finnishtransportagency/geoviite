@@ -1137,10 +1137,10 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional
-    fun saveSwitchLinking(linkingParameters: SwitchLinkingParameters): RowVersion<TrackLayoutSwitch> {
+    fun saveSwitchLinking(linkingParameters: SwitchLinkingParameters): DaoResponse<TrackLayoutSwitch> {
         val originalArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
         switchService.clearSwitchInformationFromSegments(linkingParameters.layoutSwitchId)
-        val switchId = updateLayoutSwitch(linkingParameters)
+        val switchUpdateResponse = updateLayoutSwitch(linkingParameters)
         updateSwitchLinkingIntoSegments(linkingParameters)
         val updatedArea = linkingDao.getSwitchBoundsFromTracks(DRAFT, linkingParameters.layoutSwitchId)
         val potentiallyChangedTracks =
@@ -1150,14 +1150,14 @@ class SwitchLinkingService @Autowired constructor(
             val updated = locationTrackService.updateTopology(locationTrack, alignment)
             if (updated != locationTrack) locationTrackService.saveDraft(updated)
         }
-        return switchId
+        return switchUpdateResponse
     }
 
     private fun listDraftTracksNearArea(area: BoundingBox?) =
         if (area == null) listOf()
         else locationTrackService.listNearWithAlignments(DRAFT, area.plus(1.0))
 
-    private fun updateLayoutSwitch(linkingParameters: SwitchLinkingParameters): RowVersion<TrackLayoutSwitch> {
+    private fun updateLayoutSwitch(linkingParameters: SwitchLinkingParameters): DaoResponse<TrackLayoutSwitch> {
         val layoutSwitch = switchService.getDraft(linkingParameters.layoutSwitchId)
         val newGeometrySwitchId = linkingParameters.geometrySwitchId ?: layoutSwitch.sourceId
         val newJoints = linkingParameters.joints.map { linkingJoint ->

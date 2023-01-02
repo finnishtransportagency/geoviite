@@ -17,10 +17,19 @@ import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 
+
+data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>?)
+
+data class DaoResponse<T>(val id: IntId<T>, val rowVersion: RowVersion<T>)
+
 interface IDraftableObjectWriter<T : Draftable<T>> {
-    fun insert(newItem: T): RowVersion<T>
-    fun update(updatedItem: T): RowVersion<T>
-    fun updateAndVerifyVersion(previousVersion: RowVersion<T>, updatedItem: T): RowVersion<T>
+    fun insert(newItem: T): DaoResponse<T>
+
+    fun update(updatedItem: T): DaoResponse<T>
+
+    fun deleteUnpublishedDraft(id: IntId<T>): DaoResponse<T>
+    fun deleteDraft(id: IntId<T>): DaoResponse<T>
+    fun deleteDrafts(): List<DaoResponse<T>>
 }
 
 interface IDraftableObjectReader<T : Draftable<T>> {
@@ -52,13 +61,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
             OFFICIAL -> fetchOfficialVersionOrThrow(id)
             DRAFT -> fetchDraftVersionOrThrow(id)
         }
-
-    fun deleteUnpublishedDraft(id: IntId<T>): RowVersion<T>
-
-    fun deleteDrafts(id: IntId<T>? = null): List<Pair<IntId<T>, IntId<T>?>>
 }
-
-data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>?)
 
 interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDraftableObjectWriter<T>
 
@@ -67,19 +70,6 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     private val table: DbTable,
 ): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
-
-    @Transactional
-    override fun updateAndVerifyVersion(previousVersion: RowVersion<T>, updatedItem: T): RowVersion<T> =
-        update(updatedItem).also { updatedVersion ->
-            require (updatedVersion.id == previousVersion.id) {
-                "Updated the wrong object: previous=$previousVersion updated=$updatedVersion"
-            }
-            if (updatedVersion.version != previousVersion.version+1) {
-                // We could do optimistic locking here by throwing
-                logger.warn("Updated version isn't the next one: a concurrent change may have been overwritten: " +
-                        "previous=$previousVersion updated=$updatedVersion")
-            }
-        }
 
     override fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
@@ -187,7 +177,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     }
 
     @Transactional
-    override fun deleteUnpublishedDraft(id: IntId<T>): RowVersion<T> {
+    override fun deleteUnpublishedDraft(id: IntId<T>): DaoResponse<T> {
         val sql = """
             delete from ${table.fullName}
             where draft = true
@@ -198,25 +188,37 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         val params = mapOf("id" to id.intValue)
         logger.daoAccess(DELETE, table.fullName, id)
         jdbcTemplate.setUser()
-        return getOne(table.name, id, jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        })
+        val response: List<DaoResponse<T>> = jdbcTemplate.query(sql, params) { rs, _ ->
+            // Draft-only (there is no official row) -> id is also the official id
+            rs.getDaoResponse("id", "id", "version")
+         }
+        return getOne(table.name, id, response)
     }
 
     @Transactional
-    override fun deleteDrafts(id: IntId<T>?): List<Pair<IntId<T>, IntId<T>?>> {
+    override fun deleteDraft(id: IntId<T>): DaoResponse<T> = deleteDraftsInternal(id).let { r ->
+        if (r.size > 1) throw IllegalStateException("Multiple rows deleted with one ID: $id")
+        else if (r.isEmpty()) throw NoSuchEntityException(table.name, id)
+        else r.first()
+    }
+
+    @Transactional
+    override fun deleteDrafts(): List<DaoResponse<T>> = deleteDraftsInternal()
+
+    private fun deleteDraftsInternal(id: IntId<T>? = null): List<DaoResponse<T>> {
         val sql = """
             delete from ${table.fullName}
             where draft = true 
               and (:id::int is null or :id = id or :id = ${table.draftLink})
-            returning id, ${table.draftLink} draft_of
+            returning 
+              coalesce(${table.draftLink}, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         jdbcTemplate.setUser()
-        val deletedRowIds = jdbcTemplate.query(sql, mapOf("id" to id?.intValue)) { rs, _ ->
-            rs.getIntId<T>("id") to rs.getIntIdOrNull<T>("draft_of")
-        }
-        logger.daoAccess(DELETE, table.fullName, deletedRowIds)
-        return deletedRowIds
+        return jdbcTemplate.query<DaoResponse<T>>(sql, mapOf("id" to id?.intValue)) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
     }
 
     private fun officialFetchSql(table: DbTable) = """

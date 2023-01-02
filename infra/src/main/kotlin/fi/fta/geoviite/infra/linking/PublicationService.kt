@@ -309,11 +309,11 @@ class PublicationService @Autowired constructor(
     fun publishChanges(versions: PublicationVersions, calculatedChanges: CalculatedChanges): PublishResult {
         logger.serviceCall("publishChanges", "versions" to versions)
 
-        val trackNumbers = versions.trackNumbers.map(trackNumberService::publish)
-        val kmPosts = versions.kmPosts.map(kmPostService::publish)
-        val switches = versions.switches.map(switchService::publish)
-        val referenceLines = versions.referenceLines.map(referenceLineService::publish)
-        val locationTracks = versions.locationTracks.map(locationTrackService::publish)
+        val trackNumbers = versions.trackNumbers.map(trackNumberService::publish).map { r -> r.rowVersion }
+        val kmPosts = versions.kmPosts.map(kmPostService::publish).map { r -> r.rowVersion }
+        val switches = versions.switches.map(switchService::publish).map { r -> r.rowVersion }
+        val referenceLines = versions.referenceLines.map(referenceLineService::publish).map { r -> r.rowVersion }
+        val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
 
         val publishId = publicationDao.createPublication(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
 

@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.PublicationVersion
@@ -25,12 +24,13 @@ import org.springframework.test.context.ActiveProfiles
 class ReferenceLineServiceIT @Autowired constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val referenceLineService: ReferenceLineService,
+    private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
 ): ITTestBase() {
 
     @Test
     fun creatingAndDeletingUnpublishedReferenceLineWithAlignmentWorks() {
-        val trackNumberId = createTrackNumber().id // automatically creates first version of reference line
+        val trackNumberId = createTrackNumber() // automatically creates first version of reference line
         val (savedLine, savedAlignment) = referenceLineService.getByTrackNumberWithAlignment(DRAFT, trackNumberId)
             ?: throw IllegalStateException("Reference line was not automatically created")
         assertTrue(alignmentExists(savedLine.alignmentVersion!!.id))
@@ -53,7 +53,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun referenceLineAddAndUpdateWorks() {
-        val trackNumberId = createTrackNumber().id // First version is created automatically
+        val trackNumberId = createTrackNumber() // First version is created automatically
 
         val referenceLine = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)
         assertNotNull(referenceLine)
@@ -64,8 +64,8 @@ class ReferenceLineServiceIT @Autowired constructor(
         val referenceLineId = referenceLine?.id as IntId
 
         val address = address(2)
-        val updatedLineVersion = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, address)
-        assertEquals(referenceLineId, updatedLineVersion.id)
+        val updateResponse = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, address)
+        assertEquals(referenceLineId, updateResponse?.id)
         val updatedLine = referenceLineService.getDraft(referenceLineId)
         assertEquals(address, updatedLine.startAddress)
         assertEquals(trackNumberId, updatedLine.trackNumberId)
@@ -84,16 +84,18 @@ class ReferenceLineServiceIT @Autowired constructor(
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
         val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
 
-        val editedVersion = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, TrackMeter(3,5))
-        assertNotEquals(publishedVersion.id, editedVersion.id)
+        val editResponse = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, TrackMeter(3,5))
+        assertEquals(publishedVersion.id, editResponse?.id)
+        assertNotEquals(publishedVersion.rowVersion.id, editResponse?.rowVersion?.id)
 
         val editedDraft = getAndVerifyDraft(publishedVersion.id)
         assertEquals(TrackMeter(3,5), editedDraft.startAddress)
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
-        val editedVersion2 = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, TrackMeter(8,9))
-        assertNotEquals(publishedVersion.id, editedVersion2.id)
+        val editResponse2 = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, TrackMeter(8,9))
+        assertEquals(publishedVersion.id, editResponse2?.id)
+        assertNotEquals(publishedVersion.rowVersion.id, editResponse2?.rowVersion?.id)
 
         val editedDraft2 = referenceLineService.getDraft(publishedVersion.id)
         assertEquals(TrackMeter(8,9), editedDraft2.startAddress)
@@ -110,7 +112,8 @@ class ReferenceLineServiceIT @Autowired constructor(
         val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
 
         val editedVersion = referenceLineService.saveDraft(published.copy(startAddress = TrackMeter(1, 1)))
-        assertNotEquals(publishedVersion.id, editedVersion.id)
+        assertEquals(publishedVersion.id, editedVersion.id)
+        assertNotEquals(publishedVersion.rowVersion.id, editedVersion.rowVersion.id)
 
         val editedDraft = getAndVerifyDraft(publishedVersion.id)
         assertEquals(TrackMeter(1,1), editedDraft.startAddress)
@@ -118,7 +121,8 @@ class ReferenceLineServiceIT @Autowired constructor(
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
         val editedVersion2 = referenceLineService.saveDraft(editedDraft.copy(startAddress = TrackMeter(2, 2)))
-        assertNotEquals(publishedVersion.id, editedVersion2.id)
+        assertEquals(publishedVersion.id, editedVersion2.id)
+        assertNotEquals(publishedVersion.rowVersion.id, editedVersion2.rowVersion.id)
 
         val editedDraft2 = getAndVerifyDraft(publishedVersion.id)
         assertEquals(TrackMeter(2,2), editedDraft2.startAddress)
@@ -136,7 +140,8 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val alignmentTmp = alignment(segment(2, 10.0, 20.0, 10.0, 20.0))
         val editedVersion = referenceLineService.saveDraft(published, alignmentTmp)
-        assertNotEquals(publishedVersion.id, editedVersion.id)
+        assertEquals(publishedVersion.id, editedVersion.id)
+        assertNotEquals(publishedVersion.rowVersion.id, editedVersion.rowVersion.id)
 
         val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishedVersion.id)
         assertEquals(
@@ -149,7 +154,8 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val alignmentTmp2 = alignment(segment(4, 10.0, 20.0, 10.0, 20.0))
         val editedVersion2 = referenceLineService.saveDraft(editedDraft, alignmentTmp2)
-        assertNotEquals(publishedVersion.id, editedVersion2.id)
+        assertEquals(publishedVersion.id, editedVersion2.id)
+        assertNotEquals(publishedVersion.rowVersion.id, editedVersion2.rowVersion.id)
 
         val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishedVersion.id)
         assertEquals(
@@ -180,7 +186,7 @@ class ReferenceLineServiceIT @Autowired constructor(
     private fun publishAndVerify(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         referenceLineId: IntId<ReferenceLine>,
-    ): Pair<RowVersion<ReferenceLine>, ReferenceLine> {
+    ): Pair<DaoResponse<ReferenceLine>, ReferenceLine> {
         val (draft, draftAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
         assertNotNull(draft.draft)
         assertEquals(draft, referenceLineService.getByTrackNumber(DRAFT, trackNumberId))
@@ -206,8 +212,9 @@ class ReferenceLineServiceIT @Autowired constructor(
             ?: throw IllegalStateException("Exists-check failed")
     }
 
-    private fun createAndPublishTrackNumber() = createTrackNumber().let { version ->
-        trackNumberService.publish(PublicationVersion(version.id, version)).id
+    private fun createAndPublishTrackNumber() = createTrackNumber().let { id ->
+        val version = trackNumberDao.fetchVersionOrThrow(id, DRAFT)
+        trackNumberService.publish(PublicationVersion(id, version)).id
     }
 
     private fun createTrackNumber() = trackNumberService.insert(

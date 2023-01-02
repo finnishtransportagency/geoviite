@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.logging.apiCall
@@ -34,7 +33,7 @@ class LinkingController @Autowired constructor(
     @PostMapping("/reference-lines/geometry")
     fun saveReferenceLineLinking(
         @RequestBody linkingParameters: LinkingParameters<ReferenceLine>,
-    ): RowVersion<ReferenceLine> {
+    ): IntId<ReferenceLine> {
         logger.apiCall("saveReferenceLineLinking", "linkingParameters" to linkingParameters)
         return linkingService.saveReferenceLineLinking(linkingParameters)
     }
@@ -43,7 +42,7 @@ class LinkingController @Autowired constructor(
     @PostMapping("/location-tracks/geometry")
     fun saveLocationTrackLinking(
         @RequestBody linkingParameters: LinkingParameters<LocationTrack>,
-    ): RowVersion<LocationTrack> {
+    ): IntId<LocationTrack> {
         logger.apiCall("saveLocationTrackLinking", "linkingParameters" to linkingParameters)
         return linkingService.saveLocationTrackLinking(linkingParameters)
     }
@@ -52,7 +51,7 @@ class LinkingController @Autowired constructor(
     @PostMapping("/reference-lines/empty-geometry")
     fun saveEmptyReferenceLineLinking(
         @RequestBody linkingParameters: EmptyAlignmentLinkingParameters<ReferenceLine>,
-    ): RowVersion<ReferenceLine> {
+    ): IntId<ReferenceLine> {
         logger.apiCall("saveEmptyReferenceLineLinking", "linkingParameters" to linkingParameters)
         return linkingService.saveReferenceLineLinking(linkingParameters)
     }
@@ -61,7 +60,7 @@ class LinkingController @Autowired constructor(
     @PostMapping("/location-tracks/empty-geometry")
     fun saveEmptyLocationTrackLinking(
         @RequestBody linkingParameters: EmptyAlignmentLinkingParameters<LocationTrack>,
-    ): RowVersion<LocationTrack> {
+    ): IntId<LocationTrack> {
         logger.apiCall("saveEmptyLocationTrackLinking", "linkingParameters" to linkingParameters)
         return linkingService.saveLocationTrackLinking(linkingParameters)
     }
@@ -71,7 +70,7 @@ class LinkingController @Autowired constructor(
     fun updateLocationTrackGeometry(
         @PathVariable("id") alignmentId: IntId<LocationTrack>,
         @RequestBody interval: LayoutInterval<LocationTrack>,
-    ): RowVersion<LocationTrack> {
+    ): IntId<LocationTrack> {
         logger.apiCall(
             "updateLocationTrackGeometry",
             "alignmentId" to alignmentId, "interval" to interval
@@ -84,7 +83,7 @@ class LinkingController @Autowired constructor(
     fun updateReferenceLineGeometry(
         @PathVariable("id") alignmentId: IntId<ReferenceLine>,
         @RequestBody interval: LayoutInterval<ReferenceLine>,
-    ): RowVersion<ReferenceLine> {
+    ): IntId<ReferenceLine> {
         logger.apiCall(
             "updateReferenceLineGeometry",
             "alignmentId" to alignmentId, "interval" to interval

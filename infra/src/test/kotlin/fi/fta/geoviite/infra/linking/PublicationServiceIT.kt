@@ -218,8 +218,8 @@ class PublicationServiceIT @Autowired constructor(
         val track = locationTrack(insertOfficialTrackNumber(), alignmentDao.fetch(alignmentVersion), name = "test 01")
             .copy(alignmentVersion = alignmentVersion)
 
-        val newDraftVersion = referenceLineService.saveDraft(referenceLine(track.trackNumberId), referenceAlignment)
-        referenceLineService.publish(PublicationVersion(newDraftVersion.id, newDraftVersion))
+        val (newDraftId, newDraftVersion) = referenceLineService.saveDraft(referenceLine(track.trackNumberId), referenceAlignment)
+        referenceLineService.publish(PublicationVersion(newDraftId, newDraftVersion))
 
         val officialId = locationTrackDao.insert(track).id
 
@@ -596,15 +596,16 @@ private fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublishingWorks(
     create: () -> T,
     mutate: (orig: T) -> T,
 ) {
-    val draftVersion1 = service.saveDraft(create())
-    val officialId = draftVersion1.id // First id remains official
+    // First id remains official
+    val (officialId, draftVersion1) = service.saveDraft(create())
     assertEquals(1, draftVersion1.version)
 
     val officialVersion1 = publishAndCheck(draftVersion1, dao, service).first
     assertEquals(officialId, officialVersion1.id)
     assertEquals(2, officialVersion1.version)
 
-    val draftVersion2 = service.saveDraft(mutate(dao.fetch(officialVersion1)))
+    val (draftOfficialId2, draftVersion2) = service.saveDraft(mutate(dao.fetch(officialVersion1)))
+    assertEquals(officialId, draftOfficialId2)
     assertNotEquals(officialId, draftVersion2.id)
     assertEquals(1, draftVersion2.version)
 
@@ -627,7 +628,8 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
     assertNotNull(draft.draft)
     assertEquals(DataType.STORED, draft.dataType)
 
-    val publishedVersion = service.publish(PublicationVersion(id, rowVersion))
+    val (publishedId, publishedVersion) = service.publish(PublicationVersion(id, rowVersion))
+    assertEquals(id, publishedId)
     assertEquals(publishedVersion, dao.fetchOfficialVersionOrThrow(id))
     assertEquals(publishedVersion, dao.fetchDraftVersion(id))
     assertEquals(VersionPair(publishedVersion, null), dao.fetchVersionPair(id))

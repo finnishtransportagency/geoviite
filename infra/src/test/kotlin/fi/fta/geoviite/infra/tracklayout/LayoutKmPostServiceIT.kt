@@ -69,7 +69,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
         val result = kmPostService.getByKmNumber(OFFICIAL, trackNumberId, kmPost.kmNumber)
         assertNotNull(result)
-        assertMatches(kmPost, result!!)
+        assertMatches(kmPost, result)
     }
 
     @Test

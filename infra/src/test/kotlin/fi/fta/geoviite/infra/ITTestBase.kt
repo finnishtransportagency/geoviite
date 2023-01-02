@@ -2,13 +2,9 @@ package fi.fta.geoviite.infra
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.configuration.USER_HEADER
-import fi.fta.geoviite.infra.tracklayout.LayoutState
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
 import org.junit.jupiter.api.BeforeEach
@@ -54,7 +50,7 @@ abstract class ITTestBase {
 
     fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
         val version = trackNumberDao.fetchVersions(DRAFT, false, trackNumber).firstOrNull()
-            ?: insertNewTrackNumber(trackNumber, false)
+            ?: insertNewTrackNumber(trackNumber, false).rowVersion
         return version.let(trackNumberDao::fetch)
     }
 
@@ -82,7 +78,7 @@ abstract class ITTestBase {
         trackNumber: TrackNumber,
         draft: Boolean,
         state: LayoutState = LayoutState.IN_USE,
-    ): RowVersion<TrackLayoutTrackNumber> =
+    ): DaoResponse<TrackLayoutTrackNumber> =
         transactional {
             jdbc.setUser()
             trackNumberDao.insert(trackNumber(

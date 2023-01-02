@@ -100,7 +100,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     }
 
     @Transactional
-    override fun insert(newItem: TrackLayoutTrackNumber): RowVersion<TrackLayoutTrackNumber> {
+    override fun insert(newItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
         verifyDraftableInsert(newItem)
         val sql = """
             insert into layout.track_number(
@@ -119,7 +119,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               :draft, 
               :draft_of_track_number_id
             ) 
-            returning id, version
+            returning 
+              coalesce(draft_of_track_number_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "external_id" to newItem.externalId,
@@ -130,15 +133,15 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_track_number_id" to draftOfId(newItem)?.intValue,
         )
         jdbcTemplate.setUser()
-        val idAndVersion = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion<TrackLayoutTrackNumber>("id", "version")
+        val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
-        logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, idAndVersion)
-        return idAndVersion
+        logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, response)
+        return response
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutTrackNumber): RowVersion<TrackLayoutTrackNumber> {
+    override fun update(updatedItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.track_number
@@ -150,7 +153,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               draft = :draft,
               draft_of_track_number_id = :draft_of_track_number_id
             where id = :id
-            returning id, version
+            returning 
+              coalesce(draft_of_track_number_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
@@ -162,11 +168,11 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_track_number_id" to draftOfId(updatedItem)?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: RowVersion<TrackLayoutTrackNumber> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get new version for Track Layout TrackNumber")
-        logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, rowId)
-        return result
+        val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        } ?: throw IllegalStateException("Failed to get new version for Track Layout TrackNumber")
+        logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, response)
+        return response
     }
 
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedTrackNumber> {

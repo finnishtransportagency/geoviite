@@ -145,7 +145,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     @Transactional
-    override fun insert(newItem: TrackLayoutSwitch): RowVersion<TrackLayoutSwitch> {
+    override fun insert(newItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
         verifyDraftableInsert(newItem.id, newItem.draft)
 
         val sql = """
@@ -174,10 +174,13 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               :draft_of_switch_id,
               :source::layout.geometry_source
             )
-            returning id, version
+            returning 
+              coalesce(draft_of_switch_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         jdbcTemplate.setUser()
-        val id: RowVersion<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
+        val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
             sql, mapOf(
                 "external_id" to newItem.externalId,
                 "geometry_switch_id" to if (newItem.sourceId is IntId) newItem.sourceId.intValue else null,
@@ -190,15 +193,15 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 "draft_of_switch_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
                 "source" to newItem.source.name
             )
-        ) { rs, _ -> rs.getRowVersion("id", "version") }
+        ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
             ?: throw IllegalStateException("Failed to generate ID for new switch")
-        if (newItem.joints.isNotEmpty()) upsertJoints(id, newItem.joints)
-        logger.daoAccess(INSERT, TrackLayoutSwitch::class, id)
-        return id
+        if (newItem.joints.isNotEmpty()) upsertJoints(response.rowVersion, newItem.joints)
+        logger.daoAccess(INSERT, TrackLayoutSwitch::class, response)
+        return response
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutSwitch): RowVersion<TrackLayoutSwitch> {
+    override fun update(updatedItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.switch
@@ -212,7 +215,10 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               draft = :draft,
               draft_of_switch_id = :draft_of_switch_id
             where id = :id
-            returning id, version
+            returning 
+              coalesce(draft_of_switch_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
@@ -226,14 +232,14 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             "draft_of_switch_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: RowVersion<TrackLayoutSwitch> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
+        val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        } ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
 
-        upsertJoints(result, updatedItem.joints)
+        upsertJoints(response.rowVersion, updatedItem.joints)
 
-        logger.daoAccess(UPDATE, TrackLayoutSwitch::class, rowId)
-        return result
+        logger.daoAccess(UPDATE, TrackLayoutSwitch::class, response)
+        return response
     }
 
     private fun upsertJoints(

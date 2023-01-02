@@ -14,11 +14,11 @@ fun moveLocationTrackGeometryPointsAndUpdate(
     moveFunc: (point: IPoint, length: Double) -> IPoint,
     locationTrackService: LocationTrackService
 ): Instant {
-    val version = locationTrackService.saveDraft(
+    val (id, version) = locationTrackService.saveDraft(
         locationTrack,
         moveAlignmentPoints(alignment, moveFunc)
     )
-    locationTrackService.publish(PublicationVersion(locationTrack.id as IntId, version))
+    locationTrackService.publish(PublicationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
 
@@ -29,7 +29,7 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService
 ): Instant {
-    val version = locationTrackService.saveDraft(
+    val (id, version) = locationTrackService.saveDraft(
         locationTrack.copy(
             topologyEndSwitch = TopologyLocationTrackSwitch(
                 switchId = switchId,
@@ -38,7 +38,7 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
         ),
         alignment
     )
-    locationTrackService.publish(PublicationVersion(locationTrack.id as IntId, version))
+    locationTrackService.publish(PublicationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
 
@@ -47,17 +47,16 @@ fun removeTopologySwitchesFromLocationTrackAndUpdate(
     alignment: LayoutAlignment,
     locationTrackService: LocationTrackService
 ): Instant {
-    val version = locationTrackService.saveDraft(
+    val (id, version) = locationTrackService.saveDraft(
         locationTrack.copy(
             topologyStartSwitch = null,
             topologyEndSwitch = null
         ),
         alignment
     )
-    locationTrackService.publish(PublicationVersion(locationTrack.id as IntId, version))
+    locationTrackService.publish(PublicationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
-
 
 fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
@@ -66,7 +65,7 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService
 ): Instant {
-    val version = locationTrackService.saveDraft(
+    val (id, version) = locationTrackService.saveDraft(
         locationTrack.copy(
             topologyStartSwitch = TopologyLocationTrackSwitch(
                 switchId = switchId,
@@ -75,7 +74,7 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
         ),
         alignment
     )
-    locationTrackService.publish(PublicationVersion(locationTrack.id as IntId, version))
+    locationTrackService.publish(PublicationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
 
@@ -86,11 +85,11 @@ fun moveReferenceLineGeometryPointsAndUpdate(
     moveFunc: (point: IPoint, length: Double) -> IPoint,
     referenceLineService: ReferenceLineService
 ): Instant {
-    val version = referenceLineService.saveDraft(
+    val (id, version) = referenceLineService.saveDraft(
         referenceLine,
         moveAlignmentPoints(alignment, moveFunc)
     )
-    referenceLineService.publish(PublicationVersion(referenceLine.id as IntId, version))
+    referenceLineService.publish(PublicationVersion(id, version))
     return referenceLineService.getChangeTime()
 }
 
@@ -119,9 +118,9 @@ fun moveSwitchPoints(
     moveFunc: (point: IPoint) -> IPoint,
     switchService: LayoutSwitchService,
 ): Pair<TrackLayoutSwitch, Instant> {
-    val draftVersion = switchService.saveDraft(moveSwitchPoints(switch, moveFunc))
-    val publishedVersion = switchService.publish(PublicationVersion(switch.id as IntId, draftVersion))
-    val updatedSwitch = switchService.getOrThrow(PublishType.OFFICIAL, publishedVersion.id)
+    val (id, draftVersion) = switchService.saveDraft(moveSwitchPoints(switch, moveFunc))
+    switchService.publish(PublicationVersion(id, draftVersion))
+    val updatedSwitch = switchService.getOrThrow(PublishType.OFFICIAL, id)
     return updatedSwitch to switchService.getChangeTime()
 }
 
