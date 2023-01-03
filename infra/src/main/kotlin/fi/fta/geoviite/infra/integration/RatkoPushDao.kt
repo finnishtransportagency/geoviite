@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -212,27 +213,30 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         }?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
     }
 
-    fun getLatestPushedPublication(): Publication? {
+    fun getLatestPushedPublicationMoment(): Instant {
+        //language=SQL
         val sql = """
             select 
-              publication.id,
-              publication.publication_time,
-              publication.publication_user
+              coalesce(max(publication.publication_time), '2000-01-01 00:00:00'::timestamptz) as latest_publication_time
             from integrations.ratko_push
-            inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
-            inner join publication.publication on publication.id = ratko_push_content.publication_id
+            left join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+            left join publication.publication on publication.id = ratko_push_content.publication_id
             where ratko_push.status = 'SUCCESSFUL'
-            order by publication_time desc
-            limit 1
         """.trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ ->
-            Publication(
-                id = rs.getIntId("id"),
-                publicationTime = rs.getInstant("publication_time"),
-                publicationUser = rs.getString("publication_user").let(::UserName)
-            )
-        }.firstOrNull()?.also { logger.daoAccess(AccessType.FETCH, Publication::class, it.id) }
+        return jdbcTemplate.queryOne(sql) { rs, _ ->
+            rs.getInstant("latest_publication_time")
+        }.also { logger.daoAccess(AccessType.FETCH, Publication::class) }
+    }
+
+    fun getLatestPublicationMoment(): Instant {
+        //language=SQL
+        val sql = """
+            select coalesce(max(publication.publication_time), now()) as latest_publication_time
+            from publication.publication
+        """.trimIndent()
+        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
+            .also { logger.daoAccess(AccessType.FETCH, Publication::class) }
     }
 
     fun getRatkoStatus(publicationId: IntId<Publication>): List<RatkoPush> {

@@ -8,6 +8,8 @@ import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
+import PublicationLogView from 'publication-log/publication-log-view';
+import PublicationLogLink from 'publication-log/publication-log-link';
 
 type FrontPageProps = {
     selectedPublication: PublicationListingItem | undefined;
@@ -20,6 +22,9 @@ const Frontpage: React.FC<FrontPageProps> = ({
 }) => {
     const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
+    const [showPublicationLogItems, setShowPublicationLogItems] = React.useState<
+        PublicationListingItem[] | undefined
+    >(undefined);
 
     useLoaderWithTimer(setPublications, getPublicationsForFrontpage, [], 30000);
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
@@ -29,9 +34,16 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     return (
         <React.Fragment>
-            {!selectedPublication && (
+            {!selectedPublication && !showPublicationLogItems && (
                 <React.Fragment>
                     <div className={styles['frontpage']}>
+                        {publications && (
+                            <PublicationLogLink
+                                setShowPublicationLogItems={() =>
+                                    setShowPublicationLogItems(publications)
+                                }
+                            />
+                        )}
                         {publications && (
                             <PublicationCard
                                 publications={publications}
@@ -46,6 +58,12 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     </div>
                     <div className={styles['frontpage__photo']} />
                 </React.Fragment>
+            )}
+            {!selectedPublication && showPublicationLogItems && (
+                <PublicationLogView
+                    onLogUnselected={() => setShowPublicationLogItems(undefined)}
+                    selectedPublication={selectedPublication}
+                />
             )}
             {selectedPublication !== undefined && (
                 <PublicationDetails

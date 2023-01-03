@@ -73,7 +73,7 @@ class PublicationService @Autowired constructor(
     }
 
     fun validatePublishCandidates(versions: PublicationVersions): ValidatedPublishCandidates {
-        logger.serviceCall("validatePublishCandidates")
+        logger.serviceCall("validatePublishCandidates", "versions" to versions)
         val allPublishCandidates = collectPublishCandidates()
         val (candidatesInRequest, candidatesNotInRequest) = allPublishCandidates.splitByRequest(versions)
         return ValidatedPublishCandidates(
@@ -82,7 +82,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun validateSeparately(publishCandidates: PublishCandidates) = PublishCandidates(
+    private fun validateSeparately(publishCandidates: PublishCandidates)  = PublishCandidates(
         trackNumbers = publishCandidates.trackNumbers.map { candidate ->
             candidate.copy(errors = validateTrackNumberOwnInformation(candidate.id))
         },
@@ -100,7 +100,7 @@ class PublicationService @Autowired constructor(
         },
     )
 
-    fun validateAsPublicationUnit(candidates: PublishCandidates, versions: PublicationVersions) =
+    private fun validateAsPublicationUnit(candidates: PublishCandidates, versions: PublicationVersions) =
         collectCacheKeys(versions).let { cacheKeys -> PublishCandidates(
             trackNumbers = versions.trackNumbers.map { version ->
                 candidates.getTrackNumber(version.officialId)
@@ -126,7 +126,7 @@ class PublicationService @Autowired constructor(
 
 
     fun validatePublishRequest(versions: PublicationVersions) {
-        logger.serviceCall("validate", "versions" to versions)
+        logger.serviceCall("validatePublishRequest", "versions" to versions)
         val cacheKeys = collectCacheKeys(versions)
         versions.trackNumbers.forEach { version ->
             assertNoErrors(version, validateTrackNumber(version, versions, cacheKeys))
@@ -147,7 +147,7 @@ class PublicationService @Autowired constructor(
 
     @Transactional
     fun revertPublishCandidates(toDelete: PublishRequest): PublishResult {
-        logger.serviceCall("revertPublishCandidates")
+        logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(id) }.size
         alignmentDao.deleteOrphanedAlignments()
@@ -192,13 +192,16 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getPublicationVersions(request: PublishRequest) = PublicationVersions(
-        trackNumbers = trackNumberDao.fetchPublicationVersions(request.trackNumbers),
-        referenceLines = referenceLineDao.fetchPublicationVersions(request.referenceLines),
-        kmPosts = kmPostDao.fetchPublicationVersions(request.kmPosts),
-        locationTracks = locationTrackDao.fetchPublicationVersions(request.locationTracks),
-        switches = switchDao.fetchPublicationVersions(request.switches),
-    )
+    fun getPublicationVersions(request: PublishRequest): PublicationVersions {
+        logger.serviceCall("getPublicationVersions", "request" to request)
+        return PublicationVersions(
+            trackNumbers = trackNumberDao.fetchPublicationVersions(request.trackNumbers),
+            referenceLines = referenceLineDao.fetchPublicationVersions(request.referenceLines),
+            kmPosts = kmPostDao.fetchPublicationVersions(request.kmPosts),
+            locationTracks = locationTrackDao.fetchPublicationVersions(request.locationTracks),
+            switches = switchDao.fetchPublicationVersions(request.switches),
+        )
+    }
 
     private fun updateExternalIdForLocationTrack(locationTrackId: IntId<LocationTrack>) {
         val locationTrackOid = ratkoService?.let { s ->

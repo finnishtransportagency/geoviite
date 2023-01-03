@@ -31,7 +31,10 @@
                 "CantRotationPoint": "Kallistuskulman kiertopisteen arvo on virheellinen",
                 "CantTransitionType": "Kallistuskulman siirtymän tyyppi on virheellinen",
                 "SwitchHand": "Vaihteen kätisyyden arvo on virheellinen",
-                "Point": "X/Y -pistearvon formaatti on virheellinen"
+                "Point": "X/Y -pistearvon formaatti on virheellinen",
+                "Double": "Reaaliluvun muoto on virheellinen",
+                "Int": "Kokonaisluvun muoto on virheellinen",
+                "BigDecimal": "Reaaliluvun muoto on virheellinen"
             }
         },
         "deleting": {

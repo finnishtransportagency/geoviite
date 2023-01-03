@@ -90,12 +90,11 @@ class RatkoService @Autowired constructor(
             } else if (!ratkoClient.getRatkoOnlineStatus().isOnline) {
                 logger.info("Ratko push cancelled because ratko connection is offline")
             } else {
-                val lastPushedPublication = ratkoPushDao.getLatestPushedPublication()
-                val lastPublicationMoment = lastPushedPublication?.publicationTime ?: Instant.EPOCH
+                val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
 
                 //Inclusive search, therefore the already pushed one is also returned
                 val publications = publicationService.fetchPublications(lastPublicationMoment)
-                    .filterNot { it.id == lastPushedPublication?.id }
+                    .filterNot { it.publicationTime == lastPublicationMoment }
 
                 if (publications.isNotEmpty()) {
                     pushChanges(userName, publications, getCalculatedChanges(lastPublicationMoment, publications))
@@ -117,10 +116,11 @@ class RatkoService @Autowired constructor(
                 "Ratko is offline"
             }
 
-            // Here, we only care about current moment
+            // Here, we only care about current moment, but fix it to the latest publication DB time, pushed or not
+            val latestPublicationMoment = ratkoPushDao.getLatestPublicationMoment()
             val switchChanges = calculatedChangesService.getAllSwitchChangesByLocationTrackChange(
                 locationTrackChanges = locationTrackChanges,
-                moment = Instant.now(),
+                moment = latestPublicationMoment,
             )
 
             val pushedLocationTrackOids =
