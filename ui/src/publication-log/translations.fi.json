@@ -6,7 +6,7 @@
     "publication-log-table": {
         "change-target": "Muutoskohde",
         "track-number-short": "Ratanro",
-        "kilometers": "Kilometrit",
+        "changed-km-numbers": "Kilometrit",
         "operation": "Muutos",
         "change-time": "Aika",
         "user": "Käyttäjä",

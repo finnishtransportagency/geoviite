@@ -25,7 +25,7 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onLogUnselected
                 </span>
             </div>
             <div className={styles['publication-log__content']}>
-                <PublicationLogTable publicationDetails={[]} />
+                <PublicationLogTable />
             </div>
         </div>
     );

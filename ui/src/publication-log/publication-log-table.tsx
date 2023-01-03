@@ -48,7 +48,7 @@ export type PublicationLogTableEntry = {
     operation: Operation;
     changeTime: string;
     userName: string;
-    kilometers: string;
+    changedKmNumbers: string;
     definition: string;
 };
 
@@ -76,7 +76,7 @@ const trackNumberToLogTableEntry = (
     ...changeTableEntryCommonFields(trackNumber, changeTime, userName),
     name: trackNumber.number,
     trackNumber: trackNumber.number,
-    kilometers: '', // ????
+    changedKmNumbers: '', // ????
     definition: '',
 });
 
@@ -91,7 +91,7 @@ const kmPostToLogTableEntry = (
         ...changeTableEntryCommonFields(kmPost, changeTime, userName),
         name: kmPost.kmNumber,
         trackNumber: trackNumber ? trackNumber.number : '',
-        kilometers: '', // ????
+        changedKmNumbers: '', // todo tulossa myöhemmin
         definition: '',
     };
 };
@@ -133,7 +133,7 @@ const PublicationLogTable: React.FC = () => {
                     <tr>
                         <Th>{t('publication-log-table.change-target')}</Th>
                         <Th>{t('publication-log-table.track-number-short')}</Th>
-                        <Th>{t('publication-log-table.kilometers')}</Th>
+                        <Th>{t('publication-log-table.changed-km-numbers')}</Th>
                         <Th>{t('publication-log-table.operation')}</Th>
                         <Th>{t('publication-log-table.change-time')}</Th>
                         <Th>{t('publication-log-table.user')}</Th>
@@ -146,7 +146,7 @@ const PublicationLogTable: React.FC = () => {
                             <tr className={'preview-table-item'}>
                                 <td>{entry.name}</td>
                                 <td>{entry.trackNumber}</td>
-                                <td>{entry.kilometers}</td>
+                                <td>{entry.changedKmNumbers}</td>
                                 <td>{entry.operation}</td>
                                 <td>{entry.changeTime}</td>
                                 <td>{entry.userName}</td>
