@@ -90,6 +90,9 @@ export const publishCandidates = (request: PublishRequest) => {
 export const getPublicationsForFrontpage = () =>
     getIgnoreError<PublicationListingItem[]>(`${PUBLICATION_URL}/frontpage`);
 
+export const getPublications = (startDate: Date | undefined, endDate: Date | undefined) =>
+    getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}?from=${startDate}&to=${endDate}`);
+
 export const getPublication = (id: PublicationId) =>
     getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 

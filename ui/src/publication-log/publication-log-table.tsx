@@ -3,43 +3,22 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './publication-log.scss';
 import {
-    KmPostPublishCandidate,
     LocationTrackPublishCandidate,
     Operation,
     PublicationDetails,
+    PublicationId,
+    PublishedKmPost,
+    PublishedLocationTrack,
+    PublishedReferenceLine,
+    PublishedSwitch,
+    PublishedTrackNumber,
     ReferenceLinePublishCandidate,
     SwitchPublishCandidate,
-    TrackNumberPublishCandidate,
 } from 'publication/publication-model';
-import { ChangeTableEntry } from 'preview/change-table-entry-mapping';
-import {
-    LayoutKmPostId,
-    LayoutSwitchId,
-    LayoutTrackNumber,
-    LayoutTrackNumberId,
-    LocationTrackId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-
-// datepicker component
-
-// operation muutos
-
-// {id: PublicationId,
-//     name: string,
-//     uiName: string,
-//     trackNumber: string,
-//     changeTime: string,
-//     userName: string,
-//     operation: Operation}
-
-type PublicationId =
-    | LayoutTrackNumberId
-    | ReferenceLineId
-    | LocationTrackId
-    | LayoutSwitchId
-    | LayoutKmPostId;
+import { useLoader } from 'utils/react-utils';
+import { getPublications, getPublicationsForFrontpage } from 'publication/publication-api';
 
 export type PublicationLogTableEntry = {
     id: PublicationId;
@@ -52,13 +31,15 @@ export type PublicationLogTableEntry = {
     definition: string;
 };
 
+// todo move these helper functions to a separate file
 const changeTableEntryCommonFields = (
     candidate:
-        | LocationTrackPublishCandidate
-        | TrackNumberPublishCandidate
-        | ReferenceLinePublishCandidate
+        | PublishedLocationTrack
+        | PublishedTrackNumber
+        | PublishedReferenceLine
         | SwitchPublishCandidate
-        | KmPostPublishCandidate,
+        | PublishedKmPost
+        | PublishedSwitch,
     changeTime: string,
     userName: string,
 ) => ({
@@ -69,19 +50,19 @@ const changeTableEntryCommonFields = (
 });
 
 const trackNumberToLogTableEntry = (
-    trackNumber: TrackNumberPublishCandidate,
+    trackNumber: PublishedTrackNumber,
     changeTime: string,
     userName: string,
 ): PublicationLogTableEntry => ({
     ...changeTableEntryCommonFields(trackNumber, changeTime, userName),
     name: trackNumber.number,
     trackNumber: trackNumber.number,
-    changedKmNumbers: '', // ????
-    definition: '',
+    changedKmNumbers: '', // todo tulossa myöhemmin
+    definition: '', // todo tulossa myöhemmin
 });
 
 const kmPostToLogTableEntry = (
-    kmPost: KmPostPublishCandidate,
+    kmPost: PublishedKmPost,
     changeTime: string,
     userName: string,
     trackNumbers: LayoutTrackNumber[],
@@ -92,39 +73,104 @@ const kmPostToLogTableEntry = (
         name: kmPost.kmNumber,
         trackNumber: trackNumber ? trackNumber.number : '',
         changedKmNumbers: '', // todo tulossa myöhemmin
-        definition: '',
+        definition: '', // todo tulossa myöhemmin
     };
 };
 
-const PublicationLogTable: React.FC = () => {
+const locationTrackToLogTableEntry = (
+    locationTrack: PublishedLocationTrack,
+    changeTime: string,
+    userName: string,
+    trackNumbers: LayoutTrackNumber[],
+): PublicationLogTableEntry => {
+    const trackNumber = trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId);
+    return {
+        ...changeTableEntryCommonFields(locationTrack, changeTime, userName),
+        name: locationTrack.name,
+        trackNumber: trackNumber ? trackNumber.number : '',
+        changedKmNumbers: '', // todo tulossa myöhemmin
+        definition: '', // todo tulossa myöhemmin
+    };
+};
+
+const referenceLineToLogTableEntry = (
+    referenceLine: PublishedReferenceLine,
+    changeTime: string,
+    userName: string,
+    trackNumbers: LayoutTrackNumber[],
+): PublicationLogTableEntry => {
+    const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
+    return {
+        ...changeTableEntryCommonFields(referenceLine, changeTime, userName),
+        name: referenceLine.trackNumberId,
+        trackNumber: trackNumber ? trackNumber.number : '',
+        changedKmNumbers: '', // todo tulossa myöhemmin
+        definition: '', // todo tulossa myöhemmin
+    };
+};
+
+const switchesToLogTableEntry = (
+    publishedSwitch: PublishedSwitch,
+    changeTime: string,
+    userName: string,
+    trackNumbers: LayoutTrackNumber[],
+): PublicationLogTableEntry => {
+    const trackNumber = trackNumbers.find((tn) => publishedSwitch.trackNumberIds.includes(tn.id));
+    return {
+        ...changeTableEntryCommonFields(publishedSwitch, changeTime, userName),
+        name: publishedSwitch.name,
+        trackNumber: trackNumber ? trackNumber.number : '',
+        changedKmNumbers: '', // todo tulossa myöhemmin
+        definition: '', // todo tulossa myöhemmin
+    };
+};
+
+type PublicationLogTableProps = {
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+};
+
+const PublicationLogTable: React.FC<PublicationLogTableProps> = ({ startDate, endDate }) => {
     const { t } = useTranslation();
 
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
+
     React.useEffect(() => {
         getTrackNumbers('OFFICIAL').then((trackNumbers) => setTrackNumbers(trackNumbers));
     }, []);
 
-    const publicationLogTableEntries: PublicationLogTableEntry[] = [];
-
-    const detailsToEntry = (publicationDetails: PublicationDetails) => {
+    const detailsToEntry = (publicationDetails: PublicationDetails): PublicationLogTableEntry[] => {
         const changeTime = publicationDetails.publicationTime;
         const userName = publicationDetails.publicationUser;
-        const trackNums = publicationDetails.trackNumbers.map((t) =>
+
+        const trackNums: PublicationLogTableEntry[] = publicationDetails.trackNumbers.map((t) =>
             trackNumberToLogTableEntry(t, changeTime, userName),
         );
-        const kmPosts = publicationDetails.kmPosts.map((km) =>
+        const kmPosts: PublicationLogTableEntry[] = publicationDetails.kmPosts.map((km) =>
             kmPostToLogTableEntry(km, changeTime, userName, trackNumbers),
         );
+        const lTracks: PublicationLogTableEntry[] = publicationDetails.locationTracks.map((l) =>
+            locationTrackToLogTableEntry(l, changeTime, userName, trackNumbers),
+        );
+        const rLines = publicationDetails.referenceLines.map((rl) =>
+            referenceLineToLogTableEntry(rl, changeTime, userName, trackNumbers),
+        );
+        const switches = publicationDetails.switches.map((s) =>
+            switchesToLogTableEntry(s, changeTime, userName, trackNumbers),
+        );
 
-        // todo
-        publicationDetails.locationTracks;
-        publicationDetails.referenceLines;
-        publicationDetails.switches;
+        return trackNums.concat(kmPosts).concat(lTracks).concat(rLines).concat(switches);
     };
 
-    // todo add datepicker to get start and end dates
+    // todo add fetch PublicationDetails with dates
+    const publicationDetails = useLoader(
+        () => getPublications(startDate, endDate),
+        [startDate, endDate],
+    );
 
-    // todo add fetch PublicationDetails
+    const publicationLogTableEntries: PublicationLogTableEntry[] = publicationDetails
+        ? detailsToEntry(publicationDetails)
+        : [];
 
     return (
         <div className={styles['publication-table__container']}>

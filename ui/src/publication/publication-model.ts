@@ -106,17 +106,21 @@ export type PublicationDetails = {
 };
 
 export type PublishedTrackNumber = {
+    id: PublicationId;
     version: RowVersion;
     number: TrackNumber;
     operation: Operation;
 };
 
 export type PublishedReferenceLine = {
+    id: PublicationId;
     version: RowVersion;
     trackNumberId: LayoutTrackNumberId;
+    operation: Operation;
 };
 
 export type PublishedLocationTrack = {
+    id: PublicationId;
     version: RowVersion;
     name: string;
     trackNumberId: LayoutTrackNumberId;
@@ -124,6 +128,7 @@ export type PublishedLocationTrack = {
 };
 
 export type PublishedSwitch = {
+    id: PublicationId;
     version: RowVersion;
     trackNumberIds: LayoutTrackNumberId[];
     name: string;
@@ -131,21 +136,9 @@ export type PublishedSwitch = {
 };
 
 export type PublishedKmPost = {
+    id: PublicationId;
     version: RowVersion;
     trackNumberId: LayoutTrackNumberId;
     kmNumber: KmNumber;
     operation: Operation;
 };
-
-// data class PublicationDetails(
-//     override val id: IntId<Publication>,
-//     override val publicationTime: Instant,
-//     override val publicationUser: UserName,
-//     val trackNumbers: List<PublishedTrackNumber>,
-//     val referenceLines: List<PublishedReferenceLine>,
-//     val locationTracks: List<PublishedLocationTrack>,
-//     val switches: List<PublishedSwitch>,
-//     val kmPosts: List<PublishedKmPost>,
-//     val ratkoPushStatus: RatkoPushStatus?,
-//     val ratkoPushTime: Instant?,
-// ) : Publication(id, publicationTime, publicationUser)
