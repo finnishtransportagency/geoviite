@@ -77,7 +77,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         logger.daoAccess(AccessType.UPDATE, RatkoPush::class, pushId)
     }
 
-    fun fetchPreviousPush(): RatkoPush? {
+    fun fetchPreviousPush(): RatkoPush {
         val sql = """
             select
               id,
@@ -96,7 +96,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 endTime = rs.getInstantOrNull("end_time"),
                 status = rs.getEnum("status"),
             )
-        }.firstOrNull()?.also {
+        }.first().also {
             logger.daoAccess(AccessType.FETCH, RatkoPush::class, it)
         }
     }
@@ -219,8 +219,8 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             select 
               coalesce(max(publication.publication_time), '2000-01-01 00:00:00'::timestamptz) as latest_publication_time
             from integrations.ratko_push
-            left join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
-            left join publication.publication on publication.id = ratko_push_content.publication_id
+            inner join integrations.ratko_push_content on ratko_push_content.ratko_push_id = ratko_push.id
+            inner join publication.publication on publication.id = ratko_push_content.publication_id
             where ratko_push.status = 'SUCCESSFUL'
         """.trimIndent()
 

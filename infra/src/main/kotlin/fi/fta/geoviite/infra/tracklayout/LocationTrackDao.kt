@@ -338,6 +338,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 trackNumberId = rs.getIntId("track_number_id"),
                 operation = rs.getEnum("operation")
             )
-        }.onEach { lt -> logger.daoAccess(AccessType.FETCH, PublishedLocationTrack::class, lt.version) }
+        }.also { locationTracks ->
+            logger.daoAccess(
+                AccessType.FETCH,
+                PublishedLocationTrack::class,
+                locationTracks.map { it.version })
+        }
     }
 }

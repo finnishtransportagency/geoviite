@@ -15,10 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneOffset
+import java.time.*
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
@@ -94,14 +91,11 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping
     fun getPublications(
-        @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) from: LocalDate,
-        @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) to: LocalDate
+        @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
+        @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?
     ): List<PublicationDetails> {
         logger.apiCall("getPublications", "from" to from, "to" to to)
-        return publicationService.fetchPublicationDetails(
-            from.atStartOfDay().toInstant(ZoneOffset.UTC),
-            to.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC),
-        )
+        return publicationService.fetchPublicationDetails(from, to)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

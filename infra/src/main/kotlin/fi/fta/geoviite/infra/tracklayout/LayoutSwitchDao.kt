@@ -428,7 +428,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = rs.getEnum("operation"),
             )
-        }.onEach { switch -> logger.daoAccess(FETCH, PublishedSwitch::class, switch.version) }
+        }.also { switches -> logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version }) }
     }
 
     data class LocationTrackIdentifiers(

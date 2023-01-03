@@ -366,16 +366,17 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
     }
 
-    fun fetchPublications(from: Instant, to: Instant): List<Publication> {
+    //Inclusive from/start time, but exclusive to/end time
+    fun fetchPublications(from: Instant?, to: Instant?): List<Publication> {
         val sql = """
             select id, publication_user, publication_time
             from publication.publication
-            where publication_time between :from and :to
+            where (:from <= publication_time or :from is null) and (publication_time < :to or :to is null)
         """.trimIndent()
 
         val params = mapOf(
-            "from" to Timestamp.from(from),
-            "to" to Timestamp.from(to),
+            "from" to from?.let { Timestamp.from(it) },
+            "to" to to?.let { Timestamp.from(it) },
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

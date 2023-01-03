@@ -192,6 +192,11 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 number = rs.getTrackNumber("number"),
                 operation = rs.getEnum("operation")
             )
-        }.onEach { trackNumber -> logger.daoAccess(AccessType.FETCH, PublishedTrackNumber::class, trackNumber.version) }
+        }.also { trackNumbers ->
+            logger.daoAccess(
+                AccessType.FETCH,
+                PublishedTrackNumber::class,
+                trackNumbers.map { it.version })
+        }
     }
 }

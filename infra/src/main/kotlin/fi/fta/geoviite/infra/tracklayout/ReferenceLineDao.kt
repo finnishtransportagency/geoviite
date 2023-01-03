@@ -254,6 +254,11 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 version = rs.getRowVersion("id", "version"),
                 trackNumberId = rs.getIntId("track_number_id"),
             )
-        }.onEach { rl -> logger.daoAccess(AccessType.FETCH, PublishedReferenceLine::class, rl.version) }
+        }.also { referenceLines ->
+            logger.daoAccess(
+                AccessType.FETCH,
+                PublishedReferenceLine::class,
+                referenceLines.map { it.version })
+        }
     }
 }

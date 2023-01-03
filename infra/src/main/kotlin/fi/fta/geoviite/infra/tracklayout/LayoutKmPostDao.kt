@@ -253,6 +253,6 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 kmNumber = rs.getKmNumber("km_number"),
                 operation = rs.getEnum("operation")
             )
-        }.onEach { kmPost -> logger.daoAccess(AccessType.FETCH, PublishedKmPost::class, kmPost.version) }
+        }.also { kmPosts -> logger.daoAccess(AccessType.FETCH, PublishedKmPost::class, kmPosts.map { it.version }) }
     }
 }

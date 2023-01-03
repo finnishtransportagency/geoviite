@@ -521,12 +521,12 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun fetchPublications(from: Instant, to: Instant = Instant.now()): List<Publication> {
+    fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
         logger.serviceCall("fetchPublications", "from" to from, "to" to to)
         return publicationDao.fetchPublications(from, to)
     }
 
-    fun fetchPublicationDetails(from: Instant, to: Instant): List<PublicationDetails> {
+    fun fetchPublicationDetails(from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
         logger.serviceCall("fetchPublicationDetails", "from" to from, "to" to to)
         return publicationDao.fetchPublications(from, to).map { getPublicationDetails(it.id) }
     }

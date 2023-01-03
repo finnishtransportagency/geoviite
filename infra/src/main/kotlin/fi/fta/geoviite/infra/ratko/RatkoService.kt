@@ -94,7 +94,7 @@ class RatkoService @Autowired constructor(
 
                 //Inclusive search, therefore the already pushed one is also returned
                 val publications = publicationService.fetchPublications(lastPublicationMoment)
-                    .filterNot { it.publicationTime == lastPublicationMoment }
+                    .filterNot { it.publicationTime > lastPublicationMoment }
 
                 if (publications.isNotEmpty()) {
                     pushChanges(userName, publications, getCalculatedChanges(lastPublicationMoment, publications))
@@ -108,7 +108,7 @@ class RatkoService @Autowired constructor(
             logger.serviceCall("pushLocationTracksToRatko")
 
             val previousPush = ratkoPushDao.fetchPreviousPush()
-            check(previousPush == null || previousPush.status == RatkoPushStatus.SUCCESSFUL) {
+            check(previousPush.status == RatkoPushStatus.SUCCESSFUL) {
                 "Push all publications before pushing location track point manually"
             }
 
@@ -178,7 +178,7 @@ class RatkoService @Autowired constructor(
 
     private fun previousPushStateIn(vararg states: RatkoPushStatus?): Boolean {
         val previousPush = ratkoPushDao.fetchPreviousPush()
-        return states.any { state -> previousPush?.status == state }
+        return states.any { state -> previousPush.status == state }
     }
 
     private fun pushChanges(
