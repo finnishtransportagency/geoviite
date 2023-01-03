@@ -1,10 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_LOCATION_TRACK
-import fi.fta.geoviite.infra.linking.LocationTrackPublishCandidate
 import fi.fta.geoviite.infra.linking.Publication
+import fi.fta.geoviite.infra.linking.PublishedLocationTrack
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -318,37 +317,32 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<LocationTrackPublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedLocationTrack> {
         val sql = """
-          select 
-            location_track_change_view.id, 
-            location_track_change_view.change_time, 
-            location_track_change_view.name, 
-            location_track_change_view.track_number_id,
-            location_track_change_view.change_user,
-            layout.infer_operation_from_state_transition(location_track_change_view.old_state, location_track_change_view.state) operation
-          from publication.location_track published_location_track
-            left join layout.location_track_change_view
-              on published_location_track.location_track_id = location_track_change_view.id 
-                and published_location_track.location_track_version = location_track_change_view.version
-          where publication_id = :id
+            select
+              plt.location_track_id as id,
+              plt.location_track_version as version,
+              lt.name,
+              lt.track_number_id,
+              layout.infer_operation_from_state_transition(lt.old_state, lt.state) as operation
+            from publication.location_track plt
+            left join layout.location_track_change_view lt 
+              on lt.id = plt.location_track_id and lt.version = plt.location_track_version
+            where publication_id = :publication_id
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "id" to publicationId.intValue,
-            )
-        )
-        { rs, _ ->
-            LocationTrackPublishCandidate(
-                id = rs.getIntId("id"),
-                draftChangeTime = rs.getInstant("change_time"),
+
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            PublishedLocationTrack(
+                version = rs.getRowVersion("id", "version"),
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
-                duplicateOf = null,
-                userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation")
             )
-        }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
+        }.also { locationTracks ->
+            logger.daoAccess(
+                AccessType.FETCH,
+                PublishedLocationTrack::class,
+                locationTracks.map { it.version })
+        }
     }
 }

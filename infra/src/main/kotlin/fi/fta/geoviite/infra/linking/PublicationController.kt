@@ -12,9 +12,10 @@ import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
-import java.time.Duration
+import java.time.*
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
@@ -22,7 +23,7 @@ val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 @RequestMapping("/publications")
 class PublicationController @Autowired constructor(
     private val lockDao: LockDao,
-    private val publishService: PublishService,
+    private val publicationService: PublicationService,
     private val calculatedChangesService: CalculatedChangesService,
 ) {
 
@@ -32,14 +33,14 @@ class PublicationController @Autowired constructor(
     @GetMapping("/candidates")
     fun getPublishCandidates(): PublishCandidates {
         logger.apiCall("getPublishCandidates")
-        return publishService.getPublishCandidates()
+        return publicationService.getPublishCandidates()
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/validate")
     fun validatePublishCandidates(@RequestBody publishRequest: PublishRequest): ValidatedPublishCandidates {
         logger.apiCall("validatePublishCandidates")
-        return publishService.validatePublishCandidates(publishService.getPublicationVersions(publishRequest))
+        return publicationService.validatePublishCandidates(publicationService.getPublicationVersions(publishRequest))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -47,7 +48,7 @@ class PublicationController @Autowired constructor(
     fun getCalculatedChanges(@RequestBody request: PublishRequest): CalculatedChanges {
         logger.apiCall("getCalculatedChanges")
         return calculatedChangesService.getCalculatedChangesInDraft(
-            publishService.getPublicationVersions(request)
+            publicationService.getPublicationVersions(request)
         )
     }
 
@@ -56,7 +57,7 @@ class PublicationController @Autowired constructor(
     fun revertPublishCandidates(@RequestBody toDelete: PublishRequest): PublishResult {
         logger.apiCall("revertPublishCandidates")
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publishService.revertPublishCandidates(toDelete)
+            publicationService.revertPublishCandidates(toDelete)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
@@ -68,11 +69,11 @@ class PublicationController @Autowired constructor(
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publishService.updateExternalId(request)
-            val versions = publishService.getPublicationVersions(request)
-            publishService.validatePublishRequest(versions)
-            val calculatedChanges = publishService.getCalculatedChanges(versions)
-            publishService.publishChanges(versions, calculatedChanges)
+            publicationService.updateExternalId(request)
+            val versions = publicationService.getPublicationVersions(request)
+            publicationService.validatePublishRequest(versions)
+            val calculatedChanges = publicationService.getCalculatedChanges(versions)
+            publicationService.publishChanges(versions, calculatedChanges)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
@@ -80,16 +81,27 @@ class PublicationController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping
+    @GetMapping("/frontpage")
+    //merge with getPublications
     fun getRatkoPublicationListing(): List<PublicationListingItem> {
         logger.apiCall("getRatkoPublicationListing")
-        return publishService.getPublicationListing()
+        return publicationService.getPublicationListing()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping
+    fun getPublications(
+        @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
+        @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?
+    ): List<PublicationDetails> {
+        logger.apiCall("getPublications", "from" to from, "to" to to)
+        return publicationService.fetchPublicationDetails(from, to)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}")
-    fun getRatkoPublication(@PathVariable("id") id: IntId<Publication>): Publication {
-        logger.apiCall("getRatkoPublication", "id" to id)
-        return publishService.getPublication(id)
+    fun getPublicationDetails(@PathVariable("id") id: IntId<Publication>): PublicationDetails {
+        logger.apiCall("getPublicationDetails", "id" to id)
+        return publicationService.getPublicationDetails(id)
     }
 }

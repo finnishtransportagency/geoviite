@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -8,7 +7,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_REFERENCE_LINE
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.ReferenceLinePublishCandidate
+import fi.fta.geoviite.infra.linking.PublishedReferenceLine
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -239,36 +238,27 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<ReferenceLinePublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedReferenceLine> {
         val sql = """
-          select
-            reference_line_version.id,
-            reference_line_version.change_time,
-            reference_line_version.track_number_id,
-            track_number.number as name,
-            reference_line_version.change_user
-          from publication.reference_line published_reference_line
-            left join layout.reference_line_version
-              on published_reference_line.reference_line_id = reference_line_version.id
-                and published_reference_line.reference_line_version = reference_line_version.version
-            left join layout.track_number
-              on reference_line_version.track_number_id = track_number.id
-          where publication_id = :id
+          select 
+            prl.reference_line_id as id,
+            prl.reference_line_version as version,
+            rl.track_number_id
+          from publication.reference_line prl
+          left join layout.reference_line_version rl
+            on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
+          where prl.publication_id = :publication_id;
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "id" to publicationId.intValue,
-            )
-        ) { rs, _ ->
-            ReferenceLinePublishCandidate(
-                id = rs.getIntId("id"),
-                draftChangeTime = rs.getInstant("change_time"),
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            PublishedReferenceLine(
+                version = rs.getRowVersion("id", "version"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                name = rs.getTrackNumber("name"),
-                userName = UserName(rs.getString("change_user")),
-                operation = null
             )
-        }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
+        }.also { referenceLines ->
+            logger.daoAccess(
+                AccessType.FETCH,
+                PublishedReferenceLine::class,
+                referenceLines.map { it.version })
+        }
     }
 }

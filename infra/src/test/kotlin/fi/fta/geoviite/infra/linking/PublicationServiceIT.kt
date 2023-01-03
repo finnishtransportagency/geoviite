@@ -23,7 +23,7 @@ import kotlin.test.*
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class PublicationServiceIT @Autowired constructor(
-    val publicationService: PublishService,
+    val publicationService: PublicationService,
     val alignmentDao: LayoutAlignmentDao,
     val trackNumberDao: LayoutTrackNumberDao,
     val trackNumberService: LayoutTrackNumberService,
@@ -82,14 +82,14 @@ class PublicationServiceIT @Autowired constructor(
         val publishResult = publicationService.publishChanges(publicationVersions, draftCalculatedChanges)
         val afterInsert = getDbTime()
         assertNotNull(publishResult.publishId)
-        val publish = publicationService.getPublication(publishResult.publishId!!)
+        val publish = publicationService.getPublicationDetails(publishResult.publishId!!)
 
-        assertTrue(publish.publishTime in beforeInsert..afterInsert)
-        assertEquals(trackNumbers.map { it.id }, publish.trackNumbers.map { it.id })
-        assertEquals(switches.map { it.id }, publish.switches.map { it.id })
-        assertEquals(referenceLines.map { it.id }, publish.referenceLines.map { it.id })
-        assertEquals(locationTracks.map { it.id }, publish.locationTracks.map { it.id })
-        assertEquals(kmPosts.map { it.id }, publish.kmPosts.map { it.id })
+        assertTrue(publish.publicationTime in beforeInsert..afterInsert)
+        assertEquals(trackNumbers.map { it.id }, publish.trackNumbers.map { it.version.id })
+        assertEquals(switches.map { it.id }, publish.switches.map { it.version.id })
+        assertEquals(referenceLines.map { it.id }, publish.referenceLines.map { it.version.id })
+        assertEquals(locationTracks.map { it.id }, publish.locationTracks.map { it.version.id })
+        assertEquals(kmPosts.map { it.id }, publish.kmPosts.map { it.version.id })
 
         val restoredCalculatedChanges = publicationDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
         assertEquals(draftCalculatedChanges, restoredCalculatedChanges)
@@ -113,7 +113,7 @@ class PublicationServiceIT @Autowired constructor(
             locationTracks = locationTracks.map { it.id },
             switches = listOf(switch.id),
         )
-        val publish = publicationService.getPublication(publishResult.publishId!!)
+        val publish = publicationService.getPublicationDetails(publishResult.publishId!!)
         assertEquals(trackNumberIds.sortedBy { it.intValue }, publish.switches[0].trackNumberIds.sortedBy { it.intValue })
     }
 

@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
+import fi.fta.geoviite.infra.integration.RatkoPushDao
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.RatkoService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -21,9 +22,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
-class PublishService @Autowired constructor(
+class PublicationService @Autowired constructor(
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
     private val geocodingDao: GeocodingDao,
@@ -41,6 +43,7 @@ class PublishService @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val calculatedChangesService: CalculatedChangesService,
     private val ratkoService: RatkoService?,
+    private val ratkoPushDao: RatkoPushDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -485,29 +488,47 @@ class PublishService @Autowired constructor(
     private fun getLocationTrackAndAlignment(version: RowVersion<LocationTrack>) =
         locationTrackWithAlignment(locationTrackDao, alignmentDao, version)
 
+    //merge with fetchPublicationDetails
     fun getPublicationListing(): List<PublicationListingItem> =
         publicationDao.fetchRatkoPublicationListing()
 
     @Transactional(readOnly = true)
-    fun getPublication(id: IntId<Publication>): Publication {
-        val (publishTime, status, pushTime) = publicationDao.fetchPublishTime(id)
+    fun getPublicationDetails(id: IntId<Publication>): PublicationDetails {
+        logger.serviceCall("getPublicationDetails", "id" to id)
+
+        val publication = publicationDao.getPublication(id)
+        val ratkoStatus = ratkoPushDao.getRatkoStatus(id)
+            .sortedByDescending { it.endTime }
+            .firstOrNull()
+
         val locationTracks = locationTrackDao.fetchPublicationInformation(id)
         val referenceLines = referenceLineDao.fetchPublicationInformation(id)
         val kmPosts = kmPostDao.fetchPublicationInformation(id)
-        val switches = switchDao.fetchSwitchPublicationInformation(id)
+        val switches = switchDao.fetchPublicationInformation(id)
         val trackNumbers = trackNumberDao.fetchPublicationInformation(id)
 
-        return Publication(
-            id,
-            publishTime,
-            trackNumbers,
-            referenceLines,
-            locationTracks,
-            switches,
-            kmPosts,
-            status,
-            pushTime,
+        return PublicationDetails(
+            id = publication.id,
+            publicationTime = publication.publicationTime,
+            publicationUser = publication.publicationUser,
+            trackNumbers = trackNumbers,
+            referenceLines = referenceLines,
+            locationTracks = locationTracks,
+            switches = switches,
+            kmPosts = kmPosts,
+            ratkoPushStatus = ratkoStatus?.status,
+            ratkoPushTime = ratkoStatus?.endTime,
         )
+    }
+
+    fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
+        logger.serviceCall("fetchPublications", "from" to from, "to" to to)
+        return publicationDao.fetchPublications(from, to)
+    }
+
+    fun fetchPublicationDetails(from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
+        logger.serviceCall("fetchPublicationDetails", "from" to from, "to" to to)
+        return publicationDao.fetchPublications(from, to).map { getPublicationDetails(it.id) }
     }
 
     fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =

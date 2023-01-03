@@ -3,7 +3,7 @@ import PublicationCard from 'publication/publication-card';
 import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
 import { PublicationListingItem } from 'publication/publication-model';
-import { getPublications } from 'publication/publication-api';
+import { getPublicationsForFrontpage } from 'publication/publication-api';
 import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
@@ -26,7 +26,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
         PublicationListingItem[] | undefined
     >(undefined);
 
-    useLoaderWithTimer(setPublications, getPublications, [], 30000);
+    useLoaderWithTimer(setPublications, getPublicationsForFrontpage, [], 30000);
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 
     const hasAnyFailed = () =>

@@ -5,6 +5,7 @@ import {
     PublicationId,
     PublicationListingItem,
     PublishCandidates,
+    ValidatedPublishCandidates,
 } from 'publication/publication-model';
 import {
     LayoutKmPostId,
@@ -15,7 +16,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 
-const PUBLISH_URI = `${API_URI}/publications`;
+const PUBLICATION_URL = `${API_URI}/publications`;
 
 export interface PublishRequest {
     trackNumbers: LayoutTrackNumberId[];
@@ -69,31 +70,31 @@ export interface CalculatedChanges {
     switchChanges: SwitchChange[];
 }
 
-export interface ValidatedPublishCandidates {
-    validatedAsPublicationUnit: PublishCandidates;
-    validatedSeparately: PublishCandidates;
-}
-
 export const getPublishCandidates = () =>
-    getIgnoreError<PublishCandidates>(`${PUBLISH_URI}/candidates`);
+    getIgnoreError<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequest) =>
-    postIgnoreError<PublishRequest, ValidatedPublishCandidates>(`${PUBLISH_URI}/validate`, request);
+    postIgnoreError<PublishRequest, ValidatedPublishCandidates>(
+        `${PUBLICATION_URL}/validate`,
+        request,
+    );
 
 export const revertCandidates = (request: PublishRequest) =>
-    deleteAdt<PublishRequest, PublishResult>(`${PUBLISH_URI}/candidates`, request, true);
+    deleteAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
 
 export const publishCandidates = (request: PublishRequest) => {
-    return postAdt<PublishRequest, PublishResult>(`${PUBLISH_URI}`, request, true);
+    return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-export const getPublications = () => getIgnoreError<PublicationListingItem[]>(`${PUBLISH_URI}/`);
+//merge later
+export const getPublicationsForFrontpage = () =>
+    getIgnoreError<PublicationListingItem[]>(`${PUBLICATION_URL}/frontpage`);
 
 export const getPublication = (id: PublicationId) =>
-    getIgnoreError<PublicationDetails>(`${PUBLISH_URI}/${id}`);
+    getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
 export const getCalculatedChanges = (request: PublishRequest) =>
     postIgnoreError<PublishRequest, CalculatedChanges>(
-        `${PUBLISH_URI}/calculated-changes`,
+        `${PUBLICATION_URL}/calculated-changes`,
         request,
     );
