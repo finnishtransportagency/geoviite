@@ -371,7 +371,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         val sql = """
             select id, publication_user, publication_time
             from publication.publication
-            where (:from <= publication_time or :from is null) and (publication_time < :to or :to is null)
+            where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
         """.trimIndent()
 
         val params = mapOf(
