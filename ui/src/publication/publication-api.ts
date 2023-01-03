@@ -10,7 +10,6 @@ import { JointNumber, KmNumber, Oid, TrackMeter } from 'common/common-model';
 import {
     PublicationDetails,
     PublicationId,
-    PublicationListingItem,
     PublishCandidates,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
@@ -94,9 +93,14 @@ export const publishCandidates = (request: PublishRequest) => {
     return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-//merge later
-export const getPublicationsForFrontpage = () =>
-    getIgnoreError<PublicationListingItem[]>(`${PUBLICATION_URL}/frontpage`);
+export const getPublications = (fromDate?: Date, toDate?: Date) => {
+    const params = queryParams({
+        from: fromDate?.toISOString(),
+        to: toDate?.toISOString(),
+    });
+
+    return getIgnoreError<PublicationDetails[]>(`${PUBLICATION_URL}${params}`);
+};
 
 export const getPublications = (
     startDate: Date | undefined,

@@ -256,8 +256,9 @@ class RatkoService @Autowired constructor(
             checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
 
             RatkoPushErrorWithAsset(
+                ratkoError.id,
                 ratkoError.ratkoPushId,
-                ratkoError.ratkoPushErrorType,
+                ratkoError.errorType,
                 ratkoError.operation,
                 ratkoError.assetType,
                 asset

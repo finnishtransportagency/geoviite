@@ -5,9 +5,11 @@ import { Link } from 'vayla-design-lib/link/link';
 import PublicationLogTable from 'publication-log/publication-log-table';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay, getTomorrow } from 'utils/date-utils';
+import { PublicationDetails } from 'publication/publication-model';
 
 export type PublicationLogViewProps = {
     onLogUnselected: () => void;
+    selectedPublication: PublicationDetails | undefined;
 };
 
 const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onLogUnselected }) => {

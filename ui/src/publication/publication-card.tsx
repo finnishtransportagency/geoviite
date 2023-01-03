@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
-import { PublicationListingItem } from 'publication/publication-model';
+import { PublicationDetails } from 'publication/publication-model';
 import { PublicationList } from 'publication/publication-list';
 import { ButtonSize } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
@@ -12,8 +12,8 @@ import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
 
 type PublishListProps = {
-    itemClicked: (pub: PublicationListingItem) => void;
-    publications: PublicationListingItem[];
+    itemClicked: (pub: PublicationDetails) => void;
+    publications: PublicationDetails[];
     anyFailed: boolean;
     ratkoStatus: RatkoStatus | undefined;
 };
@@ -26,13 +26,17 @@ const PublicationCard: React.FC<PublishListProps> = ({
 }) => {
     const { t } = useTranslation();
     const allPublications = publications
-        .sort((i1, i2) => compareTimestamps(i1.publishTime, i2.publishTime))
+        .sort((i1, i2) => compareTimestamps(i1.publicationTime, i2.publicationTime))
         .reverse();
 
-    const failures = allPublications.filter((publication) => ratkoPushFailed(publication.status));
-    const successes = allPublications.filter((publication) => !ratkoPushFailed(publication.status));
+    const failures = allPublications.filter((publication) =>
+        ratkoPushFailed(publication.ratkoPushStatus),
+    );
+    const successes = allPublications.filter(
+        (publication) => !ratkoPushFailed(publication.ratkoPushStatus),
+    );
     const latestFailureWithPushError = failures
-        .filter((p) => p.status == RatkoPushStatus.FAILED && p.hasRatkoPushError)
+        .filter((p) => p.ratkoPushStatus == RatkoPushStatus.FAILED)
         .at(-1);
 
     const parseRatkoConnectionError = (

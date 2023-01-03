@@ -83,15 +83,6 @@ export type ValidatedPublishCandidates = {
     validatedSeparately: PublishCandidates;
 };
 
-export type PublicationListingItem = {
-    id: PublicationId;
-    publishTime: TimeStamp;
-    ratkoPushTime: TimeStamp | null;
-    status: RatkoPushStatus | null;
-    trackNumberIds: LayoutTrackNumberId[];
-    hasRatkoPushError: boolean;
-};
-
 export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;

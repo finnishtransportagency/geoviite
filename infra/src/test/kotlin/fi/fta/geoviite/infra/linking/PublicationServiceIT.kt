@@ -388,7 +388,7 @@ class PublicationServiceIT @Autowired constructor(
         assertThrows<NoSuchEntityException> { locationTrackService.getWithAlignmentOrThrow(OFFICIAL, draftId) }
         assertEquals(draftId, locationTrackService.getDraft(draftId).id)
 
-        val publicationCountBeforePublishing = publicationService.getPublicationListing().size
+        val publicationCountBeforePublishing = publicationService.fetchPublications().size
 
         val publishResult = publish(
             publicationService,
@@ -396,7 +396,7 @@ class PublicationServiceIT @Autowired constructor(
             locationTracks = listOf(draftId),
         )
 
-        val publicationCountAfterPublishing = publicationService.getPublicationListing()
+        val publicationCountAfterPublishing = publicationService.fetchPublications()
 
         assertEquals(publicationCountBeforePublishing + 1, publicationCountAfterPublishing.size)
         assertEquals(publishResult.publishId, publicationCountAfterPublishing.last().id)
