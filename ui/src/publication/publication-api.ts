@@ -15,7 +15,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { formatDateFull } from 'utils/date-utils';
+import { formatGMTDateFull, getTomorrow } from 'utils/date-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -94,10 +94,9 @@ export const getPublicationsForFrontpage = () =>
 export const getPublications = (
     startDate: Date | undefined,
     endDate: Date | undefined,
-): Promise<PublicationDetails | null> => {
-    //http://localhost:8080/publications?from=2022-12-29T00:00:00Z&to=2022-12-31T11:50:00Z
+): Promise<PublicationDetails[] | null> => {
     const params = publicationsParams(startDate, endDate);
-    return getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}${params}`);
+    return getIgnoreError<PublicationDetails[]>(`${PUBLICATION_URL}${params}`);
 };
 
 export const getPublication = (id: PublicationId) =>
@@ -110,14 +109,10 @@ export const getCalculatedChanges = (request: PublishRequest) =>
     );
 
 const publicationsParams = (startDate: Date | undefined, endDate: Date | undefined) => {
-    const start = startDate && formatDateFull(startDate);
-    const end = endDate && formatDateFull(endDate);
-
-    console.log('start and end', start, end);
-
-    if (startDate && endDate)
-        return `?from=${formatDateFull(startDate)}&to=${formatDateFull(endDate)}`;
-    else if (startDate && endDate == undefined) return `?from=${formatDateFull(startDate)}`;
-    else if (endDate && startDate == undefined) return `?to=${formatDateFull(endDate)}`;
+    const tomorrow = endDate && getTomorrow(endDate);
+    if (startDate && tomorrow)
+        return `?from=${formatGMTDateFull(startDate)}&to=${formatGMTDateFull(tomorrow)}`;
+    else if (startDate && tomorrow == undefined) return `?from=${formatGMTDateFull(startDate)}`;
+    else if (tomorrow && startDate == undefined) return `?to=${formatGMTDateFull(tomorrow)}`;
     else return '';
 };

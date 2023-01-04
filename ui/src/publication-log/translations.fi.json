@@ -1,7 +1,9 @@
 {
     "publication-log": {
         "link-text": "Julkaisuloki",
-        "breadcrumbs-text": "> Julkaisuloki"
+        "breadcrumbs-text": "> Julkaisuloki",
+        "start-date": "Alkupvm.",
+        "end-date": "Loppupvm."
     },
     "publication-log-table": {
         "change-target": "Muutoskohde",
@@ -11,5 +13,11 @@
         "change-time": "Aika",
         "user": "Käyttäjä",
         "definition": "Selite"
+    },
+    "operation": {
+        "create" : "lisäys",
+        "delete": "poisto",
+        "modify" : "muokkaus",
+        "restore": "palautus"
     }
 }

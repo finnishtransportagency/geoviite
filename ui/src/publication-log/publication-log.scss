@@ -5,12 +5,6 @@
 
 $color-link: $color-blue-dark;
 
-//.publication-log__link {
-//    color: $color-link;
-//    padding: 0 20px;
-//    cursor: pointer;
-//}
-
 .publication-table__container {
     overflow-y: auto;
     height: 100%;
@@ -20,6 +14,21 @@ $color-link: $color-blue-dark;
     position: sticky;
     top: 0;
     z-index: 1;
+}
+
+.publication-log__date-pickers {
+    display: flex;
+    height: 10vh;
+    width: 60vh;
+    flex-direction: row;
+    z-index: 1000;
+    padding: 0 20px;
+}
+
+.publication-log__flex-child {
+    flex: 1;
+    align-items: start;
+    align-content: start;
 }
 
 .publication-log {
