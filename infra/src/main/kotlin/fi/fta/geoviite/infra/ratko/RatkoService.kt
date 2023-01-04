@@ -6,10 +6,7 @@ import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
-import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
-import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -61,21 +58,6 @@ class RatkoService @Autowired constructor(
         logger.serviceCall("scheduledRatkoPush")
         // Don't retry failed on auto-push
         pushChangesToRatko(ratkoSchedulerUserName, retryFailed = false)
-    }
-
-    fun getNewRouteNumberTrackOid(): RatkoOid<RatkoRouteNumber>? {
-        logger.serviceCall("getNewRouteNumberTrackOid")
-        return ratkoClient.getNewRouteNumberOid()
-    }
-
-    fun getNewLocationTrackOid(): RatkoOid<RatkoLocationTrack>? {
-        logger.serviceCall("getNewLocationTrackOid")
-        return ratkoClient.getNewLocationTrackOid()
-    }
-
-    fun getNewSwitchOid(): RatkoOid<RatkoSwitchAsset>? {
-        logger.serviceCall("getNewSwitchOid")
-        return ratkoClient.getNewSwitchOid()
     }
 
     fun pushChangesToRatko(userName: UserName, retryFailed: Boolean = true) {

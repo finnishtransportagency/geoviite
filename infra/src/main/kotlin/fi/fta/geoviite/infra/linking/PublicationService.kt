@@ -14,7 +14,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushDao
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.ratko.RatkoService
+import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -42,7 +42,7 @@ class PublicationService @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val calculatedChangesService: CalculatedChangesService,
-    private val ratkoService: RatkoService?,
+    private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
 ) {
 
@@ -204,21 +204,21 @@ class PublicationService @Autowired constructor(
     }
 
     private fun updateExternalIdForLocationTrack(locationTrackId: IntId<LocationTrack>) {
-        val locationTrackOid = ratkoService?.let { s ->
+        val locationTrackOid = ratkoClient?.let { s ->
             s.getNewLocationTrackOid() ?: throw IllegalStateException("No OID received from RATKO")
         }
         locationTrackOid?.let { oid -> locationTrackService.updateExternalId(locationTrackId, Oid(oid.id)) }
     }
 
     private fun updateExternalIdForTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>) {
-        val routeNumberOid = ratkoService?.let { s ->
-            s.getNewRouteNumberTrackOid() ?: throw IllegalStateException("No OID received from RATKO")
+        val routeNumberOid = ratkoClient?.let { s ->
+            s.getNewRouteNumberOid() ?: throw IllegalStateException("No OID received from RATKO")
         }
         routeNumberOid?.let { oid -> trackNumberService.updateExternalId(trackNumberId, Oid(oid.id)) }
     }
 
     private fun updateExternalIdForSwitch(switchId: IntId<TrackLayoutSwitch>) {
-        val switchOid = ratkoService?.let { s ->
+        val switchOid = ratkoClient?.let { s ->
             s.getNewSwitchOid() ?: throw IllegalStateException("No OID received from RATKO")
         }
         switchOid?.let { oid -> switchService.updateExternalIdForSwitch(switchId, Oid(oid.id)) }
