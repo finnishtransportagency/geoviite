@@ -248,12 +248,25 @@ const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
     pendingValidation: true,
 });
 
-const singleRowPublishRequest = (id: PublicationId, type: PreviewSelectType): PublishRequest => ({
+const singleRowPublishRequestOfPreviewTableEntry = (
+    id: PublicationId,
+    type: PreviewSelectType,
+): PublishRequest => ({
     trackNumbers: type === 'trackNumber' ? [id] : [],
     referenceLines: type === 'referenceLine' ? [id] : [],
     locationTracks: type === 'locationTrack' ? [id] : [],
     switches: type === 'switch' ? [id] : [],
     kmPosts: type === 'kmPost' ? [id] : [],
+});
+
+const singleRowPublishRequestOfSelectedPublishChange = (
+    change: SelectedPublishChange,
+): PublishRequest => ({
+    trackNumbers: change.trackNumber === undefined ? [] : [change.trackNumber],
+    referenceLines: change.referenceLine === undefined ? [] : [change.referenceLine],
+    locationTracks: change.locationTrack === undefined ? [] : [change.locationTrack],
+    switches: change.switch === undefined ? [] : [change.switch],
+    kmPosts: change.kmPost === undefined ? [] : [change.kmPost],
 });
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
@@ -312,7 +325,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const onRequestRevert = (requestedRevertChange: PreviewTableEntry) => {
         getRevertRequestDependencies(
-            singleRowPublishRequest(requestedRevertChange.id, requestedRevertChange.type),
+            singleRowPublishRequestOfPreviewTableEntry(
+                requestedRevertChange.id,
+                requestedRevertChange.type,
+            ),
         ).then((changeIncludingDependencies) => {
             if (changeIncludingDependencies != null) {
                 setChangesBeingReverted({
@@ -338,6 +354,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 setChangesBeingReverted(undefined);
                 void updateAllChangeTimes();
             });
+    };
+
+    const onPublishPreviewRemove = (selectedChange: SelectedPublishChange): void => {
+        props.onPublishPreviewRemove(
+            singleRowPublishRequestOfSelectedPublishChange(selectedChange),
+        );
     };
 
     return (
@@ -366,7 +388,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     <h3>{t('preview-view.staged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
-                                    onPreviewSelect={props.onPreviewSelect}
+                                    onPreviewSelect={onPublishPreviewRemove}
                                     onRevert={onRequestRevert}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
