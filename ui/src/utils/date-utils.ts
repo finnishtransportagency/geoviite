@@ -5,10 +5,6 @@ import { format } from 'date-fns';
 export const currentYear = new Date().getFullYear();
 export const currentMonth = new Date().getMonth();
 
-export const currentDate = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
-
-export const localeFi = 'fi';
-
 function isDate(date: Date | TimeStamp): date is Date {
     return typeof date != 'string';
 }

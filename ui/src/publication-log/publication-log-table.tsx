@@ -140,24 +140,40 @@ const PublicationLogTable: React.FC<PublicationLogTableProps> = ({ startDate, en
     }, []);
 
     const detailsToEntry = (publicationDetails: PublicationDetails): PublicationLogTableEntry[] => {
+        console.log('publication details in details to entry', publicationDetails);
         const changeTime = publicationDetails.publicationTime;
         const userName = publicationDetails.publicationUser;
 
-        const trackNums: PublicationLogTableEntry[] = publicationDetails.trackNumbers.map((t) =>
-            trackNumberToLogTableEntry(t, changeTime, userName),
-        );
-        const kmPosts: PublicationLogTableEntry[] = publicationDetails.kmPosts.map((km) =>
-            kmPostToLogTableEntry(km, changeTime, userName, trackNumbers),
-        );
-        const lTracks: PublicationLogTableEntry[] = publicationDetails.locationTracks.map((l) =>
-            locationTrackToLogTableEntry(l, changeTime, userName, trackNumbers),
-        );
-        const rLines = publicationDetails.referenceLines.map((rl) =>
-            referenceLineToLogTableEntry(rl, changeTime, userName, trackNumbers),
-        );
-        const switches = publicationDetails.switches.map((s) =>
-            switchesToLogTableEntry(s, changeTime, userName, trackNumbers),
-        );
+        const trackNums: PublicationLogTableEntry[] =
+            (publicationDetails.trackNumbers &&
+                publicationDetails.trackNumbers.map((t) =>
+                    trackNumberToLogTableEntry(t, changeTime, userName),
+                )) ||
+            [];
+        const kmPosts: PublicationLogTableEntry[] =
+            (publicationDetails.kmPosts &&
+                publicationDetails.kmPosts.map((km) =>
+                    kmPostToLogTableEntry(km, changeTime, userName, trackNumbers),
+                )) ||
+            [];
+        const lTracks: PublicationLogTableEntry[] =
+            (publicationDetails.locationTracks &&
+                publicationDetails.locationTracks.map((l) =>
+                    locationTrackToLogTableEntry(l, changeTime, userName, trackNumbers),
+                )) ||
+            [];
+        const rLines =
+            (publicationDetails.referenceLines &&
+                publicationDetails.referenceLines.map((rl) =>
+                    referenceLineToLogTableEntry(rl, changeTime, userName, trackNumbers),
+                )) ||
+            [];
+        const switches =
+            (publicationDetails.switches &&
+                publicationDetails.switches.map((s) =>
+                    switchesToLogTableEntry(s, changeTime, userName, trackNumbers),
+                )) ||
+            [];
 
         return trackNums.concat(kmPosts).concat(lTracks).concat(rLines).concat(switches);
     };
@@ -168,10 +184,13 @@ const PublicationLogTable: React.FC<PublicationLogTableProps> = ({ startDate, en
         [startDate, endDate],
     );
 
+    console.log('publicationDetails', publicationDetails);
+
     const publicationLogTableEntries: PublicationLogTableEntry[] = publicationDetails
         ? detailsToEntry(publicationDetails)
         : [];
 
+    console.log('publicationLogTableEntries', publicationLogTableEntries);
     return (
         <div className={styles['publication-table__container']}>
             <Table wide>
@@ -187,19 +206,20 @@ const PublicationLogTable: React.FC<PublicationLogTableProps> = ({ startDate, en
                     </tr>
                 </thead>
                 <tbody>
-                    {publicationLogTableEntries.map((entry) => (
-                        <React.Fragment key={entry.id}>
-                            <tr className={'preview-table-item'}>
-                                <td>{entry.name}</td>
-                                <td>{entry.trackNumber}</td>
-                                <td>{entry.changedKmNumbers}</td>
-                                <td>{entry.operation}</td>
-                                <td>{entry.changeTime}</td>
-                                <td>{entry.userName}</td>
-                                <td>{entry.definition ? entry.definition : ''}</td>
-                            </tr>
-                        </React.Fragment>
-                    ))}
+                    {publicationLogTableEntries &&
+                        publicationLogTableEntries.map((entry) => (
+                            <React.Fragment key={entry.id}>
+                                <tr className={'preview-table-item'}>
+                                    <td>{entry.name}</td>
+                                    <td>{entry.trackNumber}</td>
+                                    <td>{entry.changedKmNumbers}</td>
+                                    <td>{entry.operation}</td>
+                                    <td>{entry.changeTime}</td>
+                                    <td>{entry.userName}</td>
+                                    <td>{entry.definition ? entry.definition : ''}</td>
+                                </tr>
+                            </React.Fragment>
+                        ))}
                 </tbody>
             </Table>
         </div>

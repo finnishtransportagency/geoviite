@@ -15,6 +15,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
+import { formatDateFull } from 'utils/date-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -90,8 +91,14 @@ export const publishCandidates = (request: PublishRequest) => {
 export const getPublicationsForFrontpage = () =>
     getIgnoreError<PublicationListingItem[]>(`${PUBLICATION_URL}/frontpage`);
 
-export const getPublications = (startDate: Date | undefined, endDate: Date | undefined) =>
-    getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}?from=${startDate}&to=${endDate}`);
+export const getPublications = (
+    startDate: Date | undefined,
+    endDate: Date | undefined,
+): Promise<PublicationDetails | null> => {
+    //http://localhost:8080/publications?from=2022-12-29T00:00:00Z&to=2022-12-31T11:50:00Z
+    const params = publicationsParams(startDate, endDate);
+    return getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}${params}`);
+};
 
 export const getPublication = (id: PublicationId) =>
     getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
@@ -101,3 +108,16 @@ export const getCalculatedChanges = (request: PublishRequest) =>
         `${PUBLICATION_URL}/calculated-changes`,
         request,
     );
+
+const publicationsParams = (startDate: Date | undefined, endDate: Date | undefined) => {
+    const start = startDate && formatDateFull(startDate);
+    const end = endDate && formatDateFull(endDate);
+
+    console.log('start and end', start, end);
+
+    if (startDate && endDate)
+        return `?from=${formatDateFull(startDate)}&to=${formatDateFull(endDate)}`;
+    else if (startDate && endDate == undefined) return `?from=${formatDateFull(startDate)}`;
+    else if (endDate && startDate == undefined) return `?to=${formatDateFull(endDate)}`;
+    else return '';
+};
