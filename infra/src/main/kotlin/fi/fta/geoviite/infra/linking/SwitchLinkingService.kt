@@ -1169,7 +1169,6 @@ class SwitchLinkingService @Autowired constructor(
         }
         val newLayoutSwitch = layoutSwitch.copy(
             sourceId = newGeometrySwitchId,
-            switchStructureId = linkingParameters.switchStructureId,
             joints = newJoints,
             source = if (newGeometrySwitchId != null) GeometrySource.PLAN else GeometrySource.GENERATED,
         )

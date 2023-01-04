@@ -11,8 +11,16 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { useLoader, useNullableLoader } from 'utils/react-utils';
-import { ChangeTimes, CoordinateSystem, PublishType, Srid, TimeStamp } from 'common/common-model';
-import { getCoordinateSystem } from 'common/common-api';
+import {
+    ChangeTimes,
+    CoordinateSystem,
+    PublishType,
+    Srid,
+    SwitchStructure,
+    SwitchStructureId,
+    TimeStamp,
+} from 'common/common-model';
+import { getCoordinateSystem, getSwitchStructure } from 'common/common-api';
 import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
 import { getGeometryPlanHeader } from 'geometry/geometry-api';
 import {
@@ -79,6 +87,13 @@ export function useSwitch(
 ): LayoutSwitch | undefined {
     return useLoader(() => (id ? getSwitch(id, publishType) : undefined), [id, publishType]);
 }
+
+export function useSwitchStructure(
+    id: SwitchStructureId | undefined
+): SwitchStructure | undefined {
+    return useLoader(() => (id ? getSwitchStructure(id) : undefined), [id]);
+}
+
 
 export function useTrackNumber(
     publishType: PublishType,
