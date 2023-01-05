@@ -109,10 +109,12 @@ export const getCalculatedChanges = (request: PublishRequest) =>
     );
 
 const publicationsParams = (startDate: Date | undefined, endDate: Date | undefined) => {
-    const tomorrow = endDate && getTomorrow(endDate);
-    if (startDate && tomorrow)
-        return `?from=${formatGMTDateFull(startDate)}&to=${formatGMTDateFull(tomorrow)}`;
-    else if (startDate && tomorrow == undefined) return `?from=${formatGMTDateFull(startDate)}`;
-    else if (tomorrow && startDate == undefined) return `?to=${formatGMTDateFull(tomorrow)}`;
+    if (startDate && endDate)
+        return `?from=${formatGMTDateFull(startDate)}&to=${formatGMTDateFull(
+            getTomorrow(endDate),
+        )}`;
+    else if (startDate && endDate == undefined) return `?from=${formatGMTDateFull(startDate)}`;
+    else if (endDate && startDate == undefined)
+        return `?to=${formatGMTDateFull(getTomorrow(endDate))}`;
     else return '';
 };
