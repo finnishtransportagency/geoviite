@@ -1,4 +1,3 @@
-// todo move these helper functions to a separate file
 import {
     PublishedKmPost,
     PublishedLocationTrack,
