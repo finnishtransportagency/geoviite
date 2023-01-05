@@ -1446,33 +1446,67 @@ class GeometryDao @Autowired constructor(
             return mapOf()
         }
 
+        // For a given linkable object, treat the first version of it that was linked to a given plan as the one where
+        // linking happened, hence taking that version's change_time and change_user as the linking time and user.
+        // For objects composed of parts where it's the parts that get linked (i.e. location tracks and reference lines,
+        // made of segments), versioning still goes based on the segment, but the change time and change user come
+        // from the actual publishable unit.
         val sql = """
             select
               plan_id,
-              max(change_time) as linked_at,
+              min(change_time) as linked_at,
               string_agg(distinct change_user, ', ' order by change_user) as linked_by_users
-            from (
-              (
-                select alignment.plan_id, segment.change_time, segment.change_user
+              from (
+                select plan_id, segment.*
                   from geometry.alignment
-                    join layout.segment on segment.geometry_alignment_id = alignment.id
-              )
-              union all
-              (
-                select gs.plan_id, ls.change_time, ls.change_user
-                  from geometry.switch gs
-                    join layout.switch ls on ls.geometry_switch_id = gs.id
-              )
-              union all
-              (
-                select gk.plan_id, lk.change_time, lk.change_user
-                  from geometry.km_post gk
-                    join layout.km_post lk on lk.geometry_km_post_id = gk.id
-              )
-            ) ss
-            where plan_id in (:plan_ids) or :return_all
-            group by plan_id
-        """.trimIndent()
+                    join lateral
+                    (select track_object.change_time, track_object.change_user
+                       from layout.segment_version
+                       join lateral (
+                         select change_time, change_user
+                         from layout.location_track_version
+                         where location_track_version.alignment_id = segment_version.alignment_id
+                           and location_track_version.alignment_version = segment_version.alignment_version
+                           and not draft
+                         union all
+                         select change_time, change_user
+                         from layout.reference_line_version
+                         where reference_line_version.alignment_id = segment_version.alignment_id
+                           and reference_line_version.alignment_version = segment_version.alignment_version
+                           and not draft
+                       ) track_object on (true)
+                       where segment_version.geometry_alignment_id = alignment.id
+                       order by version asc
+                       limit 1
+                    ) segment on (true)
+                union all
+                (
+                  select geometry_switch.plan_id, layout_switch.*
+                    from geometry.switch geometry_switch
+                      join lateral
+                      (select change_time, change_user
+                         from layout.switch_version
+                         where switch_version.geometry_switch_id = geometry_switch.id
+                           and not draft
+                         order by version asc
+                         limit 1) layout_switch on (true)
+                )
+                union all
+                (
+                  select geometry_km_post.plan_id, layout_km_post.*
+                    from geometry.km_post geometry_km_post
+                      join lateral
+                      (select change_time, change_user
+                         from layout.km_post_version
+                         where km_post_version.geometry_km_post_id = geometry_km_post.id
+                           and not draft
+                         order by version asc
+                         limit 1) layout_km_post on (true)
+                )
+              ) as linked_layout_object
+              where plan_id in (:plan_ids) or :return_all
+              group by plan_id
+            """.trimIndent()
 
         return jdbcTemplate.query(
             sql,

@@ -4,6 +4,7 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -203,9 +204,10 @@ class GeometryDaoIT @Autowired constructor(
             segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
+        locationTrackService.publish(PublicationVersion(trackVersion.id, trackVersion))
         val trackChangeTime =
             jdbc.queryOne(
-                "select change_time from layout.location_track where id = :id",
+                "select change_time from layout.location_track where id = :id and not draft",
                 mapOf("id" to trackVersion.id.intValue),
                 trackVersion.id.toString(),
             ) { rs, _ ->
