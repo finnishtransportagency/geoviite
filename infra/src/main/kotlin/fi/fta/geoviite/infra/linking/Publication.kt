@@ -16,6 +16,7 @@ open class Publication(
 
 data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
+    val id: IntId<TrackLayoutTrackNumber> = version.id,
     val number: TrackNumber,
     val operation: Operation
 )

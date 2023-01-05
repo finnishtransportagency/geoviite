@@ -5,7 +5,14 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { PublishType, TimeStamp } from 'common/common-model';
-import { deleteAdt, getThrowError, postIgnoreError, putIgnoreError } from 'api/api-fetch';
+import {
+    deleteAdt,
+    getIgnoreError,
+    getThrowError,
+    postIgnoreError,
+    putIgnoreError,
+    queryParams,
+} from 'api/api-fetch';
 import { layoutUri } from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
@@ -17,6 +24,8 @@ import { LocationTrackSaveError } from 'linking/linking-model';
 import { Result } from 'neverthrow';
 
 const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
+
+const trackNumbersHistoryCache = asyncCache<string, LayoutTrackNumber | null>();
 
 export async function getTrackNumberById(
     trackNumberId: LayoutTrackNumberId,
@@ -36,6 +45,22 @@ export async function getTrackNumbers(
         changeTime || getChangeTimes().layoutTrackNumber,
         publishType,
         () => getThrowError<LayoutTrackNumber[]>(layoutUri('track-numbers', publishType)),
+    );
+}
+
+export async function getTrackNumberAtMoment(
+    trackNumberId: LayoutTrackNumberId,
+    atMoment: Date,
+): Promise<LayoutTrackNumber | null> {
+    const params = queryParams({
+        atMoment: atMoment.toISOString(),
+    });
+
+    const cacheKey = `${trackNumberId}_${atMoment.toISOString()}`;
+    const uri = layoutUri('track-numbers', 'OFFICIAL', trackNumberId) + params;
+
+    return trackNumbersHistoryCache.getImmutable(cacheKey, () =>
+        getIgnoreError<LayoutTrackNumber | null>(uri),
     );
 }
 

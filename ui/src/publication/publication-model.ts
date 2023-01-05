@@ -99,6 +99,7 @@ export type PublicationDetails = {
 export type PublishedTrackNumber = {
     id: PublicationId;
     version: RowVersion;
+    id: LayoutTrackNumberId;
     number: TrackNumber;
     operation: Operation;
 };
