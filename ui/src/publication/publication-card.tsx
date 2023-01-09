@@ -10,9 +10,12 @@ import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
 import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
+import PublicationLogLink from 'publication-log/publication-log-link';
+import { EnvRestricted } from 'environment/env-restricted';
 
 type PublishListProps = {
     itemClicked: (pub: PublicationDetails) => void;
+    onShowPublicationLog: () => void;
     publications: PublicationDetails[];
     anyFailed: boolean;
     ratkoStatus: RatkoStatus | undefined;
@@ -23,6 +26,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
     itemClicked,
     anyFailed,
     ratkoStatus,
+    onShowPublicationLog,
 }) => {
     const { t } = useTranslation();
     const allPublications = publications
@@ -130,6 +134,9 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             />
                         </React.Fragment>
                     )}
+                    <EnvRestricted restrictTo="dev">
+                        <PublicationLogLink onShowPublicationLog={onShowPublicationLog} />
+                    </EnvRestricted>
                 </React.Fragment>
             }
         />

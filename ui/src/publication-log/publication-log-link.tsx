@@ -3,19 +3,15 @@ import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 
 type PublicationLogLinkProps = {
-    setShowPublicationLogItems: () => void;
+    onShowPublicationLog: () => void;
 };
 
-const PublicationLogLink: React.FC<PublicationLogLinkProps> = ({ setShowPublicationLogItems }) => {
+const PublicationLogLink: React.FC<PublicationLogLinkProps> = ({ onShowPublicationLog }) => {
     const { t } = useTranslation();
 
     return (
-        <div className={styles['publication-log__link']}>
-            {
-                <div onClick={() => setShowPublicationLogItems()}>
-                    {t('publication-log.link-text')}
-                </div>
-            }
+        <div className={styles['publication-log__link']} onClick={onShowPublicationLog}>
+            {t('publication-log.link-text')}
         </div>
     );
 };

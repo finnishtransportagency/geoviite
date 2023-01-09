@@ -1,105 +1,118 @@
 import {
+    Operation,
+    PublicationDetails,
+    PublicationId,
     PublishedKmPost,
     PublishedLocationTrack,
     PublishedReferenceLine,
     PublishedSwitch,
     PublishedTrackNumber,
-    SwitchPublishCandidate,
 } from 'publication/publication-model';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { PublicationLogTableEntry } from 'publication-log/publication-log-table';
+import {
+    getKmPostUiName,
+    getLocationTrackUiName,
+    getReferenceLineUiName,
+    getSwitchUiName,
+    getTrackNumberUiName,
+} from 'preview/change-table-entry-mapping';
+import { KmNumber, TimeStamp, TrackNumber } from 'common/common-model';
 
-const publicationLogTableEntryCommonFields = (
-    candidate:
-        | PublishedLocationTrack
-        | PublishedTrackNumber
-        | PublishedReferenceLine
-        | SwitchPublishCandidate
-        | PublishedKmPost
-        | PublishedSwitch,
-    changeTime: string,
-    userName: string,
-) => ({
-    id: candidate.id,
-    operation: candidate.operation,
-    changeTime: changeTime,
-    userName: userName,
+export type PublicationLogTableCommonFields = {
+    publicationId: PublicationId;
+    changeTime: TimeStamp;
+    userName: string;
+    definition: string;
+};
+
+export type PublicationLogTableEntry = {
+    name: string;
+    trackNumbers: TrackNumber[];
+    operation?: Operation;
+    changedKmNumbers: KmNumber[];
+} & PublicationLogTableCommonFields;
+
+export const getPublicationLogTableEntryCommonFields = (
+    publication: PublicationDetails,
+): PublicationLogTableCommonFields => ({
+    publicationId: publication.id,
+    changeTime: publication.publicationTime,
+    userName: publication.publicationUser,
+    definition: '', //todo tulossa myöhemmin
 });
 
 export const trackNumberToLogTableEntry = (
     trackNumber: PublishedTrackNumber,
-    changeTime: string,
-    userName: string,
+    trackNumbers: LayoutTrackNumber[],
+    commonFields: PublicationLogTableCommonFields,
 ): PublicationLogTableEntry => {
+    const tn = trackNumbers.find((tn) => tn.id === trackNumber.id);
+
     return {
-        ...publicationLogTableEntryCommonFields(trackNumber, changeTime, userName),
-        name: trackNumber.number,
-        trackNumber: trackNumber.number,
-        changedKmNumbers: '', // todo tulossa myöhemmin
-        definition: '', // todo tulossa myöhemmin
+        ...commonFields,
+        name: tn ? getTrackNumberUiName(tn.number) : '',
+        trackNumbers: tn ? [tn.number] : [],
+        operation: trackNumber.operation,
+        changedKmNumbers: [], // todo tulossa myöhemmin
     };
 };
 
 export const kmPostToLogTableEntry = (
     kmPost: PublishedKmPost,
-    changeTime: string,
-    userName: string,
     trackNumbers: LayoutTrackNumber[],
+    commonFields: PublicationLogTableCommonFields,
 ): PublicationLogTableEntry => {
     const trackNumber = trackNumbers.find((tn) => tn.id === kmPost.trackNumberId);
     return {
-        ...publicationLogTableEntryCommonFields(kmPost, changeTime, userName),
-        name: kmPost.kmNumber,
-        trackNumber: trackNumber ? trackNumber.number : '',
-        changedKmNumbers: '', // todo tulossa myöhemmin
-        definition: '', // todo tulossa myöhemmin
+        ...commonFields,
+        name: getKmPostUiName(kmPost.kmNumber),
+        trackNumbers: trackNumber ? [trackNumber.number] : [],
+        operation: kmPost.operation,
+        changedKmNumbers: [], // todo tulossa myöhemmin
     };
 };
 
 export const locationTrackToLogTableEntry = (
     locationTrack: PublishedLocationTrack,
-    changeTime: string,
-    userName: string,
     trackNumbers: LayoutTrackNumber[],
+    commonFields: PublicationLogTableCommonFields,
 ): PublicationLogTableEntry => {
     const trackNumber = trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId);
     return {
-        ...publicationLogTableEntryCommonFields(locationTrack, changeTime, userName),
-        name: locationTrack.name,
-        trackNumber: trackNumber ? trackNumber.number : '',
-        changedKmNumbers: '', // todo tulossa myöhemmin
-        definition: '', // todo tulossa myöhemmin
+        ...commonFields,
+        name: getLocationTrackUiName(locationTrack.name),
+        trackNumbers: trackNumber ? [trackNumber.number] : [],
+        operation: locationTrack.operation,
+        changedKmNumbers: [], // todo tulossa myöhemmin
     };
 };
 
 export const referenceLineToLogTableEntry = (
     referenceLine: PublishedReferenceLine,
-    changeTime: string,
-    userName: string,
     trackNumbers: LayoutTrackNumber[],
+    commonFields: PublicationLogTableCommonFields,
 ): PublicationLogTableEntry => {
     const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
     return {
-        ...publicationLogTableEntryCommonFields(referenceLine, changeTime, userName),
-        name: referenceLine.trackNumberId,
-        trackNumber: trackNumber ? trackNumber.number : '',
-        changedKmNumbers: '', // todo tulossa myöhemmin
-        definition: '', // todo tulossa myöhemmin
+        ...commonFields,
+        name: getReferenceLineUiName(trackNumber?.number),
+        trackNumbers: trackNumber ? [trackNumber.number] : [],
+        changedKmNumbers: [], // todo tulossa myöhemmin
     };
 };
 
 export const switchesToLogTableEntry = (
     publishedSwitch: PublishedSwitch,
-    changeTime: string,
-    userName: string,
     trackNumbers: LayoutTrackNumber[],
+    commonFields: PublicationLogTableCommonFields,
 ): PublicationLogTableEntry => {
-    const trackNumber = trackNumbers.find((tn) => publishedSwitch.trackNumberIds.includes(tn.id));
+    const tNumbers = trackNumbers.filter((tn) => publishedSwitch.trackNumberIds.includes(tn.id));
+
     return {
-        ...publicationLogTableEntryCommonFields(publishedSwitch, changeTime, userName),
-        name: publishedSwitch.name,
-        trackNumber: trackNumber ? trackNumber.number : '',
-        changedKmNumbers: '', // todo tulossa myöhemmin
-        definition: '', // todo tulossa myöhemmin
+        ...commonFields,
+        name: getSwitchUiName(publishedSwitch.name),
+        trackNumbers: tNumbers.map((tn) => tn.number),
+        operation: publishedSwitch.operation,
+        changedKmNumbers: [], // todo tulossa myöhemmin
     };
 };

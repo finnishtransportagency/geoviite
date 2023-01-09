@@ -1,70 +1,50 @@
 @import '../vayla-design-lib/colors';
 @import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/shadows';
-@import '../vayla-design-lib/layers';
 
-$color-link: $color-blue-dark;
-
-.publication-table__container {
+.publication-log-table__container {
     overflow-y: auto;
     height: 100%;
 }
 
-.publication-table__header {
+.publication-log-table__header {
     position: sticky;
     top: 0;
     z-index: 1;
 }
 
-.publication-log__date-pickers {
-    display: flex;
-    height: 10vh;
-    width: 60vh;
-    flex-direction: row;
-    z-index: 1000;
+.publication-log__datepickers {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    gap: 12px;
+    padding-left: 24px;
+}
+
+.publication-log__content {
+    background: $color-white-default;
+    padding: 24px;
+    flex-grow: 1;
+}
+
+.publication-log__view {
+    width: 100%;
+}
+
+.publication-log__title {
+    @include typography-body;
+
+    color: $color-black-lighter;
+    background-color: $color-white-dark;
+    box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+    margin-bottom: 8px;
+    padding: 12px 0 8px 20px;
+}
+
+.publication-log__link {
+    color: $color-blue-dark;
     padding: 0 20px;
+    cursor: pointer;
 }
 
-.publication-log__flex-child {
-    flex: 1;
-    align-items: start;
-    align-content: start;
-}
-
-.publication-log {
-    &-card {
-        padding-top: 0;
-    }
-
-    &__link {
-        color: $color-link;
-        padding: 0 20px;
-        cursor: pointer;
-    }
-
-    &__view {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-    }
-
-    &__title {
-        @include typography-body;
-
-        color: $color-black-lighter;
-        background-color: $color-white-dark;
-        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
-        margin-bottom: 8px;
-        padding: 12px 0 8px 20px;
-    }
-
-    &__breadcrumbs {
-        white-space: pre;
-    }
-
-    &__content {
-        background: $color-white-default;
-        padding: 24px;
-        flex-grow: 1;
-    }
+.publication-log__breadcrumbs {
+    white-space: pre;
 }

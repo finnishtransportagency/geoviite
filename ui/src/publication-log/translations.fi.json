@@ -13,11 +13,5 @@
         "change-time": "Aika",
         "user": "Käyttäjä",
         "definition": "Selite"
-    },
-    "operation": {
-        "create" : "lisäys",
-        "delete": "poisto",
-        "modify" : "muokkaus",
-        "restore": "palautus"
     }
 }

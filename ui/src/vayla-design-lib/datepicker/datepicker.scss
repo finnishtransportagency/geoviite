@@ -1,6 +1,7 @@
 @import '../colors';
 @import '../shadows';
 @import '../typography';
+@import '../layers';
 
 .datepicker {
     &__current-month {
@@ -29,6 +30,10 @@
         &--next svg {
             transform: rotate(0);
         }
+    }
+
+    .react-datepicker-popper {
+        z-index: $layer-popup;
     }
 
     .react-datepicker {

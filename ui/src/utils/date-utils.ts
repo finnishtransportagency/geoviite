@@ -1,26 +1,20 @@
 import { TimeStamp } from 'common/common-model';
 import { maxOf } from 'utils/array-utils';
-import { format } from 'date-fns';
+import { format, getYear, startOfToday } from 'date-fns';
 
-export const currentYear = new Date().getFullYear();
-export const currentMonth = new Date().getMonth();
+export const currentDay = startOfToday();
 
-export const currentDay = new Date(new Date().setHours(0, 0, 0, 0));
+export const currentYear = getYear(currentDay);
 
 function isDate(date: Date | TimeStamp): date is Date {
     return typeof date != 'string';
-}
-
-export function getTomorrow(date: Date): Date {
-    const tomorrow = new Date(date);
-    return new Date(tomorrow.setHours(24, 0, 0, 0));
 }
 
 export function formatDateFull(date: Date | TimeStamp): string {
     return formatDate(date, 'dd.MM.yyyy HH.mm');
 }
 
-export function formatGMTDateFull(date: Date | TimeStamp): string {
+export function formatISODate(date: Date | TimeStamp): string {
     return formatDate(date, "yyyy-MM-dd'T'HH:mm:ss'Z'");
 }
 
