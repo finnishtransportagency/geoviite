@@ -25,6 +25,7 @@ export enum DraftChangeType {
 export type Operation = 'CREATE' | 'DELETE' | 'MODIFY' | 'RESTORE';
 
 export type PublicationId = string;
+export type PublicationUserName = string;
 
 export type PublishCandidate = {
     draftChangeTime: TimeStamp;
@@ -105,17 +106,21 @@ export type PublicationDetails = {
 };
 
 export type PublishedTrackNumber = {
+    id: PublicationId;
     version: RowVersion;
     number: TrackNumber;
     operation: Operation;
 };
 
 export type PublishedReferenceLine = {
+    id: PublicationId;
     version: RowVersion;
     trackNumberId: LayoutTrackNumberId;
+    operation: Operation;
 };
 
 export type PublishedLocationTrack = {
+    id: PublicationId;
     version: RowVersion;
     name: string;
     trackNumberId: LayoutTrackNumberId;
@@ -123,6 +128,7 @@ export type PublishedLocationTrack = {
 };
 
 export type PublishedSwitch = {
+    id: PublicationId;
     version: RowVersion;
     trackNumberIds: LayoutTrackNumberId[];
     name: string;
@@ -130,6 +136,7 @@ export type PublishedSwitch = {
 };
 
 export type PublishedKmPost = {
+    id: PublicationId;
     version: RowVersion;
     trackNumberId: LayoutTrackNumberId;
     kmNumber: KmNumber;

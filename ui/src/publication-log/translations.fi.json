@@ -1,6 +1,23 @@
 {
     "publication-log": {
         "link-text": "Julkaisuloki",
-        "breadcrumbs-text": "> Julkaisuloki"
+        "breadcrumbs-text": "> Julkaisuloki",
+        "start-date": "Alkupvm.",
+        "end-date": "Loppupvm."
+    },
+    "publication-log-table": {
+        "change-target": "Muutoskohde",
+        "track-number-short": "Ratanro",
+        "changed-km-numbers": "Kilometrit",
+        "operation": "Muutos",
+        "change-time": "Aika",
+        "user": "Käyttäjä",
+        "definition": "Selite"
+    },
+    "operation": {
+        "create" : "lisäys",
+        "delete": "poisto",
+        "modify" : "muokkaus",
+        "restore": "palautus"
     }
 }
