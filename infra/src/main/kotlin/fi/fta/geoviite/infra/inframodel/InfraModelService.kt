@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
+import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -14,6 +15,7 @@ import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
@@ -36,11 +38,19 @@ class InfraModelService @Autowired constructor(
         extraInfoParameters: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
-        val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
-        val geometryPlan =
-            overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
 
-        return geometryDao.insertPlan(geometryPlan, imFile)
+        try {
+            val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
+            val geometryPlan =
+                overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
+
+            return geometryDao.insertPlan(geometryPlan, imFile)
+        } catch (e: DuplicateKeyException) {
+            throw InframodelParsingException(
+                  message = "InfraModel file exists already",
+                  localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
+            )
+        }
     }
 
     fun validateInputFileAndParseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {
