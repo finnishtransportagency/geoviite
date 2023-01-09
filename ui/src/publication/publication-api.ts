@@ -1,4 +1,11 @@
-import { API_URI, deleteAdt, getIgnoreError, postAdt, postIgnoreError } from 'api/api-fetch';
+import {
+    API_URI,
+    deleteAdt,
+    getIgnoreError,
+    postAdt,
+    postIgnoreError,
+    queryParams,
+} from 'api/api-fetch';
 import { JointNumber, KmNumber, Oid, TrackMeter } from 'common/common-model';
 import {
     PublicationDetails,
@@ -109,12 +116,8 @@ export const getCalculatedChanges = (request: PublishRequest) =>
     );
 
 const publicationsParams = (startDate: Date | undefined, endDate: Date | undefined) => {
-    if (startDate && endDate)
-        return `?from=${formatGMTDateFull(startDate)}&to=${formatGMTDateFull(
-            getTomorrow(endDate),
-        )}`;
-    else if (startDate && endDate == undefined) return `?from=${formatGMTDateFull(startDate)}`;
-    else if (endDate && startDate == undefined)
-        return `?to=${formatGMTDateFull(getTomorrow(endDate))}`;
-    else return '';
+    return queryParams({
+        from: startDate ? formatGMTDateFull(startDate) : '',
+        to: endDate ? formatGMTDateFull(getTomorrow(endDate)) : '',
+    });
 };
