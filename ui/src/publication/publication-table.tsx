@@ -88,6 +88,8 @@ const toPublicationEntries = (
 
 const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
     const { t } = useTranslation();
+
+    //Track numbers rarely change, therefore we can always use the "latest" version
     const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
@@ -100,7 +102,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
                       ? sortInfo.function
                       : negComparator(sortInfo.function),
               )
-            : [...publicationEntries];
+            : publicationEntries;
 
     const sortByProp = (propName: SortProps) => {
         const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);

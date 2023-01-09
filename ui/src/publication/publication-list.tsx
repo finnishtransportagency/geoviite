@@ -2,15 +2,14 @@ import React from 'react';
 import styles from './publication-list.scss';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
+import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { useTranslation } from 'react-i18next';
 import { ratkoPushFailed, ratkoPushInProgress } from 'ratko/ratko-model';
-import { PublicationDetails, PublicationId } from 'publication/publication-model';
-import { filterNotEmpty, filterUnique } from 'utils/array-utils';
-import { getTrackNumberAtMoment } from 'track-layout/layout-track-number-api';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
+import { PublicationDetails } from 'publication/publication-model';
+import { filterUnique } from 'utils/array-utils';
 
 type PublicationListProps = {
     publications: PublicationDetails[];
@@ -21,32 +20,12 @@ type PublicationListProps = {
 const PUBLICATIONS_PER_PAGE = 8;
 
 const getPublicationTrackNumbers = (publication: PublicationDetails) => {
-    const trackNumberIds = [
+    return [
         ...publication.trackNumbers.map((tn) => tn.id),
         ...publication.referenceLines.map((rl) => rl.trackNumberId),
         ...publication.locationTracks.map((lt) => lt.trackNumberId),
         ...publication.kmPosts.map((kp) => kp.trackNumberId),
-    ];
-
-    return Promise.all(
-        trackNumberIds
-            .filter(filterUnique)
-            .map((tn) => getTrackNumberAtMoment(tn, new Date(publication.publicationTime))),
-    ).then((trackNumbers) => ({
-        [publication.id]: trackNumbers.filter(filterNotEmpty),
-    }));
-};
-
-const getTrackNumbersForPublications = async (publications: PublicationDetails[]) => {
-    return Promise.all(publications.map(getPublicationTrackNumbers)).then((result) =>
-        result.reduce(
-            (acc, publicationTrackNumbers) => ({
-                ...acc,
-                ...publicationTrackNumbers,
-            }),
-            {},
-        ),
-    );
+    ].filter(filterUnique);
 };
 
 export const PublicationList: React.FC<PublicationListProps> = ({
@@ -57,9 +36,8 @@ export const PublicationList: React.FC<PublicationListProps> = ({
     const { t } = useTranslation();
     const [page, setPage] = React.useState(1);
     const [visiblePublications, setVisiblePublications] = React.useState<PublicationDetails[]>([]);
-    const [trackNumbers, setTrackNumbers] = React.useState<{
-        [key: PublicationId]: LayoutTrackNumber[];
-    }>({});
+    //Track numbers rarely change, therefore we can always use the "latest" version
+    const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
     React.useEffect(() => {
         setVisiblePublications(publications.slice(0, page * PUBLICATIONS_PER_PAGE));
@@ -67,15 +45,6 @@ export const PublicationList: React.FC<PublicationListProps> = ({
 
     React.useEffect(() => {
         setPage(1);
-
-        let cancelled = false;
-        getTrackNumbersForPublications(publications).then((trackNumbers) => {
-            if (!cancelled) setTrackNumbers(trackNumbers);
-        });
-
-        return () => {
-            cancelled = true;
-        };
     }, [publications]);
 
     const canExpand = visiblePublications.length < publications.length;
@@ -98,6 +67,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
             <div>
                 {visiblePublications.map((publication, publicationIndex) => {
                     const isWaitingAfterFailure = anyFailed && publication.ratkoPushStatus === null;
+                    const trackNumberIds = getPublicationTrackNumbers(publication);
 
                     return (
                         <div className={styles['publication-list-item']} key={publicationIndex}>
@@ -120,11 +90,19 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                                 </Link>
                             </div>
                             <div className={styles['publication-list-item__track-numbers']}>
-                                {trackNumbers[publication.id]?.map((trackNumber) => (
-                                    <span key={trackNumber.id}>
-                                        <ReferenceLineBadge trackNumber={trackNumber} />
-                                    </span>
-                                ))}
+                                {trackNumberIds.map((trackNumberId) => {
+                                    const trackNumber = trackNumbers.find(
+                                        (trackNumber) => trackNumber.id === trackNumberId,
+                                    );
+
+                                    return (
+                                        trackNumber && (
+                                            <span key={trackNumber.id}>
+                                                <ReferenceLineBadge trackNumber={trackNumber} />
+                                            </span>
+                                        )
+                                    );
+                                })}
                             </div>
                             {isWaitingAfterFailure && (
                                 <React.Fragment>
@@ -135,7 +113,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                                             }>
                                             <Icons.Denied
                                                 color={IconColor.INHERIT}
-                                                size={IconSize.MEDIUMSMALL}
+                                                size={IconSize.MEDIUM_SMALL}
                                             />
                                         </span>
                                     </div>
@@ -154,7 +132,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                                             }>
                                             <Icons.StatusError
                                                 color={IconColor.INHERIT}
-                                                size={IconSize.MEDIUMSMALL}
+                                                size={IconSize.MEDIUM_SMALL}
                                             />
                                         </span>
                                     </div>

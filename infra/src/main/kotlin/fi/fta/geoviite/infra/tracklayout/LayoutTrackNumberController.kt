@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
-import java.time.Instant
 
 @RestController
 @RequestMapping("/track-layout/track-numbers")
@@ -35,16 +34,6 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
     ): ResponseEntity<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumber", "publishType" to publishType, "id" to id)
         return toResponse(trackNumberService.get(publishType, id))
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/official/{id}")
-    fun getTrackNumberAtMoment(
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-        @RequestParam("atMoment") moment: Instant
-    ): TrackLayoutTrackNumber? {
-        logger.apiCall("getTrackNumberAtMoment", "id" to id, "moment" to moment)
-        return trackNumberService.getOfficialAtMoment(id, moment)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
