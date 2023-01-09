@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TimeStamp } from 'common/common-model';
-import styles from 'publication/publication-table-item.scss';
+import styles from 'publication/table/publication-table-item.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import { Operation, PublicationId, PublishValidationError } from 'publication/pu
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Menu, Item, useContextMenu } from 'react-contexify';
+import { Item, Menu, useContextMenu } from 'react-contexify';
 import { PreviewSelectType } from 'preview/preview-table';
 
 export type PreviewTableItemProps = {

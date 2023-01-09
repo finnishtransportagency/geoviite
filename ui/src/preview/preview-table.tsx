@@ -10,7 +10,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import styles from '../publication/publication-table.scss';
+import styles from '../publication/table/publication-table.scss';
 import { SelectedPublishChange } from 'track-layout/track-layout-store';
 import { negComparator } from 'utils/array-utils';
 import {

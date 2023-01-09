@@ -13,7 +13,7 @@ import {
     referenceLineToLogTableEntry,
     switchesToLogTableEntry,
     trackNumberToLogTableEntry,
-} from 'publication-log/publication-log-table-entry-mappings';
+} from 'publication/log/publication-log-table-entry-mappings';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { addDays, startOfDay } from 'date-fns';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';

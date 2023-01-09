@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
 import { PublicationDetails } from 'publication/publication-model';
-import { PublicationList } from 'publication/publication-list';
+import { PublicationList } from 'publication/card/publication-list';
 import { ButtonSize } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { RatkoPushErrorDetails } from 'ratko/ratko-push-error';
@@ -10,7 +10,7 @@ import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
 import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
-import PublicationLogLink from 'publication-log/publication-log-link';
+import PublicationLogLink from 'publication/log/publication-log-link';
 import { EnvRestricted } from 'environment/env-restricted';
 
 type PublishListProps = {

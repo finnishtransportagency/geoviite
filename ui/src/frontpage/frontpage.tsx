@@ -1,5 +1,5 @@
 import * as React from 'react';
-import PublicationCard from 'publication/publication-card';
+import PublicationCard from 'publication/card/publication-card';
 import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
 import { PublicationDetails as PublicationDetailsModel } from 'publication/publication-model';
@@ -7,7 +7,7 @@ import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
-import PublicationLogView from 'publication-log/publication-log-view';
+import PublicationLogView from 'publication/log/publication-log-view';
 import { getPublications } from 'publication/publication-api';
 import { subMonths } from 'date-fns';
 

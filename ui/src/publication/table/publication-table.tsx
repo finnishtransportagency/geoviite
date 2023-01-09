@@ -2,7 +2,7 @@ import { Table, Th } from 'vayla-design-lib/table/table';
 import {
     PublicationTableItem,
     PublicationTableItemProps,
-} from 'publication/publication-table-item';
+} from 'publication/table/publication-table-item';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';

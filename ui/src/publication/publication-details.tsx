@@ -1,5 +1,5 @@
 import * as React from 'react';
-import PublicationTable from 'publication/publication-table';
+import PublicationTable from 'publication/table/publication-table';
 import { getPublication } from 'publication/publication-api';
 import { PublicationDetails as PublicationDetailsModel } from 'publication/publication-model';
 import styles from './publication-details.scss';
