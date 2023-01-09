@@ -8,15 +8,6 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
-data class PublicationListingItem(
-    val id: IntId<Publication>,
-    val publishTime: Instant,
-    val ratkoPushTime: Instant?,
-    val status: RatkoPushStatus?,
-    val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-    val hasRatkoPushError: Boolean,
-)
-
 open class Publication(
     open val id: IntId<Publication>,
     open val publicationTime: Instant,
@@ -25,6 +16,7 @@ open class Publication(
 
 data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
+    val id: IntId<TrackLayoutTrackNumber> = version.id,
     val number: TrackNumber,
     val operation: Operation
 )

@@ -1,5 +1,8 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
-import { PreviewTableItemProps, PublicationTableItem } from 'publication/publication-table-item';
+import {
+    PublicationTableItem,
+    PublicationTableItemProps,
+} from 'publication/publication-table-item';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
@@ -31,9 +34,10 @@ export type PublicationTableProps = {
 const toPublicationEntries = (
     publication: PublicationDetails,
     trackNumbers: LayoutTrackNumber[],
-): PreviewTableItemProps[] => {
+): PublicationTableItemProps[] => {
     const getTrackNumber = (id: LayoutTrackNumberId) => {
-        return trackNumbers.find((tn) => tn.id == id)?.number;
+        const tn = trackNumbers.find((t) => t.id == id);
+        return tn ? [tn.number] : [];
     };
 
     const publicationInfo = {
@@ -46,39 +50,36 @@ const toPublicationEntries = (
     };
 
     const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({
-        itemName: getTrackNumberUiName(trackNumber.number),
-        trackNumber: trackNumber.number,
+        itemName: getTrackNumberUiName(getTrackNumber(trackNumber.id)[0]),
+        trackNumbers: getTrackNumber(trackNumber.id),
         operation: trackNumber.operation,
         ...publicationInfo,
     }));
 
     const referenceLines = publication.referenceLines.map((referenceLine) => ({
-        itemName: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)),
-        trackNumber: getTrackNumber(referenceLine.trackNumberId),
+        itemName: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)[0]),
+        trackNumbers: getTrackNumber(referenceLine.trackNumberId),
         operation: null,
         ...publicationInfo,
     }));
 
     const locationTracks = publication.locationTracks.map((locationTrack) => ({
         itemName: getLocationTrackUiName(locationTrack.name),
-        trackNumber: getTrackNumber(locationTrack.trackNumberId),
+        trackNumbers: getTrackNumber(locationTrack.trackNumberId),
         operation: locationTrack.operation,
         ...publicationInfo,
     }));
 
     const switches = publication.switches.map((s) => ({
         itemName: getSwitchUiName(s.name),
-        trackNumber: s.trackNumberIds
-            .map((id) => getTrackNumber(id))
-            .sort()
-            .join(', '),
+        trackNumbers: s.trackNumberIds.flatMap(getTrackNumber),
         operation: s.operation,
         ...publicationInfo,
     }));
 
     const kmPosts = publication.kmPosts.map((kmPost) => ({
         itemName: getKmPostUiName(kmPost.kmNumber),
-        trackNumber: getTrackNumber(kmPost.trackNumberId),
+        trackNumbers: getTrackNumber(kmPost.trackNumberId),
         operation: kmPost.operation,
         ...publicationInfo,
     }));
@@ -88,6 +89,8 @@ const toPublicationEntries = (
 
 const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
     const { t } = useTranslation();
+
+    //Track numbers rarely change, therefore we can always use the "latest" version
     const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
@@ -100,7 +103,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
                       ? sortInfo.function
                       : negComparator(sortInfo.function),
               )
-            : [...publicationEntries];
+            : publicationEntries;
 
     const sortByProp = (propName: SortProps) => {
         const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
@@ -142,7 +145,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
                         <PublicationTableItem
                             key={entry.itemName}
                             itemName={entry.itemName}
-                            trackNumber={entry.trackNumber}
+                            trackNumbers={entry.trackNumbers}
                             changeTime={entry.changeTime}
                             ratkoPushDate={entry.ratkoPushDate}
                             userName={entry.userName}

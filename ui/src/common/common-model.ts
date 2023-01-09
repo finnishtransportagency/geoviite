@@ -99,10 +99,7 @@ export type SwitchOwner = {
     name: string;
 };
 
-export type RowVersion = {
-    id: string;
-    version: number;
-};
+export type RowVersion = string;
 
 export enum LocationTrackPointUpdateType {
     END_POINT = 'END_POINT',

@@ -184,12 +184,11 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               location_track_id, 
               switch_id 
             from integrations.ratko_push_error
-              inner join integrations.ratko_push
-                on ratko_push.id = ratko_push_error.ratko_push_id
-              inner join integrations.ratko_push_content 
-                using(ratko_push_id)
+            inner join integrations.ratko_push
+              on ratko_push.id = ratko_push_error.ratko_push_id
+            inner join integrations.ratko_push_content using(ratko_push_id)
             where ratko_push_content.publication_id = :id
-            order by ratko_push.end_time desc, ratko_push_error.id desc
+            order by ratko_push.end_time desc
             limit 1;
         """.trimIndent()
 
@@ -199,8 +198,9 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
             val switchId = rs.getIntIdOrNull<TrackLayoutSwitch>("switch_id")
             RatkoPushError(
+                id = errorId,
                 ratkoPushId = rs.getIntId("ratko_push_id"),
-                ratkoPushErrorType = rs.getEnum("error_type"),
+                errorType = rs.getEnum("error_type"),
                 operation = rs.getEnum("operation"),
                 assetId = trackNumberId
                     ?: locationTrackId

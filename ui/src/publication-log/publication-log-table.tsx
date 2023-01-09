@@ -2,95 +2,75 @@ import { Table, Th } from 'vayla-design-lib/table/table';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './publication-log.scss';
-import { Operation, PublicationDetails, PublicationId } from 'publication/publication-model';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
-import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { PublicationDetails } from 'publication/publication-model';
 import { useLoader } from 'utils/react-utils';
 import { getPublications } from 'publication/publication-api';
 import {
+    getPublicationLogTableEntryCommonFields,
     kmPostToLogTableEntry,
     locationTrackToLogTableEntry,
+    PublicationLogTableEntry,
     referenceLineToLogTableEntry,
     switchesToLogTableEntry,
     trackNumberToLogTableEntry,
 } from 'publication-log/publication-log-table-entry-mappings';
-
-export type PublicationLogTableEntry = {
-    id: PublicationId;
-    name: string;
-    trackNumber: string;
-    operation: Operation;
-    changeTime: string;
-    userName: string;
-    changedKmNumbers: string;
-    definition: string;
-};
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { addDays, startOfDay } from 'date-fns';
+import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { formatDateFull } from 'utils/date-utils';
 
 type PublicationLogTableProps = {
     startDate: Date | undefined;
     endDate: Date | undefined;
 };
 
+const detailsToEntry = (
+    publicationDetails: PublicationDetails,
+    trackNumbers: LayoutTrackNumber[],
+): PublicationLogTableEntry[] => {
+    const commonFields = getPublicationLogTableEntryCommonFields(publicationDetails);
+
+    const trackNums = publicationDetails.trackNumbers.map((t) =>
+        trackNumberToLogTableEntry(t, trackNumbers, commonFields),
+    );
+
+    const kmPosts = publicationDetails.kmPosts.map((km) =>
+        kmPostToLogTableEntry(km, trackNumbers, commonFields),
+    );
+
+    const lTracks = publicationDetails.locationTracks.map((l) =>
+        locationTrackToLogTableEntry(l, trackNumbers, commonFields),
+    );
+
+    const rLines = publicationDetails.referenceLines.map((rl) =>
+        referenceLineToLogTableEntry(rl, trackNumbers, commonFields),
+    );
+
+    const switches = publicationDetails.switches.map((s) =>
+        switchesToLogTableEntry(s, trackNumbers, commonFields),
+    );
+
+    return [...trackNums, ...kmPosts, ...lTracks, ...rLines, ...switches];
+};
+
 const PublicationLogTable: React.FC<PublicationLogTableProps> = ({ startDate, endDate }) => {
     const { t } = useTranslation();
 
-    const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
+    const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
-    React.useEffect(() => {
-        getTrackNumbers('OFFICIAL').then((trackNumbers) => setTrackNumbers(trackNumbers));
-    }, []);
+    const publicationDetailsList = useLoader(() => {
+        const toDate = endDate ? startOfDay(addDays(endDate, 1)) : undefined;
+        return getPublications(startDate, toDate);
+    }, [startDate, endDate]);
 
-    const detailsToEntry = (publicationDetails: PublicationDetails): PublicationLogTableEntry[] => {
-        const changeTime = publicationDetails.publicationTime;
-        const userName = publicationDetails.publicationUser;
-
-        const trackNums =
-            (publicationDetails.trackNumbers &&
-                publicationDetails.trackNumbers.map((t) => {
-                    return trackNumberToLogTableEntry(t, changeTime, userName);
-                })) ||
-            [];
-        const kmPosts: PublicationLogTableEntry[] =
-            (publicationDetails.kmPosts &&
-                publicationDetails.kmPosts.map((km) =>
-                    kmPostToLogTableEntry(km, changeTime, userName, trackNumbers),
-                )) ||
-            [];
-        const lTracks: PublicationLogTableEntry[] =
-            (publicationDetails.locationTracks &&
-                publicationDetails.locationTracks.map((l) =>
-                    locationTrackToLogTableEntry(l, changeTime, userName, trackNumbers),
-                )) ||
-            [];
-        const rLines =
-            (publicationDetails.referenceLines &&
-                publicationDetails.referenceLines.map((rl) =>
-                    referenceLineToLogTableEntry(rl, changeTime, userName, trackNumbers),
-                )) ||
-            [];
-        const switches =
-            (publicationDetails.switches &&
-                publicationDetails.switches.map((s) =>
-                    switchesToLogTableEntry(s, changeTime, userName, trackNumbers),
-                )) ||
-            [];
-
-        return trackNums.concat(kmPosts).concat(lTracks).concat(rLines).concat(switches);
-    };
-
-    const publicationDetailsList = useLoader(
-        () => getPublications(startDate, endDate),
-        [startDate, endDate],
+    const publicationLogTableEntries = publicationDetailsList?.flatMap((details) =>
+        detailsToEntry(details, trackNumbers),
     );
 
-    const publicationLogTableEntries: PublicationLogTableEntry[] = publicationDetailsList
-        ? publicationDetailsList.flatMap((details) => detailsToEntry(details))
-        : [];
-
     return (
-        <div className={styles['publication-table__container']}>
+        <div className={styles['publication-log-table__container']}>
             <Table wide>
-                <thead className={styles['publication-table__header']}>
+                <thead className={styles['publication-log-table__header']}>
                     <tr>
                         <Th>{t('publication-log-table.change-target')}</Th>
                         <Th>{t('publication-log-table.track-number-short')}</Th>
@@ -102,20 +82,21 @@ const PublicationLogTable: React.FC<PublicationLogTableProps> = ({ startDate, en
                     </tr>
                 </thead>
                 <tbody>
-                    {publicationLogTableEntries &&
-                        publicationLogTableEntries.map((entry) => (
-                            <React.Fragment key={entry.id}>
-                                <tr className={'preview-table-item'}>
-                                    <td>{entry.name}</td>
-                                    <td>{entry.trackNumber}</td>
-                                    <td>{entry.changedKmNumbers}</td>
-                                    <td>{t(`operation.${entry.operation.toLowerCase()}`)}</td>
-                                    <td>{entry.changeTime}</td>
-                                    <td>{entry.userName}</td>
-                                    <td>{entry.definition ? entry.definition : ''}</td>
-                                </tr>
-                            </React.Fragment>
-                        ))}
+                    {publicationLogTableEntries?.map((entry) => (
+                        <tr key={`${entry.publicationId}_${entry.name}`}>
+                            <td>{entry.name}</td>
+                            <td>{entry.trackNumbers.sort().join(', ')}</td>
+                            <td>{entry.changedKmNumbers}</td>
+                            <td>
+                                {entry.operation
+                                    ? t(`enum.publish-operation.${entry.operation}`)
+                                    : ''}
+                            </td>
+                            <td>{formatDateFull(entry.changeTime)}</td>
+                            <td>{entry.userName}</td>
+                            <td>{entry.definition}</td>
+                        </tr>
+                    ))}
                 </tbody>
             </Table>
         </div>

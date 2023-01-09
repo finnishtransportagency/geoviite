@@ -488,10 +488,6 @@ class PublicationService @Autowired constructor(
     private fun getLocationTrackAndAlignment(version: RowVersion<LocationTrack>) =
         locationTrackWithAlignment(locationTrackDao, alignmentDao, version)
 
-    //merge with fetchPublicationDetails
-    fun getPublicationListing(): List<PublicationListingItem> =
-        publicationDao.fetchRatkoPublicationListing()
-
     @Transactional(readOnly = true)
     fun getPublicationDetails(id: IntId<Publication>): PublicationDetails {
         logger.serviceCall("getPublicationDetails", "id" to id)

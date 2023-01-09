@@ -4,19 +4,29 @@ import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line-badge';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { PublicationListingItem } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { useTranslation } from 'react-i18next';
 import { ratkoPushFailed, ratkoPushInProgress } from 'ratko/ratko-model';
+import { PublicationDetails } from 'publication/publication-model';
+import { filterUnique } from 'utils/array-utils';
 
 type PublicationListProps = {
-    publications: PublicationListingItem[];
-    publicationClicked: (publication: PublicationListingItem) => void;
+    publications: PublicationDetails[];
+    publicationClicked: (publication: PublicationDetails) => void;
     anyFailed: boolean;
 };
 
 const PUBLICATIONS_PER_PAGE = 8;
+
+const getPublicationTrackNumbers = (publication: PublicationDetails) => {
+    return [
+        ...publication.trackNumbers.map((tn) => tn.id),
+        ...publication.referenceLines.map((rl) => rl.trackNumberId),
+        ...publication.locationTracks.map((lt) => lt.trackNumberId),
+        ...publication.kmPosts.map((kp) => kp.trackNumberId),
+    ].filter(filterUnique);
+};
 
 export const PublicationList: React.FC<PublicationListProps> = ({
     publications,
@@ -25,10 +35,9 @@ export const PublicationList: React.FC<PublicationListProps> = ({
 }) => {
     const { t } = useTranslation();
     const [page, setPage] = React.useState(1);
-    const [visiblePublications, setVisiblePublications] = React.useState<PublicationListingItem[]>(
-        [],
-    );
-    const trackNumbers = useTrackNumbers('OFFICIAL');
+    const [visiblePublications, setVisiblePublications] = React.useState<PublicationDetails[]>([]);
+    //Track numbers rarely change, therefore we can always use the "latest" version
+    const trackNumbers = useTrackNumbers('OFFICIAL') || [];
 
     React.useEffect(() => {
         setVisiblePublications(publications.slice(0, page * PUBLICATIONS_PER_PAGE));
@@ -57,18 +66,19 @@ export const PublicationList: React.FC<PublicationListProps> = ({
         <React.Fragment>
             <div>
                 {visiblePublications.map((publication, publicationIndex) => {
-                    const isWaitingAfterFailure = anyFailed && publication.status === null;
+                    const isWaitingAfterFailure = anyFailed && publication.ratkoPushStatus === null;
+                    const trackNumberIds = getPublicationTrackNumbers(publication);
 
                     return (
                         <div className={styles['publication-list-item']} key={publicationIndex}>
-                            {publication.status === null && (
+                            {publication.ratkoPushStatus === null && (
                                 <div
                                     className={styles['publication-list-item__status--waiting']}
                                     title={t('publishing.waiting')}
                                 />
                             )}
 
-                            {ratkoPushInProgress(publication.status) && (
+                            {ratkoPushInProgress(publication.ratkoPushStatus) && (
                                 <div
                                     className={styles['publication-list-item__status--in-progress']}
                                     title={t('publishing.in-progress')}
@@ -76,25 +86,23 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                             )}
                             <div className={styles['publication-list-item__text']}>
                                 <Link onClick={() => publicationClicked(publication)}>
-                                    {formatDateFull(publication.publishTime)}
+                                    {formatDateFull(publication.publicationTime)}
                                 </Link>
                             </div>
                             <div className={styles['publication-list-item__track-numbers']}>
-                                {publication.trackNumberIds.map(
-                                    (trackNumberId, trackNumberIndex) => {
-                                        const trackNumber = trackNumbers?.find(
-                                            (trackNumber) => trackNumber.id === trackNumberId,
-                                        );
-                                        return (
-                                            trackNumber && (
-                                                <span
-                                                    key={publicationIndex + '_' + trackNumberIndex}>
-                                                    <ReferenceLineBadge trackNumber={trackNumber} />
-                                                </span>
-                                            )
-                                        );
-                                    },
-                                )}
+                                {trackNumberIds.map((trackNumberId) => {
+                                    const trackNumber = trackNumbers.find(
+                                        (trackNumber) => trackNumber.id === trackNumberId,
+                                    );
+
+                                    return (
+                                        trackNumber && (
+                                            <span key={trackNumber.id}>
+                                                <ReferenceLineBadge trackNumber={trackNumber} />
+                                            </span>
+                                        )
+                                    );
+                                })}
                             </div>
                             {isWaitingAfterFailure && (
                                 <React.Fragment>
@@ -105,7 +113,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                                             }>
                                             <Icons.Denied
                                                 color={IconColor.INHERIT}
-                                                size={IconSize.MEDIUMSMALL}
+                                                size={IconSize.MEDIUM_SMALL}
                                             />
                                         </span>
                                     </div>
@@ -115,7 +123,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                                     </div>
                                 </React.Fragment>
                             )}
-                            {ratkoPushFailed(publication.status) && (
+                            {ratkoPushFailed(publication.ratkoPushStatus) && (
                                 <React.Fragment>
                                     <div className={styles['publication-list-item__issue']}>
                                         <span
@@ -124,7 +132,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                                             }>
                                             <Icons.StatusError
                                                 color={IconColor.INHERIT}
-                                                size={IconSize.MEDIUMSMALL}
+                                                size={IconSize.MEDIUM_SMALL}
                                             />
                                         </span>
                                     </div>

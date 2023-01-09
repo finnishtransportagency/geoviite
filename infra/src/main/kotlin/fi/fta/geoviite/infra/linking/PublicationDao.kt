@@ -176,66 +176,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))
         return candidates
     }
-
-
-    fun fetchRatkoPublicationListing(): List<PublicationListingItem> {
-        //language=SQL
-        val sql = """
-            select
-              publication.id,
-              publication.publication_time,
-              ratko_push.status,
-              ratko_push.end_time as ratko_push_time,
-              array_remove(array_agg(distinct track_number.id), null) as track_number_ids,
-              bool_or(exists(select * from integrations.ratko_push_error where ratko_push_error.ratko_push_id = ratko_push.id))
-                as has_ratko_error
-              from publication.publication
-                left join integrations.ratko_push_content 
-                  on ratko_push_content.publication_id = publication.id
-                left join integrations.ratko_push
-                  on ratko_push.id = ratko_push_content.ratko_push_id
-                -- Track numbers
-                left join publication.track_number published_track_number
-                          on publication.id = published_track_number.publication_id
-                -- KM posts
-                left join publication.km_post published_km_post
-                          on publication.id = published_km_post.publication_id
-                left join layout.km_post
-                          on published_km_post.km_post_id = km_post.id
-                -- Location tracks
-                left join publication.location_track published_location_track
-                          on publication.id = published_location_track.publication_id
-                left join layout.location_track
-                          on published_location_track.location_track_id = location_track.id
-                -- Reference lines
-                left join publication.reference_line published_reference_line
-                          on publication.id = published_reference_line.publication_id
-                left join layout.reference_line
-                          on published_reference_line.reference_line_id = reference_line.id
-                -- Join with track numbers for easier aggregation
-                left join layout.track_number
-                          on km_post.track_number_id = track_number.id
-                          or published_track_number.track_number_id = track_number.id
-                          or location_track.track_number_id = track_number.id
-                          or reference_line.track_number_id = track_number.id
-              group by publication.id, publication.publication_time, ratko_push.status, ratko_push.end_time
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql) { rs, _ ->
-            PublicationListingItem(
-                id = rs.getIntId("id"),
-                publishTime = rs.getInstant("publication_time"),
-                ratkoPushTime = rs.getInstantOrNull("ratko_push_time"),
-                status = rs.getEnumOrNull<RatkoPushStatus>("status"),
-                trackNumberIds = rs.getList<Int>("track_number_ids").map { IntId(it) },
-                hasRatkoPushError = rs.getBoolean("has_ratko_error")
-            )
-        }.also {
-            logger.daoAccess(FETCH, PublicationListingItem::class, it.map { it.id })
-        }
-    }
-
-
+    
     @Transactional
     fun createPublication(
         trackNumbers: List<RowVersion<TrackLayoutTrackNumber>>,

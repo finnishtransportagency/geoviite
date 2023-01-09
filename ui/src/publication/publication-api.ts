@@ -10,7 +10,6 @@ import { JointNumber, KmNumber, Oid, TrackMeter } from 'common/common-model';
 import {
     PublicationDetails,
     PublicationId,
-    PublicationListingItem,
     PublishCandidates,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
@@ -22,7 +21,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { formatGMTDateFull, getTomorrow } from 'utils/date-utils';
+import { formatISODate } from 'utils/date-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -94,15 +93,12 @@ export const publishCandidates = (request: PublishRequest) => {
     return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-//merge later
-export const getPublicationsForFrontpage = () =>
-    getIgnoreError<PublicationListingItem[]>(`${PUBLICATION_URL}/frontpage`);
+export const getPublications = (fromDate?: Date, toDate?: Date) => {
+    const params = queryParams({
+        from: fromDate ? formatISODate(fromDate) : '',
+        to: toDate ? formatISODate(toDate) : '',
+    });
 
-export const getPublications = (
-    startDate: Date | undefined,
-    endDate: Date | undefined,
-): Promise<PublicationDetails[] | null> => {
-    const params = publicationsParams(startDate, endDate);
     return getIgnoreError<PublicationDetails[]>(`${PUBLICATION_URL}${params}`);
 };
 
@@ -114,10 +110,3 @@ export const getCalculatedChanges = (request: PublishRequest) =>
         `${PUBLICATION_URL}/calculated-changes`,
         request,
     );
-
-const publicationsParams = (startDate: Date | undefined, endDate: Date | undefined) => {
-    return queryParams({
-        from: startDate ? formatGMTDateFull(startDate) : '',
-        to: endDate ? formatGMTDateFull(getTomorrow(endDate)) : '',
-    });
-};

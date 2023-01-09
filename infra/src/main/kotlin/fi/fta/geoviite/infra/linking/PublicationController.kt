@@ -81,14 +81,6 @@ class PublicationController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/frontpage")
-    //merge with getPublications
-    fun getRatkoPublicationListing(): List<PublicationListingItem> {
-        logger.apiCall("getRatkoPublicationListing")
-        return publicationService.getPublicationListing()
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping
     fun getPublications(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,

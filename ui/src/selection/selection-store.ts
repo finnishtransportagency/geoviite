@@ -21,7 +21,7 @@ import { SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { ValueOf } from 'utils/type-utils';
 import { GeometryPlanLayoutId } from 'geometry/geometry-model';
-import { PublicationListingItem } from 'publication/publication-model';
+import { PublicationDetails } from 'publication/publication-model';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -322,19 +322,19 @@ export type TogglePlanWithSubItemsOpenPayload = {
 } & ToggleAccordionOpenPayload;
 
 export const selectionReducers = {
-    onSelect: function(
+    onSelect: function (
         state: Selection,
         { payload: options }: PayloadAction<OnSelectOptions>,
     ): void {
         updateItemCollectionsByOptions(state.selectedItems, options);
     },
-    onHighlightItems: function(
+    onHighlightItems: function (
         state: Selection,
         { payload: options }: PayloadAction<OnHighlightItemsOptions>,
     ): void {
         updateItemCollectionsByOptions(state.highlightedItems, options);
     },
-    onUnselect: function(
+    onUnselect: function (
         state: Selection,
         { payload }: PayloadAction<OptionalUnselectableItemCollections>,
     ) {
@@ -342,7 +342,7 @@ export const selectionReducers = {
     },
     onSelectedPublicationChanged: (
         state: Selection,
-        { payload: publication }: PayloadAction<PublicationListingItem | undefined>,
+        { payload: publication }: PayloadAction<PublicationDetails | undefined>,
     ) => {
         state.publication = publication;
     },

@@ -106,7 +106,7 @@ const iconNameToSvgMapStaticColor = {
 export enum IconSize {
     SMALL = 'icon--size-small',
     MEDIUM = 'icon--size-medium',
-    MEDIUMSMALL = 'icon--size-medium-small',
+    MEDIUM_SMALL = 'icon--size-medium-small',
     LARGE = 'icon--size-large',
     ORIGINAL = 'icon--size-original',
 }

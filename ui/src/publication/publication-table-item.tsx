@@ -1,21 +1,21 @@
 import * as React from 'react';
-import { TimeStamp } from 'common/common-model';
+import { TimeStamp, TrackNumber } from 'common/common-model';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import { Operation } from 'publication/publication-model';
 
-export type PreviewTableItemProps = {
+export type PublicationTableItemProps = {
     itemName: string;
-    trackNumber?: string;
+    trackNumbers: TrackNumber[];
     changeTime: TimeStamp;
     ratkoPushDate: TimeStamp | null;
     operation: Operation | null;
     userName: string;
 };
 
-export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
+export const PublicationTableItem: React.FC<PublicationTableItemProps> = ({
     itemName,
-    trackNumber,
+    trackNumbers,
     changeTime,
     ratkoPushDate,
     operation,
@@ -27,7 +27,7 @@ export const PublicationTableItem: React.FC<PreviewTableItemProps> = ({
         <React.Fragment>
             <tr className={'preview-table-item'}>
                 <td>{itemName}</td>
-                <td>{trackNumber ? trackNumber : ''}</td>
+                <td>{trackNumbers.sort().join(', ')}</td>
                 <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
                 <td>{formatDateFull(changeTime)}</td>
                 <td>{userName}</td>
