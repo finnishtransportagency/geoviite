@@ -76,7 +76,7 @@ class RatkoService @Autowired constructor(
 
                 //Inclusive search, therefore the already pushed one is also returned
                 val publications = publicationService.fetchPublications(lastPublicationMoment)
-                    .filterNot { it.publicationTime > lastPublicationMoment }
+                    .filter { it.publicationTime > lastPublicationMoment }
 
                 if (publications.isNotEmpty()) {
                     pushChanges(userName, publications, getCalculatedChanges(lastPublicationMoment, publications))

@@ -8,9 +8,10 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 
 type RatkoPublishButtonProps = {
     size?: ButtonSize;
+    disabled?: boolean;
 };
 
-const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size }) => {
+const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled }) => {
     const { t } = useTranslation();
     const [isPublishing, setIsPublishing] = React.useState(false);
     const [showingConfirmation, setShowingConfirmation] = React.useState(false);
@@ -25,7 +26,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size }) => {
         <React.Fragment>
             <Button
                 onClick={() => setShowingConfirmation(true)}
-                disabled={isPublishing}
+                disabled={isPublishing || disabled}
                 isProcessing={isPublishing}
                 variant={ButtonVariant.PRIMARY}
                 size={size}
