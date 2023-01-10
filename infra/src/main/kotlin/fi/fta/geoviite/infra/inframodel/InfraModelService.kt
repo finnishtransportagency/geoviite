@@ -39,16 +39,22 @@ class InfraModelService @Autowired constructor(
     ): RowVersion<GeometryPlan> {
         logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
 
+        val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
+
+        //TODO: get real filename
+        val fileName = "FooFile"
+
         try {
-            val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
             val geometryPlan =
                 overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
 
             return geometryDao.insertPlan(geometryPlan, imFile)
+
         } catch (e: DuplicateKeyException) {
             throw InframodelParsingException(
                   message = "InfraModel file exists already",
                   localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
+                  localizedMessageParams = listOf(fileName),
             )
         }
     }

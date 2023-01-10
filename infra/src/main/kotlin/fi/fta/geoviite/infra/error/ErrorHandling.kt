@@ -35,32 +35,36 @@ import org.springframework.web.servlet.NoHandlerFoundException
 fun createResponse(exception: Exception, correlationId: String): ResponseEntity<ApiErrorResponse>? {
     val causeChain = getCauseChain(exception)
     val status = getStatusCode(causeChain)
-    val localizedMessageKey = causeChain.firstNotNullOfOrNull(::getLocalizationKey)
+    val localizedMessage = causeChain.firstNotNullOfOrNull(::getLocalizationKey)
     return status?.let { s ->
-        if (s.is5xxServerError) createStatusOnlyErrorResponse(correlationId, s, localizedMessageKey)
-        else createDescriptiveErrorResponse(correlationId, s, causeChain, localizedMessageKey)
+        if (s.is5xxServerError) createStatusOnlyErrorResponse(correlationId, s, localizedMessage)
+        else createDescriptiveErrorResponse(correlationId, s, causeChain, localizedMessage)
     }
 }
 
-fun createStatusOnlyErrorResponse(correlationId: String, status: HttpStatus, localizedMessageKey: LocalizationKey? = null) =
-    createResponse(listOf(status.reasonPhrase), status, correlationId, localizedMessageKey)
+fun createStatusOnlyErrorResponse(
+    correlationId: String,
+    status: HttpStatus,
+    localizedMessage: Pair<LocalizationKey, List<String>>? = null,
+) = createResponse(listOf(status.reasonPhrase), status, correlationId, localizedMessage)
 
 fun createDescriptiveErrorResponse(
     correlationId: String,
     status: HttpStatus,
     causeChain: List<Exception>,
-    localizedMessageKey: LocalizationKey? = null,
-) = createResponse(causeChain.mapNotNull(::describe), status, correlationId, localizedMessageKey)
+    localizedMessage: Pair<LocalizationKey, List<String>>?,
+) = createResponse(causeChain.mapNotNull(::describe), status, correlationId, localizedMessage)
 
 fun createResponse(
     messageRows: List<String>,
     status: HttpStatus,
     correlationId: String,
-    localizedMessageKey: LocalizationKey? = null,
+    localizedMessage: Pair<LocalizationKey, List<String>>?
 ): ResponseEntity<ApiErrorResponse> {
     val headers = HttpHeaders()
     headers.contentType = MediaType.APPLICATION_JSON
-    return ResponseEntity(ApiErrorResponse(messageRows, correlationId, localizedMessageKey), headers, status)
+    return ResponseEntity(ApiErrorResponse(messageRows, correlationId, localizedMessage?.first,
+        localizedMessage?.second?: listOf()), headers, status)
 }
 
 fun getCauseChain(exception: Exception): List<Exception> {
@@ -105,8 +109,8 @@ fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     else -> null
 }
 
-fun getLocalizationKey(exception: Exception): LocalizationKey? =
-    if (exception is HasLocalizeMessageKey) exception.localizedMessageKey
+fun getLocalizationKey(exception: Exception): Pair<LocalizationKey, List<String>>? =
+    if (exception is HasLocalizeMessageKey) exception.localizedMessageKey to exception.localizedMessageParams
     else null
 
 fun describe(exception: Exception): String? = when (exception) {

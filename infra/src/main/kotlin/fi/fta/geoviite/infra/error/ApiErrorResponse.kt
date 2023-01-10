@@ -7,5 +7,6 @@ data class ApiErrorResponse(
     val messageRows: List<String>,
     val correlationId: String,
     val localizedMessageKey: LocalizationKey?,
+    val localizedMessageParams: List<String>,
     val timestamp: Instant = Instant.now(),
 )

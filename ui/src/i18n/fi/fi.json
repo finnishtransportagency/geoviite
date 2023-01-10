@@ -46,7 +46,7 @@
             "parsing": {
                 "generic": "Tiedoston jäsentäminen epäonnistui",
                 "xml-invalid": "Tiedoston rakenne on virheellinen. Varmista että merkistö (XML:n alkutagin encoding-kenttä) on oikein.",
-                "duplicate-inframodel-file-content": "Suunnitelma on jo olemassa Geoviitteessä",
+                "duplicate-inframodel-file-content": "Suunnitelma on jo olemassa Geoviitteessä nimellä {{0}}",
                 "missing-section": {
                     "coordinate-system": "Koordinaattijärjestelmän tiedot (CoordinateSystem-elementti) puuttuu",
                     "units": "Yksikkötiedot (Units-elementti) puuttuu",

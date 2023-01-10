@@ -36,6 +36,7 @@ export type ApiErrorResponse = {
     correlationId: string;
     timestamp: string;
     localizedMessageKey?: string;
+    localizedMessageParams?: string[];
     status: number;
 };
 
