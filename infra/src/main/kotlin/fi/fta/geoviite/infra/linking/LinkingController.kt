@@ -23,8 +23,6 @@ import org.springframework.web.bind.annotation.*
 class LinkingController @Autowired constructor(
     private val linkingService: LinkingService,
     private val switchLinkingService: SwitchLinkingService,
-    private val layoutKmPostService: LayoutKmPostService,
-    private val switchService: LayoutSwitchService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -136,32 +134,30 @@ class LinkingController @Autowired constructor(
     fun getSuggestedSwitches(
         @RequestParam("location") location: Point,
         @RequestParam("switchStructureId") switchStructureId: IntId<SwitchStructure>
-    ): List<SuggestedSwitch?> {
+    ): List<SuggestedSwitch> {
         logger.apiCall("getSuggestedSwitche", "location" to location, "switchStructureId" to switchStructureId)
-        return listOf(switchLinkingService.getSuggestedSwitch(location, switchStructureId))
+        return listOfNotNull(switchLinkingService.getSuggestedSwitch(location, switchStructureId))
     }
 
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/switches/suggested")
-    fun getSuggestedSwitch(@RequestBody createParams: SuggestedSwitchCreateParams): List<SuggestedSwitch?> {
+    fun getSuggestedSwitch(@RequestBody createParams: SuggestedSwitchCreateParams): List<SuggestedSwitch> {
         logger.apiCall("getSuggestedSwitch", "createParams" to createParams)
-        return listOf(switchLinkingService.getSuggestedSwitch(createParams))
+        return listOfNotNull(switchLinkingService.getSuggestedSwitch(createParams))
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/switches/geometry")
-    fun saveSwitchLinking(@RequestBody linkingParameters: SwitchLinkingParameters): TrackLayoutSwitch {
+    fun saveSwitchLinking(@RequestBody linkingParameters: SwitchLinkingParameters): IntId<TrackLayoutSwitch> {
         logger.apiCall("saveSwitchLinking", "linkingParameters" to linkingParameters)
-        switchLinkingService.saveSwitchLinking(linkingParameters)
-        return switchService.getDraft(linkingParameters.layoutSwitchId)
+        return switchLinkingService.saveSwitchLinking(linkingParameters).id
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/km-posts/geometry")
-    fun saveKmPostLinking(@RequestBody linkingParameters: KmPostLinkingParameters): TrackLayoutKmPost {
+    fun saveKmPostLinking(@RequestBody linkingParameters: KmPostLinkingParameters): IntId<TrackLayoutKmPost> {
         logger.apiCall("saveKmPostLinking", "linkingParameters" to linkingParameters)
-        linkingService.saveKmPostLinking(linkingParameters)
-        return layoutKmPostService.getDraft(linkingParameters.layoutKmPostId)
+        return linkingService.saveKmPostLinking(linkingParameters).id
     }
 }

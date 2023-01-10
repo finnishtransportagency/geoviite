@@ -1,6 +1,7 @@
 import {
     LayoutKmPostId,
     LayoutLocationTrack,
+    LayoutSwitchId,
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
@@ -38,7 +39,6 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
 import { BoundingBox, Point } from 'model/geometry';
-import { filterNotEmpty } from 'utils/array-utils';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -203,7 +203,7 @@ export async function getSuggestedSwitchByPoint(
     });
     const uri = linkingUri('switches', 'suggested');
     return getIgnoreError<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
-        return (suggestedSwitches || []).filter(filterNotEmpty).map((suggestedSwitch) => {
+        return (suggestedSwitches || []).map((suggestedSwitch) => {
             return {
                 ...suggestedSwitch,
                 id: getSuggestedSwitchId(suggestedSwitch),
@@ -212,8 +212,8 @@ export async function getSuggestedSwitchByPoint(
     });
 }
 
-export async function linkSwitch(params: SwitchLinkingParameters): Promise<string> {
-    const result = await postIgnoreError<SwitchLinkingParameters, string>(
+export async function linkSwitch(params: SwitchLinkingParameters): Promise<LayoutSwitchId> {
+    const result = await postIgnoreError<SwitchLinkingParameters, LayoutSwitchId>(
         linkingUri('switches', 'geometry'),
         params,
     );
@@ -240,12 +240,12 @@ export async function createSuggestedSwitch(
 export async function linkKmPost(
     geometryKmPostId: GeometryKmPostId,
     layoutKmPostId: LayoutKmPostId,
-): Promise<string> {
+): Promise<LayoutKmPostId> {
     const params = {
         geometryKmPostId: geometryKmPostId,
         layoutKmPostId: layoutKmPostId,
     };
-    const result = await postIgnoreError<typeof params, string>(
+    const result = await postIgnoreError<typeof params, LayoutKmPostId>(
         linkingUri('km-posts', 'geometry'),
         params,
     );

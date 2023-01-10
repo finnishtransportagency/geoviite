@@ -317,7 +317,7 @@ class LinkingService @Autowired constructor(
     }
 
     @Transactional
-    fun saveKmPostLinking(kmPostLinkingParameters: KmPostLinkingParameters) {
+    fun saveKmPostLinking(kmPostLinkingParameters: KmPostLinkingParameters): DaoResponse<TrackLayoutKmPost> {
         val geometryKmPost = geometryService.getKmPost(kmPostLinkingParameters.geometryKmPostId)
         val kmPostSrid = geometryService.getKmPostSrid(kmPostLinkingParameters.geometryKmPostId)
             ?: throw IllegalArgumentException("Cannot link a geometry km post with an unknown coordinate system!")
@@ -334,7 +334,7 @@ class LinkingService @Autowired constructor(
             sourceId = geometryKmPost.id
         )
 
-        layoutKmPostService.saveDraft(modifiedLayoutKmPost)
+        return layoutKmPostService.saveDraft(modifiedLayoutKmPost)
     }
 
     private fun tryCreateLinkedAlignment(
