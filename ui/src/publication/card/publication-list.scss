@@ -65,13 +65,3 @@
         }
     }
 }
-
-.publication-list__more {
-    transition: 300ms;
-    display: inline-block;
-    margin-right: 9px;
-
-    &--open {
-        transform: rotate(180deg);
-    }
-}

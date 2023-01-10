@@ -4,12 +4,12 @@ import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
 import { PublicationDetails as PublicationDetailsModel } from 'publication/publication-model';
 import { useLoaderWithTimer } from 'utils/react-utils';
-import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import PublicationLogView from 'publication/log/publication-log-view';
 import { getPublications } from 'publication/publication-api';
-import { subMonths } from 'date-fns';
+import { startOfDay, subMonths } from 'date-fns';
+import { ratkoPushFailed } from 'ratko/ratko-model';
 
 type FrontPageProps = {
     selectedPublication: PublicationDetailsModel | undefined;
@@ -20,22 +20,28 @@ const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationDetailsModel[] | undefined>();
+    const [publications, setPublications] = React.useState<PublicationDetailsModel[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
     useLoaderWithTimer(
         setPublications,
         () => {
-            return getPublications(subMonths(new Date(), 3));
+            return getPublications(startOfDay(subMonths(new Date(), 1)));
         },
         [],
         30000,
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 
-    const hasAnyFailed = () =>
-        !!publications && publications?.some((item) => ratkoPushFailed(item.ratkoPushStatus));
+    React.useEffect(() => {
+        if (selectedPublication && publications) {
+            const updatedPublication = publications.find((p) => p.id == selectedPublication.id);
+            onSelectedPublicationChanged(updatedPublication);
+        }
+    }, [publications]);
+
+    const anyFailed = !!publications?.some((p) => ratkoPushFailed(p.ratkoPushStatus));
 
     return (
         <React.Fragment>
@@ -49,7 +55,6 @@ const Frontpage: React.FC<FrontPageProps> = ({
                                     onSelectedPublicationChanged(pub);
                                 }}
                                 onShowPublicationLog={() => setShowPublicationLog(true)}
-                                anyFailed={hasAnyFailed()}
                                 ratkoStatus={ratkoStatus}
                             />
                         )}
@@ -61,11 +66,11 @@ const Frontpage: React.FC<FrontPageProps> = ({
             {!selectedPublication && showPublicationLog && (
                 <PublicationLogView onClose={() => setShowPublicationLog(false)} />
             )}
-            {selectedPublication !== undefined && (
+            {selectedPublication && (
                 <PublicationDetails
                     publication={selectedPublication}
                     onPublicationUnselected={() => onSelectedPublicationChanged(undefined)}
-                    anyFailed={hasAnyFailed()}
+                    anyFailed={anyFailed}
                 />
             )}
         </React.Fragment>

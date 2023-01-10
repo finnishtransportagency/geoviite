@@ -21,9 +21,9 @@
     },
     "publication-card": {
         "latest": "Viimeisimmät",
-        "show-more": "Näytä lisää",
-        "show-less": "Näytä vähemmän",
-        "title": "Julkaisut"
+        "title": "Julkaisut",
+        "log-link": "Näytä lisää",
+        "no-success-publications": "Ei julkaisuja viimeisimmän kuukauden aikana."
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{0}}). ",

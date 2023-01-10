@@ -1,6 +1,5 @@
 import * as React from 'react';
 import PublicationTable from 'publication/table/publication-table';
-import { getPublication } from 'publication/publication-api';
 import { PublicationDetails as PublicationDetailsModel } from 'publication/publication-model';
 import styles from './publication-details.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -8,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
-import { useLoaderWithTimer } from 'utils/react-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 
 export type PublicationDetailsProps = {
@@ -22,22 +20,9 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     onPublicationUnselected,
     anyFailed,
 }) => {
-    const [publicationDetails, setPublicationDetails] =
-        React.useState<PublicationDetailsModel | null>();
-    const [waitingAfterFail, setWaitingAfterFail] = React.useState<boolean>();
     const { t } = useTranslation();
 
-    function setPublicationDetailsAndWaitingAfterFail(details?: PublicationDetailsModel) {
-        setPublicationDetails(details);
-        setWaitingAfterFail(publicationDetails?.ratkoPushStatus === null && anyFailed);
-    }
-
-    useLoaderWithTimer(
-        setPublicationDetailsAndWaitingAfterFail,
-        () => getPublication(publication.id),
-        [],
-        30000,
-    );
+    const waitingAfterFail = publication.ratkoPushStatus === null && anyFailed;
 
     return (
         <div className={styles['publication-details__publication']}>
@@ -49,14 +34,13 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                     {t('frontpage.frontpage-link')}
                 </Link>
                 <span className={styles['publication-details__publication-time']}>
-                    {publicationDetails &&
-                        ' > ' + formatDateFull(publicationDetails.publicationTime)}
+                    {' > ' + formatDateFull(publication.publicationTime)}
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
-                {publicationDetails && <PublicationTable publication={publicationDetails} />}
+                <PublicationTable publication={publication} />
             </div>
-            {(ratkoPushFailed(publication.ratkoPushStatus) || waitingAfterFail) && (
+            {anyFailed && (
                 <footer className={styles['publication-details__footer']}>
                     {ratkoPushFailed(publication.ratkoPushStatus) && (
                         <div className={styles['publication-details__failure-notification']}>
