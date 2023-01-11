@@ -145,6 +145,73 @@ class PublicationService @Autowired constructor(
         }
     }
 
+    @Transactional(readOnly = true)
+    fun getRevertRequestDependencies(publishRequest: PublishRequest): PublishRequest {
+        val newTrackNumbers = publishRequest.referenceLines.mapNotNull { id -> referenceLineService.get(DRAFT, id) }
+            .map { rl -> rl.trackNumberId }
+            .filter { id -> trackNumberService.get(DRAFT, id) != null }
+
+        val newReferenceLines = publishRequest.trackNumbers.mapNotNull { id -> referenceLineDao.fetchVersion(DRAFT, id) }
+            .map { version -> version.id }
+        val allTrackNumbers = publishRequest.trackNumbers.toSet() + newTrackNumbers.toSet()
+        val allReferenceLines = publishRequest.referenceLines.toSet() + newReferenceLines.toSet()
+        val locationTracks = publishRequest.locationTracks.toSet()
+        val switches = publishRequest.switches.toSet()
+        val (allLocationTracks, allSwitches) = getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
+            locationTracks,
+            locationTracks,
+            switches,
+            switches
+        )
+
+        return PublishRequest (
+            trackNumbers = allTrackNumbers.toList(),
+            referenceLines = allReferenceLines.toList(),
+            locationTracks = allLocationTracks.toList(),
+            switches = allSwitches.toList(),
+            kmPosts = publishRequest.kmPosts
+        )
+    }
+
+    private fun getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
+        allPreviouslyFoundLocationTracks: Set<IntId<LocationTrack>>,
+        lastLevelLocationTracks: Set<IntId<LocationTrack>>,
+        allPreviouslyFoundSwitches: Set<IntId<TrackLayoutSwitch>>,
+        lastLevelSwitches: Set<IntId<TrackLayoutSwitch>>,
+    ): Pair<Set<IntId<LocationTrack>>, Set<IntId<TrackLayoutSwitch>>> {
+        val locationTracks = lastLevelLocationTracks.mapNotNull { id ->
+            locationTrackService.getWithAlignment(DRAFT, id)
+        }
+
+        val newSwitches = locationTracks.flatMap { (locationTrack, alignment) ->
+            alignment.segments.mapNotNull { segment -> segment.switchId as IntId? } +
+                    listOfNotNull(
+                        locationTrack.topologyStartSwitch?.switchId,
+                        locationTrack.topologyEndSwitch?.switchId
+                    )
+        }
+            .subtract(allPreviouslyFoundSwitches)
+            .filterTo(HashSet()) { id -> switchService.get(DRAFT, id)?.getDraftType() != DraftType.OFFICIAL }
+
+        val newLocationTracks = lastLevelSwitches
+            .flatMap { switchId -> switchService.getSwitchJointConnections(DRAFT, switchId) }
+            .flatMap { connections -> connections.accurateMatches }
+            .map { match -> match.locationTrackId }
+            .subtract(allPreviouslyFoundLocationTracks)
+            .filterTo(HashSet()) { id -> locationTrackService.get(DRAFT, id)?.getDraftType() != DraftType.OFFICIAL }
+
+        return if (newSwitches.isNotEmpty() || newLocationTracks.isNotEmpty()) {
+            getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
+                allPreviouslyFoundLocationTracks + newLocationTracks,
+                newLocationTracks,
+                allPreviouslyFoundSwitches + newSwitches,
+                newSwitches
+            )
+        } else {
+            (allPreviouslyFoundLocationTracks + newLocationTracks) to (allPreviouslyFoundSwitches + newSwitches)
+        }
+    }
+
     @Transactional
     fun revertPublishCandidates(toDelete: PublishRequest): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
