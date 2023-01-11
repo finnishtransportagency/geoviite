@@ -84,12 +84,12 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         )}
                         {errorTexts.length > 0 && (
                             <span className={styles['preview-table-item__error-status']}>
-                                {t('publication-table.errors-status-text', [errorTexts.length])}
+                                {t('preview-table.errors-status-text', [errorTexts.length])}
                             </span>
                         )}
                         {warningTexts.length > 0 && (
                             <span className={styles['preview-table-item__warning-status']}>
-                                {t('publication-table.warnings-status-text', [warningTexts.length])}
+                                {t('preview-table.warnings-status-text', [warningTexts.length])}
                             </span>
                         )}
                     </td>
@@ -132,7 +132,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         {errorTexts.length > 0 && (
                             <div className="preview-table-item__msg-group preview-table-item__msg-group--errors">
                                 <div className="preview-table-item__group-title">
-                                    {t('publication-table.errors-group-title')}
+                                    {t('preview-table.errors-group-title')}
                                 </div>
                                 {errorTexts.map((errorText, index) => (
                                     <div key={index} className="preview-table-item__msg">
@@ -144,7 +144,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         {warningTexts.length > 0 && (
                             <div className="preview-table-item__msg-group preview-table-item__msg-group--warnings">
                                 <div className="preview-table-item__group-title">
-                                    {t('publication-table.warnings-group-title')}
+                                    {t('preview-table.warnings-group-title')}
                                 </div>
                                 {warningTexts?.map((warningText, index) => (
                                     <div key={index} className="preview-table-item__msg">

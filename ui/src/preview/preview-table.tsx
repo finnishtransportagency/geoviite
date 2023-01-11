@@ -177,19 +177,19 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             <Table wide>
                 <thead className={styles['preview-table__header']}>
                     <tr>
-                        {sortableTableHeader(SortProps.NAME, 'publication-table.change-target')}
+                        {sortableTableHeader(SortProps.NAME, 'preview-table.change-target')}
                         {sortableTableHeader(
                             SortProps.TRACK_NUMBER,
-                            'publication-table.track-number-short',
+                            'preview-table.track-number-short',
                         )}
-                        {sortableTableHeader(SortProps.OPERATION, 'publication-table.change-type')}
+                        {sortableTableHeader(SortProps.OPERATION, 'preview-table.change-type')}
                         {sortableTableHeader(
                             SortProps.CHANGE_TIME,
-                            'publication-table.modified-moment',
+                            'preview-table.modified-moment',
                         )}
-                        {sortableTableHeader(SortProps.USER_NAME, 'publication-table.user')}
-                        {sortableTableHeader(SortProps.ERRORS, 'publication-table.status')}
-                        <Th>{t('publication-table.actions')}</Th>
+                        {sortableTableHeader(SortProps.USER_NAME, 'preview-table.user')}
+                        {sortableTableHeader(SortProps.ERRORS, 'preview-table.status')}
+                        <Th>{t('preview-table.actions')}</Th>
                     </tr>
                 </thead>
                 <tbody>

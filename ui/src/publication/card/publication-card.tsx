@@ -93,7 +93,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                     {(failures.length > 0 || ratkoConnectionError) && (
                         <section>
                             <h3 className={styles['publication-card__subsection-title']}>
-                                {t('publishing.publish-issues')}
+                                {t('publication-card.publish-issues')}
                             </h3>
                             {ratkoConnectionError && (
                                 <p className={styles['publication-card__title-errors']}>
@@ -118,18 +118,17 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             )}
                         </section>
                     )}
-                    {successes.length > 0 && (
-                        <section>
-                            <h3 className={styles['publication-card__subsection-title']}>
-                                {t('publication-card.latest')}
-                            </h3>
-                            <PublicationList
-                                publications={successes}
-                                publicationClicked={itemClicked}
-                            />
-                        </section>
-                    )}
-                    {successes.length == 0 && (
+                    <section>
+                        <h3 className={styles['publication-card__subsection-title']}>
+                            {t('publication-card.latest')}
+                        </h3>
+                        <PublicationList
+                            publications={successes}
+                            publicationClicked={itemClicked}
+                        />
+                    </section>
+
+                    {successes.length == 0 && failures.length == 0 && (
                         <div className={styles['publication-card__no-publications']}>
                             {t('publication-card.no-success-publications')}
                         </div>

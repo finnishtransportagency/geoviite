@@ -82,7 +82,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
                         {sortableTableHeader(SortProps.OPERATION, 'publication-table.operation')}
                         {sortableTableHeader(
                             SortProps.PUBLICATION_TIME,
-                            'publication-table.publication-date',
+                            'publication-table.publication-time',
                         )}
                         {sortableTableHeader(
                             SortProps.PUBLICATION_USER,

@@ -17,7 +17,7 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
     const { t } = useTranslation();
 
     const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
-    const [endDate, setEndDate] = React.useState<Date>(currentDay);
+    const [endDate, setEndDate] = React.useState<Date>();
 
     const publicationDetailsList = useLoader(() => {
         if (startDate) {

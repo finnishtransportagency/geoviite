@@ -1,23 +1,18 @@
 {
     "publication-table": {
-        "change-target": "Muutoskohde",
-        "track-number-short": "Ratanro",
-        "status": "Tila",
-        "change-type": "Muutos",
-        "modified-moment": "Aika",
-        "user": "Käyttäjä",
-        "actions": "Toiminnot",
-        "draft-date": "Luonnos tehty",
+        "name": "Muutoskohde",
+        "track-number": "Ratanro",
+        "km-number": "Kilometrit",
+        "operation": "Muutos",
+        "publication-time": "Aika",
+        "publication-user": "Käyttäjä",
+        "definition": "Selite",
         "track-number-long": "Ratanumero",
-        "pushed-to-ratko": "Viety ratkoon",
+        "pushed-to-ratko": "Viety Ratkoon",
         "location-track": "Sijaintiraide",
         "reference-line": "Pituusmittauslinja",
         "switch": "Vaihde",
-        "km-post": "Tasakilometripiste",
-        "errors-status-text": "virheitä ({{0}} kpl)",
-        "warnings-status-text": "varoituksia ({{0}} kpl)",
-        "errors-group-title": "Virheitä",
-        "warnings-group-title": "Varoituksia"
+        "km-post": "Tasakilometripiste"
     },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",
@@ -27,7 +22,8 @@
     "publication-card": {
         "latest": "Viimeisimmät",
         "title": "Julkaisut",
-        "log-link": "Näytä lisää",
+        "log-link": "Hae julkaisuja",
+        "publish-issues": "Ongelmat Ratko-integraatiossa",
         "no-success-publications": "Ei julkaisuja viimeisimmän kuukauden aikana."
     },
     "error-in-ratko-connection": {
@@ -39,7 +35,6 @@
         "contact-ratko-support-if-needed": "Tilanteen jatkuessa ota yhteyttä vayla.asiakkaat.fi@cgi.com"
     },
     "publishing": {
-        "publish-issues": "Ongelmat Ratko-integraatiossa",
         "publish-to-ratko": "Vie Ratkoon",
         "publish-issue": "Vienti epäonnistui",
         "not-published": "Ei viety Ratkoon",
