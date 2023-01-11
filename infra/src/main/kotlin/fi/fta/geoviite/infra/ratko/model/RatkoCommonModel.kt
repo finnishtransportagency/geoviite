@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.dataImport.RATKO_SRID
-import fi.fta.geoviite.infra.geography.transformCoordinate
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -100,7 +100,7 @@ class RatkoTrackMeter private constructor(
 class RatkoGeometry(val type: RatkoGeometryType, coordinates: List<Double>, crs: RatkoCrs) {
     val coordinates: List<Double> =
         if (crs.properties.name != RATKO_SRID)
-            transformCoordinate(crs.properties.name, RATKO_SRID, Point(coordinates[0], coordinates[1]))
+            transformNonKKJCoordinate(crs.properties.name, RATKO_SRID, Point(coordinates[0], coordinates[1]))
                 .let { listOf(it.x, it.y) }
         else coordinates
 
@@ -108,7 +108,7 @@ class RatkoGeometry(val type: RatkoGeometryType, coordinates: List<Double>, crs:
 
     constructor(point: IPoint) : this(
         type = RatkoGeometryType.POINT,
-        coordinates = transformCoordinate(LAYOUT_SRID, RATKO_SRID, Point(point.x, point.y)).let { listOf(it.x, it.y) },
+        coordinates = transformNonKKJCoordinate(LAYOUT_SRID, RATKO_SRID, Point(point.x, point.y)).let { listOf(it.x, it.y) },
         crs = RatkoCrs()
     )
 }
