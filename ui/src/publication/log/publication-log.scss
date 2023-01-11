@@ -1,17 +1,6 @@
 @import '../../vayla-design-lib/colors';
 @import '../../vayla-design-lib/typography';
 
-.publication-log-table__container {
-    overflow-y: auto;
-    height: 100%;
-}
-
-.publication-log-table__header {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
 .publication-log__datepickers {
     display: grid;
     grid-template-columns: max-content max-content;

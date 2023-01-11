@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TimeStamp } from 'common/common-model';
-import styles from 'publication/table/publication-table-item.scss';
+import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';

@@ -2,7 +2,6 @@ import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
-import PublicationLogTable from 'publication/log/publication-log-table';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
 import { startOfMonth } from 'date-fns';
@@ -38,7 +37,9 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                 </div>
             </div>
             <div className={styles['publication-log__content']}>
+                {/*
                 <PublicationLogTable startDate={startDate} endDate={endDate} />
+                 */}
             </div>
         </div>
     );

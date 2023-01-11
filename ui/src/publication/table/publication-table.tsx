@@ -1,13 +1,11 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
-import {
-    PublicationTableItem,
-    PublicationTableItemProps,
-} from 'publication/table/publication-table-item';
+import { PublicationTableRow } from 'publication/table/publication-table-row';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import styles from './publication-table.scss';
 import { negComparator } from 'utils/array-utils';
+import { PublicationDetails } from 'publication/publication-model';
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
     getSortInfoForProp,
     InitiallyUnsorted,
@@ -15,76 +13,11 @@ import {
     sortDirectionIcon,
     SortInformation,
     SortProps,
-} from 'preview/change-table-sorting';
-import { PublicationDetails } from 'publication/publication-model';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { RatkoPushStatus } from 'ratko/ratko-model';
-import {
-    getKmPostUiName,
-    getLocationTrackUiName,
-    getReferenceLineUiName,
-    getSwitchUiName,
-    getTrackNumberUiName,
-} from 'preview/change-table-entry-mapping';
+    toPublicationEntries,
+} from './publication-table-utils';
 
 export type PublicationTableProps = {
     publication: PublicationDetails;
-};
-
-const toPublicationEntries = (
-    publication: PublicationDetails,
-    trackNumbers: LayoutTrackNumber[],
-): PublicationTableItemProps[] => {
-    const getTrackNumber = (id: LayoutTrackNumberId) => {
-        const tn = trackNumbers.find((t) => t.id == id);
-        return tn ? [tn.number] : [];
-    };
-
-    const publicationInfo = {
-        changeTime: publication.publicationTime,
-        userName: publication.publicationUser,
-        ratkoPushDate:
-            publication.ratkoPushStatus === RatkoPushStatus.SUCCESSFUL
-                ? publication.ratkoPushTime
-                : null,
-    };
-
-    const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({
-        itemName: getTrackNumberUiName(getTrackNumber(trackNumber.id)[0]),
-        trackNumbers: getTrackNumber(trackNumber.id),
-        operation: trackNumber.operation,
-        ...publicationInfo,
-    }));
-
-    const referenceLines = publication.referenceLines.map((referenceLine) => ({
-        itemName: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)[0]),
-        trackNumbers: getTrackNumber(referenceLine.trackNumberId),
-        operation: null,
-        ...publicationInfo,
-    }));
-
-    const locationTracks = publication.locationTracks.map((locationTrack) => ({
-        itemName: getLocationTrackUiName(locationTrack.name),
-        trackNumbers: getTrackNumber(locationTrack.trackNumberId),
-        operation: locationTrack.operation,
-        ...publicationInfo,
-    }));
-
-    const switches = publication.switches.map((s) => ({
-        itemName: getSwitchUiName(s.name),
-        trackNumbers: s.trackNumberIds.flatMap(getTrackNumber),
-        operation: s.operation,
-        ...publicationInfo,
-    }));
-
-    const kmPosts = publication.kmPosts.map((kmPost) => ({
-        itemName: getKmPostUiName(kmPost.kmNumber),
-        trackNumbers: getTrackNumber(kmPost.trackNumberId),
-        operation: kmPost.operation,
-        ...publicationInfo,
-    }));
-
-    return [...trackNumberItems, ...referenceLines, ...locationTracks, ...switches, ...kmPosts];
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
@@ -123,33 +56,43 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
             <Table wide>
                 <thead className={styles['publication-table__header']}>
                     <tr>
-                        {sortableTableHeader(SortProps.NAME, 'publication-table.change-target')}
+                        {sortableTableHeader(SortProps.NAME, 'publication-table.name')}
                         {sortableTableHeader(
-                            SortProps.TRACK_NUMBER,
-                            'publication-table.track-number-short',
+                            SortProps.TRACK_NUMBERS,
+                            'publication-table.track-number',
                         )}
-                        {sortableTableHeader(SortProps.OPERATION, 'publication-table.change-type')}
+                        {sortableTableHeader(
+                            SortProps.CHANGED_KM_NUMBERS,
+                            'publication-table.km-number',
+                        )}
+                        {sortableTableHeader(SortProps.OPERATION, 'publication-table.operation')}
                         {sortableTableHeader(
                             SortProps.CHANGE_TIME,
-                            'publication-table.modified-moment',
+                            'publication-table.publication-date',
                         )}
-                        {sortableTableHeader(SortProps.USER_NAME, 'publication-table.user')}
                         {sortableTableHeader(
-                            SortProps.PUSHED_TO_RATKO,
-                            'publication-table.exported-to-ratko',
+                            SortProps.USER_NAME,
+                            'publication-table.publication-user',
+                        )}
+                        {sortableTableHeader(SortProps.DEFINITION, 'publication-table.definition')}
+                        {sortableTableHeader(
+                            SortProps.RATKO_PUSH_DATE,
+                            'publication-table.pushed-to-ratko',
                         )}
                     </tr>
                 </thead>
                 <tbody>
                     {sortedPublicationEntries.map((entry) => (
-                        <PublicationTableItem
-                            key={entry.itemName}
-                            itemName={entry.itemName}
+                        <PublicationTableRow
+                            key={entry.name}
+                            name={entry.name}
                             trackNumbers={entry.trackNumbers}
-                            changeTime={entry.changeTime}
-                            ratkoPushDate={entry.ratkoPushDate}
-                            userName={entry.userName}
+                            publicationTime={entry.publicationTime}
+                            ratkoPushTime={entry.ratkoPushTime}
+                            publicationUser={entry.publicationUser}
                             operation={entry.operation}
+                            changedKmNumbers={entry.changedKmNumbers}
+                            definition={entry.definition}
                         />
                     ))}
                 </tbody>

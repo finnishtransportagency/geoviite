@@ -9,7 +9,7 @@
         "actions": "Toiminnot",
         "draft-date": "Luonnos tehty",
         "track-number-long": "Ratanumero",
-        "exported-to-ratko": "Viety ratkoon",
+        "pushed-to-ratko": "Viety ratkoon",
         "location-track": "Sijaintiraide",
         "reference-line": "Pituusmittauslinja",
         "switch": "Vaihde",
@@ -18,6 +18,11 @@
         "warnings-status-text": "varoituksia ({{0}} kpl)",
         "errors-group-title": "Virheitä",
         "warnings-group-title": "Varoituksia"
+    },
+    "publication-log": {
+        "breadcrumbs-text": "> Julkaisuloki",
+        "start-date": "Alkupvm.",
+        "end-date": "Loppupvm."
     },
     "publication-card": {
         "latest": "Viimeisimmät",
