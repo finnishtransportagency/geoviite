@@ -262,11 +262,11 @@ const singleRowPublishRequestOfPreviewTableEntry = (
 const singleRowPublishRequestOfSelectedPublishChange = (
     change: SelectedPublishChange,
 ): PublishRequest => ({
-    trackNumbers: change.trackNumber === undefined ? [] : [change.trackNumber],
-    referenceLines: change.referenceLine === undefined ? [] : [change.referenceLine],
-    locationTracks: change.locationTrack === undefined ? [] : [change.locationTrack],
-    switches: change.switch === undefined ? [] : [change.switch],
-    kmPosts: change.kmPost === undefined ? [] : [change.kmPost],
+    trackNumbers: change.trackNumber ? [change.trackNumber] : [],
+    referenceLines: change.referenceLine ? [change.referenceLine] : [],
+    locationTracks: change.locationTrack ? [change.locationTrack] : [],
+    switches: change.switch ? [change.switch] : [],
+    kmPosts: change.kmPost ? [change.kmPost] : [],
 });
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
