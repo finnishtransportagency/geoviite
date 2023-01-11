@@ -76,8 +76,6 @@ const PublicationCard: React.FC<PublishListProps> = ({
         ratkoPushFailed(publication.ratkoPushStatus),
     );
 
-    const anyFailed = allPublications.some((item) => ratkoPushFailed(item.ratkoPushStatus));
-
     const successes = allPublications
         .filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
         .slice(0, MAX_SUCCESS_PUBLICATIONS);
@@ -114,7 +112,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                     <PublicationList
                                         publications={failures}
                                         publicationClicked={itemClicked}
-                                        anyFailed={anyFailed}
+                                        anyFailed={failures.length > 0}
                                     />
                                 </React.Fragment>
                             )}

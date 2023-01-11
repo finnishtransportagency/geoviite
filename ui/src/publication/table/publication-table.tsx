@@ -81,16 +81,16 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
                         )}
                         {sortableTableHeader(SortProps.OPERATION, 'publication-table.operation')}
                         {sortableTableHeader(
-                            SortProps.CHANGE_TIME,
+                            SortProps.PUBLICATION_TIME,
                             'publication-table.publication-date',
                         )}
                         {sortableTableHeader(
-                            SortProps.USER_NAME,
+                            SortProps.PUBLICATION_USER,
                             'publication-table.publication-user',
                         )}
                         {sortableTableHeader(SortProps.DEFINITION, 'publication-table.definition')}
                         {sortableTableHeader(
-                            SortProps.RATKO_PUSH_DATE,
+                            SortProps.RATKO_PUSH_TIME,
                             'publication-table.pushed-to-ratko',
                         )}
                     </tr>

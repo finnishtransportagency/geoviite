@@ -12,9 +12,9 @@ export enum SortProps {
     CHANGED_KM_NUMBERS = 'CHANGED_KM_NUMBERS',
     TRACK_NUMBERS = 'TRACK_NUMBERS',
     OPERATION = 'OPERATION',
-    CHANGE_TIME = 'CHANGE_TIME',
-    USER_NAME = 'USER_NAME',
-    RATKO_PUSH_DATE = 'RATKO_PUSH_DATE',
+    PUBLICATION_TIME = 'PUBLICATION_TIME',
+    PUBLICATION_USER = 'PUBLICATION_USER',
+    RATKO_PUSH_TIME = 'RATKO_PUSH_TIME',
     DEFINITION = 'DEFINITION',
 }
 
@@ -45,15 +45,29 @@ const definitionCompare = fieldComparator((entry: PublicationTableRowProps) =>
     entry.definition.toLocaleLowerCase(),
 );
 
-const changedKmNumbersCompare = fieldComparator(
-    (entry: PublicationTableRowProps) => entry.changedKmNumbers,
+const compareStringArrays = (a: string[], b: string[]) => {
+    a.sort();
+    b.sort();
+
+    const minA = a[0];
+    const minB = b[0];
+
+    return minA < minB ? -1 : minA == minB ? 0 : 1;
+};
+
+const changedKmNumbersCompare = (a: PublicationTableRowProps, b: PublicationTableRowProps) =>
+    compareStringArrays(a.changedKmNumbers, b.changedKmNumbers);
+
+const trackNumberCompare = (a: PublicationTableRowProps, b: PublicationTableRowProps) =>
+    compareStringArrays(a.trackNumbers, b.trackNumbers);
+
+const publicationUserCompare = fieldComparator(
+    (entry: PublicationTableRowProps) => entry.publicationUser,
 );
-const trackNumberCompare = fieldComparator((entry: PublicationTableRowProps) => entry.trackNumbers);
-const userNameCompare = fieldComparator((entry: PublicationTableRowProps) => entry.publicationUser);
-const changeTimeCompare = fieldComparator(
+const publicationTimeCompare = fieldComparator(
     (entry: PublicationTableRowProps) => entry.publicationTime,
 );
-const pushedToRatkoCompare = fieldComparator(
+const ratkoPushTimeCompare = fieldComparator(
     (entry: PublicationTableRowProps) => entry.ratkoPushTime,
 );
 const operationCompare = (a: PublicationTableRowProps, b: PublicationTableRowProps) =>
@@ -63,9 +77,9 @@ const sortFunctionsByPropName = {
     NAME: nameCompare,
     TRACK_NUMBERS: trackNumberCompare,
     OPERATION: operationCompare,
-    CHANGE_TIME: changeTimeCompare,
-    USER_NAME: userNameCompare,
-    RATKO_PUSH_DATE: pushedToRatkoCompare,
+    PUBLICATION_TIME: publicationTimeCompare,
+    PUBLICATION_USER: publicationUserCompare,
+    RATKO_PUSH_TIME: ratkoPushTimeCompare,
     DEFINITION: definitionCompare,
     CHANGED_KM_NUMBERS: changedKmNumbersCompare,
 };
