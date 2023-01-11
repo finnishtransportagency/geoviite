@@ -171,9 +171,9 @@ class PublishService @Autowired constructor(
     }
 
     private fun getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-        allLocationTracks: Set<IntId<LocationTrack>>,
+        allPreviouslyFoundLocationTracks: Set<IntId<LocationTrack>>,
         lastLevelLocationTracks: Set<IntId<LocationTrack>>,
-        allSwitches: Set<IntId<TrackLayoutSwitch>>,
+        allPreviouslyFoundSwitches: Set<IntId<TrackLayoutSwitch>>,
         lastLevelSwitches: Set<IntId<TrackLayoutSwitch>>,
     ): Pair<Set<IntId<LocationTrack>>, Set<IntId<TrackLayoutSwitch>>> {
         val locationTracks = lastLevelLocationTracks.mapNotNull { id ->
@@ -187,25 +187,25 @@ class PublishService @Autowired constructor(
                         locationTrack.topologyEndSwitch?.switchId
                     )
         }
-            .subtract(allSwitches)
+            .subtract(allPreviouslyFoundSwitches)
             .filterTo(HashSet()) { id -> switchService.get(DRAFT, id)?.getDraftType() != DraftType.OFFICIAL }
 
         val newLocationTracks = lastLevelSwitches
             .flatMap { switchId -> switchService.getSwitchJointConnections(DRAFT, switchId) }
             .flatMap { connections -> connections.accurateMatches }
             .map { match -> match.locationTrackId }
-            .subtract(allLocationTracks)
+            .subtract(allPreviouslyFoundLocationTracks)
             .filterTo(HashSet()) { id -> locationTrackService.get(DRAFT, id)?.getDraftType() != DraftType.OFFICIAL }
 
         return if (newSwitches.isNotEmpty() || newLocationTracks.isNotEmpty()) {
             getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
-                allLocationTracks + newLocationTracks,
+                allPreviouslyFoundLocationTracks + newLocationTracks,
                 newLocationTracks,
-                allSwitches + newSwitches,
+                allPreviouslyFoundSwitches + newSwitches,
                 newSwitches
             )
         } else {
-            (allLocationTracks + newLocationTracks) to (allSwitches + newSwitches)
+            (allPreviouslyFoundLocationTracks + newLocationTracks) to (allPreviouslyFoundSwitches + newSwitches)
         }
     }
 
