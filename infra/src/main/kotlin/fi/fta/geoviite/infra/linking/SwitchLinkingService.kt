@@ -2,6 +2,8 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
+import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -28,8 +30,9 @@ fun calculateLayoutSwitchJoints(
     geomSwitch: GeometrySwitch,
     switchStructure: SwitchStructure,
     planSrid: Srid,
+    kkJtoETRSTriangulationNetwork: List<KKJtoETRSTriangle>
 ): List<SwitchJoint>? {
-    val fromPlanToLayoutTransformation = Transformation(planSrid, LAYOUT_SRID)
+    val fromPlanToLayoutTransformation = Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, kkJtoETRSTriangulationNetwork)
 
     val layoutJointPoints = geomSwitch.joints.map { geomJoint ->
         SwitchJoint(
@@ -1087,7 +1090,8 @@ class SwitchLinkingService @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val geometryDao: GeometryDao,
     private val switchLibraryService: SwitchLibraryService,
-    private val addressPointService: AddressPointService
+    private val addressPointService: AddressPointService,
+    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -1100,7 +1104,12 @@ class SwitchLinkingService @Autowired constructor(
             val structure = geomSwitch.switchStructureId?.let(switchLibraryService::getSwitchStructure)
             // TODO: There is a missing switch here, but current logic doesn't support non-typed suggestions
             if (structure == null) null
-            else calculateLayoutSwitchJoints(geomSwitch, structure, missingLayoutSwitchLinking.planSrid)
+            else calculateLayoutSwitchJoints(
+                geomSwitch,
+                structure,
+                missingLayoutSwitchLinking.planSrid,
+                kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
+            )
                 ?.let { calculatedJoints ->
                     val switchBoundingBox = boundingBoxAroundPoints(calculatedJoints.map { it.location }) * 1.5
                     val nearAlignmentIds = locationTrackDao.fetchVersionsNear(DRAFT, switchBoundingBox)

@@ -29,6 +29,6 @@ fun createBoundingPolygonPoints(
     triangulationTriangles: List<KKJtoETRSTriangle>,
 ): List<Point> {
     val bounds = boundingPolygonPointsByConvexHull(points, srid)
-    val transformation = Transformation(srid, LAYOUT_SRID, triangulationTriangles)
+    val transformation = Transformation.possiblyKKJToETRSTransform(srid, LAYOUT_SRID, triangulationTriangles)
     return bounds.map { p -> transformation.transform(p) }
 }

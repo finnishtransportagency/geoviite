@@ -25,7 +25,7 @@ fun toTrackLayout(
     pointListStepLength: Int,
     includeGeometryData: Boolean,
 ): GeometryPlanLayout {
-    val transformation = Transformation(planSrid, LAYOUT_SRID, kkjToEtrsTriangles)
+    val transformation = Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, kkjToEtrsTriangles)
 
     val switches = toTrackLayoutSwitches(geometryPlan.switches, transformation)
 

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.dataImport
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geometry.DummyTriangulationNetwork
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.getSomeOid
 import fi.fta.geoviite.infra.math.IPoint
@@ -208,7 +209,7 @@ class CsvParsingTest {
             listOf(sl1),
             listOf(md1),
             points,
-            listOf(),
+            DummyTriangulationNetwork,
         )
         val expected = listOf(
             SegmentCsvMetaDataRange(TrackMeter.create("0001+000.5")..TrackMeter.create("0001+002.0"), expandedMd1, sl1),
@@ -355,7 +356,7 @@ class CsvParsingTest {
             listOf(sl1, sl2),
             listOf(md1),
             points,
-            listOf(),
+            DummyTriangulationNetwork,
         )
         val expected = listOf(
             SegmentCsvMetaDataRange(TrackMeter.create("0001+000.5")..TrackMeter.create("0001+002.0"), expandedMd1, sl1),
