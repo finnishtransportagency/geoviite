@@ -314,7 +314,9 @@ async function tryToReadText(response: Response): Promise<string | undefined> {
 }
 
 const showHttpError = (response: ApiErrorResponse) => {
-    const msg = response.localizedMessageKey && i18n.t(response.localizedMessageKey);
+    const msg =
+        response.localizedMessageKey &&
+        i18n.t(response.localizedMessageKey, response.localizedMessageParams);
     const content = msg || response.messageRows.map((r) => `${r}`).join('\n');
     Snackbar.error(`Request failed (${response.status})`, `${content}`);
 };
