@@ -82,7 +82,7 @@ const TrackNumberItem: React.FC<{ trackNumberId: LayoutTrackNumberId; changeTime
         <li />
     ) : (
         <li>
-            {t('publish.revert-confirm.track-number')} {trackNumber.number}
+            {t('publish.revert-confirm.dependency-list.track-number')} {trackNumber.number}
         </li>
     );
 };
@@ -106,7 +106,7 @@ const ReferenceLineItem: React.FC<{
         <li />
     ) : (
         <li>
-            {t('publish.revert-confirm.reference-line')} {trackNumber.number}
+            {t('publish.revert-confirm.dependency-list.reference-line')} {trackNumber.number}
         </li>
     );
 };
@@ -120,7 +120,7 @@ const LocationTrackItem: React.FC<{ locationTrackId: LocationTrackId; changeTime
         <li />
     ) : (
         <li>
-            {t('publish.revert-confirm.location-track')} {locationTrack.name}
+            {t('publish.revert-confirm.dependency-list.location-track')} {locationTrack.name}
         </li>
     );
 };
@@ -132,7 +132,7 @@ const SwitchItem: React.FC<{ switchId: LayoutSwitchId }> = ({ switchId }) => {
         <li />
     ) : (
         <li>
-            {t('publish.revert-confirm.switch')} {switchObj.name}
+            {t('publish.revert-confirm.dependency-list.switch')} {switchObj.name}
         </li>
     );
 };
@@ -175,7 +175,7 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
                 </React.Fragment>
             }>
             <div>{`${t('publish.revert-confirm.description')} ${t(
-                `publish.revert-confirm.${typeTranslationKey(
+                `publish.revert-confirm.revert-target.${typeTranslationKey(
                     changesBeingReverted.requestedRevertChange.type,
                 )}`,
             )} ${changesBeingReverted.requestedRevertChange.name}?`}</div>
