@@ -113,6 +113,6 @@ export const getCalculatedChanges = (request: PublishRequest) =>
 
 export const getRevertRequestDependencies = (request: PublishRequest) =>
     postIgnoreError<PublishRequest, PublishRequest>(
-        `${PUBLISH_URI}/candidates/revert-request-dependencies`,
+        `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );
