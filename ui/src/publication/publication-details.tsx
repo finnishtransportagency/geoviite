@@ -38,7 +38,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
-                <PublicationTable publication={publication} />
+                <PublicationTable publications={[publication]} />
             </div>
             {anyFailed && (
                 <footer className={styles['publication-details__footer']}>

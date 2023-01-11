@@ -1,5 +1,8 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
-import { PublicationTableRow } from 'publication/table/publication-table-row';
+import {
+    PublicationTableRow,
+    PublicationTableRowProps,
+} from 'publication/table/publication-table-row';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
@@ -13,30 +16,41 @@ import {
     sortDirectionIcon,
     SortInformation,
     SortProps,
-    toPublicationEntries,
+    toPublicationTableRows,
 } from './publication-table-utils';
 
 export type PublicationTableProps = {
-    publication: PublicationDetails;
+    publications: PublicationDetails[];
 };
 
-const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
+const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => {
     const { t } = useTranslation();
 
     //Track numbers rarely change, therefore we can always use the "latest" version
-    const trackNumbers = useTrackNumbers('OFFICIAL') || [];
+    const trackNumbers = useTrackNumbers('OFFICIAL');
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
-    const publicationEntries = toPublicationEntries(publication, trackNumbers);
+    const [sortedPublicationRows, setSortedPublicationRows] = React.useState<
+        PublicationTableRowProps[]
+    >([]);
 
-    const sortedPublicationEntries =
-        sortInfo && sortInfo.direction !== SortDirection.UNSORTED
-            ? [...publicationEntries].sort(
-                  sortInfo.direction == SortDirection.ASCENDING
-                      ? sortInfo.function
-                      : negComparator(sortInfo.function),
-              )
-            : publicationEntries;
+    React.useEffect(() => {
+        if (trackNumbers) {
+            const publicationRows = publications.flatMap((p) =>
+                toPublicationTableRows(p, trackNumbers),
+            );
+
+            if (sortInfo.direction !== SortDirection.UNSORTED) {
+                publicationRows.sort(
+                    sortInfo.direction == SortDirection.ASCENDING
+                        ? sortInfo.function
+                        : negComparator(sortInfo.function),
+                );
+            }
+
+            setSortedPublicationRows(publicationRows);
+        }
+    }, [publications, sortInfo, trackNumbers]);
 
     const sortByProp = (propName: SortProps) => {
         const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
@@ -82,9 +96,9 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publication }) => {
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedPublicationEntries.map((entry) => (
+                    {sortedPublicationRows.map((entry) => (
                         <PublicationTableRow
-                            key={entry.name}
+                            key={`${entry.name}_${entry.publicationTime}`}
                             name={entry.name}
                             trackNumbers={entry.trackNumbers}
                             publicationTime={entry.publicationTime}

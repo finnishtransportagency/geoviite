@@ -126,7 +126,7 @@ export function getKmPostUiName(kmNumber: KmNumber) {
     return `${i18n.t('publication-table.km-post')} ${kmNumber}`;
 }
 
-export const toPublicationEntries = (
+export const toPublicationTableRows = (
     publication: PublicationDetails,
     trackNumbers: LayoutTrackNumber[],
 ): PublicationTableRowProps[] => {

@@ -21,7 +21,7 @@ import { SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { ValueOf } from 'utils/type-utils';
 import { GeometryPlanLayoutId } from 'geometry/geometry-model';
-import { PublicationDetails } from 'publication/publication-model';
+import { PublicationId } from 'publication/publication-model';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
@@ -342,7 +342,7 @@ export const selectionReducers = {
     },
     onSelectedPublicationChanged: (
         state: Selection,
-        { payload: publication }: PayloadAction<PublicationDetails | undefined>,
+        { payload: publication }: PayloadAction<PublicationId | undefined>,
     ) => {
         state.publication = publication;
     },

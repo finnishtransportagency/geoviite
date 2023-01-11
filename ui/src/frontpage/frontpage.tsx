@@ -2,7 +2,10 @@ import * as React from 'react';
 import PublicationCard from 'publication/card/publication-card';
 import styles from './frontpage.scss';
 import PublicationDetails from 'publication/publication-details';
-import { PublicationDetails as PublicationDetailsModel } from 'publication/publication-model';
+import {
+    PublicationDetails as PublicationDetailsModel,
+    PublicationId,
+} from 'publication/publication-model';
 import { useLoaderWithTimer } from 'utils/react-utils';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
@@ -12,8 +15,8 @@ import { startOfDay, subMonths } from 'date-fns';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 
 type FrontPageProps = {
-    selectedPublication: PublicationDetailsModel | undefined;
-    onSelectedPublicationChanged: (item: PublicationDetailsModel | undefined) => void;
+    selectedPublication: PublicationId | undefined;
+    onSelectedPublicationChanged: (item: PublicationId | undefined) => void;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
@@ -24,6 +27,8 @@ const Frontpage: React.FC<FrontPageProps> = ({
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
+    const publication = publications?.find((p) => p.id == selectedPublication);
+
     useLoaderWithTimer(
         setPublications,
         () => {
@@ -33,13 +38,6 @@ const Frontpage: React.FC<FrontPageProps> = ({
         30000,
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
-
-    React.useEffect(() => {
-        if (selectedPublication && publications) {
-            const updatedPublication = publications.find((p) => p.id == selectedPublication.id);
-            onSelectedPublicationChanged(updatedPublication);
-        }
-    }, [publications]);
 
     const anyFailed = !!publications?.some((p) => ratkoPushFailed(p.ratkoPushStatus));
 
@@ -52,7 +50,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                             <PublicationCard
                                 publications={publications}
                                 itemClicked={(pub) => {
-                                    onSelectedPublicationChanged(pub);
+                                    onSelectedPublicationChanged(pub.id);
                                 }}
                                 onShowPublicationLog={() => setShowPublicationLog(true)}
                                 ratkoStatus={ratkoStatus}
@@ -66,9 +64,9 @@ const Frontpage: React.FC<FrontPageProps> = ({
             {!selectedPublication && showPublicationLog && (
                 <PublicationLogView onClose={() => setShowPublicationLog(false)} />
             )}
-            {selectedPublication && (
+            {publication && (
                 <PublicationDetails
-                    publication={selectedPublication}
+                    publication={publication}
                     onPublicationUnselected={() => onSelectedPublicationChanged(undefined)}
                     anyFailed={anyFailed}
                 />
