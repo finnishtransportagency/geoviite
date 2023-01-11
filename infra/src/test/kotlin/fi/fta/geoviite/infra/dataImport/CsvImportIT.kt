@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.dataImport
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.transformCoordinate
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType.YV
@@ -50,7 +50,7 @@ class CsvImportIT @Autowired constructor(
         assertEquals(IN_USE, trackLayoutKmPosts[0].state)
         assertEquals(trackIdMap[Oid("1.2.246.578.3.10001.188907")], trackLayoutKmPosts[0].trackNumberId)
         assertApproximatelyEquals(
-            transformCoordinate(RATKO_SRID, LAYOUT_SRID, Point(24.835685172734934, 60.218980868897404)),
+            transformNonKKJCoordinate(RATKO_SRID, LAYOUT_SRID, Point(24.835685172734934, 60.218980868897404)),
             trackLayoutKmPosts[0].location!!,
         )
     }
