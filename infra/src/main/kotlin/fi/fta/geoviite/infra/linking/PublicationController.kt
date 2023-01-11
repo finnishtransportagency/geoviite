@@ -68,7 +68,7 @@ class PublicationController @Autowired constructor(
     @PostMapping("/candidates/revert-request-dependencies")
     fun getRevertRequestDependencies(@RequestBody toDelete: PublishRequest): PublishRequest {
         logger.apiCall("getRevertRequestDependencies")
-        return publishService.getRevertRequestDependencies(toDelete)
+        return publicationService.getRevertRequestDependencies(toDelete)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
