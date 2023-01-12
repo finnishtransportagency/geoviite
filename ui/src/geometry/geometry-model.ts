@@ -117,9 +117,7 @@ export enum SortByValue {
     UPLOADED_AT,
     NO_SORTING,
     FILE_NAME,
-
     LINKED_AT,
-
     LINKED_BY,
 }
 

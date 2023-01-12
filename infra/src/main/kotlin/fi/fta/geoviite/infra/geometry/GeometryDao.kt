@@ -1511,7 +1511,8 @@ class GeometryDao @Autowired constructor(
         return jdbcTemplate.query(
             sql,
             mapOf(
-                "plan_ids" to (planIds?.map { it.intValue } ?: listOf(null)), "return_all" to (planIds == null)
+                "plan_ids" to (planIds?.map { it.intValue } ?: listOf(null)),
+                "return_all" to (planIds == null)
             )
         ) { rs, _ ->
             val linkedAt = rs.getInstant("linked_at")

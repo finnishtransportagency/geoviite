@@ -212,15 +212,11 @@ class GeometryService @Autowired constructor(
     private fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> {
         if (sortField == GeometryPlanSortField.LINKED_AT || sortField == GeometryPlanSortField.LINKED_BY) {
             val linkingSummaries = geometryDao.getLinkingSummaries(null)
-            return plannedGeometryFirstComparator.then(if (sortField == GeometryPlanSortField.LINKED_BY) {
-                Comparator.comparing { h ->
-                    linkingSummaries[h.id]?.linkedByUsers ?: ""
-                }
-            } else {
-                Comparator.comparing { h ->
-                    linkingSummaries[h.id]?.linkedAt ?: Instant.MIN
-                }
-            })
+            return plannedGeometryFirstComparator.then(if (sortField == GeometryPlanSortField.LINKED_BY)
+                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedByUsers ?: "" }
+            else
+                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
+            )
         }
 
         return plannedGeometryFirstComparator.then(when (sortField) {
