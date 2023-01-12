@@ -39,7 +39,7 @@ export type RatkoPushId = string;
 export type RatkoPushError = {
     id: RatkoPushErrorId;
     ratkoPushId: RatkoPushId;
-    ratkoPushErrorType: RatkoPushErrorType;
+    errorType: RatkoPushErrorType;
     operation: RatkoPushErrorOperation;
 } & RatkoPushErrorAsset;
 

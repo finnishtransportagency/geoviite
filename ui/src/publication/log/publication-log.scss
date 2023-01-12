@@ -1,16 +1,5 @@
-@import '../vayla-design-lib/colors';
-@import '../vayla-design-lib/typography';
-
-.publication-log-table__container {
-    overflow-y: auto;
-    height: 100%;
-}
-
-.publication-log-table__header {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
+@import '../../vayla-design-lib/colors';
+@import '../../vayla-design-lib/typography';
 
 .publication-log__datepickers {
     display: grid;
@@ -37,12 +26,6 @@
     box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
     margin-bottom: 8px;
     padding: 12px 0 8px 20px;
-}
-
-.publication-log__link {
-    color: $color-blue-dark;
-    padding: 0 20px;
-    cursor: pointer;
 }
 
 .publication-log__breadcrumbs {

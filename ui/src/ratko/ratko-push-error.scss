@@ -2,7 +2,8 @@
 @import '../vayla-design-lib/colors';
 
 .ratko-push-error {
-  @include typography-body-strong;
-  color: $color-red-default;
-  margin-bottom: 12px;
+    @include typography-sub-heading;
+    text-transform: none;
+    color: $color-red-dark;
+    margin-bottom: 12px;
 }

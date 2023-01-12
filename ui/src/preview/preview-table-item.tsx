@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TimeStamp } from 'common/common-model';
-import styles from 'publication/publication-table-item.scss';
+import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import { Operation, PublicationId, PublishValidationError } from 'publication/pu
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Menu, Item, useContextMenu } from 'react-contexify';
+import { Item, Menu, useContextMenu } from 'react-contexify';
 import { PreviewSelectType } from 'preview/preview-table';
 
 export type PreviewTableItemProps = {
@@ -84,12 +84,12 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         )}
                         {errorTexts.length > 0 && (
                             <span className={styles['preview-table-item__error-status']}>
-                                {t('publication-table.errors-status-text', [errorTexts.length])}
+                                {t('preview-table.errors-status-text', [errorTexts.length])}
                             </span>
                         )}
                         {warningTexts.length > 0 && (
                             <span className={styles['preview-table-item__warning-status']}>
-                                {t('publication-table.warnings-status-text', [warningTexts.length])}
+                                {t('preview-table.warnings-status-text', [warningTexts.length])}
                             </span>
                         )}
                     </td>
@@ -132,7 +132,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         {errorTexts.length > 0 && (
                             <div className="preview-table-item__msg-group preview-table-item__msg-group--errors">
                                 <div className="preview-table-item__group-title">
-                                    {t('publication-table.errors-group-title')}
+                                    {t('preview-table.errors-group-title')}
                                 </div>
                                 {errorTexts.map((errorText, index) => (
                                     <div key={index} className="preview-table-item__msg">
@@ -144,7 +144,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         {warningTexts.length > 0 && (
                             <div className="preview-table-item__msg-group preview-table-item__msg-group--warnings">
                                 <div className="preview-table-item__group-title">
-                                    {t('publication-table.warnings-group-title')}
+                                    {t('preview-table.warnings-group-title')}
                                 </div>
                                 {warningTexts?.map((warningText, index) => (
                                     <div key={index} className="preview-table-item__msg">

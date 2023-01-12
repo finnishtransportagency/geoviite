@@ -52,12 +52,19 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         val sql = """
             select 
               coalesce(reference_line.draft_of_reference_line_id, reference_line.id) as official_id,
-              track_number.number as name, 
               reference_line.track_number_id, 
               reference_line.change_time,
-              reference_line.change_user
+              reference_line.change_user,
+              draft_track_number.number as name, 
+              layout.infer_operation_from_state_transition(
+                track_number.state,
+                draft_track_number.state
+              ) as operation
             from layout.reference_line
-              left join layout.track_number on track_number.id = reference_line.track_number_id
+              inner join layout.track_number on track_number.id = reference_line.track_number_id
+              left join layout.track_number_publication_view draft_track_number 
+                on draft_track_number.official_id = reference_line.track_number_id 
+                  and 'DRAFT' = any(draft_track_number.publication_states)
             where reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -67,7 +74,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = null,
+                operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
             )
         }
         logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))

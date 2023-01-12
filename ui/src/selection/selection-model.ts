@@ -22,7 +22,7 @@ import {
 } from 'linking/linking-model';
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
-import { PublicationDetails } from 'publication/publication-model';
+import { PublicationId } from 'publication/publication-model';
 
 export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trackNumber';
 
@@ -101,7 +101,7 @@ export type Selection = {
      */
     planLayouts: GeometryPlanLayout[];
     openedPlanLayouts: OpenedPlanLayout[];
-    publication: PublicationDetails | undefined;
+    publication: PublicationId | undefined;
 };
 
 export type OpenedPlanLayout = {

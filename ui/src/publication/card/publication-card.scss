@@ -1,7 +1,5 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
-
-$color-error: $color-red-dark;
+@import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/colors';
 
 .publication-card {
     padding-top: 0;
@@ -22,10 +20,12 @@ $color-error: $color-red-dark;
     &__title-errors {
         @include typography-sub-heading;
         text-transform: none;
-        color: $color-error;
+        color: $color-red-dark;
     }
-    &__ratko-connection-error {
-        list-style: none;
-        padding-left: 0px;
+
+    &__no-publications {
+        @include typography-sub-heading;
+        text-transform: none;
+        margin-bottom: 12px;
     }
 }
