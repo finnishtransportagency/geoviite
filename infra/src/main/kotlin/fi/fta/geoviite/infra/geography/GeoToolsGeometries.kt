@@ -122,7 +122,9 @@ data class Transformation(
 
     private constructor(sourceSrid: Srid, targetSrid: Srid) :
             this(crs(sourceSrid), crs(targetSrid)) {
-                require(!isKKJ(sourceRef) || targetRef != LAYOUT_CRS) { "MOI ${sourceSrid} ${targetSrid}" }
+                require(!isKKJ(sourceRef) || targetRef != LAYOUT_CRS) {
+                    "Trying to convert from KKJx (${sourceSrid}) to ${targetSrid} without triangulation network"
+                }
             }
 
     fun transform(point: IPoint): Point {
