@@ -8,7 +8,7 @@ export type PublicationTableRowProps = {
     name: string;
     trackNumbers: TrackNumber[];
     changedKmNumbers: KmNumber[];
-    operation: Operation | null;
+    operation: Operation;
     publicationTime: TimeStamp;
     publicationUser: string;
     definition: string;
@@ -32,7 +32,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
             <td>{name}</td>
             <td>{trackNumbers.sort().join(', ')}</td>
             <td>{changedKmNumbers.sort().join(', ')}</td>
-            <td>{operation ? t(`enum.publish-operation.${operation}`) : ''}</td>
+            <td>{t(`enum.publish-operation.${operation}`)}</td>
             <td>{formatDateFull(publicationTime)}</td>
             <td>{publicationUser}</td>
             <td>{definition}</td>

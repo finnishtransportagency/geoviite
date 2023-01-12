@@ -170,7 +170,7 @@ export const toPublicationTableRows = (
     const referenceLines = publication.referenceLines.map((referenceLine) => ({
         name: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)[0]),
         trackNumbers: getTrackNumber(referenceLine.trackNumberId),
-        operation: null,
+        operation: referenceLine.operation,
         ...publicationInfo,
     }));
 
