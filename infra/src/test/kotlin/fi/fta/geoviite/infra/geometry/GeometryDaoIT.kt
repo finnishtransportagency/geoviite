@@ -9,10 +9,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.util.getInstant
-import fi.fta.geoviite.infra.util.queryOne
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -205,14 +202,7 @@ class GeometryDaoIT @Autowired constructor(
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
         locationTrackService.publish(PublicationVersion(trackVersion.id, trackVersion))
-        val trackChangeTime =
-            jdbc.queryOne(
-                "select change_time from layout.location_track where id = :id and not draft",
-                mapOf("id" to trackVersion.id.intValue),
-                trackVersion.id.toString(),
-            ) { rs, _ ->
-                rs.getInstant("change_time")
-            }
+        val trackChangeTime = locationTrackService.getChangeTimes(trackVersion.id).officialChanged!!
 
         val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, "TEST_USER")
         val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))
