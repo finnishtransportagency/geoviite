@@ -587,10 +587,12 @@ private fun collectTopologyEndLinks(
         track to listOfNotNull(
             track.topologyStartSwitch?.let { topologySwitch ->
                 if (topologySwitch.switchId == switch.id)
-                    alignment.start?.let { p -> TopologyEndLink(topologySwitch, p) } else null
+                    alignment.start?.let { p -> TopologyEndLink(topologySwitch, p) }
+                else null
             }, track.topologyEndSwitch?.let { topologySwitch ->
                 if (topologySwitch.switchId == switch.id)
-                    alignment.end?.let { p -> TopologyEndLink(topologySwitch, p) } else null
+                    alignment.end?.let { p -> TopologyEndLink(topologySwitch, p) }
+                else null
             }
         )
     }.filter { (_, ends) -> ends.isNotEmpty() }
