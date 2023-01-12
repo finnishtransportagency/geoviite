@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -90,7 +89,8 @@ class GeometryService @Autowired constructor(
             "pointListStepLength" to pointListStepLength,
         )
         val srid = geometryPlan.units.coordinateSystemSrid
-        val polygon = geometryPlan.getBoundingPolygonPoints(kkJtoETRSTriangulationDao.fetchTriangulationNetwork())
+        val triangulationNetwork = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
+        val polygon = geometryPlan.getBoundingPolygonPoints(triangulationNetwork)
         return if (srid == null) {
             logger.warn("Not converting plan to layout as there is no SRID: id=${geometryPlan.id} file=${geometryPlan.fileName}")
             return null to TransformationError("srid-missing", geometryPlan.units)
@@ -104,7 +104,7 @@ class GeometryService @Autowired constructor(
             toTrackLayout(
                 geometryPlan = geometryPlan,
                 heightTriangles = heightTriangleDao.fetchTriangles(polygon),
-                kkjToEtrsTriangles = getKkjToEtrsTriangles(polygon, srid),
+                kkjToEtrsTriangles = triangulationNetwork,
                 planSrid = srid,
                 pointListStepLength = pointListStepLength,
                 includeGeometryData = includeGeometryData,
@@ -124,12 +124,6 @@ class GeometryService @Autowired constructor(
                 e)
             null to TransformationError("plan-transformation-failed", geometryPlan.units)
         }
-    }
-
-    fun getKkjToEtrsTriangles(polygon: List<Point>, srid: Srid): List<KKJtoETRSTriangle> {
-        val jtsPolygon = toJtsPolygon(polygon, crs(srid))
-            ?: throw CoordinateTransformationException("Failed to create JTS polygon from bounds")
-        return kkJtoETRSTriangulationDao.fetchTriangulationNetwork().filter { it.intersects(jtsPolygon) }
     }
 
     fun getGeometryElement(geometryElementId: IndexedId<GeometryElement>): GeometryElement {
@@ -179,7 +173,7 @@ class GeometryService @Autowired constructor(
         val switch = getSwitch(switchId)
         val srid = geometryDao.getSwitchSrid(switchId)
             ?: throw IllegalStateException("Coordinate system not found for geometry switch $switchId!")
-        val transformation = Transformation(srid, LAYOUT_SRID)
+        val transformation = Transformation.possiblyKKJToETRSTransform(srid, LAYOUT_SRID, kkJtoETRSTriangulationDao.fetchTriangulationNetwork())
         return toTrackLayoutSwitch(switch, transformation)
     }
 

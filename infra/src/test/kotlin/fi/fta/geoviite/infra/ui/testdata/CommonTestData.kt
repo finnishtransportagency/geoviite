@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.testdata
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.*
@@ -186,9 +187,10 @@ fun pointsFromIncrementList(basePoint: Point, incrementPoints: List<Point>) =
 fun locationTrackAndAlignmentForGeometryAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     geometryAlignment: GeometryAlignment,
-    planSrid: Srid = LAYOUT_SRID
+    triangulationNetwork: List<KKJtoETRSTriangle>,
+    planSrid: Srid = LAYOUT_SRID,
 ): Pair<LocationTrack, LayoutAlignment> {
-    val transformation = Transformation(planSrid, LAYOUT_SRID)
+    val transformation = Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, triangulationNetwork)
     return locationTrackAndAlignment(
         trackNumberId,
         geometryAlignment.elements.map { element ->
