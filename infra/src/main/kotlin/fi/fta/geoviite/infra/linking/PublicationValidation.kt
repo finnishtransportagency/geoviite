@@ -102,7 +102,7 @@ fun validateDraftSwitchFields(switch: TrackLayoutSwitch): List<PublishValidation
         validate(switch.stateCategory.isPublishable()) { "$VALIDATION_SWITCH.state-category.${switch.stateCategory}" },
     )
 
-fun validateSwitchSegmentReferences(
+fun validateSwitchLocationTrackLinkReferences(
     switch: TrackLayoutSwitch,
     locationTracks: List<LocationTrack>,
     publishLocationTrackIds: List<IntId<LocationTrack>>,
@@ -125,16 +125,21 @@ fun validateSwitchSegmentReferences(
         },
 )
 
-fun validateSwitchSegmentStructure(
+fun validateSwitchLocationTrackLinkStructure(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): List<PublishValidationError> {
+    val existingTracks = locationTracks.filter { (track, _) -> track.exists }
     val segmentGroups = locationTracks
         .filter { (track, _) -> track.exists } // Only consider the non-deleted tracks for switch alignments
         .map { (track, alignment) -> track to alignment.segments.filter { segment -> segment.switchId == switch.id } }
+        .filter { (_, segments) -> segments.isNotEmpty() }
+
     val structureJoints = collectJoints(structure)
     val segmentJoints = segmentGroups.map { (track, group) -> collectJoints(track, group) }
+
+    val topologyLinks = collectTopologyEndLinks(existingTracks, switch)
 
     return if (switch.exists) listOfNotNull(
         segmentGroups.filterNot { (_, group) -> areSegmentsContinuous(group) }
@@ -145,6 +150,13 @@ fun validateSwitchSegmentStructure(
                 }
             },
         segmentGroups.filterNot { (_, group) -> segmentAndJointLocationsAgree(switch, group) }
+            .let { errorGroups ->
+                validateWithParams(errorGroups.isEmpty(), WARNING) {
+                    val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
+                    "$VALIDATION_SWITCH.location-track.joint-location-mismatch" to listOf(errorTrackNames)
+                }
+            },
+        topologyLinks.filterNot { (_, group) -> topologyLinkAndJointLocationsAgree(switch, group) }
             .let { errorGroups ->
                 validateWithParams(errorGroups.isEmpty(), WARNING) {
                     val errorTrackNames = errorGroups.joinToString(", ") { (track, _) -> track.name }
@@ -452,6 +464,13 @@ fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segment: LayoutSegm
     }
 }
 
+fun topologyLinkAndJointLocationsAgree(switch: TrackLayoutSwitch, endLinks: List<TopologyEndLink>): Boolean {
+    return endLinks.all { topologyEndLink ->
+        val switchJoint = switch.getJoint(topologyEndLink.topologySwitch.jointNumber)
+        switchJoint != null && switchJoint.location.isSame(topologyEndLink.point, JOINT_LOCATION_DELTA)
+    }
+}
+
 fun alignmentJointGroupFound(alignmentJoints: List<JointNumber>, structureJointGroups: List<List<JointNumber>>) =
     structureJointGroups.any { structureJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
 
@@ -554,3 +573,24 @@ fun validateWithParams(
 
 fun <T : Draftable<T>> isPublished(item: T, publishItemIds: List<IntId<T>>) =
     item.draft == null || publishItemIds.contains(item.id)
+
+data class TopologyEndLink(
+    val topologySwitch: TopologyLocationTrackSwitch,
+    val point: LayoutPoint
+)
+
+private fun collectTopologyEndLinks(
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    switch: TrackLayoutSwitch
+) = locationTracks
+    .map { (track, alignment) ->
+        track to listOfNotNull(
+            track.topologyStartSwitch?.let { topologySwitch ->
+                if (topologySwitch.switchId == switch.id)
+                    alignment.start?.let { p -> TopologyEndLink(topologySwitch, p) } else null
+            }, track.topologyEndSwitch?.let { topologySwitch ->
+                if (topologySwitch.switchId == switch.id)
+                    alignment.end?.let { p -> TopologyEndLink(topologySwitch, p) } else null
+            }
+        )
+    }.filter { (_, ends) -> ends.isNotEmpty() }

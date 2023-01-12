@@ -323,12 +323,12 @@ class PublicationService @Autowired constructor(
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val linkedTracksAndAlignments = getLinkedTracksAndAlignments(version.officialId, publicationVersions)
         val fieldErrors = validateDraftSwitchFields(switch)
-        val referenceErrors = validateSwitchSegmentReferences(
+        val referenceErrors = validateSwitchLocationTrackLinkReferences(
             switch,
             linkedTracksAndAlignments.map(Pair<LocationTrack,*>::first),
             publicationVersions.locationTracks.map { it.officialId },
         )
-        val structureErrors = validateSwitchSegmentStructure(switch, structure, linkedTracksAndAlignments)
+        val structureErrors = validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
         return fieldErrors + referenceErrors + structureErrors
     }
 

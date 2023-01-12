@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.math.Point
@@ -624,6 +621,34 @@ class PublicationValidationTest {
         )
     }
 
+    @Test
+    fun validationCatchesMisplacedTopologyLink() {
+        val wrongPlaceSwitch =
+            switch(seed = 123, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null)))
+                .copy(id = IntId(1))
+        val rightPlaceSwitch =
+            switch(seed = 124, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null)))
+                .copy(id = IntId(2))
+        val unlinkedTrack = locationTrackAndAlignment(IntId(0),
+            segment(Point(150.0, 150.0), Point(200.0, 200.0))
+        )
+        val lt = unlinkedTrack.first
+            .copy(
+                topologyStartSwitch = TopologyLocationTrackSwitch(wrongPlaceSwitch.id as IntId, JointNumber(1)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(rightPlaceSwitch.id as IntId, JointNumber(1))
+            ) to unlinkedTrack.second
+
+        assertContainsError(
+            true, validateSwitchLocationTrackLinkStructure(wrongPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
+            "$VALIDATION_SWITCH.location-track.joint-location-mismatch"
+        )
+
+        assertContainsError(
+            false, validateSwitchLocationTrackLinkStructure(rightPlaceSwitch, switchStructureYV60_300_1_9(), listOf(lt)),
+            "$VALIDATION_SWITCH.location-track.joint-location-mismatch"
+        )
+    }
+
     private fun editSegment(segmentSwitch: SegmentSwitch, edit: (segment: LayoutSegment) -> LayoutSegment) =
         segmentSwitch.copy(
             segments = segmentSwitch.segments.map(edit),
@@ -788,14 +813,14 @@ class PublicationValidationTest {
         includeTracksInPublish: Boolean = false,
     ): List<PublishValidationError> {
         val locationTrackIds = if (includeTracksInPublish) tracks.map { a -> a.id as IntId } else listOf()
-        return validateSwitchSegmentReferences(switch, tracks, locationTrackIds)
+        return validateSwitchLocationTrackLinkReferences(switch, tracks, locationTrackIds)
     }
 
     private fun getSwitchSegmentStructureErrors(
         switch: TrackLayoutSwitch,
         tracks: List<Pair<LocationTrack, LayoutAlignment>>,
     ): List<PublishValidationError> {
-        return validateSwitchSegmentStructure(switch, structure, tracks)
+        return validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
     }
 
     private fun assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses?, error: String) {
