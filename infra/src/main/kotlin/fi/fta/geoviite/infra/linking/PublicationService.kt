@@ -395,7 +395,11 @@ class PublicationService @Autowired constructor(
             linkedTracksAndAlignments.map(Pair<LocationTrack,*>::first),
             publicationVersions.locationTracks.map { it.officialId },
         )
-        val locationTrackErrors = validateSwitchLocationTrackReferences(linkedTracksAndAlignments.map { l -> l.first  })
+        val locationTrackErrors = validateSwitchLocationTrackReferences(
+            getLinkedTrackDraftsNotIncludedInPublication(
+                version.officialId, publicationVersions
+            )
+        )
         val structureErrors = validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
         return fieldErrors + referenceErrors + structureErrors + locationTrackErrors
     }
