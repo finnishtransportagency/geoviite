@@ -98,7 +98,6 @@ export function asTrackLayoutSwitchJointConnection({
             locationTrackId: m.locationTrackId,
             location: location,
         })),
-        fallbackMatches: [],
         number: number,
         locationAccuracy: locationAccuracy,
     };

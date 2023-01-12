@@ -209,7 +209,6 @@ class LayoutSwitchService @Autowired constructor(
                     TrackLayoutSwitchJointConnection(
                         connection.jointNumber,
                         listOf(TrackLayoutSwitchJointMatch(track.id as IntId, point)),
-                        listOf(),
                         joint.locationAccuracy
                     )
                 }

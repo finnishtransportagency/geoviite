@@ -210,7 +210,6 @@ data class TrackLayoutSwitchJointMatch(
 data class TrackLayoutSwitchJointConnection(
     val number: JointNumber,
     val accurateMatches: List<TrackLayoutSwitchJointMatch>,
-    val fallbackMatches: List<IntId<LocationTrack>>,
     val locationAccuracy: LocationAccuracy?
 ) {
     val matches by lazy {
@@ -228,7 +227,6 @@ data class TrackLayoutSwitchJointConnection(
         return TrackLayoutSwitchJointConnection(
             number,
             accurateMatches + other.accurateMatches,
-            fallbackMatches + other.fallbackMatches,
             locationAccuracy,
         )
     }
