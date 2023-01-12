@@ -22,7 +22,8 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { addIfExists, removeIfExists } from 'utils/array-utils';
+import { addIfExists, subtract } from 'utils/array-utils';
+import { PublishRequest } from 'publication/publication-api';
 
 export type SelectedPublishChanges = {
     trackNumbers: LayoutTrackNumberId[];
@@ -234,39 +235,33 @@ const trackLayoutSlice = createSlice({
                 kmPosts: kmPosts,
             };
         },
+
         onPublishPreviewRemove: function (
             state: TrackLayoutState,
-            action: PayloadAction<SelectedPublishChange>,
+            action: PayloadAction<PublishRequest>,
         ): void {
-            const trackNumbers = removeIfExists(
-                [...state.selectedPublishCandidateIds.trackNumbers],
-                action.payload.trackNumber,
+            const stateCandidates = state.selectedPublishCandidateIds;
+            const toRemove = action.payload;
+            const trackNumbers = subtract(stateCandidates.trackNumbers, toRemove.trackNumbers);
+            const referenceLines = subtract(
+                stateCandidates.referenceLines,
+                toRemove.referenceLines,
             );
-            const referenceLines = removeIfExists(
-                [...state.selectedPublishCandidateIds.referenceLines],
-                action.payload.referenceLine,
+            const locationTracks = subtract(
+                stateCandidates.locationTracks,
+                toRemove.locationTracks,
             );
-            const locationTracks = removeIfExists(
-                [...state.selectedPublishCandidateIds.locationTracks],
-                action.payload.locationTrack,
-            );
-            const switches = removeIfExists(
-                [...state.selectedPublishCandidateIds.switches],
-                action.payload.switch,
-            );
-            const kmPosts = removeIfExists(
-                [...state.selectedPublishCandidateIds.kmPosts],
-                action.payload.kmPost,
-            );
-
+            const switches = subtract(stateCandidates.switches, toRemove.switches);
+            const kmPosts = subtract(stateCandidates.kmPosts, toRemove.kmPosts);
             state.selectedPublishCandidateIds = {
-                trackNumbers: trackNumbers,
-                referenceLines: referenceLines,
-                locationTracks: locationTracks,
-                switches: switches,
-                kmPosts: kmPosts,
+                trackNumbers,
+                referenceLines,
+                locationTracks,
+                switches,
+                kmPosts,
             };
         },
+
         // TODO when Hylkää muutokset -button is removed from Preview-view, this reducer will become obsolete
         onPublishPreviewRevert: function (state: TrackLayoutState): void {
             state.selectedPublishCandidateIds = {

@@ -5,6 +5,7 @@ import { useLoader } from 'utils/react-utils';
 import {
     getCalculatedChanges,
     getPublishCandidates,
+    getRevertRequestDependencies,
     PublishRequest,
     revertCandidates,
     validatePublishCandidates,
@@ -44,11 +45,8 @@ import {
 } from 'track-layout/track-layout-model';
 import PreviewTable, { PreviewSelectType, PreviewTableEntry } from 'preview/preview-table';
 import { updateAllChangeTimes } from 'common/change-time-api';
-import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
-import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Icons } from 'vayla-design-lib/icon/Icon';
-import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
 
 type CandidateId =
     | LocationTrackId
@@ -80,6 +78,11 @@ export type PreviewCandidates = {
     kmPosts: (KmPostPublishCandidate & PendingValidation)[];
 };
 
+export type ChangesBeingReverted = {
+    requestedRevertChange: PreviewTableEntry;
+    changeIncludingDependencies: PublishRequest;
+};
+
 type PreviewProps = {
     map: Map;
     selection: Selection;
@@ -94,7 +97,7 @@ type PreviewProps = {
     onPublish: () => void;
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
-    onPublishPreviewRemove: (selectedChange: SelectedPublishChange) => void;
+    onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequest) => void;
     onPublishPreviewRevert: () => void;
 };
 
@@ -245,22 +248,26 @@ const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
     pendingValidation: true,
 });
 
-const typeTranslationKey = (type: PreviewSelectType | undefined) => {
-    switch (type) {
-        case PreviewSelectType.trackNumber:
-            return 'track-number';
-        case PreviewSelectType.referenceLine:
-            return 'reference-line';
-        case PreviewSelectType.locationTrack:
-            return 'location-track';
-        case PreviewSelectType.switch:
-            return 'switch';
-        case PreviewSelectType.kmPost:
-            return 'km-post';
-        default:
-            return '';
-    }
-};
+const singleRowPublishRequestOfPreviewTableEntry = (
+    id: PublicationId,
+    type: PreviewSelectType,
+): PublishRequest => ({
+    trackNumbers: type === 'trackNumber' ? [id] : [],
+    referenceLines: type === 'referenceLine' ? [id] : [],
+    locationTracks: type === 'locationTrack' ? [id] : [],
+    switches: type === 'switch' ? [id] : [],
+    kmPosts: type === 'kmPost' ? [id] : [],
+});
+
+const singleRowPublishRequestOfSelectedPublishChange = (
+    change: SelectedPublishChange,
+): PublishRequest => ({
+    trackNumbers: change.trackNumber ? [change.trackNumber] : [],
+    referenceLines: change.referenceLine ? [change.referenceLine] : [],
+    locationTracks: change.locationTrack ? [change.locationTrack] : [],
+    switches: change.switch ? [change.switch] : [],
+    kmPosts: change.kmPost ? [change.kmPost] : [],
+});
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
@@ -314,37 +321,45 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         [props.selectedPublishCandidateIds],
     );
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
-    const [isReverting, setIsReverting] = React.useState(false);
-    const [revertConfirmVisible, setRevertConfirmVisible] = React.useState(false);
-    const [entryBeingReverted, setEntryBeingReverted] = React.useState<PreviewTableEntry>();
+    const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
-    const onRevertRow = (id: PublicationId, type: PreviewSelectType) => {
-        const selectedChange = {
-            trackNumber: type === PreviewSelectType.trackNumber ? id : undefined,
-            referenceLine: type === PreviewSelectType.referenceLine ? id : undefined,
-            locationTrack: type === PreviewSelectType.locationTrack ? id : undefined,
-            switch: type === PreviewSelectType.switch ? id : undefined,
-            kmPost: type === PreviewSelectType.kmPost ? id : undefined,
-        };
-        const request = {
-            trackNumbers: type === PreviewSelectType.trackNumber ? [id] : [],
-            referenceLines: type === PreviewSelectType.referenceLine ? [id] : [],
-            locationTracks: type === PreviewSelectType.locationTrack ? [id] : [],
-            switches: type === PreviewSelectType.switch ? [id] : [],
-            kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
-        };
-        revertCandidates(request)
+    const onRequestRevert = (requestedRevertChange: PreviewTableEntry) => {
+        getRevertRequestDependencies(
+            singleRowPublishRequestOfPreviewTableEntry(
+                requestedRevertChange.id,
+                requestedRevertChange.type,
+            ),
+        ).then((changeIncludingDependencies) => {
+            if (changeIncludingDependencies != null) {
+                setChangesBeingReverted({
+                    requestedRevertChange,
+                    changeIncludingDependencies,
+                });
+            }
+        });
+    };
+
+    const onConfirmRevert = () => {
+        if (changesBeingReverted === undefined) {
+            return;
+        }
+        revertCandidates(changesBeingReverted.changeIncludingDependencies)
             .then((r) => {
                 if (r.isOk()) {
                     Snackbar.success(t('publish.revert-success'));
-                    props.onPublishPreviewRemove(selectedChange);
+                    props.onPublishPreviewRemove(changesBeingReverted.changeIncludingDependencies);
                 }
             })
             .finally(() => {
-                setRevertConfirmVisible(false);
-                setIsReverting(false);
-                updateAllChangeTimes();
+                setChangesBeingReverted(undefined);
+                void updateAllChangeTimes();
             });
+    };
+
+    const onPublishPreviewRemove = (selectedChange: SelectedPublishChange): void => {
+        props.onPublishPreviewRemove(
+            singleRowPublishRequestOfSelectedPublishChange(selectedChange),
+        );
     };
 
     return (
@@ -362,10 +377,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
-                                    onRevert={(entry) => {
-                                        setEntryBeingReverted(entry);
-                                        setRevertConfirmVisible(true);
-                                    }}
+                                    onRevert={onRequestRevert}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                 />
@@ -376,11 +388,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     <h3>{t('preview-view.staged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
-                                    onPreviewSelect={props.onPublishPreviewRemove}
-                                    onRevert={(entry) => {
-                                        setEntryBeingReverted(entry);
-                                        setRevertConfirmVisible(true);
-                                    }}
+                                    onPreviewSelect={onPublishPreviewRemove}
+                                    onRevert={onRequestRevert}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                 />
@@ -423,39 +432,15 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>
-            {revertConfirmVisible && (
-                <Dialog
-                    title={t('publish.revert-confirm.title')}
-                    variant={DialogVariant.LIGHT}
-                    allowClose={false}
-                    className={dialogStyles['dialog--wide']}
-                    footerContent={
-                        <React.Fragment>
-                            <Button
-                                onClick={() => setRevertConfirmVisible(false)}
-                                disabled={isReverting}
-                                variant={ButtonVariant.SECONDARY}>
-                                {t('publish.revert-confirm.cancel')}
-                            </Button>
-                            <Button
-                                icon={Icons.Delete}
-                                disabled={isReverting}
-                                isProcessing={isReverting}
-                                variant={ButtonVariant.WARNING}
-                                onClick={() => {
-                                    if (entryBeingReverted) {
-                                        setIsReverting(true);
-                                        onRevertRow(entryBeingReverted.id, entryBeingReverted.type);
-                                    }
-                                }}>
-                                {t('publish.revert-confirm.confirm')}
-                            </Button>
-                        </React.Fragment>
-                    }>
-                    <div>{`${t('publish.revert-confirm.description')} ${t(
-                        `publish.revert-confirm.${typeTranslationKey(entryBeingReverted?.type)}`,
-                    )} ${entryBeingReverted?.name}?`}</div>
-                </Dialog>
+            {changesBeingReverted !== undefined && (
+                <PreviewConfirmRevertChangesDialog
+                    changeTimes={props.changeTimes}
+                    changesBeingReverted={changesBeingReverted}
+                    cancelRevertChanges={() => {
+                        setChangesBeingReverted(undefined);
+                    }}
+                    confirmRevertChanges={onConfirmRevert}
+                />
             )}
         </React.Fragment>
     );

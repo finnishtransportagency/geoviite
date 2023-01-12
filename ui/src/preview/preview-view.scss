@@ -60,6 +60,7 @@ $color-warning: #9f6700;
 
 .preview-section {
     max-height: 33%;
+    flex: 1;
     display: flex;
     flex-direction: column;
 }
