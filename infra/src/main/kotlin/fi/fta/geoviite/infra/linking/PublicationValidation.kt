@@ -205,7 +205,7 @@ fun validateDuplicateOfState(
         validateWithParams(duplicateOfLocationTrack.duplicateOf == null) {
             "$VALIDATION_LOCATION_TRACK.duplicate-of.duplicate" to listOf(duplicateOfLocationTrack.name.toString())
         }
-   )
+    )
 
 fun validateDraftReferenceLineFields(referenceLine: ReferenceLine): List<PublishValidationError> =
     listOfNotNull(
@@ -260,6 +260,14 @@ data class SegmentSwitch(
     val switchStructure: SwitchStructure,
     val segments: List<LayoutSegment>,
 )
+
+fun validateSwitchLocationTrackReferences(locationTracks: List<LocationTrack>
+): List<PublishValidationError> =
+    locationTracks.mapNotNull { l ->
+        validateWithParams(l.draft != null) {
+            "$VALIDATION_SWITCH.location-track.not-published" to listOf(l.name.toString())
+        }
+    }
 
 fun validateSegmentSwitchReferences(
     locationTrack: LocationTrack,
@@ -375,11 +383,13 @@ fun validateAddressPoints(
     try {
         geocode()?.let { addresses ->
             validateAddressPoints(trackNumber, locationTrack, addresses)
-        } ?: listOf(PublishValidationError(
-            ERROR,
-            "$validationTargetLocalizationPrefix.no-context",
-            listOf(trackNumber.number.toString())
-        ))
+        } ?: listOf(
+            PublishValidationError(
+                ERROR,
+                "$validationTargetLocalizationPrefix.no-context",
+                listOf(trackNumber.number.toString())
+            )
+        )
     } catch (e: ClientException) {
         listOf(PublishValidationError(ERROR, e.localizedMessageKey))
     }
