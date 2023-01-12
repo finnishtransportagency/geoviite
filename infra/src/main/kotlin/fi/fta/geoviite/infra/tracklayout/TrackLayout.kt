@@ -70,7 +70,7 @@ data class TrackLayoutTrackNumber(
     val externalId: Oid<TrackLayoutTrackNumber>?,
     override val id: DomainId<TrackLayoutTrackNumber> = StringId(),
     override val dataType: DataType = DataType.TEMP,
-    override val rowVersion: RowVersion<TrackLayoutTrackNumber>? = null,
+    override val version: RowVersion<TrackLayoutTrackNumber>? = null,
     @JsonIgnore override val draft: Draft<TrackLayoutTrackNumber>? = null,
 ) : Draftable<TrackLayoutTrackNumber> {
     @JsonIgnore
@@ -95,7 +95,7 @@ data class ReferenceLine(
     val sourceId: IntId<GeometryAlignment>?,
     override val id: DomainId<ReferenceLine> = deriveFromSourceId("RL", sourceId),
     override val dataType: DataType = DataType.TEMP,
-    override val rowVersion: RowVersion<ReferenceLine>? = null,
+    override val version: RowVersion<ReferenceLine>? = null,
     val boundingBox: BoundingBox? = null,
     val length: Double = 0.0,
     val segmentCount: Int = 0,
@@ -128,7 +128,7 @@ data class LocationTrack(
     val sourceId: IntId<GeometryAlignment>?,
     override val id: DomainId<LocationTrack> = deriveFromSourceId("LT", sourceId),
     override val dataType: DataType = DataType.TEMP,
-    override val rowVersion: RowVersion<LocationTrack>? = null,
+    override val version: RowVersion<LocationTrack>? = null,
     val boundingBox: BoundingBox?,
     val length: Double,
     val segmentCount: Int,
@@ -168,7 +168,7 @@ data class TrackLayoutSwitch(
     override val dataType: DataType = DataType.TEMP,
     val trapPoint: Boolean?,
     val ownerId: IntId<SwitchOwner>?,
-    override val rowVersion: RowVersion<TrackLayoutSwitch>? = null,
+    override val version: RowVersion<TrackLayoutSwitch>? = null,
     @JsonIgnore override val draft: Draft<TrackLayoutSwitch>? = null,
     val source: GeometrySource,
 ) : Draftable<TrackLayoutSwitch> {
@@ -195,7 +195,7 @@ data class TrackLayoutKmPost(
     val sourceId: DomainId<GeometryKmPost>?,
     override val id: DomainId<TrackLayoutKmPost> = deriveFromSourceId("K", sourceId),
     override val dataType: DataType = DataType.TEMP,
-    override val rowVersion: RowVersion<TrackLayoutKmPost>? = null,
+    override val version: RowVersion<TrackLayoutKmPost>? = null,
     @JsonIgnore override val draft: Draft<TrackLayoutKmPost>? = null,
 ) : Draftable<TrackLayoutKmPost> {
     @JsonIgnore

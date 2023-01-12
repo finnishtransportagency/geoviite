@@ -96,7 +96,7 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
             dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
-            val previousVersion = requireNotNull(draft.rowVersion) { "Updating item without rowVersion: $item" }
+            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $item" }
             dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
     }

@@ -475,8 +475,8 @@ class PublicationServiceIT @Autowired constructor(
 
         val switch1 = switchService.saveDraft(switch(123)).id
         val switch2 = switchService.saveDraft(switch(234)).id
-        val switch3 = switchService.saveDraft(switch(345)).id
-        val distantSwitch = switchService.saveDraft(switch(456)).id
+        val switch3 = createOfficialAndDraftSwitch(345)
+        val distantSwitch = createOfficialAndDraftSwitch(456)
 
         val track1BetweenSwitch1and2 = locationTrackAndAlignment(
             trackNumber,
@@ -542,6 +542,13 @@ class PublicationServiceIT @Autowired constructor(
             publishBoth,
             publicationService.getRevertRequestDependencies(publishRequest(referenceLines = listOf(referenceLine)))
         )
+    }
+
+    fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
+        val officialVersion = switchDao.insert(switch(seed)).rowVersion
+        return switchService.saveDraft(switchDao.fetch(officialVersion).let { official ->
+          official.copy(name = SwitchName("${official.name}_D"))
+        }).id
     }
 
     private fun someTrackNumber() = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
