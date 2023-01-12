@@ -45,12 +45,16 @@ const definitionCompare = fieldComparator((entry: PublicationTableRowProps) =>
     entry.definition.toLocaleLowerCase(),
 );
 
-const compareStringArrays = (a: string[], b: string[]) => {
-    a.sort();
-    b.sort();
+const compareStringArrays = (a: string[] | undefined, b: string[] | undefined) => {
+    const aIsEmpty = !a || a.length === 0;
+    const bIsEmpty = !b || b.length === 0;
 
-    const minA = a[0];
-    const minB = b[0];
+    if (aIsEmpty && bIsEmpty) return 0;
+    if (aIsEmpty) return 1;
+    if (bIsEmpty) return -1;
+
+    const minA = a.sort()[0];
+    const minB = b.sort()[0];
 
     return minA < minB ? -1 : minA == minB ? 0 : 1;
 };
@@ -71,9 +75,9 @@ const ratkoPushTimeCompare = (a: PublicationTableRowProps, b: PublicationTableRo
     const aTime = a.ratkoPushTime;
     const bTime = b.ratkoPushTime;
 
-    if (aTime == null && bTime == null) return 0;
-    if (aTime == null) return 1;
-    if (bTime == null) return -1;
+    if (!aTime && !bTime) return 0;
+    if (!aTime) return 1;
+    if (!bTime) return -1;
 
     return aTime < bTime ? -1 : aTime == bTime ? 0 : 1;
 };
@@ -162,43 +166,44 @@ export const toPublicationTableRows = (
             publication.ratkoPushStatus === RatkoPushStatus.SUCCESSFUL
                 ? publication.ratkoPushTime
                 : null,
-        changedKmNumbers: [],
         definition: '',
     };
 
     const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({
+        ...publicationInfo,
         name: getTrackNumberUiName(getTrackNumber(trackNumber.id)),
         trackNumbers: nonEmptyArray(getTrackNumber(trackNumber.id)),
         operation: trackNumber.operation,
-        ...publicationInfo,
     }));
 
     const referenceLines = publication.referenceLines.map((referenceLine) => ({
+        ...publicationInfo,
         name: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)),
         trackNumbers: nonEmptyArray(getTrackNumber(referenceLine.trackNumberId)),
         operation: referenceLine.operation,
-        ...publicationInfo,
+        changedKmNumbers: referenceLine.changedKmNumbers,
     }));
 
     const locationTracks = publication.locationTracks.map((locationTrack) => ({
+        ...publicationInfo,
         name: getLocationTrackUiName(locationTrack.name),
         trackNumbers: nonEmptyArray(getTrackNumber(locationTrack.trackNumberId)),
         operation: locationTrack.operation,
-        ...publicationInfo,
+        changedKmNumbers: locationTrack.changedKmNumbers,
     }));
 
     const switches = publication.switches.map((s) => ({
+        ...publicationInfo,
         name: getSwitchUiName(s.name),
         trackNumbers: s.trackNumberIds.map(getTrackNumber).filter(filterNotEmpty),
         operation: s.operation,
-        ...publicationInfo,
     }));
 
     const kmPosts = publication.kmPosts.map((kmPost) => ({
+        ...publicationInfo,
         name: getKmPostUiName(kmPost.kmNumber),
         trackNumbers: nonEmptyArray(getTrackNumber(kmPost.trackNumberId)),
         operation: kmPost.operation,
-        ...publicationInfo,
     }));
 
     return [...trackNumberItems, ...referenceLines, ...locationTracks, ...switches, ...kmPosts];

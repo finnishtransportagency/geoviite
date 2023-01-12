@@ -330,11 +330,15 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               plt.location_track_version as version,
               lt.name,
               lt.track_number_id,
-              layout.infer_operation_from_state_transition(lt.old_state, lt.state) as operation
+              layout.infer_operation_from_state_transition(lt.old_state, lt.state) as operation,
+              array_remove(array_agg(cclt.km_number), null) as changed_km
             from publication.location_track plt
-            left join layout.location_track_change_view lt 
-              on lt.id = plt.location_track_id and lt.version = plt.location_track_version
-            where publication_id = :publication_id
+              left join layout.location_track_change_view lt 
+                on lt.id = plt.location_track_id and lt.version = plt.location_track_version
+              left join publication.calculated_change_to_location_track_km cclt 
+                on cclt.location_track_id = plt.location_track_id and cclt.publication_id = plt.publication_id
+            where plt.publication_id = :publication_id
+            group by plt.location_track_id, location_track_version, name, track_number_id, operation;
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
@@ -342,7 +346,8 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 version = rs.getRowVersion("id", "version"),
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
-                operation = rs.getEnum("operation")
+                operation = rs.getEnum("operation"),
+                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet()
             )
         }.also { locationTracks ->
             logger.daoAccess(

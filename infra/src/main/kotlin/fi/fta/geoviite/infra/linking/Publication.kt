@@ -24,7 +24,8 @@ data class PublishedTrackNumber(
 data class PublishedReferenceLine(
     val version: RowVersion<ReferenceLine>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val operation: Operation
+    val operation: Operation,
+    val changedKmNumbers: Set<KmNumber>
 )
 
 data class PublishedLocationTrack(
@@ -32,6 +33,7 @@ data class PublishedLocationTrack(
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
+    val changedKmNumbers: Set<KmNumber>
 )
 
 data class PublishedSwitch(
