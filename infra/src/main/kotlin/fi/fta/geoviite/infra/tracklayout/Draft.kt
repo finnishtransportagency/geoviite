@@ -14,7 +14,7 @@ data class Draft<T>(val draftRowId: DomainId<T> = StringId())
 
 interface Draftable<T> {
     val id: DomainId<T>
-    val version: RowVersion<T>?
+    val rowVersion: RowVersion<T>?
     val dataType: DataType
     val draft: Draft<T>?
 
