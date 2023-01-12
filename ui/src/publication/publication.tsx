@@ -1,7 +1,7 @@
 import * as React from 'react';
 import PublicationTable from 'publication/table/publication-table';
-import { PublicationDetails as PublicationDetailsModel } from 'publication/publication-model';
-import styles from './publication-details.scss';
+import { PublicationDetails } from 'publication/publication-model';
+import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
@@ -10,12 +10,12 @@ import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 
 export type PublicationDetailsProps = {
-    publication: PublicationDetailsModel;
+    publication: PublicationDetails;
     onPublicationUnselected: () => void;
     anyFailed: boolean;
 };
 
-const PublicationDetails: React.FC<PublicationDetailsProps> = ({
+const Publication: React.FC<PublicationDetailsProps> = ({
     publication,
     onPublicationUnselected,
     anyFailed,
@@ -40,7 +40,7 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
             <div className={styles['publication-details__content']}>
                 <PublicationTable publications={[publication]} />
             </div>
-            {anyFailed && (
+            {(ratkoPushFailed(publication.ratkoPushStatus) || waitingAfterFail) && (
                 <footer className={styles['publication-details__footer']}>
                     {ratkoPushFailed(publication.ratkoPushStatus) && (
                         <div className={styles['publication-details__failure-notification']}>
@@ -84,4 +84,4 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     );
 };
 
-export default PublicationDetails;
+export default Publication;

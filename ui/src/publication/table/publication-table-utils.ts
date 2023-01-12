@@ -1,5 +1,5 @@
 import { Operation, PublicationDetails } from 'publication/publication-model';
-import { fieldComparator } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { KmNumber, TrackNumber } from 'common/common-model';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
@@ -67,9 +67,17 @@ const publicationUserCompare = fieldComparator(
 const publicationTimeCompare = fieldComparator(
     (entry: PublicationTableRowProps) => entry.publicationTime,
 );
-const ratkoPushTimeCompare = fieldComparator(
-    (entry: PublicationTableRowProps) => entry.ratkoPushTime,
-);
+const ratkoPushTimeCompare = (a: PublicationTableRowProps, b: PublicationTableRowProps) => {
+    const aTime = a.ratkoPushTime;
+    const bTime = b.ratkoPushTime;
+
+    if (aTime == null && bTime == null) return 0;
+    if (aTime == null) return 1;
+    if (bTime == null) return -1;
+
+    return aTime < bTime ? -1 : aTime == bTime ? 0 : 1;
+};
+
 const operationCompare = (a: PublicationTableRowProps, b: PublicationTableRowProps) =>
     operationPriority(b.operation) - operationPriority(a.operation);
 
@@ -120,7 +128,7 @@ export const sortDirectionIcon = (direction: SortDirection) => {
     }
 };
 
-export function getTrackNumberUiName(trackNumber: TrackNumber) {
+export function getTrackNumberUiName(trackNumber: TrackNumber | undefined) {
     return `${i18n.t('publication-table.track-number-long')} ${trackNumber}`;
 }
 
@@ -144,10 +152,8 @@ export const toPublicationTableRows = (
     publication: PublicationDetails,
     trackNumbers: LayoutTrackNumber[],
 ): PublicationTableRowProps[] => {
-    const getTrackNumber = (id: LayoutTrackNumberId) => {
-        const tn = trackNumbers.find((t) => t.id == id);
-        return tn ? [tn.number] : [];
-    };
+    const getTrackNumber = (id: LayoutTrackNumberId) =>
+        trackNumbers.find((t) => t.id == id)?.number;
 
     const publicationInfo = {
         publicationTime: publication.publicationTime,
@@ -161,36 +167,36 @@ export const toPublicationTableRows = (
     };
 
     const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({
-        name: getTrackNumberUiName(getTrackNumber(trackNumber.id)[0]),
-        trackNumbers: getTrackNumber(trackNumber.id),
+        name: getTrackNumberUiName(getTrackNumber(trackNumber.id)),
+        trackNumbers: nonEmptyArray(getTrackNumber(trackNumber.id)),
         operation: trackNumber.operation,
         ...publicationInfo,
     }));
 
     const referenceLines = publication.referenceLines.map((referenceLine) => ({
-        name: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)[0]),
-        trackNumbers: getTrackNumber(referenceLine.trackNumberId),
+        name: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)),
+        trackNumbers: nonEmptyArray(getTrackNumber(referenceLine.trackNumberId)),
         operation: referenceLine.operation,
         ...publicationInfo,
     }));
 
     const locationTracks = publication.locationTracks.map((locationTrack) => ({
         name: getLocationTrackUiName(locationTrack.name),
-        trackNumbers: getTrackNumber(locationTrack.trackNumberId),
+        trackNumbers: nonEmptyArray(getTrackNumber(locationTrack.trackNumberId)),
         operation: locationTrack.operation,
         ...publicationInfo,
     }));
 
     const switches = publication.switches.map((s) => ({
         name: getSwitchUiName(s.name),
-        trackNumbers: s.trackNumberIds.flatMap(getTrackNumber),
+        trackNumbers: s.trackNumberIds.map(getTrackNumber).filter(filterNotEmpty),
         operation: s.operation,
         ...publicationInfo,
     }));
 
     const kmPosts = publication.kmPosts.map((kmPost) => ({
         name: getKmPostUiName(kmPost.kmNumber),
-        trackNumbers: getTrackNumber(kmPost.trackNumberId),
+        trackNumbers: nonEmptyArray(getTrackNumber(kmPost.trackNumberId)),
         operation: kmPost.operation,
         ...publicationInfo,
     }));

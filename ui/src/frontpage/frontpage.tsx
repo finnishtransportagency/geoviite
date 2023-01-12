@@ -1,11 +1,8 @@
 import * as React from 'react';
 import PublicationCard from 'publication/card/publication-card';
 import styles from './frontpage.scss';
-import PublicationDetails from 'publication/publication-details';
-import {
-    PublicationDetails as PublicationDetailsModel,
-    PublicationId,
-} from 'publication/publication-model';
+import Publication from 'publication/publication';
+import { PublicationDetails, PublicationId } from 'publication/publication-model';
 import { useLoaderWithTimer } from 'utils/react-utils';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
@@ -23,7 +20,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationDetailsModel[] | null>();
+    const [publications, setPublications] = React.useState<PublicationDetails[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
@@ -31,9 +28,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     useLoaderWithTimer(
         setPublications,
-        () => {
-            return getPublications(startOfDay(subMonths(new Date(), 1)));
-        },
+        () => getPublications(startOfDay(subMonths(new Date(), 1))),
         [],
         30000,
     );
@@ -65,7 +60,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                 <PublicationLogView onClose={() => setShowPublicationLog(false)} />
             )}
             {publication && (
-                <PublicationDetails
+                <Publication
                     publication={publication}
                     onPublicationUnselected={() => onSelectedPublicationChanged(undefined)}
                     anyFailed={anyFailed}

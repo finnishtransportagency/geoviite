@@ -5,9 +5,10 @@ import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
 import { addDays, startOfDay, subMonths } from 'date-fns';
-import { useLoader } from 'utils/react-utils';
 import { getPublications } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { PublicationDetails } from 'publication/publication-model';
 
 export type PublicationLogViewProps = {
     onClose: () => void;
@@ -18,11 +19,16 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
 
     const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
     const [endDate, setEndDate] = React.useState<Date>();
+    const [publications, setPublications] = React.useState<PublicationDetails[]>();
 
-    const publicationDetailsList = useLoader(() => {
+    React.useEffect(() => {
         if (startDate) {
             const to = endDate ? startOfDay(addDays(endDate, 1)) : undefined;
-            return getPublications(startOfDay(startDate), to);
+            setPublications(undefined);
+
+            getPublications(startOfDay(startDate), to).then((p) => {
+                setPublications(p ?? []);
+            });
         }
     }, [startDate, endDate]);
 
@@ -48,9 +54,8 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                 </div>
             </div>
             <div className={styles['publication-log__content']}>
-                {publicationDetailsList && (
-                    <PublicationTable publications={publicationDetailsList}></PublicationTable>
-                )}
+                {publications && <PublicationTable publications={publications}></PublicationTable>}
+                {!publications && <Spinner />}
             </div>
         </div>
     );
