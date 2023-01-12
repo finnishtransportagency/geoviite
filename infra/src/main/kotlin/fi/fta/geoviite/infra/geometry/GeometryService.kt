@@ -198,14 +198,28 @@ class GeometryService @Autowired constructor(
         return geometryDao.getPlanFile(planId)
     }
 
+    fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
+        logger.serviceCall("getLinkingSummaries", "planIds" to planIds)
+        return geometryDao.getLinkingSummaries(planIds)
+    }
+
     fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder): Comparator<GeometryPlanHeader> =
         if (sortOrder == SortOrder.ASCENDING) getComparator(sortField)
         else getComparator(sortField).reversed()
 
     val plannedGeometryFirstComparator: Comparator<GeometryPlanHeader> =
         Comparator.comparing { h -> if (h.source == PAIKANNUSPALVELU) 1 else 0 }
-    fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> =
-        plannedGeometryFirstComparator.then(when (sortField) {
+    private fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> {
+        if (sortField == GeometryPlanSortField.LINKED_AT || sortField == GeometryPlanSortField.LINKED_BY) {
+            val linkingSummaries = geometryDao.getLinkingSummaries(null)
+            return plannedGeometryFirstComparator.then(if (sortField == GeometryPlanSortField.LINKED_BY)
+                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedByUsers ?: "" }
+            else
+                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
+            )
+        }
+
+        return plannedGeometryFirstComparator.then(when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
             GeometryPlanSortField.PROJECT_NAME -> Comparator.comparing { h -> h.project.name.toString().lowercase() }
             GeometryPlanSortField.TRACK_NUMBER -> {
@@ -220,7 +234,10 @@ class GeometryService @Autowired constructor(
             GeometryPlanSortField.CREATED_AT -> Comparator.comparing { h -> h.planTime ?: h.uploadTime }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> Comparator.comparing { h -> h.fileName.toString().lowercase() }
+            GeometryPlanSortField.LINKED_AT -> throw IllegalArgumentException("should have handled LINKED_AT above")
+            GeometryPlanSortField.LINKED_BY -> throw IllegalArgumentException("should have handled LINKED_BY above")
         })
+    }
 
     fun getFilter(
         freeText: FreeText?,
@@ -263,6 +280,8 @@ enum class GeometryPlanSortField {
     CREATED_AT,
     UPLOADED_AT,
     FILE_NAME,
+    LINKED_AT,
+    LINKED_BY,
 }
 
 private val FINNISH_BORDERS = BoundingBox(

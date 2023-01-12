@@ -27,6 +27,7 @@ import {
     getThrowError,
     getWithDefault,
     Page,
+    postAdt,
     postIgnoreError,
     queryParams,
 } from 'api/api-fetch';
@@ -171,4 +172,18 @@ export async function fetchAuthors(): Promise<Author[]> {
 
 export async function createAuthor(author: Author): Promise<Author | null> {
     return await postIgnoreError<Author, Author>(`${GEOMETRY_URI}/authors`, author);
+}
+
+export interface GeometryPlanLinkingSummary {
+    linkedAt: Date;
+    linkedByUsers: string;
+}
+export async function getGeometryPlanLinkingSummaries(
+    planIds: GeometryPlanId[],
+): Promise<{ [key: GeometryPlanId]: GeometryPlanLinkingSummary } | null> {
+    const r = await postAdt<
+        GeometryPlanId[],
+        { [key: GeometryPlanId]: GeometryPlanLinkingSummary }
+    >(`${GEOMETRY_URI}/plans/linking-summaries/`, planIds);
+    return r.isOk() ? r.value : null;
 }
