@@ -264,7 +264,7 @@ data class SegmentSwitch(
 fun validateSwitchLocationTrackReferences(locationTracks: List<LocationTrack>
 ): List<PublishValidationError> =
     locationTracks.mapNotNull { l ->
-        validateWithParams(l.draft != null) {
+        validateWithParams(l.draft == null) {
             "$VALIDATION_SWITCH.location-track.not-published" to listOf(l.name.toString())
         }
     }
