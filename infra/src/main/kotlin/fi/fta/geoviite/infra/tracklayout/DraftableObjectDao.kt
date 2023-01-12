@@ -174,7 +174,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
               and version.change_time <= :moment
               and not version.draft
             order by version.change_time desc
-            fetch first row only
+            limit 1
         """.trimIndent()
         val params = mapOf(
             "id" to id.intValue,

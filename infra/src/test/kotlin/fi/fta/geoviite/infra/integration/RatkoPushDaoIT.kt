@@ -45,7 +45,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
                 getCurrentUserName(),
                 hangingPublications.map { publication -> publication.id },
             )
-            val markEverythingComplete = "update integrations.ratko_push set status='SUCCESSFUL' where 1=1"
+            val markEverythingComplete = "update integrations.ratko_push set status='SUCCESSFUL' where true"
             jdbc.update(markEverythingComplete, mapOf<String, Unit>())
         }
 
