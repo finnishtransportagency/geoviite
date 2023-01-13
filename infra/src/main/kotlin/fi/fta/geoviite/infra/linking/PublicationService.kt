@@ -403,15 +403,15 @@ class PublicationService @Autowired constructor(
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     ): List<PublishValidationError> {
         val (referenceLine, alignment) = getReferenceLineAndAlignment(version.draftVersion)
-        val trackNumber = getTrackNumberOrThrow(referenceLine.trackNumberId, publicationVersions)
+        val trackNumber = getTrackNumber(referenceLine.trackNumberId, publicationVersions)
         val fieldErrors = validateDraftReferenceLineFields(referenceLine)
         val referenceErrors = validateReferenceLineReference(
             referenceLine,
             trackNumber,
             publicationVersions.trackNumbers.map { it.officialId },
         )
-        val alignmentErrors = if (trackNumber.exists) validateReferenceLineAlignment(alignment) else listOf()
-        val geocodingErrors: List<PublishValidationError> = if (trackNumber.exists) {
+        val alignmentErrors = if (trackNumber?.exists == true) validateReferenceLineAlignment(alignment) else listOf()
+        val geocodingErrors: List<PublishValidationError> = if (trackNumber?.exists == true) {
             val contextKey = cacheKeys[referenceLine.trackNumberId]
             val contextErrors = validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE)
             val addressErrors = contextKey?.let { key ->
