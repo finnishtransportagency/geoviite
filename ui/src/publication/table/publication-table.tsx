@@ -67,6 +67,10 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
 
     return (
         <div className={styles['publication-table__container']}>
+            <div className={styles['publication-table__count-header']}>
+                {sortedPublicationRows &&
+                    t('publication-table.count-header', { number: sortedPublicationRows.length })}
+            </div>
             <Table wide>
                 <thead className={styles['publication-table__header']}>
                     <tr>
