@@ -1,5 +1,10 @@
 import { Operation, PublicationDetails } from 'publication/publication-model';
-import { fieldComparator, filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
+import {
+    fieldComparator,
+    filterNotEmpty,
+    nonEmptyArray,
+    timeStampComparator,
+} from 'utils/array-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { KmNumber, TrackNumber } from 'common/common-model';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
@@ -71,16 +76,9 @@ const publicationUserCompare = fieldComparator(
 const publicationTimeCompare = fieldComparator(
     (entry: PublicationTableRowProps) => entry.publicationTime,
 );
-const ratkoPushTimeCompare = (a: PublicationTableRowProps, b: PublicationTableRowProps) => {
-    const aTime = a.ratkoPushTime;
-    const bTime = b.ratkoPushTime;
-
-    if (!aTime && !bTime) return 0;
-    if (!aTime) return 1;
-    if (!bTime) return -1;
-
-    return aTime < bTime ? -1 : aTime == bTime ? 0 : 1;
-};
+const ratkoPushTimeCompare = timeStampComparator(
+    (entry: PublicationTableRowProps) => entry.ratkoPushTime,
+);
 
 const operationCompare = (a: PublicationTableRowProps, b: PublicationTableRowProps) =>
     operationPriority(b.operation) - operationPriority(a.operation);
