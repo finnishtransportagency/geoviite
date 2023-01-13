@@ -509,7 +509,7 @@ class PublicationService @Autowired constructor(
     ): List<LocationTrack> {
         return publicationDao.fetchLinkedLocationTracks(switchId, OFFICIAL)
             .map(locationTrackDao::fetch)
-            .filter { track -> track.draft == null || !versions.containsLocationTrack(track.id as IntId) }
+            .filter { track -> track.draft != null && !versions.containsLocationTrack(track.id as IntId) }
     }
 
     private fun getTrackNumberOrThrow(id: IntId<TrackLayoutTrackNumber>, versions: PublicationVersions) =
