@@ -20,13 +20,9 @@ import kotlin.test.assertTrue
 @SpringBootTest
 class PublicationDaoIT @Autowired constructor(
     val publicationDao: PublicationDao,
-    val switchService: LayoutSwitchService,
     val switchDao: LayoutSwitchDao,
-    val trackNumberService: LayoutTrackNumberService,
     val trackNumberDao: LayoutTrackNumberDao,
-    val kmPostService: LayoutKmPostService,
     val kmPostDao: LayoutKmPostDao,
-    val referenceLineService: ReferenceLineService,
     val referenceLineDao: ReferenceLineDao,
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
@@ -64,7 +60,7 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
         assertEquals(UserName(TEST_USER), candidates.first().userName)
-        assertEquals(null, candidates.first().operation)
+        assertEquals(Operation.MODIFY, candidates.first().operation)
     }
 
     @Test

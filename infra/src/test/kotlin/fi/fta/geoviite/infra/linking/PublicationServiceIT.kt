@@ -87,7 +87,7 @@ class PublicationServiceIT @Autowired constructor(
         assertTrue(publish.publicationTime in beforeInsert..afterInsert)
         assertEquals(trackNumbers.map { it.id }, publish.trackNumbers.map { it.version.id })
         assertEquals(switches.map { it.id }, publish.switches.map { it.version.id })
-        assertEquals(referenceLines.map { it.id }, publish.referenceLines.map { it.version.id })
+        assertEquals(referenceLines.map { it.id }.sortedBy { it.intValue }, publish.referenceLines.map { it.version.id }.sortedBy { it.intValue })
         assertEquals(locationTracks.map { it.id }, publish.locationTracks.map { it.version.id })
         assertEquals(kmPosts.map { it.id }, publish.kmPosts.map { it.version.id })
 
