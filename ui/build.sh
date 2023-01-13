@@ -16,7 +16,6 @@ echo "Using latest NPM..."
 nvm install --latest-npm
 
 echo "Installing NPM Dependencies..."
-rm -r node_modules
 npm ci
 echo "Building frontend..."
 npm run build --
