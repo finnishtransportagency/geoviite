@@ -503,6 +503,15 @@ class PublicationService @Autowired constructor(
         return linkedOfficial + linkedDraft
     }
 
+    fun getLinkedTrackDraftsNotIncludedInPublication(
+        switchId: IntId<TrackLayoutSwitch>,
+        versions: PublicationVersions,
+    ): List<LocationTrack> {
+        return publicationDao.fetchLinkedLocationTracks(switchId, OFFICIAL)
+            .map(locationTrackDao::fetch)
+            .filter { track -> track.draft == null || !versions.containsLocationTrack(track.id as IntId) }
+    }
+
     private fun getTrackNumberOrThrow(id: IntId<TrackLayoutTrackNumber>, versions: PublicationVersions) =
         getTrackNumber(id, versions) ?: throw NoSuchEntityException(TrackLayoutTrackNumber::class, id)
 
