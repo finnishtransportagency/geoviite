@@ -24,6 +24,7 @@ data class PublishedTrackNumber(
 data class PublishedReferenceLine(
     val version: RowVersion<ReferenceLine>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val operation: Operation
 )
 
 data class PublishedLocationTrack(

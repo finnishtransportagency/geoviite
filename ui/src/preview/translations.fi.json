@@ -11,6 +11,20 @@
         "calculated-changes-text": "Ratanumerolle {{number}} on tullut sijaintimuutoksia. Pituusmittauslinjan muuttumisen myötä rataosoitteet päivittyvät seuraaville kohteille.",
         "no-calculated-changes-text": "Ei rataosoitemuutoksia"
     },
+    "preview-table": {
+        "change-target": "Muutoskohde",
+        "track-number-short": "Ratanro",
+        "status": "Tila",
+        "change-type": "Muutos",
+        "modified-moment": "Aika",
+        "user": "Käyttäjä",
+        "actions": "Toiminnot",
+        "pushed-to-ratko": "Viety ratkoon",
+        "errors-status-text": "virheitä ({{0}} kpl)",
+        "warnings-status-text": "varoituksia ({{0}} kpl)",
+        "errors-group-title": "Virheitä",
+        "warnings-group-title": "Varoituksia"
+    },
     "preview-footer": {
         "reject-changes": "Hylkää muutokset",
         "publish-changes": "Julkaise",

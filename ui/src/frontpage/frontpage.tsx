@@ -1,41 +1,40 @@
 import * as React from 'react';
-import PublicationCard from 'publication/publication-card';
+import PublicationCard from 'publication/card/publication-card';
 import styles from './frontpage.scss';
-import PublicationDetails from 'publication/publication-details';
-import { PublicationDetails as PublicationDetailsModel } from 'publication/publication-model';
+import Publication from 'publication/publication';
+import { PublicationDetails, PublicationId } from 'publication/publication-model';
 import { useLoaderWithTimer } from 'utils/react-utils';
-import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
-import PublicationLogView from 'publication-log/publication-log-view';
+import PublicationLogView from 'publication/log/publication-log-view';
 import { getPublications } from 'publication/publication-api';
-import { subMonths } from 'date-fns';
+import { startOfDay, subMonths } from 'date-fns';
+import { ratkoPushFailed } from 'ratko/ratko-model';
 
 type FrontPageProps = {
-    selectedPublication: PublicationDetailsModel | undefined;
-    onSelectedPublicationChanged: (item: PublicationDetailsModel | undefined) => void;
+    selectedPublication: PublicationId | undefined;
+    onSelectedPublicationChanged: (item: PublicationId | undefined) => void;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationDetailsModel[] | undefined>();
+    const [publications, setPublications] = React.useState<PublicationDetails[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
+    const publication = publications?.find((p) => p.id == selectedPublication);
+
     useLoaderWithTimer(
         setPublications,
-        () => {
-            return getPublications(subMonths(new Date(), 3));
-        },
+        () => getPublications(startOfDay(subMonths(new Date(), 1))),
         [],
         30000,
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 
-    const hasAnyFailed = () =>
-        !!publications && publications?.some((item) => ratkoPushFailed(item.ratkoPushStatus));
+    const anyFailed = !!publications?.some((p) => ratkoPushFailed(p.ratkoPushStatus));
 
     return (
         <React.Fragment>
@@ -46,10 +45,9 @@ const Frontpage: React.FC<FrontPageProps> = ({
                             <PublicationCard
                                 publications={publications}
                                 itemClicked={(pub) => {
-                                    onSelectedPublicationChanged(pub);
+                                    onSelectedPublicationChanged(pub.id);
                                 }}
                                 onShowPublicationLog={() => setShowPublicationLog(true)}
-                                anyFailed={hasAnyFailed()}
                                 ratkoStatus={ratkoStatus}
                             />
                         )}
@@ -61,11 +59,11 @@ const Frontpage: React.FC<FrontPageProps> = ({
             {!selectedPublication && showPublicationLog && (
                 <PublicationLogView onClose={() => setShowPublicationLog(false)} />
             )}
-            {selectedPublication !== undefined && (
-                <PublicationDetails
-                    publication={selectedPublication}
+            {publication && (
+                <Publication
+                    publication={publication}
                     onPublicationUnselected={() => onSelectedPublicationChanged(undefined)}
-                    anyFailed={hasAnyFailed()}
+                    anyFailed={anyFailed}
                 />
             )}
         </React.Fragment>

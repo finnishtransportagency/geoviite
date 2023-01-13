@@ -9,7 +9,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -201,7 +202,7 @@ class GeometryDaoIT @Autowired constructor(
             segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
-        locationTrackService.publish(PublicationVersion(trackVersion.id, trackVersion))
+        locationTrackService.publish(PublicationVersion(trackVersion.id, trackVersion.rowVersion))
         val trackChangeTime = locationTrackService.getChangeTimes(trackVersion.id).officialChanged!!
 
         val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, "TEST_USER")
