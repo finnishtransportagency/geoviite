@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.HeightTriangle
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
-import fi.fta.geoviite.infra.geography.Transformation
-import fi.fta.geoviite.infra.geography.transformHeightValue
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -20,26 +17,23 @@ const val MIN_POINT_DISTANCE = 0.01
 fun toTrackLayout(
     geometryPlan: GeometryPlan,
     heightTriangles: List<HeightTriangle>,
-    kkjToEtrsTriangles: List<KKJtoETRSTriangle>,
-    planSrid: Srid,
+    planToLayout: Transformation,
     pointListStepLength: Int,
     includeGeometryData: Boolean,
 ): GeometryPlanLayout {
-    val transformation = Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, kkjToEtrsTriangles)
-
-    val switches = toTrackLayoutSwitches(geometryPlan.switches, transformation)
+    val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
     val alignments: List<MapAlignment<GeometryAlignment>> = toTrackLayoutAlignments(
         geometryPlan.alignments,
         switches.mapValues { s -> s.value.id },
-        transformation,
+        planToLayout,
         pointListStepLength,
         heightTriangles,
         geometryPlan.units.verticalCoordinateSystem,
         includeGeometryData
     )
 
-    val kmPosts = toTrackLayoutKmPosts(geometryPlan.kmPosts, transformation)
+    val kmPosts = toTrackLayoutKmPosts(geometryPlan.kmPosts, planToLayout)
 
     return GeometryPlanLayout(
         planId = geometryPlan.id,
@@ -54,14 +48,14 @@ fun toTrackLayout(
 
 fun toTrackLayoutKmPosts(
     kmPosts: List<GeometryKmPost>,
-    toMapCoordinate: Transformation,
+    planToLayout: Transformation,
 ): List<TrackLayoutKmPost> {
 
     return kmPosts.mapNotNull { kmPost ->
         if (kmPost.location != null && kmPost.kmNumber != null) {
             TrackLayoutKmPost(
                 kmNumber = kmPost.kmNumber,
-                location = toMapCoordinate.transform(kmPost.location),
+                location = planToLayout.transform(kmPost.location),
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = kmPost.trackNumberId,
@@ -92,16 +86,16 @@ fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation)
 
 fun toTrackLayoutSwitches(
     geometrySwitches: List<GeometrySwitch>,
-    toMapCoordinate: Transformation,
+    planToLayout: Transformation,
 ): Map<DomainId<GeometrySwitch>, TrackLayoutSwitch> =
     geometrySwitches
-        .mapNotNull { s -> toTrackLayoutSwitch(s, toMapCoordinate)?.let { s.id to it } }
+        .mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }
         .associate { it }
 
 fun toTrackLayoutAlignments(
     geometryAlignments: List<GeometryAlignment>,
     switchIds: Map<DomainId<GeometrySwitch>, DomainId<TrackLayoutSwitch>>,
-    toLayoutCoordinate: Transformation,
+    planToLayout: Transformation,
     pointListStepLength: Int,
     heightTriangles: List<HeightTriangle>,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
@@ -112,7 +106,7 @@ fun toTrackLayoutAlignments(
             val layoutSegments = toLayoutSegments(
                 alignment = alignment,
                 switchIds = switchIds,
-                toLayoutCoordinate = toLayoutCoordinate,
+                planToLayoutTransformation = planToLayout,
                 pointListStepLength = pointListStepLength,
                 heightTriangles = heightTriangles,
                 verticalCoordinateSystem = verticalCoordinateSystem,
@@ -121,7 +115,7 @@ fun toTrackLayoutAlignments(
 
             val state = getLayoutStateOrDefault(alignment.state)
             val boundingBoxInLayoutSpace = alignment.bounds?.let {
-                val cornersInLayoutSpace = it.corners.map { corner -> toLayoutCoordinate.transform(corner) }
+                val cornersInLayoutSpace = it.corners.map { corner -> planToLayout.transform(corner) }
                 boundingBoxAroundPoints(cornersInLayoutSpace)
             }
 
@@ -148,7 +142,7 @@ fun toTrackLayoutAlignments(
 fun toLayoutSegments(
     alignment: GeometryAlignment,
     switchIds: Map<DomainId<GeometrySwitch>, DomainId<TrackLayoutSwitch>>,
-    toLayoutCoordinate: Transformation,
+    planToLayoutTransformation: Transformation,
     pointListStepLength: Int,
     heightTriangles: List<HeightTriangle>,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
@@ -169,7 +163,7 @@ fun toLayoutSegments(
 
             val segmentPoints = toPointList(element, pointListStepLength).map { p ->
                 toTrackLayoutPoint(
-                    toLayoutCoordinate.transform(p),
+                    planToLayoutTransformation.transform(p),
                     p.m,
                     alignment.profile,
                     alignment.cant,

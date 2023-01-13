@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
+import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
@@ -80,6 +81,11 @@ data class GeometryPlan(
     fun getBoundingPolygonPoints(triangles: List<KKJtoETRSTriangle>): List<Point> =
         units.coordinateSystemSrid?.let { srid ->
             tryCreateBoundingPolygonPoints(srid, collectAnglePoints(alignments), triangles)
+        } ?: listOf()
+
+    fun getBoundingPolygonPoints(transformation: Transformation): List<Point> =
+        units.coordinateSystemSrid?.let { srid ->
+            tryCreateBoundingPolygonPoints(srid, collectAnglePoints(alignments), transformation)
         } ?: listOf()
 }
 

@@ -23,6 +23,18 @@ fun tryCreateBoundingPolygonPoints(
     }
 }
 
+fun tryCreateBoundingPolygonPoints(
+    srid: Srid,
+    anglePoints: List<IPoint>,
+    transformation: Transformation,
+): List<Point> {
+    return try {
+        createBoundingPolygonPoints(srid, anglePoints, transformation)
+    } catch (e: Exception) {
+        listOf()
+    }
+}
+
 fun createBoundingPolygonPoints(
     srid: Srid,
     points: List<IPoint>,
@@ -30,5 +42,14 @@ fun createBoundingPolygonPoints(
 ): List<Point> {
     val bounds = boundingPolygonPointsByConvexHull(points, srid)
     val transformation = Transformation.possiblyKKJToETRSTransform(srid, LAYOUT_SRID, triangulationTriangles)
+    return bounds.map { p -> transformation.transform(p) }
+}
+
+fun createBoundingPolygonPoints(
+    srid: Srid,
+    points: List<IPoint>,
+    transformation: Transformation
+): List<Point> {
+    val bounds = boundingPolygonPointsByConvexHull(points, srid)
     return bounds.map { p -> transformation.transform(p) }
 }

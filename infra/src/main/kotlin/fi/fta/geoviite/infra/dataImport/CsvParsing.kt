@@ -810,7 +810,8 @@ fun <T> createLayoutSegment(
     val srid = metadata.metadata?.geometrySrid
     val sourceElement = if (srid != null) metadata.metadata.geometryElement else null
     val sourceStart = if (srid != null && sourceElement != null) {
-        sourceElement.getLengthUntil(transformNonKKJCoordinate(LAYOUT_SRID, srid, segmentPoints.first()))
+        val transformation = Transformation.nonKKJToETRSTransform(LAYOUT_SRID, srid)
+        sourceElement.getLengthUntil(transformation.transform(segmentPoints.first()))
     } else null
     return LayoutSegment(
         points = toLayoutPoints(segmentPoints),
