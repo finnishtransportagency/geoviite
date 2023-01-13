@@ -31,19 +31,20 @@ class ReferenceLineDaoIT @Autowired constructor(
             alignmentVersion = alignmentVersion,
         )
 
-        val version = referenceLineDao.insert(referenceLine)
-        assertEquals(version, referenceLineDao.fetchVersion(version.id, OFFICIAL))
-        assertEquals(version, referenceLineDao.fetchVersion(version.id, DRAFT))
+        val (id, version) = referenceLineDao.insert(referenceLine)
+        assertEquals(version, referenceLineDao.fetchVersion(id, OFFICIAL))
+        assertEquals(version, referenceLineDao.fetchVersion(id, DRAFT))
         val fromDb = referenceLineDao.fetch(version)
         assertMatches(referenceLine, fromDb)
 
         val updatedLine = fromDb.copy(
             startAddress = TrackMeter(KmNumber(12), 321),
         )
-        val updatedVersion = referenceLineDao.update(updatedLine)
+        val (updatedId, updatedVersion) = referenceLineDao.update(updatedLine)
+        assertEquals(id, updatedId)
         assertEquals(updatedVersion.id, version.id)
-        assertEquals(updatedVersion, referenceLineDao.fetchVersion(version.id, OFFICIAL))
-        assertEquals(updatedVersion, referenceLineDao.fetchVersion(version.id, DRAFT))
+        assertEquals(updatedVersion, referenceLineDao.fetchVersion(id, OFFICIAL))
+        assertEquals(updatedVersion, referenceLineDao.fetchVersion(id, DRAFT))
         val updatedFromDb = referenceLineDao.fetch(updatedVersion)
         assertMatches(updatedLine, updatedFromDb)
     }
@@ -59,28 +60,28 @@ class ReferenceLineDaoIT @Autowired constructor(
             alignment = tempAlignment,
             alignmentVersion = alignmentVersion,
         )
-        val insertVersion = referenceLineDao.insert(tempTrack)
+        val (id, insertVersion) = referenceLineDao.insert(tempTrack)
         val inserted = referenceLineDao.fetch(insertVersion)
         assertMatches(tempTrack, inserted)
-        assertEquals(VersionPair(insertVersion, null), referenceLineDao.fetchVersionPair(insertVersion.id))
+        assertEquals(VersionPair(insertVersion, null), referenceLineDao.fetchVersionPair(id))
 
         val tempDraft1 = draft(inserted).copy(startAddress = TrackMeter(2, 4))
-        val draftVersion1 = referenceLineDao.insert(tempDraft1)
+        val draftVersion1 = referenceLineDao.insert(tempDraft1).rowVersion
         val draft1 = referenceLineDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)
-        assertEquals(VersionPair(insertVersion, draftVersion1), referenceLineDao.fetchVersionPair(insertVersion.id))
+        assertEquals(VersionPair(insertVersion, draftVersion1), referenceLineDao.fetchVersionPair(id))
 
         val newTempAlignment = alignment(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
         val newAlignmentVersion = alignmentDao.insert(newTempAlignment)
         val tempDraft2 = draft1.copy(alignmentVersion = newAlignmentVersion, length = newTempAlignment.length)
-        val draftVersion2 = referenceLineDao.update(tempDraft2)
+        val draftVersion2 = referenceLineDao.update(tempDraft2).rowVersion
         val draft2 = referenceLineDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2)
-        assertEquals(VersionPair(insertVersion, draftVersion2), referenceLineDao.fetchVersionPair(insertVersion.id))
+        assertEquals(VersionPair(insertVersion, draftVersion2), referenceLineDao.fetchVersionPair(id))
 
-        referenceLineDao.deleteDrafts(insertVersion.id)
+        referenceLineDao.deleteDraft(id)
         alignmentDao.deleteOrphanedAlignments()
-        assertEquals(VersionPair(insertVersion, null), referenceLineDao.fetchVersionPair(insertVersion.id))
+        assertEquals(VersionPair(insertVersion, null), referenceLineDao.fetchVersionPair(id))
 
         assertEquals(inserted, referenceLineDao.fetch(insertVersion))
         assertEquals(draft1, referenceLineDao.fetch(draftVersion1))

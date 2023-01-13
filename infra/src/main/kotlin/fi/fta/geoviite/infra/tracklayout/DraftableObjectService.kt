@@ -68,7 +68,7 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
 
     protected fun getInternal(publishType: PublishType, id: IntId<ObjectType>): ObjectType? = when (publishType) {
         DRAFT -> dao.fetchDraftVersion(id)?.let(dao::fetch)
-        OFFICIAL ->  dao.fetchOfficialVersion(id)?.let(dao::fetch)
+        OFFICIAL -> dao.fetchOfficialVersion(id)?.let(dao::fetch)
     }
 
     protected fun getDraftInternal(id: IntId<ObjectType>): ObjectType = getInternalOrThrow(DRAFT, id)
@@ -82,55 +82,92 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
 
     protected abstract fun createPublished(item: ObjectType): ObjectType
 
-    open fun saveDraft(draft: ObjectType): RowVersion<ObjectType> {
+    @Transactional
+    open fun saveDraft(draft: ObjectType): DaoResponse<ObjectType> {
         logger.serviceCall("saveDraft", "id" to draft.id)
         return saveDraftInternal(draft)
     }
 
-    protected fun saveDraftInternal(item: ObjectType): RowVersion<ObjectType> {
+    protected fun saveDraftInternal(item: ObjectType): DaoResponse<ObjectType> {
         val draft = createDraft(item)
         require(draft.draft != null) { "Item is not a draft: id=${draft.id}" }
+        val officialId = if (item.id is IntId) item.id as IntId else null
         return if (draft.dataType == DataType.TEMP) {
-            dao.insert(draft)
+            dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
-            dao.update(draft)
+            requireNotNull(officialId) { "Updating item that has no known official ID" }
+            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $item" }
+            dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
     }
 
     @Deprecated("Should only be used for cleaning up before/after tests")
-    fun deleteAllDrafts(): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
+    @Transactional
+    open fun deleteAllDrafts(): List<DaoResponse<ObjectType>> {
         logger.serviceCall("deleteDrafts")
         return dao.deleteDrafts()
     }
 
-    fun deleteDraft(id: IntId<ObjectType>): List<Pair<IntId<ObjectType>, IntId<ObjectType>?>> {
+    @Transactional
+    open fun deleteDraft(id: IntId<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("deleteDraft")
-        return dao.deleteDrafts(id)
+        return dao.deleteDraft(id)
     }
 
-    open fun deleteUnpublishedDraft(id: IntId<ObjectType>): RowVersion<ObjectType> {
+    @Transactional
+    open fun deleteUnpublishedDraft(id: IntId<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("deleteUnpublishedDraft", "id" to id)
         return dao.deleteUnpublishedDraft(id)
     }
 
     @Transactional
-    open fun publish(version: PublicationVersion<ObjectType>): RowVersion<ObjectType> {
+    open fun publish(version: PublicationVersion<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("Publish", "version" to version)
         return publishInternal(VersionPair(dao.fetchOfficialVersion(version.officialId), version.draftVersion))
     }
 
-    protected fun publishInternal(versions: VersionPair<ObjectType>): RowVersion<ObjectType> {
+    protected fun publishInternal(versions: VersionPair<ObjectType>): DaoResponse<ObjectType> {
         val draft = versions.draft?.let(dao::fetch)
 
         if (draft?.draft == null) throw IllegalStateException("Object to publish is not a draft $versions $draft")
         val published = createPublished(draft)
         if (published.draft != null) throw IllegalStateException("Published object is still a draft")
-
-        val publishedVersion = dao.updateAndVerifyVersion(versions.official ?: versions.draft, published)
+        val publishResponse = dao.update(published)
+        verifyUpdateResponse(draft.id as IntId, versions.official ?: versions.draft, publishResponse)
         if (versions.official != null && versions.draft.id != versions.official.id) {
             // Draft data is saved on official id -> delete the draft row
-            dao.deleteDrafts(versions.draft.id)
+            dao.deleteDraft(versions.draft.id)
         }
-        return publishedVersion
+        return publishResponse
     }
+
+    private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: DaoResponse<ObjectType>) {
+        if (officialId != null) require (response.id == officialId) {
+            "Insert response ID doesn't match object: officialId=$officialId updated=$response"
+        } else require(response.id == response.rowVersion.id) {
+            "Inserted new object refers to another official row: inserted=$response"
+        }
+        require (response.rowVersion.version == 1) {
+            "Inserted new row has a version over 1: inserted=$response"
+        }
+    }
+
+    private fun verifyUpdateResponse(
+        id: IntId<ObjectType>,
+        previousVersion: RowVersion<ObjectType>,
+        response: DaoResponse<ObjectType>,
+    ) {
+        require (response.id == id) {
+            "Update response ID doesn't match object: id=$id updated=$response"
+        }
+        require (response.rowVersion.id == previousVersion.id) {
+            "Updated the wrong row (draft vs official): id=$id previous=$previousVersion updated=$response"
+        }
+        if (response.rowVersion.version != previousVersion.version+1) {
+            // We could do optimistic locking here by throwing
+            logger.warn("Updated version isn't the next one: a concurrent change may have been overwritten: " +
+                    "id=$id previous=$previousVersion updated=$response")
+        }
+    }
+
 }

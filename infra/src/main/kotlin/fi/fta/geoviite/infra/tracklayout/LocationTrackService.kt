@@ -27,7 +27,7 @@ class LocationTrackService(
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
 
     @Transactional
-    fun insert(request: LocationTrackSaveRequest): RowVersion<LocationTrack> {
+    fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
         logger.serviceCall("insert", "request" to request)
         val (alignment, alignmentVersion) = alignmentService.newEmpty()
         val locationTrack = LocationTrack(
@@ -51,7 +51,7 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun update(id: IntId<LocationTrack>, request: LocationTrackSaveRequest): RowVersion<LocationTrack> {
+    fun update(id: IntId<LocationTrack>, request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
         logger.serviceCall("update", "id" to id, "request" to request)
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(DRAFT, id)
         val locationTrack = originalTrack.copy(
@@ -76,11 +76,8 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun saveDraft(draft: LocationTrack): RowVersion<LocationTrack> = super.saveDraft(
-        draft.copy(
-            alignmentVersion = updatedAlignmentVersion(draft)
-        )
-    )
+    override fun saveDraft(draft: LocationTrack): DaoResponse<LocationTrack> =
+        super.saveDraft(draft.copy(alignmentVersion = updatedAlignmentVersion(draft)))
 
     private fun updatedAlignmentVersion(track: LocationTrack) =
         // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
@@ -88,7 +85,7 @@ class LocationTrackService(
         else track.alignmentVersion
 
     @Transactional
-    fun saveDraft(draft: LocationTrack, alignment: LayoutAlignment): RowVersion<LocationTrack> {
+    fun saveDraft(draft: LocationTrack, alignment: LayoutAlignment): DaoResponse<LocationTrack> {
         logger.serviceCall("save", "locationTrack" to draft.id, "alignment" to alignment.id)
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
@@ -105,7 +102,7 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun updateExternalId(id: IntId<LocationTrack>, oid: Oid<LocationTrack>): RowVersion<LocationTrack> {
+    fun updateExternalId(id: IntId<LocationTrack>, oid: Oid<LocationTrack>): DaoResponse<LocationTrack> {
         logger.serviceCall("updateExternalIdForLocationTrack", "id" to id, "oid" to oid)
         val original = getInternalOrThrow(DRAFT, id)
         return saveDraftInternal(original.copy(
@@ -115,7 +112,7 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun publish(version: PublicationVersion<LocationTrack>): RowVersion<LocationTrack> {
+    override fun publish(version: PublicationVersion<LocationTrack>): DaoResponse<LocationTrack> {
         logger.serviceCall("publish", "version" to version)
         val officialVersion = dao.fetchOfficialVersion(version.officialId)
         val oldDraft = dao.fetch(version.draftVersion)
@@ -129,7 +126,7 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun deleteUnpublishedDraft(id: IntId<LocationTrack>): RowVersion<LocationTrack> {
+    override fun deleteUnpublishedDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
         val draft = getInternalOrThrow(DRAFT, id)
         val deletedVersion = super.deleteUnpublishedDraft(id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)

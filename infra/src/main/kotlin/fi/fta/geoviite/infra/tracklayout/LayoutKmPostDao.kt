@@ -143,7 +143,7 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     }
 
     @Transactional
-    override fun insert(newItem: TrackLayoutKmPost): RowVersion<TrackLayoutKmPost> {
+    override fun insert(newItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
         verifyDraftableInsert(newItem.id, newItem.draft)
 
         val trackNumberId =
@@ -168,7 +168,10 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               :draft,
               :draft_of_km_post_id
             )
-            returning id, version
+            returning 
+              coalesce(draft_of_km_post_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
@@ -182,15 +185,15 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_km_post_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
-        val rowVersion: RowVersion<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new km-post")
-        logger.daoAccess(AccessType.INSERT, TrackLayoutKmPost::class, rowVersion)
-        return rowVersion
+        logger.daoAccess(AccessType.INSERT, TrackLayoutKmPost::class, response)
+        return response
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutKmPost): RowVersion<TrackLayoutKmPost> {
+    override fun update(updatedItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val trackNumberId =
             if (updatedItem.trackNumberId is IntId) updatedItem.trackNumberId
@@ -209,7 +212,10 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               draft = :draft,
               draft_of_km_post_id = :draft_of_km_post_id
             where id = :km_post_id
-            returning id, version
+            returning 
+              coalesce(draft_of_km_post_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "km_post_id" to rowId.intValue,
@@ -225,11 +231,11 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_km_post_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
-        val rowVersion: RowVersion<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        } ?: throw IllegalStateException("Failed to generate ID for new km-post")
+        val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, rowId)
-        return rowVersion
+        return response
     }
 
     fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedKmPost> {

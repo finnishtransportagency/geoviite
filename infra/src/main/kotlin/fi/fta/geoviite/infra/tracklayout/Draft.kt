@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 
 enum class DraftType {
@@ -13,6 +14,7 @@ data class Draft<T>(val draftRowId: DomainId<T> = StringId())
 
 interface Draftable<T> {
     val id: DomainId<T>
+    val version: RowVersion<T>?
     val dataType: DataType
     val draft: Draft<T>?
 

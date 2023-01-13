@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.geography.transformCoordinate
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DZ
 import fi.fta.geoviite.infra.tracklayout.*
@@ -629,7 +629,7 @@ fun createGeometrySegments(): List<LayoutSegment> {
         segment10, segment11, segment12, segment13, segment14, segment15, segment16).map { segment ->
         //temporary solution
         val newPoints = segment.points.map { p ->
-            val transformedPoint = transformCoordinate(Srid(3857), LAYOUT_SRID, Point(p.x, p.y))
+            val transformedPoint = transformNonKKJCoordinate(Srid(3857), LAYOUT_SRID, Point(p.x, p.y))
             LayoutPoint(transformedPoint.x, transformedPoint.y, p.z, p.m, p.cant)
         }
 

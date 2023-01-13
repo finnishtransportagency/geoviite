@@ -116,7 +116,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     }
 
     @Transactional
-    override fun insert(newItem: LocationTrack): RowVersion<LocationTrack> {
+    override fun insert(newItem: LocationTrack): DaoResponse<LocationTrack> {
         val sql = """
             insert into layout.location_track(
               track_number_id,
@@ -154,7 +154,10 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               :topology_end_switch_id,
               :topology_end_switch_joint_number
             ) 
-            returning id, version
+            returning 
+              coalesce(draft_of_location_track_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to newItem.trackNumberId.intValue,
@@ -176,15 +179,15 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         )
 
         jdbcTemplate.setUser()
-        val version: RowVersion<LocationTrack> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to generate ID for new Location Track")
-        logger.daoAccess(AccessType.INSERT, LocationTrack::class, version)
-        return version
+        val response: DaoResponse<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        } ?: throw IllegalStateException("Failed to generate ID for new Location Track")
+        logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
+        return response
     }
 
     @Transactional
-    override fun update(updatedItem: LocationTrack): RowVersion<LocationTrack> {
+    override fun update(updatedItem: LocationTrack): DaoResponse<LocationTrack> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.location_track
@@ -206,7 +209,10 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               topology_end_switch_id = :topology_end_switch_id,
               topology_end_switch_joint_number = :topology_end_switch_joint_number
             where id = :id
-            returning id, version 
+            returning 
+              coalesce(draft_of_location_track_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
@@ -229,11 +235,11 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "topology_end_switch_joint_number" to updatedItem.topologyEndSwitch?.jointNumber?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: RowVersion<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        val response: DaoResponse<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Location Track")
         logger.daoAccess(AccessType.UPDATE, LocationTrack::class, rowId)
-        return result
+        return response
     }
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =

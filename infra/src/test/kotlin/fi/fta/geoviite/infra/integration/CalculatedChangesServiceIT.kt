@@ -815,10 +815,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val trackNumber = layoutTrackNumberDao.fetch(
             layoutTrackNumberDao.insert(
-                trackNumber(
-                    TrackNumber("TEST TN $sequence")
-                )
-            )
+                trackNumber(TrackNumber("TEST TN $sequence"))
+            ).rowVersion
         )
         val kmPosts = kmPostData.map { (kmNumber, location) ->
             layoutKmPostDao.fetch(
@@ -828,7 +826,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                         km = kmNumber,
                         location = refPoint + location
                     )
-                )
+                ).rowVersion
             )
         }
         val referenceLineGeometryVersion = layoutAlignmentDao.insert(
@@ -852,7 +850,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                 ).copy(
                     alignmentVersion = referenceLineGeometryVersion
                 )
-            )
+            ).rowVersion
         )
 
         val locationTracksAndAlignments = locationTrackData.map { line ->
@@ -875,7 +873,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     ).copy(
                         alignmentVersion = locationTrackGeometryVersion
                     )
-                )
+                ).rowVersion
             )
             locationTrack to locationTrackGeometry
         }
@@ -893,8 +891,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(id)
             val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
             if (edited.draft != null) {
-                val publishedVersion = locationTrackService.publish(PublicationVersion(id, rowVersion))
-                locationTrackService.getWithAlignment(publishedVersion)
+                val publishResponse = locationTrackService.publish(PublicationVersion(id, rowVersion))
+                locationTrackService.getWithAlignment(publishResponse.rowVersion)
             } else edited to editedAlignment
         }
         val publishedSwitches = switches.map { switch ->
@@ -902,8 +900,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             val rowVersion = switchDao.fetchDraftVersionOrThrow(id)
             val edited = switchDao.fetch(rowVersion)
             if (edited.draft != null) {
-                val publishedVersion = switchService.publish(PublicationVersion(id, rowVersion))
-                switchDao.fetch(publishedVersion)
+                val publishResponse = switchService.publish(PublicationVersion(id, rowVersion))
+                switchDao.fetch(publishResponse.rowVersion)
             }
             else edited
         }
@@ -913,10 +911,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             referenceLineAndAlignment = referenceLine to referenceLineGeometry,
             kmPosts = kmPosts,
             switches = publishedSwitches,
-            changeTime = listOf(
-                locationTrackService.getChangeTime(),
-                switchService.getChangeTime()
-            ).maxOrNull() as Instant
+            changeTime = maxOf(locationTrackService.getChangeTime(), switchService.getChangeTime()),
         )
     }
 
@@ -926,11 +921,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         trackB: Pair<LocationTrack, LayoutAlignment>,
     ): TrackLayoutSwitch {
         val switch = switchDao.fetch(
-            switchDao.insert(
-                switch(
-                    joints = listOf()
-                )
-            )
+            switchDao.insert(switch(joints = listOf())).rowVersion
         )
 
         val (locationTrackA, alignmentA) = trackA

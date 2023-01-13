@@ -36,7 +36,6 @@ data class GeometryPlanHeader(
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val planTime: Instant?,
-    val linkedAt: Instant?,
     val message: FreeText?,
     val linkedAsPlanId: IntId<GeometryPlan>?,
     val uploadTime: Instant,
@@ -100,4 +99,9 @@ data class GeometryUnits(
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val directionUnit: AngularUnit,
     val linearUnit: LinearUnit,
+)
+
+data class GeometryPlanLinkingSummary(
+    val linkedAt: Instant,
+    val linkedByUsers: String,
 )

@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -90,7 +89,8 @@ class GeometryService @Autowired constructor(
             "pointListStepLength" to pointListStepLength,
         )
         val srid = geometryPlan.units.coordinateSystemSrid
-        val polygon = geometryPlan.getBoundingPolygonPoints(kkJtoETRSTriangulationDao.fetchTriangulationNetwork())
+        val triangulationNetwork = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
+        val polygon = geometryPlan.getBoundingPolygonPoints(triangulationNetwork)
         return if (srid == null) {
             logger.warn("Not converting plan to layout as there is no SRID: id=${geometryPlan.id} file=${geometryPlan.fileName}")
             return null to TransformationError("srid-missing", geometryPlan.units)
@@ -104,7 +104,7 @@ class GeometryService @Autowired constructor(
             toTrackLayout(
                 geometryPlan = geometryPlan,
                 heightTriangles = heightTriangleDao.fetchTriangles(polygon),
-                kkjToEtrsTriangles = getKkjToEtrsTriangles(polygon, srid),
+                kkjToEtrsTriangles = triangulationNetwork,
                 planSrid = srid,
                 pointListStepLength = pointListStepLength,
                 includeGeometryData = includeGeometryData,
@@ -124,12 +124,6 @@ class GeometryService @Autowired constructor(
                 e)
             null to TransformationError("plan-transformation-failed", geometryPlan.units)
         }
-    }
-
-    fun getKkjToEtrsTriangles(polygon: List<Point>, srid: Srid): List<KKJtoETRSTriangle> {
-        val jtsPolygon = toJtsPolygon(polygon, crs(srid))
-            ?: throw CoordinateTransformationException("Failed to create JTS polygon from bounds")
-        return kkJtoETRSTriangulationDao.fetchTriangulationNetwork().filter { it.intersects(jtsPolygon) }
     }
 
     fun getGeometryElement(geometryElementId: IndexedId<GeometryElement>): GeometryElement {
@@ -179,7 +173,7 @@ class GeometryService @Autowired constructor(
         val switch = getSwitch(switchId)
         val srid = geometryDao.getSwitchSrid(switchId)
             ?: throw IllegalStateException("Coordinate system not found for geometry switch $switchId!")
-        val transformation = Transformation(srid, LAYOUT_SRID)
+        val transformation = Transformation.possiblyKKJToETRSTransform(srid, LAYOUT_SRID, kkJtoETRSTriangulationDao.fetchTriangulationNetwork())
         return toTrackLayoutSwitch(switch, transformation)
     }
 
@@ -198,14 +192,28 @@ class GeometryService @Autowired constructor(
         return geometryDao.getPlanFile(planId)
     }
 
+    fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
+        logger.serviceCall("getLinkingSummaries", "planIds" to planIds)
+        return geometryDao.getLinkingSummaries(planIds)
+    }
+
     fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder): Comparator<GeometryPlanHeader> =
         if (sortOrder == SortOrder.ASCENDING) getComparator(sortField)
         else getComparator(sortField).reversed()
 
     val plannedGeometryFirstComparator: Comparator<GeometryPlanHeader> =
         Comparator.comparing { h -> if (h.source == PAIKANNUSPALVELU) 1 else 0 }
-    fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> =
-        plannedGeometryFirstComparator.then(when (sortField) {
+    private fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> {
+        if (sortField == GeometryPlanSortField.LINKED_AT || sortField == GeometryPlanSortField.LINKED_BY) {
+            val linkingSummaries = geometryDao.getLinkingSummaries(null)
+            return plannedGeometryFirstComparator.then(if (sortField == GeometryPlanSortField.LINKED_BY)
+                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedByUsers ?: "" }
+            else
+                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
+            )
+        }
+
+        return plannedGeometryFirstComparator.then(when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
             GeometryPlanSortField.PROJECT_NAME -> Comparator.comparing { h -> h.project.name.toString().lowercase() }
             GeometryPlanSortField.TRACK_NUMBER -> {
@@ -220,7 +228,10 @@ class GeometryService @Autowired constructor(
             GeometryPlanSortField.CREATED_AT -> Comparator.comparing { h -> h.planTime ?: h.uploadTime }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
             GeometryPlanSortField.FILE_NAME -> Comparator.comparing { h -> h.fileName.toString().lowercase() }
+            GeometryPlanSortField.LINKED_AT -> throw IllegalArgumentException("should have handled LINKED_AT above")
+            GeometryPlanSortField.LINKED_BY -> throw IllegalArgumentException("should have handled LINKED_BY above")
         })
+    }
 
     fun getFilter(
         freeText: FreeText?,
@@ -263,6 +274,8 @@ enum class GeometryPlanSortField {
     CREATED_AT,
     UPLOADED_AT,
     FILE_NAME,
+    LINKED_AT,
+    LINKED_BY,
 }
 
 private val FINNISH_BORDERS = BoundingBox(
