@@ -38,17 +38,15 @@ enum class VerticalIntersectionType {
 @Component
 class GeometryDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
 ) : DaoBase(jdbcTemplateParam) {
 
     @Transactional
     fun insertPlan(
         plan: GeometryPlan,
         file: InfraModelFile,
+        boundingBoxInLayoutCoordinates: List<Point>?,
         source: PlanSource = PlanSource.GEOVIITE,
     ): RowVersion<GeometryPlan> {
-        val kkjToEtrsTriangulationNetwork = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-
         jdbcTemplate.setUser()
 
         val projectId: IntId<Project> =
@@ -121,8 +119,10 @@ class GeometryDao @Autowired constructor(
             "direction_unit" to plan.units.directionUnit.name,
             "srid" to plan.units.coordinateSystemSrid?.code,
             "coordinate_system_name" to plan.units.coordinateSystemName,
-            "polygon_string" to plan.getBoundingPolygonPoints(kkjToEtrsTriangulationNetwork)
-                .let { p -> if (p.isEmpty()) null else create2DPolygonString(p) },
+            "polygon_string" to
+                    if (!boundingBoxInLayoutCoordinates.isNullOrEmpty())
+                        create2DPolygonString(boundingBoxInLayoutCoordinates)
+                    else null,
             "vertical_coordinate_system" to plan.units.verticalCoordinateSystem?.name,
             "mapSrid" to LAYOUT_SRID.code,
             "source" to source.name,

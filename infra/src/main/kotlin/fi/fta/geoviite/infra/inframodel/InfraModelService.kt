@@ -4,11 +4,14 @@ import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
+import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
@@ -27,6 +30,7 @@ class InfraModelService @Autowired constructor(
     private val geographyService: GeographyService,
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberService: LayoutTrackNumberService,
+    private val coordinateTransformationService: CoordinateTransformationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -39,8 +43,11 @@ class InfraModelService @Autowired constructor(
         val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
         val geometryPlan =
             overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
+        val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
+            ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
+            ?.let { transformation -> geometryPlan.getBoundingPolygonPoints(transformation) }
 
-        return geometryDao.insertPlan(geometryPlan, imFile)
+        return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
 
     fun validateInputFileAndParseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {

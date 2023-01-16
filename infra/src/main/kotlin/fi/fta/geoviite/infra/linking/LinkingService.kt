@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
-import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -73,7 +73,8 @@ class LinkingService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
+    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
+    private val coordinateTransformationService: CoordinateTransformationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -325,12 +326,10 @@ class LinkingService @Autowired constructor(
             ?: throw IllegalArgumentException("Cannot link a geometry km post with an unknown coordinate system!")
         requireNotNull(geometryKmPost.location) { "Cannot link a geometry km post without a location!" }
 
-        val transformation = Transformation.possiblyKKJToETRSTransform(kmPostSrid, LAYOUT_SRID, kkJtoETRSTriangulationDao.fetchTriangulationNetwork())
-
         val layoutKmPost = layoutKmPostService.getDraft(kmPostLinkingParameters.layoutKmPostId)
 
         val newLocationInLayoutSpace =
-            transformation.transform(geometryKmPost.location)
+            coordinateTransformationService.transformCoordinate(kmPostSrid, LAYOUT_SRID, geometryKmPost.location)
         val modifiedLayoutKmPost = layoutKmPost.copy(
             location = newLocationInLayoutSpace,
             sourceId = geometryKmPost.id

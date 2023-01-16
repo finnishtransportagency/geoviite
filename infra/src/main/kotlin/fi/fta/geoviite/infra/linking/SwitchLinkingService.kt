@@ -2,9 +2,7 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
-import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
@@ -28,15 +26,12 @@ private const val TOLERANCE_JOINT_LOCATION_SAME_POINT = 0.001
 fun calculateLayoutSwitchJoints(
     geomSwitch: GeometrySwitch,
     switchStructure: SwitchStructure,
-    planSrid: Srid,
-    kkJtoETRSTriangulationNetwork: List<KKJtoETRSTriangle>
+    toLayoutCoordinate: Transformation
 ): List<SwitchJoint>? {
-    val fromPlanToLayoutTransformation = Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, kkJtoETRSTriangulationNetwork)
-
     val layoutJointPoints = geomSwitch.joints.map { geomJoint ->
         SwitchJoint(
             number = geomJoint.number,
-            location = fromPlanToLayoutTransformation.transform(geomJoint.location),
+            location = toLayoutCoordinate.transform(geomJoint.location),
         )
     }
     val switchLocationDelta = calculateSwitchLocationDeltaOrNull(layoutJointPoints, switchStructure)
@@ -1052,7 +1047,7 @@ class SwitchLinkingService @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val geometryDao: GeometryDao,
     private val switchLibraryService: SwitchLibraryService,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
+    private val coordinateTransformationService: CoordinateTransformationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -1064,13 +1059,13 @@ class SwitchLinkingService @Autowired constructor(
             // Transform joints to layout space and calculate missing joints
             val geomSwitch = geometryDao.getSwitch(missingLayoutSwitchLinking.geometrySwitchId)
             val structure = geomSwitch.switchStructureId?.let(switchLibraryService::getSwitchStructure)
+            val toLayoutCoordinate = coordinateTransformationService.getTransformation(missingLayoutSwitchLinking.planSrid, LAYOUT_SRID)
             // TODO: There is a missing switch here, but current logic doesn't support non-typed suggestions
             if (structure == null) null
             else calculateLayoutSwitchJoints(
                 geomSwitch,
                 structure,
-                missingLayoutSwitchLinking.planSrid,
-                kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
+                toLayoutCoordinate
             )
                 ?.let { calculatedJoints ->
                     val switchBoundingBox = boundingBoxAroundPoints(calculatedJoints.map { it.location }) * 1.5

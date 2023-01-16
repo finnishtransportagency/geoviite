@@ -305,7 +305,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 switches = switches,
                 measurementMethod = measurementMethod,
                 srid = LAYOUT_SRID
-            ), testFile()
+            ), testFile(), null
         )
     )
 

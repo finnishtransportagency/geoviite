@@ -83,10 +83,9 @@ private fun toCoordinate(point: IPoint, ref: CoordinateReferenceSystem): Coordin
         else -> throw CoordinateTransformationException(order, point.x, point.y, ref.name.code)
     }
 
-fun boundingPolygonPointsByConvexHull(points: List<IPoint>, srid: Srid): List<Point> {
-    val crs = crs(srid)
+fun boundingPolygonPointsByConvexHull(points: List<IPoint>, crs: CoordinateReferenceSystem): List<Point> {
     val coordinates = points.map { p -> toCoordinate(p, crs) }.toTypedArray()
-    val geometryFactory = GeometryFactory(PrecisionModel(PrecisionModel.FLOATING), srid.code)
+    val geometryFactory = GeometryFactory(PrecisionModel(PrecisionModel.FLOATING), CRS.lookupEpsgCode(crs, false))
     val convexHull = ConvexHull(coordinates, geometryFactory).convexHull
     return convexHull.coordinates.map { c -> toPoint(c, crs) }
 }
@@ -101,55 +100,3 @@ class CoordinateTransformationException(message: String, cause: Throwable? = nul
 }
 
 fun isKKJ(sourceRef: CoordinateReferenceSystem) = listOf(KKJ0, KKJ1, KKJ2, KKJ3_YKJ, KKJ4, KKJ5).contains(sourceRef)
-
-data class Transformation(
-    val sourceRef: CoordinateReferenceSystem,
-    val targetRef: CoordinateReferenceSystem,
-    val math: MathTransform = CRS.findMathTransform(sourceRef, targetRef),
-    val triangles: List<KKJtoETRSTriangle> = emptyList(),
-) {
-    companion object {
-        fun possiblyKKJToETRSTransform(sourceSrid: Srid, targetSrid: Srid, triangles: List<KKJtoETRSTriangle>) =
-            Transformation(sourceSrid, targetSrid, triangles)
-
-        fun nonKKJToETRSTransform(sourceSrid: Srid, targetSrid: Srid) =
-            Transformation(sourceSrid, targetSrid)
-    }
-    private constructor(sourceSrid: Srid, targetSrid: Srid, triangles: List<KKJtoETRSTriangle>) :
-            this(crs(sourceSrid), crs(targetSrid), triangles = triangles) {
-                require(triangles.isNotEmpty()) { "Triangulation network was not provided" }
-            }
-
-    private constructor(sourceSrid: Srid, targetSrid: Srid) :
-            this(crs(sourceSrid), crs(targetSrid)) {
-                require(!isKKJ(sourceRef) || targetRef != LAYOUT_CRS) {
-                    "Trying to convert from KKJx (${sourceSrid}) to ${targetSrid} without triangulation network"
-                }
-            }
-
-    fun transform(point: IPoint): Point {
-        try {
-            // Intercept transforms from KKJx to ETRS
-            return if (triangles.any() && isKKJ(sourceRef) && targetRef == LAYOUT_CRS) {
-                val ykjPoint = transformKkjToYkjAndNormalizeAxes(point)
-                val triangle = triangles.find { it.intersects(ykjPoint) }
-                requireNotNull(triangle) {
-                    "Point was not inside the triangulation network: point=$point ykjPoint=$ykjPoint"
-                }
-                transformYkjPointToEtrs(ykjPoint, triangle)
-            } else {
-                val jtsPoint = toJtsPoint(point, sourceRef)
-                val jtsPointTransformed = JTS.transform(jtsPoint, math) as org.locationtech.jts.geom.Point
-                toGvtPoint(jtsPointTransformed, targetRef)
-            }
-        } catch (e: Exception) {
-            throw CoordinateTransformationException(point, e)
-        }
-    }
-
-    fun transformKkjToYkjAndNormalizeAxes(point: IPoint): org.locationtech.jts.geom.Point {
-        // Geotools is accurate enough for transformations between KKJx and YKJ, so use it for those
-        val kkjToYkj = Transformation(sourceRef, KKJ3_YKJ)
-        return JTS.transform(toJtsPoint(point, sourceRef), kkjToYkj.math) as org.locationtech.jts.geom.Point
-    }
-}
