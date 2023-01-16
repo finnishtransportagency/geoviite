@@ -40,8 +40,8 @@ $color-warning: #9f6700;
 
 .preview-view__changes {
     padding: 0 24px 24px 24px;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 40% 40% 20%;
 
     &-title {
         align-items: center;
@@ -59,8 +59,6 @@ $color-warning: #9f6700;
 }
 
 .preview-section {
-    max-height: 33%;
-    flex: 1;
     display: flex;
     flex-direction: column;
 }
