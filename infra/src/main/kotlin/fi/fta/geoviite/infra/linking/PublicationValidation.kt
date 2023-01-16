@@ -40,11 +40,13 @@ fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<Pu
 
 fun validateTrackNumberReferences(
     trackNumber: TrackLayoutTrackNumber,
+    referenceLine: ReferenceLine?,
     kmPosts: List<TrackLayoutKmPost>,
     locationTracks: List<LocationTrack>,
     publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
     publishedTrackIds: List<IntId<LocationTrack>>,
 ): List<PublishValidationError> = listOfNotNull(
+    validate(referenceLine != null) { "$VALIDATION_TRACK_NUMBER.reference-line.null" },
     locationTracks.filter(LocationTrack::exists).let { existingTracks ->
         validateWithParams(trackNumber.exists || existingTracks.isEmpty()) {
             val existingNames = existingTracks.joinToString(", ") { track -> track.name }
@@ -81,10 +83,12 @@ fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidation
 fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
     trackNumber: TrackLayoutTrackNumber?,
+    referenceLine: ReferenceLine?,
     publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
 ): List<PublishValidationError> =
     listOfNotNull(
         validate(trackNumber != null) { "$VALIDATION_KM_POST.track-number.null" },
+        validate(referenceLine != null) { "$VALIDATION_KM_POST.reference-line.null" },
         validateWithParams(!kmPost.exists || trackNumber == null || trackNumber.state.isLinkable()) {
             "$VALIDATION_KM_POST.track-number.state.${trackNumber?.state}" to listOfNotNull(trackNumber?.number?.toString())
         },
