@@ -530,7 +530,7 @@ class PublicationService @Autowired constructor(
     ) = combineVersions(
         official = kmPostDao.fetchVersions(OFFICIAL, false, trackNumberId),
         draft = publicationVersions.kmPosts,
-    ).map(kmPostDao::fetch)
+    ).map(kmPostDao::fetch).filter { km -> km.trackNumberId == trackNumberId }
 
     private fun getLocationTracksByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -538,7 +538,7 @@ class PublicationService @Autowired constructor(
     ) = combineVersions(
         official = locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId),
         draft = publicationVersions.locationTracks,
-    ).map(locationTrackDao::fetch)
+    ).map(locationTrackDao::fetch).filter { lt -> lt.trackNumberId == trackNumberId }
 
     private fun <T> combineVersions(
         official: List<RowVersion<T>>, draft: List<PublicationVersion<T>>
