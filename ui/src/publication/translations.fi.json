@@ -12,7 +12,8 @@
         "location-track": "Sijaintiraide",
         "reference-line": "Pituusmittauslinja",
         "switch": "Vaihde",
-        "km-post": "Tasakilometripiste"
+        "km-post": "Tasakilometripiste",
+        "count-header": "Julkaistut muutokset ({{number}} kpl)"
     },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",
