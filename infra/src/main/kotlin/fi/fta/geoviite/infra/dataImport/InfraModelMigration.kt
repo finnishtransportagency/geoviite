@@ -92,7 +92,9 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
                 val csMap = mapByNameOrAlias(CoordinateSystemDao(jdbcTemplate).fetchApplicationCoordinateSystems())
                 val switchStructureDao = SwitchStructureDao(jdbcTemplate)
-                val kkJtoETRSTriangulationDao = KKJtoETRSTriangulationDao(jdbcTemplate)
+                val coordinateTransformationService = CoordinateTransformationService(
+                    KKJtoETRSTriangulationDao(jdbcTemplate)
+                )
                 val switchStructures = switchStructureDao.fetchSwitchStructures()
                 val featureTypes = CodeDictionaryDao(jdbcTemplate).getFeatureTypes()
                 val trackNumberDao = LayoutTrackNumberDao(jdbcTemplate)
@@ -102,6 +104,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
                 importWithSubFolders(
                     geometryDao,
+                    coordinateTransformationService,
                     originalsDir,
                     GEOMETRIAPALVELU,
                     csMap,
@@ -109,11 +112,11 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
-                    kkJtoETRSTriangulationDao,
                     UNVERIFIED_DESIGNED_GEOMETRY,
                 )
                 importWithSubFolders(
                     geometryDao,
+                    coordinateTransformationService,
                     layoutsDir,
                     PAIKANNUSPALVELU,
                     csMap,
@@ -121,7 +124,6 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
-                    kkJtoETRSTriangulationDao
                 )
 
                 logger.info(
@@ -147,6 +149,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
     private fun importWithSubFolders(
         geometryDao: GeometryDao,
+        coordinateTransformationService: CoordinateTransformationService,
         baseDir: File,
         type: PlanSource,
         csMap: Map<CoordinateSystemName, Srid>,
@@ -154,7 +157,6 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
         switchTypeNameAliases: Map<String, String>,
         featureTypes: List<FeatureType>,
         trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
-        kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
         defaultMeasurementMethod: MeasurementMethod? = null,
     ) {
         val metadatas = loadMetadata(baseDir, trackNumberIdsByNumber, defaultMeasurementMethod).associateBy(PlanMetaData::name)
@@ -186,7 +188,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                 )
 
                 val layoutBoundingBox = plan.units.coordinateSystemSrid
-                    ?.let { planSrid -> Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, kkJtoETRSTriangulationDao.fetchTriangulationNetwork()) }
+                    ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
                     ?.let { transformation -> plan.getBoundingPolygonPoints(transformation) }
 
                 geometryDao.insertPlan(plan, file, layoutBoundingBox, type)
