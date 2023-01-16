@@ -50,7 +50,7 @@ class LinkingServiceIT @Autowired constructor(
             )
         )
 
-        val geometryPlanId = geometryDao.insertPlan(plan, testFile())
+        val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
         val (geometryLayoutPlan, transformationError) = geometryService.getTrackLayoutPlan(geometryPlanId.id)
         assertNull(transformationError)
         assertNotNull(geometryLayoutPlan)
@@ -147,7 +147,7 @@ class LinkingServiceIT @Autowired constructor(
             trackNumber(TrackNumber(System.currentTimeMillis().toString()))
         )
         val plan = plan(trackNumberId.id)
-        val geometryPlanId = geometryDao.insertPlan(plan, testFile())
+        val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val fetchedPlan = geometryService.getGeometryPlan(geometryPlanId.id)
 

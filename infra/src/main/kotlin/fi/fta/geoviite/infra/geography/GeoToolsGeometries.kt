@@ -83,10 +83,9 @@ private fun toCoordinate(point: IPoint, ref: CoordinateReferenceSystem): Coordin
         else -> throw CoordinateTransformationException(order, point.x, point.y, ref.name.code)
     }
 
-fun boundingPolygonPointsByConvexHull(points: List<IPoint>, srid: Srid): List<Point> {
-    val crs = crs(srid)
+fun boundingPolygonPointsByConvexHull(points: List<IPoint>, crs: CoordinateReferenceSystem): List<Point> {
     val coordinates = points.map { p -> toCoordinate(p, crs) }.toTypedArray()
-    val geometryFactory = GeometryFactory(PrecisionModel(PrecisionModel.FLOATING), srid.code)
+    val geometryFactory = GeometryFactory(PrecisionModel(PrecisionModel.FLOATING), CRS.lookupEpsgCode(crs, false))
     val convexHull = ConvexHull(coordinates, geometryFactory).convexHull
     return convexHull.coordinates.map { c -> toPoint(c, crs) }
 }

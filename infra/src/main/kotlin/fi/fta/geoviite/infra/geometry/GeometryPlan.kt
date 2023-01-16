@@ -78,15 +78,8 @@ data class GeometryPlan(
     @get:JsonIgnore
     val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
 
-    fun getBoundingPolygonPoints(triangles: List<KKJtoETRSTriangle>): List<Point> =
-        units.coordinateSystemSrid?.let { srid ->
-            tryCreateBoundingPolygonPoints(srid, collectAnglePoints(alignments), triangles)
-        } ?: listOf()
-
     fun getBoundingPolygonPoints(transformation: Transformation): List<Point> =
-        units.coordinateSystemSrid?.let { srid ->
-            tryCreateBoundingPolygonPoints(srid, collectAnglePoints(alignments), transformation)
-        } ?: listOf()
+        tryCreateBoundingPolygonPoints(collectAnglePoints(alignments), transformation)
 }
 
 data class GeometryPlanArea(

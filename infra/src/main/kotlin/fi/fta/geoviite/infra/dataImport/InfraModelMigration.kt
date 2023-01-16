@@ -11,10 +11,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.dataImport.InfraModelMetadataColumns.*
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.error.InputValidationException
-import fi.fta.geoviite.infra.geography.CoordinateSystemDao
-import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
-import fi.fta.geoviite.infra.geography.mapByNameOrAlias
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.PlanSource
@@ -25,6 +22,7 @@ import fi.fta.geoviite.infra.inframodel.fileToString
 import fi.fta.geoviite.infra.inframodel.parseGeometryPlan
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
@@ -98,7 +96,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                 val switchStructures = switchStructureDao.fetchSwitchStructures()
                 val featureTypes = CodeDictionaryDao(jdbcTemplate).getFeatureTypes()
                 val trackNumberDao = LayoutTrackNumberDao(jdbcTemplate)
-                val geometryDao = GeometryDao(jdbcTemplate, kkJtoETRSTriangulationDao)
+                val geometryDao = GeometryDao(jdbcTemplate)
                 val trackNumberIdsByNumber = trackNumberDao.getTrackNumberToIdMapping()
                 val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
 
@@ -111,6 +109,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
+                    kkJtoETRSTriangulationDao,
                     UNVERIFIED_DESIGNED_GEOMETRY,
                 )
                 importWithSubFolders(
@@ -122,6 +121,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     switchTypeNameAliases,
                     featureTypes,
                     trackNumberIdsByNumber,
+                    kkJtoETRSTriangulationDao
                 )
 
                 logger.info(
@@ -154,6 +154,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
         switchTypeNameAliases: Map<String, String>,
         featureTypes: List<FeatureType>,
         trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
+        kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
         defaultMeasurementMethod: MeasurementMethod? = null,
     ) {
         val metadatas = loadMetadata(baseDir, trackNumberIdsByNumber, defaultMeasurementMethod).associateBy(PlanMetaData::name)
@@ -184,7 +185,11 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     "Inserting InfraModel: path=$readablePath validationIssues=${validationIssues.size}"
                 )
 
-                geometryDao.insertPlan(plan, file, type)
+                val layoutBoundingBox = plan.units.coordinateSystemSrid
+                    ?.let { planSrid -> Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, kkJtoETRSTriangulationDao.fetchTriangulationNetwork()) }
+                    ?.let { transformation -> plan.getBoundingPolygonPoints(transformation) }
+
+                geometryDao.insertPlan(plan, file, layoutBoundingBox, type)
                 imCount++
             }
             catch (e: InframodelParsingException) {
