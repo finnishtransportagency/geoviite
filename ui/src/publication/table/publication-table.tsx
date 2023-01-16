@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
 import { negComparator } from 'utils/array-utils';
 import { PublicationDetails } from 'publication/publication-model';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
 import {
     getSortInfoForProp,
     InitiallyUnsorted,
@@ -27,7 +27,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
     const { t } = useTranslation();
 
     //Track numbers rarely change, therefore we can always use the "latest" version
-    const trackNumbers = useTrackNumbers('OFFICIAL');
+    const trackNumbers = useTrackNumbersIncludingDeleted('OFFICIAL');
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
     const [sortedPublicationRows, setSortedPublicationRows] = React.useState<
