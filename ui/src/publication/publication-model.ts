@@ -105,6 +105,7 @@ export type PublishedTrackNumber = {
 export type PublishedReferenceLine = {
     version: RowVersion;
     trackNumberId: LayoutTrackNumberId;
+    operation: Operation;
 };
 
 export type PublishedLocationTrack = {

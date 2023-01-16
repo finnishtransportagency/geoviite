@@ -8,5 +8,6 @@ nvm install --latest-npm
 set +e
 nvm use
 set -e
+rm -r node_modules
 npm ci
 npm start --

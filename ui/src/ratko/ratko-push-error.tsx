@@ -33,7 +33,7 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({ la
         <div className={styles['ratko-push-error']}>
             {error
                 ? `${assetTypeAndName(error)} ${t(
-                      `enum.ratko-push-error-type.${error.ratkoPushErrorType}`,
+                      `enum.ratko-push-error-type.${error.errorType}`,
                   )} ${t(`enum.ratko-push-error-operation.${error.operation}`)} epäonnistui`
                 : latestFailure &&
                   latestFailure.ratkoPushStatus === RatkoPushStatus.CONNECTION_ISSUE

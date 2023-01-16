@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -157,7 +156,7 @@ class LayoutSwitchService @Autowired constructor(
     fun updateExternalIdForSwitch(
         id: IntId<TrackLayoutSwitch>,
         oid: Oid<TrackLayoutSwitch>,
-    ): RowVersion<TrackLayoutSwitch> {
+    ): DaoResponse<TrackLayoutSwitch> {
         logger.serviceCall("updateExternalIdForSwitch", "id" to id, "oid" to oid)
         val original = getDraft(id)
         return saveDraft(original.copy(externalId = oid))
@@ -210,7 +209,6 @@ class LayoutSwitchService @Autowired constructor(
                     TrackLayoutSwitchJointConnection(
                         connection.jointNumber,
                         listOf(TrackLayoutSwitchJointMatch(track.id as IntId, point)),
-                        listOf(),
                         joint.locationAccuracy
                     )
                 }

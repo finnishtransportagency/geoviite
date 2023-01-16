@@ -64,11 +64,11 @@ class MapNavigationPanel {
         }
     }
 
-    fun selectLocationTrack(locationTrackName: String, select: Boolean = true) {
+    fun selectLocationTrack(locationTrackName: String) {
         logger.info("Select location track $locationTrackName")
         val locationTracks = locationTracks()
         val locationTrack =
-            locationTracks.find { trackLayoutAlignment -> trackLayoutAlignment.name().equals(locationTrackName) }
+            locationTracks.find { trackLayoutAlignment -> trackLayoutAlignment.name() == locationTrackName }
                 ?: throw RuntimeException("Location track '$locationTrackName' not found! Available location tracks are: ${locationTracks}")
         locationTrack.select()
     }

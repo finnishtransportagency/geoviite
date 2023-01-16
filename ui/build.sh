@@ -8,13 +8,12 @@ BUILD_TIMESTAMP=$(date +%Y-%m-%d_%H-%M)
 echo "Sourcing NVM script..."
 set +e
 source "${HOME}/.nvm/nvm.sh"
-set -e
-echo "Setting node version via NVM..."
-nvm install --latest-npm
 echo "Activating NVM in directory..."
-set +e
 nvm use
 set -e
+
+echo "Using latest NPM..."
+nvm install --latest-npm
 
 echo "Installing NPM Dependencies..."
 npm ci

@@ -77,8 +77,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), segment1, segment2, segment3)
-        val locationTrackVersion = locationTrackService.saveDraft(locationTrack, alignment)
-        val locationTrackId = locationTrackVersion.id
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(PublicationVersion(locationTrackId, locationTrackVersion))
 
         val (officialTrack, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)

@@ -34,8 +34,9 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             state = IN_USE,
             externalId = null,
         )
-        val newId = trackNumberDao.insert(original)
-        val fromDb = trackNumberDao.fetch(newId)
+        val (id, version) = trackNumberDao.insert(original)
+        val fromDb = trackNumberDao.fetch(version)
+        assertEquals(id, fromDb.id)
         assertMatches(original, fromDb)
     }
 
@@ -57,27 +58,26 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
 
     @Test
     fun trackNumberVersioningWorks() {
-        val trackNumber = getUnusedTrackNumber()
-        val tempTrackNumber = trackNumber(trackNumber, description = "test 1")
-        val insertVersion = trackNumberDao.insert(tempTrackNumber)
+        val tempTrackNumber = trackNumber(getUnusedTrackNumber(), description = "test 1")
+        val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted)
-        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(insertVersion.id))
+        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(id))
 
         val tempDraft1 = draft(inserted).copy(description = FreeText("test 2"))
-        val draftVersion1 = trackNumberDao.insert(tempDraft1)
+        val draftVersion1 = trackNumberDao.insert(tempDraft1).rowVersion
         val draft1 = trackNumberDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)
-        assertEquals(VersionPair(insertVersion, draftVersion1), trackNumberDao.fetchVersionPair(insertVersion.id))
+        assertEquals(VersionPair(insertVersion, draftVersion1), trackNumberDao.fetchVersionPair(id))
 
         val tempDraft2 = draft1.copy(description = FreeText("test 3"))
-        val draftVersion2 = trackNumberDao.update(tempDraft2)
+        val draftVersion2 = trackNumberDao.update(tempDraft2).rowVersion
         val draft2 = trackNumberDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2)
-        assertEquals(VersionPair(insertVersion, draftVersion2), trackNumberDao.fetchVersionPair(insertVersion.id))
+        assertEquals(VersionPair(insertVersion, draftVersion2), trackNumberDao.fetchVersionPair(id))
 
-        trackNumberDao.deleteDrafts(insertVersion.id)
-        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(insertVersion.id))
+        trackNumberDao.deleteDraft(insertVersion.id).rowVersion
+        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(id))
 
         assertEquals(inserted, trackNumberDao.fetch(insertVersion))
         assertEquals(draft1, trackNumberDao.fetch(draftVersion1))
@@ -87,11 +87,11 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
 
     @Test
     fun listingTrackNumberVersionsWorks() {
-        val officialVersion = insertNewTrackNumber(getUnusedTrackNumber(), false)
-        val undeletedDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true)
-        val deleteStateDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true, DELETED)
-        val deletedDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true)
-        trackNumberDao.deleteDrafts(deletedDraftVersion.id)
+        val officialVersion = insertNewTrackNumber(getUnusedTrackNumber(), false).rowVersion
+        val undeletedDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true).rowVersion
+        val deleteStateDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true, DELETED).rowVersion
+        val (deletedDraftId, deletedDraftVersion) = insertNewTrackNumber(getUnusedTrackNumber(), true)
+        trackNumberDao.deleteDraft(deletedDraftId)
 
         val official = trackNumberDao.fetchVersions(OFFICIAL, false)
         assertContains(official, officialVersion)
@@ -114,21 +114,21 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
     fun fetchOfficialVersionByMomentWorks() {
         val beforeCreationTime = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val firstVersion = insertNewTrackNumber(getUnusedTrackNumber(), false)
+        val (id, firstVersion) = insertNewTrackNumber(getUnusedTrackNumber(), false)
         val firstVersionTime = trackNumberDao.fetchChangeTime()
 
         Thread.sleep(1) // Ensure that they get different timestamps
-        val updatedVersion = updateOfficial(firstVersion)
+        val updatedVersion = updateOfficial(firstVersion).rowVersion
         val updatedVersionTime = trackNumberDao.fetchChangeTime()
 
-        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(firstVersion.id, beforeCreationTime))
-        assertEquals(firstVersion, trackNumberDao.fetchOfficialVersionAtMoment(firstVersion.id, firstVersionTime))
-        assertEquals(updatedVersion, trackNumberDao.fetchOfficialVersionAtMoment(firstVersion.id, updatedVersionTime))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(id, beforeCreationTime))
+        assertEquals(firstVersion, trackNumberDao.fetchOfficialVersionAtMoment(id, firstVersionTime))
+        assertEquals(updatedVersion, trackNumberDao.fetchOfficialVersionAtMoment(id, updatedVersionTime))
     }
 
     private fun updateOfficial(
         originalVersion: RowVersion<TrackLayoutTrackNumber>,
-    ): RowVersion<TrackLayoutTrackNumber> {
+    ): DaoResponse<TrackLayoutTrackNumber> {
         val original = trackNumberDao.fetch(originalVersion)
         assertNull(original.draft)
         return trackNumberDao.update(original.copy(description = original.description + "_update"))

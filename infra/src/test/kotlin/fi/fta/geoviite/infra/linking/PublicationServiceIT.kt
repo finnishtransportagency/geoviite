@@ -87,7 +87,7 @@ class PublicationServiceIT @Autowired constructor(
         assertTrue(publish.publicationTime in beforeInsert..afterInsert)
         assertEquals(trackNumbers.map { it.id }, publish.trackNumbers.map { it.version.id })
         assertEquals(switches.map { it.id }, publish.switches.map { it.version.id })
-        assertEquals(referenceLines.map { it.id }, publish.referenceLines.map { it.version.id })
+        assertEquals(referenceLines.map { it.id }.sortedBy { it.intValue }, publish.referenceLines.map { it.version.id }.sortedBy { it.intValue })
         assertEquals(locationTracks.map { it.id }, publish.locationTracks.map { it.version.id })
         assertEquals(kmPosts.map { it.id }, publish.kmPosts.map { it.version.id })
 
@@ -218,8 +218,8 @@ class PublicationServiceIT @Autowired constructor(
         val track = locationTrack(insertOfficialTrackNumber(), alignmentDao.fetch(alignmentVersion), name = "test 01")
             .copy(alignmentVersion = alignmentVersion)
 
-        val newDraftVersion = referenceLineService.saveDraft(referenceLine(track.trackNumberId), referenceAlignment)
-        referenceLineService.publish(PublicationVersion(newDraftVersion.id, newDraftVersion))
+        val (newDraftId, newDraftVersion) = referenceLineService.saveDraft(referenceLine(track.trackNumberId), referenceAlignment)
+        referenceLineService.publish(PublicationVersion(newDraftId, newDraftVersion))
 
         val officialId = locationTrackDao.insert(track).id
 
@@ -469,6 +469,88 @@ class PublicationServiceIT @Autowired constructor(
         assertDoesNotThrow { switchService.getDraft(switch2) }
     }
 
+    @Test
+    fun transitiveSearchForDraftSwitchAndLocationTrackChanges() {
+        val trackNumber = insertOfficialTrackNumber()
+
+        val switch1 = switchService.saveDraft(switch(123)).id
+        val switch2 = switchService.saveDraft(switch(234)).id
+        val switch3 = createOfficialAndDraftSwitch(345)
+        val distantSwitch = createOfficialAndDraftSwitch(456)
+
+        val track1BetweenSwitch1and2 = locationTrackAndAlignment(
+            trackNumber,
+            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(
+                startJointNumber = JointNumber(1), switchId = switch1
+            ),
+            segment(Point(1.0, 1.0), Point(2.0, 2.0)).copy(
+                endJointNumber = JointNumber(1), switchId = switch2
+            ),
+        )
+        val locationTrack1Id =
+            locationTrackService.saveDraft(track1BetweenSwitch1and2.first, track1BetweenSwitch1and2.second).id
+
+        val track2BetweenSwitch2and3 = locationTrackAndAlignment(
+            trackNumber,
+            segment(Point(2.0, 2.0), Point(3.0, 3.0)).copy(
+                endJointNumber = JointNumber(1), switchId = switch3
+            )
+        )
+        val locationTrack2Id = locationTrackService.saveDraft(
+            track2BetweenSwitch2and3.first.copy(
+                topologyStartSwitch =
+                TopologyLocationTrackSwitch(switch2, JointNumber(1))
+            ), track2BetweenSwitch2and3.second
+        ).id
+
+        val officialTrackBetweenSwitch3AndDistantSwitch = locationTrackAndAlignment(
+            trackNumber,
+            segment(Point(3.0, 3.0), Point(4.0, 4.0)).copy(
+                startJointNumber = JointNumber(1), switchId = switch3
+            ),
+            segment(Point(4.0, 4.0), Point(5.0, 5.0)).copy(
+                endJointNumber = JointNumber(1), switchId = distantSwitch
+            )
+        )
+        locationTrackDao.insert(
+            officialTrackBetweenSwitch3AndDistantSwitch.first.copy(
+                alignmentVersion =
+                alignmentDao.insert(officialTrackBetweenSwitch3AndDistantSwitch.second)
+            )
+        ).id
+        val dependencies = publicationService.getRevertRequestDependencies(
+            publishRequest(switches = listOf(switch1))
+        )
+        assertEquals(
+            publishRequest(
+                locationTracks = listOf(locationTrack1Id, locationTrack2Id),
+                switches = listOf(switch1, switch2, switch3),
+            ), dependencies
+        )
+    }
+
+    @Test
+    fun trackNumberAndReferenceLineChangesDependOnEachOther() {
+        val trackNumber = insertDraftTrackNumber()
+        val referenceLine = referenceLineService.saveDraft(referenceLine(trackNumber)).id
+        val publishBoth = publishRequest(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine))
+        assertEquals(
+            publishBoth,
+            publicationService.getRevertRequestDependencies(publishRequest(trackNumbers = listOf(trackNumber)))
+        )
+        assertEquals(
+            publishBoth,
+            publicationService.getRevertRequestDependencies(publishRequest(referenceLines = listOf(referenceLine)))
+        )
+    }
+
+    fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
+        val officialVersion = switchDao.insert(switch(seed)).rowVersion
+        return switchService.saveDraft(switchDao.fetch(officialVersion).let { official ->
+          official.copy(name = SwitchName("${official.name}_D"))
+        }).id
+    }
+
     private fun someTrackNumber() = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
 
     private fun getCalculatedChangesInRequest(versions: PublicationVersions): CalculatedChanges =
@@ -521,15 +603,16 @@ private fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublishingWorks(
     create: () -> T,
     mutate: (orig: T) -> T,
 ) {
-    val draftVersion1 = service.saveDraft(create())
-    val officialId = draftVersion1.id // First id remains official
+    // First id remains official
+    val (officialId, draftVersion1) = service.saveDraft(create())
     assertEquals(1, draftVersion1.version)
 
     val officialVersion1 = publishAndCheck(draftVersion1, dao, service).first
     assertEquals(officialId, officialVersion1.id)
     assertEquals(2, officialVersion1.version)
 
-    val draftVersion2 = service.saveDraft(mutate(dao.fetch(officialVersion1)))
+    val (draftOfficialId2, draftVersion2) = service.saveDraft(mutate(dao.fetch(officialVersion1)))
+    assertEquals(officialId, draftOfficialId2)
     assertNotEquals(officialId, draftVersion2.id)
     assertEquals(1, draftVersion2.version)
 
@@ -552,7 +635,8 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
     assertNotNull(draft.draft)
     assertEquals(DataType.STORED, draft.dataType)
 
-    val publishedVersion = service.publish(PublicationVersion(id, rowVersion))
+    val (publishedId, publishedVersion) = service.publish(PublicationVersion(id, rowVersion))
+    assertEquals(id, publishedId)
     assertEquals(publishedVersion, dao.fetchOfficialVersionOrThrow(id))
     assertEquals(publishedVersion, dao.fetchDraftVersion(id))
     assertEquals(VersionPair(publishedVersion, null), dao.fetchVersionPair(id))

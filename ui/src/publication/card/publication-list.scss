@@ -1,5 +1,5 @@
-@import '../vayla-design-lib/typography';
-@import '../vayla-design-lib/colors';
+@import '../../vayla-design-lib/typography';
+@import '../../vayla-design-lib/colors';
 
 .publication-list__header {
     margin-bottom: 12px;
@@ -63,15 +63,5 @@
         &--error {
             fill: $color-red-default;
         }
-    }
-}
-
-.publication-list__more {
-    transition: 300ms;
-    display: inline-block;
-    margin-right: 9px;
-
-    &--open {
-        transform: rotate(180deg);
     }
 }

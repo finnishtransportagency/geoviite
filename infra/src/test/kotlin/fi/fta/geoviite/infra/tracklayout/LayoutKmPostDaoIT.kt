@@ -58,24 +58,24 @@ class LayoutKmPostDaoIT @Autowired constructor(
     fun kmPostVersioningWorks() {
         val trackNumberId = insertOfficialTrackNumber()
         val tempPost = kmPost(trackNumberId, KmNumber(1), Point(1.0, 1.0))
-        val insertVersion = kmPostDao.insert(tempPost)
+        val insertVersion = kmPostDao.insert(tempPost).rowVersion
         val inserted = kmPostDao.fetch(insertVersion)
         assertMatches(tempPost, inserted)
         assertEquals(VersionPair(insertVersion, null), kmPostDao.fetchVersionPair(insertVersion.id))
 
         val tempDraft1 = draft(inserted).copy(location = Point(2.0, 2.0))
-        val draftVersion1 = kmPostDao.insert(tempDraft1)
+        val draftVersion1 = kmPostDao.insert(tempDraft1).rowVersion
         val draft1 = kmPostDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)
         assertEquals(VersionPair(insertVersion, draftVersion1), kmPostDao.fetchVersionPair(insertVersion.id))
 
         val tempDraft2 = draft1.copy(location = Point(3.0, 3.0))
-        val draftVersion2 = kmPostDao.update(tempDraft2)
+        val draftVersion2 = kmPostDao.update(tempDraft2).rowVersion
         val draft2 = kmPostDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2)
         assertEquals(VersionPair(insertVersion, draftVersion2), kmPostDao.fetchVersionPair(insertVersion.id))
 
-        kmPostDao.deleteDrafts(insertVersion.id)
+        kmPostDao.deleteDraft(insertVersion.id)
         assertEquals(VersionPair(insertVersion, null), kmPostDao.fetchVersionPair(insertVersion.id))
 
         assertEquals(inserted, kmPostDao.fetch(insertVersion))
@@ -87,17 +87,16 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun fetchVersionsForPublicationReturnsDraftsOnlyForPublishableSet() {
         val trackNumberId = insertOfficialTrackNumber()
-        val postOneOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
-        val postOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(postOneOfficial)))
-        val postTwoOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
-        val postTwoDraft = kmPostDao.insert(draft(kmPostDao.fetch(postTwoOfficial)))
-        val postThreeOnlyDraft = kmPostDao.insert(draft(kmPost(trackNumberId, KmNumber(3))))
-        val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4)))
+        val (postOneId, postOneOfficial) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
+        val postOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(postOneOfficial))).rowVersion
+        val (postTwoId, postTwoOfficial) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
+        val postTwoDraft = kmPostDao.insert(draft(kmPostDao.fetch(postTwoOfficial))).rowVersion
+        val (postThreeId, postThreeOnlyDraft) = kmPostDao.insert(draft(kmPost(trackNumberId, KmNumber(3))))
+        val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4))).rowVersion
 
         val versionsEmpty = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf())
-        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneOfficial.id))
-        val versionsOneAndThree =
-            kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneOfficial.id, postThreeOnlyDraft.id))
+        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneId))
+        val versionsOneAndThree = kmPostDao.fetchVersionsForPublication(trackNumberId, listOf(postOneId, postThreeId))
 
         assertEquals(setOf(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
         assertEquals(setOf(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
@@ -107,11 +106,11 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun listingKmPostVersionsWorks() {
         val tnId = insertOfficialTrackNumber()
-        val officialVersion = insertOfficial(tnId, 1)
-        val undeletedDraftVersion = insertDraft(tnId, 2)
-        val deleteStateDraftVersion = insertDraft(tnId, 3, DELETED)
-        val deletedDraftVersion = insertDraft(tnId, 4)
-        kmPostDao.deleteDrafts(deletedDraftVersion.id)
+        val officialVersion = insertOfficial(tnId, 1).rowVersion
+        val undeletedDraftVersion = insertDraft(tnId, 2).rowVersion
+        val deleteStateDraftVersion = insertDraft(tnId, 3, DELETED).rowVersion
+        val (deletedDraftId, deletedDraftVersion) = insertDraft(tnId, 4)
+        kmPostDao.deleteDraft(deletedDraftId)
 
         val official = kmPostDao.fetchVersions(OFFICIAL, false)
         assertContains(official, officialVersion)
@@ -136,11 +135,11 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val beforeCreationTime = kmPostDao.fetchChangeTime()
 
         Thread.sleep(1) // Ensure that they get different timestamps
-        val firstVersion = insertOfficial(tnId, 1)
+        val firstVersion = insertOfficial(tnId, 1).rowVersion
         val firstVersionTime = kmPostDao.fetchChangeTime()
 
         Thread.sleep(1) // Ensure that they get different timestamps
-        val updatedVersion = updateOfficial(firstVersion)
+        val updatedVersion = updateOfficial(firstVersion).rowVersion
         val updatedVersionTime = kmPostDao.fetchChangeTime()
 
         assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(firstVersion.id, beforeCreationTime))
@@ -151,9 +150,9 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun findingKmPostsByTrackNumberWorksForOfficial() {
         val tnId = insertOfficialTrackNumber()
-        val officialTrackVersion1 = insertOfficial(tnId, 1)
-        val officialTrackVersion2 = insertOfficial(tnId, 2)
-        val draftTrackVersion = insertDraft(tnId, 3)
+        val officialTrackVersion1 = insertOfficial(tnId, 1).rowVersion
+        val officialTrackVersion2 = insertOfficial(tnId, 2).rowVersion
+        val draftTrackVersion = insertDraft(tnId, 3).rowVersion
 
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2).toSet(),
@@ -169,12 +168,12 @@ class LayoutKmPostDaoIT @Autowired constructor(
     fun findingKmPostsByTrackNumberWorksForDraft() {
         val tnId = insertOfficialTrackNumber()
         val tnId2 = insertOfficialTrackNumber()
-        val undeletedDraftVersion = insertDraft(tnId, 1)
-        val deleteStateDraftVersion = insertDraft(tnId, 2, DELETED)
-        val changeTrackNumberOriginal = insertOfficial(tnId, 3)
-        val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal, tnId2)
-        val deletedDraftVersion = insertDraft(tnId, 4)
-        kmPostDao.deleteDrafts(deletedDraftVersion.id)
+        val undeletedDraftVersion = insertDraft(tnId, 1).rowVersion
+        val deleteStateDraftVersion = insertDraft(tnId, 2, DELETED).rowVersion
+        val changeTrackNumberOriginal = insertOfficial(tnId, 3).rowVersion
+        val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal, tnId2).rowVersion
+        val deletedDraftVersion = insertDraft(tnId, 4).rowVersion
+        kmPostDao.deleteDraft(deletedDraftVersion.id)
 
         assertEquals(
             listOf(changeTrackNumberOriginal),
@@ -195,7 +194,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         )
     }
 
-    private fun insertOfficial(tnId: IntId<TrackLayoutTrackNumber>, kmNumber: Int): RowVersion<TrackLayoutKmPost> {
+    private fun insertOfficial(tnId: IntId<TrackLayoutTrackNumber>, kmNumber: Int): DaoResponse<TrackLayoutKmPost> {
         val post = kmPost(tnId, KmNumber(kmNumber))
         return kmPostDao.insert(post.copy(draft = null))
     }
@@ -204,7 +203,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         tnId: IntId<TrackLayoutTrackNumber>,
         kmNumber: Int,
         state: LayoutState = IN_USE,
-    ): RowVersion<TrackLayoutKmPost> {
+    ): DaoResponse<TrackLayoutKmPost> {
         val post = kmPost(tnId, KmNumber(kmNumber))
         return kmPostDao.insert(draft(post).copy(state = state))
     }
@@ -212,21 +211,21 @@ class LayoutKmPostDaoIT @Autowired constructor(
     private fun createDraftWithNewTrackNumber(
         trackVersion: RowVersion<TrackLayoutKmPost>,
         newTrackNumber: IntId<TrackLayoutTrackNumber>,
-    ): RowVersion<TrackLayoutKmPost> {
+    ): DaoResponse<TrackLayoutKmPost> {
         val track = kmPostDao.fetch(trackVersion)
         assertNull(track.draft)
         return kmPostDao.insert(draft(track).copy(trackNumberId = newTrackNumber))
     }
 
-    private fun updateOfficial(originalVersion: RowVersion<TrackLayoutKmPost>): RowVersion<TrackLayoutKmPost> {
+    private fun updateOfficial(originalVersion: RowVersion<TrackLayoutKmPost>): DaoResponse<TrackLayoutKmPost> {
         val original = kmPostDao.fetch(originalVersion)
         assertNull(original.draft)
         return kmPostDao.update(original.copy(location = original.location!!.copy(x = original.location!!.x + 1.0)))
     }
 
     fun insertAndVerify(post: TrackLayoutKmPost) {
-        val id = kmPostDao.insert(post)
-        assertMatches(post, kmPostDao.fetch(id))
+        val rowVersion = kmPostDao.insert(post).rowVersion
+        assertMatches(post, kmPostDao.fetch(rowVersion))
     }
 
     private fun fetchTrackNumberKmPosts(

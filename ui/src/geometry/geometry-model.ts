@@ -76,7 +76,6 @@ export type GeometryPlanHeader = {
     planPhase: PlanPhase;
     decisionPhase: DecisionPhase;
     planTime: TimeStamp;
-    linkedAt: TimeStamp;
     message: string | null;
     linkedAsPlanId: GeometryPlanId | null;
     uploadTime: TimeStamp;
@@ -118,6 +117,8 @@ export enum SortByValue {
     UPLOADED_AT,
     NO_SORTING,
     FILE_NAME,
+    LINKED_AT,
+    LINKED_BY,
 }
 
 export enum SortOrderValue {

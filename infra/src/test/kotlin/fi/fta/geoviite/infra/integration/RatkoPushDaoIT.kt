@@ -31,7 +31,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 ): ITTestBase() {
     lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
     lateinit var layoutPublishId: IntId<Publication>
-    lateinit var locationTrackId: RowVersion<LocationTrack>
+    lateinit var locationTrackId: IntId<LocationTrack>
     lateinit var layoutPublishMoment: Instant
 
     @BeforeEach
@@ -45,21 +45,19 @@ internal class RatkoPushDaoIT @Autowired constructor(
                 getCurrentUserName(),
                 hangingPublications.map { publication -> publication.id },
             )
-            val markEverythingComplete = "update integrations.ratko_push set status='SUCCESSFUL' where 1=1"
+            val markEverythingComplete = "update integrations.ratko_push set status='SUCCESSFUL' where true"
             jdbc.update(markEverythingComplete, mapOf<String, Unit>())
         }
 
         trackNumberId = insertOfficialTrackNumber()
-        locationTrackId = insertAndPublishLocationTrack()
+        val locationTrackResponse = insertAndPublishLocationTrack()
+        locationTrackId = locationTrackResponse.id
         val beforePublish = ratkoPushDao.getLatestPublicationMoment()
-        layoutPublishId =
-            publicationDao.createPublication(listOf(), listOf(), listOf(locationTrackId), listOf(), listOf())
+        layoutPublishId = createPublication(locationTracks = listOf(locationTrackResponse.rowVersion))
         layoutPublishMoment = publicationDao.getPublication(layoutPublishId).publicationTime
         Assertions.assertTrue(layoutPublishMoment > beforePublish)
         assertEquals(layoutPublishMoment, ratkoPushDao.getLatestPublicationMoment())
     }
-
-
 
     @Test
     fun shouldStartANewPublish() {
@@ -105,7 +103,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val publishedLocationTracks = locationTrackDao.fetchPublicationInformation(publications[1].id)
 
         assertEquals(layoutPublishId, publications[1].id)
-        assertEquals(locationTrackId.id, publishedLocationTracks[0].version.id)
+        assertEquals(locationTrackId, publishedLocationTracks[0].version.id)
     }
 
     @Test
@@ -131,14 +129,13 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         assertEquals(2, publications.size)
         assertEquals(layoutPublishId, publications[1].id)
-        assertEquals(locationTrackId.id, publishedLocationTracks[0].version.id)
+        assertEquals(locationTrackId, publishedLocationTracks[0].version.id)
     }
 
     @Test
     fun shouldReturnMultipleUnpublishedLayoutPublishes() {
-        val locationTrack2Id = insertAndPublishLocationTrack()
-        val layoutPublishId2 =
-            publicationDao.createPublication(listOf(), listOf(), listOf(locationTrack2Id), listOf(), listOf())
+        val locationTrack2Response = insertAndPublishLocationTrack()
+        val layoutPublishId2 = createPublication(locationTracks = listOf(locationTrack2Response.rowVersion))
 
         val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment()
         Assertions.assertTrue(latestPushedMoment < layoutPublishMoment)
@@ -157,8 +154,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
         assertEquals(1, publishLocationTracks.size)
         assertEquals(1, publish2LocationTracks.size)
 
-        assertEquals(locationTrackId.id, publishLocationTracks[0].version.id)
-        assertEquals(locationTrack2Id.id, publish2LocationTracks[0].version.id)
+        assertEquals(locationTrackId, publishLocationTracks[0].version.id)
+        assertEquals(locationTrack2Response.id, publish2LocationTracks[0].version.id)
     }
 
     @Test
@@ -181,6 +178,20 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     fun insertAndPublishLocationTrack() = locationTrackAndAlignment(trackNumberId).let { (track, alignment) ->
         val draftVersion = locationTrackService.saveDraft(track, alignment)
-        locationTrackService.publish(PublicationVersion(draftVersion.id, draftVersion))
+        locationTrackService.publish(PublicationVersion(draftVersion.id, draftVersion.rowVersion))
     }
+
+    fun createPublication(
+        trackNumbers: List<RowVersion<TrackLayoutTrackNumber>> = listOf(),
+        referenceLines: List<RowVersion<ReferenceLine>> = listOf(),
+        locationTracks: List<RowVersion<LocationTrack>> = listOf(),
+        switches: List<RowVersion<TrackLayoutSwitch>> = listOf(),
+        kmPosts: List<RowVersion<TrackLayoutKmPost>> = listOf(),
+    ) = publicationDao.createPublication(
+        trackNumbers = trackNumbers,
+        referenceLines = referenceLines,
+        locationTracks = locationTracks,
+        switches = switches,
+        kmPosts = kmPosts,
+    )
 }

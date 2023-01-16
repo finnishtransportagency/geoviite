@@ -17,7 +17,6 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
     @Transactional
     fun insertKmPost(request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
         logger.serviceCall("insertKmPost", "request" to request)
-
         val kmPost = TrackLayoutKmPost(
             kmNumber = request.kmNumber,
             location = null,
@@ -25,7 +24,6 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
             trackNumberId = request.trackNumberId,
             sourceId = null,
         )
-
         return saveDraftInternal(kmPost).id
     }
 

@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
@@ -41,11 +40,11 @@ class LocationTrackServiceIT @Autowired constructor(
     @Test
     fun creatingAndDeletingUnpublishedTrackWithAlignmentWorks() {
         val (track, alignment) = locationTrackAndAlignment(insertDraftTrackNumber(), someSegment())
-        val version = locationTrackService.saveDraft(track, alignment)
+        val (id, version) = locationTrackService.saveDraft(track, alignment)
         val (savedTrack, savedAlignment) = locationTrackService.getWithAlignment(version)
         assertTrue(alignmentExists(savedTrack.alignmentVersion!!.id))
         assertEquals(savedTrack.alignmentVersion?.id, savedAlignment.id as IntId)
-        val deletedVersion = locationTrackService.deleteUnpublishedDraft(version.id)
+        val deletedVersion = locationTrackService.deleteUnpublishedDraft(id).rowVersion
         assertEquals(version, deletedVersion)
         assertFalse(alignmentExists(savedTrack.alignmentVersion!!.id))
     }
@@ -94,19 +93,20 @@ class LocationTrackServiceIT @Autowired constructor(
     fun locationTrackInsertAndUpdateWorks() {
         val trackNumberId = insertDraftTrackNumber()
 
-        val (insertedTrackVersion, insertedTrack) = createAndVerifyTrack(trackNumberId, 1)
+        val (response, insertedTrack) = createAndVerifyTrack(trackNumberId, 1)
+        val (id, insertedTrackVersion) = response
         val changeTimeAfterInsert = locationTrackService.getChangeTime()
 
         val updateRequest = saveRequest(trackNumberId, 2).copy(topologicalConnectivity = TopologicalConnectivityType.NONE)
-        val updatedTrackVersion = locationTrackService.update(insertedTrackVersion.id, updateRequest)
-        assertEquals(insertedTrackVersion.id, updatedTrackVersion.id)
+        val updatedTrackVersion = locationTrackService.update(id, updateRequest).rowVersion
+        assertEquals(id, updatedTrackVersion.id)
         assertNotEquals(insertedTrackVersion.version, updatedTrackVersion.version)
-        val updatedTrack = locationTrackService.getDraft(insertedTrackVersion.id)
+        val updatedTrack = locationTrackService.getDraft(id)
         assertMatches(updateRequest, updatedTrack)
         assertEquals(insertedTrack.alignmentVersion, updatedTrack.alignmentVersion)
         val changeTimeAfterUpdate = locationTrackService.getChangeTime()
 
-        val trackChangeTimes = locationTrackService.getChangeTimes(insertedTrackVersion.id)
+        val trackChangeTimes = locationTrackService.getChangeTimes(id)
         assertEquals(changeTimeAfterInsert, trackChangeTimes.created)
         assertEquals(changeTimeAfterUpdate, trackChangeTimes.draftChanged)
     }
@@ -115,20 +115,22 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun savingCreatesDraft() {
-        val (publishedVersion, published) = createPublishedLocationTrack(1)
+        val (publishResponse, published) = createPublishedLocationTrack(1)
 
         val editedVersion = locationTrackService.saveDraft(published.copy(name = AlignmentName("EDITED1")))
-        assertNotEquals(publishedVersion.id, editedVersion.id)
+        assertEquals(publishResponse.id, editedVersion.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion.rowVersion.id)
 
-        val editedDraft = getAndVerifyDraft(publishedVersion.id)
+        val editedDraft = getAndVerifyDraft(publishResponse.id)
         assertEquals(AlignmentName("EDITED1"), editedDraft.name)
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
         val editedVersion2 = locationTrackService.saveDraft(editedDraft.copy(name = AlignmentName("EDITED2")))
-        assertNotEquals(publishedVersion.id, editedVersion2.id)
+        assertEquals(publishResponse.id, editedVersion2.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion2.rowVersion.id)
 
-        val editedDraft2 = getAndVerifyDraft(publishedVersion.id)
+        val editedDraft2 = getAndVerifyDraft(publishResponse.id)
         assertEquals(AlignmentName("EDITED2"), editedDraft2.name)
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
@@ -137,13 +139,14 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun savingWithAlignmentCreatesDraft() {
-        val (publishedVersion, published) = createPublishedLocationTrack(2)
+        val (publishResponse, published) = createPublishedLocationTrack(2)
 
         val alignmentTmp = alignment(segment(2, 10.0, 20.0, 10.0, 20.0))
         val editedVersion = locationTrackService.saveDraft(published, alignmentTmp)
-        assertNotEquals(publishedVersion.id, editedVersion.id)
+        assertEquals(publishResponse.id, editedVersion.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion.rowVersion.id)
 
-        val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishedVersion.id)
+        val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
             alignmentTmp.segments.flatMap(LayoutSegment::points),
             editedAlignment.segments.flatMap(LayoutSegment::points),
@@ -154,9 +157,10 @@ class LocationTrackServiceIT @Autowired constructor(
 
         val alignmentTmp2 = alignment(segment(4, 10.0, 20.0, 10.0, 20.0))
         val editedVersion2 = locationTrackService.saveDraft(editedDraft, alignmentTmp2)
-        assertNotEquals(publishedVersion.id, editedVersion2.id)
+        assertEquals(publishResponse.id, editedVersion2.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion2.rowVersion.id)
 
-        val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishedVersion.id)
+        val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
             alignmentTmp2.segments.flatMap(LayoutSegment::points),
             editedAlignment2.segments.flatMap(LayoutSegment::points),
@@ -424,15 +428,16 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun asLocationtrackDuplicate(locationTrack: LocationTrack) =
         LocationTrackDuplicate(locationTrack.id as IntId, locationTrack.name, locationTrack.externalId)
 
-    private fun insertAndFetch(switch: TrackLayoutSwitch) = switchService.get(switchService.saveDraft(switch))
+    private fun insertAndFetch(switch: TrackLayoutSwitch) =
+        switchService.get(switchService.saveDraft(switch).rowVersion)
 
     private fun insertAndFetch(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
     ): Pair<LocationTrack, LayoutAlignment> =
-        locationTrackService.getWithAlignment(locationTrackService.saveDraft(locationTrack, alignment))
+        locationTrackService.getWithAlignment(locationTrackService.saveDraft(locationTrack, alignment).rowVersion)
 
-    private fun createPublishedLocationTrack(seed: Int): Pair<RowVersion<LocationTrack>, LocationTrack> {
+    private fun createPublishedLocationTrack(seed: Int): Pair<DaoResponse<LocationTrack>, LocationTrack> {
         val trackNumberId = insertOfficialTrackNumber()
         val (insertedTrackVersion, _) = createAndVerifyTrack(trackNumberId, seed)
         return publishAndVerify(insertedTrackVersion.id)
@@ -441,7 +446,7 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun createAndVerifyTrack(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         seed: Int,
-    ): Pair<RowVersion<LocationTrack>, LocationTrack> {
+    ): Pair<DaoResponse<LocationTrack>, LocationTrack> {
         val insertRequest = saveRequest(trackNumberId, seed)
         val insertedTrackVersion = locationTrackService.insert(insertRequest)
         val insertedTrack = locationTrackService.getDraft(insertedTrackVersion.id)
@@ -451,7 +456,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     private fun publishAndVerify(
         locationTrackId: IntId<LocationTrack>,
-    ): Pair<RowVersion<LocationTrack>, LocationTrack> {
+    ): Pair<DaoResponse<LocationTrack>, LocationTrack> {
         val (draft, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         assertNotNull(draft.draft)
 

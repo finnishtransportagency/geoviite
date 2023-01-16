@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
 import org.springframework.beans.factory.annotation.Autowired
@@ -582,7 +581,6 @@ class GeometryDao @Autowired constructor(
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
                 decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
                 planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
-                linkedAt = null, // TODO: Implement linking time from plan perspective
                 message = rs.getFreeTextOrNull("message"),
                 linkedAsPlanId = rs.getIntIdOrNull("linked_as_plan_id"),
                 uploadTime = rs.getInstant("upload_time"),
@@ -1438,5 +1436,88 @@ class GeometryDao @Autowired constructor(
         ) { rs, _ ->
             rs.getEnumOrNull<MeasurementMethod>("measurement_method")
         }.firstOrNull()
+    }
+
+    /**
+     * If planIds is null, returns all plans' linking summaries
+     */
+    fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>?): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
+        if (planIds?.isEmpty() == true) {
+            return mapOf()
+        }
+
+        // For a given linkable object, treat the first version of it that was linked to a given plan as the one where
+        // linking happened, hence taking that version's change_time and change_user as the linking time and user.
+        // For objects composed of parts where it's the parts that get linked (i.e. location tracks and reference lines,
+        // made of segments), versioning still goes based on the segment, but the change time and change user come
+        // from the actual publishable unit.
+        val sql = """
+            select
+              plan_id,
+              min(change_time) as linked_at,
+              string_agg(distinct change_user, ', ' order by change_user) as linked_by_users
+              from (
+                select plan_id, segment.*
+                  from geometry.alignment
+                    join lateral
+                    (select track_object.change_time, track_object.change_user
+                       from layout.segment_version
+                       join lateral (
+                         select change_time, change_user
+                         from layout.location_track_version
+                         where location_track_version.alignment_id = segment_version.alignment_id
+                           and location_track_version.alignment_version = segment_version.alignment_version
+                           and not draft
+                         union all
+                         select change_time, change_user
+                         from layout.reference_line_version
+                         where reference_line_version.alignment_id = segment_version.alignment_id
+                           and reference_line_version.alignment_version = segment_version.alignment_version
+                           and not draft
+                       ) track_object on (true)
+                       where segment_version.geometry_alignment_id = alignment.id
+                       order by version asc
+                       limit 1
+                    ) segment on (true)
+                union all
+                (
+                  select geometry_switch.plan_id, layout_switch.*
+                    from geometry.switch geometry_switch
+                      join lateral
+                      (select change_time, change_user
+                         from layout.switch_version
+                         where switch_version.geometry_switch_id = geometry_switch.id
+                           and not draft
+                         order by version asc
+                         limit 1) layout_switch on (true)
+                )
+                union all
+                (
+                  select geometry_km_post.plan_id, layout_km_post.*
+                    from geometry.km_post geometry_km_post
+                      join lateral
+                      (select change_time, change_user
+                         from layout.km_post_version
+                         where km_post_version.geometry_km_post_id = geometry_km_post.id
+                           and not draft
+                         order by version asc
+                         limit 1) layout_km_post on (true)
+                )
+              ) as linked_layout_object
+              where plan_id in (:plan_ids) or :return_all
+              group by plan_id
+            """.trimIndent()
+
+        return jdbcTemplate.query(
+            sql,
+            mapOf(
+                "plan_ids" to (planIds?.map { it.intValue } ?: listOf(null)),
+                "return_all" to (planIds == null)
+            )
+        ) { rs, _ ->
+            val linkedAt = rs.getInstant("linked_at")
+            val linkedByUsers = rs.getString("linked_by_users")
+            rs.getIntId<GeometryPlan>("plan_id") to GeometryPlanLinkingSummary(linkedAt, linkedByUsers)
+        }.associate { it }
     }
 }

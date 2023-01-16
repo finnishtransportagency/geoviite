@@ -11,6 +11,20 @@
         "calculated-changes-text": "Ratanumerolle {{number}} on tullut sijaintimuutoksia. Pituusmittauslinjan muuttumisen myötä rataosoitteet päivittyvät seuraaville kohteille.",
         "no-calculated-changes-text": "Ei rataosoitemuutoksia"
     },
+    "preview-table": {
+        "change-target": "Muutoskohde",
+        "track-number-short": "Ratanro",
+        "status": "Tila",
+        "change-type": "Muutos",
+        "modified-moment": "Aika",
+        "user": "Käyttäjä",
+        "actions": "Toiminnot",
+        "pushed-to-ratko": "Viety ratkoon",
+        "errors-status-text": "virheitä ({{0}} kpl)",
+        "warnings-status-text": "varoituksia ({{0}} kpl)",
+        "errors-group-title": "Virheitä",
+        "warnings-group-title": "Varoituksia"
+    },
     "preview-footer": {
         "reject-changes": "Hylkää muutokset",
         "publish-changes": "Julkaise",
@@ -30,13 +44,23 @@
         "revert-confirm": {
             "title": "Muutoksen hylkääminen",
             "description": "Haluatko hylätä muutoksen",
+            "dependencies": "Tämän muutoksen hylkääminen aiheuttaa myös seuraavien riippuvien muutosten hylkäämisen:",
             "cancel": "Peruuta",
             "confirm": "Hylkää",
-            "location-track": "sijaintiraiteeseen",
-            "track-number": "ratanumeroon",
-            "reference-line": "pituusmittauslinjaan",
-            "switch": "vaihteeseen",
-            "km-post": "tasakilometripisteeseen"
+            "revert-target": {
+                "location-track": "sijaintiraiteeseen",
+                "track-number": "ratanumeroon",
+                "reference-line": "pituusmittauslinjaan",
+                "switch": "vaihteeseen",
+                "km-post": "tasakilometripisteeseen"
+           },
+            "dependency-list": {
+                "location-track": "Sijaintiraide",
+                "track-number": "Ratanumero",
+                "reference-line": "Pituusmittauslinja",
+                "switch": "Vaihde",
+                "km-post": "Tasakilometripiste"
+            }
         },
         "revert-change": "Hylkää muutos",
         "publish-success": "Muutokset julkaistu paikannuspohjaan",

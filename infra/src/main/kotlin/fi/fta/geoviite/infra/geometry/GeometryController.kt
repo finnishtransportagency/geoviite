@@ -128,4 +128,11 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         log.apiCall("createAuthor", "author" to author)
         return geometryService.createAuthor(author)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PostMapping("/plans/linking-summaries")
+    fun getLinkingSummaries(@RequestBody planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
+        log.apiCall("getLinkingSummaries")
+        return geometryService.getLinkingSummaries(planIds)
+    }
 }

@@ -96,7 +96,7 @@ class GeocodingDao(
                   and draft = false
                   and change_time <= :moment
                 order by version desc
-                fetch first row only 
+                limit 1
               ),
               rl as (
                 select id, version, deleted
@@ -105,7 +105,7 @@ class GeocodingDao(
                   and draft = false
                   and change_time <= :moment
                 order by version desc
-                fetch first row only 
+                limit 1
               ),
               kmp as (
                 select distinct on (id)
@@ -126,10 +126,12 @@ class GeocodingDao(
                 filter (where kmp.id is not null and kmp.hide = false) kmp_row_ids,
               array_agg(kmp.version order by kmp.id, kmp.version) 
                 filter (where kmp.id is not null and kmp.hide = false) kmp_row_versions
-            from tn left join rl on 1=1 left join kmp on 1=1
-              where tn.deleted = false
-                and tn.state != 'DELETED'
-                and rl.deleted = false
+            from tn 
+              left join rl on true 
+              left join kmp on true
+            where tn.deleted = false
+              and tn.state != 'DELETED'
+              and rl.deleted = false
             group by tn.id, tn.version, rl.id, rl.version
         """.trimIndent()
         val params = mapOf(

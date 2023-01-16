@@ -1,6 +1,7 @@
 import {
     LayoutKmPostId,
     LayoutLocationTrack,
+    LayoutSwitchId,
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
@@ -30,7 +31,7 @@ import {
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
-import { PublishType, RowVersion, SwitchStructureId } from 'common/common-model';
+import { PublishType, SwitchStructureId } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 import { GeometryAlignmentId, GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
@@ -38,7 +39,6 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
 import { BoundingBox, Point } from 'model/geometry';
-import { filterNotEmpty } from 'utils/array-utils';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -71,8 +71,8 @@ export const getSuggestedContinuousLocationTracks = async (
 
 export const linkGeometryWithReferenceLine = async (
     parameters: LinkingGeometryWithAlignmentParameters,
-): Promise<RowVersion | null> => {
-    const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, RowVersion>(
+): Promise<ReferenceLineId | null> => {
+    const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, ReferenceLineId>(
         linkingUri('reference-lines', 'geometry'),
         parameters,
     );
@@ -82,8 +82,8 @@ export const linkGeometryWithReferenceLine = async (
 
 export const linkGeometryWithLocationTrack = async (
     parameters: LinkingGeometryWithAlignmentParameters,
-): Promise<RowVersion | null> => {
-    const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, RowVersion>(
+): Promise<LocationTrackId | null> => {
+    const response = await postIgnoreError<LinkingGeometryWithAlignmentParameters, LocationTrackId>(
         linkingUri('location-tracks', 'geometry'),
         parameters,
     );
@@ -93,22 +93,22 @@ export const linkGeometryWithLocationTrack = async (
 
 export const linkGeometryWithEmptyReferenceLine = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
-): Promise<RowVersion | null> => {
-    const response = await postIgnoreError<LinkingGeometryWithEmptyAlignmentParameters, RowVersion>(
-        linkingUri('reference-lines', 'empty-geometry'),
-        parameters,
-    );
+): Promise<ReferenceLineId | null> => {
+    const response = await postIgnoreError<
+        LinkingGeometryWithEmptyAlignmentParameters,
+        ReferenceLineId
+    >(linkingUri('reference-lines', 'empty-geometry'), parameters);
     updateReferenceLineChangeTime();
     return response;
 };
 
 export const linkGeometryWithEmptyLocationTrack = async (
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
-): Promise<RowVersion | null> => {
-    const response = await postIgnoreError<LinkingGeometryWithEmptyAlignmentParameters, RowVersion>(
-        linkingUri('location-tracks', 'empty-geometry'),
-        parameters,
-    );
+): Promise<LocationTrackId | null> => {
+    const response = await postIgnoreError<
+        LinkingGeometryWithEmptyAlignmentParameters,
+        LocationTrackId
+    >(linkingUri('location-tracks', 'empty-geometry'), parameters);
     updateLocationTrackChangeTime();
     return response;
 };
@@ -116,7 +116,7 @@ export const linkGeometryWithEmptyLocationTrack = async (
 export async function updateReferenceLineGeometry(
     id: ReferenceLineId,
     interval: IntervalRequest,
-): Promise<string | null> {
+): Promise<ReferenceLineId | null> {
     const result = await putIgnoreError<IntervalRequest, ReferenceLineId>(
         linkingUri('reference-lines', 'geometry', id),
         interval,
@@ -128,7 +128,7 @@ export async function updateReferenceLineGeometry(
 export async function updateLocationTrackGeometry(
     id: LocationTrackId,
     interval: IntervalRequest,
-): Promise<string | null> {
+): Promise<LocationTrackId | null> {
     const result = await putIgnoreError<IntervalRequest, LocationTrackId>(
         linkingUri('location-tracks', 'geometry', id),
         interval,
@@ -203,7 +203,7 @@ export async function getSuggestedSwitchByPoint(
     });
     const uri = linkingUri('switches', 'suggested');
     return getIgnoreError<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
-        return (suggestedSwitches || []).filter(filterNotEmpty).map((suggestedSwitch) => {
+        return (suggestedSwitches || []).map((suggestedSwitch) => {
             return {
                 ...suggestedSwitch,
                 id: getSuggestedSwitchId(suggestedSwitch),
@@ -212,8 +212,8 @@ export async function getSuggestedSwitchByPoint(
     });
 }
 
-export async function linkSwitch(params: SwitchLinkingParameters): Promise<string> {
-    const result = await postIgnoreError<SwitchLinkingParameters, string>(
+export async function linkSwitch(params: SwitchLinkingParameters): Promise<LayoutSwitchId> {
+    const result = await postIgnoreError<SwitchLinkingParameters, LayoutSwitchId>(
         linkingUri('switches', 'geometry'),
         params,
     );
@@ -240,12 +240,12 @@ export async function createSuggestedSwitch(
 export async function linkKmPost(
     geometryKmPostId: GeometryKmPostId,
     layoutKmPostId: LayoutKmPostId,
-): Promise<string> {
+): Promise<LayoutKmPostId> {
     const params = {
         geometryKmPostId: geometryKmPostId,
         layoutKmPostId: layoutKmPostId,
     };
-    const result = await postIgnoreError<typeof params, string>(
+    const result = await postIgnoreError<typeof params, LayoutKmPostId>(
         linkingUri('km-posts', 'geometry'),
         params,
     );
