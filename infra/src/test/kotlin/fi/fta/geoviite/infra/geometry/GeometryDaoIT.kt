@@ -196,7 +196,7 @@ class GeometryDaoIT @Autowired constructor(
                 ),
             )),
         )
-        val planVersion = geometryDao.insertPlan(plan, file)
+        val planVersion = geometryDao.insertPlan(plan, file, null)
         val element = geometryDao.fetchPlan(planVersion).alignments[0].elements[0]
         val track = locationTrackAndAlignment(trackNumberId,
             segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
