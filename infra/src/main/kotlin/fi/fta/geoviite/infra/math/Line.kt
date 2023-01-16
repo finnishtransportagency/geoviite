@@ -66,6 +66,8 @@ data class Intersection(val point: Point, val segment1Portion: Double, val segme
     val inSegment2 by lazy { getIntersectType(segment2Portion) }
     val relativeDistance1 by lazy { toRelativeDistance(segment1Portion) }
     val relativeDistance2 by lazy { toRelativeDistance(segment2Portion) }
+
+    fun linesIntersect() = inSegment1 == IntersectType.WITHIN && inSegment2 == IntersectType.WITHIN
 }
 
 fun getIntersectType(portion: Double): IntersectType = when {

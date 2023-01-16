@@ -95,7 +95,7 @@ class CalculatedChangesService(
         // KM-Post & reference line changes are seen as changes to a single whole
         val trackNumberIds = (
                 versions.trackNumbers.map { v -> v.officialId }
-                        + versions.kmPosts.map { v -> kmPostDao.fetch(v.draftVersion).trackNumberId!! }
+                        + versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.draftVersion).trackNumberId }
                         + versions.referenceLines.map { v -> referenceLineDao.fetch(v.draftVersion).trackNumberId }
                 ).distinct()
         val locationTrackIds = versions.locationTracks.map { v -> v.officialId }
@@ -252,7 +252,7 @@ class CalculatedChangesService(
                             ?: throw NoSuchEntityException(TrackLayoutSwitch::class, switchId)
                         switchLibraryService.getSwitchStructure(switch.switchStructureId).presentationJointNumber
                     },
-                    getAddress = { point -> oldGeocodingContext.getAddress(point)!!.first }
+                    getAddress = { point -> oldGeocodingContext.getAddress(point)?.first }
                 )
             else listOf()
 
@@ -275,7 +275,7 @@ class CalculatedChangesService(
                     val switch = changeContext.switches.getAfter(switchId)
                     switchLibraryService.getSwitchStructure(switch.switchStructureId).presentationJointNumber
                 },
-                getAddress = { point -> newGeocodingContext.getAddress(point)!!.first })
+                getAddress = { point -> newGeocodingContext.getAddress(point)?.first })
         else listOf()
 
         val newSwitches = (newGeocodingContext?.let { context ->
@@ -441,23 +441,24 @@ private fun getTopologySwitchJoints(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     getSwitchPresentationJoint: (switchId: IntId<TrackLayoutSwitch>) -> JointNumber,
-    getAddress: (point: IPoint) -> TrackMeter
+    getAddress: (point: IPoint) -> TrackMeter?,
 ): List<Pair<IntId<TrackLayoutSwitch>, List<SwitchJointDataHolder>>> {
-    val topologySwitchAndLocationPairs = listOf(
-        locationTrack.topologyStartSwitch to alignment.start,
-        locationTrack.topologyEndSwitch to alignment.end
-    )
-    return topologySwitchAndLocationPairs.mapNotNull { (topologySwitch, location) ->
-        if (topologySwitch != null && location != null && getSwitchPresentationJoint(topologySwitch.switchId) == topologySwitch.jointNumber)
-            getTopologySwitchJoints(
-                topologySwitch,
-                Point(location),
-                getAddress(location)
-            )
+    return topologySwitchLinks(locationTrack, alignment).mapNotNull { (topologySwitch, location) ->
+        val address = getAddress(location)
+        val isPresentationJoint = getSwitchPresentationJoint(topologySwitch.switchId) == topologySwitch.jointNumber
+        if (address != null && isPresentationJoint) getTopologySwitchJoints(topologySwitch, location, address)
         else null
-
     }
 }
+
+private fun topologySwitchLinks(track: LocationTrack, alignment: LayoutAlignment) = listOfNotNull(
+    switchIdAndLocation(track.topologyStartSwitch, alignment.start),
+    switchIdAndLocation(track.topologyEndSwitch, alignment.end),
+)
+
+private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, location: LayoutPoint?) =
+    if (topologySwitch != null && location != null) topologySwitch to location.toPoint()
+    else null
 
 private fun getTopologySwitchJoints(
     topologySwitch: TopologyLocationTrackSwitch,

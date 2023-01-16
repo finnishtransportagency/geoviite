@@ -49,7 +49,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .toBodilessEntity()
             .map { response -> RatkoStatus(response.statusCode == HttpStatus.OK) }
             .onErrorReturn(RatkoStatus(false))
-            .block(defaultBlockTimeout)!!
+            .block(defaultBlockTimeout) ?: RatkoStatus(false)
     }
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {

@@ -125,9 +125,11 @@ data class GeocodingContext(
             kmPosts: List<TrackLayoutKmPost>,
             referenceLineGeometry: LayoutAlignment,
         ) = listOf(GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)) +
-                kmPosts
-                    .filter { post -> post.location != null && TrackMeter(post.kmNumber,0) > startAddress }
-                    .mapNotNull { post -> toReferencePoint(post.location!!, post.kmNumber, referenceLineGeometry) }
+                kmPosts.mapNotNull { post ->
+                    if (post.location != null && TrackMeter(post.kmNumber,0) > startAddress) {
+                        toReferencePoint(post.location, post.kmNumber, referenceLineGeometry)
+                    } else null
+                }
 
         private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: LayoutAlignment) =
             referenceLineGeometry.getLengthUntil(location)
