@@ -402,7 +402,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 {!calculatedChanges && <Spinner />}
                             </div>
                         </>
-                    )) || <Spinner />}
+                    )) || <div className={styles['preview-section__spinner-container']}><Spinner/></div>}
                 </div>
 
                 <MapView

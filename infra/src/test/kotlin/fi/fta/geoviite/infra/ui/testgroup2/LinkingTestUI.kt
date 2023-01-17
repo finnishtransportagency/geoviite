@@ -151,7 +151,7 @@ class LinkingTestUI @Autowired constructor(
         insertReferenceLine(REFERENCE_LINE_ESP2)
         //insertReferenceLine(REFERENCE_LINE_ESP3)
 
-        GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile())))
+        GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile(), null)))
 
     }
 

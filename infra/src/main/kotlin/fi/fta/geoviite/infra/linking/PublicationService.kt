@@ -329,16 +329,18 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError> {
         val trackNumber = trackNumberDao.fetch(version.draftVersion)
         val kmPosts = getKmPostsByTrackNumber(version.officialId, publicationVersions)
+        val referenceLine = getReferenceLineByTrackNumber(version.officialId, publicationVersions)
         val locationTracks = getLocationTracksByTrackNumber(version.officialId, publicationVersions)
         val fieldErrors = validateDraftTrackNumberFields(trackNumber)
         val referenceErrors = validateTrackNumberReferences(
             trackNumber,
+            referenceLine,
             kmPosts,
             locationTracks,
             publicationVersions.kmPosts.map { it.officialId },
             publicationVersions.locationTracks.map { it.officialId },
         )
-        val geocodingErrors = if (trackNumber.exists) {
+        val geocodingErrors = if (trackNumber.exists && referenceLine != null) {
             validateGeocodingContext(cacheKeys[version.officialId], VALIDATION_TRACK_NUMBER)
         } else listOf()
         return fieldErrors + referenceErrors + geocodingErrors
@@ -354,10 +356,15 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError> {
         val kmPost = kmPostDao.fetch(version.draftVersion)
         val trackNumber = kmPost.trackNumberId?.let { id -> getTrackNumber(id, publicationVersions) }
+        val referenceLine = kmPost.trackNumberId?.let { id -> getReferenceLineByTrackNumber(id, publicationVersions) }
         val fieldErrors = validateDraftKmPostFields(kmPost)
-        val referenceErrors =
-            validateKmPostReferences(kmPost, trackNumber, publicationVersions.trackNumbers.map { it.officialId })
-        val geocodingErrors = if (kmPost.exists && trackNumber != null) {
+        val referenceErrors = validateKmPostReferences(
+            kmPost,
+            trackNumber,
+            referenceLine,
+            publicationVersions.trackNumbers.map { it.officialId },
+        )
+        val geocodingErrors = if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
             validateGeocodingContext(cacheKeys[kmPost.trackNumberId], VALIDATION_KM_POST)
         } else listOf()
         return fieldErrors + referenceErrors + geocodingErrors
@@ -524,13 +531,24 @@ class PublicationService @Autowired constructor(
         return version?.let { v -> locationTrackWithAlignment(locationTrackDao, alignmentDao, v) }
     }
 
+    private fun getReferenceLineByTrackNumber(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        versions: PublicationVersions
+    ): ReferenceLine? {
+        val officialVersion = referenceLineDao.fetchVersion(OFFICIAL, trackNumberId)
+        val publicationLine = versions.referenceLines
+            .map { v -> referenceLineDao.fetch(v.draftVersion) }
+            .find { line -> line.trackNumberId == trackNumberId }
+        return publicationLine ?: officialVersion?.let { version -> referenceLineDao.fetch(version) }
+    }
+
     private fun getKmPostsByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         publicationVersions: PublicationVersions,
     ) = combineVersions(
         official = kmPostDao.fetchVersions(OFFICIAL, false, trackNumberId),
         draft = publicationVersions.kmPosts,
-    ).map(kmPostDao::fetch)
+    ).map(kmPostDao::fetch).filter { km -> km.trackNumberId == trackNumberId }
 
     private fun getLocationTracksByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -538,7 +556,7 @@ class PublicationService @Autowired constructor(
     ) = combineVersions(
         official = locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId),
         draft = publicationVersions.locationTracks,
-    ).map(locationTrackDao::fetch)
+    ).map(locationTrackDao::fetch).filter { lt -> lt.trackNumberId == trackNumberId }
 
     private fun <T> combineVersions(
         official: List<RowVersion<T>>, draft: List<PublicationVersion<T>>

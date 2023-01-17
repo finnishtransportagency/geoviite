@@ -135,7 +135,7 @@ class LinkingController @Autowired constructor(
         @RequestParam("location") location: Point,
         @RequestParam("switchStructureId") switchStructureId: IntId<SwitchStructure>
     ): List<SuggestedSwitch> {
-        logger.apiCall("getSuggestedSwitche", "location" to location, "switchStructureId" to switchStructureId)
+        logger.apiCall("getSuggestedSwitches", "location" to location, "switchStructureId" to switchStructureId)
         return listOfNotNull(switchLinkingService.getSuggestedSwitch(location, switchStructureId))
     }
 

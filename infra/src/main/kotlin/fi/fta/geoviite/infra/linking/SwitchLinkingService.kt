@@ -2,9 +2,7 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
-import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
@@ -28,15 +26,12 @@ private const val TOLERANCE_JOINT_LOCATION_SAME_POINT = 0.001
 fun calculateLayoutSwitchJoints(
     geomSwitch: GeometrySwitch,
     switchStructure: SwitchStructure,
-    planSrid: Srid,
-    kkJtoETRSTriangulationNetwork: List<KKJtoETRSTriangle>
+    toLayoutCoordinate: Transformation
 ): List<SwitchJoint>? {
-    val fromPlanToLayoutTransformation = Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, kkJtoETRSTriangulationNetwork)
-
     val layoutJointPoints = geomSwitch.joints.map { geomJoint ->
         SwitchJoint(
             number = geomJoint.number,
-            location = fromPlanToLayoutTransformation.transform(geomJoint.location),
+            location = toLayoutCoordinate.transform(geomJoint.location),
         )
     }
     val switchLocationDelta = calculateSwitchLocationDeltaOrNull(layoutJointPoints, switchStructure)
@@ -378,18 +373,20 @@ fun createSuggestedSwitch(
 
     alignmentMappings
         .forEach { alignmentMapping ->
-            val switchTransformation = if (alignmentMapping.ascending == null)
-                inferSwitchTransformationBothDirection(
+            val alignment = alignmentById[alignmentMapping.locationTrackId]?.second
+            require(alignment != null) { "Alignment mapping failed: id=${alignmentMapping.locationTrackId}" }
+            val switchTransformation =
+                if (alignmentMapping.ascending == null) inferSwitchTransformationBothDirection(
                     locationTrackEndpoint.location,
                     switchStructure,
                     alignmentMapping.switchAlignmentId,
-                    alignmentById[alignmentMapping.locationTrackId]!!.second,
-                ) else
-                inferSwitchTransformation(
+                    alignment,
+                )
+                else inferSwitchTransformation(
                     locationTrackEndpoint.location,
                     switchStructure,
                     alignmentMapping.switchAlignmentId,
-                    alignmentById[alignmentMapping.locationTrackId]!!.second,
+                    alignment,
                     alignmentMapping.ascending
                 )
 
@@ -736,22 +733,15 @@ fun findClosestIntersections(
     // Ignore parallel alignments. Points of alignments are filtered so
     // that alignments are about 0 - 200 meters long, and therefore we can compare
     // angles from start to end.
-    if (radsToDegrees(
-            angleDiffRads(
-                directionBetweenPoints(alignment1.start!!, alignment1.end!!),
-                directionBetweenPoints(alignment2.start!!, alignment2.end!!)
-            )
-        ) < MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES
-    ) return emptyList()
+    val directionDiff = alignmentStartEndDirectionDiff(alignment1, alignment2)?.let(::radsToDegrees)
+    if (directionDiff == null || directionDiff < MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES) return emptyList()
 
     val lines1 = lines(alignment1)
     val lines2 = lines(alignment2)
     val intersections = lines1.flatMap { line1 ->
         lines2.mapNotNull { line2 ->
             val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
-            if (intersection != null && intersection.inSegment1 == IntersectType.WITHIN &&
-                intersection.inSegment2 == IntersectType.WITHIN
-            ) {
+            if (intersection != null && intersection.linesIntersect()) {
                 TrackIntersection(
                     point = intersection.point,
                     distance = 0.0,
@@ -765,8 +755,7 @@ fun findClosestIntersections(
                 val minDistance = min(distance1, distance2)
                 if (minDistance <= MAX_LINE_INTERSECTION_DISTANCE) {
                     TrackIntersection(
-                        point = if (minDistance == distance1) line2.start
-                        else line2.end,
+                        point = if (minDistance == distance1) line2.start else line2.end,
                         distance = minDistance,
                         track1 = track1,
                         track2 = track2,
@@ -779,6 +768,20 @@ fun findClosestIntersections(
     return intersections
         .sorted()
         .take(count)
+}
+
+private fun alignmentStartEndDirectionDiff(alignment1: LayoutAlignment, alignment2: LayoutAlignment): Double? {
+    val track1Direction = alignmentStartEndDirection(alignment1)
+    val track2Direction = alignmentStartEndDirection(alignment2)
+    return if (track1Direction != null && track2Direction != null) {
+        angleDiffRads(track1Direction, track2Direction)
+    } else null
+}
+
+private fun alignmentStartEndDirection(alignment: LayoutAlignment): Double? {
+    val start = alignment.start
+    val end = alignment.end
+    return if (start != null && end != null) directionBetweenPoints(start, end) else null
 }
 
 fun findTrackIntersections(
@@ -1052,7 +1055,7 @@ class SwitchLinkingService @Autowired constructor(
     private val linkingDao: LinkingDao,
     private val geometryDao: GeometryDao,
     private val switchLibraryService: SwitchLibraryService,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
+    private val coordinateTransformationService: CoordinateTransformationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -1064,14 +1067,9 @@ class SwitchLinkingService @Autowired constructor(
             // Transform joints to layout space and calculate missing joints
             val geomSwitch = geometryDao.getSwitch(missingLayoutSwitchLinking.geometrySwitchId)
             val structure = geomSwitch.switchStructureId?.let(switchLibraryService::getSwitchStructure)
+            val toLayoutCoordinate = coordinateTransformationService.getTransformation(missingLayoutSwitchLinking.planSrid, LAYOUT_SRID)
             // TODO: There is a missing switch here, but current logic doesn't support non-typed suggestions
-            if (structure == null) null
-            else calculateLayoutSwitchJoints(
-                geomSwitch,
-                structure,
-                missingLayoutSwitchLinking.planSrid,
-                kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-            )
+            if (structure == null) null else calculateLayoutSwitchJoints(geomSwitch, structure, toLayoutCoordinate)
                 ?.let { calculatedJoints ->
                     val switchBoundingBox = boundingBoxAroundPoints(calculatedJoints.map { it.location }) * 1.5
                     val nearAlignmentIds = locationTrackDao.fetchVersionsNear(DRAFT, switchBoundingBox)

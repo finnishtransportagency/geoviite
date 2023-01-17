@@ -34,8 +34,8 @@ data class TransformationError(
 class GeometryService @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val heightTriangleDao: HeightTriangleDao,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
     private val trackNumberService: LayoutTrackNumberService,
+    private val coordinateTransformationService: CoordinateTransformationService
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -89,12 +89,15 @@ class GeometryService @Autowired constructor(
             "pointListStepLength" to pointListStepLength,
         )
         val srid = geometryPlan.units.coordinateSystemSrid
-        val triangulationNetwork = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val polygon = geometryPlan.getBoundingPolygonPoints(triangulationNetwork)
-        return if (srid == null) {
+        val planToLayoutTransformation = if (srid != null) coordinateTransformationService.getTransformation(srid, LAYOUT_SRID) else null
+        if (planToLayoutTransformation == null) {
             logger.warn("Not converting plan to layout as there is no SRID: id=${geometryPlan.id} file=${geometryPlan.fileName}")
             return null to TransformationError("srid-missing", geometryPlan.units)
-        } else if (polygon.isEmpty()) {
+        }
+
+        val polygon = getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, planToLayoutTransformation)
+
+        return if (polygon.isEmpty()) {
             logger.warn("Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}")
             null to TransformationError("bounds-resolution-failed", geometryPlan.units)
         } else if (!polygon.all { point -> FINNISH_BORDERS.contains(point) }) {
@@ -104,8 +107,7 @@ class GeometryService @Autowired constructor(
             toTrackLayout(
                 geometryPlan = geometryPlan,
                 heightTriangles = heightTriangleDao.fetchTriangles(polygon),
-                kkjToEtrsTriangles = triangulationNetwork,
-                planSrid = srid,
+                planToLayout = planToLayoutTransformation,
                 pointListStepLength = pointListStepLength,
                 includeGeometryData = includeGeometryData,
             ) to null
@@ -173,7 +175,7 @@ class GeometryService @Autowired constructor(
         val switch = getSwitch(switchId)
         val srid = geometryDao.getSwitchSrid(switchId)
             ?: throw IllegalStateException("Coordinate system not found for geometry switch $switchId!")
-        val transformation = Transformation.possiblyKKJToETRSTransform(srid, LAYOUT_SRID, kkJtoETRSTriangulationDao.fetchTriangulationNetwork())
+        val transformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
         return toTrackLayoutSwitch(switch, transformation)
     }
 

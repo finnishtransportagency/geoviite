@@ -5,7 +5,13 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { PublishType, TimeStamp } from 'common/common-model';
-import { deleteAdt, getThrowError, postIgnoreError, putIgnoreError } from 'api/api-fetch';
+import {
+    deleteAdt,
+    getThrowError,
+    postIgnoreError,
+    putIgnoreError,
+    queryParams,
+} from 'api/api-fetch';
 import { layoutUri } from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
@@ -31,11 +37,13 @@ export async function getTrackNumberById(
 export async function getTrackNumbers(
     publishType: PublishType,
     changeTime?: TimeStamp,
+    includeDeleted = false,
 ): Promise<LayoutTrackNumber[]> {
-    return trackNumbersCache.get(
-        changeTime || getChangeTimes().layoutTrackNumber,
-        publishType,
-        () => getThrowError<LayoutTrackNumber[]>(layoutUri('track-numbers', publishType)),
+    const cacheKey = `${includeDeleted}_${publishType}`;
+    return trackNumbersCache.get(changeTime || getChangeTimes().layoutTrackNumber, cacheKey, () =>
+        getThrowError<LayoutTrackNumber[]>(
+            layoutUri('track-numbers', publishType) + queryParams({ includeDeleted }),
+        ),
     );
 }
 

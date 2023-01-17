@@ -87,7 +87,7 @@ class BasicMapTestUI @Autowired constructor(
         switchDao.insert(EAST_LAYOUT_SWITCH)
 
         GEOMETRY_PLAN = geometryDao.fetchPlan(
-            (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile())))
+            (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile(), null)))
 
     }
 

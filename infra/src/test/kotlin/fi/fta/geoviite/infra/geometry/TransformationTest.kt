@@ -1,13 +1,9 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.dataImport.RATKO_SRID
-import fi.fta.geoviite.infra.geography.HeightTriangle
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
-import fi.fta.geoviite.infra.geography.Transformation
-import fi.fta.geoviite.infra.geography.transformHeightValue
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -88,14 +84,14 @@ class TransformationTest {
     @Test
     fun `Creating KKJ to TM35 transformation with empty triangulation network throws`() {
         assertThrows<IllegalArgumentException> {
-            Transformation.possiblyKKJToETRSTransform(Srid(2392) /* KKJ2 */, LAYOUT_SRID, emptyList())
+            Transformation.possiblyKKJToETRSTransform(KKJ2, LAYOUT_SRID, emptyList())
         }
     }
 
     @Test
     fun `Creating KKJ to TM35 transformation using non-KKJ transform throws`() {
         assertThrows<IllegalArgumentException> {
-            Transformation.nonKKJToETRSTransform(Srid(2392) /* KKJ2 */, LAYOUT_SRID)
+            Transformation.nonKKJToETRSTransform(KKJ2, LAYOUT_SRID)
         }
     }
 

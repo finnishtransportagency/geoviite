@@ -112,6 +112,16 @@ export function useTrackNumbers(
     return useLoader(() => getTrackNumbers(publishType, changeTime), [publishType, changeTime]);
 }
 
+export function useTrackNumbersIncludingDeleted(
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): LayoutTrackNumber[] | undefined {
+    return useLoader(
+        () => getTrackNumbers(publishType, changeTime, true),
+        [publishType, changeTime],
+    );
+}
+
 export function useReferenceLineStartAndEnd(
     id: ReferenceLineId | undefined,
     publishType: PublishType | undefined,

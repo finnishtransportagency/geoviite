@@ -149,7 +149,7 @@ class GeometryDaoIT @Autowired constructor(
     fun insertPlanWorks() {
         val plan = plan(insertOfficialTrackNumber())
         val fileContent = "<a></a>"
-        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent))
+        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
         val fetchedPlan = geometryDao.fetchPlan(id)
         val file = geometryDao.getPlanFile(id.id)
         assertPlansMatch(plan, fetchedPlan)
@@ -161,7 +161,7 @@ class GeometryDaoIT @Autowired constructor(
     fun minimalPlanInsertWorks() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min.xml")
         val plan = minimalPlan(fileName = file.name)
-        val version = geometryDao.insertPlan(plan, file)
+        val version = geometryDao.insertPlan(plan, file, null)
         assertPlansMatch(plan, geometryDao.fetchPlan(version))
     }
 
@@ -179,7 +179,7 @@ class GeometryDaoIT @Autowired constructor(
                 ),
             )),
         )
-        val version = geometryDao.insertPlan(plan, file)
+        val version = geometryDao.insertPlan(plan, file, null)
         assertPlansMatch(plan, geometryDao.fetchPlan(version))
     }
 
@@ -196,7 +196,7 @@ class GeometryDaoIT @Autowired constructor(
                 ),
             )),
         )
-        val planVersion = geometryDao.insertPlan(plan, file)
+        val planVersion = geometryDao.insertPlan(plan, file, null)
         val element = geometryDao.fetchPlan(planVersion).alignments[0].elements[0]
         val track = locationTrackAndAlignment(trackNumberId,
             segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)

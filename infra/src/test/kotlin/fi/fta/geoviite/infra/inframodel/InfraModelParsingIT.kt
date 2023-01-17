@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
@@ -85,7 +84,7 @@ class InfraModelParsingIT @Autowired constructor(
     fun fetchesTriangleInsideTriangulationNetwork() {
         // Point is in Hervanta, Tampere
         val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(3332494.083, 6819936.144), KKJ3_YKJ)
+        val point = toJtsPoint(Point(3332494.083, 6819936.144), YKJ_CRS)
         val triangle = triangles.find { it.intersects(point) }
         assertNotNull(triangle)
     }
@@ -94,7 +93,7 @@ class InfraModelParsingIT @Autowired constructor(
     fun fetchesTriangleAtCornerPoint() {
         // Point is in a triangulation network corner point
         val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(3199159.097, 6747800.979), KKJ3_YKJ)
+        val point = toJtsPoint(Point(3199159.097, 6747800.979), YKJ_CRS)
         val triangle = triangles.find { it.intersects(point) }
         assertNotNull(triangle)
     }
@@ -103,32 +102,9 @@ class InfraModelParsingIT @Autowired constructor(
     fun doesntFetchTriangleOutsideTriangulationNetwork() {
         // Point is in Norway
         val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(2916839.212, 7227390.743), KKJ3_YKJ)
+        val point = toJtsPoint(Point(2916839.212, 7227390.743), YKJ_CRS)
         val triangle = triangles.find { it.intersects(point) }
         assertNull(triangle)
-    }
-
-    @Test
-    fun transformsYKJtoETRS() {
-        val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        // Point is in Hervanta, Tampere
-        val point = Point(3332494.083, 6819936.144)
-        val transform = Transformation(KKJ3_YKJ, LAYOUT_CRS, triangles = triangles)
-        val transformedPoint = transform.transform(point)
-        // Expected values are from paikkatietoikkuna
-        assertEquals(332391.7884, transformedPoint.x, 0.001)
-        assertEquals(6817075.2561, transformedPoint.y, 0.001)
-    }
-
-    @Test
-    fun transformsKKJ4toETRS() {
-        val kkj4point = Point(4488552.946177, 6943595.611588)
-        val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val transform = Transformation(KKJ4, LAYOUT_CRS, triangles = triangles)
-        val transformedPoint = transform.transform(kkj4point)
-        // Expected values are from paikkatietoikkuna
-        assertEquals(642412.7448, transformedPoint.x, 0.001)
-        assertEquals(6943735.9093, transformedPoint.y, 0.001)
     }
 
     @Test
