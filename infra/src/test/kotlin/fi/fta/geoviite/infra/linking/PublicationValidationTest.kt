@@ -37,24 +37,28 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun trackNumberValidationCatchesAlignmentReferencingDeletedTrackNumber() {
+    fun trackNumberValidationCatchesLocationTrackReferencingDeletedTrackNumber() {
         val trackNumber = trackNumber().copy(id = IntId(1))
+        val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId).copy(id = IntId(1))
         val alignment = locationTrack(IntId(0)).copy(trackNumberId = IntId(1))
         assertTrackNumberReferenceError(
             true,
             trackNumber.copy(state = DELETED),
+            referenceLine,
             locationTrack(IntId(0)).copy(state = IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = DELETED),
+            referenceLine,
             alignment.copy(state = DELETED),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = IN_USE),
+            referenceLine,
             alignment.copy(state = IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
@@ -63,11 +67,13 @@ class PublicationValidationTest {
     @Test
     fun trackNumberValidationCatchesUnpublishedAlignment() {
         val trackNumber = trackNumber().copy(id = IntId(1))
+        val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId).copy(id = IntId(1))
         val unpublished = locationTrack(IntId(0)).copy(draft = Draft(IntId(2)), id = IntId(1))
         val published = locationTrack(IntId(0)).copy(draft = null, id = IntId(1))
         assertTrackNumberReferenceError(
             true,
             trackNumber,
+            referenceLine,
             unpublished,
             "$VALIDATION_TRACK_NUMBER.location-track.not-published",
             includeAlignmentInPublish = false,
@@ -75,6 +81,7 @@ class PublicationValidationTest {
         assertTrackNumberReferenceError(
             false,
             trackNumber,
+            referenceLine,
             published,
             "$VALIDATION_TRACK_NUMBER.location-track.not-published",
             includeAlignmentInPublish = false,
@@ -82,6 +89,7 @@ class PublicationValidationTest {
         assertTrackNumberReferenceError(
             false,
             trackNumber,
+            referenceLine,
             unpublished,
             "$VALIDATION_TRACK_NUMBER.location-track.not-published",
             includeAlignmentInPublish = true,
@@ -91,6 +99,7 @@ class PublicationValidationTest {
     @Test
     fun trackNumberValidationCatchesUnpublishedKmPost() {
         val trackNumber = trackNumber().copy(id = IntId(1))
+        val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId).copy(id = IntId(1))
         val unpublished = kmPost(trackNumber.id as IntId, KmNumber(1))
             .copy(draft = Draft(IntId(2)), id = IntId(1))
         val published = kmPost(trackNumber.id as IntId, KmNumber(1))
@@ -98,6 +107,7 @@ class PublicationValidationTest {
         assertTrackNumberReferenceError(
             true,
             trackNumber,
+            referenceLine,
             unpublished,
             "$VALIDATION_TRACK_NUMBER.km-post.not-published",
             includeKmPostInPublish = false,
@@ -105,6 +115,7 @@ class PublicationValidationTest {
         assertTrackNumberReferenceError(
             false,
             trackNumber,
+            referenceLine,
             published,
             "$VALIDATION_TRACK_NUMBER.km-post.not-published",
             includeKmPostInPublish = false,
@@ -112,6 +123,7 @@ class PublicationValidationTest {
         assertTrackNumberReferenceError(
             false,
             trackNumber,
+            referenceLine,
             unpublished,
             "$VALIDATION_TRACK_NUMBER.km-post.not-published",
             includeKmPostInPublish = true,
@@ -135,6 +147,7 @@ class PublicationValidationTest {
     @Test
     fun kmPostValidationCatchesUnpublishedTrackNumber() {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
+        val referenceLine = referenceLine(trackNumberId = IntId(1)).copy(id = IntId(1))
         val kmPost = kmPost(trackNumberId, KmNumber(1))
         val unpublished = trackNumber().copy(draft = Draft(IntId(2)), id = trackNumberId)
         val published = trackNumber().copy(draft = null, id = trackNumberId)
@@ -142,6 +155,7 @@ class PublicationValidationTest {
             true,
             kmPost,
             unpublished,
+            referenceLine,
             "$VALIDATION_KM_POST.track-number.not-published",
             includeTrackNumberInPublish = false,
         )
@@ -149,6 +163,7 @@ class PublicationValidationTest {
             false,
             kmPost,
             published,
+            referenceLine,
             "$VALIDATION_KM_POST.track-number.not-published",
             includeTrackNumberInPublish = false,
         )
@@ -156,6 +171,7 @@ class PublicationValidationTest {
             false,
             kmPost,
             unpublished,
+            referenceLine,
             "$VALIDATION_KM_POST.track-number.not-published",
             includeTrackNumberInPublish = true,
         )
@@ -694,12 +710,14 @@ class PublicationValidationTest {
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
         trackNumber: TrackLayoutTrackNumber,
+        referenceLine: ReferenceLine?,
         alignment: LocationTrack,
         error: String,
         includeAlignmentInPublish: Boolean = false,
     ) = assertTrackNumberReferenceError(
         hasError,
         trackNumber,
+        referenceLine,
         error,
         alignments = listOf(alignment),
         includeAlignmentsInPublish = includeAlignmentInPublish,
@@ -708,12 +726,14 @@ class PublicationValidationTest {
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
         trackNumber: TrackLayoutTrackNumber,
+        referenceLine: ReferenceLine?,
         kmPost: TrackLayoutKmPost,
         error: String,
         includeKmPostInPublish: Boolean = false,
     ) = assertTrackNumberReferenceError(
         hasError,
         trackNumber,
+        referenceLine,
         error,
         kmPosts = listOf(kmPost),
         includeKmPostsInPublish = includeKmPostInPublish,
@@ -722,6 +742,7 @@ class PublicationValidationTest {
     private fun assertTrackNumberReferenceError(
         hasError: Boolean,
         trackNumber: TrackLayoutTrackNumber,
+        referenceLine: ReferenceLine?,
         error: String,
         kmPosts: List<TrackLayoutKmPost> = listOf(),
         alignments: List<LocationTrack> = listOf(),
@@ -731,6 +752,7 @@ class PublicationValidationTest {
         hasError,
         validateTrackNumberReferences(
             trackNumber,
+            referenceLine,
             kmPosts,
             alignments,
             if (includeKmPostsInPublish) kmPosts.map { p -> p.id as IntId } else listOf(),
@@ -743,6 +765,7 @@ class PublicationValidationTest {
         hasError: Boolean,
         kmPost: TrackLayoutKmPost,
         trackNumber: TrackLayoutTrackNumber,
+        referenceLine: ReferenceLine?,
         error: String,
         includeTrackNumberInPublish: Boolean = false,
     ) = assertContainsError(
@@ -750,6 +773,7 @@ class PublicationValidationTest {
         validateKmPostReferences(
             kmPost,
             trackNumber,
+            referenceLine,
             if (includeTrackNumberInPublish) listOf(trackNumber.id as IntId) else listOf(),
         ),
         error,
