@@ -193,7 +193,6 @@ class GeometryDao @Autowired constructor(
         return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getIntIdOrNull("id") }
     }
 
-
     @Transactional
     fun updatePlan(
         planId: IntId<GeometryPlan>,

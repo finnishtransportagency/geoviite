@@ -42,31 +42,23 @@ class InfraModelService @Autowired constructor(
         logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
 
         val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
+        val geometryPlan =
+        overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
+        val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
+            ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
+            ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
 
         val planId = geometryService.getDuplicateGeometryPlanId(imFile)
-        var duplicateFileName = ""
-
-        try {
-            val geometryPlan =
-                overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
-            val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
-                ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
-                ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
-
-            duplicateFileName = planId?.let { plan -> geometryService.getPlanFile(plan).name.toString() } ?: ""
-            if (duplicateFileName.length > 0) {
-                throw Exception()
-            }
-
-            return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
-
-        } catch (e: Exception) {
+        val duplicateFileName = planId?.let { plan -> geometryService.getPlanFile(plan).name.toString() } ?: ""
+        if (duplicateFileName.length > 0) {
             throw InframodelParsingException(
                 message = "InfraModel file exists already",
                 localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
                 localizedMessageParams = listOf(duplicateFileName),
             )
         }
+
+        return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
 
     fun validateInputFileAndParseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {
