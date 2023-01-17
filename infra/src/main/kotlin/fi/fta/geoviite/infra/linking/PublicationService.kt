@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushDao
@@ -44,6 +45,7 @@ class PublicationService @Autowired constructor(
     private val calculatedChangesService: CalculatedChangesService,
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
+    private val geometryDao: GeometryDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -209,7 +211,10 @@ class PublicationService @Autowired constructor(
         alignmentDao.deleteOrphanedAlignments()
         val switchCount = toDelete.switches.map { id -> switchService.deleteDraft(id) }.size
         val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.deleteDraft(id) }.size
-        val trackNumberCount = toDelete.trackNumbers.map { id -> trackNumberService.deleteDraft(id) }.size
+        val trackNumberCount = toDelete.trackNumbers.map { id ->
+            geometryDao.removeReferencesToTrackNumber(id)
+            trackNumberService.deleteDraft(id)
+        }.size
 
         return PublishResult(
             publishId = null,

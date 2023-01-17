@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
-class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
-    : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
+    DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
@@ -68,7 +68,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             select 
               id as row_id,
               version as row_version,
-              coalesce(draft_of_track_number_id, id) official_id, 
+              coalesce(draft_of_track_number_id, id) as official_id, 
               case when draft then id end as draft_id,
               external_id, 
               number, 
@@ -205,4 +205,5 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 trackNumbers.map { it.version })
         }
     }
+
 }
