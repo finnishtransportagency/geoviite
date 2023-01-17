@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
+import org.apache.logging.log4j.core.util.NameUtil.md5
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -177,6 +178,22 @@ class GeometryDao @Autowired constructor(
             )
         })
     }
+
+    fun fetchDuplicateGeometryPlanId(newFile: InfraModelFile): IntId<GeometryPlan>? {
+        val sql = """
+            select
+              plan_file.id
+              from geometry.plan_file
+              where hash = :hash
+        """.trimIndent()
+        val params = mapOf(
+            "hash" to md5(newFile.content)
+        )
+
+        logger.daoAccess(FETCH, InfraModelFile::class, params)
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getIntIdOrNull("id") }
+    }
+
 
     @Transactional
     fun updatePlan(
