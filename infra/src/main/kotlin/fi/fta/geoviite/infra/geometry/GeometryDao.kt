@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.linking.RemovedTrackNumberReferenceIds
+import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -1143,18 +1144,12 @@ class GeometryDao @Autowired constructor(
         }
     }
 
-
-
-
+    @Transactional
     fun removeReferencesToTrackNumber(id: IntId<TrackLayoutTrackNumber>): RemovedTrackNumberReferenceIds {
-        val kmPostIds = removeKmPostReferenceToTrackNumber(id)
-        val alignmentIds = removeAlignmentReferenceToTrackNumber(id)
-        val planIds = removePlanReferenceToTrackNumber(id)
-
         return RemovedTrackNumberReferenceIds(
-            kmPostIds = kmPostIds,
-            alignmentIds = alignmentIds,
-            planIds = planIds
+            kmPostIds = removeKmPostReferenceToTrackNumber(id),
+            alignmentIds = removeAlignmentReferenceToTrackNumber(id),
+            planIds = removePlanReferenceToTrackNumber(id)
         )
     }
 
@@ -1166,9 +1161,9 @@ class GeometryDao @Autowired constructor(
           returning id as km_post_id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
-           IntId(rs.getInt("km_post_id"))
-        }
+        return jdbcTemplate
+            .query<IntId<GeometryKmPost>>(sql, mapOf("id" to id.intValue)) { rs, _ -> IntId(rs.getInt("km_post_id")) }
+            .also { ids -> logger.daoAccess(UPDATE, GeometryKmPost::class, ids) }
     }
 
 
@@ -1180,9 +1175,10 @@ class GeometryDao @Autowired constructor(
           returning id as alignment_id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
-            IntId(rs.getInt("alignment_id"))
-        }
+        return jdbcTemplate
+            .query<IntId<GeometryAlignment>>(sql, mapOf("id" to id.intValue)) { rs, _ -> IntId(rs.getInt("alignment_id")) }
+            .also { ids -> logger.daoAccess(UPDATE, GeometryAlignment::class, ids)}
+
     }
 
     private fun removePlanReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): List<IntId<GeometryPlan>> {
@@ -1193,9 +1189,9 @@ class GeometryDao @Autowired constructor(
           returning id as plan_id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
-            IntId(rs.getInt("plan_id"))
-        }
+        return jdbcTemplate
+            .query<IntId<GeometryPlan>>(sql, mapOf("id" to id.intValue)) { rs, _ -> IntId(rs.getInt("plan_id")) }
+            .also {  ids -> logger.daoAccess(UPDATE, GeometryPlan::class, ids)}
     }
 
     private fun getElementData(rs: ResultSet): ElementData {

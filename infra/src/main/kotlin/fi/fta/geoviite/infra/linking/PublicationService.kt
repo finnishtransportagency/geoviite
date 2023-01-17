@@ -212,8 +212,9 @@ class PublicationService @Autowired constructor(
         val switchCount = toDelete.switches.map { id -> switchService.deleteDraft(id) }.size
         val kmPostCount = toDelete.kmPosts.map { id -> kmPostService.deleteDraft(id) }.size
         val trackNumberCount = toDelete.trackNumbers.map { id ->
-            removeReferencesToTrackNumber(id)
-            trackNumberService.deleteDraft(id) }.size
+            geometryDao.removeReferencesToTrackNumber(id)
+            trackNumberService.deleteDraft(id)
+        }.size
 
         return PublishResult(
             publishId = null,
@@ -223,10 +224,6 @@ class PublicationService @Autowired constructor(
             switches = switchCount,
             kmPosts = kmPostCount,
         )
-    }
-
-    fun removeReferencesToTrackNumber(id: IntId<TrackLayoutTrackNumber>){
-        geometryDao.removeReferencesToTrackNumber(id)
     }
 
     /**
