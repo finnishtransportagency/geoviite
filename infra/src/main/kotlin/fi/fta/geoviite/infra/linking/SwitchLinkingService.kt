@@ -1061,12 +1061,7 @@ class SwitchLinkingService @Autowired constructor(
             val structure = geomSwitch.switchStructureId?.let(switchLibraryService::getSwitchStructure)
             val toLayoutCoordinate = coordinateTransformationService.getTransformation(missingLayoutSwitchLinking.planSrid, LAYOUT_SRID)
             // TODO: There is a missing switch here, but current logic doesn't support non-typed suggestions
-            if (structure == null) null
-            else calculateLayoutSwitchJoints(
-                geomSwitch,
-                structure,
-                toLayoutCoordinate
-            )
+            if (structure == null) null else calculateLayoutSwitchJoints(geomSwitch, structure, toLayoutCoordinate)
                 ?.let { calculatedJoints ->
                     val switchBoundingBox = boundingBoxAroundPoints(calculatedJoints.map { it.location }) * 1.5
                     val nearAlignmentIds = locationTrackDao.fetchVersionsNear(DRAFT, switchBoundingBox)

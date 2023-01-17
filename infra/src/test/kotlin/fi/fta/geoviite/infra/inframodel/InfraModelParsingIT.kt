@@ -84,7 +84,7 @@ class InfraModelParsingIT @Autowired constructor(
     fun fetchesTriangleInsideTriangulationNetwork() {
         // Point is in Hervanta, Tampere
         val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(3332494.083, 6819936.144), KKJ3_YKJ)
+        val point = toJtsPoint(Point(3332494.083, 6819936.144), YKJ_CRS)
         val triangle = triangles.find { it.intersects(point) }
         assertNotNull(triangle)
     }
@@ -93,7 +93,7 @@ class InfraModelParsingIT @Autowired constructor(
     fun fetchesTriangleAtCornerPoint() {
         // Point is in a triangulation network corner point
         val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(3199159.097, 6747800.979), KKJ3_YKJ)
+        val point = toJtsPoint(Point(3199159.097, 6747800.979), YKJ_CRS)
         val triangle = triangles.find { it.intersects(point) }
         assertNotNull(triangle)
     }
@@ -102,7 +102,7 @@ class InfraModelParsingIT @Autowired constructor(
     fun doesntFetchTriangleOutsideTriangulationNetwork() {
         // Point is in Norway
         val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(2916839.212, 7227390.743), KKJ3_YKJ)
+        val point = toJtsPoint(Point(2916839.212, 7227390.743), YKJ_CRS)
         val triangle = triangles.find { it.intersects(point) }
         assertNull(triangle)
     }

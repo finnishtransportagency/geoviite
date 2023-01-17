@@ -5,12 +5,13 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import org.locationtech.jts.geom.Coordinate
 
-val KKJ0 = crs(Srid(3386))
-val KKJ1 = crs(Srid(2931))
-val KKJ2 = crs(Srid(2392))
-val KKJ3_YKJ = crs(Srid(2393))
-val KKJ4 = crs(Srid(2394))
-val KKJ5 = crs(Srid(3387))
+val KKJ0 = Srid(3386)
+val KKJ1 = Srid(2931)
+val KKJ2 = Srid(2392)
+val KKJ3_YKJ = Srid(2393)
+val KKJ4 = Srid(2394)
+val KKJ5 = Srid(3387)
+val YKJ_CRS = crs(KKJ3_YKJ)
 
 data class KKJtoETRSTriangle(
     val corner1: Point,
@@ -24,7 +25,7 @@ data class KKJtoETRSTriangle(
     val deltaN: Double,
 ) {
     val ykjPolygon by lazy {
-        toJtsPolygon(listOf(corner1, corner2, corner3, corner1), KKJ3_YKJ)
+        toJtsPolygon(listOf(corner1, corner2, corner3, corner1), YKJ_CRS)
             ?: throw IllegalStateException("Failed to create KKJ polygon")
     }
 

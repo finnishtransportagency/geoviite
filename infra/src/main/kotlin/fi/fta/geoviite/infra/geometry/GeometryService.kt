@@ -95,7 +95,7 @@ class GeometryService @Autowired constructor(
             return null to TransformationError("srid-missing", geometryPlan.units)
         }
 
-        val polygon = geometryPlan.getBoundingPolygonPoints(planToLayoutTransformation)
+        val polygon = getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, planToLayoutTransformation)
 
         return if (polygon.isEmpty()) {
             logger.warn("Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}")

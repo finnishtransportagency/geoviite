@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.geography
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import org.geotools.geometry.jts.JTS
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.referencing.CRS
@@ -14,7 +13,6 @@ import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.Polygon
 import org.locationtech.jts.geom.PrecisionModel
 import org.opengis.referencing.crs.CoordinateReferenceSystem
-import org.opengis.referencing.operation.MathTransform
 import java.util.concurrent.ConcurrentHashMap
 
 fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint): Point {
@@ -98,5 +96,3 @@ class CoordinateTransformationException(message: String, cause: Throwable? = nul
     constructor(order: CRS.AxisOrder, x: Double, y: Double, crs: String) :
             this("Cannot determine coordinate axis order x=$x y=$y crs=$crs order=$order")
 }
-
-fun isKKJ(sourceRef: CoordinateReferenceSystem) = listOf(KKJ0, KKJ1, KKJ2, KKJ3_YKJ, KKJ4, KKJ5).contains(sourceRef)
