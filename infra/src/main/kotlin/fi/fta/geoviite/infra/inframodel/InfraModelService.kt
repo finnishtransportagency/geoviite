@@ -41,20 +41,25 @@ class InfraModelService @Autowired constructor(
 
         val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
 
-        //TODO: get real filename
-        val fileName = "FooFile"
+        val planId = geometryService.getDuplicateGeometryPlanId(imFile)
+        var duplicateFileName = ""
 
         try {
             val geometryPlan =
                 overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
 
+            duplicateFileName = planId?.let { plan -> geometryService.getPlanFile(plan).name.toString() } ?: ""
+            if (duplicateFileName.length > 0) {
+                throw Exception()
+            }
+
             return geometryDao.insertPlan(geometryPlan, imFile)
 
-        } catch (e: DuplicateKeyException) {
+        } catch (e: Exception) {
             throw InframodelParsingException(
                   message = "InfraModel file exists already",
                   localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                  localizedMessageParams = listOf(fileName),
+                  localizedMessageParams = listOf(duplicateFileName),
             )
         }
     }
