@@ -23,9 +23,9 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
 
     fun listDraft(): List<ObjectType> = list(DRAFT)
 
-    fun list(publishType: PublishType): List<ObjectType> {
+    fun list(publishType: PublishType, includeDeleted: Boolean = false): List<ObjectType> {
         logger.serviceCall("list", "publishType" to publishType)
-        return listInternal(publishType, false)
+        return listInternal(publishType, includeDeleted)
     }
 
     fun getOfficial(id: IntId<ObjectType>) = get(OFFICIAL, id)
