@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.linking.RemovedTrackNumberReferenceIds
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
 import org.springframework.beans.factory.annotation.Autowired
@@ -1138,6 +1140,61 @@ class GeometryDao @Autowired constructor(
                     id = id,
                 )
             }
+        }
+    }
+
+
+
+
+    fun removeReferencesToTrackNumber(id: IntId<TrackLayoutTrackNumber>): RemovedTrackNumberReferenceIds {
+        val kmPostIds = removeKmPostReferenceToTrackNumber(id)
+        val alignmentIds = removeAlignmentReferenceToTrackNumber(id)
+        val planIds = removePlanReferenceToTrackNumber(id)
+
+        return RemovedTrackNumberReferenceIds(
+            kmPostIds = kmPostIds,
+            alignmentIds = alignmentIds,
+            planIds = planIds
+        )
+    }
+
+    private fun removeKmPostReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): List<IntId<GeometryKmPost>> {
+        val sql = """
+          update geometry.km_post
+          set track_number_id = null 
+          where track_number_id = :id
+          returning id as km_post_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
+           IntId(rs.getInt("km_post_id"))
+        }
+    }
+
+
+    private fun removeAlignmentReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): List<IntId<GeometryAlignment>> {
+        val sql = """
+          update geometry.alignment
+          set track_number_id = null 
+          where track_number_id = :id
+          returning id as alignment_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
+            IntId(rs.getInt("alignment_id"))
+        }
+    }
+
+    private fun removePlanReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): List<IntId<GeometryPlan>> {
+        val sql = """
+          update geometry.plan
+          set track_number_id = null 
+          where track_number_id = :id
+          returning id as plan_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
+            IntId(rs.getInt("plan_id"))
         }
     }
 
