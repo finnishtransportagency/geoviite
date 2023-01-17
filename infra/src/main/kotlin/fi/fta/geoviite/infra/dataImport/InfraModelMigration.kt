@@ -12,12 +12,9 @@ import fi.fta.geoviite.infra.dataImport.InfraModelMetadataColumns.*
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geography.*
-import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanSource.GEOMETRIAPALVELU
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
-import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.inframodel.fileToString
 import fi.fta.geoviite.infra.inframodel.parseGeometryPlan
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -189,7 +186,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
                 val layoutBoundingBox = plan.units.coordinateSystemSrid
                     ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
-                    ?.let { transformation -> plan.getBoundingPolygonPoints(transformation) }
+                    ?.let { transformation -> getBoundingPolygonPointsFromAlignments(plan.alignments, transformation) }
 
                 geometryDao.insertPlan(plan, file, layoutBoundingBox, type)
                 imCount++

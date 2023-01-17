@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -45,7 +44,7 @@ class InfraModelService @Autowired constructor(
             overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
-            ?.let { transformation -> geometryPlan.getBoundingPolygonPoints(transformation) }
+            ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
 
         return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
