@@ -11,7 +11,7 @@ import org.opengis.referencing.operation.MathTransform
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 
-data class Transformation(
+data class Transformation private constructor(
     val sourceSrid: Srid,
     val targetSrid: Srid,
     val triangles: List<KKJtoETRSTriangle>,
@@ -67,19 +67,17 @@ class CoordinateTransformationService @Autowired constructor(
 ) {
     private val transformations = mutableMapOf<Pair<Srid, Srid>, Transformation>()
 
-    fun getTransformation(sourceSrid: Srid, targetSrid: Srid): Transformation {
-        val pair = Pair(sourceSrid, targetSrid)
-        val existingTransformation = transformations[pair]
-        return if (existingTransformation == null) {
-            val transform = Transformation.possiblyKKJToETRSTransform(
-                sourceSrid,
-                targetSrid,
-                kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-            )
-            transformations.put(pair, transform)
-            transform
-        } else existingTransformation
-    }
+    fun getTransformation(sourceSrid: Srid, targetSrid: Srid): Transformation =
+        transformations.getOrPut(
+            Pair(sourceSrid, targetSrid),
+            {
+                Transformation.possiblyKKJToETRSTransform(
+                    sourceSrid,
+                    targetSrid,
+                    kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
+                )
+            }
+        )
 
     fun transformCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint) =
         getTransformation(sourceSrid, targetSrid).transform(point)
