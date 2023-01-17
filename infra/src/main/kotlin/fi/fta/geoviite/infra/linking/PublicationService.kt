@@ -446,7 +446,7 @@ class PublicationService @Autowired constructor(
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     ): List<PublishValidationError> {
         val (locationTrack, alignment) = getLocationTrackAndAlignment(version.draftVersion)
-        val trackNumber = getTrackNumberOrThrow(locationTrack.trackNumberId, publicationVersions)
+        val trackNumber = getTrackNumber(locationTrack.trackNumberId, publicationVersions)
         val duplicateOfLocationTrack = locationTrack.duplicateOf?.let { duplicateId ->
             getLocationTrack(duplicateId, publicationVersions)
         }
@@ -468,7 +468,7 @@ class PublicationService @Autowired constructor(
         )
         val alignmentErrors = if (locationTrack.exists) validateLocationTrackAlignment(alignment)
         else listOf()
-        val geocodingErrors = if (locationTrack.exists) {
+        val geocodingErrors = if (locationTrack.exists && trackNumber != null) {
             cacheKeys[locationTrack.trackNumberId]?.let { key ->
                 validateAddressPoints(trackNumber, key, locationTrack, VALIDATION_LOCATION_TRACK)
             } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
@@ -498,10 +498,6 @@ class PublicationService @Autowired constructor(
             .filter { track -> track.draft != null && !versions.containsLocationTrack(track.id as IntId) }
     }
 
-
-    private fun getTrackNumberOrThrow(id: IntId<TrackLayoutTrackNumber>, versions: PublicationVersions) =
-        getTrackNumber(id, versions) ?: throw NoSuchEntityException(TrackLayoutTrackNumber::class, id)
-
     private fun getTrackNumber(
         id: IntId<TrackLayoutTrackNumber>,
         publicationVersions: PublicationVersions,
@@ -510,17 +506,11 @@ class PublicationService @Autowired constructor(
         return version?.let(trackNumberDao::fetch)
     }
 
-    private fun getLocationTrackOrThrow(id: IntId<LocationTrack>, versions: PublicationVersions) =
-        getLocationTrack(id, versions) ?: throw NoSuchEntityException(LocationTrack::class, id)
-
     private fun getLocationTrack(id: IntId<LocationTrack>, publicationVersions: PublicationVersions): LocationTrack? {
         val version =
             publicationVersions.findLocationTrack(id)?.draftVersion ?: locationTrackDao.fetchOfficialVersion(id)
         return version?.let(locationTrackDao::fetch)
     }
-
-    private fun getLocationTrackAndAlignmentOrThrow(id: IntId<LocationTrack>, versions: PublicationVersions) =
-        getLocationTrackAndAlignment(id, versions) ?: throw NoSuchEntityException(LocationTrack::class, id)
 
     private fun getLocationTrackAndAlignment(
         id: IntId<LocationTrack>,
