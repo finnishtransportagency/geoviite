@@ -114,16 +114,18 @@ class ReferenceLineService(
     override fun createPublished(item: ReferenceLine) = published(item)
 
     @Transactional
-    fun deleteDraftOnlyReferenceLine(referenceLine: ReferenceLine) {
+    fun deleteDraftOnlyReferenceLine(referenceLine: ReferenceLine): DaoResponse<ReferenceLine> {
         if (referenceLine.getDraftType() != DraftType.NEW_DRAFT)
             throw DeletingFailureException("Trying to delete non-draft Reference Line")
         require(referenceLine.id is IntId) { "Trying to delete or reset reference line not yet saved to database" }
 
-        referenceLineDao.deleteDraft(referenceLine.draft!!.draftRowId as IntId<ReferenceLine>)
-        alignmentDao.delete(
-            referenceLine.alignmentVersion?.id
-                ?: throw IllegalStateException("Trying to delete reference line without alignment")
-        )
+        val response = referenceLine.draft?.draftRowId.let { draftRowId ->
+            require(draftRowId is IntId) { "Trying to delete draft Reference Line that isn't yet stored in database" }
+            referenceLineDao.deleteDraft(draftRowId)
+        }
+
+        referenceLine.alignmentVersion?.id?.let(alignmentDao::delete)
+        return response
     }
 
     fun getByTrackNumber(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {

@@ -78,7 +78,10 @@ class LayoutTrackNumberService(
         if (trackNumber.getDraftType() != DraftType.NEW_DRAFT)
             throw DeletingFailureException("Trying to delete non-draft Track Number")
         require(trackNumber.id is IntId) { "Trying to delete or reset track number not yet saved to database" }
-        return dao.deleteDraft(trackNumber.draft!!.draftRowId as IntId<TrackLayoutTrackNumber>)
+        return trackNumber.draft?.draftRowId.let { draftRowId ->
+            require(draftRowId is IntId) { "Trying to delete draft Track Number that isn't yet stored in database" }
+            dao.deleteDraft(draftRowId)
+        }
     }
 
     fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }

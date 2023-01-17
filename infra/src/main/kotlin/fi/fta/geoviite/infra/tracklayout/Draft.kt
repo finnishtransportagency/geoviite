@@ -18,10 +18,11 @@ interface Draftable<T> {
     val dataType: DataType
     val draft: Draft<T>?
 
-    fun getDraftType() =
-        if (draft == null) DraftType.OFFICIAL
-        else if (draft!!.draftRowId == id) DraftType.NEW_DRAFT
+    fun getDraftType() = draft.let { d ->
+        if (d == null) DraftType.OFFICIAL
+        else if (d.draftRowId == id) DraftType.NEW_DRAFT
         else DraftType.EDITED_DRAFT
+    }
 }
 
 fun draft(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber =
