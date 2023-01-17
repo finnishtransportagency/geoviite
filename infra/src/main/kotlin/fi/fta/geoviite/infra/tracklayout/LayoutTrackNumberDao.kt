@@ -14,8 +14,8 @@ import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
-class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
-    : DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
+class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
+    DraftableDaoBase<TrackLayoutTrackNumber>(jdbcTemplateParam, DbTable.LAYOUT_TRACK_NUMBER) {
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
@@ -68,7 +68,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             select 
               id as row_id,
               version as row_version,
-              coalesce(draft_of_track_number_id, id) official_id, 
+              coalesce(draft_of_track_number_id, id) as official_id, 
               case when draft then id end as draft_id,
               external_id, 
               number, 
@@ -203,6 +203,63 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 AccessType.FETCH,
                 PublishedTrackNumber::class,
                 trackNumbers.map { it.version })
+        }
+    }
+
+    data class RemovedReferenceIds(
+        val kmPostIds:  MutableList<Int>,
+        val alignmentIds:  MutableList<Int>,
+        val planIds:  MutableList<Int>
+    )
+
+    fun removeReferencesToTrackNumber(id: IntId<TrackLayoutTrackNumber>): RemovedReferenceIds {
+        val kmPostIds = removeKmPostReferenceToTrackNumber(id)
+        val alignmentIds = removeAlignmentReferenceToTrackNumber(id)
+        val planIds = removePlanReferenceToTrackNumber(id)
+
+        return RemovedReferenceIds(
+            kmPostIds = kmPostIds,
+            alignmentIds = alignmentIds,
+            planIds = planIds
+        )
+    }
+
+    private fun removeKmPostReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): MutableList<Int> {
+        val sql = """
+          update geometry.km_post
+          set track_number_id = null 
+          where track_number_id = :id
+          returning id as km_post_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
+            rs.getInt("km_post_id")
+        }
+    }
+
+    private fun removeAlignmentReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): MutableList<Int> {
+        val sql = """
+          update geometry.alignment
+          set track_number_id = null 
+          where track_number_id = :id
+          returning id as alignment_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
+            rs.getInt("alignment_id")
+        }
+    }
+
+    private fun removePlanReferenceToTrackNumber(id: IntId<TrackLayoutTrackNumber>): MutableList<Int> {
+        val sql = """
+          update geometry.plan
+          set track_number_id = null 
+          where track_number_id = :id
+          returning id as plan_id
+        """.trimIndent()
+
+        return jdbcTemplate.query(sql, mapOf("id" to id.intValue)) { rs, _ ->
+            rs.getInt("plan_id")
         }
     }
 }
