@@ -18,7 +18,9 @@ import java.sql.Timestamp
 import java.time.Instant
 
 
-data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>?)
+data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>?) {
+    fun getOfficialId() = official?.id ?: draft?.id
+}
 
 data class DaoResponse<T>(val id: IntId<T>, val rowVersion: RowVersion<T>)
 
@@ -42,6 +44,9 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
 
     fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>>
+
+    fun draftExists(id: IntId<T>): Boolean
+    fun officialExists(id: IntId<T>): Boolean
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
@@ -118,6 +123,9 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         } ?: throw NoSuchEntityException(table.name, id)
     }
 
+    override fun draftExists(id: IntId<T>): Boolean = fetchVersionPair(id).draft != null
+    override fun officialExists(id: IntId<T>): Boolean = fetchVersionPair(id).official != null
+
     override fun fetchAllVersions(): List<RowVersion<T>> = fetchRowVersions(table)
 
     override fun fetchVersionPair(id: IntId<T>): VersionPair<T> {
@@ -145,9 +153,25 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             ?: if (pair.draft != null) null else throw NoSuchEntityException(table.name, id)
     }
 
-    override fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T> = fetchOfficialRowVersionOrThrow(id, table)
+    override fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T> {
+        logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
+        return queryRowVersion(officialFetchSql(table), id)
+    }
 
-    override fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T> = fetchDraftRowVersionOrThrow(id, table)
+    override fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T> {
+        logger.daoAccess(AccessType.VERSION_FETCH,  table.name, id)
+        return queryRowVersion(draftFetchSql(table), id)
+    }
+
+    private fun <T> fetchOfficialRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
+        logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
+        return queryRowVersionOrNull(officialFetchSql(table), id)
+    }
+
+    private fun <T> fetchDraftRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
+        logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
+        return queryRowVersionOrNull(draftFetchSql(table), id)
+    }
 
     override fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T> =
         fetchOfficialVersionAtMoment(id, moment) ?: throw NoSuchEntityException(table.name, id)
@@ -234,25 +258,6 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
                or (o.id = :id and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = :id))
         """
 
-    private fun <T> fetchOfficialRowVersionOrThrow(id: IntId<T>, table: DbTable): RowVersion<T> {
-        logger.daoAccess(AccessType.VERSION_FETCH, "fetchOfficialRowVersionOrThrow", "id" to id, "table" to table.fullName)
-        return queryRowVersion(officialFetchSql(table), id)
-    }
-
-    private fun <T> fetchDraftRowVersionOrThrow(id: IntId<T>, table: DbTable): RowVersion<T> {
-        logger.daoAccess(AccessType.VERSION_FETCH, "fetchDraftRowVersion", "id" to id, "table" to table.fullName)
-        return queryRowVersion(draftFetchSql(table), id)
-    }
-
-    private fun <T> fetchOfficialRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
-        logger.daoAccess(AccessType.VERSION_FETCH, "fetchOfficialRowVersion", "id" to id, "table" to table.fullName)
-        return queryRowVersionOrNull(officialFetchSql(table), id)
-    }
-
-    private fun <T> fetchDraftRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
-        logger.daoAccess(AccessType.VERSION_FETCH, "fetchDraftRowVersion", "id" to id, "table" to table.fullName)
-        return queryRowVersionOrNull(draftFetchSql(table), id)
-    }
 }
 
 inline fun <reified T: Draftable<T>> draftOfId(item: T) = draftOfId(item.id, item.draft)

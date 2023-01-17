@@ -347,3 +347,12 @@ fun locationTrackWithAlignment(
 ) = locationTrackDao.fetch(rowVersion).let { track ->
     track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
 }
+
+fun getConnectedSwitchIds(locationTrack: LocationTrack, alignment: LayoutAlignment): Set<IntId<TrackLayoutSwitch>> {
+    val segmentLinks = alignment.segments.mapNotNull { segment -> segment.switchId as IntId? }
+    val topologyLinks = listOfNotNull(
+        locationTrack.topologyStartSwitch?.switchId,
+        locationTrack.topologyEndSwitch?.switchId,
+    )
+    return (segmentLinks + topologyLinks).toHashSet()
+}

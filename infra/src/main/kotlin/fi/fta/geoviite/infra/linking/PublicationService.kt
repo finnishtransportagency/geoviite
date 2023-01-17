@@ -143,12 +143,15 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getRevertRequestDependencies(publishRequest: PublishRequest): PublishRequest {
-        val newTrackNumbers = publishRequest.referenceLines.mapNotNull { id -> referenceLineService.get(DRAFT, id) }
-            .map { rl -> rl.trackNumberId }.filter { id -> trackNumberService.get(DRAFT, id) != null }
+        val newTrackNumbers = publishRequest.referenceLines
+            .mapNotNull { id -> referenceLineService.get(DRAFT, id) }
+            .map { rl -> rl.trackNumberId }
+            .filter(trackNumberService::draftExists)
 
-        val newReferenceLines =
-            publishRequest.trackNumbers.mapNotNull { id -> referenceLineDao.fetchVersion(DRAFT, id) }
-                .map { version -> version.id }
+        val newReferenceLines = publishRequest.trackNumbers
+            .mapNotNull { id -> referenceLineService.getByTrackNumber(DRAFT, id) }
+            .filter { line -> line.draft != null }
+            .map { line -> line.id as IntId }
         val allTrackNumbers = publishRequest.trackNumbers.toSet() + newTrackNumbers.toSet()
         val allReferenceLines = publishRequest.referenceLines.toSet() + newReferenceLines.toSet()
         val locationTracks = publishRequest.locationTracks.toSet()
@@ -176,18 +179,17 @@ class PublicationService @Autowired constructor(
             locationTrackService.getWithAlignment(DRAFT, id)
         }
 
-        val newSwitches = locationTracks.flatMap { (locationTrack, alignment) ->
-            alignment.segments.mapNotNull { segment -> segment.switchId as IntId? } + listOfNotNull(
-                locationTrack.topologyStartSwitch?.switchId, locationTrack.topologyEndSwitch?.switchId
-            )
-        }.subtract(allPreviouslyFoundSwitches)
-            .filterTo(HashSet()) { id -> switchService.get(DRAFT, id)?.getDraftType() != DraftType.OFFICIAL }
+        val newSwitches = locationTracks
+            .flatMap { (locationTrack, alignment) -> getConnectedSwitchIds(locationTrack, alignment) }
+            .subtract(allPreviouslyFoundSwitches)
+            .filterTo(HashSet(), switchService::draftExists)
 
-        val newLocationTracks =
-            lastLevelSwitches.flatMap { switchId -> switchService.getSwitchJointConnections(DRAFT, switchId) }
-                .flatMap { connections -> connections.accurateMatches }.map { match -> match.locationTrackId }
-                .subtract(allPreviouslyFoundLocationTracks)
-                .filterTo(HashSet()) { id -> locationTrackService.get(DRAFT, id)?.getDraftType() != DraftType.OFFICIAL }
+        val newLocationTracks = lastLevelSwitches
+            .flatMap { switchId -> switchService.getSwitchJointConnections(DRAFT, switchId) }
+            .flatMap { connections -> connections.accurateMatches }
+            .map { match -> match.locationTrackId }
+            .subtract(allPreviouslyFoundLocationTracks)
+            .filterTo(HashSet(), locationTrackService::draftExists)
 
         return if (newSwitches.isNotEmpty() || newLocationTracks.isNotEmpty()) {
             getRevertRequestLocationTrackAndSwitchDependenciesTransitively(

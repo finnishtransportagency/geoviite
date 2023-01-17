@@ -63,6 +63,16 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         return dao.fetchChangeTimes(id)
     }
 
+    fun draftExists(id: IntId<ObjectType>): Boolean {
+        logger.serviceCall("draftExists", "id" to id)
+        return dao.draftExists(id)
+    }
+
+    fun officialExists(id: IntId<ObjectType>): Boolean {
+        logger.serviceCall("officialExists", "id" to id)
+        return dao.officialExists(id)
+    }
+
     protected fun listInternal(publishType: PublishType, includeDeleted: Boolean) =
         dao.fetchVersions(publishType, includeDeleted).map(dao::fetch)
 
