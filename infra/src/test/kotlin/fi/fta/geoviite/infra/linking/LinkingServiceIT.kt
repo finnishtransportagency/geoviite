@@ -50,7 +50,7 @@ class LinkingServiceIT @Autowired constructor(
             )
         )
 
-        val geometryPlanId = geometryDao.insertPlan(plan, testFile())
+        val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
         val (geometryLayoutPlan, transformationError) = geometryService.getTrackLayoutPlan(geometryPlanId.id)
         assertNull(transformationError)
         assertNotNull(geometryLayoutPlan)
@@ -77,8 +77,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), segment1, segment2, segment3)
-        val locationTrackVersion = locationTrackService.saveDraft(locationTrack, alignment)
-        val locationTrackId = locationTrackVersion.id
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(PublicationVersion(locationTrackId, locationTrackVersion))
 
         val (officialTrack, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
@@ -147,7 +146,7 @@ class LinkingServiceIT @Autowired constructor(
             trackNumber(TrackNumber(System.currentTimeMillis().toString()))
         )
         val plan = plan(trackNumberId.id)
-        val geometryPlanId = geometryDao.insertPlan(plan, testFile())
+        val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val fetchedPlan = geometryService.getGeometryPlan(geometryPlanId.id)
 

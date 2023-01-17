@@ -16,16 +16,18 @@ data class RatkoPush(
 )
 
 data class RatkoPushError<T>(
+    val id: IntId<RatkoPushError<*>>,
     val ratkoPushId: IntId<RatkoPush>,
-    val ratkoPushErrorType: RatkoPushErrorType,
+    val errorType: RatkoPushErrorType,
     val operation: RatkoOperation,
     val assetId: IntId<T>,
     val assetType: RatkoAssetType,
 )
 
 data class RatkoPushErrorWithAsset(
+    val id: IntId<RatkoPushError<*>>,
     val ratkoPushId: IntId<RatkoPush>,
-    val ratkoPushErrorType: RatkoPushErrorType,
+    val errorType: RatkoPushErrorType,
     val operation: RatkoOperation,
     val assetType: RatkoAssetType,
     val asset: Draftable<*>

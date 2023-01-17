@@ -1,11 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
-import fi.fta.geoviite.infra.linking.Operation
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.TrackNumberPublishCandidate
+import fi.fta.geoviite.infra.linking.PublishedTrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
@@ -102,7 +100,7 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     }
 
     @Transactional
-    override fun insert(newItem: TrackLayoutTrackNumber): RowVersion<TrackLayoutTrackNumber> {
+    override fun insert(newItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
         verifyDraftableInsert(newItem)
         val sql = """
             insert into layout.track_number(
@@ -121,7 +119,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               :draft, 
               :draft_of_track_number_id
             ) 
-            returning id, version
+            returning 
+              coalesce(draft_of_track_number_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "external_id" to newItem.externalId,
@@ -132,15 +133,15 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_track_number_id" to draftOfId(newItem)?.intValue,
         )
         jdbcTemplate.setUser()
-        val idAndVersion = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion<TrackLayoutTrackNumber>("id", "version")
+        val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
-        logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, idAndVersion)
-        return idAndVersion
+        logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, response)
+        return response
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutTrackNumber): RowVersion<TrackLayoutTrackNumber> {
+    override fun update(updatedItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.track_number
@@ -152,7 +153,10 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               draft = :draft,
               draft_of_track_number_id = :draft_of_track_number_id
             where id = :id
-            returning id, version
+            returning 
+              coalesce(draft_of_track_number_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
@@ -164,43 +168,41 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_track_number_id" to draftOfId(updatedItem)?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: RowVersion<TrackLayoutTrackNumber> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get new version for Track Layout TrackNumber")
-        logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, rowId)
-        return result
+        val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        } ?: throw IllegalStateException("Failed to get new version for Track Layout TrackNumber")
+        logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, response)
+        return response
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<TrackNumberPublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedTrackNumber> {
         val sql = """
           select
-            track_number_change_view.id,
-            track_number_change_view.change_time,
-            track_number_change_view.number,
-            track_number_change_view.change_user,
+            ptn.track_number_id as id,
+            ptn.track_number_version as version,
+            tn.number,
             layout.infer_operation_from_state_transition(
-              track_number_change_view.old_state, 
-              track_number_change_view.state
-            ) operation
-          from publication.track_number published_track_number
-            left join layout.track_number_change_view
-              on published_track_number.track_number_id = track_number_change_view.id
-                and published_track_number.track_number_version = track_number_change_view.version
-          where publication_id = :id
+              tn.old_state, 
+              tn.state
+            ) as operation
+          from publication.track_number ptn
+            left join layout.track_number_change_view tn
+              on ptn.track_number_id = tn.id
+                and ptn.track_number_version = tn.version
+          where publication_id = :publication_id
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "id" to publicationId.intValue
-            )
-        ) { rs, _ ->
-            TrackNumberPublishCandidate(
-                id = rs.getIntId("id"),
-                draftChangeTime = rs.getInstant("change_time"),
+
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            PublishedTrackNumber(
+                version = rs.getRowVersion("id", "version"),
                 number = rs.getTrackNumber("number"),
-                userName = UserName(rs.getString("change_user")),
-                operation = rs.getEnum<Operation>("operation")
+                operation = rs.getEnum("operation")
             )
-        }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
+        }.also { trackNumbers ->
+            logger.daoAccess(
+                AccessType.FETCH,
+                PublishedTrackNumber::class,
+                trackNumbers.map { it.version })
+        }
     }
 }

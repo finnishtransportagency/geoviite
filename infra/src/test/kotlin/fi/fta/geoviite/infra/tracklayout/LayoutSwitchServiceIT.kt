@@ -298,12 +298,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
-        val version = locationTrackService.saveDraft(locationTrack, alignment)
-        return locationTrackService.getDraft(version.id) to LocationTrackIdentifiers(
-            id = version.id,
-            rowVersion = version,
-            externalId = locationTrack.externalId,
-        )
+        val (id, version) = locationTrackService.saveDraft(locationTrack, alignment)
+        return locationTrackService.getDraft(id) to LocationTrackIdentifiers(id, version, locationTrack.externalId)
     }
 
     private fun generateDummyExternalId(): String {

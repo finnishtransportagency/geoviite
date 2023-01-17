@@ -10,14 +10,12 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import styles from '../publication/publication-table.scss';
+import styles from './preview-view.scss';
 import { SelectedPublishChange } from 'track-layout/track-layout-store';
 import { negComparator } from 'utils/array-utils';
 import {
     getSortInfoForProp,
     InitiallyUnsorted,
-    SortDirection,
-    sortDirectionIcon,
     SortInformation,
     SortProps,
 } from 'preview/change-table-sorting';
@@ -32,6 +30,7 @@ import {
 import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
 import { PreviewCandidates } from 'preview/preview-view';
+import { SortDirection, sortDirectionIcon } from 'publication/table/publication-table-utils';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -111,14 +110,14 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     const changesToPublicationEntries = (previewChanges: PreviewCandidates): PreviewTableEntry[] =>
         previewChanges.trackNumbers
             .map((trackNumberCandidate) => ({
-                ...trackNumberToChangeTableEntry(trackNumberCandidate, t),
+                ...trackNumberToChangeTableEntry(trackNumberCandidate),
                 errors: trackNumberCandidate.errors,
                 type: PreviewSelectType.trackNumber,
                 pendingValidation: trackNumberCandidate.pendingValidation,
             }))
             .concat(
                 previewChanges.referenceLines.map((referenceLineCandidate) => ({
-                    ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers, t),
+                    ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers),
                     errors: referenceLineCandidate.errors,
                     type: PreviewSelectType.referenceLine,
                     pendingValidation: referenceLineCandidate.pendingValidation,
@@ -126,7 +125,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             )
             .concat(
                 previewChanges.locationTracks.map((locationTrackCandidate) => ({
-                    ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers, t),
+                    ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers),
                     errors: locationTrackCandidate.errors,
                     type: PreviewSelectType.locationTrack,
                     pendingValidation: locationTrackCandidate.pendingValidation,
@@ -134,7 +133,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             )
             .concat(
                 previewChanges.switches.map((switchCandidate) => ({
-                    ...switchToChangeTableEntry(switchCandidate, trackNumbers, t),
+                    ...switchToChangeTableEntry(switchCandidate, trackNumbers),
                     errors: switchCandidate.errors,
                     type: PreviewSelectType.switch,
                     pendingValidation: switchCandidate.pendingValidation,
@@ -142,7 +141,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             )
             .concat(
                 previewChanges.kmPosts.map((kmPostCandidate) => ({
-                    ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers, t),
+                    ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers),
                     errors: kmPostCandidate.errors,
                     type: PreviewSelectType.kmPost,
                     pendingValidation: kmPostCandidate.pendingValidation,
@@ -174,23 +173,23 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     );
 
     return (
-        <div className={styles['publication-table__container']}>
+        <div className={styles['preview-table__container']}>
             <Table wide>
-                <thead className={styles['publication-table__header']}>
+                <thead className={styles['preview-table__header']}>
                     <tr>
-                        {sortableTableHeader(SortProps.NAME, 'publication-table.change-target')}
+                        {sortableTableHeader(SortProps.NAME, 'preview-table.change-target')}
                         {sortableTableHeader(
                             SortProps.TRACK_NUMBER,
-                            'publication-table.track-number-short',
+                            'preview-table.track-number-short',
                         )}
-                        {sortableTableHeader(SortProps.OPERATION, 'publication-table.change-type')}
+                        {sortableTableHeader(SortProps.OPERATION, 'preview-table.change-type')}
                         {sortableTableHeader(
                             SortProps.CHANGE_TIME,
-                            'publication-table.modified-moment',
+                            'preview-table.modified-moment',
                         )}
-                        {sortableTableHeader(SortProps.USER_NAME, 'publication-table.user')}
-                        {sortableTableHeader(SortProps.ERRORS, 'publication-table.status')}
-                        <Th>{t('publication-table.actions')}</Th>
+                        {sortableTableHeader(SortProps.USER_NAME, 'preview-table.user')}
+                        {sortableTableHeader(SortProps.ERRORS, 'preview-table.status')}
+                        <Th>{t('preview-table.actions')}</Th>
                     </tr>
                 </thead>
                 <tbody>

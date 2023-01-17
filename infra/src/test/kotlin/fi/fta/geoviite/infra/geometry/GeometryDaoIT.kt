@@ -4,6 +4,11 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
@@ -12,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 
 const val TEST_NAME_PREFIX = "GEOM_DAO_IT_"
@@ -20,6 +26,7 @@ const val TEST_NAME_PREFIX = "GEOM_DAO_IT_"
 @SpringBootTest
 class GeometryDaoIT @Autowired constructor(
     val geometryDao: GeometryDao,
+    val locationTrackService: LocationTrackService,
 ): ITTestBase() {
 
     @BeforeEach
@@ -142,7 +149,7 @@ class GeometryDaoIT @Autowired constructor(
     fun insertPlanWorks() {
         val plan = plan(insertOfficialTrackNumber())
         val fileContent = "<a></a>"
-        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent))
+        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
         val fetchedPlan = geometryDao.fetchPlan(id)
         val file = geometryDao.getPlanFile(id.id)
         assertPlansMatch(plan, fetchedPlan)
@@ -154,7 +161,7 @@ class GeometryDaoIT @Autowired constructor(
     fun minimalPlanInsertWorks() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min.xml")
         val plan = minimalPlan(fileName = file.name)
-        val version = geometryDao.insertPlan(plan, file)
+        val version = geometryDao.insertPlan(plan, file, null)
         assertPlansMatch(plan, geometryDao.fetchPlan(version))
     }
 
@@ -172,7 +179,36 @@ class GeometryDaoIT @Autowired constructor(
                 ),
             )),
         )
-        val version = geometryDao.insertPlan(plan, file)
+        val version = geometryDao.insertPlan(plan, file, null)
         assertPlansMatch(plan, geometryDao.fetchPlan(version))
+    }
+
+    @Test
+    fun getLinkingSummariesHappyCase() {
+        val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
+        val trackNumberId = insertOfficialTrackNumber()
+        val plan = plan(
+            trackNumberId = trackNumberId,
+            fileName = file.name,
+            alignments = listOf(geometryAlignment(
+                elements = listOf(
+                    minimalLine(),
+                ),
+            )),
+        )
+        val planVersion = geometryDao.insertPlan(plan, file, null)
+        val element = geometryDao.fetchPlan(planVersion).alignments[0].elements[0]
+        val track = locationTrackAndAlignment(trackNumberId,
+            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
+        )
+        val trackVersion = locationTrackService.saveDraft(track.first, track.second)
+        locationTrackService.publish(PublicationVersion(trackVersion.id, trackVersion.rowVersion))
+        val trackChangeTime = locationTrackService.getChangeTimes(trackVersion.id).officialChanged!!
+
+        val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, "TEST_USER")
+        val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))
+        val allSummaries = geometryDao.getLinkingSummaries(null)
+        assertEquals(mapOf(planVersion.id to expectedSummary), summaries)
+        assertContains(allSummaries.values, expectedSummary)
     }
 }

@@ -1,12 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
 import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.SwitchPublishCandidate
+import fi.fta.geoviite.infra.linking.PublishedSwitch
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
@@ -17,8 +16,6 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-
-const val MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE = 1.0
 
 @Suppress("SameParameterValue")
 @Transactional(readOnly = true)
@@ -60,8 +57,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 segment.switch_id,
                 segment.geometry,
                 segment.switch_start_joint_number,
-                segment.switch_end_joint_number,
-                segment.bounding_box
+                segment.switch_end_joint_number
               from layout.segment
                 inner join layout.alignment on alignment.id = segment.alignment_id
                 inner join layout.location_track_publication_view location_track
@@ -84,27 +80,20 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               postgis.st_y(postgis.st_startpoint(alignment.geometry)) as location_start_y,
               postgis.st_x(postgis.st_endpoint(alignment.geometry)) as location_end_x,
               postgis.st_y(postgis.st_endpoint(alignment.geometry)) as location_end_y,
-              alignment.official_id as location_track_id,
-              coalesce(alignment.switch_id = switch.official_id
-                         and (alignment.switch_start_joint_number = switch_joint.number
-                           or alignment.switch_end_joint_number = switch_joint.number), false) as match_based_on_segment_link
+              alignment.official_id as location_track_id
             from layout.switch_joint
               inner join layout.switch_publication_view switch 
                 on switch.row_id = switch_joint.switch_id
                   and switch.state_category != 'NOT_EXISTING'
               left join alignment
-                on (alignment.switch_id = switch.official_id
+                on alignment.switch_id = switch.official_id
                       and (alignment.switch_start_joint_number = switch_joint.number
-                        or alignment.switch_end_joint_number = switch_joint.number))
-                  or (postgis.st_intersects(alignment.bounding_box,
-                                            postgis.st_expand(switch_joint.location, :max_lookup_distance))
-                      and postgis.st_distance(alignment.geometry, switch_joint.location) < :max_lookup_distance)
+                        or alignment.switch_end_joint_number = switch_joint.number)
             where switch.official_id = :switch_id and :publication_state = any(switch.publication_states)
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
             "publication_state" to publicationState.name,
-            "max_lookup_distance" to MAX_FALLBACK_SWITCH_JOINT_TRACK_LOOKUP_DISTANCE,
         )
 
         data class JointKey(
@@ -114,7 +103,6 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
 
         val unmatchedJoints: MutableSet<JointKey> = mutableSetOf()
         val accurateMatches: MutableMap<JointKey, MutableMap<IntId<LocationTrack>, Point>> = mutableMapOf()
-        val fallbackMatches: MutableMap<JointKey, MutableSet<IntId<LocationTrack>>> = mutableMapOf()
 
         jdbcTemplate.query(sql, params) { rs, _ ->
             val jointKey = JointKey(
@@ -123,30 +111,24 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             )
             val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
             if (locationTrackId != null) {
-                val matchBasedOnSegmentLink = rs.getBoolean("match_based_on_segment_link")
-                if (matchBasedOnSegmentLink) {
-                    val matchedAtStart = rs.getBoolean("matched_at_segment_start")
-                    val location =
-                        if (matchedAtStart) rs.getPoint("location_start_x", "location_start_y")
-                        else rs.getPoint("location_end_x", "location_end_y")
-                    accurateMatches.computeIfAbsent(jointKey) { mutableMapOf() }[locationTrackId] = location
-                } else {
-                    fallbackMatches.computeIfAbsent(jointKey) { mutableSetOf() }.add(locationTrackId)
-                }
+                val matchedAtStart = rs.getBoolean("matched_at_segment_start")
+                val location =
+                    if (matchedAtStart) rs.getPoint("location_start_x", "location_start_y")
+                    else rs.getPoint("location_end_x", "location_end_y")
+                accurateMatches.computeIfAbsent(jointKey) { mutableMapOf() }[locationTrackId] = location
             } else {
                 unmatchedJoints.add(jointKey)
             }
         }
-        return (unmatchedJoints + accurateMatches.keys + fallbackMatches.keys).map { joint ->
+        return (unmatchedJoints + accurateMatches.keys).map { joint ->
             TrackLayoutSwitchJointConnection(joint.number,
                 accurateMatches[joint]?.entries?.map { e -> TrackLayoutSwitchJointMatch(e.key, e.value) } ?: listOf(),
-                fallbackMatches[joint]?.toList() ?: listOf(),
                 joint.locationAccuracy)
         }
     }
 
     @Transactional
-    override fun insert(newItem: TrackLayoutSwitch): RowVersion<TrackLayoutSwitch> {
+    override fun insert(newItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
         verifyDraftableInsert(newItem.id, newItem.draft)
 
         val sql = """
@@ -175,10 +157,13 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               :draft_of_switch_id,
               :source::layout.geometry_source
             )
-            returning id, version
+            returning 
+              coalesce(draft_of_switch_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         jdbcTemplate.setUser()
-        val id: RowVersion<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
+        val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
             sql, mapOf(
                 "external_id" to newItem.externalId,
                 "geometry_switch_id" to if (newItem.sourceId is IntId) newItem.sourceId.intValue else null,
@@ -191,15 +176,15 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 "draft_of_switch_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
                 "source" to newItem.source.name
             )
-        ) { rs, _ -> rs.getRowVersion("id", "version") }
+        ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
             ?: throw IllegalStateException("Failed to generate ID for new switch")
-        if (newItem.joints.isNotEmpty()) upsertJoints(id, newItem.joints)
-        logger.daoAccess(INSERT, TrackLayoutSwitch::class, id)
-        return id
+        if (newItem.joints.isNotEmpty()) upsertJoints(response.rowVersion, newItem.joints)
+        logger.daoAccess(INSERT, TrackLayoutSwitch::class, response)
+        return response
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutSwitch): RowVersion<TrackLayoutSwitch> {
+    override fun update(updatedItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.switch
@@ -213,7 +198,10 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               draft = :draft,
               draft_of_switch_id = :draft_of_switch_id
             where id = :id
-            returning id, version
+            returning 
+              coalesce(draft_of_switch_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
@@ -227,14 +215,14 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             "draft_of_switch_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: RowVersion<TrackLayoutSwitch> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
+        val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        } ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
 
-        upsertJoints(result, updatedItem.joints)
+        upsertJoints(response.rowVersion, updatedItem.joints)
 
-        logger.daoAccess(UPDATE, TrackLayoutSwitch::class, rowId)
-        return result
+        logger.daoAccess(UPDATE, TrackLayoutSwitch::class, response)
+        return response
     }
 
     private fun upsertJoints(
@@ -396,40 +384,40 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         }
     }
 
-    fun fetchSwitchPublicationInformation(publicationId: IntId<Publication>): List<SwitchPublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedSwitch> {
         val sql = """
             select
-              switch_change_view.id,
-              switch_change_view.change_time,
-              switch_change_view.name,
-              switch_change_view.version,
-              switch_change_view.change_user,
-              layout.infer_operation_from_state_category_transition(switch_change_view.old_state_category, switch_change_view.state_category) operation,
-              (select array_agg(sltn)
-                from layout.switch_linked_track_numbers(switch_change_view.id, :publication_state) sltn)
-               as track_numbers
-            from publication.switch published_switch
-              left join layout.switch_change_view
-                on published_switch.switch_id = switch_change_view.id
-                  and published_switch.switch_version = switch_change_view.version
-            where publication_id = :id
+              pswitch.switch_id as id,
+              pswitch.switch_version as version,
+              switch.name,
+              layout.infer_operation_from_state_category_transition(switch.old_state_category, switch.state_category) as operation,
+              (
+                select array_agg(distinct track_number_id)
+                from (
+                  select lt.track_number_id
+                  from layout.segment
+                  left join layout.location_track_version lt using (alignment_id)
+                  where segment.switch_id = pswitch.switch_id and not lt.draft
+                  union all
+                  select lt.track_number_id
+                  from layout.location_track_version lt
+                  where (pswitch.switch_id = lt.topology_start_switch_id or pswitch.switch_id = lt.topology_end_switch_id) 
+                    and not lt.draft
+                ) tns
+              ) as track_number_ids
+            from publication.switch pswitch
+            left join layout.switch_change_view switch
+              on switch.id = pswitch.switch_id and switch.version = pswitch.switch_version
+            where publication_id = :publication_id
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "id" to publicationId.intValue,
-                "publication_state" to PublishType.OFFICIAL.name,
-            )
-        ) { rs, _ ->
-            SwitchPublishCandidate(
-                id = rs.getIntId("id"),
-                draftChangeTime = rs.getInstant("change_time"),
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            PublishedSwitch(
+                version = rs.getRowVersion("id", "version"),
                 name = SwitchName(rs.getString("name")),
-                userName = UserName(rs.getString("change_user")),
+                trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = rs.getEnum("operation"),
-                trackNumberIds = rs.getIntIdArray("track_numbers"),
             )
-        }.also { logger.daoAccess(FETCH, Publication::class, publicationId) }
+        }.also { switches -> logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version }) }
     }
 
     data class LocationTrackIdentifiers(

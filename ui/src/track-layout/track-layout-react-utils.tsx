@@ -11,8 +11,16 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { useLoader, useNullableLoader } from 'utils/react-utils';
-import { ChangeTimes, CoordinateSystem, PublishType, Srid, TimeStamp } from 'common/common-model';
-import { getCoordinateSystem } from 'common/common-api';
+import {
+    ChangeTimes,
+    CoordinateSystem,
+    PublishType,
+    Srid,
+    SwitchStructure,
+    SwitchStructureId,
+    TimeStamp,
+} from 'common/common-model';
+import { getCoordinateSystem, getSwitchStructure } from 'common/common-api';
 import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
 import { getGeometryPlanHeader } from 'geometry/geometry-api';
 import {
@@ -80,6 +88,13 @@ export function useSwitch(
     return useLoader(() => (id ? getSwitch(id, publishType) : undefined), [id, publishType]);
 }
 
+export function useSwitchStructure(
+    id: SwitchStructureId | undefined
+): SwitchStructure | undefined {
+    return useLoader(() => (id ? getSwitchStructure(id) : undefined), [id]);
+}
+
+
 export function useTrackNumber(
     publishType: PublishType,
     id: LayoutTrackNumberId | undefined | null,
@@ -95,6 +110,16 @@ export function useTrackNumbers(
     changeTime?: TimeStamp,
 ): LayoutTrackNumber[] | undefined {
     return useLoader(() => getTrackNumbers(publishType, changeTime), [publishType, changeTime]);
+}
+
+export function useTrackNumbersIncludingDeleted(
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): LayoutTrackNumber[] | undefined {
+    return useLoader(
+        () => getTrackNumbers(publishType, changeTime, true),
+        [publishType, changeTime],
+    );
 }
 
 export function useReferenceLineStartAndEnd(

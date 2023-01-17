@@ -28,8 +28,15 @@ import { getGeometrySwitch, getGeometrySwitchLayout } from 'geometry/geometry-ap
 import { boundingBoxAroundPoints, expandBoundingBox } from 'model/geometry';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { asTrackLayoutSwitchJointConnection } from 'linking/linking-utils';
-import { useSwitch } from 'track-layout/track-layout-react-utils';
+import { useSwitch, useSwitchStructure } from 'track-layout/track-layout-react-utils';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+
+enum SwitchTypeMatch {
+    Exact,
+    Similar,
+    Invalid,
+}
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
@@ -47,13 +54,6 @@ type GeometrySwitchLinkingInfoboxProps = {
     planId?: GeometryPlanId;
     publishType: PublishType;
 };
-
-function isValidSwitchForLinking(
-    suggestedSwitch: SuggestedSwitch,
-    layoutSwitch: LayoutSwitch,
-): boolean {
-    return suggestedSwitch.switchStructure.id == layoutSwitch.switchStructureId;
-}
 
 const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> = ({
     geometrySwitchId,
@@ -135,16 +135,39 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
     const selectedLayoutSwitch = useSwitch(linkingState?.layoutSwitchId, publishType);
     const isLayoutSwitchSelected = selectedLayoutSwitch != undefined;
+    const selectedLayoutSwitchStructure = useSwitchStructure(
+        selectedLayoutSwitch?.switchStructureId,
+    );
+    const switchTypeMatch =
+        suggestedSwitch &&
+        selectedLayoutSwitch &&
+        suggestedSwitch.switchStructure.id == selectedLayoutSwitch.switchStructureId
+            ? SwitchTypeMatch.Exact
+            : suggestedSwitch &&
+              selectedLayoutSwitchStructure &&
+              suggestedSwitch.switchStructure.baseType == selectedLayoutSwitchStructure.baseType &&
+              suggestedSwitch.switchStructure.hand == selectedLayoutSwitchStructure.hand
+            ? SwitchTypeMatch.Similar
+            : SwitchTypeMatch.Invalid;
+
+    const [switchTypeDifferenceIsConfirmed, setSwitchTypeDifferenceIsConfirmed] =
+        React.useState(false);
     const isValidLayoutSwitch =
         suggestedSwitch != undefined &&
         selectedLayoutSwitch != undefined &&
-        isValidSwitchForLinking(suggestedSwitch, selectedLayoutSwitch);
+        (switchTypeMatch == SwitchTypeMatch.Exact ||
+            (switchTypeMatch == SwitchTypeMatch.Similar && switchTypeDifferenceIsConfirmed));
     const canLink =
         isLayoutSwitchSelected &&
         isValidLayoutSwitch &&
         linkingState?.state === 'allSet' &&
         !linkingCallInProgress;
-    const showInvalidSwitchError = isLayoutSwitchSelected && !isValidLayoutSwitch;
+    const showInvalidSwitchTypeError =
+        isLayoutSwitchSelected && switchTypeMatch == SwitchTypeMatch.Invalid;
+    const showSwitchTypeDiffersWarning =
+        isLayoutSwitchSelected && switchTypeMatch == SwitchTypeMatch.Similar;
+
+    React.useEffect(() => setSwitchTypeDifferenceIsConfirmed(false), [selectedLayoutSwitch]);
 
     function startLinking() {
         if (suggestedSwitch) {
@@ -304,9 +327,52 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                     {linkingState && (
                         <React.Fragment>
                             <InfoboxContentSpread>
-                                <MessageBox pop={showInvalidSwitchError}>
-                                    {t(
-                                        'tool-panel.switch.geometry.cannot-link-invalid-switch-type',
+                                <MessageBox
+                                    pop={
+                                        showInvalidSwitchTypeError || showSwitchTypeDiffersWarning
+                                    }>
+                                    <div
+                                        className={
+                                            styles[
+                                                'geometry-switch-infobox__switch-type-warning-msg'
+                                            ]
+                                        }>
+                                        {showInvalidSwitchTypeError &&
+                                            t(
+                                                'tool-panel.switch.geometry.cannot-link-invalid-switch-type',
+                                                [
+                                                    suggestedSwitch?.switchStructure.type,
+                                                    selectedLayoutSwitchStructure?.type,
+                                                ],
+                                            )}
+                                        {showSwitchTypeDiffersWarning &&
+                                            t(
+                                                'tool-panel.switch.geometry.switch-type-differs-warning',
+                                                [
+                                                    suggestedSwitch?.switchStructure.type,
+                                                    selectedLayoutSwitchStructure?.type,
+                                                ],
+                                            )}
+                                    </div>
+                                    {showSwitchTypeDiffersWarning && (
+                                        <div
+                                            className={
+                                                styles[
+                                                    'geometry-switch-infobox__switch-type-confirm'
+                                                ]
+                                            }>
+                                            <Checkbox
+                                                checked={switchTypeDifferenceIsConfirmed}
+                                                onChange={(e) =>
+                                                    setSwitchTypeDifferenceIsConfirmed(
+                                                        e.target.checked,
+                                                    )
+                                                }>
+                                                {t(
+                                                    'tool-panel.switch.geometry.switch-type-confirm-msg',
+                                                )}
+                                            </Checkbox>
+                                        </div>
                                     )}
                                 </MessageBox>
                             </InfoboxContentSpread>

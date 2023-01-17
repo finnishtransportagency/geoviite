@@ -297,6 +297,17 @@ class DraftIT @Autowired constructor(
     }
 
     @Test
+    fun trackNumberCanOnlyHaveOneDraft() {
+        val trackNumber = insertAndVerify(trackNumber(getUnusedTrackNumber()))
+
+        val draft1 = draft(trackNumber)
+        val draft2 = draft(trackNumber)
+
+        trackNumberDao.insert(draft1)
+        assertThrows<DuplicateKeyException> { trackNumberDao.insert(draft2) }
+    }
+
+    @Test
     fun draftTypeOfNewDraftIsReturnedCorrectly() {
         val draft = draft(kmPost(null, someKmNumber()))
         assertEquals(draft.getDraftType(), DraftType.NEW_DRAFT)
@@ -393,10 +404,11 @@ class DraftIT @Autowired constructor(
         val (line, alignment) = lineAndAlignment
         val alignmentVersion = alignmentDao.insert(alignment)
         val lineWithAlignment = line.copy(alignmentVersion = alignmentVersion)
-        val lineVersion = referenceLineDao.insert(lineWithAlignment)
+        val lineResponse = referenceLineDao.insert(lineWithAlignment)
         val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
         assertMatches(alignment, alignmentFromDb)
-        val lineFromDb = referenceLineDao.fetch(lineVersion)
+        val lineFromDb = referenceLineDao.fetch(lineResponse.rowVersion)
+        assertEquals(lineResponse.id, lineFromDb.id)
         assertMatches(lineWithAlignment, lineFromDb)
         return lineFromDb to alignmentFromDb
     }
@@ -407,32 +419,36 @@ class DraftIT @Autowired constructor(
         val (track, alignment) = trackAndAlignment
         val alignmentVersion = alignmentDao.insert(alignment)
         val trackWithAlignment = track.copy(alignmentVersion = alignmentVersion)
-        val trackVersion = locationTrackDao.insert(trackWithAlignment)
+        val trackResponse = locationTrackDao.insert(trackWithAlignment)
         val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
         assertMatches(alignment, alignmentFromDb)
-        val trackFromDb = locationTrackDao.fetch(trackVersion)
+        val trackFromDb = locationTrackDao.fetch(trackResponse.rowVersion)
+        assertEquals(trackResponse.id, trackFromDb.id)
         assertMatches(trackWithAlignment, trackFromDb)
         return trackFromDb to alignmentFromDb
     }
 
     private fun insertAndVerify(switch: TrackLayoutSwitch): TrackLayoutSwitch {
-        val id = switchDao.insert(switch)
-        val fromDb = switchDao.fetch(id)
+        val response = switchDao.insert(switch)
+        val fromDb = switchDao.fetch(response.rowVersion)
         assertMatches(switch, fromDb)
+        assertEquals(response.id, fromDb.id)
         return fromDb
     }
 
     private fun insertAndVerify(kmPost: TrackLayoutKmPost): TrackLayoutKmPost {
-        val id = kmPostDao.insert(kmPost)
-        val fromDb = kmPostDao.fetch(id)
+        val response = kmPostDao.insert(kmPost)
+        val fromDb = kmPostDao.fetch(response.rowVersion)
         assertMatches(kmPost, fromDb)
+        assertEquals(response.id, fromDb.id)
         return fromDb
     }
 
     private fun insertAndVerify(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber {
-        val id = trackNumberDao.insert(trackNumber)
-        val fromDb = trackNumberDao.fetch(id)
+        val response = trackNumberDao.insert(trackNumber)
+        val fromDb = trackNumberDao.fetch(response.rowVersion)
         assertMatches(trackNumber, fromDb)
+        assertEquals(response.id, fromDb.id)
         return fromDb
     }
 }

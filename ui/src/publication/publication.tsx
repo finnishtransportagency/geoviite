@@ -1,42 +1,28 @@
 import * as React from 'react';
-import PublicationTable from 'publication/publication-table';
-import { getPublication } from 'publication/publication-api';
-import { PublicationDetails, PublicationListingItem } from 'publication/publication-model';
-import styles from './publication-details.scss';
+import PublicationTable from 'publication/table/publication-table';
+import { PublicationDetails } from 'publication/publication-model';
+import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
-import { useLoaderWithTimer } from 'utils/react-utils';
-import { ratkoPushFailed, RatkoPushStatus } from 'ratko/ratko-model';
+import { ratkoPushFailed } from 'ratko/ratko-model';
 
 export type PublicationDetailsProps = {
-    publication: PublicationListingItem;
+    publication: PublicationDetails;
     onPublicationUnselected: () => void;
     anyFailed: boolean;
 };
 
-const PublicationDetails: React.FC<PublicationDetailsProps> = ({
+const Publication: React.FC<PublicationDetailsProps> = ({
     publication,
     onPublicationUnselected,
     anyFailed,
 }) => {
-    const [publicationDetails, setPublicationDetails] = React.useState<PublicationDetails | null>();
-    const [waitingAfterFail, setWaitingAfterFail] = React.useState<boolean>();
     const { t } = useTranslation();
 
-    function setPublicationDetailsAndWaitingAfterFail(details?: PublicationDetails) {
-        setPublicationDetails(details);
-        setWaitingAfterFail(publicationDetails?.status === null && anyFailed);
-    }
-
-    useLoaderWithTimer(
-        setPublicationDetailsAndWaitingAfterFail,
-        () => getPublication(publication.id),
-        [],
-        30000,
-    );
+    const waitingAfterFail = publication.ratkoPushStatus === null && anyFailed;
 
     return (
         <div className={styles['publication-details__publication']}>
@@ -48,24 +34,15 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
                     {t('frontpage.frontpage-link')}
                 </Link>
                 <span className={styles['publication-details__publication-time']}>
-                    {publicationDetails && ' > ' + formatDateFull(publicationDetails.publishTime)}
+                    {' > ' + formatDateFull(publication.publicationTime)}
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
-                {publicationDetails && (
-                    <PublicationTable
-                        publicationChanges={publicationDetails}
-                        ratkoPushDate={
-                            publicationDetails.status === RatkoPushStatus.SUCCESSFUL
-                                ? publicationDetails.ratkoPushTime || undefined
-                                : undefined
-                        }
-                    />
-                )}
+                <PublicationTable publications={[publication]} />
             </div>
-            {(ratkoPushFailed(publication.status) || waitingAfterFail) && (
+            {(ratkoPushFailed(publication.ratkoPushStatus) || waitingAfterFail) && (
                 <footer className={styles['publication-details__footer']}>
-                    {ratkoPushFailed(publication.status) && (
+                    {ratkoPushFailed(publication.ratkoPushStatus) && (
                         <div className={styles['publication-details__failure-notification']}>
                             <span
                                 className={
@@ -107,4 +84,4 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     );
 };
 
-export default PublicationDetails;
+export default Publication;

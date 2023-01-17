@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { InfraModelListState } from 'infra-model/list/infra-model-list-store';
 import './infra-model-list.module.scss';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,7 @@ import PlanPhase from 'geoviite-design-lib/plan-phase/plan-phase';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { INFRAMODEL_URI } from 'infra-model/infra-model-api';
+import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -48,6 +50,34 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
 ) => {
     const trackNumbers = useTrackNumbers('DRAFT');
 
+    const [linkingSummaries, setLinkingSummaries] = useState<
+        Map<GeometryPlanId, GeometryPlanLinkingSummary | null>
+    >(() => new Map());
+
+    useEffect(() => {
+        const newPlans: GeometryPlanId[] = [];
+        for (const plan of props.plans) {
+            if (!linkingSummaries.has(plan.id)) {
+                newPlans.push(plan.id);
+            }
+        }
+        if (newPlans.length === 0) {
+            return;
+        }
+        getGeometryPlanLinkingSummaries(newPlans).then((plansAndSummaries) => {
+            if (plansAndSummaries == null) {
+                return;
+            }
+            setLinkingSummaries((currentLinkingSummaries) => {
+                const newLinkingSummaries = new Map(currentLinkingSummaries);
+                for (const [planId, summary] of Object.entries(plansAndSummaries)) {
+                    newLinkingSummaries.set(planId, summary);
+                }
+                return newLinkingSummaries;
+            });
+        });
+    }, [props.plans]);
+
     function setFilter(sortByValue: SortByValue) {
         props.onSearchParamsChange({
             ...props.searchParams,
@@ -63,6 +93,14 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     function getSortingIcon(): IconComponent {
         return props.searchParams.sortOrder == 0 ? Icons.Ascending : Icons.Descending;
     }
+
+    function linkingSummaryDate(planId: GeometryPlanId) {
+        const linkingSummary = linkingSummaries.get(planId);
+        return linkingSummary == null ? '' : formatDateFull(linkingSummary.linkedAt);
+    }
+
+    const linkingSummaryUsers = (planId: GeometryPlanId) =>
+        linkingSummaries.get(planId)?.linkedByUsers ?? '';
 
     const { t } = useTranslation();
     const firstItem = props.page * props.pageSize + (props.plans.length > 0 ? 1 : 0);
@@ -173,7 +211,24 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                 onClick={() => setFilter(SortByValue.UPLOADED_AT)}>
                                 {t('im-form.created-field')}
                             </Th>
-                            <th>{t('im-form.linked-field')}</th>
+                            <Th
+                                icon={
+                                    props.searchParams.sortBy == SortByValue.LINKED_AT
+                                        ? getSortingIcon()
+                                        : undefined
+                                }
+                                onClick={() => setFilter(SortByValue.LINKED_AT)}>
+                                {t('im-form.linked-at-field')}
+                            </Th>
+                            <Th
+                                icon={
+                                    props.searchParams.sortBy == SortByValue.LINKED_BY
+                                        ? getSortingIcon()
+                                        : undefined
+                                }
+                                onClick={() => setFilter(SortByValue.LINKED_BY)}>
+                                {t('im-form.linked-by-users-field')}
+                            </Th>
                             <th />
                             <th />
                         </tr>
@@ -215,7 +270,8 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         <td>
                                             {plan.uploadTime && formatDateFull(plan.uploadTime)}
                                         </td>
-                                        <td>{plan.linkedAt && formatDateFull(plan.linkedAt)}</td>
+                                        <td>{linkingSummaryDate(plan.id)}</td>
+                                        <td>{linkingSummaryUsers(plan.id)}</td>
                                         <td onClick={(e) => e.stopPropagation()}>
                                             {plan.source !== 'PAIKANNUSPALVELU' && (
                                                 <Link

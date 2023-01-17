@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.testgroup2
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -142,8 +141,8 @@ class LinkingTestUI @Autowired constructor(
         insertLocationTrack(LOCATION_TRACK_B)
         insertLocationTrack(LOCATION_TRACK_D_1)
         insertLocationTrack(LOCATION_TRACK_D_2)
-        LOCATION_TRACK_E_ID = insertLocationTrack(LOCATION_TRACK_E).id
-        LOCATION_TRACK_F_ID = insertLocationTrack(LOCATION_TRACK_F).id
+        LOCATION_TRACK_E_ID = insertLocationTrack(LOCATION_TRACK_E)
+        LOCATION_TRACK_F_ID = insertLocationTrack(LOCATION_TRACK_F)
         insertLocationTrack(LOCATION_TRACK_G)
         insertLocationTrack(LOCATION_TRACK_H)
         insertLocationTrack(LOCATION_TRACK_J)
@@ -152,7 +151,7 @@ class LinkingTestUI @Autowired constructor(
         insertReferenceLine(REFERENCE_LINE_ESP2)
         //insertReferenceLine(REFERENCE_LINE_ESP3)
 
-        GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile())))
+        GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile(), null)))
 
     }
 
@@ -919,14 +918,14 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkingInfoBox.linkita()
     }
 
-    fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>) {
+    fun insertReferenceLine(lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>): IntId<ReferenceLine> {
         val alignmentVersion = alignmentDao.insert(lineAndAlignment.second)
-        referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+        return referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
     }
 
-    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>): RowVersion<LocationTrack> {
+    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>): IntId<LocationTrack> {
         val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
-        return locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+        return locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
     }
 
     fun getLocationTrackAndAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {

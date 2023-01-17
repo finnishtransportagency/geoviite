@@ -21,9 +21,12 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}")
-    fun getTrackNumbers(@PathVariable("publishType") publishType: PublishType): List<TrackLayoutTrackNumber> {
+    fun getTrackNumbers(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean
+    ): List<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumbers", "publishType" to publishType)
-        return trackNumberService.list(publishType)
+        return trackNumberService.list(publishType, includeDeleted)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -40,7 +43,7 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
     @PostMapping("/draft")
     fun insertTrackNumber(@RequestBody saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("insertTrackNumber", "trackNumber" to saveRequest)
-        return trackNumberService.insert(saveRequest).id
+        return trackNumberService.insert(saveRequest)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

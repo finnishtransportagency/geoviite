@@ -11,20 +11,15 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.dataImport.InfraModelMetadataColumns.*
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.error.InputValidationException
-import fi.fta.geoviite.infra.geography.CoordinateSystemDao
-import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
-import fi.fta.geoviite.infra.geography.mapByNameOrAlias
-import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanSource.GEOMETRIAPALVELU
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
-import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.inframodel.fileToString
 import fi.fta.geoviite.infra.inframodel.parseGeometryPlan
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
@@ -94,16 +89,19 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
                 val csMap = mapByNameOrAlias(CoordinateSystemDao(jdbcTemplate).fetchApplicationCoordinateSystems())
                 val switchStructureDao = SwitchStructureDao(jdbcTemplate)
-                val kkJtoETRSTriangulationDao = KKJtoETRSTriangulationDao(jdbcTemplate)
+                val coordinateTransformationService = CoordinateTransformationService(
+                    KKJtoETRSTriangulationDao(jdbcTemplate)
+                )
                 val switchStructures = switchStructureDao.fetchSwitchStructures()
                 val featureTypes = CodeDictionaryDao(jdbcTemplate).getFeatureTypes()
                 val trackNumberDao = LayoutTrackNumberDao(jdbcTemplate)
-                val geometryDao = GeometryDao(jdbcTemplate, kkJtoETRSTriangulationDao)
+                val geometryDao = GeometryDao(jdbcTemplate)
                 val trackNumberIdsByNumber = trackNumberDao.getTrackNumberToIdMapping()
                 val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
 
                 importWithSubFolders(
                     geometryDao,
+                    coordinateTransformationService,
                     originalsDir,
                     GEOMETRIAPALVELU,
                     csMap,
@@ -115,6 +113,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                 )
                 importWithSubFolders(
                     geometryDao,
+                    coordinateTransformationService,
                     layoutsDir,
                     PAIKANNUSPALVELU,
                     csMap,
@@ -147,6 +146,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
 
     private fun importWithSubFolders(
         geometryDao: GeometryDao,
+        coordinateTransformationService: CoordinateTransformationService,
         baseDir: File,
         type: PlanSource,
         csMap: Map<CoordinateSystemName, Srid>,
@@ -184,7 +184,11 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     "Inserting InfraModel: path=$readablePath validationIssues=${validationIssues.size}"
                 )
 
-                geometryDao.insertPlan(plan, file, type)
+                val layoutBoundingBox = plan.units.coordinateSystemSrid
+                    ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
+                    ?.let { transformation -> getBoundingPolygonPointsFromAlignments(plan.alignments, transformation) }
+
+                geometryDao.insertPlan(plan, file, layoutBoundingBox, type)
                 imCount++
             }
             catch (e: InframodelParsingException) {

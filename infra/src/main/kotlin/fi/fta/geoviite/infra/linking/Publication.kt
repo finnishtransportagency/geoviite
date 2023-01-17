@@ -8,40 +8,58 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
-data class PublicationListingItem(
-    val id: IntId<Publication>,
-    val publishTime: Instant,
-    val ratkoPushTime: Instant?,
-    val status: RatkoPushStatus?,
-    val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-    val hasRatkoPushError: Boolean,
+open class Publication(
+    open val id: IntId<Publication>,
+    open val publicationTime: Instant,
+    open val publicationUser: UserName,
 )
 
-data class PublicationHeader(
-    val id: IntId<Publication>,
-    val publishTime: Instant,
-    val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
-    val locationTracks: List<IntId<LocationTrack>>,
-    val switches: List<IntId<TrackLayoutSwitch>>,
+data class PublishedTrackNumber(
+    val version: RowVersion<TrackLayoutTrackNumber>,
+    val id: IntId<TrackLayoutTrackNumber> = version.id,
+    val number: TrackNumber,
+    val operation: Operation
 )
 
-data class Publication(
-    val id: IntId<Publication>,
-    val publishTime: Instant,
-    val trackNumbers: List<TrackNumberPublishCandidate>,
-    val referenceLines: List<ReferenceLinePublishCandidate>,
-    val locationTracks: List<LocationTrackPublishCandidate>,
-    val switches: List<SwitchPublishCandidate>,
-    val kmPosts: List<KmPostPublishCandidate>,
-    val status: RatkoPushStatus?,
-    val ratkoPushTime: Instant?,
+data class PublishedReferenceLine(
+    val version: RowVersion<ReferenceLine>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val operation: Operation
 )
 
-data class PublicationTime(
-    val publishTime: Instant,
-    val status: RatkoPushStatus?,
-    val ratkoPushTime: Instant?,
+data class PublishedLocationTrack(
+    val version: RowVersion<LocationTrack>,
+    val name: AlignmentName,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val operation: Operation,
 )
+
+data class PublishedSwitch(
+    val version: RowVersion<TrackLayoutSwitch>,
+    val trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
+    val name: SwitchName,
+    val operation: Operation
+)
+
+data class PublishedKmPost(
+    val version: RowVersion<TrackLayoutKmPost>,
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val kmNumber: KmNumber,
+    val operation: Operation
+)
+
+data class PublicationDetails(
+    override val id: IntId<Publication>,
+    override val publicationTime: Instant,
+    override val publicationUser: UserName,
+    val trackNumbers: List<PublishedTrackNumber>,
+    val referenceLines: List<PublishedReferenceLine>,
+    val locationTracks: List<PublishedLocationTrack>,
+    val switches: List<PublishedSwitch>,
+    val kmPosts: List<PublishedKmPost>,
+    val ratkoPushStatus: RatkoPushStatus?,
+    val ratkoPushTime: Instant?,
+) : Publication(id, publicationTime, publicationUser)
 
 enum class DraftChangeType {
     TRACK_NUMBER,

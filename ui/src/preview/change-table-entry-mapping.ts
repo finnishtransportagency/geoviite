@@ -14,6 +14,13 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
+import {
+    getKmPostUiName,
+    getLocationTrackUiName,
+    getReferenceLineUiName,
+    getSwitchUiName,
+    getTrackNumberUiName,
+} from 'publication/table/publication-table-utils';
 
 type PublicationId =
     | LayoutTrackNumberId
@@ -32,8 +39,6 @@ export type ChangeTableEntry = {
     operation: Operation;
 };
 
-type TranslationFunc = (tKey: string) => string;
-
 const changeTableEntryCommonFields = (
     candidate:
         | LocationTrackPublishCandidate
@@ -48,12 +53,9 @@ const changeTableEntryCommonFields = (
     operation: candidate.operation,
 });
 
-export const trackNumberToChangeTableEntry = (
-    trackNumber: TrackNumberPublishCandidate,
-    t: TranslationFunc,
-) => ({
+export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublishCandidate) => ({
     ...changeTableEntryCommonFields(trackNumber),
-    uiName: `${t('publication-table.track-number-long')} ${trackNumber.number}`,
+    uiName: getTrackNumberUiName(trackNumber.number),
     name: trackNumber.number,
     trackNumber: trackNumber.number,
 });
@@ -61,12 +63,11 @@ export const trackNumberToChangeTableEntry = (
 export const referenceLineToChangeTableEntry = (
     referenceLine: ReferenceLinePublishCandidate,
     trackNumbers: LayoutTrackNumber[],
-    t: TranslationFunc,
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
     return {
         ...changeTableEntryCommonFields(referenceLine),
-        uiName: `${t('publication-table.reference-line')} ${referenceLine.name}`,
+        uiName: getReferenceLineUiName(referenceLine.name),
         name: referenceLine.name,
         trackNumber: trackNumber ? trackNumber.number : '',
     };
@@ -75,12 +76,11 @@ export const referenceLineToChangeTableEntry = (
 export const locationTrackToChangeTableEntry = (
     locationTrack: LocationTrackPublishCandidate,
     trackNumbers: LayoutTrackNumber[],
-    t: TranslationFunc,
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId);
     return {
         ...changeTableEntryCommonFields(locationTrack),
-        uiName: `${t('publication-table.location-track')} ${locationTrack.name}`,
+        uiName: getLocationTrackUiName(locationTrack.name),
         name: locationTrack.name,
         trackNumber: trackNumber ? trackNumber.number : '',
     };
@@ -89,7 +89,6 @@ export const locationTrackToChangeTableEntry = (
 export const switchToChangeTableEntry = (
     layoutSwitch: SwitchPublishCandidate,
     trackNumbers: LayoutTrackNumber[],
-    t: TranslationFunc,
 ) => {
     const trackNumber = trackNumbers
         .filter((tn) => layoutSwitch.trackNumberIds.some((lstn) => lstn == tn.id))
@@ -98,7 +97,7 @@ export const switchToChangeTableEntry = (
         .join(', ');
     return {
         ...changeTableEntryCommonFields(layoutSwitch),
-        uiName: `${t('publication-table.switch')} ${layoutSwitch.name}`,
+        uiName: getSwitchUiName(layoutSwitch.name),
         name: layoutSwitch.name,
         trackNumber,
     };
@@ -107,12 +106,11 @@ export const switchToChangeTableEntry = (
 export const kmPostChangeTableEntry = (
     kmPost: KmPostPublishCandidate,
     trackNumbers: LayoutTrackNumber[],
-    t: TranslationFunc,
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === kmPost.trackNumberId);
     return {
         ...changeTableEntryCommonFields(kmPost),
-        uiName: `${t('publication-table.km-post')} ${kmPost.kmNumber}`,
+        uiName: getKmPostUiName(kmPost.kmNumber),
         name: kmPost.kmNumber,
         trackNumber: trackNumber ? trackNumber.number : '',
     };

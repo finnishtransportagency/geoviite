@@ -221,7 +221,6 @@ private inline fun <reified T> getCsvMetaData(
 ): List<AlignmentCsvMetaData<T>> {
     val geometryDao = GeometryDao(
         jdbcTemplate,
-        KKJtoETRSTriangulationDao(jdbcTemplate)
     )
     val geometryProvider = { fileName: FileName, alignmentName: AlignmentName ->
         val match = fetchAlignmentGeometry(jdbcTemplate, geometryDao, fileName, alignmentName)

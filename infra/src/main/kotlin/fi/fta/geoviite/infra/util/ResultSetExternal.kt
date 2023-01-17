@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.geometry.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import java.sql.ResultSet
 import java.time.Instant
 
@@ -212,6 +213,12 @@ inline fun <reified T> ResultSet.getList(name: String): List<T> {
         else throw IllegalStateException("Array contains value of unexpected type")
     }
 }
+
+fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) =
+    DaoResponse<T>(
+        id = getIntId(officialIdName),
+        rowVersion = getRowVersion(versionIdName, versionName),
+    )
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))

@@ -596,7 +596,7 @@ class AddressChangesServiceIT @Autowired constructor(
         val sequence = System.currentTimeMillis().toString().takeLast(8)
         val refPoint = Point(370000.0, 7100000.0) // any point in Finland
         val trackNumber = layoutTrackNumberDao.fetch(
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber("TEST TN $sequence")))
+            layoutTrackNumberDao.insert(trackNumber(TrackNumber("TEST TN $sequence"))).rowVersion
         )
         val kmPost1 = layoutKmPostDao.fetch(
             layoutKmPostDao.insert(
@@ -605,7 +605,7 @@ class AddressChangesServiceIT @Autowired constructor(
                     km = KmNumber(1),
                     location = refPoint + 5.0
                 )
-            )
+            ).rowVersion
         )
         val kmPost2 = layoutKmPostDao.fetch(
             layoutKmPostDao.insert(
@@ -614,7 +614,7 @@ class AddressChangesServiceIT @Autowired constructor(
                     km = KmNumber(2),
                     location = refPoint + 10.0
                 )
-            )
+            ).rowVersion
         )
         val referenceLinePoints = (0..15).map { i -> refPoint + i.toDouble() }
         val referenceLineGeometryVersion = layoutAlignmentDao.insert(
@@ -631,7 +631,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 ).copy(
                     alignmentVersion = referenceLineGeometryVersion
                 )
-            )
+            ).rowVersion
         )
         val alignmentPoints = referenceLinePoints.subList(2, referenceLinePoints.count() - 2)
         val locationTrackGeometryVersion = layoutAlignmentDao.insert(
@@ -649,7 +649,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 ).copy(
                     alignmentVersion = locationTrackGeometryVersion
                 )
-            )
+            ).rowVersion
         )
 
         return SetupData(
@@ -666,7 +666,7 @@ class AddressChangesServiceIT @Autowired constructor(
 
     fun updateAndPublish(locationTrack: LocationTrack, alignment: LayoutAlignment) {
         val version = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(PublicationVersion(version.id, version))
+        locationTrackService.publish(PublicationVersion(version.id, version.rowVersion))
     }
 
 
@@ -691,7 +691,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 }
             )
         )
-        locationTrackService.publish(PublicationVersion(version.id, version))
+        locationTrackService.publish(PublicationVersion(version.id, version.rowVersion))
     }
 
     fun moveReferenceLineGeometryPointsAndUpdate(
@@ -717,7 +717,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 } )
             )
         )
-        referenceLineService.publish(PublicationVersion(version.id, version))
+        referenceLineService.publish(PublicationVersion(version.id, version.rowVersion))
     }
 
     fun moveKmPostAndUpdate(
@@ -726,10 +726,8 @@ class AddressChangesServiceIT @Autowired constructor(
     ): TrackLayoutKmPost {
         return layoutKmPostDao.fetch(
             layoutKmPostDao.update(
-                kmPost.copy(
-                    location = moveFunc(kmPost.location!!)
-                )
-            )
+                kmPost.copy(location = moveFunc(kmPost.location!!))
+            ).rowVersion
         )
     }
 

@@ -4,18 +4,19 @@ import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
@@ -29,6 +30,7 @@ class InfraModelService @Autowired constructor(
     private val geographyService: GeographyService,
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberService: LayoutTrackNumberService,
+    private val coordinateTransformationService: CoordinateTransformationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -38,30 +40,14 @@ class InfraModelService @Autowired constructor(
         extraInfoParameters: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
-
         val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
+        val geometryPlan =
+            overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
+        val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
+            ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
+            ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
 
-        val planId = geometryService.getDuplicateGeometryPlanId(imFile)
-        var duplicateFileName = ""
-
-        try {
-            val geometryPlan =
-                overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
-
-            duplicateFileName = planId?.let { plan -> geometryService.getPlanFile(plan).name.toString() } ?: ""
-            if (duplicateFileName.length > 0) {
-                throw Exception()
-            }
-
-            return geometryDao.insertPlan(geometryPlan, imFile)
-
-        } catch (e: Exception) {
-            throw InframodelParsingException(
-                  message = "InfraModel file exists already",
-                  localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                  localizedMessageParams = listOf(duplicateFileName),
-            )
-        }
+        return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
 
     fun validateInputFileAndParseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {

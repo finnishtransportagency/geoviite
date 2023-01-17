@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.geometry
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
@@ -36,7 +35,6 @@ data class GeometryPlanHeader(
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val planTime: Instant?,
-    val linkedAt: Instant?,
     val message: FreeText?,
     val linkedAsPlanId: IntId<GeometryPlan>?,
     val uploadTime: Instant,
@@ -76,11 +74,6 @@ data class GeometryPlan(
 ) {
     @get:JsonIgnore
     val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
-
-    fun getBoundingPolygonPoints(triangles: List<KKJtoETRSTriangle>): List<Point> =
-        units.coordinateSystemSrid?.let { srid ->
-            tryCreateBoundingPolygonPoints(srid, collectAnglePoints(alignments), triangles)
-        } ?: listOf()
 }
 
 data class GeometryPlanArea(
@@ -100,4 +93,9 @@ data class GeometryUnits(
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val directionUnit: AngularUnit,
     val linearUnit: LinearUnit,
+)
+
+data class GeometryPlanLinkingSummary(
+    val linkedAt: Instant,
+    val linkedByUsers: String,
 )

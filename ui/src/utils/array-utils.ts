@@ -140,6 +140,14 @@ export function last<T>(array: T[]): T {
     return array[array.length - 1];
 }
 
+export function subtract<T>(originalCollection: T[], valuesToRemove: T[]): T[] {
+    if (valuesToRemove.length === 0) {
+        return originalCollection;
+    }
+    const setToRemove = new Set(valuesToRemove);
+    return originalCollection.filter((x) => !setToRemove.has(x));
+}
+
 export function removeIfExists<T>(originalCollection: T[], valueToRemove: T | undefined) {
     return valueToRemove
         ? originalCollection.filter((changeId) => changeId != valueToRemove)

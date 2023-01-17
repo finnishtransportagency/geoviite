@@ -25,7 +25,7 @@ val LOG: Logger = LoggerFactory.getLogger(CsvFile::class.java)
 val RATKO_SRID = Srid(4326)
 
 // Prepare math-transform, rather than recreating on every conversion
-val RATKO_TO_LAYOUT_TRANSFORM = Transformation(RATKO_SRID, LAYOUT_SRID)
+val RATKO_TO_LAYOUT_TRANSFORM = Transformation.nonKKJToETRSTransform(RATKO_SRID, LAYOUT_SRID)
 const val MIN_ANGLE_DIFFERENCE_TO_DETECT_CONNECTION_SEGMENT = PI/32
 const val MAX_SUM_ANGLE_DIFFERENCE_TO_DETECT_CONNECTION_SEGMENT = PI/32
 const val LAYOUT_METER_LENGTH_WARNING_THRESHOLD = 5.0
@@ -810,8 +810,10 @@ fun <T> createLayoutSegment(
     val srid = metadata.metadata?.geometrySrid
     val sourceElement = if (srid != null) metadata.metadata.geometryElement else null
     val sourceStart = if (srid != null && sourceElement != null) {
-        sourceElement.getLengthUntil(transformCoordinate(LAYOUT_SRID, srid, segmentPoints.first()))
-    } else null
+        sourceElement.getLengthUntil(transformNonKKJCoordinate(LAYOUT_SRID, srid, segmentPoints.first()))
+    } else {
+        null
+    }
     return LayoutSegment(
         points = toLayoutPoints(segmentPoints),
         sourceId = metadata.metadata?.geometryElement?.id,
@@ -1014,7 +1016,7 @@ fun <T> getGeometryElementRanges(
                 "alignment=${alignment.alignmentOid} " +
                 "geom=${alignment.geometry.id}"
         )
-        val transform = Transformation(sourceSrid, LAYOUT_SRID, kkjToEtrsTriangulationTriangles)
+        val transform = Transformation.possiblyKKJToETRSTransform(sourceSrid, LAYOUT_SRID, kkjToEtrsTriangulationTriangles)
         val firstElementPoint = transform.transform(elements.first().start)
         val lastElementPoint = transform.transform(elements.last().end)
         val dirElements = directionBetweenPoints(firstElementPoint, lastElementPoint)

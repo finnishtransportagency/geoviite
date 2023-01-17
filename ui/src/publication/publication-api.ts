@@ -1,10 +1,17 @@
-import { API_URI, deleteAdt, getIgnoreError, postAdt, postIgnoreError } from 'api/api-fetch';
+import {
+    API_URI,
+    deleteAdt,
+    getIgnoreError,
+    postAdt,
+    postIgnoreError,
+    queryParams,
+} from 'api/api-fetch';
 import { JointNumber, KmNumber, Oid, TrackMeter } from 'common/common-model';
 import {
     PublicationDetails,
     PublicationId,
-    PublicationListingItem,
     PublishCandidates,
+    ValidatedPublishCandidates,
 } from 'publication/publication-model';
 import {
     LayoutKmPostId,
@@ -14,8 +21,9 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
+import { formatISODate } from 'utils/date-utils';
 
-const PUBLISH_URI = `${API_URI}/publications`;
+const PUBLICATION_URL = `${API_URI}/publications`;
 
 export interface PublishRequest {
     trackNumbers: LayoutTrackNumberId[];
@@ -69,31 +77,42 @@ export interface CalculatedChanges {
     switchChanges: SwitchChange[];
 }
 
-export interface ValidatedPublishCandidates {
-    validatedAsPublicationUnit: PublishCandidates;
-    validatedSeparately: PublishCandidates;
-}
-
 export const getPublishCandidates = () =>
-    getIgnoreError<PublishCandidates>(`${PUBLISH_URI}/candidates`);
+    getIgnoreError<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
 export const validatePublishCandidates = (request: PublishRequest) =>
-    postIgnoreError<PublishRequest, ValidatedPublishCandidates>(`${PUBLISH_URI}/validate`, request);
+    postIgnoreError<PublishRequest, ValidatedPublishCandidates>(
+        `${PUBLICATION_URL}/validate`,
+        request,
+    );
 
 export const revertCandidates = (request: PublishRequest) =>
-    deleteAdt<PublishRequest, PublishResult>(`${PUBLISH_URI}/candidates`, request, true);
+    deleteAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
 
 export const publishCandidates = (request: PublishRequest) => {
-    return postAdt<PublishRequest, PublishResult>(`${PUBLISH_URI}`, request, true);
+    return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-export const getPublications = () => getIgnoreError<PublicationListingItem[]>(`${PUBLISH_URI}/`);
+export const getPublications = (fromDate?: Date, toDate?: Date) => {
+    const params = queryParams({
+        from: fromDate ? formatISODate(fromDate) : '',
+        to: toDate ? formatISODate(toDate) : '',
+    });
+
+    return getIgnoreError<PublicationDetails[]>(`${PUBLICATION_URL}${params}`);
+};
 
 export const getPublication = (id: PublicationId) =>
-    getIgnoreError<PublicationDetails>(`${PUBLISH_URI}/${id}`);
+    getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
 export const getCalculatedChanges = (request: PublishRequest) =>
     postIgnoreError<PublishRequest, CalculatedChanges>(
-        `${PUBLISH_URI}/calculated-changes`,
+        `${PUBLICATION_URL}/calculated-changes`,
+        request,
+    );
+
+export const getRevertRequestDependencies = (request: PublishRequest) =>
+    postIgnoreError<PublishRequest, PublishRequest>(
+        `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );

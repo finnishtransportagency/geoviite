@@ -55,9 +55,7 @@ import {
 } from './layers/debug-1m-points-layer';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
-import cursorDefaultClick from 'geoviite-design-lib/glyphs/material-design/cursor-default-click.svg';
-import ruler from 'geoviite-design-lib/glyphs/material-design/ruler.svg';
-import { IconColor, makeHigherOrderSvgIcon } from 'vayla-design-lib/icon/Icon';
+import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 
 declare global {
     interface Window {
@@ -403,10 +401,6 @@ const MapView: React.FC<MapViewProps> = ({
         }
     }, [olMap, measurementToolActive]);
 
-    function getToolIcon(svg: string) {
-        return makeHigherOrderSvgIcon(svg)({ color: IconColor.INHERIT });
-    }
-
     return (
         <div className={styles.map}>
             <ol className="map__map-tools">
@@ -416,7 +410,7 @@ const MapView: React.FC<MapViewProps> = ({
                         styles['map__map-tool'],
                         !measurementToolActive && styles['map__map-tool--active'],
                     )}>
-                    {getToolIcon(cursorDefaultClick)}
+                    <Icons.Select color={IconColor.INHERIT} />
                 </li>
                 <li
                     onClick={() => setMeasurementToolActive(true)}
@@ -424,7 +418,7 @@ const MapView: React.FC<MapViewProps> = ({
                         styles['map__map-tool'],
                         measurementToolActive && styles['map__map-tool--active'],
                     )}>
-                    {getToolIcon(ruler)}
+                    <Icons.Measure color={IconColor.INHERIT} />
                 </li>
             </ol>
 

@@ -1,14 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_REFERENCE_LINE
-import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.linking.Operation
 import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.ReferenceLinePublishCandidate
+import fi.fta.geoviite.infra.linking.PublishedReferenceLine
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -69,7 +68,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
     }
 
     @Transactional
-    override fun insert(newItem: ReferenceLine): RowVersion<ReferenceLine> {
+    override fun insert(newItem: ReferenceLine): DaoResponse<ReferenceLine> {
         val sql = """
             insert into layout.reference_line(
               track_number_id,
@@ -87,7 +86,10 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               :draft, 
               :draft_of_reference_line_id
             ) 
-            returning id, version
+            returning 
+              coalesce(draft_of_reference_line_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to newItem.trackNumberId.intValue,
@@ -100,15 +102,15 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         )
 
         jdbcTemplate.setUser()
-        val version: RowVersion<ReferenceLine> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to generate ID for new Location Track")
+        val version: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        } ?: throw IllegalStateException("Failed to generate ID for new Location Track")
         logger.daoAccess(AccessType.INSERT, ReferenceLine::class, version)
         return version
     }
 
     @Transactional
-    override fun update(updatedItem: ReferenceLine): RowVersion<ReferenceLine> {
+    override fun update(updatedItem: ReferenceLine): DaoResponse<ReferenceLine> {
         val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.reference_line
@@ -120,7 +122,10 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               draft = :draft,
               draft_of_reference_line_id = :draft_of_reference_line_id
             where id = :id
-            returning id, version 
+            returning 
+              coalesce(draft_of_reference_line_id, id) as official_id,
+              id as row_id,
+              version as row_version
         """.trimIndent()
         val params = mapOf(
             "id" to rowId.intValue,
@@ -133,16 +138,12 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             "draft_of_reference_line_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: RowVersion<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Reference Line")
         logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, rowId)
         return result
     }
-
-    fun fetchVersionOrThrow(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>) =
-        fetchVersion(publicationState, trackNumberId)
-            ?: throw NoSuchEntityException(ReferenceLine::class, trackNumberId)
 
     fun fetchVersion(
         publicationState: PublishType,
@@ -239,36 +240,36 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<ReferenceLinePublishCandidate> {
+    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedReferenceLine> {
         val sql = """
-          select
-            reference_line_version.id,
-            reference_line_version.change_time,
-            reference_line_version.track_number_id,
-            track_number.number as name,
-            reference_line_version.change_user
-          from publication.reference_line published_reference_line
-            left join layout.reference_line_version
-              on published_reference_line.reference_line_id = reference_line_version.id
-                and published_reference_line.reference_line_version = reference_line_version.version
-            left join layout.track_number
-              on reference_line_version.track_number_id = track_number.id
-          where publication_id = :id
+          select 
+            prl.reference_line_id as id,
+            prl.reference_line_version as version,
+            rl.track_number_id,
+            layout.infer_operation_from_state_transition(
+              tn.old_state,
+              tn.state
+            ) as operation
+          from publication.reference_line prl
+            left join layout.reference_line_version rl
+              on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
+            left join publication.track_number ptn 
+              on ptn.track_number_id = rl.track_number_id and ptn.publication_id = prl.publication_id
+            left join layout.track_number_change_view tn
+              on ptn.track_number_id = tn.id and ptn.track_number_version = tn.version
+          where prl.publication_id = :publication_id;
         """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "id" to publicationId.intValue,
-            )
-        ) { rs, _ ->
-            ReferenceLinePublishCandidate(
-                id = rs.getIntId("id"),
-                draftChangeTime = rs.getInstant("change_time"),
+        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
+            PublishedReferenceLine(
+                version = rs.getRowVersion("id", "version"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                name = rs.getTrackNumber("name"),
-                userName = UserName(rs.getString("change_user")),
-                operation = null
+                operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY
             )
-        }.also { logger.daoAccess(AccessType.FETCH, Publication::class, publicationId) }
+        }.also { referenceLines ->
+            logger.daoAccess(
+                AccessType.FETCH,
+                PublishedReferenceLine::class,
+                referenceLines.map { it.version })
+        }
     }
 }

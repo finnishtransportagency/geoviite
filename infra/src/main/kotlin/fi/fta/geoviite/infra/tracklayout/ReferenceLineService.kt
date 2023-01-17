@@ -26,7 +26,7 @@ class ReferenceLineService(
     fun addTrackNumberReferenceLine(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
-    ): RowVersion<ReferenceLine> {
+    ): DaoResponse<ReferenceLine> {
         logger.serviceCall("insertTrackNumberReferenceLine",
             "trackNumberId" to trackNumberId, "startAddress" to startAddress)
         return saveDraftInternal(ReferenceLine(
@@ -40,7 +40,7 @@ class ReferenceLineService(
     fun updateTrackNumberReferenceLine(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
-    ): RowVersion<ReferenceLine> {
+    ): DaoResponse<ReferenceLine>? {
         logger.serviceCall("updateTrackNumberStart",
             "trackNumberId" to trackNumberId, "startAddress" to startAddress)
         val originalVersion = dao.fetchVersion(DRAFT, trackNumberId)
@@ -52,22 +52,22 @@ class ReferenceLineService(
                 alignmentVersion = updatedAlignmentVersion(original),
             ))
         } else {
-            originalVersion
+            null
         }
     }
 
     @Transactional
-    override fun saveDraft(draft: ReferenceLine): RowVersion<ReferenceLine> = super.saveDraft(
+    override fun saveDraft(draft: ReferenceLine): DaoResponse<ReferenceLine> = super.saveDraft(
         draft.copy(alignmentVersion = updatedAlignmentVersion(draft))
     )
 
     @Transactional
-    fun saveDraft(draft: ReferenceLine, alignment: LayoutAlignment): RowVersion<ReferenceLine> {
+    fun saveDraft(draft: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
         logger.serviceCall("save", "locationTrack" to draft.id, "alignment" to alignment.id)
         return saveDraftInternal(draft, alignment)
     }
 
-    private fun saveDraftInternal(draft: ReferenceLine, alignment: LayoutAlignment): RowVersion<ReferenceLine> {
+    private fun saveDraftInternal(draft: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
             if (draft.dataType == TEMP || draft.draft == null) {
@@ -88,7 +88,7 @@ class ReferenceLineService(
         else line.alignmentVersion
 
     @Transactional
-    override fun publish(version: PublicationVersion<ReferenceLine>): RowVersion<ReferenceLine> {
+    override fun publish(version: PublicationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
         logger.serviceCall("publish", "version" to version)
         val officialVersion = dao.fetchOfficialVersion(version.officialId)
         val oldDraft = dao.fetch(version.draftVersion)
@@ -102,7 +102,7 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun deleteUnpublishedDraft(id: IntId<ReferenceLine>): RowVersion<ReferenceLine> {
+    override fun deleteUnpublishedDraft(id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
         val draft = getInternalOrThrow(DRAFT, id)
         val deletedVersion = super.deleteUnpublishedDraft(id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)
@@ -114,16 +114,18 @@ class ReferenceLineService(
     override fun createPublished(item: ReferenceLine) = published(item)
 
     @Transactional
-    fun deleteDraftOnlyReferenceLine(referenceLine: ReferenceLine) {
+    fun deleteDraftOnlyReferenceLine(referenceLine: ReferenceLine): DaoResponse<ReferenceLine> {
         if (referenceLine.getDraftType() != DraftType.NEW_DRAFT)
             throw DeletingFailureException("Trying to delete non-draft Reference Line")
         require(referenceLine.id is IntId) { "Trying to delete or reset reference line not yet saved to database" }
 
-        referenceLineDao.deleteDrafts(referenceLine.draft!!.draftRowId as IntId<ReferenceLine>)
-        alignmentDao.delete(
-            referenceLine.alignmentVersion?.id
-                ?: throw IllegalStateException("Trying to delete reference line without alignment")
-        )
+        val response = referenceLine.draft?.draftRowId.let { draftRowId ->
+            require(draftRowId is IntId) { "Trying to delete draft Reference Line that isn't yet stored in database" }
+            referenceLineDao.deleteDraft(draftRowId)
+        }
+
+        referenceLine.alignmentVersion?.id?.let(alignmentDao::delete)
+        return response
     }
 
     fun getByTrackNumber(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {

@@ -1,7 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -15,9 +18,9 @@ class LayoutTrackNumberService(
 ) : DraftableObjectService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(saveRequest: TrackNumberSaveRequest): RowVersion<TrackLayoutTrackNumber> {
+    fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
         logger.serviceCall("insert", "trackNumber" to saveRequest.number)
-        val trackNumberVersion = saveDraftInternal(
+        val draftSaveResponse = saveDraftInternal(
             TrackLayoutTrackNumber(
                 number = saveRequest.number,
                 description = saveRequest.description,
@@ -25,18 +28,18 @@ class LayoutTrackNumberService(
                 externalId = null,
             )
         )
-        referenceLineService.addTrackNumberReferenceLine(trackNumberVersion.id, saveRequest.startAddress)
-        return trackNumberVersion
+        referenceLineService.addTrackNumberReferenceLine(draftSaveResponse.id, saveRequest.startAddress)
+        return draftSaveResponse.id
     }
 
     @Transactional
     fun update(
         id: IntId<TrackLayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
-    ): RowVersion<TrackLayoutTrackNumber> {
+    ): IntId<TrackLayoutTrackNumber> {
         logger.serviceCall("update", "trackNumber" to saveRequest.number)
         val original = getInternalOrThrow(DRAFT, id)
-        val trackNumberVersion = saveDraftInternal(
+        val draftSaveResponse = saveDraftInternal(
             original.copy(
                 number = saveRequest.number,
                 description = saveRequest.description,
@@ -44,7 +47,7 @@ class LayoutTrackNumberService(
             )
         )
         referenceLineService.updateTrackNumberReferenceLine(id, saveRequest.startAddress)
-        return trackNumberVersion
+        return draftSaveResponse.id
     }
 
 
@@ -52,7 +55,7 @@ class LayoutTrackNumberService(
     fun updateExternalId(
         id: IntId<TrackLayoutTrackNumber>,
         oid: Oid<TrackLayoutTrackNumber>,
-    ): RowVersion<TrackLayoutTrackNumber> {
+    ): DaoResponse<TrackLayoutTrackNumber> {
         logger.serviceCall("updateExternalIdForTrackNumber", "id" to id, "oid" to oid)
 
         val original = getDraft(id)
@@ -68,15 +71,17 @@ class LayoutTrackNumberService(
             ?: throw IllegalStateException("Found Track Number without Reference Line $id")
 
         referenceLineService.deleteDraftOnlyReferenceLine(referenceLine)
-        deleteDraftOnlyTrackNumber(trackNumber)
-        return id
+        return deleteDraftOnlyTrackNumber(trackNumber).id
     }
 
-    private fun deleteDraftOnlyTrackNumber(trackNumber: TrackLayoutTrackNumber) {
+    private fun deleteDraftOnlyTrackNumber(trackNumber: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
         if (trackNumber.getDraftType() != DraftType.NEW_DRAFT)
             throw DeletingFailureException("Trying to delete non-draft Track Number")
         require(trackNumber.id is IntId) { "Trying to delete or reset track number not yet saved to database" }
-        dao.deleteDrafts(trackNumber.draft!!.draftRowId as IntId<TrackLayoutTrackNumber>)
+        return trackNumber.draft?.draftRowId.let { draftRowId ->
+            require(draftRowId is IntId) { "Trying to delete draft Track Number that isn't yet stored in database" }
+            dao.deleteDraft(draftRowId)
+        }
     }
 
     fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }

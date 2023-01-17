@@ -34,7 +34,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 KmNumber(5555), 5.5, 1
             )
         )
-        val id = trackNumberService.insert(saveRequest).id
+        val id = trackNumberService.insert(saveRequest)
         val trackNumber = trackNumberService.getDraft(id)
 
         assertNull(trackNumber.externalId)
@@ -81,7 +81,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 KmNumber(5555), 5.5, 1
             )
         )
-        val id = trackNumberService.insert(saveRequest).id
+        val id = trackNumberService.insert(saveRequest)
         val trackNumber = trackNumberService.getDraft(id)
 
         val (referenceLine, alignment) = referenceLineService.getByTrackNumberWithAlignment(

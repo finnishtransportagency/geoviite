@@ -1,0 +1,2 @@
+drop index if exists layout.reference_line_version_alignment_id_version_ix;
+create index reference_line_version_alignment_id_version_ix on layout.reference_line_version (alignment_id, alignment_version);

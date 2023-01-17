@@ -1,4 +1,4 @@
-import { KmNumber, TimeStamp, TrackNumber } from 'common/common-model';
+import { KmNumber, RowVersion, TimeStamp, TrackNumber } from 'common/common-model';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
@@ -42,15 +42,17 @@ export type TrackNumberPublishCandidate = PublishCandidate & {
 export type LocationTrackPublishCandidate = PublishCandidate & {
     type: DraftChangeType.LOCATION_TRACK;
     id: LocationTrackId;
-    trackNumberId: LayoutTrackNumberId | null;
+    trackNumberId: LayoutTrackNumberId;
     name: string;
+    duplicateOf: LocationTrackId;
 };
 
 export type ReferenceLinePublishCandidate = PublishCandidate & {
     type: DraftChangeType.REFERENCE_LINE;
     id: ReferenceLineId;
     trackNumberId: LayoutTrackNumberId;
-    name: string;
+    name: TrackNumber;
+    operation: Operation | null;
 };
 
 export type SwitchPublishCandidate = PublishCandidate & {
@@ -80,23 +82,49 @@ export type ValidatedPublishCandidates = {
     validatedSeparately: PublishCandidates;
 };
 
-export type PublicationListingItem = {
-    id: PublicationId;
-    publishTime: TimeStamp;
-    ratkoPushTime?: TimeStamp;
-    status: RatkoPushStatus | null;
-    trackNumberIds: LayoutTrackNumberId[];
-    hasRatkoPushError: boolean;
-};
-
 export type PublicationDetails = {
     id: PublicationId;
-    publishTime: TimeStamp;
-    trackNumbers: TrackNumberPublishCandidate[];
-    referenceLines: ReferenceLinePublishCandidate[];
-    locationTracks: LocationTrackPublishCandidate[];
-    switches: SwitchPublishCandidate[];
-    kmPosts: KmPostPublishCandidate[];
-    status: RatkoPushStatus | null;
-    ratkoPushTime?: TimeStamp | null;
+    publicationTime: TimeStamp;
+    publicationUser: string;
+    trackNumbers: PublishedTrackNumber[];
+    referenceLines: PublishedReferenceLine[];
+    locationTracks: PublishedLocationTrack[];
+    switches: PublishedSwitch[];
+    kmPosts: PublishedKmPost[];
+    ratkoPushStatus: RatkoPushStatus | null;
+    ratkoPushTime: TimeStamp | null;
+};
+
+export type PublishedTrackNumber = {
+    version: RowVersion;
+    id: LayoutTrackNumberId;
+    number: TrackNumber;
+    operation: Operation;
+};
+
+export type PublishedReferenceLine = {
+    version: RowVersion;
+    trackNumberId: LayoutTrackNumberId;
+    operation: Operation;
+};
+
+export type PublishedLocationTrack = {
+    version: RowVersion;
+    name: string;
+    trackNumberId: LayoutTrackNumberId;
+    operation: Operation;
+};
+
+export type PublishedSwitch = {
+    version: RowVersion;
+    trackNumberIds: LayoutTrackNumberId[];
+    name: string;
+    operation: Operation;
+};
+
+export type PublishedKmPost = {
+    version: RowVersion;
+    trackNumberId: LayoutTrackNumberId;
+    kmNumber: KmNumber;
+    operation: Operation;
 };

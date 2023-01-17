@@ -11,6 +11,20 @@
         "calculated-changes-text": "Ratanumerolle {{number}} on tullut sijaintimuutoksia. Pituusmittauslinjan muuttumisen myötä rataosoitteet päivittyvät seuraaville kohteille.",
         "no-calculated-changes-text": "Ei rataosoitemuutoksia"
     },
+    "preview-table": {
+        "change-target": "Muutoskohde",
+        "track-number-short": "Ratanro",
+        "status": "Tila",
+        "change-type": "Muutos",
+        "modified-moment": "Aika",
+        "user": "Käyttäjä",
+        "actions": "Toiminnot",
+        "pushed-to-ratko": "Viety ratkoon",
+        "errors-status-text": "virheitä ({{0}} kpl)",
+        "warnings-status-text": "varoituksia ({{0}} kpl)",
+        "errors-group-title": "Virheitä",
+        "warnings-group-title": "Varoituksia"
+    },
     "preview-footer": {
         "reject-changes": "Hylkää muutokset",
         "publish-changes": "Julkaise",
@@ -30,13 +44,23 @@
         "revert-confirm": {
             "title": "Muutoksen hylkääminen",
             "description": "Haluatko hylätä muutoksen",
+            "dependencies": "Tämän muutoksen hylkääminen aiheuttaa myös seuraavien riippuvien muutosten hylkäämisen:",
             "cancel": "Peruuta",
             "confirm": "Hylkää",
-            "location-track": "sijaintiraiteeseen",
-            "track-number": "ratanumeroon",
-            "reference-line": "pituusmittauslinjaan",
-            "switch": "vaihteeseen",
-            "km-post": "tasakilometripisteeseen"
+            "revert-target": {
+                "location-track": "sijaintiraiteeseen",
+                "track-number": "ratanumeroon",
+                "reference-line": "pituusmittauslinjaan",
+                "switch": "vaihteeseen",
+                "km-post": "tasakilometripisteeseen"
+            },
+            "dependency-list": {
+                "location-track": "Sijaintiraide",
+                "track-number": "Ratanumero",
+                "reference-line": "Pituusmittauslinja",
+                "switch": "Vaihde",
+                "km-post": "Tasakilometripiste"
+            }
         },
         "revert-change": "Hylkää muutos",
         "publish-success": "Muutokset julkaistu paikannuspohjaan",
@@ -55,6 +79,9 @@
                 "state": {
                     "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
                 },
+                "reference-line": {
+                    "null": "Ratanumerolta puuttuu pituusmittauslinja tai se ei ole mukana julkaisussa"
+                },
                 "location-track": {
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia raiteita: {{0}}",
                     "not-published": "Ratanumeron sijaintiraiteilla ({{0}}) on julkaisemattomia muutoksia"
@@ -72,20 +99,23 @@
                 },
                 "no-location": "Tasakilometripisteelle ei ole linkitetty sijaintia.",
                 "track-number": {
-                    "null": "Tasakilometripisteelle ei ole asetettu ratanumeroa",
+                    "null": "Tasakilometripisteeltä puuttuu ratanumero tai se ei ole mukana julkaisussa",
                     "not-official": "Tasakilometripiste viittaa ratanumeron {{0}} luonnosriviin",
                     "not-published": "Tasakilometripiste viittaa julkaisemattomaan ratanumeroon {{0}}",
                     "state": {
                         "PLANNED": "Tasakilometripiste viittaa ratanumeroon {{0}} joka on tilassa \"Suunniteltu\"",
                         "DELETED": "Tasakilometripiste viittaa ratanumeroon {{0}} joka on tilassa \"Poistettu\""
                     }
+                },
+                "reference-line": {
+                    "null": "Tasakilometripisteen ratanumerolta puuttuu pituusmittauslinja tai se ei ole mukana julkaisussa"
                 }
             },
             "reference-line": {
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
                 "track-number": {
-                    "null": "Pituusmittauslinjalle ei ole asetettu ratanumeroa",
+                    "null": "Pituusmittauslinjalta puuttuu ratanumero tai se ei ole mukana julkaisussa",
                     "not-official": "Pituusmittauslinja viittaa ratanumeron {{0}} luonnosriviin",
                     "not-published": "Pituusmittauslinja viittaa julkaisemattomaan ratanumeroon {{0}}",
                     "state": {
@@ -118,7 +148,7 @@
                     "PLANNED": "Sijaintiraide on tilassa \"Suunniteltu\""
                 },
                 "track-number": {
-                    "null": "Sijaintiraiteelle ei ole asetettu ratanumeroa",
+                    "null": "Sijaintiraiteelle ei ole asetettu ratanumeroa tai se ei ole mukana julkaisussa",
                     "not-official": "Sijaintiraide viittaa ratanumeron {{0}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa julkaisemattomaan ratanumeroon {{0}}",
                     "state": {

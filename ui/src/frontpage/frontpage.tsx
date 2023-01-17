@@ -1,56 +1,53 @@
 import * as React from 'react';
-import PublicationCard from 'publication/publication-card';
+import PublicationCard from 'publication/card/publication-card';
 import styles from './frontpage.scss';
-import PublicationDetails from 'publication/publication-details';
-import { PublicationListingItem } from 'publication/publication-model';
-import { getPublications } from 'publication/publication-api';
+import Publication from 'publication/publication';
+import { PublicationDetails, PublicationId } from 'publication/publication-model';
 import { useLoaderWithTimer } from 'utils/react-utils';
-import { ratkoPushFailed } from 'ratko/ratko-model';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
-import PublicationLogView from 'publication-log/publication-log-view';
-import PublicationLogLink from 'publication-log/publication-log-link';
+import PublicationLogView from 'publication/log/publication-log-view';
+import { getPublications } from 'publication/publication-api';
+import { startOfDay, subMonths } from 'date-fns';
+import { ratkoPushFailed } from 'ratko/ratko-model';
 
 type FrontPageProps = {
-    selectedPublication: PublicationListingItem | undefined;
-    onSelectedPublicationChanged: (item: PublicationListingItem | undefined) => void;
+    selectedPublication: PublicationId | undefined;
+    onSelectedPublicationChanged: (item: PublicationId | undefined) => void;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationListingItem[] | null>();
+    const [publications, setPublications] = React.useState<PublicationDetails[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
-    const [showPublicationLogItems, setShowPublicationLogItems] = React.useState<
-        PublicationListingItem[] | undefined
-    >(undefined);
+    const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
-    useLoaderWithTimer(setPublications, getPublications, [], 30000);
+    const publication = publications?.find((p) => p.id == selectedPublication);
+
+    useLoaderWithTimer(
+        setPublications,
+        () => getPublications(startOfDay(subMonths(new Date(), 1))),
+        [],
+        30000,
+    );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 
-    const hasAnyFailed = () =>
-        !!publications && publications?.some((item) => ratkoPushFailed(item.status));
+    const anyFailed = !!publications?.some((p) => ratkoPushFailed(p.ratkoPushStatus));
 
     return (
         <React.Fragment>
-            {!selectedPublication && !showPublicationLogItems && (
+            {!selectedPublication && !showPublicationLog && (
                 <React.Fragment>
                     <div className={styles['frontpage']}>
-                        {publications && (
-                            <PublicationLogLink
-                                setShowPublicationLogItems={() =>
-                                    setShowPublicationLogItems(publications)
-                                }
-                            />
-                        )}
                         {publications && (
                             <PublicationCard
                                 publications={publications}
                                 itemClicked={(pub) => {
-                                    onSelectedPublicationChanged(pub);
+                                    onSelectedPublicationChanged(pub.id);
                                 }}
-                                anyFailed={hasAnyFailed()}
+                                onShowPublicationLog={() => setShowPublicationLog(true)}
                                 ratkoStatus={ratkoStatus}
                             />
                         )}
@@ -59,17 +56,14 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     <div className={styles['frontpage__photo']} />
                 </React.Fragment>
             )}
-            {!selectedPublication && showPublicationLogItems && (
-                <PublicationLogView
-                    onLogUnselected={() => setShowPublicationLogItems(undefined)}
-                    selectedPublication={selectedPublication}
-                />
+            {!selectedPublication && showPublicationLog && (
+                <PublicationLogView onClose={() => setShowPublicationLog(false)} />
             )}
-            {selectedPublication !== undefined && (
-                <PublicationDetails
-                    publication={selectedPublication}
+            {publication && (
+                <Publication
+                    publication={publication}
                     onPublicationUnselected={() => onSelectedPublicationChanged(undefined)}
-                    anyFailed={hasAnyFailed()}
+                    anyFailed={anyFailed}
                 />
             )}
         </React.Fragment>

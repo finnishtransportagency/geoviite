@@ -2,14 +2,32 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
-import fi.fta.geoviite.infra.geography.HeightTriangle
-import fi.fta.geoviite.infra.geography.transformHeightValue
+import fi.fta.geoviite.infra.dataImport.RATKO_SRID
+import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.lengthPoints
 import fi.fta.geoviite.infra.tracklayout.toPointList
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
+import java.lang.IllegalArgumentException
 import kotlin.test.assertEquals
+
+val DummyTriangulationNetwork = listOf(
+    KKJtoETRSTriangle(
+        Point(0.0, 0.0),
+        Point(1.0, 1.0),
+        Point(0.0, 1.0),
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+    )
+)
 
 class TransformationTest {
 
@@ -61,6 +79,34 @@ class TransformationTest {
             ),
             toPointList(curve, 1),
         )
+    }
+
+    @Test
+    fun `Creating KKJ to TM35 transformation with empty triangulation network throws`() {
+        assertThrows<IllegalArgumentException> {
+            Transformation.possiblyKKJToETRSTransform(KKJ2, LAYOUT_SRID, emptyList())
+        }
+    }
+
+    @Test
+    fun `Creating KKJ to TM35 transformation using non-KKJ transform throws`() {
+        assertThrows<IllegalArgumentException> {
+            Transformation.nonKKJToETRSTransform(KKJ2, LAYOUT_SRID)
+        }
+    }
+
+    @Test
+    fun `Creating LAYOUT_SRID to RATKO_SRID transformation works without triangulation network`() {
+        assertDoesNotThrow {
+            Transformation.nonKKJToETRSTransform(LAYOUT_SRID, RATKO_SRID)
+        }
+    }
+
+    @Test
+    fun `Creating KKJ to TM35 transform works with triangulation network`() {
+        assertDoesNotThrow {
+            Transformation.possiblyKKJToETRSTransform(LAYOUT_SRID, RATKO_SRID, DummyTriangulationNetwork)
+        }
     }
 }
 

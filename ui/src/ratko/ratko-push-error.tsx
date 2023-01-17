@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { PublicationListingItem } from 'publication/publication-model';
+import { PublicationDetails } from 'publication/publication-model';
 import styles from 'ratko/ratko-push-error.scss';
 import { useLoader } from 'utils/react-utils';
 import { getRatkoPushError } from 'ratko/ratko-api';
@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { RatkoAssetType, RatkoPushErrorAsset, RatkoPushStatus } from 'ratko/ratko-model';
 
 type RatkoPushErrorDetailsProps = {
-    latestFailure: PublicationListingItem;
+    latestFailure: PublicationDetails;
 };
 
 const assetTypeAndName = (errorAsset: RatkoPushErrorAsset) => {
@@ -33,9 +33,10 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({ la
         <div className={styles['ratko-push-error']}>
             {error
                 ? `${assetTypeAndName(error)} ${t(
-                      `enum.ratko-push-error-type.${error.ratkoPushErrorType}`,
+                      `enum.ratko-push-error-type.${error.errorType}`,
                   )} ${t(`enum.ratko-push-error-operation.${error.operation}`)} epäonnistui`
-                : latestFailure && latestFailure.status === RatkoPushStatus.CONNECTION_ISSUE
+                : latestFailure &&
+                  latestFailure.ratkoPushStatus === RatkoPushStatus.CONNECTION_ISSUE
                 ? `Yhteysvirhe Ratko-viennissä`
                 : ''}
         </div>

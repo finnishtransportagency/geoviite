@@ -11,6 +11,8 @@ import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
@@ -50,12 +52,19 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         val sql = """
             select 
               coalesce(reference_line.draft_of_reference_line_id, reference_line.id) as official_id,
-              track_number.number as name, 
               reference_line.track_number_id, 
               reference_line.change_time,
-              reference_line.change_user
+              reference_line.change_user,
+              draft_track_number.number as name, 
+              layout.infer_operation_from_state_transition(
+                track_number.state,
+                draft_track_number.state
+              ) as operation
             from layout.reference_line
-              left join layout.track_number on track_number.id = reference_line.track_number_id
+              inner join layout.track_number on track_number.id = reference_line.track_number_id
+              left join layout.track_number_publication_view draft_track_number 
+                on draft_track_number.official_id = reference_line.track_number_id 
+                  and 'DRAFT' = any(draft_track_number.publication_states)
             where reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -65,7 +74,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = null,
+                operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
             )
         }
         logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
@@ -174,66 +183,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))
         return candidates
     }
-
-
-    fun fetchRatkoPublicationListing(): List<PublicationListingItem> {
-        //language=SQL
-        val sql = """
-            select
-              publication.id,
-              publication.publication_time,
-              ratko_push.status,
-              ratko_push.end_time as ratko_push_time,
-              array_remove(array_agg(distinct track_number.id), null) as track_number_ids,
-              bool_or(exists(select * from integrations.ratko_push_error where ratko_push_error.ratko_push_id = ratko_push.id))
-                as has_ratko_error
-              from publication.publication
-                left join integrations.ratko_push_content 
-                  on ratko_push_content.publication_id = publication.id
-                left join integrations.ratko_push
-                  on ratko_push.id = ratko_push_content.ratko_push_id
-                -- Track numbers
-                left join publication.track_number published_track_number
-                          on publication.id = published_track_number.publication_id
-                -- KM posts
-                left join publication.km_post published_km_post
-                          on publication.id = published_km_post.publication_id
-                left join layout.km_post
-                          on published_km_post.km_post_id = km_post.id
-                -- Location tracks
-                left join publication.location_track published_location_track
-                          on publication.id = published_location_track.publication_id
-                left join layout.location_track
-                          on published_location_track.location_track_id = location_track.id
-                -- Reference lines
-                left join publication.reference_line published_reference_line
-                          on publication.id = published_reference_line.publication_id
-                left join layout.reference_line
-                          on published_reference_line.reference_line_id = reference_line.id
-                -- Join with track numbers for easier aggregation
-                left join layout.track_number
-                          on km_post.track_number_id = track_number.id
-                          or published_track_number.track_number_id = track_number.id
-                          or location_track.track_number_id = track_number.id
-                          or reference_line.track_number_id = track_number.id
-              group by publication.id, publication.publication_time, ratko_push.status, ratko_push.end_time
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql) { rs, _ ->
-            PublicationListingItem(
-                id = rs.getIntId("id"),
-                publishTime = rs.getInstant("publication_time"),
-                ratkoPushTime = rs.getInstantOrNull("ratko_push_time"),
-                status = rs.getEnumOrNull<RatkoPushStatus>("status"),
-                trackNumberIds = rs.getList<Int>("track_number_ids").map { IntId(it) },
-                hasRatkoPushError = rs.getBoolean("has_ratko_error")
-            )
-        }.also {
-            logger.daoAccess(FETCH, PublicationListingItem::class, it.map { it.id })
-        }
-    }
-
-
+    
     @Transactional
     fun createPublication(
         trackNumbers: List<RowVersion<TrackLayoutTrackNumber>>,
@@ -286,15 +236,6 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         return publicationId
     }
 
-    private fun <T> publishedRowParams(publicationId: IntId<Publication>, rows: List<RowVersion<T>>) =
-        rows.map { (row_id, row_version) ->
-            mapOf(
-                "publication_id" to publicationId.intValue,
-                "row_id" to row_id.intValue,
-                "row_version" to row_version,
-            )
-        }.toTypedArray()
-
     fun fetchLinkedLocationTracks(
         switchId: IntId<TrackLayoutSwitch>,
         publicationStatus: PublishType,
@@ -331,27 +272,23 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         }
     }
 
-    fun fetchPublishTime(publicationId: IntId<Publication>): PublicationTime {
+    fun getPublication(publicationId: IntId<Publication>): Publication {
         val sql = """
             select
-              publication.publication_time,
-              ratko_push.end_time as ratko_push_time,
-              ratko_push.status
+              id,
+              publication_user,
+              publication_time
             from publication.publication
-              left join integrations.ratko_push_content
-                on ratko_push_content.publication_id = publication.id
-              left join integrations.ratko_push
-                on ratko_push.id = ratko_push_content.ratko_push_id
             where publication.id = :id
-            order by ratko_push.end_time desc
-            limit 1
         """.trimIndent()
-        return getOne(publicationId,
+
+        return getOne(
+            publicationId,
             jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
-                PublicationTime(
-                    publishTime = rs.getInstant("publication_time"),
-                    status = rs.getEnumOrNull<RatkoPushStatus>("status"),
-                    ratkoPushTime = rs.getInstantOrNull("ratko_push_time")
+                Publication(
+                    id = rs.getIntId("id"),
+                    publicationUser = rs.getString("publication_user").let(::UserName),
+                    publicationTime = rs.getInstant("publication_time")
                 )
             }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }
@@ -367,6 +304,46 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
         return CalculatedChanges(trackNumberChanges, locationTrackChanges, switchChanges)
     }
+
+    @Transactional
+    fun savePublishCalculatedChanges(publicationId: IntId<Publication>, changes: CalculatedChanges) {
+        saveTrackNumberChangesInPublish(publicationId, changes.trackNumberChanges)
+        saveLocationTrackChangesInPublish(publicationId, changes.locationTracksChanges)
+        saveSwitchChangesInPublish(publicationId, changes.switchChanges)
+
+        logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
+    }
+
+    //Inclusive from/start time, but exclusive to/end time
+    fun fetchPublications(from: Instant?, to: Instant?): List<Publication> {
+        val sql = """
+            select id, publication_user, publication_time
+            from publication.publication
+            where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
+        """.trimIndent()
+
+        val params = mapOf(
+            "from" to from?.let { Timestamp.from(it) },
+            "to" to to?.let { Timestamp.from(it) },
+        )
+
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            Publication(
+                id = rs.getIntId("id"),
+                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationTime = rs.getInstant("publication_time")
+            )
+        }.onEach { publication -> logger.daoAccess(FETCH, Publication::class, publication.id) }
+    }
+
+    private fun <T> publishedRowParams(publicationId: IntId<Publication>, rows: List<RowVersion<T>>) =
+        rows.map { (rowId, rowVersion) ->
+            mapOf(
+                "publication_id" to publicationId.intValue,
+                "row_id" to rowId.intValue,
+                "row_version" to rowVersion,
+            )
+        }.toTypedArray()
 
     private fun fetchTrackNumberKmChangesInPublish(publicationId: IntId<Publication>) =
         jdbcTemplate.query(
@@ -468,15 +445,6 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 switchJointChanges[id] ?: listOf(),
             )
         }
-
-    @Transactional
-    fun savePublishCalculatedChanges(publicationId: IntId<Publication>, changes: CalculatedChanges) {
-        saveTrackNumberChangesInPublish(publicationId, changes.trackNumberChanges)
-        saveLocationTrackChangesInPublish(publicationId, changes.locationTracksChanges)
-        saveSwitchChangesInPublish(publicationId, changes.switchChanges)
-
-        logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
-    }
 
     private fun saveTrackNumberChangesInPublish(
         publicationId: IntId<Publication>,

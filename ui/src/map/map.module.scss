@@ -197,9 +197,10 @@ $font-family: 'Open Sans';
 .map__map-tool {
     cursor: pointer;
     padding: 2px;
+    line-height: 0;
 
     &:not(:last-child) {
-        margin-bottom: 4px;
+        margin-bottom: 6px;
     }
 
     .icon {

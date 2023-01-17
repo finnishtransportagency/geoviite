@@ -363,7 +363,6 @@ export type LayoutSwitchJointMatch = {
 export type LayoutSwitchJointConnection = {
     number: JointNumber;
     accurateMatches: LayoutSwitchJointMatch[];
-    fallbackMatches: LocationTrackId[];
     locationAccuracy?: LocationAccuracy;
 };
 

@@ -39,9 +39,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    data class RatkoStatus(val statusCode: HttpStatus) {
-        val isOnline = statusCode == HttpStatus.OK
-    }
+    data class RatkoStatus(val isOnline: Boolean)
 
     fun getRatkoOnlineStatus(): RatkoStatus {
         return client
@@ -49,11 +47,9 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .uri("/api/versions/v1.0/version")
             .retrieve()
             .toBodilessEntity()
-            .thenReturn(RatkoStatus(HttpStatus.OK))
-            .onErrorResume(WebClientResponseException::class.java) {
-                Mono.just(RatkoStatus(it.statusCode))
-            }
-            .block(defaultBlockTimeout)!!
+            .map { response -> RatkoStatus(response.statusCode == HttpStatus.OK) }
+            .onErrorReturn(RatkoStatus(false))
+            .block(defaultBlockTimeout) ?: RatkoStatus(false)
     }
 
     fun getLocationTrack(locationTrackOid: RatkoOid<RatkoLocationTrack>): RatkoLocationTrack? {

@@ -1,6 +1,10 @@
 import { Operation, PublishValidationError } from 'publication/publication-model';
 import { fieldComparator } from 'utils/array-utils';
-import { Icons } from 'vayla-design-lib/icon/Icon';
+import {
+    nextSortDirection,
+    operationPriority,
+    SortDirection,
+} from 'publication/table/publication-table-utils';
 
 export enum SortProps {
     NAME = 'NAME',
@@ -9,13 +13,6 @@ export enum SortProps {
     CHANGE_TIME = 'CHANGE_TIME',
     USER_NAME = 'USER_NAME',
     ERRORS = 'ERRORS',
-    PUSHED_TO_RATKO = 'PUSHED_TO_RATKO',
-}
-
-export enum SortDirection {
-    ASCENDING = 'ASCENDING',
-    DESCENDING = 'DESCENDING',
-    UNSORTED = 'UNSORTED',
 }
 
 export type SortInformation = {
@@ -35,21 +32,10 @@ const errorSeverityPriority = (errors: PublishValidationError[]) => {
     return priority;
 };
 
-const operationPriority = (operation: Operation) => {
-    if (operation === 'CREATE') return 4;
-    if (operation === 'MODIFY') return 3;
-    if (operation === 'DELETE') return 2;
-    if (operation === 'RESTORE') return 1;
-    return 0;
-};
-
 const nameCompare = fieldComparator((entry: { name: string }) => entry.name.toLocaleLowerCase());
 const trackNumberCompare = fieldComparator((entry: { trackNumber: string }) => entry.trackNumber);
 const userNameCompare = fieldComparator((entry: { userName: string }) => entry.userName);
 const changeTimeCompare = fieldComparator((entry: { changeTime: string }) => entry.changeTime);
-const pushedToRatkoCompare = fieldComparator(
-    (entry: { ratkoPushDate: string | undefined }) => entry.ratkoPushDate,
-);
 const errorListCompare = (
     a: { errors: PublishValidationError[] },
     b: { errors: PublishValidationError[] },
@@ -67,13 +53,6 @@ const sortFunctionsByPropName = {
     CHANGE_TIME: changeTimeCompare,
     USER_NAME: userNameCompare,
     ERRORS: errorListCompare,
-    PUSHED_TO_RATKO: pushedToRatkoCompare,
-};
-
-const nextSortDirection = {
-    ASCENDING: SortDirection.DESCENDING,
-    DESCENDING: SortDirection.UNSORTED,
-    UNSORTED: SortDirection.ASCENDING,
 };
 
 export const InitiallyUnsorted = {
@@ -94,14 +73,3 @@ export const getSortInfoForProp = (
             : SortDirection.ASCENDING,
     function: sortFunctionsByPropName[newSortPropName],
 });
-
-export const sortDirectionIcon = (direction: SortDirection) => {
-    switch (direction) {
-        case SortDirection.ASCENDING:
-            return Icons.Ascending;
-        case SortDirection.DESCENDING:
-            return Icons.Descending;
-        case SortDirection.UNSORTED:
-            return undefined;
-    }
-};
