@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import commonFi from 'i18n/fi/fi.json';
 import commonEn from 'i18n/en/en.json';
+import appBarFi from 'app-bar/translations.fi.json';
 import infraModelFi from 'infra-model/translations.fi.json';
 import selectionPanelFi from 'selection-panel/translations.fi.json';
 import toolPanelFi from 'tool-panel/translations.fi.json';
@@ -24,6 +25,7 @@ export const resources = {
     fi: {
         translation: {
             ...commonFi,
+            ...appBarFi,
             ...infraModelFi,
             ...selectionPanelFi,
             ...toolPanelFi,

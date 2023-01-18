@@ -62,4 +62,27 @@ $appbar-height: 48px;
             border-bottom-color: $color-blue-light;
         }
     }
+
+    &__data-menu-button {
+        position: relative;
+    }
+
+    &__data-menu > .menu {
+        position: absolute;
+        z-index: 10;
+        background-color: $color-blue-darker;
+
+        .menu__item {
+            color: $color-white-default;
+        }
+
+        &:hover {
+            color: $color-blue-light;
+        }
+
+        &--active {
+            color: $color-blue-light;
+            border-bottom-color: $color-blue-light;
+        }
+    }
 }
