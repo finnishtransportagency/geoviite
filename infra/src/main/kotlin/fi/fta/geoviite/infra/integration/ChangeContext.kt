@@ -1,11 +1,13 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import java.time.Instant
+import kotlin.reflect.KClass
 
 class LazyMap<K, V>(private val compute: (K) -> V) {
     private val map = mutableMapOf<K, V>()
@@ -33,34 +35,38 @@ class ChangeContext(
         geocodingKeysAfter[id]?.let(geocodingService::getGeocodingContext)
 }
 
-fun <T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, versions: List<PublicationVersion<T>>) =
+inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, versions: List<PublicationVersion<T>>) =
     createTypedContext(
         dao,
         { id -> dao.fetchVersion(id, OFFICIAL) },
-        { id -> versions.find { v -> v.officialId == id }?.draftVersion ?: dao.fetchVersionOrThrow(id, OFFICIAL) },
+        { id -> versions.find { v -> v.officialId == id }?.draftVersion ?: dao.fetchVersion(id, OFFICIAL) },
     )
 
-fun <T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, before: Instant, after: Instant) =
+inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, before: Instant, after: Instant) =
     createTypedContext(
         dao,
         { id -> dao.fetchOfficialVersionAtMoment(id, before) },
-        { id -> dao.fetchOfficialVersionAtMomentOrThrow(id, after) },
+        { id -> dao.fetchOfficialVersionAtMoment(id, after) },
     )
 
-fun <T: Draftable<T>> createTypedContext(
+inline fun <reified T: Draftable<T>> createTypedContext(
     dao: DraftableDaoBase<T>,
-    getBeforeVersion: (id: IntId<T>) -> RowVersion<T>?,
-    getAfterVersion: (id: IntId<T>) -> RowVersion<T>,
-) = TypedChangeContext(dao, LazyMap(getBeforeVersion), LazyMap(getAfterVersion))
+    noinline getBeforeVersion: (id: IntId<T>) -> RowVersion<T>?,
+    noinline getAfterVersion: (id: IntId<T>) -> RowVersion<T>?,
+) = TypedChangeContext(T::class, dao, LazyMap(getBeforeVersion), LazyMap(getAfterVersion))
 
 class TypedChangeContext<T : Draftable<T>>(
+    private val klass: KClass<T>,
     private val dao: DraftableDaoBase<T>,
     private val beforeVersions: LazyMap<IntId<T>, RowVersion<T>?>,
-    private val afterVersions: LazyMap<IntId<T>, RowVersion<T>>,
+    private val afterVersions: LazyMap<IntId<T>, RowVersion<T>?>,
 ) {
     fun beforeVersion(id: IntId<T>) = beforeVersions[id]
-    fun afterVersion(id: IntId<T>) = afterVersions[id]
+    fun afterVersion(id: IntId<T>) = afterVersions[id] ?: throw NoSuchEntityException(klass, id)
+    private fun afterVersionIfExists(id: IntId<T>) = afterVersions[id]
 
     fun getBefore(id: IntId<T>) = beforeVersion(id)?.let(dao::fetch)
     fun getAfter(id: IntId<T>) = dao.fetch(afterVersion(id))
+    fun getAfterIfExists(id: IntId<T>) = afterVersionIfExists(id)?.let(dao::fetch)
+
 }
