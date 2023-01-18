@@ -24,7 +24,7 @@ export type PreviewTableItemProps = {
     pendingValidation: boolean;
     onPublishItemSelect?: () => void;
     onRevert: () => void;
-    changesBeingReverted: boolean;
+    changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
 };
 

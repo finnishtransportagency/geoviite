@@ -322,10 +322,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
-    const [waitingReversion, setWaitingReversion] = React.useState<boolean>(false);
 
     const onRequestRevert = (requestedRevertChange: PreviewTableEntry) => {
-        setWaitingReversion(!waitingReversion);
         getRevertRequestDependencies(
             singleRowPublishRequestOfPreviewTableEntry(
                 requestedRevertChange.id,
@@ -339,7 +337,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 });
             }
         });
-        setWaitingReversion(!waitingReversion);
     };
 
     const onConfirmRevert = () => {
@@ -381,7 +378,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
                                     onRevert={onRequestRevert}
-                                    changesBeingReverted={waitingReversion}
+                                    changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                 />
@@ -394,7 +391,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <PreviewTable
                                     onPreviewSelect={onPublishPreviewRemove}
                                     onRevert={onRequestRevert}
-                                    changesBeingReverted={waitingReversion}
+                                    changesBeingReverted={changesBeingReverted}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                 />

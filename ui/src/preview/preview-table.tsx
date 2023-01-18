@@ -58,7 +58,7 @@ type PreviewTableProps = {
     onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
     onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
-    changesBeingReverted: boolean;
+    changesBeingReverted: ChangesBeingReverted | undefined;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
