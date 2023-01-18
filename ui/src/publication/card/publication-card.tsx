@@ -10,7 +10,6 @@ import { ratkoPushFailed } from 'ratko/ratko-model';
 import Card from 'geoviite-design-lib/card/card';
 import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
-import { EnvRestricted } from 'environment/env-restricted';
 import i18n from 'i18next';
 import { Link } from 'vayla-design-lib/link/link';
 
@@ -133,9 +132,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             {t('publication-card.no-success-publications')}
                         </div>
                     )}
-                    <EnvRestricted restrictTo="dev">
-                        <Link onClick={onShowPublicationLog}>{t('publication-card.log-link')}</Link>
-                    </EnvRestricted>
+                    <Link onClick={onShowPublicationLog}>{t('publication-card.log-link')}</Link>
                 </React.Fragment>
             }
         />

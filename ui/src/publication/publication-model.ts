@@ -106,6 +106,7 @@ export type PublishedReferenceLine = {
     version: RowVersion;
     trackNumberId: LayoutTrackNumberId;
     operation: Operation;
+    changedKmNumbers: KmNumber[];
 };
 
 export type PublishedLocationTrack = {
@@ -113,6 +114,7 @@ export type PublishedLocationTrack = {
     name: string;
     trackNumberId: LayoutTrackNumberId;
     operation: Operation;
+    changedKmNumbers: KmNumber[];
 };
 
 export type PublishedSwitch = {
