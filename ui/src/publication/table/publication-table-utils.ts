@@ -1,4 +1,10 @@
-import { Operation, PublicationDetails } from 'publication/publication-model';
+import {
+    Operation,
+    PublicationDetails,
+    PublishedLocationTrack,
+    PublishedSwitch,
+    PublishedTrackNumber,
+} from 'publication/publication-model';
 import {
     fieldComparator,
     filterNotEmpty,
@@ -46,6 +52,7 @@ export const operationPriority = (operation: Operation | null) => {
 const nameCompare = fieldComparator((entry: PublicationTableRowProps) =>
     entry.name.toLocaleLowerCase(),
 );
+
 const definitionCompare = fieldComparator((entry: PublicationTableRowProps) =>
     entry.message.toLocaleLowerCase(),
 );
@@ -73,9 +80,11 @@ const trackNumberCompare = (a: PublicationTableRowProps, b: PublicationTableRowP
 const publicationUserCompare = fieldComparator(
     (entry: PublicationTableRowProps) => entry.publicationUser,
 );
+
 const publicationTimeCompare = fieldComparator(
     (entry: PublicationTableRowProps) => entry.publicationTime,
 );
+
 const ratkoPushTimeCompare = timeStampComparator(
     (entry: PublicationTableRowProps) => entry.ratkoPushTime,
 );
@@ -150,13 +159,24 @@ export function getKmPostUiName(kmNumber: KmNumber) {
     return `${i18n.t('publication-table.km-post')} ${kmNumber}`;
 }
 
+function findTrackNumber(trackNumbers: LayoutTrackNumber[], id: LayoutTrackNumberId) {
+    return trackNumbers.find((t) => t.id == id)?.number;
+}
+
 export const toPublicationTableRows = (
     publication: PublicationDetails,
     trackNumbers: LayoutTrackNumber[],
 ): PublicationTableRowProps[] => {
-    const getTrackNumber = (id: LayoutTrackNumberId) =>
-        trackNumbers.find((t) => t.id == id)?.number;
+    return [
+        ...publishedChangesToTableRows(publication, trackNumbers),
+        ...calculatedChangesToPublicationTableRows(publication, trackNumbers),
+    ];
+};
 
+const publishedChangesToTableRows = (
+    publication: PublicationDetails,
+    trackNumbers: LayoutTrackNumber[],
+) => {
     const publicationInfo = {
         publicationTime: publication.publicationTime,
         publicationUser: publication.publicationUser,
@@ -167,42 +187,101 @@ export const toPublicationTableRows = (
         message: publication.message ?? '',
     };
 
-    const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({
-        ...publicationInfo,
-        name: getTrackNumberUiName(getTrackNumber(trackNumber.id)),
-        trackNumbers: nonEmptyArray(getTrackNumber(trackNumber.id)),
-        operation: trackNumber.operation,
-    }));
+    const trackNumberItems = publishedTrackNumbersToTableRows(publication.trackNumbers);
 
     const referenceLines = publication.referenceLines.map((referenceLine) => ({
-        ...publicationInfo,
-        name: getReferenceLineUiName(getTrackNumber(referenceLine.trackNumberId)),
-        trackNumbers: nonEmptyArray(getTrackNumber(referenceLine.trackNumberId)),
+        name: getReferenceLineUiName(findTrackNumber(trackNumbers, referenceLine.trackNumberId)),
+        trackNumbers: nonEmptyArray(findTrackNumber(trackNumbers, referenceLine.trackNumberId)),
         operation: referenceLine.operation,
         changedKmNumbers: referenceLine.changedKmNumbers,
     }));
 
-    const locationTracks = publication.locationTracks.map((locationTrack) => ({
-        ...publicationInfo,
-        name: getLocationTrackUiName(locationTrack.name),
-        trackNumbers: nonEmptyArray(getTrackNumber(locationTrack.trackNumberId)),
-        operation: locationTrack.operation,
-        changedKmNumbers: locationTrack.changedKmNumbers,
-    }));
+    const locationTracks = publishedLocationTracksToTableRows(
+        publication.locationTracks,
+        trackNumbers,
+    );
 
-    const switches = publication.switches.map((s) => ({
-        ...publicationInfo,
-        name: getSwitchUiName(s.name),
-        trackNumbers: s.trackNumberIds.map(getTrackNumber).filter(filterNotEmpty),
-        operation: s.operation,
-    }));
+    const switches = publishedSwitchesToTableRows(publication.switches, trackNumbers);
 
     const kmPosts = publication.kmPosts.map((kmPost) => ({
-        ...publicationInfo,
         name: getKmPostUiName(kmPost.kmNumber),
-        trackNumbers: nonEmptyArray(getTrackNumber(kmPost.trackNumberId)),
+        trackNumbers: nonEmptyArray(findTrackNumber(trackNumbers, kmPost.trackNumberId)),
         operation: kmPost.operation,
     }));
 
-    return [...trackNumberItems, ...referenceLines, ...locationTracks, ...switches, ...kmPosts];
+    return [...trackNumberItems, ...referenceLines, ...locationTracks, ...switches, ...kmPosts].map(
+        (c) => ({
+            ...publicationInfo,
+            ...c,
+        }),
+    );
+};
+
+const calculatedChangesToPublicationTableRows = (
+    publication: PublicationDetails,
+    trackNumbers: LayoutTrackNumber[],
+): PublicationTableRowProps[] => {
+    const calculatedPublicationInfo = {
+        publicationTime: publication.publicationTime,
+        publicationUser: publication.publicationUser,
+        ratkoPushTime:
+            publication.ratkoPushStatus === RatkoPushStatus.SUCCESSFUL
+                ? publication.ratkoPushTime
+                : null,
+        definition: i18n.t('publication-table.calculated-change'),
+    };
+
+    const calculatedTrackNumbers = publishedTrackNumbersToTableRows(
+        publication.calculatedChanges.trackNumbers,
+    );
+
+    const calculatedLocationTracks = publishedLocationTracksToTableRows(
+        publication.calculatedChanges.locationTracks,
+        trackNumbers,
+    );
+
+    const calculatedSwitches = publishedSwitchesToTableRows(
+        publication.calculatedChanges.switches,
+        trackNumbers,
+    );
+
+    return [...calculatedTrackNumbers, ...calculatedLocationTracks, ...calculatedSwitches].map(
+        (c) => ({
+            ...calculatedPublicationInfo,
+            ...c,
+        }),
+    );
+};
+
+const publishedTrackNumbersToTableRows = (publishedTrackNumbers: PublishedTrackNumber[]) => {
+    return publishedTrackNumbers.map((trackNumber) => ({
+        name: getTrackNumberUiName(trackNumber.number),
+        trackNumbers: [trackNumber.number],
+        operation: trackNumber.operation,
+    }));
+};
+
+const publishedLocationTracksToTableRows = (
+    locationTracks: PublishedLocationTrack[],
+    trackNumbers: LayoutTrackNumber[],
+) => {
+    return locationTracks.map((locationTrack) => ({
+        name: getLocationTrackUiName(locationTrack.name),
+        trackNumbers: nonEmptyArray(findTrackNumber(trackNumbers, locationTrack.trackNumberId)),
+        operation: locationTrack.operation,
+        changedKmNumbers: locationTrack.changedKmNumbers,
+    }));
+};
+
+const publishedSwitchesToTableRows = (
+    switches: PublishedSwitch[],
+    trackNumbers: LayoutTrackNumber[],
+) => {
+    return switches.map((s) => ({
+        name: getSwitchUiName(s.name),
+        trackNumbers: s.trackNumberIds
+            .map((id) => findTrackNumber(trackNumbers, id))
+            .filter(filterNotEmpty),
+        operation: s.operation,
+    }));
 };

@@ -93,6 +93,7 @@ export type PublicationDetails = {
     kmPosts: PublishedKmPost[];
     ratkoPushStatus: RatkoPushStatus | null;
     ratkoPushTime: TimeStamp | null;
+    calculatedChanges: PublishedCalculatedChanges;
     message: string | undefined;
 };
 
@@ -130,4 +131,10 @@ export type PublishedKmPost = {
     trackNumberId: LayoutTrackNumberId;
     kmNumber: KmNumber;
     operation: Operation;
+};
+
+export type PublishedCalculatedChanges = {
+    trackNumbers: PublishedTrackNumber[];
+    locationTracks: PublishedLocationTrack[];
+    switches: PublishedSwitch[];
 };
