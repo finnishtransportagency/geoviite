@@ -80,7 +80,7 @@
                     "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
                 },
                 "reference-line": {
-                    "null": "Ratanumerolta puuttuu pituusmittauslinja tai se ei ole mukana julkaisussa"
+                    "null": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa"
                 },
                 "location-track": {
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia raiteita: {{0}}",
@@ -108,14 +108,14 @@
                     }
                 },
                 "reference-line": {
-                    "null": "Tasakilometripisteen ratanumerolta puuttuu pituusmittauslinja tai se ei ole mukana julkaisussa"
+                    "null": "Tasakilometripisteen pituusmittauslinja ei ole mukana julkaisussa"
                 }
             },
             "reference-line": {
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska sitä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava pituusmittauslinja ei ole luonnos",
                 "track-number": {
-                    "null": "Pituusmittauslinjalta puuttuu ratanumero tai se ei ole mukana julkaisussa",
+                    "null": "Pituusmittauslinjan ratanumero ei ole mukana julkaisussa",
                     "not-official": "Pituusmittauslinja viittaa ratanumeron {{0}} luonnosriviin",
                     "not-published": "Pituusmittauslinja viittaa julkaisemattomaan ratanumeroon {{0}}",
                     "state": {
