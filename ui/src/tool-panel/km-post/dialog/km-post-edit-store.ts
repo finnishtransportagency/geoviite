@@ -75,21 +75,12 @@ function validateLinkingKmPost(kmPost: KmPostSaveRequest): ValidationError<KmPos
     ];
 
     if (kmPost.kmNumber.length > 0) {
-        if (!kmNumberMatchesRegExp(kmPost)) {
+        if (!kmNumberMatchesRegExp(kmPost.kmNumber)) {
             return [...errors, ...getKmNumberDoesntMatchRegExpError()];
         }
     }
 
     return errors;
-}
-
-function kmNumberMatchesRegExp(kmPost: KmPostSaveRequest): boolean {
-    if (kmPost.kmNumber.length <= 4) {
-        return /^\d{4}$/.test(kmPost.kmNumber);
-    } else if (kmPost.kmNumber.length <= 6) {
-        return /^\d{4}[A-Z]{1,2}$/.test(kmPost.kmNumber);
-    }
-    return false;
 }
 
 function getKmNumberDoesntMatchRegExpError(): ValidationError<KmPostSaveRequest>[] {
@@ -208,6 +199,15 @@ const kmPostEditSlice = createSlice({
 
 export function canSaveKmPost(state: KmPostEditState): boolean {
     return !!(state.kmPost && !state.validationErrors.length && !state.isSaving);
+}
+
+export function kmNumberMatchesRegExp(kmNumber: string): boolean {
+    if (kmNumber.length <= 4) {
+        return /^\d{4}$/.test(kmNumber);
+    } else if (kmNumber.length <= 6) {
+        return /^\d{4}[A-Z]{1,2}$/.test(kmNumber);
+    }
+    return false;
 }
 
 export const reducer = kmPostEditSlice.reducer;
