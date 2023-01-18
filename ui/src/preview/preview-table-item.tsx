@@ -45,7 +45,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
-    const [reverting, setReverting] = React.useState(false);
 
     const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
         const filtered = list.filter((e) => e.type === type);
@@ -64,11 +63,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         styles['preview-table-item__status-cell'],
         hasErrors && styles['preview-table-item__status-cell--expandable'],
     );
-
-    const handleRevert = () => {
-        onRevert();
-        setReverting(!reverting);
-    };
 
     return (
         <React.Fragment>
@@ -130,7 +124,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                             )}
                             <div>
                                 <Menu animation={false} id={menuId()}>
-                                    <Item id="1" onClick={() => handleRevert()}>
+                                    <Item id="1" onClick={() => onRevert()}>
                                         {t('publish.revert-change')}
                                     </Item>
                                 </Menu>
