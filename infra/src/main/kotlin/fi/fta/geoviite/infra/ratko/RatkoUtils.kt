@@ -99,3 +99,15 @@ fun toRatkoPointsGroupedByKm(addressPoints: List<AddressPoint>) =
                 .distinctBy { it.kmM.meters } //track meters 0000+0000.010 and 0000+0000.01 are considered the same
         }
         .filter { ratkoPoints -> ratkoPoints.isNotEmpty() }
+
+
+fun toNodeCollectionMarkingEndpointsNotInUse(ratkoNodes: RatkoNodes): RatkoNodes = convertToRatkoNodeCollection(
+    listOfNotNull(
+        ratkoNodes.getStartNode()?.point?.withoutGeometry()?.copy(
+            state = RatkoPointState(RatkoPointStates.NOT_IN_USE)
+        )?.let { point -> RatkoNode(RatkoNodeType.START_POINT, point) },
+        ratkoNodes.getEndNode()?.point?.withoutGeometry()?.copy(
+            state = RatkoPointState(RatkoPointStates.NOT_IN_USE)
+        )?.let { point -> RatkoNode(RatkoNodeType.END_POINT, point) },
+    )
+)

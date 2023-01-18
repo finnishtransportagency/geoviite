@@ -40,7 +40,7 @@ class RatkoLocationTrackService @Autowired constructor(
                         ratkoClient.getLocationTrack(RatkoOid(externalId))
                             ?.let { existingLocationTrack ->
                                 if (locationTrack.state == LayoutState.DELETED) {
-                                    deleteLocationTrack(locationTrack)
+                                    deleteLocationTrack(locationTrack, existingLocationTrack)
                                 } else {
                                     updateLocationTrack(
                                         layoutLocationTrack = locationTrack,
@@ -182,21 +182,11 @@ class RatkoLocationTrackService @Autowired constructor(
             }
     }
 
-    private fun deleteLocationTrack(layoutLocationTrack: LocationTrack) {
+    private fun deleteLocationTrack(layoutLocationTrack: LocationTrack, existingRatkoLocationTrack: RatkoLocationTrack) {
         logger.serviceCall("deleteLocationTrack", "layoutLocationTrack" to layoutLocationTrack)
         requireNotNull(layoutLocationTrack.externalId) { "Cannot delete location track without oid $layoutLocationTrack" }
 
-        val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id as IntId, PublishType.OFFICIAL)
-        checkNotNull(addresses) {
-            "Cannot delete location track without location track address points $layoutLocationTrack"
-        }
-
-        val deletedEndsPoints = getEndPointNodeCollection(
-            alignmentAddresses = addresses,
-            startChanged = true,
-            endChanged = true,
-            pointState = RatkoPointStates.NOT_IN_USE
-        )
+        val deletedEndsPoints = existingRatkoLocationTrack.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
 
         updateLocationTrackProperties(layoutLocationTrack, deletedEndsPoints)
 
