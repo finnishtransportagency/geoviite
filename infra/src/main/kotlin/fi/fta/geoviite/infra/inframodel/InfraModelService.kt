@@ -48,9 +48,8 @@ class InfraModelService @Autowired constructor(
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
 
-        val planId = geometryService.getDuplicateGeometryPlanId(imFile)
-        val duplicateFileName = planId?.let { plan -> geometryService.getPlanFile(plan).name.toString() } ?: ""
-        if (duplicateFileName.length > 0) {
+        val duplicateFileName = geometryService.getDuplicateGeometryPlanName(imFile) ?: ""
+        if (duplicateFileName.isNotEmpty()) {
             throw InframodelParsingException(
                 message = "InfraModel file exists already",
                 localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",

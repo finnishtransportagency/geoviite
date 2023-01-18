@@ -199,9 +199,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanId(newFile: InfraModelFile): IntId<GeometryPlan>? {
-        logger.serviceCall("getDuplicateGeometryPlanId", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanId(newFile)
+    fun getDuplicateGeometryPlanName(newFile: InfraModelFile): String? {
+        logger.serviceCall("getDuplicateGeometryPlan", "newFile" to newFile)
+        return geometryDao.fetchDuplicateGeometryPlanName(newFile)
     }
 
     fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder): Comparator<GeometryPlanHeader> =
