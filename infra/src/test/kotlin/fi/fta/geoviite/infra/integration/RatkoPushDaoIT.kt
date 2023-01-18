@@ -100,7 +100,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         Assertions.assertTrue(lastPush < layoutPublishMoment)
 
         val publications = publicationDao.fetchPublications(lastPush, null)
-        val publishedLocationTracks = locationTrackDao.fetchPublicationInformation(publications[1].id)
+        val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publications[1].id)
 
         assertEquals(layoutPublishId, publications[1].id)
         assertEquals(locationTrackId, publishedLocationTracks[0].version.id)
@@ -125,7 +125,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment()
         Assertions.assertTrue(latestPushedPublish < layoutPublishMoment)
         val publications = publicationDao.fetchPublications(latestPushedPublish, null)
-        val publishedLocationTracks = locationTrackDao.fetchPublicationInformation(publications[1].id)
+        val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publications[1].id)
 
         assertEquals(2, publications.size)
         assertEquals(layoutPublishId, publications[1].id)
@@ -147,8 +147,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
         assertNotNull(fetchedLayoutPublish)
         assertNotNull(fetchedLayoutPublish2)
 
-        val publishLocationTracks = locationTrackDao.fetchPublicationInformation(fetchedLayoutPublish.id)
-        val publish2LocationTracks = locationTrackDao.fetchPublicationInformation(fetchedLayoutPublish2.id)
+        val publishLocationTracks = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish.id)
+        val publish2LocationTracks = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish2.id)
 
 
         assertEquals(1, publishLocationTracks.size)

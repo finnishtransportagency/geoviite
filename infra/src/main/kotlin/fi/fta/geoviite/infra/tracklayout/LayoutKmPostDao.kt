@@ -4,8 +4,6 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_KM_POST
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
-import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.PublishedKmPost
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -236,29 +234,5 @@ class LayoutKmPostDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, rowId)
         return response
-    }
-
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedKmPost> {
-        val sql = """
-            select
-              published_km_post.km_post_id as id,
-              published_km_post.km_post_version as version,
-              layout.infer_operation_from_state_transition(km_post.old_state, km_post.state) as operation,
-              km_post.km_number,
-              km_post.track_number_id
-            from publication.km_post published_km_post
-            left join layout.km_post_change_view km_post
-              on km_post.id = published_km_post.km_post_id
-                and km_post.version = published_km_post.km_post_version
-            where publication_id = :publication_id
-        """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            PublishedKmPost(
-                version = rs.getRowVersion("id", "version"),
-                trackNumberId = rs.getIntId("track_number_id"),
-                kmNumber = rs.getKmNumber("km_number"),
-                operation = rs.getEnum("operation")
-            )
-        }.also { kmPosts -> logger.daoAccess(AccessType.FETCH, PublishedKmPost::class, kmPosts.map { it.version }) }
     }
 }

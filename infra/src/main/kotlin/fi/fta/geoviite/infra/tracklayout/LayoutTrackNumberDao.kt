@@ -2,8 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_TRACK_NUMBER
-import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.PublishedTrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
@@ -174,36 +172,4 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, response)
         return response
     }
-
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedTrackNumber> {
-        val sql = """
-          select
-            ptn.track_number_id as id,
-            ptn.track_number_version as version,
-            tn.number,
-            layout.infer_operation_from_state_transition(
-              tn.old_state, 
-              tn.state
-            ) as operation
-          from publication.track_number ptn
-            left join layout.track_number_change_view tn
-              on ptn.track_number_id = tn.id
-                and ptn.track_number_version = tn.version
-          where publication_id = :publication_id
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            PublishedTrackNumber(
-                version = rs.getRowVersion("id", "version"),
-                number = rs.getTrackNumber("number"),
-                operation = rs.getEnum("operation")
-            )
-        }.also { trackNumbers ->
-            logger.daoAccess(
-                AccessType.FETCH,
-                PublishedTrackNumber::class,
-                trackNumbers.map { it.version })
-        }
-    }
-
 }

@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
@@ -572,11 +571,13 @@ class PublicationService @Autowired constructor(
         val publication = publicationDao.getPublication(id)
         val ratkoStatus = ratkoPushDao.getRatkoStatus(id).sortedByDescending { it.endTime }.firstOrNull()
 
-        val locationTracks = locationTrackDao.fetchPublicationInformation(id)
-        val referenceLines = referenceLineDao.fetchPublicationInformation(id)
-        val kmPosts = kmPostDao.fetchPublicationInformation(id)
-        val switches = switchDao.fetchPublicationInformation(id)
-        val trackNumbers = trackNumberDao.fetchPublicationInformation(id)
+        val locationTracks = publicationDao.fetchPublishedLocationTracks(id)
+        val referenceLines = publicationDao.fetchPublishedReferenceLines(id)
+        val kmPosts = publicationDao.fetchPublishedKmPosts(id)
+        val switches = publicationDao.fetchPublishedSwitches(id)
+        val trackNumbers = publicationDao.fetchPublishedTrackNumbers(id)
+
+        val calculatedChanges = publicationDao.fetchCalculatedChanges(id)
 
         return PublicationDetails(
             id = publication.id,
@@ -589,6 +590,7 @@ class PublicationService @Autowired constructor(
             kmPosts = kmPosts,
             ratkoPushStatus = ratkoStatus?.status,
             ratkoPushTime = ratkoStatus?.endTime,
+            calculatedChanges = calculatedChanges
         )
     }
 
