@@ -3,6 +3,9 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
@@ -246,3 +249,9 @@ data class KmPostPublishCandidate(
 ) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }
+
+data class RemovedTrackNumberReferenceIds(
+    val kmPostIds:  List<IntId<GeometryKmPost>>,
+    val alignmentIds:  List<IntId<GeometryAlignment>>,
+    val planIds:  List<IntId<GeometryPlan>>,
+)

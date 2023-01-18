@@ -235,7 +235,8 @@ class CalculatedChangesService(
             .let(locationTrackService::getWithAlignment)
 
         val oldTrackNumber = oldLocationTrack?.let { track -> changeContext.trackNumbers.getBefore(track.trackNumberId) }
-        val newTrackNumber = newLocationTrack.let { track -> changeContext.trackNumbers.getAfter(track.trackNumberId) }
+        val newTrackNumber =
+            newLocationTrack.let { track -> changeContext.trackNumbers.getAfterIfExists(track.trackNumberId) }
 
         val oldGeocodingContext = oldLocationTrack?.trackNumberId
             ?.let { tnId -> changeContext.getGeocodingContextBefore(tnId) }
@@ -322,7 +323,7 @@ class CalculatedChangesService(
                         locationTrackId = newLocationTrack.id as IntId,
                         locationTrackExternalId = newLocationTrack.externalId,
                         trackNumberId = newLocationTrack.trackNumberId,
-                        trackNumberExternalId = newTrackNumber.externalId
+                        trackNumberExternalId = newTrackNumber?.externalId
                     )
                 }
             )

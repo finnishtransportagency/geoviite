@@ -10,6 +10,7 @@ import kotlin.reflect.KClass
 
 interface HasLocalizeMessageKey {
     val localizedMessageKey: LocalizationKey
+    val localizedMessageParams: List<String>
 }
 
 sealed class ClientException(
@@ -17,9 +18,15 @@ sealed class ClientException(
     message: String,
     cause: Throwable? = null,
     override val localizedMessageKey: LocalizationKey,
+    override val localizedMessageParams: List<String> = listOf(),
 ) : RuntimeException(message, cause), HasLocalizeMessageKey {
-    constructor(status: HttpStatus, message: String, cause: Throwable?, localizedMessageKey: String) :
-            this(status, message, cause, LocalizationKey(localizedMessageKey))
+    constructor(
+        status: HttpStatus,
+        message: String,
+        cause: Throwable?,
+        localizedMessageKey: String,
+        localizedMessageParams: List<String> = listOf(),
+    ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
 
     init {
         if (!status.is4xxClientError) throw ServerException("Not a client exception: $status")
@@ -69,7 +76,9 @@ class InframodelParsingException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = INFRAMODEL_PARSING_KEY_GENERIC,
-) : ClientException(BAD_REQUEST, "InfraModel could not be parsed: $message", cause, localizedMessageKey)
+    localizedMessageParams: List<String> = listOf(),
+) : ClientException(
+    BAD_REQUEST, "InfraModel could not be parsed: $message", cause, localizedMessageKey, localizedMessageParams)
 
 class NoSuchEntityException(
     type: String,
