@@ -75,7 +75,7 @@ function validateLinkingKmPost(kmPost: KmPostSaveRequest): ValidationError<KmPos
     ];
 
     if (kmPost.kmNumber.length > 0) {
-        if (!kmNumberMatchesRegExp(kmPost.kmNumber)) {
+        if (!isValidKmNumber(kmPost.kmNumber)) {
             return [...errors, ...getKmNumberDoesntMatchRegExpError()];
         }
     }
@@ -201,7 +201,7 @@ export function canSaveKmPost(state: KmPostEditState): boolean {
     return !!(state.kmPost && !state.validationErrors.length && !state.isSaving);
 }
 
-export function kmNumberMatchesRegExp(kmNumber: string): boolean {
+export function isValidKmNumber(kmNumber: string): boolean {
     if (kmNumber.length <= 4) {
         return /^\d{4}$/.test(kmNumber);
     } else if (kmNumber.length <= 6) {
