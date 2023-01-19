@@ -18,8 +18,9 @@ import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
 import { useTranslation } from 'react-i18next';
 // fontsource requires fonts to be imported somewhere in code
-import "@fontsource/open-sans/400.css";
-import "@fontsource/open-sans/600.css";
+import '@fontsource/open-sans/400.css';
+import '@fontsource/open-sans/600.css';
+import ElementListView from 'data-products/element-list/element-list-view';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -49,6 +50,7 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                     <Route path="/infra-model" element={<InfraModelMainContainerWithProvider />} />
                     <Route path="/design-lib-demo" element={<GeoviiteLibDemo />} />
                     <Route path="/localization-demo" element={<I18nDemo />} />
+                    <Route path="/data-products-element-list" element={<ElementListView />} />
                     <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>
             </div>
