@@ -61,12 +61,7 @@ class RatkoRouteNumberService @Autowired constructor(
             geocodingService.getGeocodingContext(PublishType.OFFICIAL, trackNumber.id)?.referenceLineAddresses
         checkNotNull(addresses) { "Cannot calculate addresses for track number ${trackNumber.id}" }
 
-        val deletedEndsPoints = getEndPointNodeCollection(
-            alignmentAddresses = addresses,
-            startChanged = true,
-            endChanged = true,
-            pointState = RatkoPointStates.NOT_IN_USE
-        )
+        val deletedEndsPoints = getNotInUseEndPointNodeCollection(addresses)
 
         updateRouteNumberProperties(trackNumber, deletedEndsPoints)
 
@@ -97,8 +92,7 @@ class RatkoRouteNumberService @Autowired constructor(
         val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
         val endPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            startChanged = routeNumberChange.isStartChanged,
-            endChanged = routeNumberChange.isEndChanged,
+            changedKmNumbers = routeNumberChange.changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )

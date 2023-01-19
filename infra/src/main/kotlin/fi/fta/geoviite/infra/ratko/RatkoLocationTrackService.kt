@@ -189,12 +189,7 @@ class RatkoLocationTrackService @Autowired constructor(
             "Cannot delete location track without location track address points $layoutLocationTrack"
         }
 
-        val deletedEndsPoints = getEndPointNodeCollection(
-            alignmentAddresses = addresses,
-            startChanged = true,
-            endChanged = true,
-            pointState = RatkoPointStates.NOT_IN_USE
-        )
+        val deletedEndsPoints = getNotInUseEndPointNodeCollection(addresses)
 
         updateLocationTrackProperties(layoutLocationTrack, deletedEndsPoints)
 
@@ -226,8 +221,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
         val updatedEndPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            startChanged = locationTrackChange.isStartChanged,
-            endChanged = locationTrackChange.isEndChanged,
+            changedKmNumbers = locationTrackChange.changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )

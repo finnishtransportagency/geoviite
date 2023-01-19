@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
@@ -31,26 +34,24 @@ private fun sameNodeAddress(node1: RatkoNode?, node2: RatkoNode?): Boolean {
 
 fun getEndPointNodeCollection(
     alignmentAddresses: AlignmentAddresses,
-    startChanged: Boolean,
-    endChanged: Boolean,
+    changedKmNumbers: Set<KmNumber>,
     existingStartNode: RatkoNode? = null,
     existingEndNode: RatkoNode? = null,
-    pointState: RatkoPointStates = RatkoPointStates.VALID
 ): RatkoNodes? {
     val layoutStartNode = convertToRatkoNode(
         addressPoint = alignmentAddresses.startPoint,
         nodeType = RatkoNodeType.START_POINT,
-        state = pointState,
+        state = RatkoPointStates.VALID,
     )
 
     val layoutEndNode = convertToRatkoNode(
         addressPoint = alignmentAddresses.endPoint,
         nodeType = RatkoNodeType.END_POINT,
-        state = pointState,
+        state = RatkoPointStates.VALID,
     )
 
-    val startHasChanged = startChanged || !sameNodeAddress(existingStartNode, layoutStartNode)
-    val endHasChanged = endChanged || !sameNodeAddress(existingEndNode, layoutEndNode)
+    val startHasChanged = changedKmNumbers.contains(alignmentAddresses.startPoint.address.kmNumber)
+    val endHasChanged = changedKmNumbers.contains(alignmentAddresses.endPoint.address.kmNumber)
 
     return if (startHasChanged || endHasChanged) {
         val newStartNode = if (startHasChanged || existingStartNode == null) layoutStartNode
@@ -61,6 +62,22 @@ fun getEndPointNodeCollection(
 
         return convertToRatkoNodeCollection(listOf(newStartNode, newEndNode))
     } else null
+}
+
+fun getNotInUseEndPointNodeCollection(alignmentAddresses: AlignmentAddresses): RatkoNodes {
+    val layoutStartNode = convertToRatkoNode(
+        addressPoint = alignmentAddresses.startPoint,
+        nodeType = RatkoNodeType.START_POINT,
+        state = RatkoPointStates.NOT_IN_USE,
+    )
+
+    val layoutEndNode = convertToRatkoNode(
+        addressPoint = alignmentAddresses.endPoint,
+        nodeType = RatkoNodeType.END_POINT,
+        state = RatkoPointStates.NOT_IN_USE,
+    )
+
+    return convertToRatkoNodeCollection(listOf(layoutStartNode, layoutEndNode))
 }
 
 fun asSwitchTypeString(switchType: SwitchType): String {
