@@ -218,8 +218,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
         val updatedEndPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            startChanged = locationTrackChange.isStartChanged,
-            endChanged = locationTrackChange.isEndChanged,
+            changedKmNumbers = locationTrackChange.changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )

@@ -90,8 +90,7 @@ class RatkoRouteNumberService @Autowired constructor(
         val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
         val endPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            startChanged = routeNumberChange.isStartChanged,
-            endChanged = routeNumberChange.isEndChanged,
+            changedKmNumbers = routeNumberChange.changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )
