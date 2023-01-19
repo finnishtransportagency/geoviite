@@ -13,7 +13,7 @@ import {
     actions,
     canSaveKmPost,
     initialKmPostEditState,
-    kmNumberMatchesRegExp,
+    isValidKmNumber,
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
 import { KmPostSaveRequest } from 'linking/linking-model';
@@ -111,7 +111,7 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
             !isNullOrBlank(state.kmPost.kmNumber) &&
             (state.kmPost.kmNumber != state.baselineKmNumber ||
                 state.kmPost.trackNumberId != state.baselineTrackNumberId) &&
-            kmNumberMatchesRegExp(state.kmPost.kmNumber)
+            isValidKmNumber(state.kmPost.kmNumber)
         ) {
             getKmPostByNumber('DRAFT', state.kmPost.trackNumberId, state.kmPost.kmNumber).then(
                 (found) => {
