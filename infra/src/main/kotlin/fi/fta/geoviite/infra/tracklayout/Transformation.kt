@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geography.HeightTriangle
+import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -222,7 +224,7 @@ fun toTrackLayoutPoint(
         else profile?.getHeightAt(alignmentStartStation + segmentStart + mValue)
             ?.let { value -> transformHeightValue(value, point, triangles, vcs) }
     }
-    // Cant station values are alignment m-values, calculated 0 (ignoring alignment station-start)
+    // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
     val cantValue = cant?.getCantValue(segmentStart + mValue)
     return LayoutPoint(
         x = point.x,

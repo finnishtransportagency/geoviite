@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import ElementListing
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IndexedId
@@ -131,8 +132,20 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/plans/linking-summaries")
-    fun getLinkingSummaries(@RequestBody planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
+    fun getLinkingSummaries(
+        @RequestBody planIds: List<IntId<GeometryPlan>>,
+    ): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         log.apiCall("getLinkingSummaries")
         return geometryService.getLinkingSummaries(planIds)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PostMapping("/plans/{id}/element-listing")
+    fun getPlanElementListing(
+        @PathVariable("id") id: IntId<GeometryPlan>,
+        @RequestParam("element-types") elementTypes: List<GeometryElementType>,
+    ): List<ElementListing> {
+        log.apiCall("getPlanElementList")
+        return geometryService.getElementListing(id, elementTypes)
     }
 }
