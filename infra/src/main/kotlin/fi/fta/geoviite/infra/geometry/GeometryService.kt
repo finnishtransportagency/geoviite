@@ -42,6 +42,7 @@ class GeometryService @Autowired constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val coordinateTransformationService: CoordinateTransformationService,
     private val geocodingService: GeocodingService,
+    private val locationTrackService: LocationTrackService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -212,6 +213,21 @@ class GeometryService @Autowired constructor(
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
         logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
+        val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
+        val geocodingContext = plan.trackNumberId?.let { tnId ->
+            geocodingService.getGeocodingContext(PublishType.OFFICIAL, tnId)
+        }
+        return toElementListing(geocodingContext, plan, elementTypes)
+    }
+
+    fun getElementListing(
+        trackId: IntId<LocationTrack>,
+        elementTypes: List<GeometryElementType>,
+        addressRange: Range<TrackMeter>,
+    ): List<ElementListing> {
+        logger.serviceCall("getElementListing",
+            "trackId" to trackId, "elementTypes" to elementTypes, "addressRange" to addressRange)
+        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.OFFICIAL, trackId)
         val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
         val geocodingContext = plan.trackNumberId?.let { tnId ->
             geocodingService.getGeocodingContext(PublishType.OFFICIAL, tnId)

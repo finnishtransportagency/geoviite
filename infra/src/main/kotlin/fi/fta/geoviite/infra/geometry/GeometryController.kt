@@ -5,10 +5,13 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
@@ -148,4 +151,16 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         log.apiCall("getPlanElementList")
         return geometryService.getElementListing(id, elementTypes)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PostMapping("/layout/location-tracks/{id}/element-listing")
+    fun getTrackElementListing(
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @RequestParam("element-types") elementTypes: List<GeometryElementType>,
+        @RequestParam("address-range") addressRange: Range<TrackMeter>? = null,
+    ): List<ElementListing> {
+        log.apiCall("getPlanElementList")
+        return geometryService.getElementListing(id, elementTypes)
+    }
+}
 }
