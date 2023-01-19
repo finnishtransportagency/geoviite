@@ -111,7 +111,9 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         </div>
                         <div>
                             {changesBeingReverted ? (
-                                <Spinner />
+                                <div className={'preview-table-item__revert-spinner'}>
+                                    <Spinner />
+                                </div>
                             ) : (
                                 <Button
                                     qa-id={'menu-button'}
