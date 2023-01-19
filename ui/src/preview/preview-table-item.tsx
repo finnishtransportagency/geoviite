@@ -10,6 +10,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { PreviewSelectType } from 'preview/preview-table';
+import { ChangesBeingReverted } from 'preview/preview-view';
 
 export type PreviewTableItemProps = {
     id: PublicationId;
@@ -23,6 +24,7 @@ export type PreviewTableItemProps = {
     pendingValidation: boolean;
     onPublishItemSelect?: () => void;
     onRevert: () => void;
+    changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
 };
 
@@ -39,6 +41,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     onPublishItemSelect,
     onRevert,
     publish = false,
+    changesBeingReverted,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -107,14 +110,18 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                             />
                         </div>
                         <div>
-                            <Button
-                                qa-id={'menu-button'}
-                                variant={ButtonVariant.GHOST}
-                                icon={Icons.More}
-                                onClick={(event: React.MouseEvent) => {
-                                    show({ event });
-                                }}
-                            />
+                            {changesBeingReverted ? (
+                                <Spinner />
+                            ) : (
+                                <Button
+                                    qa-id={'menu-button'}
+                                    variant={ButtonVariant.GHOST}
+                                    icon={Icons.More}
+                                    onClick={(event: React.MouseEvent) => {
+                                        show({ event });
+                                    }}
+                                />
+                            )}
                             <div>
                                 <Menu animation={false} id={menuId()}>
                                     <Item id="1" onClick={() => onRevert()}>

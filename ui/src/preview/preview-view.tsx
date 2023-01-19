@@ -378,6 +378,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <PreviewTable
                                     onPreviewSelect={props.onPreviewSelect}
                                     onRevert={onRequestRevert}
+                                    changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
                                 />
@@ -390,6 +391,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 <PreviewTable
                                     onPreviewSelect={onPublishPreviewRemove}
                                     onRevert={onRequestRevert}
+                                    changesBeingReverted={changesBeingReverted}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
                                 />
@@ -402,7 +404,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 {!calculatedChanges && <Spinner />}
                             </div>
                         </>
-                    )) || <div className={styles['preview-section__spinner-container']}><Spinner/></div>}
+                    )) || (
+                        <div className={styles['preview-section__spinner-container']}>
+                            <Spinner />
+                        </div>
+                    )}
                 </div>
 
                 <MapView

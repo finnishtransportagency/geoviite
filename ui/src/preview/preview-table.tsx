@@ -29,7 +29,7 @@ import {
 } from 'preview/change-table-entry-mapping';
 import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
-import { PreviewCandidates } from 'preview/preview-view';
+import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
 import { SortDirection, sortDirectionIcon } from 'publication/table/publication-table-utils';
 
 export type PublicationId =
@@ -58,6 +58,7 @@ type PreviewTableProps = {
     onPreviewSelect: (selectedChanges: SelectedPublishChange) => void;
     onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
+    changesBeingReverted: ChangesBeingReverted | undefined;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -65,6 +66,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     onPreviewSelect,
     onRevert,
     staged,
+    changesBeingReverted,
 }) => {
     const { t } = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -211,6 +213,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     pendingValidation={entry.pendingValidation}
                                     operation={entry.operation}
                                     publish={staged}
+                                    changesBeingReverted={changesBeingReverted}
                                 />
                             }
                         </React.Fragment>
