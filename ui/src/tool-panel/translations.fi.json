@@ -10,7 +10,10 @@
             "decision": "Vaiheen tarkennus",
             "track-number": "Ratanumero",
             "coordinate-system": "Alkuperäinen koordinaattijärjest.",
-            "linked-as": "Paikannuspalvelussa linkitetty"
+            "linked-as": "Paikannuspalvelussa linkitetty",
+            "plan-age": "Suunniteltu",
+            "has-vertical-geometry": "Sisältää pystygeometriaa",
+            "has-cant": "Sisältää kallistustietoja"
         },
         "track-number": {
             "general-title": "Ratanumeron perustiedot",

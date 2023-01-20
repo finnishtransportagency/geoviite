@@ -570,10 +570,17 @@ class GeometryDao @Autowired constructor(
               project.description as project_description,
               plan.track_number_id,
               (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
-              (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number
+              (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
+              has_profile,
+              has_cant
             from geometry.plan
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_project project on project.id = plan.plan_project_id
+              left join lateral
+                (select bool_or(profile_name is not null) as has_profile,
+                        bool_or(cant_name is not null) as has_cant
+                 from geometry.alignment
+                 where plan_id = plan.id) alignments on (true)
             where :plan_id = plan.id
         """.trimIndent()
         val params = mapOf(
@@ -609,7 +616,9 @@ class GeometryDao @Autowired constructor(
                     verticalCoordinateSystem = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system"),
                     directionUnit = rs.getEnum("direction_unit"),
                     linearUnit = rs.getEnum("linear_unit"),
-                )
+                ),
+                hasProfile = rs.getBoolean("has_profile"),
+                hasCant = rs.getBoolean("has_cant"),
             )
         } ?: throw NoSuchEntityException(GeometryPlanHeader::class, rowVersion.id)
         logger.daoAccess(FETCH, GeometryPlanHeader::class, rowVersion.id)
