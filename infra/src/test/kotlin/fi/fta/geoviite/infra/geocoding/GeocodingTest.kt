@@ -86,6 +86,47 @@ val context = GeocodingContext(
 class GeocodingTest {
 
     @Test
+    fun cutRangeByKmsCutsToReferenceLineEnds() {
+        val endAddress = context.projectionLines.last().address
+        assertEquals(
+            listOf(startAddress..endAddress),
+            context.cutRangeByKms((startAddress - 100.0)..(endAddress + 100.0), context.allKms.toSet()),
+        )
+        assertEquals(
+            listOf(),
+            context.cutRangeByKms((endAddress + 100.0)..(endAddress + 200.0), context.allKms.toSet()),
+        )
+    }
+
+    @Test
+    fun cutRangeByKmsSplitsOnMissingKm() {
+        val endAddress = context.projectionLines.last().address
+        val km3LastAddress = getLastAddress(KmNumber(3))!!
+        val km5LastAddress = getLastAddress(KmNumber(5, "A"))!!
+        assertEquals(
+            listOf(
+                (startAddress+100.0)..km3LastAddress,
+                TrackMeter(KmNumber(5, "A"), 0)..km5LastAddress,
+            ),
+            context.cutRangeByKms(
+                (startAddress+100.0)..endAddress,
+                setOf(startAddress.kmNumber, KmNumber(3), KmNumber(5, "A")),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                TrackMeter(KmNumber(3), 0)..km3LastAddress,
+                TrackMeter(KmNumber(5, "A"), 0)..(endAddress-100.0),
+            ),
+            context.cutRangeByKms(
+                startAddress..(endAddress-100.0),
+                setOf(KmNumber(3), KmNumber(5, "A"), KmNumber(5, "B")),
+            ),
+        )
+    }
+
+    @Test
     fun contextDistancesWorkForSegmentEnds() {
         for (segment in alignment.segments) {
             val startResult = context.getDistance(segment.points.first())
@@ -429,4 +470,6 @@ class GeocodingTest {
     }
 
     private fun toPoint(layoutPoint: LayoutPoint) = Point(layoutPoint.x, layoutPoint.y)
+    private fun getLastAddress(kmNumber: KmNumber) =
+        context.projectionLines.findLast { l -> l.address.kmNumber == kmNumber }?.address
 }
