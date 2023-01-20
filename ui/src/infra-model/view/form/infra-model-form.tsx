@@ -29,16 +29,18 @@ import { InfraModelMeasurementMethodField } from 'infra-model/view/form/fields/i
 import NewAuthorDialog from 'infra-model/view/dialogs/new-author-dialog';
 import NewProjectDialog from 'infra-model/view/dialogs/new-project-dialog';
 import { InfraModelVerticalCoordinateInfoboxField } from 'infra-model/view/form/fields/infra-model-vertical-coordinate-infobox-field';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infra-model-form-chosen-date-dropdowns';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import { ChangeTimes } from 'track-layout/track-layout-store';
 import CoordinateSystem from 'geoviite-design-lib/coordinate-system/coordinate-system';
-import NewTrackNumberDialog from '../dialogs/new-track-number-dialog';
 import { filterNotEmpty } from 'utils/array-utils';
 import { InfraModelTextField } from 'infra-model/view/form/infra-model-form-text-field';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
+import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'common/change-time-api';
+import { OnSelectFunction } from 'selection/selection-model';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -55,6 +57,7 @@ type InframodelViewFormContainerProps = {
     extraInframodelParameters: ExtraInfraModelParameters;
     onCommitField: (fieldName: string) => void;
     committedFields: InfraModelParametersProp[];
+    onSelect: OnSelectFunction;
 };
 
 export type EditablePlanField =
@@ -95,6 +98,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     extraInframodelParameters,
     onCommitField,
     committedFields,
+    onSelect,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
     const [coordinateSystem, setCoordinateSystem] = React.useState<CoordinateSystemModel | null>();
@@ -203,6 +207,17 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     function hasErrors(prop: InfraModelParametersProp) {
         return getVisibleErrorsByProp(prop).length > 0;
+    }
+
+    function onSelectTrackNumber(id: LayoutTrackNumberId) {
+        onSelect({ trackNumbers: [id] });
+    }
+
+    function handleTrackNumberSave(id: LayoutTrackNumberId) {
+        changeInOverrideParametersField(id, 'trackNumberId');
+        updateReferenceLineChangeTime().then(() =>
+            updateTrackNumberChangeTime().then(() => onSelectTrackNumber(id)),
+        );
     }
 
     return (
@@ -509,12 +524,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                     }}></NewProjectDialog>
             )}
             {showNewTrackNumberDialog && trackNumberList && (
-                <NewTrackNumberDialog
-                    trackNumbers={trackNumberList}
+                <TrackNumberEditDialogContainer
                     onClose={closeAddTrackNumberDialog}
-                    onInsert={(trackId) => {
-                        changeInOverrideParametersField(trackId, 'trackNumberId');
-                    }}
+                    onSave={handleTrackNumberSave}
                 />
             )}
         </React.Fragment>
