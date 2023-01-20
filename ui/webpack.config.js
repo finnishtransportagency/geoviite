@@ -133,10 +133,7 @@ module.exports = (env) => {
             new HtmlWebpackPlugin({
                 template: './src/index.html',
             }),
-            new FontPreloadPlugin({
-                insertBefore: 'head > link:nth-child(1)',
-                extensions: ['woff2', 'woff'],
-            }),
+            new FontPreloadPlugin(),
             new MiniCssExtractPlugin({ insert: ':last-child(meta)' }),
             // NOTE: According to this post this plugin is bad and headers should be used instead
             // https://towardsdatascience.com/content-security-policy-how-to-create-an-iron-clad-nonce-based-csp3-policy-with-webpack-and-nginx-ce5a4605db90
