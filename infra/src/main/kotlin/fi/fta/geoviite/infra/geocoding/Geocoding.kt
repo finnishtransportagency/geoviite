@@ -90,6 +90,9 @@ data class GeocodingContext(
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
     }
+    private val allKms: List<KmNumber> by lazy {
+        referencePoints.map(GeocodingReferencePoint::kmNumber).distinct()
+    }
 
     fun getProjectionLine(address: TrackMeter): ProjectionLine? =
         projectionLines.getOrNull(projectionLines.binarySearch { projectionLine ->
@@ -234,7 +237,41 @@ data class GeocodingContext(
             ?: throw GeocodingFailureException("Target point is not withing the reference line length")
     }
 
+    fun cutRangeByKms(range: ClosedRange<TrackMeter>, kms: Set<KmNumber>): List<ClosedRange<TrackMeter>> {
+        if (projectionLines.isEmpty()) return listOf()
+        return splitRange(range, toAddressRanges(getKmRanges(kms)))
+    }
+
+    private fun getKmRanges(kms: Set<KmNumber>): List<ClosedRange<KmNumber>> {
+        val ranges: MutableList<ClosedRange<KmNumber>> = mutableListOf()
+        var currentRange: ClosedRange<KmNumber>? = null
+        allKms.forEach { kmNumber ->
+            currentRange = if (kms.contains(kmNumber)) {
+                currentRange?.let { c -> c.start..kmNumber } ?: kmNumber..kmNumber
+            } else {
+                currentRange?.let(ranges::add)
+                null
+            }
+        }
+        currentRange?.let(ranges::add)
+        return ranges
+    }
+
+    private fun toAddressRanges(kmRanges: List<ClosedRange<KmNumber>>): List<ClosedRange<TrackMeter>> =
+        kmRanges.map { kmRange ->
+            val startAddress = TrackMeter(kmRange.start, 0)
+            val nextKm = allKms.getOrNull(allKms.indexOf(kmRange.endInclusive)+1)
+            val endAddress = nextKm?.let { km -> TrackMeter(km, 0) }
+                ?: projectionLines.last().address
+            startAddress..endAddress
+        }
 }
+
+fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMeter>>): List<ClosedRange<TrackMeter>> =
+    splits.mapNotNull { allowedRange ->
+        if (range.start >= allowedRange.endInclusive || range.endInclusive <= allowedRange.start) null
+        else maxOf(range.start, allowedRange.start)..minOf(range.endInclusive, allowedRange.endInclusive)
+    }
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
     things: List<T>,
