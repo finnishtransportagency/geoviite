@@ -2,8 +2,6 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.geocoding.AddressPoint
-import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchType

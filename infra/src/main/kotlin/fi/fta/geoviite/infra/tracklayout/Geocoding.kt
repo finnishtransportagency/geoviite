@@ -106,7 +106,7 @@ data class GeocodingContext(
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
     }
-    private val allKms: List<KmNumber> by lazy {
+    val allKms: List<KmNumber> by lazy {
         referencePoints.map(GeocodingReferencePoint::kmNumber).distinct()
     }
 
@@ -235,7 +235,8 @@ data class GeocodingContext(
 
     fun cutRangeByKms(range: ClosedRange<TrackMeter>, kms: Set<KmNumber>): List<ClosedRange<TrackMeter>> {
         if (projectionLines.isEmpty()) return listOf()
-        return splitRange(range, toAddressRanges(getKmRanges(kms)))
+        val addressRanges = getKmRanges(kms).mapNotNull(::toAddressRange)
+        return splitRange(range, addressRanges)
     }
 
     private fun getKmRanges(kms: Set<KmNumber>): List<ClosedRange<KmNumber>> {
@@ -253,14 +254,16 @@ data class GeocodingContext(
         return ranges
     }
 
-    private fun toAddressRanges(kmRanges: List<ClosedRange<KmNumber>>): List<ClosedRange<TrackMeter>> =
-        kmRanges.map { kmRange ->
-            val startAddress = TrackMeter(kmRange.start, 0)
-            val nextKm = allKms.getOrNull(allKms.indexOf(kmRange.endInclusive)+1)
-            val endAddress = nextKm?.let { km -> TrackMeter(km, 0) }
-                ?: projectionLines.last().address
-            startAddress..endAddress
-        }
+    /**
+     * Returns the inclusive range of addresses in the given range of km-numbers.
+     * Note: Since this is inclusive, it does not include decimal meters after the last even meter,
+     * even though such addresses can be calculated
+     */
+    private fun toAddressRange(kmRange: ClosedRange<KmNumber>): ClosedRange<TrackMeter>? {
+        val startAddress = projectionLines.find { l -> l.address.kmNumber == kmRange.start }?.address
+        val endAddress = projectionLines.findLast { l -> l.address.kmNumber == kmRange.endInclusive }?.address
+        return if (startAddress != null && endAddress != null) startAddress..endAddress else null
+    }
 }
 fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMeter>>): List<ClosedRange<TrackMeter>> =
     splits.mapNotNull { allowedRange ->
