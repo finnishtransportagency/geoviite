@@ -79,7 +79,7 @@ export type PublishCandidates = {
 
 export type ValidatedPublishCandidates = {
     validatedAsPublicationUnit: PublishCandidates;
-    validatedSeparately: PublishCandidates;
+    allChangesValidated: PublishCandidates;
 };
 
 export type PublicationDetails = {
