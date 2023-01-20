@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -38,6 +39,20 @@ class PublicationServiceIT @Autowired constructor(
     val calculatedChangesService: CalculatedChangesService,
     val publicationDao: PublicationDao,
 ): ITTestBase() {
+
+    @BeforeEach
+    fun clearDrafts() {
+        val request = publicationService.getAllPublicationVersions().let {
+            PublishRequest(
+                it.trackNumbers.map { it.draftVersion.id },
+                it.locationTracks.map { it.draftVersion.id },
+                it.referenceLines.map { it.draftVersion.id },
+                it.switches.map { it.draftVersion.id },
+                it.kmPosts.map { it.draftVersion.id }
+            )
+        }
+        publicationService.revertPublishCandidates(request)
+    }
 
     @Test
     fun publicationChangeSetIsStoredAndLoadedCorrectly() {
@@ -93,6 +108,27 @@ class PublicationServiceIT @Autowired constructor(
 
         val restoredCalculatedChanges = publicationDao.fetchCalculatedChangesInPublish(publishResult.publishId!!)
         assertEquals(draftCalculatedChanges, restoredCalculatedChanges)
+    }
+
+    @Test
+    fun `Fetching all publication versions works`() {
+        val switch = switchService.saveDraft(switch(123))
+        val trackNumberId = insertDraftTrackNumber()
+
+        val (t, a) = locationTrackAndAlignment(trackNumberId, segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        locationTrackService.saveDraft(t.copy(alignmentVersion =
+            alignmentDao.insert(a.copy(segments = listOf(a.segments[0].copy(switchId = switch.id))))))
+        locationTrackService.saveDraft(locationTrack(trackNumberId, name = "TEST-1"))
+
+        referenceLineService.saveDraft(referenceLine(trackNumberId))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber.ZERO))
+
+        val versions = publicationService.getAllPublicationVersions()
+        assertEquals(versions.switches.size, 1)
+        assertEquals(versions.locationTracks.size, 2)
+        assertEquals(versions.trackNumbers.size, 1)
+        assertEquals(versions.referenceLines.size, 1)
+        assertEquals(versions.kmPosts.size, 1)
     }
 
     @Test

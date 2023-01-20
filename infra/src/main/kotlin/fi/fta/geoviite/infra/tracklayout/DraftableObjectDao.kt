@@ -44,6 +44,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
 
     fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>>
+    fun fetchAllPublicationVersions(): List<PublicationVersion<T>>
 
     fun draftExists(id: IntId<T>): Boolean
     fun officialExists(id: IntId<T>): Boolean
@@ -97,6 +98,21 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         ) }.also { found -> ids.forEach { id ->
             if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
         } }
+    }
+
+    override fun fetchAllPublicationVersions(): List<PublicationVersion<T>> {
+        val sql = """
+            select 
+              coalesce(${table.draftLink}, id) as official_id,
+              id as row_id, 
+              version as row_version
+            from ${table.fullName} 
+            where draft = true
+        """.trimIndent()
+        return jdbcTemplate.query<PublicationVersion<T>>(sql, emptyMap<String, Int>()) { rs, _ -> PublicationVersion(
+            rs.getIntId("official_id"),
+            rs.getRowVersion("row_id", "row_version"),
+        ) }
     }
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
 

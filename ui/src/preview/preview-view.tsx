@@ -272,49 +272,65 @@ const singleRowPublishRequestOfSelectedPublishChange = (
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
 
+    // Explanation for update token: The base data set for both the staged and unstaged change
+    // tables comes from the backend while staged changes are always only stored in the front end.
+    // This lead to situations where reverting a staged change would remove the row from staged
+    // changes (a front-end only operation) while the  fetch for a new change set (a backend
+    // operation) had not yet finished. The reverted row would thus pop up as an unstaged change
+    // for this time before disappearing completely. Thus redraw needs to be controlled manually,
+    // instead of relying on React's dependency-based redraw.
+    const [changeTableUpdateToken, setChangeTableUpdateToken] = React.useState<number>();
+    const updateChangeTables = () => setChangeTableUpdateToken(Date.now());
+
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
-    const entireChangesetValidation = useLoader(
+    const validatedChangeset = useLoader(
         () =>
             validatePublishCandidates(
                 publishCandidateIds(entireChangeset ? entireChangeset : emptyChanges),
-            ),
+            ).then((validatedPublishCandidates) => {
+                updateChangeTables();
+                return validatedPublishCandidates;
+            }),
         [entireChangeset],
     );
-    const stagedValidation = useLoader(
-        () => validatePublishCandidates(props.selectedPublishCandidateIds),
-        [props.selectedPublishCandidateIds, props.changeTimes],
-    );
-    const unstagedChanges = entireChangesetValidation
+    const unstagedChanges = validatedChangeset
         ? getUnstagedChanges(
-              entireChangesetValidation?.validatedAsPublicationUnit,
+              validatedChangeset?.allChangesValidated,
               props.selectedPublishCandidateIds,
           )
         : undefined;
-    const stagedChangesValidated = stagedValidation
+    const stagedChangesValidated = validatedChangeset
         ? getStagedChanges(
-              stagedValidation.validatedAsPublicationUnit,
+              validatedChangeset.validatedAsPublicationUnit,
               props.selectedPublishCandidateIds,
           )
         : undefined;
 
-    const unstagedPreviewChanges: PreviewCandidates = unstagedChanges
-        ? {
-              trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
-              referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
-              locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
-              switches: unstagedChanges.switches.map(nonPendingCandidate),
-              kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
-          }
-        : emptyChanges;
+    const unstagedPreviewChanges: PreviewCandidates = React.useMemo(
+        () =>
+            unstagedChanges
+                ? {
+                      trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
+                      referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
+                      locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
+                      switches: unstagedChanges.switches.map(nonPendingCandidate),
+                      kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
+                  }
+                : emptyChanges,
+        [changeTableUpdateToken],
+    );
 
-    const stagedPreviewChanges: PreviewCandidates =
-        stagedChangesValidated && entireChangeset
-            ? previewChanges(
-                  stagedChangesValidated,
-                  props.selectedPublishCandidateIds,
-                  entireChangeset,
-              )
-            : emptyChanges;
+    const stagedPreviewChanges: PreviewCandidates = React.useMemo(
+        () =>
+            stagedChangesValidated && entireChangeset
+                ? previewChanges(
+                      stagedChangesValidated,
+                      props.selectedPublishCandidateIds,
+                      entireChangeset,
+                  )
+                : emptyChanges,
+        [changeTableUpdateToken],
+    );
 
     const calculatedChanges = useLoader(
         () => getCalculatedChanges(props.selectedPublishCandidateIds),
@@ -360,6 +376,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         props.onPublishPreviewRemove(
             singleRowPublishRequestOfSelectedPublishChange(selectedChange),
         );
+        updateChangeTables();
+    };
+
+    const onPreviewSelect = (selectedChange: SelectedPublishChange): void => {
+        props.onPreviewSelect(selectedChange);
+        updateChangeTables();
     };
 
     return (
@@ -376,7 +398,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     <h3>{t('preview-view.unstaged-changes-title')}</h3>
                                 </div>
                                 <PreviewTable
-                                    onPreviewSelect={props.onPreviewSelect}
+                                    onPreviewSelect={onPreviewSelect}
                                     onRevert={onRequestRevert}
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
