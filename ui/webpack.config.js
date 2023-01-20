@@ -7,6 +7,7 @@ const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const LicensePlugin = require('webpack-license-plugin');
 const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const FontPreloadPlugin = require('webpack-font-preload-plugin');
 
 dotenv.config();
 
@@ -76,6 +77,7 @@ module.exports = (env) => {
         output: {
             path: path.join(__dirname, '/dist'),
             filename: 'bundle.js',
+            publicPath: '', // For font preloader plugin, otherwise it generates a broken prefix for font file names
         },
         module: {
             rules: [
@@ -131,6 +133,7 @@ module.exports = (env) => {
             new HtmlWebpackPlugin({
                 template: './src/index.html',
             }),
+            new FontPreloadPlugin(),
             new MiniCssExtractPlugin({ insert: ':last-child(meta)' }),
             // NOTE: According to this post this plugin is bad and headers should be used instead
             // https://towardsdatascience.com/content-security-policy-how-to-create-an-iron-clad-nonce-based-csp3-policy-with-webpack-and-nginx-ce5a4605db90
