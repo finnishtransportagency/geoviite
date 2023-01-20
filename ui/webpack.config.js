@@ -7,6 +7,7 @@ const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const LicensePlugin = require('webpack-license-plugin');
 const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const FontPreloadPlugin = require('webpack-font-preload-plugin');
 
 dotenv.config();
 
@@ -76,6 +77,7 @@ module.exports = (env) => {
         output: {
             path: path.join(__dirname, '/dist'),
             filename: 'bundle.js',
+            publicPath: '', // For font preloader plugin, otherwise it generates a broken prefix for font file names
         },
         module: {
             rules: [
@@ -130,6 +132,10 @@ module.exports = (env) => {
         plugins: [
             new HtmlWebpackPlugin({
                 template: './src/index.html',
+            }),
+            new FontPreloadPlugin({
+                insertBefore: 'head > link:nth-child(1)',
+                extensions: ['woff2', 'woff'],
             }),
             new MiniCssExtractPlugin({ insert: ':last-child(meta)' }),
             // NOTE: According to this post this plugin is bad and headers should be used instead
