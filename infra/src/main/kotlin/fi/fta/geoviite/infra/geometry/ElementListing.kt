@@ -16,7 +16,7 @@ const val DIRECTION_DECIMALS = 6
 const val CANT_DECIMALS = 6
 
 data class ElementListing(
-    val planId: IntId<GeometryPlan>,
+    val planId: DomainId<GeometryPlan>,
     val fileName: FileName,
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
@@ -24,7 +24,9 @@ data class ElementListing(
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val trackNumberDescription: PlanElementName,
 
+    val alignmentId: DomainId<GeometryAlignment>,
     val alignmentName: AlignmentName,
+
     val elementType: GeometryElementType,
     val lengthMeters: BigDecimal,
 
@@ -56,12 +58,13 @@ fun toElementListing(
     alignment: GeometryAlignment,
     element: GeometryElement,
 ) = ElementListing(
-    planId = plan.id as IntId,
+    planId = plan.id,
     fileName = plan.fileName,
     coordinateSystemSrid = plan.units.coordinateSystemSrid,
     coordinateSystemName = plan.units.coordinateSystemName,
     trackNumberId = plan.trackNumberId,
     trackNumberDescription = plan.trackNumberDescription,
+    alignmentId = alignment.id,
     alignmentName = alignment.name,
     elementType = element.type,
     lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
@@ -87,26 +90,26 @@ fun getEndLocation(geocodingContext: GeocodingContext?, alignment: GeometryAlign
         cant = getEndCant(alignment, element)
     )
 
-fun getAddress(geocodingContext: GeocodingContext?, coordinate: Point) =
+private fun getAddress(geocodingContext: GeocodingContext?, coordinate: Point) =
     geocodingContext?.getAddress(coordinate, ADDRESS_DECIMALS)?.first
 
-fun getDirectionGrads(rads: Double) = round(radsToGrads(rads), DIRECTION_DECIMALS)
+private fun getDirectionGrads(rads: Double) = round(radsToGrads(rads), DIRECTION_DECIMALS)
 
-fun getRadius(element: GeometryElement) = when (element) {
+private fun getRadius(element: GeometryElement) = when (element) {
     is GeometryLine -> null
     is GeometryCurve -> element.radius
     is GeometrySpiral -> element.radiusStart
 }
 
-fun getStartCant(alignment: GeometryAlignment, element: GeometryElement) =
+private fun getStartCant(alignment: GeometryAlignment, element: GeometryElement) =
     getCantAt(alignment, getElementStartLength(alignment, element.id))
 
-fun getEndCant(alignment: GeometryAlignment, element: GeometryElement) =
+private fun getEndCant(alignment: GeometryAlignment, element: GeometryElement) =
     getCantAt(alignment, getElementStartLength(alignment, element.id) + element.calculatedLength)
 
-fun getElementStartLength(alignment: GeometryAlignment, elementId: DomainId<GeometryElement>) =
+private fun getElementStartLength(alignment: GeometryAlignment, elementId: DomainId<GeometryElement>) =
     alignment.elements.takeWhile { e -> e.id != elementId }.sumOf { e -> e.calculatedLength }
 
-fun getCantAt(alignment: GeometryAlignment, locationDistance: Double) =
+private fun getCantAt(alignment: GeometryAlignment, locationDistance: Double) =
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
     alignment.cant?.getCantValue(locationDistance)?.let { v -> round(v, CANT_DECIMALS) }
