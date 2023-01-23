@@ -26,16 +26,40 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
+    const [showElementList, setShowElementList] = React.useState(false);
+    //TODO showElementlist, <NavLink to={'/data-products-element-list'} />;
+
+    enum DataMenuItems {
+        'elementList' = 1,
+        'verticalGeometry' = 2,
+        'kmLengths' = 3,
+    }
 
     const dataMenuItems = [
-        { value: 'MENU1', name: t('app-bar.data-products.element-list') },
-        { value: 'MENU2', name: t('app-bar.data-products.vertical-geometry') },
-        { value: 'MENU3', name: t('app-bar.data-products.km-lengths') },
+        { value: DataMenuItems.elementList, name: t('app-bar.data-products.element-list') },
+        {
+            value: DataMenuItems.verticalGeometry,
+            name: t('app-bar.data-products.vertical-geometry'),
+        },
+        { value: DataMenuItems.kmLengths, name: t('app-bar.data-products.km-lengths') },
     ];
 
-    const handleItemChange = (_item: string) => {
-        // TODO add navigation to subpages
+    const handleDataProductItemChange = (item: DataMenuItems) => {
+        showDataProductDialog(item);
     };
+
+    function showDataProductDialog(menuItems: DataMenuItems) {
+        switch (menuItems) {
+            case DataMenuItems.elementList:
+                setShowElementList(true);
+                break;
+            case DataMenuItems.verticalGeometry:
+                break;
+            case DataMenuItems.kmLengths:
+                break;
+        }
+        setDataMenuOpen(false);
+    }
 
     return (
         <nav className={styles['app-bar']}>
@@ -73,7 +97,10 @@ export const AppBar: React.FC = () => {
                                 <div className={styles['app-bar__data-menu']}>
                                     <Menu
                                         items={dataMenuItems}
-                                        onChange={(item) => item && handleItemChange(item)}></Menu>
+                                        onChange={(item) =>
+                                            item && handleDataProductItemChange(item)
+                                        }
+                                    />
                                 </div>
                             )}
                         </div>
