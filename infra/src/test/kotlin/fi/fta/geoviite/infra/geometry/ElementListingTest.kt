@@ -1,14 +1,18 @@
+package fi.fta.geoviite.infra.geometry
+
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.RotationDirection.CW
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.KKJ0
-import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.radsToGrads
+import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
@@ -16,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Test
+import toElementListing
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 
@@ -37,7 +42,7 @@ class ElementListingTest {
             srid = KKJ0,
             coordinateSystemName = CoordinateSystemName("KKJ testname"),
         )
-        val listing = toElementListing(null, plan, GeometryElementType.values().toList())
+        val listing = toElementListing(null, plan, values().toList())
         listing.forEach { l ->
             assertEquals(plan.id, l.planId)
             assertEquals(FileName("test-file 001.xml"), l.fileName)
@@ -67,20 +72,32 @@ class ElementListingTest {
             startAddress = TrackMeter(KmNumber(1), 100),
         )
         val geocodingContext = GeocodingContext.create(trackNumber, referenceLine, alignment, listOf())
+        val clothoid = minimalClothoid(
+            start = Point(10.0, 10.0),
+            end = Point(20.0, 20.0),
+            pi = Point(18.0, 19.0),
+            rotation = CW,
+        )
+        val cant = linearCant(0.0, clothoid.calculatedLength, 0.001, 0.005)
         val plan = plan(
             trackNumberId = IntId(1),
-            alignments = listOf(geometryAlignment(
-                elements = listOf(line(Point(10.0, 10.0), Point(20.0, 20.0))),
-            ))
+            alignments = listOf(geometryAlignment(elements = listOf(clothoid), cant = cant))
         )
-        val elementListing = toElementListing(geocodingContext, plan, GeometryElementType.values().toList())
+        val elementListing = toElementListing(geocodingContext, plan, values().toList())
         assertEquals(1, elementListing.size)
         val element1 = elementListing[0]
 
         assertEquals(Point(10.0, 10.0), element1.start.coordinate)
         assertEquals(TrackMeter(KmNumber(1), BigDecimal("110.000")), element1.start.address)
+        assertEquals(round(radsToGrads(clothoid.startDirectionRads), 6), element1.start.directionGrads)
+        assertEquals(clothoid.radiusStart, element1.start.radiusMeters)
+        assertEquals(BigDecimal("0.001000"), element1.start.cant)
+
         assertEquals(Point(20.0, 20.0), element1.end.coordinate)
         assertEquals(TrackMeter(KmNumber(1), BigDecimal("120.000")), element1.end.address)
+        assertEquals(round(radsToGrads(clothoid.endDirectionRads), 6), element1.end.directionGrads)
+        assertEquals(clothoid.radiusEnd, element1.end.radiusMeters)
+        assertEquals(BigDecimal("0.005000"), element1.end.cant)
     }
 
     @Test

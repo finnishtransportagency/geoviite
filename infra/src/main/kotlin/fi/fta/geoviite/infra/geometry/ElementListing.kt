@@ -77,7 +77,7 @@ fun getStartLocation(geocodingContext: GeocodingContext?, alignment: GeometryAli
         coordinate = element.start,
         address = getAddress(geocodingContext, element.start),
         directionGrads = getDirectionGrads(element.startDirectionRads),
-        radiusMeters = getRadius(element),
+        radiusMeters = getStartRadius(element),
         cant = getStartCant(alignment, element)
     )
 
@@ -86,7 +86,7 @@ fun getEndLocation(geocodingContext: GeocodingContext?, alignment: GeometryAlign
         coordinate = element.end,
         address = getAddress(geocodingContext, element.end),
         directionGrads = getDirectionGrads(element.endDirectionRads),
-        radiusMeters = getRadius(element),
+        radiusMeters = getEndRadius(element),
         cant = getEndCant(alignment, element)
     )
 
@@ -95,10 +95,16 @@ private fun getAddress(geocodingContext: GeocodingContext?, coordinate: Point) =
 
 private fun getDirectionGrads(rads: Double) = round(radsToGrads(rads), DIRECTION_DECIMALS)
 
-private fun getRadius(element: GeometryElement) = when (element) {
+private fun getStartRadius(element: GeometryElement) = when (element) {
     is GeometryLine -> null
     is GeometryCurve -> element.radius
     is GeometrySpiral -> element.radiusStart
+}
+
+private fun getEndRadius(element: GeometryElement) = when (element) {
+    is GeometryLine -> null
+    is GeometryCurve -> element.radius
+    is GeometrySpiral -> element.radiusEnd
 }
 
 private fun getStartCant(alignment: GeometryAlignment, element: GeometryElement) =
