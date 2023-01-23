@@ -75,7 +75,7 @@ fun toElementListing(
 fun getStartLocation(geocodingContext: GeocodingContext?, alignment: GeometryAlignment, element: GeometryElement) =
     ElementLocation(
         coordinate = element.start,
-        address = getAddress(geocodingContext, element.end),
+        address = getAddress(geocodingContext, element.start),
         directionGrads = getDirectionGrads(element.startDirectionRads),
         radiusMeters = getRadius(element),
         cant = getStartCant(alignment, element)
@@ -84,7 +84,7 @@ fun getStartLocation(geocodingContext: GeocodingContext?, alignment: GeometryAli
 fun getEndLocation(geocodingContext: GeocodingContext?, alignment: GeometryAlignment, element: GeometryElement) =
     ElementLocation(
         coordinate = element.end,
-        address = getAddress(geocodingContext, element.start),
+        address = getAddress(geocodingContext, element.end),
         directionGrads = getDirectionGrads(element.endDirectionRads),
         radiusMeters = getRadius(element),
         cant = getEndCant(alignment, element)

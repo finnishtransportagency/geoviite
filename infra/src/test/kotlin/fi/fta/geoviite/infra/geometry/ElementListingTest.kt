@@ -1,26 +1,25 @@
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.KKJ0
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Test
+import java.math.BigDecimal
 import kotlin.test.assertEquals
 
 class ElementListingTest {
-
-    @Test
-    fun `Start location includes calculated values`() {
-    }
-
-    @Test
-    fun `End location includes calculated values`() {
-
-    }
 
     @Test
     fun `Basic info is filled from GeometryPlan`() {
@@ -59,7 +58,33 @@ class ElementListingTest {
     }
 
     @Test
-    fun `Element listing is fitered by types`() {
+    fun `Start and end location includes calculated values`() {
+        val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
+        val trackNumber = trackNumber(id = trackNumberId)
+        val (referenceLine, alignment) = referenceLineAndAlignment(
+            trackNumberId = trackNumberId,
+            segments = listOf(segment(Point(0.0, 0.0), Point(50.0, 0.0))),
+            startAddress = TrackMeter(KmNumber(1), 100),
+        )
+        val geocodingContext = GeocodingContext.create(trackNumber, referenceLine, alignment, listOf())
+        val plan = plan(
+            trackNumberId = IntId(1),
+            alignments = listOf(geometryAlignment(
+                elements = listOf(line(Point(10.0, 10.0), Point(20.0, 20.0))),
+            ))
+        )
+        val elementListing = toElementListing(geocodingContext, plan, GeometryElementType.values().toList())
+        assertEquals(1, elementListing.size)
+        val element1 = elementListing[0]
+
+        assertEquals(Point(10.0, 10.0), element1.start.coordinate)
+        assertEquals(TrackMeter(KmNumber(1), BigDecimal("110.000")), element1.start.address)
+        assertEquals(Point(20.0, 20.0), element1.end.coordinate)
+        assertEquals(TrackMeter(KmNumber(1), BigDecimal("120.000")), element1.end.address)
+    }
+
+    @Test
+    fun `Element listing is filtered by types`() {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
         val plan = plan(
             trackNumberId = trackNumberId,

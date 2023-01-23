@@ -146,17 +146,17 @@ fun points(
 private fun valueOnRange(range: ClosedRange<Double>, index: Int, count: Int) =
     range.start + index * (range.endInclusive - range.start) / (count - 1)
 
-fun trackNumber() = trackNumber(TrackNumber("100"))
-
 fun trackNumber(
-    number: TrackNumber,
+    number: TrackNumber = TrackNumber("100"),
     description: String = "Test Track number $number",
     draft: Boolean = false,
     externalId: Oid<TrackLayoutTrackNumber>? = Oid(
         "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
     ),
     state: LayoutState = LayoutState.IN_USE,
+    id: DomainId<TrackLayoutTrackNumber> = StringId(),
 ) = TrackLayoutTrackNumber(
+    id = id,
     number = number,
     description = FreeText(description),
     state = state,
