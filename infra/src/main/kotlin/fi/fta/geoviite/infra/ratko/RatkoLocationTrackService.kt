@@ -104,7 +104,7 @@ class RatkoLocationTrackService @Autowired constructor(
             sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
-        createLocationTrackPoints(locationTrackOid,addresses.midPoints + switchPoints)
+        createLocationTrackPoints(locationTrackOid, addresses.midPoints + switchPoints)
         val layoutLocationTrackWithOid = layoutLocationTrack.copy(externalId = Oid(locationTrackOid.id))
         createLocationTrackMetadata(layoutLocationTrackWithOid, addresses.allPoints+switchPoints, trackNumberOid)
     }
@@ -154,7 +154,7 @@ class RatkoLocationTrackService @Autowired constructor(
                     val splitAddressRanges = if (changedKmNumbers == null) listOf(origMetaDataRange)
                     else geocodingContext.cutRangeByKms(origMetaDataRange, changedKmNumbers)
 
-                    val splitMetaDataAssets = splitAddressRanges.mapNotNull { addressRange ->
+                    val splitMetaDataAssets = splitAddressRanges.map { addressRange ->
                         val startPoint = alignmentPoints.find { point -> point.address == addressRange.start }?.point
                             ?: throw IllegalStateException("Metadata start ${addressRange.start} was not found in changed alignment points")
                         val endPoint = alignmentPoints.find { point -> point.address == addressRange.endInclusive }?.point
@@ -254,9 +254,9 @@ class RatkoLocationTrackService @Autowired constructor(
 
         createLocationTrackMetadata(
             layoutLocationTrack,
-            addresses.allPoints+switchPoints,
+            addresses.allPoints + switchPoints,
             trackNumberOid,
-            locationTrackChange.changedKmNumbers
+            locationTrackChange.changedKmNumbers,
         )
     }
 
