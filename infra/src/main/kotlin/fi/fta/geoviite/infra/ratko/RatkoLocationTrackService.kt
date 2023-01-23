@@ -104,9 +104,9 @@ class RatkoLocationTrackService @Autowired constructor(
             sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
-        createLocationTrackPoints(locationTrackOid, (addresses.midPoints + switchPoints))
+        createLocationTrackPoints(locationTrackOid,addresses.midPoints + switchPoints)
         val layoutLocationTrackWithOid = layoutLocationTrack.copy(externalId = Oid(locationTrackOid.id))
-        createLocationTrackMetadata(layoutLocationTrackWithOid, trackNumberOid)
+        createLocationTrackMetadata(layoutLocationTrackWithOid, addresses.allPoints+switchPoints, trackNumberOid)
     }
 
     private fun createLocationTrackPoints(
@@ -118,6 +118,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
     private fun createLocationTrackMetadata(
         layoutLocationTrack: LocationTrack,
+        alignmentPoints: List<AddressPoint>,
         trackNumberOid: Oid<TrackLayoutTrackNumber>,
         changedKmNumbers: Set<KmNumber>? = null,
     ) {
@@ -150,34 +151,27 @@ class RatkoLocationTrackService @Autowired constructor(
 
                 if (startTrackMeter != null && endTrackMeter != null) {
                     val origMetaDataRange = startTrackMeter..endTrackMeter
-                    val splitAddressRanges = if (changedKmNumbers==null) listOf(origMetaDataRange)
-                        else geocodingContext.cutRangeByKms(origMetaDataRange, changedKmNumbers)
+                    val splitAddressRanges = if (changedKmNumbers == null) listOf(origMetaDataRange)
+                    else geocodingContext.cutRangeByKms(origMetaDataRange, changedKmNumbers)
 
                     val splitMetaDataAssets = splitAddressRanges.mapNotNull { addressRange ->
-                        val startPoint = geocodingService.getTrackLocation(
-                            layoutLocationTrack.id as IntId,
-                            addressRange.start,
-                            PublishType.OFFICIAL
-                        )?.point
-                        val endPoint = geocodingService.getTrackLocation(
-                            layoutLocationTrack.id,
-                            addressRange.endInclusive,
-                            PublishType.OFFICIAL
-                        )?.point
-                        if (startPoint != null && endPoint != null) {
-                            val splitMetaData = metadata.copy(
-                                startPoint = Point(startPoint),
-                                endPoint = Point(endPoint)
-                            )
+                        val startPoint = alignmentPoints.find { point -> point.address == addressRange.start }?.point
+                            ?: throw IllegalStateException("Metadata start ${addressRange.start} was not found in changed alignment points")
+                        val endPoint = alignmentPoints.find { point -> point.address == addressRange.endInclusive }?.point
+                            ?: throw IllegalStateException("Metadata end ${addressRange.endInclusive} was not found in changed alignment points")
 
-                            convertToRatkoMetadataAsset(
-                                trackNumberOid = trackNumberOid,
-                                locationTrackOid = layoutLocationTrack.externalId,
-                                segmentMetadata = splitMetaData,
-                                startTrackMeter = addressRange.start,
-                                endTrackMeter = addressRange.endInclusive
-                            )
-                        } else null
+                        val splitMetaData = metadata.copy(
+                            startPoint = Point(startPoint),
+                            endPoint = Point(endPoint)
+                        )
+
+                        convertToRatkoMetadataAsset(
+                            trackNumberOid = trackNumberOid,
+                            locationTrackOid = layoutLocationTrack.externalId,
+                            segmentMetadata = splitMetaData,
+                            startTrackMeter = addressRange.start,
+                            endTrackMeter = addressRange.endInclusive
+                        )
                     }
 
                     val locationTrackOid = RatkoOid<RatkoLocationTrack>(layoutLocationTrack.externalId)
@@ -248,16 +242,22 @@ class RatkoLocationTrackService @Autowired constructor(
             sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
+        val changedMidPoints = (addresses.midPoints + switchPoints).filter { p ->
+            locationTrackChange.changedKmNumbers.contains(p.address.kmNumber)
+        }
         updateLocationTrackGeometry(
             locationTrackOid = locationTrackOid,
-            newPoints = (addresses.midPoints + switchPoints).filter { p ->
-                locationTrackChange.changedKmNumbers.contains(p.address.kmNumber)
-            },
+            newPoints = changedMidPoints,
         )
 
         val trackNumberOid = getTrackNumberOid(layoutLocationTrack.trackNumberId)
 
-        createLocationTrackMetadata(layoutLocationTrack, trackNumberOid, locationTrackChange.changedKmNumbers)
+        createLocationTrackMetadata(
+            layoutLocationTrack,
+            addresses.allPoints+switchPoints,
+            trackNumberOid,
+            locationTrackChange.changedKmNumbers
+        )
     }
 
     private fun deleteLocationTrackPoints(
