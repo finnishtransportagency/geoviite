@@ -5,7 +5,6 @@ import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
 import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
-import { Menu } from 'vayla-design-lib/menu/menu';
 import { useTranslation } from 'react-i18next';
 
 type Link = {
@@ -26,40 +25,6 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
-    const [showElementList, setShowElementList] = React.useState(false);
-    //TODO showElementlist, <NavLink to={'/data-products-element-list'} />;
-
-    enum DataMenuItems {
-        'elementList' = 1,
-        'verticalGeometry' = 2,
-        'kmLengths' = 3,
-    }
-
-    const dataMenuItems = [
-        { value: DataMenuItems.elementList, name: t('app-bar.data-products.element-list') },
-        {
-            value: DataMenuItems.verticalGeometry,
-            name: t('app-bar.data-products.vertical-geometry'),
-        },
-        { value: DataMenuItems.kmLengths, name: t('app-bar.data-products.km-lengths') },
-    ];
-
-    const handleDataProductItemChange = (item: DataMenuItems) => {
-        showDataProductDialog(item);
-    };
-
-    function showDataProductDialog(menuItems: DataMenuItems) {
-        switch (menuItems) {
-            case DataMenuItems.elementList:
-                setShowElementList(true);
-                break;
-            case DataMenuItems.verticalGeometry:
-                break;
-            case DataMenuItems.kmLengths:
-                break;
-        }
-        setDataMenuOpen(false);
-    }
 
     return (
         <nav className={styles['app-bar']}>
@@ -94,13 +59,14 @@ export const AppBar: React.FC = () => {
                             onClick={() => setDataMenuOpen(!dataMenuOpen)}>
                             <span>{t('app-bar.data-products-title')}</span>
                             {dataMenuOpen && (
-                                <div className={styles['app-bar__data-menu']}>
-                                    <Menu
-                                        items={dataMenuItems}
-                                        onChange={(item) =>
-                                            item && handleDataProductItemChange(item)
-                                        }
-                                    />
+                                <div>
+                                    <div>
+                                        <NavLink to={'data-products/element-list'}>
+                                            {t('app-bar.data-products.element-list')}
+                                        </NavLink>
+                                    </div>
+                                    <div>{t('app-bar.data-products.vertical-geometry')}</div>
+                                    <div>{t('app-bar.data-products.km-lengths')}</div>
                                 </div>
                             )}
                         </div>
