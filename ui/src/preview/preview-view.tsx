@@ -342,7 +342,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         return user && onlyShowMine
             ? previewCandidatesByUser(user, allUnstagedChangesValidated)
             : allUnstagedChangesValidated;
-    }, [changeTableUpdateToken, onlyShowMine]);
+    }, [changeTableUpdateToken]);
 
     const stagedPreviewChanges: PreviewCandidates = React.useMemo(
         () =>
@@ -422,7 +422,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     <h3>{t('preview-view.unstaged-changes-title')}</h3>
                                     <Checkbox
                                         checked={onlyShowMine}
-                                        onChange={(e) => setOnlyShowMine(e.target.checked)}>
+                                        onChange={(e) => {
+                                            setOnlyShowMine(e.target.checked);
+                                            updateChangeTables();
+                                        }}>
                                         {t('preview-view.show-only-mine')}
                                     </Checkbox>
                                 </div>
