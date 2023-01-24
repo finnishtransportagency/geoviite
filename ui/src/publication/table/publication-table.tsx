@@ -113,6 +113,13 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
                             message={entry.message}
                         />
                     ))}
+                    {publications.length >= 50 && (
+                        <tr className={'publication-table__row'}>
+                            <td className={styles['publication-table__truncated-row']} colSpan={8}>
+                                {t('publication-table.truncated')}
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </Table>
         </div>

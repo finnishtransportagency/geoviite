@@ -14,7 +14,8 @@
         "switch": "Vaihde",
         "km-post": "Tasakilometripiste",
         "count-header": "Julkaistut muutokset ({{number}} kpl)",
-        "calculated-change": "Laskettu muutos"
+        "calculated-change": "Laskettu muutos",
+        "truncated": "Käyttöliittymässä näytetään vain 50 ensimmäistä julkaisua."
     },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",

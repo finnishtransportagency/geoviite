@@ -380,7 +380,6 @@ const trackLayoutSlice = createSlice({
             state.layoutMode = layoutMode;
         },
         onPublish: (state: TrackLayoutState): void => {
-            console.log('huh?');
             state.layoutMode = 'DEFAULT';
             state.selectedPublishCandidateIds = initialSelectedPublishCandidateIdsState;
         },
