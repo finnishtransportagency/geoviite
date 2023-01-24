@@ -312,7 +312,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 updateChangeTables();
                 return validatedPublishCandidates;
             }),
-        [entireChangeset, onlyShowMine],
+        [entireChangeset],
     );
     const unstagedChanges = validatedChangeset
         ? getUnstagedChanges(
