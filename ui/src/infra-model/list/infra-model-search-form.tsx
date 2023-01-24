@@ -45,7 +45,9 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
         };
     }
     const trackNumberOptions = props.trackNumbers.map(getTrackNumberOption);
-    const [selected, setSelected] = React.useState<TrackNumberOption[]>([]);
+    const tns = trackNumberOptions.filter(
+        (tn) => tn.id && props.searchParams.trackNumberIds.includes(tn.id),
+    );
     const [searchTerm, setSearchTerm] = React.useState('');
 
     function setSource(source: PlanSource, active: boolean) {
@@ -91,18 +93,19 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
 
             <div className="infra-model-search-form__auto-complete">
                 <Multiselect
-                    value={selected}
-                    onSearch={(searchTerm) => {
+                    value={tns}
+                    onSearch={(searchTerm, metadata) => {
                         setSearchTerm(searchTerm);
-                        props.onSearchParamsChange({
-                            ...props.searchParams,
-                            freeText: searchTerm,
-                        });
+                        if (metadata.action === 'input') {
+                            props.onSearchParamsChange({
+                                ...props.searchParams,
+                                freeText: searchTerm,
+                            });
+                        }
                     }}
-                    onChange={(value) => {
-                        setSelected(value);
+                    onChange={(tags) => {
                         props.onSearchParamsChange(
-                            getSearchParamsBySelectVal(props.searchParams, selected),
+                            getSearchParamsBySelectVal(props.searchParams, tags),
                         );
                     }}
                     open={
@@ -112,8 +115,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
                     data={trackNumberOptions}
                     groupBy={'typeLabel'}
                     dataKey={'id'}
-                    textField={'number'}
-                    renderListItem={({ item }) => <span>{item.label}</span>}
+                    textField={'label'}
                     placeholder={'Hae...'}
                     selectIcon={null}
                     filter={(item, searchTerm) => trackNumberStartsWith(searchTerm, item)}
