@@ -274,18 +274,20 @@ const singleRowPublishRequestOfSelectedPublishChange = (
     kmPosts: change.kmPost ? [change.kmPost] : [],
 });
 
-const filterCandidatesByUser = <T extends PreviewCandidate>(user: User, candidates: T[]) =>
-    candidates.filter((candidate) => candidate.userName === user.details.userName);
+const filterPreviewCandidateArrayByUser = <T extends PreviewCandidate>(
+    user: User,
+    candidates: T[],
+) => candidates.filter((candidate) => candidate.userName === user.details.userName);
 
-const filterChangeSetByUser = (
+const previewCandidatesByUser = (
     user: User,
     publishCandidates: PreviewCandidates,
 ): PreviewCandidates => ({
-    trackNumbers: filterCandidatesByUser(user, publishCandidates.trackNumbers),
-    referenceLines: filterCandidatesByUser(user, publishCandidates.referenceLines),
-    locationTracks: filterCandidatesByUser(user, publishCandidates.locationTracks),
-    switches: filterCandidatesByUser(user, publishCandidates.switches),
-    kmPosts: filterCandidatesByUser(user, publishCandidates.kmPosts),
+    trackNumbers: filterPreviewCandidateArrayByUser(user, publishCandidates.trackNumbers),
+    referenceLines: filterPreviewCandidateArrayByUser(user, publishCandidates.referenceLines),
+    locationTracks: filterPreviewCandidateArrayByUser(user, publishCandidates.locationTracks),
+    switches: filterPreviewCandidateArrayByUser(user, publishCandidates.switches),
+    kmPosts: filterPreviewCandidateArrayByUser(user, publishCandidates.kmPosts),
 });
 
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
@@ -338,7 +340,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
               }
             : emptyChanges;
         return user && onlyShowMine
-            ? filterChangeSetByUser(user, allUnstagedChangesValidated)
+            ? previewCandidatesByUser(user, allUnstagedChangesValidated)
             : allUnstagedChangesValidated;
     }, [changeTableUpdateToken, onlyShowMine]);
 
