@@ -47,6 +47,9 @@ import PreviewTable, { PreviewSelectType, PreviewTableEntry } from 'preview/prev
 import { updateAllChangeTimes } from 'common/change-time-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
+import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+import { User } from 'user/user-model';
+import { getOwnUser } from 'user/user-api';
 
 type CandidateId =
     | LocationTrackId
@@ -69,6 +72,8 @@ export type SelectedChanges = {
 type PendingValidation = {
     pendingValidation: boolean;
 };
+
+type PreviewCandidate = PublishCandidate & PendingValidation;
 
 export type PreviewCandidates = {
     trackNumbers: (TrackNumberPublishCandidate & PendingValidation)[];
@@ -269,6 +274,22 @@ const singleRowPublishRequestOfSelectedPublishChange = (
     kmPosts: change.kmPost ? [change.kmPost] : [],
 });
 
+const filterPreviewCandidateArrayByUser = <T extends PreviewCandidate>(
+    user: User,
+    candidates: T[],
+) => candidates.filter((candidate) => candidate.userName === user.details.userName);
+
+const previewCandidatesByUser = (
+    user: User,
+    publishCandidates: PreviewCandidates,
+): PreviewCandidates => ({
+    trackNumbers: filterPreviewCandidateArrayByUser(user, publishCandidates.trackNumbers),
+    referenceLines: filterPreviewCandidateArrayByUser(user, publishCandidates.referenceLines),
+    locationTracks: filterPreviewCandidateArrayByUser(user, publishCandidates.locationTracks),
+    switches: filterPreviewCandidateArrayByUser(user, publishCandidates.switches),
+    kmPosts: filterPreviewCandidateArrayByUser(user, publishCandidates.kmPosts),
+});
+
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
 
@@ -281,6 +302,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     // instead of relying on React's dependency-based redraw.
     const [changeTableUpdateToken, setChangeTableUpdateToken] = React.useState<number>();
     const updateChangeTables = () => setChangeTableUpdateToken(Date.now());
+    const [onlyShowMine, setOnlyShowMine] = React.useState(false);
+    const user = useLoader(getOwnUser, []);
 
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
     const validatedChangeset = useLoader(
@@ -306,19 +329,20 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
           )
         : undefined;
 
-    const unstagedPreviewChanges: PreviewCandidates = React.useMemo(
-        () =>
-            unstagedChanges
-                ? {
-                      trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
-                      referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
-                      locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
-                      switches: unstagedChanges.switches.map(nonPendingCandidate),
-                      kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
-                  }
-                : emptyChanges,
-        [changeTableUpdateToken],
-    );
+    const unstagedPreviewChanges: PreviewCandidates = React.useMemo(() => {
+        const allUnstagedChangesValidated = unstagedChanges
+            ? {
+                  trackNumbers: unstagedChanges.trackNumbers.map(nonPendingCandidate),
+                  referenceLines: unstagedChanges.referenceLines.map(nonPendingCandidate),
+                  locationTracks: unstagedChanges.locationTracks.map(nonPendingCandidate),
+                  switches: unstagedChanges.switches.map(nonPendingCandidate),
+                  kmPosts: unstagedChanges.kmPosts.map(nonPendingCandidate),
+              }
+            : emptyChanges;
+        return user && onlyShowMine
+            ? previewCandidatesByUser(user, allUnstagedChangesValidated)
+            : allUnstagedChangesValidated;
+    }, [changeTableUpdateToken, onlyShowMine]);
 
     const stagedPreviewChanges: PreviewCandidates = React.useMemo(
         () =>
@@ -396,6 +420,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 className={styles['preview-section']}>
                                 <div className={styles['preview-view__changes-title']}>
                                     <h3>{t('preview-view.unstaged-changes-title')}</h3>
+                                    <Checkbox
+                                        checked={onlyShowMine}
+                                        onChange={(e) => setOnlyShowMine(e.target.checked)}>
+                                        {t('preview-view.show-only-mine')}
+                                    </Checkbox>
                                 </div>
                                 <PreviewTable
                                     onPreviewSelect={onPreviewSelect}
