@@ -13,7 +13,8 @@
             "linked-as": "Paikannuspalvelussa linkitetty",
             "plan-age": "Suunniteltu",
             "has-vertical-geometry": "Sisältää pystygeometriaa",
-            "has-cant": "Sisältää kallistustietoja"
+            "has-cant": "Sisältää kallistustietoja",
+            "open-inframodel": "Avaa lomakkeella"
         },
         "track-number": {
             "general-title": "Ratanumeron perustiedot",

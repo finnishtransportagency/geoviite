@@ -12,6 +12,9 @@ import MeasurementMethod from 'geoviite-design-lib/measurement-method/measuremen
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
 import { GeometryPlanLink } from './geometry-plan-link';
 import { differenceInYears } from 'date-fns';
+import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { useAppNavigate } from 'common/navigate';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -26,6 +29,8 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
     planHeader,
 }: GeometryPlanInfoboxProps) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
+
     const planTime = toDateOrUndefined(planHeader.planTime);
     const age = planTime && ageInYears(planTime);
 
@@ -86,6 +91,14 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     label={t('tool-panel.geometry-plan.has-cant')}
                     value={planHeader.hasCant ? t('yes') : t('no')}
                 />
+                <InfoboxButtons>
+                    <Button
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => navigate('inframodel-edit', planHeader.id)}>
+                        {t('tool-panel.geometry-plan.open-inframodel')}
+                    </Button>
+                </InfoboxButtons>
             </InfoboxContent>
         </Infobox>
     );
