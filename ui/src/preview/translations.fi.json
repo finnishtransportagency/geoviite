@@ -2,6 +2,7 @@
     "preview-view": {
         "unstaged-changes-title": "Muutokset",
         "staged-changes-title": "Julkaistavat muutokset",
+        "show-only-mine": "Näytä vain omat muutokset",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
         "track-number": "Ratanumero {{number}} {{disabled}}",
