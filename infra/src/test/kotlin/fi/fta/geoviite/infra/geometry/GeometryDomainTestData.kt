@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.RotationDirection.CW
+import fi.fta.geoviite.infra.geography.CoordinateSystemName
+import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
@@ -135,26 +137,29 @@ fun minimalClothoid(
     pi: Point = Point(0.0, 1.0),
     rotation: RotationDirection = CCW,
     constant: Double = 200.0,
-) = GeometryClothoid(
-    ElementData(
-        name = null,
-        oidPart = null,
-        start = start,
-        end = end,
-        staStart = BigDecimal.ZERO.setScale(6),
-        length = lineLength(start, end).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
-    ),
-    switchData = emptySwitchData(),
-    spiralData = SpiralData(
-        rotation = rotation,
-        pi = pi,
-        directionEnd = null,
-        directionStart = null,
-        radiusStart = null,
-        radiusEnd = BigDecimal.ONE.setScale(6),
-    ),
-    constant = constant.toBigDecimal().setScale(6, RoundingMode.HALF_UP),
-)
+): GeometryClothoid {
+    val length = lineLength(start, end)
+    return GeometryClothoid(
+        ElementData(
+            name = null,
+            oidPart = null,
+            start = start,
+            end = end,
+            staStart = BigDecimal.ZERO.setScale(6),
+            length = length.toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+        ),
+        switchData = emptySwitchData(),
+        spiralData = SpiralData(
+            rotation = rotation,
+            pi = pi,
+            directionEnd = null,
+            directionStart = null,
+            radiusStart = null,
+            radiusEnd = BigDecimal(clothoidRadiusAtLength(constant, length)).setScale(6, RoundingMode.HALF_UP),
+        ),
+        constant = constant.toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+    )
+}
 
 fun line(
     start: Point,
@@ -364,16 +369,18 @@ fun plan(
     alignments: List<GeometryAlignment> = listOf(geometryAlignment(trackNumberId)),
     switches: List<GeometrySwitch> = listOf(),
     measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
+    coordinateSystemName: CoordinateSystemName? = null,
 ): GeometryPlan {
     return GeometryPlan(
         project = project(),
         application = application(),
         author = author("TEST Company"),
         planTime = Instant.EPOCH,
-        units = geometryUnits(srid),
+        units = geometryUnits(srid, coordinateSystemName),
         trackNumberId = trackNumberId,
-        trackNumberDescription = PlanElementName("TNDesc"),
+        trackNumberDescription = trackNumberDesc,
         alignments = alignments,
         switches = switches,
         kmPosts = kmPosts(trackNumberId),
@@ -471,8 +478,9 @@ fun geometryAlignment(
     elements: List<GeometryElement> = geometryElements(),
     profile: GeometryProfile? = null,
     cant: GeometryCant? = null,
+    name: String = "001",
 ) = GeometryAlignment(
-    name = AlignmentName("001"),
+    name = AlignmentName(name),
     description = FreeText("test-alignment 001"),
     oidPart = null,
     state = PlanState.PROPOSED,
@@ -482,6 +490,29 @@ fun geometryAlignment(
     profile = profile,
     cant = cant,
     trackNumberId = trackNumberId,
+)
+
+fun linearCant(startDistance: Double, endDistance: Double, startValue: Double, endValue: Double): GeometryCant {
+    val point1 = GeometryCantPoint(
+        station = round(startDistance, 6),
+        appliedCant = round(startValue, 6),
+        curvature = CW,
+        transitionType = LINEAR,
+    )
+    val point2 = GeometryCantPoint(
+        station = round(endDistance, 6),
+        appliedCant = round(endValue, 6),
+        curvature = CW,
+        transitionType = LINEAR,
+    )
+    return geometryCant(points = listOf(point1, point2))
+}
+fun geometryCant(points: List<GeometryCantPoint>) = GeometryCant(
+    name = PlanElementName("TST Cant"),
+    description = PlanElementName("Test alignment cant"),
+    gauge = FINNISH_RAIL_GAUGE,
+    rotationPoint = CantRotationPoint.INSIDE_RAIL,
+    points = points,
 )
 
 fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
@@ -507,10 +538,10 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
     )
 )
 
-fun geometryUnits(srid: Srid) =
+fun geometryUnits(srid: Srid, coordinateSystemName: CoordinateSystemName? = null) =
     GeometryUnits(
         coordinateSystemSrid = srid,
-        coordinateSystemName = null,
+        coordinateSystemName = coordinateSystemName,
         verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
         directionUnit = AngularUnit.GRADS,
         linearUnit = LinearUnit.METER,

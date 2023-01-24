@@ -1,7 +1,11 @@
 package fi.fta.geoviite.infra.geometry
 
+import ElementListing
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.CoordinateTransformationException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -15,6 +19,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import toElementListing
 import java.time.Instant
 
 
@@ -35,7 +40,8 @@ class GeometryService @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val heightTriangleDao: HeightTriangleDao,
     private val trackNumberService: LayoutTrackNumberService,
-    private val coordinateTransformationService: CoordinateTransformationService
+    private val coordinateTransformationService: CoordinateTransformationService,
+    private val geocodingService: GeocodingService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -202,6 +208,15 @@ class GeometryService @Autowired constructor(
     fun getDuplicateGeometryPlanId(newFile: InfraModelFile): IntId<GeometryPlan>? {
         logger.serviceCall("getDuplicateGeometryPlanId", "newFile" to newFile)
         return geometryDao.fetchDuplicateGeometryPlanId(newFile)
+    }
+
+    fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
+        logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
+        val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
+        val geocodingContext = plan.trackNumberId?.let { tnId ->
+            geocodingService.getGeocodingContext(PublishType.OFFICIAL, tnId)
+        }
+        return toElementListing(geocodingContext, plan, elementTypes)
     }
 
     fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder): Comparator<GeometryPlanHeader> =
