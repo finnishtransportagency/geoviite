@@ -14,14 +14,9 @@ export type InframodelSearchFormProps = {
     onSearchParamsChange: (searchParams: GeometryPlanSearchParams) => void;
 };
 
-type OptionBase = {
+type TrackNumberOption = {
     id?: string;
-    type: string;
     typeLabel: string;
-};
-
-type TrackNumberOption = OptionBase & {
-    type: 'TRACK_NUMBER_OPTION';
     label: string;
     number: string;
     value: LayoutTrackNumber;
@@ -36,8 +31,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
 
     function getTrackNumberOption(trackNumber: LayoutTrackNumber): TrackNumberOption {
         return {
-            type: 'TRACK_NUMBER_OPTION',
-            typeLabel: t('im-form.tracknumberfield'),
+            typeLabel: t('im-form.track-numbers'),
             label: trackNumberPrefix + trackNumber.number,
             number: trackNumber.number,
             id: trackNumber.id,
@@ -45,7 +39,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
         };
     }
     const trackNumberOptions = props.trackNumbers.map(getTrackNumberOption);
-    const tns = trackNumberOptions.filter(
+    const currentlySelectedTrackNumbers = trackNumberOptions.filter(
         (tn) => tn.id && props.searchParams.trackNumberIds.includes(tn.id),
     );
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -63,9 +57,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
         searchParams: GeometryPlanSearchParams,
         values: TrackNumberOption[],
     ): GeometryPlanSearchParams {
-        const trackNumberIds = values
-            .map((v) => (v.type == 'TRACK_NUMBER_OPTION' && v.value.id) || null)
-            .filter(filterNotEmpty);
+        const trackNumberIds = values.map((v) => v.value.id || null).filter(filterNotEmpty);
         return {
             ...searchParams,
             freeText: '',
@@ -93,7 +85,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
 
             <div className="infra-model-search-form__auto-complete">
                 <Multiselect
-                    value={tns}
+                    value={currentlySelectedTrackNumbers}
                     onSearch={(searchTerm, metadata) => {
                         setSearchTerm(searchTerm);
                         if (metadata.action === 'input') {
@@ -116,7 +108,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
                     groupBy={'typeLabel'}
                     dataKey={'id'}
                     textField={'label'}
-                    placeholder={'Hae...'}
+                    placeholder={t('im-form.search')}
                     selectIcon={null}
                     filter={(item, searchTerm) => trackNumberStartsWith(searchTerm, item)}
                 />
