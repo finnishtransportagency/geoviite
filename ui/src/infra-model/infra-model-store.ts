@@ -29,13 +29,11 @@ import {
 import { Prop } from 'utils/type-utils';
 
 export enum InfraModelViewType {
-    LIST,
     UPLOAD,
     EDIT,
 }
 
 export type InfraModelState = {
-    viewType: InfraModelViewType;
     map: Map;
     infraModelList: InfraModelListState;
     selection: Selection;
@@ -86,7 +84,6 @@ const visibleMapLayerTypes: MapLayerType[] = [
 ];
 
 export const initialInfraModelState: InfraModelState = {
-    viewType: InfraModelViewType.LIST,
     map: {
         ...initialMapState,
         mapLayers: initialMapState.mapLayers.map((layer) => ({
@@ -118,7 +115,7 @@ export const initialInfraModelState: InfraModelState = {
     committedFields: [],
 };
 
-type GeometryPlanWithParameters = {
+export type GeometryPlanWithParameters = {
     geometryPlan: GeometryPlan;
     extraInfraModelParameters: ExtraInfraModelParameters;
 };
@@ -193,7 +190,6 @@ const infraModelSlice = createSlice({
             { payload: file }: PayloadAction<SerializableFile>,
         ) => {
             state.file = file;
-            state.viewType = InfraModelViewType.UPLOAD;
 
             state.plan = initialInfraModelState.plan;
             state.selection = initialSelectionState;
@@ -213,7 +209,6 @@ const infraModelSlice = createSlice({
             { payload }: PayloadAction<GeometryPlanWithParameters>,
         ) => {
             state.plan = payload.geometryPlan;
-            state.viewType = InfraModelViewType.EDIT;
             state.extraInframodelParameters = payload.extraInfraModelParameters;
 
             state.overrideInfraModelParameters =
@@ -223,12 +218,6 @@ const infraModelSlice = createSlice({
             state.map.viewport = initialMapState.viewport;
             state.committedFields = [];
             state.validationErrors = initialInfraModelState.validationErrors;
-        },
-        onViewChange: (
-            state: InfraModelState,
-            { payload: viewType }: PayloadAction<InfraModelViewType>,
-        ) => {
-            state.viewType = viewType;
         },
         ...wrapReducers((state: InfraModelState) => state.map, mapReducers),
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),
@@ -281,6 +270,5 @@ function validateParams(
 
     return errors;
 }
-
 export const infraModelReducer = infraModelSlice.reducer;
 export const actionCreators = infraModelSlice.actions;

@@ -46,7 +46,10 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                             )
                         }
                     />
-                    <Route path="/infra-model" element={<InfraModelMainContainerWithProvider />} />
+                    <Route
+                        path="/infra-model/*"
+                        element={<InfraModelMainContainerWithProvider />}
+                    />
                     <Route path="/design-lib-demo" element={<GeoviiteLibDemo />} />
                     <Route path="/localization-demo" element={<I18nDemo />} />
                     <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
