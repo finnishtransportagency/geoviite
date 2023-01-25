@@ -80,6 +80,11 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    fun getChangeTime(): Instant {
+        logger.serviceCall("getChangeTime")
+        return publicationDao.fetchChangeTime()
+    }
+
     private fun validateAsPublicationUnit(candidates: PublishCandidates, versions: PublicationVersions) =
         collectCacheKeys(versions).let { cacheKeys ->
             PublishCandidates(

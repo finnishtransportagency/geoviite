@@ -76,6 +76,14 @@ export function updatePlanChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updatePublicationChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/publications`,
+        delegates.setPublicationChangeTime,
+        getChangeTimes().publication,
+    );
+}
+
 function updateChangeTime(
     url: string,
     storeUpdate: (ts: TimeStamp) => void,
