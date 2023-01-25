@@ -394,6 +394,30 @@ fun plan(
     )
 }
 
+fun planHeader(
+    id: IntId<GeometryPlan> = IntId(1),
+    fileName: FileName = FileName("test_file.xml"),
+    measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    srid: Srid = Srid(3879),
+    coordinateSystemName: CoordinateSystemName? = null,
+    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+) = GeometryPlanHeader(
+    id = id,
+    fileName = fileName,
+    project = project(),
+    units = geometryUnits(srid, coordinateSystemName),
+    planPhase = PlanPhase.RAILWAY_PLAN,
+    decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
+    measurementMethod = measurementMethod,
+    kmNumberRange = null,
+    planTime = Instant.EPOCH,
+    trackNumberId = trackNumberId,
+    linkedAsPlanId = null,
+    message = FreeText("test text description"),
+    uploadTime = Instant.now(),
+    source = PlanSource.GEOVIITE,
+)
+
 fun minimalPlan(
     fileName: FileName = FileName("TEST_FILE.xml"),
 ) = GeometryPlan(
