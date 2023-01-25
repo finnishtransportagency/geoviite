@@ -211,14 +211,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     />
                     <InfoboxText value={trackNumber?.description} />
 
-                    {duplicatesOfLocationTrack !== undefined &&
+                    {duplicatesOfLocationTrack !== undefined && (
                         <InfoboxField
                             label={
                                 duplicatesOfLocationTrack.length > 0
                                     ? t('tool-panel.location-track.has-duplicates')
-                                    : existingDuplicate ?
-                                        t('tool-panel.location-track.duplicate-of') :
-                                        t('tool-panel.location-track.not-a-duplicate')
+                                    : existingDuplicate
+                                    ? t('tool-panel.location-track.duplicate-of')
+                                    : t('tool-panel.location-track.not-a-duplicate')
                             }
                             value={
                                 <LocationTrackInfoboxDuplicateOf
@@ -226,9 +226,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     duplicatesOfLocationTrack={duplicatesOfLocationTrack}
                                 />
                             }
-                            onEdit={duplicatesOfLocationTrack.length > 0 ? undefined : openEditLocationTrackDialog}
+                            onEdit={
+                                duplicatesOfLocationTrack.length > 0
+                                    ? undefined
+                                    : openEditLocationTrackDialog
+                            }
                             iconDisabled={isOfficial()}
-                        />}
+                        />
+                    )}
 
                     <InfoboxField
                         label={t('tool-panel.location-track.topological-connectivity')}
@@ -384,6 +389,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 <LocationTrackRatkoPushDialog
                     locationTrackId={locationTrack.id}
                     onClose={closeLocationTrackPushDialog}
+                    locationTrackChangeTime={locationTrackChangeTime}
                 />
             )}
 
@@ -404,7 +410,10 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     locationTrackChangeTime={locationTrackChangeTime}
                     onUnselect={() => onUnselect(locationTrack)}
                     existingDuplicateTrack={existingDuplicate}
-                    duplicatesExist={duplicatesOfLocationTrack !== undefined && duplicatesOfLocationTrack.length > 0}
+                    duplicatesExist={
+                        duplicatesOfLocationTrack !== undefined &&
+                        duplicatesOfLocationTrack.length > 0
+                    }
                 />
             )}
         </React.Fragment>
