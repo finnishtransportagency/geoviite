@@ -59,14 +59,20 @@ export const AppBar: React.FC = () => {
                             onClick={() => setDataMenuOpen(!dataMenuOpen)}>
                             <span>{t('app-bar.data-products-title')}</span>
                             {dataMenuOpen && (
-                                <div>
+                                <div className={styles['app-bar__data-menu']}>
                                     <div>
-                                        <NavLink to={'data-products/element-list'}>
+                                        <NavLink
+                                            className={styles['menu__item']}
+                                            to={'data-products/element-list'}>
                                             {t('app-bar.data-products.element-list')}
                                         </NavLink>
                                     </div>
-                                    <div>{t('app-bar.data-products.vertical-geometry')}</div>
-                                    <div>{t('app-bar.data-products.km-lengths')}</div>
+                                    <div className={styles['menu__item']}>
+                                        {t('app-bar.data-products.vertical-geometry')}
+                                    </div>
+                                    <div className={styles['menu__item']}>
+                                        {t('app-bar.data-products.km-lengths')}
+                                    </div>
                                 </div>
                             )}
                         </div>
