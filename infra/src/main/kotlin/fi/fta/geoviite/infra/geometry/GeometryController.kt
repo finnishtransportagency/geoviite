@@ -160,7 +160,6 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @RequestParam("address-range") addressRange: Range<TrackMeter>? = null,
     ): List<ElementListing> {
         log.apiCall("getPlanElementList")
-        return geometryService.getElementListing(id, elementTypes)
+        return geometryService.getElementListing(id, elementTypes, addressRange)
     }
-}
 }

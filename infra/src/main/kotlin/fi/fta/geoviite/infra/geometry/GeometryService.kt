@@ -2,6 +2,8 @@ package fi.fta.geoviite.infra.geometry
 
 import ElementListing
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -215,7 +217,7 @@ class GeometryService @Autowired constructor(
         logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
         val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
         val geocodingContext = plan.trackNumberId?.let { tnId ->
-            geocodingService.getGeocodingContext(PublishType.OFFICIAL, tnId)
+            geocodingService.getGeocodingContext(OFFICIAL, tnId)
         }
         return toElementListing(geocodingContext, plan, elementTypes)
     }
@@ -223,16 +225,29 @@ class GeometryService @Autowired constructor(
     fun getElementListing(
         trackId: IntId<LocationTrack>,
         elementTypes: List<GeometryElementType>,
-        addressRange: Range<TrackMeter>,
+        addressRange: Range<TrackMeter>?,
     ): List<ElementListing> {
         logger.serviceCall("getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes, "addressRange" to addressRange)
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.OFFICIAL, trackId)
-        val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
-        val geocodingContext = plan.trackNumberId?.let { tnId ->
-            geocodingService.getGeocodingContext(PublishType.OFFICIAL, tnId)
-        }
-        return toElementListing(geocodingContext, plan, elementTypes)
+        val (locationTrack, layoutAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
+        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, locationTrack.trackNumberId)
+        return if (geocodingContext != null) {
+            val linkedElementIds = layoutAlignment.segments
+                .filter { segment ->
+                    addressRange == null || isInTrackMeterInterval(segment, geocodingContext, addressRange)
+                }
+                .mapNotNull { s -> if (s.sourceId is IndexedId) s.sourceId else null }
+                .distinct()
+            val linkedAlignmentIds = linkedElementIds
+                .map { id -> IntId<GeometryAlignment>(id.parentId) }
+                .distinct()
+            val headersAndAlignments = linkedAlignmentIds.map { id ->
+                val header = geometryDao.fetchPlanVersion(id).let(geometryDao::fetchPlanHeader)
+                val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
+                header to geometryAlignment
+            }
+            toElementListing(geocodingContext, locationTrack, headersAndAlignments, linkedElementIds, elementTypes)
+        } else emptyList()
     }
 
     fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder): Comparator<GeometryPlanHeader> =
@@ -281,6 +296,14 @@ class GeometryService @Autowired constructor(
         }
     }
 }
+
+private fun isInTrackMeterInterval(
+    segment: LayoutSegment,
+    context: GeocodingContext,
+    interval: Range<TrackMeter>,
+): Boolean =
+    if (context.getAddress(segment.points.first())?.first?.let { a -> a >= interval.max } == true) false
+    else context.getAddress(segment.points.last())?.first?.let { a -> a <= interval.min } != true
 
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,

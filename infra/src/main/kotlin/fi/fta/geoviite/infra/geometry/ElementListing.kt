@@ -2,10 +2,10 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
-import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
@@ -22,7 +22,6 @@ data class ElementListing(
     val coordinateSystemName: CoordinateSystemName?,
 
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
-    val trackNumberDescription: PlanElementName,
 
     val alignmentId: DomainId<GeometryAlignment>,
     val alignmentName: AlignmentName,
@@ -44,6 +43,18 @@ data class ElementLocation(
 
 fun toElementListing(
     geocodingContext: GeocodingContext?,
+    locationTrack: LocationTrack,
+    plansAndAlignments: List<Pair<GeometryPlanHeader, GeometryAlignment>>,
+    linkedElementIds: List<DomainId<GeometryElement>>,
+    elementTypes: List<GeometryElementType>,
+) = plansAndAlignments.flatMap { (plan, alignment) ->
+    alignment.elements
+        .filter { e -> elementTypes.contains(e.type) && linkedElementIds.contains(e.id) }
+        .map { element -> toElementListing(geocodingContext, locationTrack, plan, alignment, element) }
+}
+
+fun toElementListing(
+    geocodingContext: GeocodingContext?,
     plan: GeometryPlan,
     elementTypes: List<GeometryElementType>,
 ) = plan.alignments.flatMap { alignment ->
@@ -54,16 +65,52 @@ fun toElementListing(
 
 fun toElementListing(
     geocodingContext: GeocodingContext?,
+    locationTrack: LocationTrack,
+    planHeader: GeometryPlanHeader,
+    alignment: GeometryAlignment,
+    element: GeometryElement,
+) = elementListing(
+    geocodingContext = geocodingContext,
+    planId = planHeader.id,
+    fileName = planHeader.fileName,
+    coordinateSystemSrid = planHeader.units.coordinateSystemSrid,
+    coordinateSystemName = planHeader.units.coordinateSystemName,
+    trackNumberId = locationTrack.trackNumberId,
+    alignment = alignment,
+    element = element,
+)
+
+fun toElementListing(
+    geocodingContext: GeocodingContext?,
     plan: GeometryPlan,
     alignment: GeometryAlignment,
     element: GeometryElement,
-) = ElementListing(
+) = elementListing(
+    geocodingContext = geocodingContext,
     planId = plan.id,
     fileName = plan.fileName,
     coordinateSystemSrid = plan.units.coordinateSystemSrid,
     coordinateSystemName = plan.units.coordinateSystemName,
     trackNumberId = plan.trackNumberId,
-    trackNumberDescription = plan.trackNumberDescription,
+    alignment = alignment,
+    element = element,
+)
+
+fun elementListing(
+    geocodingContext: GeocodingContext?,
+    planId: DomainId<GeometryPlan>,
+    fileName: FileName,
+    coordinateSystemSrid: Srid?,
+    coordinateSystemName: CoordinateSystemName?,
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    alignment: GeometryAlignment,
+    element: GeometryElement,
+) = ElementListing(
+    planId = planId,
+    fileName = fileName,
+    coordinateSystemSrid = coordinateSystemSrid,
+    coordinateSystemName = coordinateSystemName,
+    trackNumberId = trackNumberId,
     alignmentId = alignment.id,
     alignmentName = alignment.name,
     elementType = element.type,
