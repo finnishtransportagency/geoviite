@@ -2,6 +2,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
@@ -22,6 +23,7 @@ data class ElementListing(
     val coordinateSystemName: CoordinateSystemName?,
 
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    val trackNumberDescription: PlanElementName?,
 
     val alignmentId: DomainId<GeometryAlignment>,
     val alignmentName: AlignmentName,
@@ -76,6 +78,7 @@ fun toElementListing(
     coordinateSystemSrid = planHeader.units.coordinateSystemSrid,
     coordinateSystemName = planHeader.units.coordinateSystemName,
     trackNumberId = locationTrack.trackNumberId,
+    trackNumberDescription = null,
     alignment = alignment,
     element = element,
 )
@@ -92,6 +95,7 @@ fun toElementListing(
     coordinateSystemSrid = plan.units.coordinateSystemSrid,
     coordinateSystemName = plan.units.coordinateSystemName,
     trackNumberId = plan.trackNumberId,
+    trackNumberDescription = plan.trackNumberDescription,
     alignment = alignment,
     element = element,
 )
@@ -103,6 +107,7 @@ fun elementListing(
     coordinateSystemSrid: Srid?,
     coordinateSystemName: CoordinateSystemName?,
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumberDescription: PlanElementName?,
     alignment: GeometryAlignment,
     element: GeometryElement,
 ) = ElementListing(
@@ -111,6 +116,7 @@ fun elementListing(
     coordinateSystemSrid = coordinateSystemSrid,
     coordinateSystemName = coordinateSystemName,
     trackNumberId = trackNumberId,
+    trackNumberDescription = trackNumberDescription,
     alignmentId = alignment.id,
     alignmentName = alignment.name,
     elementType = element.type,

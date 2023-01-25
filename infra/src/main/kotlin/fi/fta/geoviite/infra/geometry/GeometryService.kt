@@ -242,7 +242,7 @@ class GeometryService @Autowired constructor(
                 .map { id -> IntId<GeometryAlignment>(id.parentId) }
                 .distinct()
             val headersAndAlignments = linkedAlignmentIds.map { id ->
-                val header = geometryDao.fetchPlanVersion(id).let(geometryDao::fetchPlanHeader)
+                val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::fetchPlanHeader)
                 val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
                 header to geometryAlignment
             }

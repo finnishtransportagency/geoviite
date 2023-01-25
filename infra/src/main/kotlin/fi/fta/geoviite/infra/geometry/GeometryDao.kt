@@ -544,20 +544,6 @@ class GeometryDao @Autowired constructor(
         } ?: throw IllegalStateException("Failed to get generated ID for new alignment")
     }
 
-    fun fetchPlanVersion(alignmentId: IntId<GeometryAlignment>): RowVersion<GeometryPlan> {
-        //language=SQL
-        val sql = """
-            select plan.id, plan.version
-            from geometry.alignment 
-              left join geometry.plan on plan.id = alignment.plan_id
-            where alignment.id = :alignment_id
-        """.trimIndent()
-        val params = mapOf(
-            "alignment_id" to alignmentId.intValue,
-        )
-        return jdbcTemplate.queryOne(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-    }
-
     @Cacheable(CACHE_GEOMETRY_PLAN_HEADER, sync = true)
     fun fetchPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
         val sql = """
@@ -663,6 +649,21 @@ class GeometryDao @Autowired constructor(
     fun fetchPlanVersions() = fetchRowVersions<GeometryPlan>(GEOMETRY_PLAN)
 
     fun fetchPlanVersion(id: IntId<GeometryPlan>) = fetchRowVersion(id, GEOMETRY_PLAN)
+
+    fun fetchAlignmentPlanVersion(alignmentId: IntId<GeometryAlignment>): RowVersion<GeometryPlan> {
+        //language=SQL
+        val sql = """
+            select plan.id, plan.version
+            from geometry.alignment 
+              left join geometry.plan on plan.id = alignment.plan_id
+            where alignment.id = :alignment_id
+        """.trimIndent()
+        val params = mapOf(
+            "alignment_id" to alignmentId.intValue,
+        )
+        return jdbcTemplate.queryOne(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+    }
+
 
     fun fetchPlanChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN)
 
