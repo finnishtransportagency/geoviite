@@ -242,9 +242,9 @@ class RatkoLocationTrackService @Autowired constructor(
             sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
-        val changedMidPoints = (addresses.midPoints + switchPoints).filter { p ->
-            locationTrackChange.changedKmNumbers.contains(p.address.kmNumber)
-        }
+        val changedMidPoints = (addresses.midPoints + switchPoints)
+            .filter { p -> locationTrackChange.changedKmNumbers.contains(p.address.kmNumber) }
+            .sortedBy { p -> p.address }
         updateLocationTrackGeometry(
             locationTrackOid = locationTrackOid,
             newPoints = changedMidPoints,
@@ -254,7 +254,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
         createLocationTrackMetadata(
             layoutLocationTrack,
-            addresses.allPoints+switchPoints,
+            listOf(addresses.startPoint) + changedMidPoints + listOf(addresses.endPoint),
             trackNumberOid,
             locationTrackChange.changedKmNumbers
         )
