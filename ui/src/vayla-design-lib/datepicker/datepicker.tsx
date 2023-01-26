@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { TextField, TextInputIconPosition } from 'vayla-design-lib/text-field/text-field';
+import { useCloneRef } from 'utils/react-utils';
 
 type DatePickerProps = {
     value: Date | undefined;
@@ -56,14 +57,19 @@ function getHeaderElement({
 const DatePickerInput = React.forwardRef<
     HTMLInputElement,
     React.DetailedHTMLProps<React.InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>
->((props, ref) => (
-    <TextField
-        {...props}
-        Icon={Icons.SetDate}
-        iconPosition={TextInputIconPosition.RIGHT}
-        ref={ref}
-    />
-));
+>((props, ref) => {
+    const localRef = useCloneRef(ref);
+    return (
+        <TextField
+            {...props}
+            Icon={(iconProps) => (
+                <Icons.SetDate {...iconProps} onClick={() => localRef.current?.focus()} />
+            )}
+            iconPosition={TextInputIconPosition.RIGHT}
+            ref={localRef}
+        />
+    );
+});
 
 DatePickerInput.displayName = 'DatePickerInput';
 
