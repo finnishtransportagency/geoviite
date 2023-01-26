@@ -3,34 +3,34 @@ import PublicationCard from 'publication/card/publication-card';
 import styles from './frontpage.scss';
 import Publication from 'publication/publication';
 import { PublicationDetails, PublicationId } from 'publication/publication-model';
-import { useLoaderWithTimer } from 'utils/react-utils';
+import { useLoader, useLoaderWithTimer } from 'utils/react-utils';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import PublicationLogView from 'publication/log/publication-log-view';
 import { getPublications } from 'publication/publication-api';
 import { startOfDay, subMonths } from 'date-fns';
 import { ratkoPushFailed } from 'ratko/ratko-model';
+import { TimeStamp } from 'common/common-model';
 
 type FrontPageProps = {
     selectedPublication: PublicationId | undefined;
     onSelectedPublicationChanged: (item: PublicationId | undefined) => void;
+    changeTime: TimeStamp;
 };
 
 const Frontpage: React.FC<FrontPageProps> = ({
     selectedPublication,
     onSelectedPublicationChanged,
+    changeTime,
 }) => {
     const [publications, setPublications] = React.useState<PublicationDetails[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
     const publication = publications?.find((p) => p.id == selectedPublication);
-
-    useLoaderWithTimer(
-        setPublications,
-        () => getPublications(startOfDay(subMonths(new Date(), 1))),
-        [],
-        30000,
+    useLoader(
+        () => getPublications(startOfDay(subMonths(new Date(), 1))).then(setPublications),
+        [changeTime],
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
 

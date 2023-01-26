@@ -336,6 +336,12 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         }.onEach { publication -> logger.daoAccess(FETCH, Publication::class, publication.id) }
     }
 
+    fun fetchChangeTime(): Instant {
+        val sql = "select max(publication_time) as publication_time from publication.publication"
+        return jdbcTemplate.query(sql) {rs, _ -> rs.getInstantOrNull("publication_time")}
+            .first() ?: Instant.ofEpochSecond(0)
+    }
+
     private fun <T> publishedRowParams(publicationId: IntId<Publication>, rows: List<RowVersion<T>>) =
         rows.map { (rowId, rowVersion) ->
             mapOf(
