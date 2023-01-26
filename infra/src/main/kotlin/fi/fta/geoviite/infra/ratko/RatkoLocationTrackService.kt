@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -154,43 +153,41 @@ class RatkoLocationTrackService @Autowired constructor(
                     val splitAddressRanges = if (changedKmNumbers == null) listOf(origMetaDataRange)
                     else geocodingContext.cutRangeByKms(origMetaDataRange, changedKmNumbers)
 
-                    val splitMetaDataAssets = splitAddressRanges.map { addressRange ->
-                        val startPoint = alignmentPoints.find { point -> point.address == addressRange.start }?.point
-                            ?: throw IllegalStateException("Metadata start ${addressRange.start} was not found in changed alignment points")
-                        val endPoint = alignmentPoints.find { point -> point.address == addressRange.endInclusive }?.point
-                            ?: throw IllegalStateException("Metadata end ${addressRange.endInclusive} was not found in changed alignment points")
+                    val splitMetaDataAssets = splitAddressRanges
+                        // Ignore metadata where the address range is under 1m, since there are no address points for it
+                        .filter { addressRange -> !addressRange.start.isSame(addressRange.endInclusive, 0) }
+                        .mapNotNull { addressRange ->
+                            val startPoint = findAddressPoint(alignmentPoints, addressRange.start, AddessRounding.UP)
+                            val endPoint = findAddressPoint(alignmentPoints, addressRange.endInclusive, AddessRounding.DOWN)
 
-                        val splitMetaData = metadata.copy(
-                            startPoint = Point(startPoint),
-                            endPoint = Point(endPoint)
-                        )
+                            val splitMetaData = metadata.copy(
+                                startPoint = startPoint.point.toPoint(),
+                                endPoint = endPoint.point.toPoint(),
+                            )
 
-                        convertToRatkoMetadataAsset(
-                            trackNumberOid = trackNumberOid,
-                            locationTrackOid = layoutLocationTrack.externalId,
-                            segmentMetadata = splitMetaData,
-                            startTrackMeter = addressRange.start,
-                            endTrackMeter = addressRange.endInclusive
-                        )
-                    }
-
-                    val locationTrackOid = RatkoOid<RatkoLocationTrack>(layoutLocationTrack.externalId)
-
-                    ratkoClient.getLocationTrack(locationTrackOid)?.let { existingRatkoLocationTrack ->
-                        splitMetaDataAssets.forEach { metadataAsset ->
-                            val newLocationTrackPoints =
-                                findPointsNotInLocationTrack(metadataAsset.locations, existingRatkoLocationTrack)
-
-                            if (newLocationTrackPoints.isNotEmpty()) {
-                                ratkoClient.updateLocationTrackPoints(locationTrackOid, newLocationTrackPoints)
-                            }
-
-                            ratkoClient.newAsset<RatkoMetadataAsset>(metadataAsset)
+                            // If we only have 1 point in the interval, don't send it as it covers no length
+                            if (startPoint.address < endPoint.address) convertToRatkoMetadataAsset(
+                                trackNumberOid = trackNumberOid,
+                                locationTrackOid = layoutLocationTrack.externalId,
+                                segmentMetadata = splitMetaData,
+                                startTrackMeter = startPoint.address,
+                                endTrackMeter = endPoint.address,
+                            ) else null
                         }
+
+                    splitMetaDataAssets.forEach { metadataAsset ->
+                        ratkoClient.newAsset<RatkoMetadataAsset>(metadataAsset)
                     }
                 }
             }
     }
+
+    enum class AddessRounding { UP, DOWN }
+    fun findAddressPoint(points: List<AddressPoint>, seek: TrackMeter, rounding: AddessRounding): AddressPoint =
+        when (rounding) {
+            AddessRounding.UP -> points.find { p -> p.address >= seek }
+            AddessRounding.DOWN -> points.findLast { p -> p.address <= seek }
+        } ?: throw IllegalStateException("No address point found: seek=$seek rounding=$rounding")
 
     private fun deleteLocationTrack(layoutLocationTrack: LocationTrack, existingRatkoLocationTrack: RatkoLocationTrack) {
         logger.serviceCall("deleteLocationTrack", "layoutLocationTrack" to layoutLocationTrack)
