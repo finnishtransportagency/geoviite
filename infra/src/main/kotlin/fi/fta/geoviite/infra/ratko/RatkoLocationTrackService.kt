@@ -289,20 +289,4 @@ class RatkoLocationTrackService @Autowired constructor(
 
         ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)
     }
-
-    private fun findPointsNotInLocationTrack(
-        locations: List<RatkoAssetLocation>,
-        existingRatkoLocationTrack: RatkoLocationTrack,
-    ): List<RatkoPoint> {
-        val existingStartTrackMeter = existingRatkoLocationTrack.nodecollection?.getStartNode()?.point?.kmM
-        val existingEndTrackMeter = existingRatkoLocationTrack.nodecollection?.getEndNode()?.point?.kmM
-
-        return if (existingStartTrackMeter == null || existingEndTrackMeter == null) emptyList()
-        else locations
-            .flatMap { location -> location.nodecollection.nodes.map { node -> node.point } }
-            .filter { point ->
-                existingStartTrackMeter < point.kmM && point.kmM < existingEndTrackMeter
-            }
-    }
-
 }
