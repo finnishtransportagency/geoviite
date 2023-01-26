@@ -125,7 +125,8 @@ class RatkoLocationTrackService @Autowired constructor(
     ) {
         logger.serviceCall(
             "updateRatkoLocationTrackMetadata",
-            "layoutLocationTrack" to layoutLocationTrack
+            "layoutLocationTrack" to layoutLocationTrack,
+            "changedKmNumbers" to changedKmNumbers,
         )
         requireNotNull(layoutLocationTrack.externalId) {
             "Cannot update location track metadata without location track oid $layoutLocationTrack"
