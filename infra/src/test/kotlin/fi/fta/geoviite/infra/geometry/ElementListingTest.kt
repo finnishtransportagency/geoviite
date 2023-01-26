@@ -5,7 +5,8 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.RotationDirection.CW
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.KKJ0
+import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
@@ -17,7 +18,13 @@ import toElementListing
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 
+private val gk27 = Srid(3881)
+private val gk27CoordinateBase = Point(7059000.0, 27480000.0)
+private val layoutCoordinateBase = transformNonKKJCoordinate(gk27, LAYOUT_SRID, gk27CoordinateBase)
+
 private val allTypes = GeometryElementType.values().toList()
+private val getTransformation = { srid: Srid -> Transformation.nonKKJToETRSTransform(srid, LAYOUT_SRID) }
+
 class ElementListingTest {
 
     @Test
@@ -33,20 +40,21 @@ class ElementListingTest {
             id = IntId(2),
             trackNumberId = trackNumberId,
             fileName = FileName("test-file 002.xml"),
-            srid = KKJ0,
+            srid = LAYOUT_SRID,
             coordinateSystemName = CoordinateSystemName("KKJ test-name"),
         )
         val listing = toElementListing(
             null,
+            getTransformation,
             locationTrack,
             listOf(planHeader to alignment),
             alignment.elements.map(GeometryElement::id),
-            GeometryElementType.values().toList(),
+            allTypes,
         )
         listing.forEach { l ->
             assertEquals(IntId(2), l.planId)
             assertEquals(FileName("test-file 002.xml"), l.fileName)
-            assertEquals(KKJ0, l.coordinateSystemSrid)
+            assertEquals(LAYOUT_SRID, l.coordinateSystemSrid)
             assertEquals(CoordinateSystemName("KKJ test-name"), l.coordinateSystemName)
             assertEquals(trackNumberId, l.trackNumberId)
             assertEquals(alignment.id, l.alignmentId)
@@ -75,14 +83,14 @@ class ElementListingTest {
             trackNumberDesc = PlanElementName("test track number"),
             alignments = listOf(alignment),
             fileName = FileName("test-file 001.xml"),
-            srid = KKJ0,
+            srid = LAYOUT_SRID,
             coordinateSystemName = CoordinateSystemName("KKJ testname"),
         )
-        val listing = toElementListing(null, plan, GeometryElementType.values().toList())
+        val listing = toElementListing(null, getTransformation, plan, allTypes)
         listing.forEach { l ->
             assertEquals(plan.id, l.planId)
             assertEquals(FileName("test-file 001.xml"), l.fileName)
-            assertEquals(KKJ0, l.coordinateSystemSrid)
+            assertEquals(LAYOUT_SRID, l.coordinateSystemSrid)
             assertEquals(CoordinateSystemName("KKJ testname"), l.coordinateSystemName)
             assertEquals(trackNumberId, l.trackNumberId)
             assertEquals(PlanElementName("test track number"), l.trackNumberDescription)
@@ -105,33 +113,39 @@ class ElementListingTest {
         val trackNumber = trackNumber(id = trackNumberId)
         val (referenceLine, alignment) = referenceLineAndAlignment(
             trackNumberId = trackNumberId,
-            segments = listOf(segment(Point(0.0, 0.0), Point(50.0, 0.0))),
+            segments = listOf(segment(
+                Point(0.0, 0.0) + layoutCoordinateBase,
+                Point(50.0, 0.0) + layoutCoordinateBase,
+            )),
             startAddress = TrackMeter(KmNumber(1), 100),
         )
         val geocodingContext = GeocodingContext.create(trackNumber, referenceLine, alignment, listOf())
         val clothoid = minimalClothoid(
-            start = Point(10.0, 10.0),
-            end = Point(20.0, 20.0),
-            pi = Point(18.0, 19.0),
+            start = Point(10.0, 10.0) + gk27CoordinateBase,
+            end = Point(20.0, 20.0) + gk27CoordinateBase,
+            pi = Point(18.0, 19.0) + gk27CoordinateBase,
             rotation = CW,
         )
         val cant = linearCant(0.0, clothoid.calculatedLength, 0.001, 0.005)
         val plan = plan(
             trackNumberId = IntId(1),
-            alignments = listOf(geometryAlignment(elements = listOf(clothoid), cant = cant))
+            alignments = listOf(geometryAlignment(elements = listOf(clothoid), cant = cant)),
+            srid = gk27,
         )
-        val elementListing = toElementListing(geocodingContext, plan, values().toList())
+        val elementListing = toElementListing(geocodingContext, getTransformation, plan, values().toList())
         assertEquals(1, elementListing.size)
         val element1 = elementListing[0]
 
-        assertEquals(Point(10.0, 10.0), element1.start.coordinate)
-        assertEquals(TrackMeter(KmNumber(1), BigDecimal("110.000")), element1.start.address)
+        assertEquals(Point(10.0, 10.0) + gk27CoordinateBase, element1.start.coordinate)
+        // Geocoding is not 1mm accurate so round decimals
+        assertEquals( TrackMeter(KmNumber(1), BigDecimal("110.0")), element1.start.address!!.round(1))
         assertEquals(round(radsToGrads(clothoid.startDirectionRads), 6), element1.start.directionGrads)
         assertEquals(clothoid.radiusStart, element1.start.radiusMeters)
         assertEquals(BigDecimal("0.001000"), element1.start.cant)
 
-        assertEquals(Point(20.0, 20.0), element1.end.coordinate)
-        assertEquals(TrackMeter(KmNumber(1), BigDecimal("120.000")), element1.end.address)
+        assertEquals(Point(20.0, 20.0) + gk27CoordinateBase, element1.end.coordinate)
+        // Geocoding is not 1mm accurate so round decimals
+        assertEquals(TrackMeter(KmNumber(1), BigDecimal("120.0")), element1.end.address!!.round(1))
         assertEquals(round(radsToGrads(clothoid.endDirectionRads), 6), element1.end.directionGrads)
         assertEquals(clothoid.radiusEnd, element1.end.radiusMeters)
         assertEquals(BigDecimal("0.005000"), element1.end.cant)
@@ -158,23 +172,23 @@ class ElementListingTest {
         )
         assertEquals(
             listOf(LINE, LINE),
-            toElementListing(null, plan, listOf(LINE)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, plan, listOf(LINE)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(CURVE, CURVE),
-            toElementListing(null, plan, listOf(CURVE)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, plan, listOf(CURVE)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(CLOTHOID, CLOTHOID),
-            toElementListing(null, plan, listOf(CLOTHOID)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, plan, listOf(CLOTHOID)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(LINE, CLOTHOID, CLOTHOID, LINE),
-            toElementListing(null, plan, listOf(LINE, CLOTHOID)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, plan, listOf(LINE, CLOTHOID)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(LINE, CURVE, CLOTHOID, CURVE, CLOTHOID, LINE),
-            toElementListing(null, plan, listOf(LINE, CURVE, CLOTHOID)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, plan, listOf(LINE, CURVE, CLOTHOID)).map { e -> e.elementType },
         )
     }
 
@@ -198,23 +212,23 @@ class ElementListingTest {
         val allIds = geometryAlignment.elements.map(GeometryElement::id)
         assertEquals(
             listOf(LINE, LINE),
-            toElementListing(null, track, alignments, allIds, listOf(LINE)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, track, alignments, allIds, listOf(LINE)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(CURVE, CURVE),
-            toElementListing(null, track, alignments, allIds, listOf(CURVE)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, track, alignments, allIds, listOf(CURVE)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(CLOTHOID, CLOTHOID),
-            toElementListing(null, track, alignments, allIds, listOf(CLOTHOID)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, track, alignments, allIds, listOf(CLOTHOID)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(LINE, CLOTHOID, CLOTHOID, LINE),
-            toElementListing(null, track, alignments, allIds, listOf(LINE, CLOTHOID)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, track, alignments, allIds, listOf(LINE, CLOTHOID)).map { e -> e.elementType },
         )
         assertEquals(
             listOf(LINE, CURVE, CLOTHOID, CURVE, CLOTHOID, LINE),
-            toElementListing(null, track, alignments, allIds, listOf(LINE, CURVE, CLOTHOID)).map { e -> e.elementType },
+            toElementListing(null, getTransformation, track, alignments, allIds, listOf(LINE, CURVE, CLOTHOID)).map { e -> e.elementType },
         )
     }
 
@@ -238,7 +252,7 @@ class ElementListingTest {
         val ids = listOf(alignment.elements[1].id, alignment.elements[4].id)
         assertEquals(
             ids,
-            toElementListing(null, track, alignments, ids, allTypes).map(ElementListing::elementId),
+            toElementListing(null, getTransformation, track, alignments, ids, allTypes).map(ElementListing::elementId),
         )
     }
 
@@ -269,7 +283,7 @@ class ElementListingTest {
             segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment2.elements[0].id),
             segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment2.elements[1].id),
         )
-        val planHeader = planHeader(trackNumberId = trackNumberId)
+        val planHeader = planHeader(trackNumberId = trackNumberId, srid = LAYOUT_SRID)
         val alignments = listOf(planHeader to alignment1, planHeader to alignment2)
 
         val context = geocodingContext(
@@ -277,7 +291,7 @@ class ElementListingTest {
             trackNumberId = trackNumberId,
         )
         val addressRange = Range(TrackMeter(KmNumber.ZERO, 25), TrackMeter(KmNumber.ZERO, 35))
-        val listing = toElementListing(context, track, layoutAlignment, allTypes, addressRange) { id ->
+        val listing = toElementListing(context, getTransformation, track, layoutAlignment, allTypes, addressRange) { id ->
             alignments.find { a -> a.second.id == id }!!
         }
 

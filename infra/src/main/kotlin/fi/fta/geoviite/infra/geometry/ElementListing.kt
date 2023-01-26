@@ -1,6 +1,7 @@
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
+import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
@@ -48,54 +49,59 @@ data class ElementLocation(
 )
 
 fun toElementListing(
-    geocodingContext: GeocodingContext,
-    locationTrack: LocationTrack,
+    context: GeocodingContext,
+    getTransformation: (srid: Srid) -> Transformation,
+    track: LocationTrack,
     layoutAlignment: LayoutAlignment,
     elementTypes: List<GeometryElementType>,
     addressRange: Range<TrackMeter>?,
     getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
 ): List<ElementListing> {
     val linkedElementIds = layoutAlignment.segments
-        .filter { segment -> addressRange == null || isInTrackMeterInterval(segment, geocodingContext, addressRange) }
+        .filter { segment -> addressRange == null || isInTrackMeterInterval(segment, context, addressRange) }
         .mapNotNull { s -> if (s.sourceId is IndexedId) s.sourceId else null }
         .distinct()
     val linkedAlignmentIds = linkedElementIds
         .map { id -> IntId<GeometryAlignment>(id.parentId) }
         .distinct()
     val headersAndAlignments = linkedAlignmentIds.map(getPlanHeaderAndAlignment)
-    return toElementListing(geocodingContext, locationTrack, headersAndAlignments, linkedElementIds, elementTypes)
+    return toElementListing(context, getTransformation, track, headersAndAlignments, linkedElementIds, elementTypes)
 }
 
 fun toElementListing(
-    geocodingContext: GeocodingContext?,
-    locationTrack: LocationTrack,
+    context: GeocodingContext?,
+    getTransformation: (srid: Srid) -> Transformation,
+    track: LocationTrack,
     plansAndAlignments: List<Pair<GeometryPlanHeader, GeometryAlignment>>,
     linkedElementIds: List<DomainId<GeometryElement>>,
     elementTypes: List<GeometryElementType>,
 ) = plansAndAlignments.flatMap { (plan, alignment) ->
     alignment.elements
         .filter { element -> elementTypes.contains(element.type) && linkedElementIds.contains(element.id) }
-        .map { element -> toElementListing(geocodingContext, locationTrack, plan, alignment, element) }
+        .map { element -> toElementListing(context, getTransformation, track, plan, alignment, element) }
 }
 
 fun toElementListing(
-    geocodingContext: GeocodingContext?,
+    context: GeocodingContext?,
+    getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     elementTypes: List<GeometryElementType>,
 ) = plan.alignments.flatMap { alignment ->
     alignment.elements
         .filter { element -> elementTypes.contains(element.type) }
-        .map { element -> toElementListing(geocodingContext, plan, alignment, element) }
+        .map { element -> toElementListing(context, getTransformation, plan, alignment, element) }
 }
 
 fun toElementListing(
-    geocodingContext: GeocodingContext?,
+    context: GeocodingContext?,
+    getTransformation: (srid: Srid) -> Transformation,
     locationTrack: LocationTrack,
     planHeader: GeometryPlanHeader,
     alignment: GeometryAlignment,
     element: GeometryElement,
 ) = elementListing(
-    geocodingContext = geocodingContext,
+    context = context,
+    getTransformation = getTransformation,
     planId = planHeader.id,
     fileName = planHeader.fileName,
     units = planHeader.units,
@@ -106,12 +112,14 @@ fun toElementListing(
 )
 
 fun toElementListing(
-    geocodingContext: GeocodingContext?,
+    context: GeocodingContext?,
+    getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
     alignment: GeometryAlignment,
     element: GeometryElement,
 ) = elementListing(
-    geocodingContext = geocodingContext,
+    context = context,
+    getTransformation = getTransformation,
     planId = plan.id,
     fileName = plan.fileName,
     units = plan.units,
@@ -122,7 +130,8 @@ fun toElementListing(
 )
 
 fun elementListing(
-    geocodingContext: GeocodingContext?,
+    context: GeocodingContext?,
+    getTransformation: (srid: Srid) -> Transformation,
     planId: DomainId<GeometryPlan>,
     fileName: FileName,
     units: GeometryUnits,
@@ -130,42 +139,53 @@ fun elementListing(
     trackNumberDescription: PlanElementName?,
     alignment: GeometryAlignment,
     element: GeometryElement,
-) = ElementListing(
-    planId = planId,
-    fileName = fileName,
-    coordinateSystemSrid = units.coordinateSystemSrid,
-    coordinateSystemName = units.coordinateSystemName,
-    trackNumberId = trackNumberId,
-    trackNumberDescription = trackNumberDescription,
-    alignmentId = alignment.id,
-    alignmentName = alignment.name,
-    elementId = element.id,
-    elementType = element.type,
-    lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
-    start = getStartLocation(geocodingContext, alignment, element),
-    end = getEndLocation(geocodingContext, alignment, element),
+) = units.coordinateSystemSrid?.let(getTransformation).let { transformation ->
+    ElementListing(
+        planId = planId,
+        fileName = fileName,
+        coordinateSystemSrid = units.coordinateSystemSrid,
+        coordinateSystemName = units.coordinateSystemName,
+        trackNumberId = trackNumberId,
+        trackNumberDescription = trackNumberDescription,
+        alignmentId = alignment.id,
+        alignmentName = alignment.name,
+        elementId = element.id,
+        elementType = element.type,
+        lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
+        start = getStartLocation(context, transformation, alignment, element),
+        end = getEndLocation(context, transformation, alignment, element),
+    )
+}
+
+fun getStartLocation(
+    context: GeocodingContext?,
+    transformation: Transformation?,
+    alignment: GeometryAlignment,
+    element: GeometryElement,
+) = ElementLocation(
+    coordinate = element.start,
+    address = getAddress(context, transformation, element.start),
+    directionGrads = getDirectionGrads(element.startDirectionRads),
+    radiusMeters = getStartRadius(element),
+    cant = getStartCant(alignment, element)
 )
 
-fun getStartLocation(geocodingContext: GeocodingContext?, alignment: GeometryAlignment, element: GeometryElement) =
-    ElementLocation(
-        coordinate = element.start,
-        address = getAddress(geocodingContext, element.start),
-        directionGrads = getDirectionGrads(element.startDirectionRads),
-        radiusMeters = getStartRadius(element),
-        cant = getStartCant(alignment, element)
-    )
+fun getEndLocation(
+    context: GeocodingContext?,
+    transformation: Transformation?,
+    alignment: GeometryAlignment,
+    element: GeometryElement,
+) = ElementLocation(
+    coordinate = element.end,
+    address = getAddress(context, transformation, element.end),
+    directionGrads = getDirectionGrads(element.endDirectionRads),
+    radiusMeters = getEndRadius(element),
+    cant = getEndCant(alignment, element)
+)
 
-fun getEndLocation(geocodingContext: GeocodingContext?, alignment: GeometryAlignment, element: GeometryElement) =
-    ElementLocation(
-        coordinate = element.end,
-        address = getAddress(geocodingContext, element.end),
-        directionGrads = getDirectionGrads(element.endDirectionRads),
-        radiusMeters = getEndRadius(element),
-        cant = getEndCant(alignment, element)
-    )
-
-private fun getAddress(geocodingContext: GeocodingContext?, coordinate: Point) =
-    geocodingContext?.getAddress(coordinate, ADDRESS_DECIMALS)?.first
+private fun getAddress(context: GeocodingContext?, transformation: Transformation?, coordinate: Point) =
+    if (context == null || transformation == null) null
+    else context.getAddress(transformation.transform(coordinate), ADDRESS_DECIMALS)?.first
 
 private fun getDirectionGrads(rads: Double) = round(radsToGrads(rads), DIRECTION_DECIMALS)
 
