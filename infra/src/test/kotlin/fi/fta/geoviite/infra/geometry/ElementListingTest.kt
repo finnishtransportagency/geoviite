@@ -1,27 +1,23 @@
 package fi.fta.geoviite.infra.geometry
 
 import ElementListing
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.RotationDirection.CW
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.KKJ0
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.radsToGrads
-import fi.fta.geoviite.infra.math.round
-import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Test
 import toElementListing
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 
+private val allTypes = GeometryElementType.values().toList()
 class ElementListingTest {
 
     @Test
@@ -239,11 +235,55 @@ class ElementListingTest {
             ),
         )
         val alignments = listOf(plan to alignment)
-        val allTypes = GeometryElementType.values().toList()
         val ids = listOf(alignment.elements[1].id, alignment.elements[4].id)
         assertEquals(
             ids,
             toElementListing(null, track, alignments, ids, allTypes).map(ElementListing::elementId),
         )
+    }
+
+    @Test
+    fun `Track element listing is filtered by linking and track meters`() {
+        val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
+        val alignment1 = geometryAlignment(
+            id = IntId(1),
+            trackNumberId = trackNumberId,
+            elements = listOf(
+                minimalLine(id = IndexedId(1,1)),
+                minimalCurve(id = IndexedId(1,2)),
+                minimalClothoid(id = IndexedId(1,3)),
+            ),
+        )
+        val alignment2 = geometryAlignment(
+            id = IntId(2),
+            trackNumberId = trackNumberId,
+            elements = listOf(
+                minimalCurve(id = IndexedId(2,1)),
+                minimalClothoid(id = IndexedId(2,2)),
+                minimalLine(id = IndexedId(2,3)),
+            ),
+        )
+        val (track, layoutAlignment) = locationTrackAndAlignment(trackNumberId,
+            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment1.elements[1].id),
+            segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment1.elements[2].id),
+            segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment2.elements[0].id),
+            segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment2.elements[1].id),
+        )
+        val planHeader = planHeader(trackNumberId = trackNumberId)
+        val alignments = listOf(planHeader to alignment1, planHeader to alignment2)
+
+        val context = geocodingContext(
+            referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
+            trackNumberId = trackNumberId,
+        )
+        val addressRange = Range(TrackMeter(KmNumber.ZERO, 25), TrackMeter(KmNumber.ZERO, 35))
+        val listing = toElementListing(context, track, layoutAlignment, allTypes, addressRange) { id ->
+            alignments.find { a -> a.second.id == id }!!
+        }
+
+        // Linked: alignment1 elements 1 & 2 (not 0) + alignment2 elements 0 & 1 (not 2)
+        // Address range includes only alignment1 element 2 & alignment2 element 0
+        val expectedIds = listOf(alignment1.elements[2].id, alignment2.elements[0].id)
+        assertEquals(expectedIds, listing.map(ElementListing::elementId))
     }
 }
