@@ -1,3 +1,22 @@
 .element-list-view {
     padding-left: 32px;
 }
+
+.element-list__geometry-search {
+    display: flex;
+
+    > :not(:last-child) {
+        margin-right: 16px;
+    }
+}
+.element-list__plan-search-dropdown {
+    width: 360px;
+}
+
+.element-list__geometry-checkboxes {
+    margin-top: 22px;
+}
+
+.element-list__geometry-checkbox > :not(:last-child) {
+    margin-right: 16px;
+}

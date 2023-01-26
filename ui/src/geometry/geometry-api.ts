@@ -92,6 +92,12 @@ export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<Geo
     return getThrowError<GeometryPlanHeader>(`${GEOMETRY_URI}/plan-headers/${planId}`);
 }
 
+export async function getGeometryPlanElements(planId: GeometryPlanId, elementTypes: string[]) {
+    return getIgnoreError(
+        `${GEOMETRY_URI}/plans/${planId}/element-listing?element-types=${elementTypes}`,
+    );
+}
+
 export async function getGeometryPlan(
     planId: GeometryPlanId,
     changeTime: TimeStamp = getChangeTimes().geometryPlan,
