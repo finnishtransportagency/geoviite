@@ -101,9 +101,11 @@ class RatkoLocationTrackService @Autowired constructor(
             sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
-        createLocationTrackPoints(locationTrackOid,addresses.midPoints + switchPoints)
+        val midPoints = (addresses.midPoints + switchPoints).sortedBy { p -> p.address }
+        createLocationTrackPoints(locationTrackOid, midPoints)
         val layoutLocationTrackWithOid = layoutLocationTrack.copy(externalId = Oid(locationTrackOid.id))
-        createLocationTrackMetadata(layoutLocationTrackWithOid, addresses.allPoints+switchPoints, trackNumberOid)
+        val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
+        createLocationTrackMetadata(layoutLocationTrackWithOid, allPoints, trackNumberOid)
     }
 
     private fun createLocationTrackPoints(
