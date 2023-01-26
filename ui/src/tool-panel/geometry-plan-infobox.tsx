@@ -5,21 +5,34 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
-import { formatDateShort } from 'utils/date-utils';
+import { formatDateShort, toDateOrUndefined } from 'utils/date-utils';
 import PlanPhase from 'geoviite-design-lib/plan-phase/plan-phase';
 import PlanDecisionPhase from 'geoviite-design-lib/plan-decision/plan-decision-phase';
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
 import { GeometryPlanLink } from './geometry-plan-link';
+import { differenceInYears } from 'date-fns';
+import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { useAppNavigate } from 'common/navigate';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
+};
+
+const ageInYears = (date: Date): string => {
+    const diff = differenceInYears(new Date(), date);
+    return (diff === 0 ? 'alle 1' : diff) + ' v sitten';
 };
 
 const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
     planHeader,
 }: GeometryPlanInfoboxProps) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
+
+    const planTime = toDateOrUndefined(planHeader.planTime);
+    const age = planTime && ageInYears(planTime);
 
     return (
         <Infobox title={t('tool-panel.geometry-plan.title')} qa-id="geometry-plan-infobox">
@@ -32,6 +45,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     label={t('tool-panel.geometry-plan.created')}
                     value={formatDateShort(planHeader.uploadTime)}
                 />
+                <InfoboxField label={t('tool-panel.geometry-plan.plan-age')} value={age} />
                 <InfoboxField
                     label={t('tool-panel.geometry-plan.source')}
                     value={t(`enum.plan-source.${planHeader.source}`)}
@@ -69,6 +83,22 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     label={t('tool-panel.geometry-plan.coordinate-system')}
                     value={planHeader.units.coordinateSystemSrid}
                 />
+                <InfoboxField
+                    label={t('tool-panel.geometry-plan.has-vertical-geometry')}
+                    value={planHeader.hasProfile ? t('yes') : t('no')}
+                />
+                <InfoboxField
+                    label={t('tool-panel.geometry-plan.has-cant')}
+                    value={planHeader.hasCant ? t('yes') : t('no')}
+                />
+                <InfoboxButtons>
+                    <Button
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.SECONDARY}
+                        onClick={() => navigate('inframodel-edit', planHeader.id)}>
+                        {t('tool-panel.geometry-plan.open-inframodel')}
+                    </Button>
+                </InfoboxButtons>
             </InfoboxContent>
         </Infobox>
     );

@@ -1,12 +1,22 @@
 import { connect } from 'react-redux';
 import { InfraModelRootState, TrackLayoutAppDispatch } from 'store/store';
-import { actionCreators } from '../infra-model-store';
+import { actionCreators, InfraModelViewType } from '../infra-model-store';
 import { createDelegates } from 'store/store-utils';
-import { InfraModelView } from 'infra-model/view/infra-model-view';
-import { GeometryElement, GeometryElementId, GeometrySwitch, GeometrySwitchId } from 'geometry/geometry-model';
+import { InfraModelView, InfraModelViewProps } from 'infra-model/view/infra-model-view';
+import {
+    GeometryElement,
+    GeometryElementId,
+    GeometrySwitch,
+    GeometrySwitchId,
+} from 'geometry/geometry-model';
 import { getGeometryElementFromPlan, getGeometrySwitchFromPlan } from 'geometry/geometry-utils';
+import React from 'react';
+import {
+    InfraModelEditLoader,
+    InfraModelLoaderProps,
+} from 'infra-model/view/infra-model-edit-loader';
 
-function mapStateToProps({infraModel}: InfraModelRootState) {
+function mapStateToProps({ infraModel }: InfraModelRootState) {
     return {
         ...infraModel,
         getGeometryElement: async (
@@ -37,10 +47,23 @@ function mapDispatchToProps(dispatch: TrackLayoutAppDispatch) {
         onHoverLocation: delegates.onHoverLocation,
         onClickLocation: delegates.onClickLocation,
         onViewportChange: delegates.onViewportChange,
-        onInfraModelViewChange: delegates.onViewChange,
         onCommitField: delegates.onCommitField,
         showArea: delegates.showArea,
+        setExistingInfraModel: delegates.setExistingInfraModel,
     };
 }
 
-export const InfraModelViewContainer = connect(mapStateToProps, mapDispatchToProps)(InfraModelView);
+const InfraModelLoadingInfraModelView: React.FC<InfraModelViewProps> = (
+    props: InfraModelLoaderProps,
+) => {
+    return props.viewType == InfraModelViewType.UPLOAD ? (
+        <InfraModelView {...props} />
+    ) : (
+        <InfraModelEditLoader {...props} />
+    );
+};
+
+export const InfraModelViewContainer = connect(
+    mapStateToProps,
+    mapDispatchToProps,
+)(InfraModelLoadingInfraModelView);

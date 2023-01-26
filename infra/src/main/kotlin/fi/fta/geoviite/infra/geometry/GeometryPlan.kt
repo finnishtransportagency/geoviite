@@ -39,6 +39,8 @@ data class GeometryPlanHeader(
     val linkedAsPlanId: IntId<GeometryPlan>?,
     val uploadTime: Instant,
     val units: GeometryUnits,
+    val hasProfile: Boolean,
+    val hasCant: Boolean,
 ) {
     @get:JsonIgnore
     val searchParams: List<String> by lazy {

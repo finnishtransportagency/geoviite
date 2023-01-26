@@ -2,11 +2,12 @@ import * as React from 'react';
 import { InfraModelListView } from 'infra-model/list/infra-model-list-view';
 
 import { createDelegates } from 'store/store-utils';
-import { getGeometryPlan, getGeometryPlanHeaders } from 'geometry/geometry-api';
-import { GeometryPlan, GeometryPlanId } from 'geometry/geometry-model';
+import { getGeometryPlanHeaders } from 'geometry/geometry-api';
+import { GeometryPlanId } from 'geometry/geometry-model';
 import { actionCreators } from 'infra-model/infra-model-store';
 import { useInframodelAppDispatch, useInframodelAppSelector } from 'store/hooks';
 import { ChangeTimes } from 'track-layout/track-layout-store';
+import { useAppNavigate } from 'common/navigate';
 
 export type InfraModelListContainerProps = {
     changeTimes: ChangeTimes;
@@ -18,6 +19,7 @@ export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = (
     const rootDispatch = useInframodelAppDispatch();
     const infraModelListDelegates = createDelegates(rootDispatch, actionCreators);
     const state = useInframodelAppSelector((state) => state.infraModel.infraModelList);
+    const navigate = useAppNavigate();
 
     React.useEffect(() => {
         infraModelListDelegates.onPlanChangeTimeChange();
@@ -48,24 +50,7 @@ export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = (
         }
     }, [state.searchState]);
 
-    function onSelectPlan(planId: GeometryPlanId) {
-        getGeometryPlan(planId).then((plan: GeometryPlan) => {
-            if (plan) {
-                infraModelListDelegates.setExistingInfraModel({
-                    geometryPlan: plan,
-                    extraInfraModelParameters: {
-                        oid: plan.oid ? plan.oid : undefined,
-                        planPhase: plan.planPhase ? plan.planPhase : undefined,
-                        decisionPhase: plan.decisionPhase ? plan.decisionPhase : undefined,
-                        measurementMethod: plan.measurementMethod
-                            ? plan.measurementMethod
-                            : undefined,
-                        message: plan.message ? plan.message : undefined,
-                    },
-                });
-            }
-        });
-    }
+    const onSelectPlan = (planId: GeometryPlanId) => navigate('inframodel-edit', planId);
 
     return (
         <InfraModelListView
