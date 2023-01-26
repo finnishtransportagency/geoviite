@@ -18,10 +18,6 @@ import toElementListing
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 
-private val gk27 = Srid(3881)
-private val gk27CoordinateBase = Point(7059000.0, 27480000.0)
-private val layoutCoordinateBase = transformNonKKJCoordinate(gk27, LAYOUT_SRID, gk27CoordinateBase)
-
 private val allTypes = GeometryElementType.values().toList()
 private val getTransformation = { srid: Srid -> Transformation.nonKKJToETRSTransform(srid, LAYOUT_SRID) }
 
@@ -109,6 +105,10 @@ class ElementListingTest {
 
     @Test
     fun `Start and end location includes calculated values`() {
+        val gk27 = Srid(3881)
+        val gk27CoordinateBase = Point(7059000.0, 27480000.0)
+        val layoutCoordinateBase = transformNonKKJCoordinate(gk27, LAYOUT_SRID, gk27CoordinateBase)
+
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
         val trackNumber = trackNumber(id = trackNumberId)
         val (referenceLine, alignment) = referenceLineAndAlignment(
