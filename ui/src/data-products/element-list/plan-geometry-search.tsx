@@ -24,9 +24,9 @@ type ContinuousGeometrySearchProps = {
 
 const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchProps) => {
     const { t } = useTranslation();
-    const [selectedLocationTrack, setSelectedLocationTrack] = React.useState<GeometryPlanHeader>();
+    const [selectedPlanHeader, setSelectedPlanHeader] = React.useState<GeometryPlanHeader>();
 
-    function searchLocationTracks(searchTerm: string): Promise<GeometryPlanHeader[]> {
+    function searchGeometryPlanHeaders(searchTerm: string): Promise<GeometryPlanHeader[]> {
         if (isNullOrBlank(searchTerm)) {
             return Promise.resolve([]);
         }
@@ -41,24 +41,24 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         ).then((t) => t.items);
     }
     // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetLocationTrackOptions = debounceAsync(searchLocationTracks, 250);
+    const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanHeaders, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
-    const getDuplicateTrackOptions = React.useCallback(
+    const geometryPlanHeaders = React.useCallback(
         (searchTerm) =>
-            debouncedGetLocationTrackOptions(searchTerm).then((planHeaders) =>
+            debouncedGetGeometryPlanHeaders(searchTerm).then((planHeaders) =>
                 planHeaders
-                    .filter((lt) => {
+                    .filter((plan) => {
                         return (
-                            !selectedLocationTrack ||
-                            (selectedLocationTrack && lt.id !== selectedLocationTrack.id)
+                            !selectedPlanHeader ||
+                            (selectedPlanHeader && plan.id !== selectedPlanHeader.id)
                         );
                     })
-                    .map((lt) => ({
-                        name: lt.fileName,
-                        value: lt,
+                    .map((plan) => ({
+                        name: plan.fileName,
+                        value: plan,
                     })),
             ),
-        [selectedLocationTrack],
+        [selectedPlanHeader],
     );
 
     function updateProp<TKey extends keyof PlanGeometrySearchState>(
@@ -76,7 +76,7 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         return state.committedFields.includes(prop)
             ? state.validationErrors
                   .filter((error) => error.field == prop)
-                  .map((error) => t(`element-list.continuous-search.${error.reason}`))
+                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
             : [];
     }
 
@@ -84,31 +84,30 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    const moi = selectedLocationTrack && !hasErrors('searchGeometries');
     const _plans = useLoader(() => {
-        if (!moi) return Promise.resolve([]);
+        if (!selectedPlanHeader || hasErrors('searchGeometries')) return Promise.resolve([]);
 
         return getGeometryPlanElements(
-            selectedLocationTrack.id,
+            selectedPlanHeader.id,
             selectedElementTypes(state.searchGeometries),
         );
-    }, [selectedLocationTrack, state.searchGeometries]);
+    }, [selectedPlanHeader, state.searchGeometries]);
 
     return (
         <div className={styles['element-list__geometry-search']}>
             <div className={styles['element-list__plan-search-dropdown']}>
                 <FieldLayout
-                    label={`Suunnitelma`}
+                    label={t(`data-products.element-list.search.plan`)}
                     value={
                         <Dropdown
-                            value={selectedLocationTrack}
+                            value={selectedPlanHeader}
                             getName={(item: GeometryPlanHeader) => item.fileName}
                             placeholder={t('location-track-dialog.search')}
-                            options={getDuplicateTrackOptions}
+                            options={geometryPlanHeaders}
                             searchable
-                            onChange={setSelectedLocationTrack}
+                            onChange={setSelectedPlanHeader}
                             canUnselect={true}
-                            unselectText={t('location-track-dialog.not-a-duplicate')}
+                            unselectText={t('data-products.element-list.search.not-selected')}
                             wideList
                             wide
                         />
@@ -117,7 +116,6 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
             </div>
             <div className={styles['element-list__geometry-checkboxes']}>
                 <FieldLayout
-                    label={''}
                     value={
                         <div className={styles['element-list__geometry-checkbox']}>
                             <Checkbox
@@ -128,7 +126,7 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
                                         searchLines: e.target.checked,
                                     })
                                 }>
-                                Suora
+                                {t(`data-products.element-list.search.line`)}
                             </Checkbox>
                             <Checkbox
                                 checked={state.searchGeometries.searchCurves}
@@ -138,7 +136,7 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
                                         searchCurves: e.target.checked,
                                     })
                                 }>
-                                Kaari
+                                {t(`data-products.element-list.search.curve`)}
                             </Checkbox>
                             <Checkbox
                                 checked={state.searchGeometries.searchClothoids}
@@ -148,7 +146,7 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
                                         searchClothoids: e.target.checked,
                                     })
                                 }>
-                                Siirtymäkaari
+                                {t(`data-products.element-list.search.clothoid`)}
                             </Checkbox>
                         </div>
                     }

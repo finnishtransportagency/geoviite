@@ -24,6 +24,12 @@ export type PlanGeometrySearchState = {
     committedFields: (keyof PlanGeometrySearchState)[];
 };
 
+enum MissingSection {
+    MISSING_SECTION = 'MISSING_SECTION',
+}
+
+export type GeometryTypeIncludingMissing = GeometryType | MissingSection;
+
 export const initialPlanGeometrySearchState: PlanGeometrySearchState = {
     plan: undefined,
     searchGeometries: {
@@ -62,14 +68,23 @@ export const initialContinuousSearchState: ElementListContinuousGeometrySearchSt
     committedFields: [],
 };
 
-export const selectedElementTypes = (searchGeometry: SearchGeometries) =>
+export const selectedElementTypes = (
+    searchGeometry: SearchGeometries,
+): GeometryTypeIncludingMissing[] =>
     [
         searchGeometry.searchLines ? GeometryType.LINE : undefined,
         searchGeometry.searchCurves ? GeometryType.CURVE : undefined,
         searchGeometry.searchClothoids ? GeometryType.CLOTHOID : undefined,
+        searchGeometry.searchMissingGeometry ? MissingSection.MISSING_SECTION : undefined,
     ].filter(filterNotEmpty);
 
-const TRACK_METER_REGEX = /([0-9]{1,4})\+([0-9]{4})$/g;
+export const validTrackMeterOrUndefined = (trackMeterCandidate: string) => {
+    console.log(trackMeterCandidate);
+    if (trackMeterIsValid(trackMeterCandidate)) return trackMeterCandidate;
+    else return undefined;
+};
+
+const TRACK_METER_REGEX = /([0-9]{1,4})\+([0-9]{4})$/;
 
 const hasAtLeastOneTypeSelected = ({
     searchLines,
@@ -78,9 +93,9 @@ const hasAtLeastOneTypeSelected = ({
     searchMissingGeometry,
 }: SearchGeometries) => searchLines || searchCurves || searchClothoids || searchMissingGeometry;
 
-const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
+export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
 
-const validaterosRamazotti = (
+const validateContinuousGeometry = (
     state: ElementListContinuousGeometrySearchState,
 ): ValidationError<ElementListContinuousGeometrySearchState>[] =>
     [
@@ -88,17 +103,17 @@ const validaterosRamazotti = (
             ? undefined
             : {
                   field: 'searchGeometries' as keyof ElementListContinuousGeometrySearchState,
-                  reason: 'no-geometry-selected',
+                  reason: 'no-types-selected',
                   type: ValidationErrorType.ERROR,
               },
-        trackMeterIsValid(state.startTrackMeter)
+        state.startTrackMeter === '' || trackMeterIsValid(state.startTrackMeter)
             ? undefined
             : {
                   field: 'startTrackMeter' as keyof ElementListContinuousGeometrySearchState,
                   reason: 'invalid-track-meter',
                   type: ValidationErrorType.ERROR,
               },
-        trackMeterIsValid(state.endTrackMeter)
+        state.endTrackMeter === '' || trackMeterIsValid(state.endTrackMeter)
             ? undefined
             : {
                   field: 'endTrackMeter' as keyof ElementListContinuousGeometrySearchState,
@@ -118,7 +133,7 @@ const continuousGeometrySearchSlice = createSlice({
             }: PayloadAction<PropEdit<ElementListContinuousGeometrySearchState, TKey>>,
         ) {
             state[propEdit.key] = propEdit.value;
-            state.validationErrors = validaterosRamazotti(state);
+            state.validationErrors = validateContinuousGeometry(state);
             if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
@@ -142,16 +157,15 @@ const planSearchSlice = createSlice({
             { payload: propEdit }: PayloadAction<PropEdit<PlanGeometrySearchState, TKey>>,
         ) {
             state[propEdit.key] = propEdit.value;
-            const anySelected = hasAtLeastOneTypeSelected(state.searchGeometries)
+            state.validationErrors = hasAtLeastOneTypeSelected(state.searchGeometries)
                 ? []
                 : [
                       {
                           field: 'searchGeometries' as keyof PlanGeometrySearchState,
-                          reason: 'no-geometry-selected',
+                          reason: 'no-types-selected',
                           type: ValidationErrorType.ERROR,
                       },
                   ];
-            state.validationErrors = anySelected;
             if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];

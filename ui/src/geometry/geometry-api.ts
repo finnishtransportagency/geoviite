@@ -18,6 +18,7 @@ import {
     GeometryPlanLayout,
     LayoutSwitch,
     LayoutTrackNumberId,
+    LocationTrackId,
     MapAlignment,
     PlanArea,
 } from 'track-layout/track-layout-model';
@@ -37,6 +38,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import { TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
+import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
 
 const GEOMETRY_URI = `${API_URI}/geometry`;
 
@@ -92,10 +94,29 @@ export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<Geo
     return getThrowError<GeometryPlanHeader>(`${GEOMETRY_URI}/plan-headers/${planId}`);
 }
 
-export async function getGeometryPlanElements(planId: GeometryPlanId, elementTypes: string[]) {
-    return getIgnoreError(
-        `${GEOMETRY_URI}/plans/${planId}/element-listing?element-types=${elementTypes}`,
-    );
+export async function getGeometryPlanElements(
+    planId: GeometryPlanId,
+    elementTypes: GeometryTypeIncludingMissing[],
+) {
+    const params = queryParams({
+        elementTypes,
+    });
+    return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/element-listing${params}`);
+}
+
+export async function getLocationTrackElements(
+    id: LocationTrackId,
+    elementTypes: GeometryTypeIncludingMissing[],
+    startAddress: string | undefined,
+    endAddress: string | undefined,
+) {
+    const params = queryParams({
+        elementTypes: elementTypes,
+        startAddress: startAddress,
+        endAddress: endAddress,
+    });
+    console.log(startAddress, endAddress);
+    return getIgnoreError(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
 }
 
 export async function getGeometryPlan(

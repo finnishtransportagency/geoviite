@@ -5,12 +5,18 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { ElementListContinuousGeometrySearchState } from 'data-products/element-list/element-list-store';
+import {
+    ElementListContinuousGeometrySearchState,
+    selectedElementTypes,
+    validTrackMeterOrUndefined,
+} from 'data-products/element-list/element-list-store';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { isNullOrBlank } from 'utils/string-utils';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
+import { useLoader } from 'utils/react-utils';
+import { getLocationTrackElements } from 'geometry/geometry-api';
 
 type ContinuousGeometrySearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -71,7 +77,7 @@ const ContinuousGeometrySearch = ({
         return state.committedFields.includes(prop)
             ? state.validationErrors
                   .filter((error) => error.field == prop)
-                  .map((error) => t(`element-list.continuous-search.${error.reason}`))
+                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
             : [];
     }
 
@@ -79,10 +85,22 @@ const ContinuousGeometrySearch = ({
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
+    // TODO Use plans when table is added
+    const _plans = useLoader(() => {
+        if (!selectedLocationTrack || hasErrors('searchGeometries')) return Promise.resolve([]);
+
+        return getLocationTrackElements(
+            selectedLocationTrack.id,
+            selectedElementTypes(state.searchGeometries),
+            validTrackMeterOrUndefined(state.startTrackMeter),
+            validTrackMeterOrUndefined(state.endTrackMeter),
+        );
+    }, [selectedLocationTrack, state.startTrackMeter, state.endTrackMeter, state.searchGeometries]);
+
     return (
         <div className={styles['element-list__geometry-search']}>
             <FieldLayout
-                label={`Sijaintiraide`}
+                label={t('data-products.element-list.search.location-track')}
                 value={
                     <Dropdown
                         value={selectedLocationTrack}
@@ -92,14 +110,14 @@ const ContinuousGeometrySearch = ({
                         searchable
                         onChange={setSelectedLocationTrack}
                         canUnselect={true}
-                        unselectText={t('location-track-dialog.not-a-duplicate')}
+                        unselectText={t('data-products.element-list.search.not-selected')}
                         wideList
                         wide
                     />
                 }
             />
             <FieldLayout
-                label={`Rataosoitteen alku`}
+                label={t('data-products.element-list.search.track-address-start')}
                 value={
                     <TextField
                         value={state.startTrackMeter}
@@ -112,7 +130,7 @@ const ContinuousGeometrySearch = ({
                 errors={getVisibleErrorsByProp('startTrackMeter')}
             />
             <FieldLayout
-                label={`Ratosoitteen loppu`}
+                label={t('data-products.element-list.search.track-address-end')}
                 value={
                     <TextField
                         value={state.endTrackMeter}
@@ -137,7 +155,7 @@ const ContinuousGeometrySearch = ({
                                         searchLines: e.target.checked,
                                     })
                                 }>
-                                Suora
+                                {t('data-products.element-list.search.line')}
                             </Checkbox>
                             <Checkbox
                                 checked={state.searchGeometries.searchCurves}
@@ -147,7 +165,7 @@ const ContinuousGeometrySearch = ({
                                         searchCurves: e.target.checked,
                                     })
                                 }>
-                                Kaari
+                                {t('data-products.element-list.search.curve')}
                             </Checkbox>
                             <Checkbox
                                 checked={state.searchGeometries.searchClothoids}
@@ -157,7 +175,7 @@ const ContinuousGeometrySearch = ({
                                         searchClothoids: e.target.checked,
                                     })
                                 }>
-                                Siirtymäkaari
+                                {t('data-products.element-list.search.clothoid')}
                             </Checkbox>
                             <Checkbox
                                 checked={state.searchGeometries.searchMissingGeometry}
@@ -167,7 +185,7 @@ const ContinuousGeometrySearch = ({
                                         searchMissingGeometry: e.target.checked,
                                     })
                                 }>
-                                Puuttuva osuus
+                                {t('data-products.element-list.search.missing-section')}
                             </Checkbox>
                         </div>
                     }
