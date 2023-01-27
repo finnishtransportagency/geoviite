@@ -1,0 +1,1 @@
+create index reference_line_version_track_number_id_change_time_ix on layout.reference_line_version (track_number_id, change_time desc);
