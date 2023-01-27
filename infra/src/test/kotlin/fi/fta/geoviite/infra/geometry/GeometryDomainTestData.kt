@@ -425,6 +425,8 @@ fun planHeader(
     message = FreeText("test text description"),
     uploadTime = Instant.now(),
     source = PlanSource.GEOVIITE,
+    hasCant = false,
+    hasProfile = false,
 )
 
 fun minimalPlan(

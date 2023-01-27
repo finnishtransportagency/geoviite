@@ -215,10 +215,10 @@ class GeometryService @Autowired constructor(
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
         logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
         val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
-        val geocodingContext = plan.trackNumberId?.let { tnId ->
+        val context = plan.trackNumberId?.let { tnId ->
             geocodingService.getGeocodingContext(OFFICIAL, tnId)
         }
-        return toElementListing(geocodingContext, plan, elementTypes)
+        return toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
     }
 
     fun getElementListing(
@@ -231,7 +231,15 @@ class GeometryService @Autowired constructor(
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
         val context = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
         return if (context != null) {
-            toElementListing(context, track, alignment, elementTypes, addressRange, ::getHeaderAndAlignment)
+            toElementListing(
+                context,
+                coordinateTransformationService::getLayoutTransformation,
+                track,
+                alignment,
+                elementTypes,
+                addressRange,
+                ::getHeaderAndAlignment,
+            )
         } else emptyList()
     }
 
@@ -248,34 +256,26 @@ class GeometryService @Autowired constructor(
     val plannedGeometryFirstComparator: Comparator<GeometryPlanHeader> =
         Comparator.comparing { h -> if (h.source == PAIKANNUSPALVELU) 1 else 0 }
     private fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> {
-        if (sortField == GeometryPlanSortField.LINKED_AT || sortField == GeometryPlanSortField.LINKED_BY) {
-            val linkingSummaries = geometryDao.getLinkingSummaries(null)
-            return plannedGeometryFirstComparator.then(if (sortField == GeometryPlanSortField.LINKED_BY)
-                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedByUsers ?: "" }
-            else
-                Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
-            )
-        }
-
+        val trackNumbers by lazy { trackNumberService.mapById(PublishType.DRAFT) }
+        val linkingSummaries by lazy { geometryDao.getLinkingSummaries(null) }
         return plannedGeometryFirstComparator.then(when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
-            GeometryPlanSortField.PROJECT_NAME -> Comparator.comparing { h -> h.project.name.toString().lowercase() }
-            GeometryPlanSortField.TRACK_NUMBER -> {
-                val trackNumbers = trackNumberService.mapById(PublishType.DRAFT)
-                Comparator.comparing { h -> trackNumbers[h.trackNumberId]?.number?.toString()?.lowercase() ?: "" }
-            }
-
+            GeometryPlanSortField.PROJECT_NAME -> stringComparator { h -> h.project.name }
+            GeometryPlanSortField.TRACK_NUMBER -> stringComparator { h -> trackNumbers[h.trackNumberId]?.number }
             GeometryPlanSortField.KM_START -> Comparator.comparing { h -> h.kmNumberRange?.min ?: KmNumber.ZERO }
             GeometryPlanSortField.KM_END -> Comparator.comparing { h -> h.kmNumberRange?.max ?: KmNumber.ZERO }
-            GeometryPlanSortField.PLAN_PHASE -> Comparator.comparing { h -> h.planPhase?.name ?: "" }
-            GeometryPlanSortField.DECISION_PHASE -> Comparator.comparing { h -> h.decisionPhase?.name ?: "" }
+            GeometryPlanSortField.PLAN_PHASE -> stringComparator { h -> h.planPhase?.name }
+            GeometryPlanSortField.DECISION_PHASE -> stringComparator { h -> h.decisionPhase?.name }
             GeometryPlanSortField.CREATED_AT -> Comparator.comparing { h -> h.planTime ?: h.uploadTime }
             GeometryPlanSortField.UPLOADED_AT -> Comparator.comparing { h -> h.uploadTime }
-            GeometryPlanSortField.FILE_NAME -> Comparator.comparing { h -> h.fileName.toString().lowercase() }
-            GeometryPlanSortField.LINKED_AT -> throw IllegalArgumentException("should have handled LINKED_AT above")
-            GeometryPlanSortField.LINKED_BY -> throw IllegalArgumentException("should have handled LINKED_BY above")
+            GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
+            GeometryPlanSortField.LINKED_AT -> Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
+            GeometryPlanSortField.LINKED_BY -> stringComparator { h -> linkingSummaries[h.id]?.linkedByUsers }
         })
     }
+
+    private inline fun <reified T> stringComparator(crossinline getValue: (T) -> CharSequence?) =
+        Comparator.comparing { h: T -> getValue(h)?.toString()?.lowercase() ?: "" }
 
     fun getFilter(
         freeText: FreeText?,
