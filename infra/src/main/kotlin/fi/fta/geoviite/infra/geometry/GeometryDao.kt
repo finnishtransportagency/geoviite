@@ -571,11 +571,13 @@ class GeometryDao @Autowired constructor(
               plan.track_number_id,
               (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
               (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
+              author.company_name as author,
               has_profile,
               has_cant
             from geometry.plan
               left join geometry.plan_file on plan_file.plan_id = plan.id
               left join geometry.plan_project project on project.id = plan.plan_project_id
+              left join geometry.plan_author author on plan.plan_author_id = author.id
               left join lateral
                 (select bool_or(profile_name is not null) as has_profile,
                         bool_or(cant_name is not null) as has_cant
@@ -617,6 +619,7 @@ class GeometryDao @Autowired constructor(
                     directionUnit = rs.getEnum("direction_unit"),
                     linearUnit = rs.getEnum("linear_unit"),
                 ),
+                author = rs.getString("author"),
                 hasProfile = rs.getBoolean("has_profile"),
                 hasCant = rs.getBoolean("has_cant"),
             )

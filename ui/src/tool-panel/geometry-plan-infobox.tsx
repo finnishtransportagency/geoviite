@@ -9,9 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDateShort, toDateOrUndefined } from 'utils/date-utils';
 import PlanPhase from 'geoviite-design-lib/plan-phase/plan-phase';
 import PlanDecisionPhase from 'geoviite-design-lib/plan-decision/plan-decision-phase';
-import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
-import { GeometryPlanLink } from './geometry-plan-link';
 import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -19,14 +17,13 @@ import { useAppNavigate } from 'common/navigate';
 import { Link } from 'vayla-design-lib/link/link';
 import { INFRAMODEL_URI } from 'infra-model/infra-model-api';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { getCoordinateSystem } from 'common/common-api';
+import { useLoader } from 'utils/react-utils';
+import CoordinateSystem from 'geoviite-design-lib/coordinate-system/coordinate-system';
+import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
-};
-
-const ageInYears = (date: Date): string => {
-    const diff = differenceInYears(new Date(), date);
-    return (diff === 0 ? 'alle 1' : diff) + ' v sitten';
 };
 
 const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
@@ -34,36 +31,53 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
 }: GeometryPlanInfoboxProps) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
+    const coordinateSystemModel = useLoader(
+        () =>
+            (planHeader.units.coordinateSystemSrid &&
+                getCoordinateSystem(planHeader.units.coordinateSystemSrid)) ||
+            undefined,
+        [planHeader.units.coordinateSystemSrid],
+    );
 
     const planTime = toDateOrUndefined(planHeader.planTime);
-    const age = planTime && ageInYears(planTime);
+    const age =
+        planTime === undefined
+            ? ''
+            : (() => {
+                  const ageYears = differenceInYears(new Date(), planTime);
+                  return (
+                      formatDateShort(planTime) +
+                      ' (' +
+                      (ageYears === 0
+                          ? t('tool-panel.geometry-plan.plan-age-under-1-year')
+                          : t('tool-panel.geometry-plan.plan-age-content', { ageYears })) +
+                      ')'
+                  );
+              })();
 
-    return (
-        <Infobox title={t('tool-panel.geometry-plan.title')} qa-id="geometry-plan-infobox">
+    const generalInfobox = (
+        <Infobox
+            title={t('tool-panel.geometry-plan.general-title')}
+            qa-id="geometry-plan-general-infobox">
             <InfoboxContent>
                 <InfoboxField
-                    label={t('tool-panel.geometry-plan.project')}
-                    value={planHeader.project.name}
+                    label={t('tool-panel.geometry-plan.message')}
+                    value={planHeader.message}
                 />
                 <InfoboxField
-                    label={t('tool-panel.geometry-plan.created')}
-                    value={formatDateShort(planHeader.uploadTime)}
+                    label={t('tool-panel.geometry-plan.author')}
+                    value={planHeader.author}
                 />
-                <InfoboxField label={t('tool-panel.geometry-plan.plan-age')} value={age} />
-                <InfoboxField
-                    label={t('tool-panel.geometry-plan.source')}
-                    value={t(`enum.plan-source.${planHeader.source}`)}
-                />
-                {planHeader.linkedAsPlanId && (
-                    <InfoboxField
-                        label={t('tool-panel.geometry-plan.linked-as')}
-                        value={<GeometryPlanLink planId={planHeader.linkedAsPlanId} />}
-                    />
-                )}
-                <InfoboxField
-                    label={t('tool-panel.geometry-plan.measurement-method')}
-                    value={<MeasurementMethod method={planHeader.measurementMethod} />}
-                />
+                <InfoboxField label={t('tool-panel.geometry-plan.project')}>
+                    <span className={styles['geometry-plan-tool-panel__long']}>
+                        {planHeader.project.name}
+                    </span>
+                </InfoboxField>
+                <InfoboxField label={t('tool-panel.geometry-plan.file')}>
+                    <span className={styles['geometry-plan-tool-panel__long']}>
+                        {planHeader.fileName}
+                    </span>
+                </InfoboxField>
                 <InfoboxField
                     label={t('tool-panel.geometry-plan.phase')}
                     value={<PlanPhase phase={planHeader.planPhase} />}
@@ -84,8 +98,38 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     }
                 />
                 <InfoboxField
+                    label={t('tool-panel.geometry-plan.start-km')}
+                    value={planHeader.kmNumberRange?.min}
+                />
+                <InfoboxField
+                    label={t('tool-panel.geometry-plan.end-km')}
+                    value={planHeader.kmNumberRange?.max}
+                />
+            </InfoboxContent>
+        </Infobox>
+    );
+
+    const qualityInfobox = (
+        <Infobox
+            title={t('tool-panel.geometry-plan.quality-title')}
+            qa-id="geometry-plan-quality-infobox">
+            <InfoboxContent>
+                <InfoboxField
+                    label={t('tool-panel.geometry-plan.source')}
+                    value={planHeader.source}
+                />
+                <InfoboxField label={t('tool-panel.geometry-plan.plan-age')} value={age} />
+                <InfoboxField
+                    label={t('tool-panel.geometry-plan.measurement-method')}
+                    value={<MeasurementMethod method={planHeader.measurementMethod} />}
+                />
+                <InfoboxField
                     label={t('tool-panel.geometry-plan.coordinate-system')}
-                    value={planHeader.units.coordinateSystemSrid}
+                    value={
+                        coordinateSystemModel && (
+                            <CoordinateSystem coordinateSystem={coordinateSystemModel} />
+                        )
+                    }
                 />
                 <InfoboxField
                     label={t('tool-panel.geometry-plan.has-vertical-geometry')}
@@ -94,6 +138,10 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 <InfoboxField
                     label={t('tool-panel.geometry-plan.has-cant')}
                     value={planHeader.hasCant ? t('yes') : t('no')}
+                />
+                <InfoboxField
+                    label={t('tool-panel.geometry-plan.vertical-coordinate-system')}
+                    value={planHeader.units.verticalCoordinateSystem}
                 />
                 <InfoboxButtons>
                     <Button
@@ -115,6 +163,13 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 </InfoboxButtons>
             </InfoboxContent>
         </Infobox>
+    );
+
+    return (
+        <>
+            {generalInfobox}
+            {qualityInfobox}
+        </>
     );
 };
 
