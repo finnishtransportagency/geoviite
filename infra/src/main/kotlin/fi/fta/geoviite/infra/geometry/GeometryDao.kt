@@ -181,7 +181,7 @@ class GeometryDao @Autowired constructor(
         })
     }
 
-    fun fetchDuplicateGeometryPlanName(newFile: InfraModelFile): String? {
+    fun fetchDuplicateGeometryPlanName(newFile: InfraModelFile): FileName? {
         val sql = """
             select
               plan_file.name
@@ -193,7 +193,7 @@ class GeometryDao @Autowired constructor(
         )
 
         logger.daoAccess(FETCH, InfraModelFile::class, params)
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getString("name") }
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getFileName("name") }
     }
 
     @Transactional

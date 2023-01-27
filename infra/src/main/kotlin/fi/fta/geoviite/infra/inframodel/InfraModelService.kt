@@ -48,13 +48,13 @@ class InfraModelService @Autowired constructor(
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
 
-        val duplicateFileName = geometryService.getDuplicateGeometryPlanName(imFile) ?: ""
-        if (duplicateFileName.isNotEmpty()) {
-            throw InframodelParsingException(
-                message = "InfraModel file exists already",
-                localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                localizedMessageParams = listOf(duplicateFileName),
-            )
+        val duplicateFileName = geometryService.getDuplicateGeometryPlanName(imFile)
+        if (duplicateFileName != null && duplicateFileName.isNotEmpty()) {
+                throw InframodelParsingException(
+                    message = "InfraModel file exists already",
+                    localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
+                    localizedMessageParams = listOf(duplicateFileName.toString()),
+                )
         }
 
         return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
