@@ -4,8 +4,12 @@ import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
@@ -22,11 +26,12 @@ data class ElementListing(
     val coordinateSystemName: CoordinateSystemName?,
 
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
-    val trackNumberDescription: PlanElementName,
+    val trackNumberDescription: PlanElementName?,
 
     val alignmentId: DomainId<GeometryAlignment>,
     val alignmentName: AlignmentName,
 
+    val elementId: DomainId<GeometryElement>,
     val elementType: GeometryElementType,
     val lengthMeters: BigDecimal,
 
@@ -43,29 +48,98 @@ data class ElementLocation(
 )
 
 fun toElementListing(
+    geocodingContext: GeocodingContext,
+    locationTrack: LocationTrack,
+    layoutAlignment: LayoutAlignment,
+    elementTypes: List<GeometryElementType>,
+    addressRange: Range<TrackMeter>?,
+    getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
+): List<ElementListing> {
+    val linkedElementIds = layoutAlignment.segments
+        .filter { segment -> addressRange == null || isInTrackMeterInterval(segment, geocodingContext, addressRange) }
+        .mapNotNull { s -> if (s.sourceId is IndexedId) s.sourceId else null }
+        .distinct()
+    val linkedAlignmentIds = linkedElementIds
+        .map { id -> IntId<GeometryAlignment>(id.parentId) }
+        .distinct()
+    val headersAndAlignments = linkedAlignmentIds.map(getPlanHeaderAndAlignment)
+    return toElementListing(geocodingContext, locationTrack, headersAndAlignments, linkedElementIds, elementTypes)
+}
+
+fun toElementListing(
+    geocodingContext: GeocodingContext?,
+    locationTrack: LocationTrack,
+    plansAndAlignments: List<Pair<GeometryPlanHeader, GeometryAlignment>>,
+    linkedElementIds: List<DomainId<GeometryElement>>,
+    elementTypes: List<GeometryElementType>,
+) = plansAndAlignments.flatMap { (plan, alignment) ->
+    alignment.elements
+        .filter { element -> elementTypes.contains(element.type) && linkedElementIds.contains(element.id) }
+        .map { element -> toElementListing(geocodingContext, locationTrack, plan, alignment, element) }
+}
+
+fun toElementListing(
     geocodingContext: GeocodingContext?,
     plan: GeometryPlan,
     elementTypes: List<GeometryElementType>,
 ) = plan.alignments.flatMap { alignment ->
     alignment.elements
-        .filter { e -> elementTypes.contains(e.type) }
-        .map { e -> toElementListing(geocodingContext, plan, alignment, e) }
+        .filter { element -> elementTypes.contains(element.type) }
+        .map { element -> toElementListing(geocodingContext, plan, alignment, element) }
 }
+
+fun toElementListing(
+    geocodingContext: GeocodingContext?,
+    locationTrack: LocationTrack,
+    planHeader: GeometryPlanHeader,
+    alignment: GeometryAlignment,
+    element: GeometryElement,
+) = elementListing(
+    geocodingContext = geocodingContext,
+    planId = planHeader.id,
+    fileName = planHeader.fileName,
+    units = planHeader.units,
+    trackNumberId = locationTrack.trackNumberId,
+    trackNumberDescription = null,
+    alignment = alignment,
+    element = element,
+)
 
 fun toElementListing(
     geocodingContext: GeocodingContext?,
     plan: GeometryPlan,
     alignment: GeometryAlignment,
     element: GeometryElement,
-) = ElementListing(
+) = elementListing(
+    geocodingContext = geocodingContext,
     planId = plan.id,
     fileName = plan.fileName,
-    coordinateSystemSrid = plan.units.coordinateSystemSrid,
-    coordinateSystemName = plan.units.coordinateSystemName,
+    units = plan.units,
     trackNumberId = plan.trackNumberId,
     trackNumberDescription = plan.trackNumberDescription,
+    alignment = alignment,
+    element = element,
+)
+
+fun elementListing(
+    geocodingContext: GeocodingContext?,
+    planId: DomainId<GeometryPlan>,
+    fileName: FileName,
+    units: GeometryUnits,
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumberDescription: PlanElementName?,
+    alignment: GeometryAlignment,
+    element: GeometryElement,
+) = ElementListing(
+    planId = planId,
+    fileName = fileName,
+    coordinateSystemSrid = units.coordinateSystemSrid,
+    coordinateSystemName = units.coordinateSystemName,
+    trackNumberId = trackNumberId,
+    trackNumberDescription = trackNumberDescription,
     alignmentId = alignment.id,
     alignmentName = alignment.name,
+    elementId = element.id,
     elementType = element.type,
     lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
     start = getStartLocation(geocodingContext, alignment, element),
@@ -119,3 +193,11 @@ private fun getElementStartLength(alignment: GeometryAlignment, elementId: Domai
 private fun getCantAt(alignment: GeometryAlignment, locationDistance: Double) =
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
     alignment.cant?.getCantValue(locationDistance)?.let { v -> round(v, CANT_DECIMALS) }
+
+private fun isInTrackMeterInterval(
+    segment: LayoutSegment,
+    context: GeocodingContext,
+    interval: Range<TrackMeter>,
+): Boolean =
+    if (context.getAddress(segment.points.first())?.first?.let { a -> a >= interval.max } == true) false
+    else context.getAddress(segment.points.last())?.first?.let { a -> a <= interval.min } != true

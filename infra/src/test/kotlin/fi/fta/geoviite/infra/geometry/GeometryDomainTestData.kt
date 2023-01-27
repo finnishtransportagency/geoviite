@@ -96,8 +96,12 @@ fun line(
     switchData: SwitchData = emptySwitchData(),
 ) = line(start, end, length, staStart, PlanElementName(name), switchData)
 
-fun minimalLine(start: Point = Point(0.0, 0.0), end: Point = Point(1.0, 1.0)) = GeometryLine(
-    ElementData(
+fun minimalLine(
+    start: Point = Point(0.0, 0.0),
+    end: Point = Point(1.0, 1.0),
+    id: DomainId<GeometryElement> = StringId(),
+) = GeometryLine(
+    elementData = ElementData(
         name = null,
         oidPart = null,
         start = start,
@@ -106,6 +110,7 @@ fun minimalLine(start: Point = Point(0.0, 0.0), end: Point = Point(1.0, 1.0)) = 
         length = lineLength(start, end).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
     ),
     switchData = emptySwitchData(),
+    id = id,
 )
 
 fun minimalCurve(
@@ -113,8 +118,9 @@ fun minimalCurve(
     end: Point = Point(1.0, 1.0),
     center: Point = Point(0.0, 1.0),
     rotation: RotationDirection = CCW,
+    id: DomainId<GeometryElement> = StringId(),
 ) = GeometryCurve(
-    ElementData(
+    elementData = ElementData(
         name = null,
         oidPart = null,
         start = start,
@@ -128,7 +134,8 @@ fun minimalCurve(
         center = center,
         radius = lineLength(center, start).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
         chord = lineLength(start, end).toBigDecimal().setScale(6, RoundingMode.HALF_UP),
-    )
+    ),
+    id = id,
 )
 
 fun minimalClothoid(
@@ -137,6 +144,7 @@ fun minimalClothoid(
     pi: Point = Point(0.0, 1.0),
     rotation: RotationDirection = CCW,
     constant: Double = 200.0,
+    id: DomainId<GeometryElement> = StringId(),
 ): GeometryClothoid {
     val length = lineLength(start, end)
     return GeometryClothoid(
@@ -158,6 +166,7 @@ fun minimalClothoid(
             radiusEnd = BigDecimal(clothoidRadiusAtLength(constant, length)).setScale(6, RoundingMode.HALF_UP),
         ),
         constant = constant.toBigDecimal().setScale(6, RoundingMode.HALF_UP),
+        id = id,
     )
 }
 
@@ -394,6 +403,30 @@ fun plan(
     )
 }
 
+fun planHeader(
+    id: IntId<GeometryPlan> = IntId(1),
+    fileName: FileName = FileName("test_file.xml"),
+    measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
+    srid: Srid = Srid(3879),
+    coordinateSystemName: CoordinateSystemName? = null,
+    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+) = GeometryPlanHeader(
+    id = id,
+    fileName = fileName,
+    project = project(),
+    units = geometryUnits(srid, coordinateSystemName),
+    planPhase = PlanPhase.RAILWAY_PLAN,
+    decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
+    measurementMethod = measurementMethod,
+    kmNumberRange = null,
+    planTime = Instant.EPOCH,
+    trackNumberId = trackNumberId,
+    linkedAsPlanId = null,
+    message = FreeText("test text description"),
+    uploadTime = Instant.now(),
+    source = PlanSource.GEOVIITE,
+)
+
 fun minimalPlan(
     fileName: FileName = FileName("TEST_FILE.xml"),
 ) = GeometryPlan(
@@ -479,7 +512,9 @@ fun geometryAlignment(
     profile: GeometryProfile? = null,
     cant: GeometryCant? = null,
     name: String = "001",
+    id: DomainId<GeometryAlignment> = StringId(),
 ) = GeometryAlignment(
+    id = id,
     name = AlignmentName(name),
     description = FreeText("test-alignment 001"),
     oidPart = null,

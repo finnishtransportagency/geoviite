@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
@@ -425,6 +427,23 @@ fun attachSwitchToIndex(
     )
 }
 
+fun geocodingContext(
+    referenceLinePoints: List<Point>,
+    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    startAddress: TrackMeter = TrackMeter.ZERO,
+    kmPosts: List<TrackLayoutKmPost> = listOf(),
+) = alignment(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
+    GeocodingContext.create(
+        trackNumber = trackNumber(id = trackNumberId),
+        referenceLine = referenceLine(
+            trackNumberId = trackNumberId,
+            startAddress = startAddress,
+            alignment = alignment,
+        ),
+        referenceLineGeometry = alignment,
+        kmPosts = kmPosts,
+    )
+}
 
 abstract class TargetSegment
 class TargetSegmentStart : TargetSegment()
@@ -458,18 +477,35 @@ fun attachSwitches(
     }
 }
 
-fun segment(vararg points: IPoint, startLength: Double = 0.0, source: GeometrySource = PLAN) =
-    segment(toTrackLayoutPoints(to3DMPoints(points.asList())), startLength, source)
+fun segment(
+    vararg points: IPoint,
+    startLength: Double = 0.0,
+    source: GeometrySource = PLAN,
+    sourceId: DomainId<GeometryElement>? = null,
+) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), startLength, source, sourceId)
 
-fun segment(vararg points: Point3DZ, startLength: Double = 0.0, source: GeometrySource = PLAN) =
-    segment(toTrackLayoutPoints(to3DMPoints(points.asList())), startLength, source)
+fun segment(
+    vararg points: Point3DZ,
+    startLength: Double = 0.0,
+    source: GeometrySource = PLAN,
+    sourceId: DomainId<GeometryElement>? = null,
+) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), startLength, source, sourceId)
 
-fun segment(vararg points: IPoint3DM, startLength: Double = 0.0, source: GeometrySource = PLAN) =
-    segment(toTrackLayoutPoints(points.asList()), startLength, source)
+fun segment(
+    vararg points: IPoint3DM,
+    startLength: Double = 0.0,
+    source: GeometrySource = PLAN,
+    sourceId: DomainId<GeometryElement>? = null,
+) = segment(toTrackLayoutPoints(points.asList()), startLength, source, sourceId)
 
-fun segment(points: List<LayoutPoint>, startLength: Double = 0.0, source: GeometrySource = PLAN) = LayoutSegment(
+fun segment(
+    points: List<LayoutPoint>,
+    startLength: Double = 0.0,
+    source: GeometrySource = PLAN,
+    sourceId: DomainId<GeometryElement>? = null,
+) = LayoutSegment(
     points = points,
-    sourceId = null,
+    sourceId = sourceId,
     sourceStart = null,
     resolution = 1,
     start = startLength,

@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import ElementListing
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -42,6 +43,7 @@ class GeometryService @Autowired constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val coordinateTransformationService: CoordinateTransformationService,
     private val geocodingService: GeocodingService,
+    private val locationTrackService: LocationTrackService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -214,9 +216,29 @@ class GeometryService @Autowired constructor(
         logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
         val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
         val geocodingContext = plan.trackNumberId?.let { tnId ->
-            geocodingService.getGeocodingContext(PublishType.OFFICIAL, tnId)
+            geocodingService.getGeocodingContext(OFFICIAL, tnId)
         }
         return toElementListing(geocodingContext, plan, elementTypes)
+    }
+
+    fun getElementListing(
+        trackId: IntId<LocationTrack>,
+        elementTypes: List<GeometryElementType>,
+        addressRange: Range<TrackMeter>?,
+    ): List<ElementListing> {
+        logger.serviceCall("getElementListing",
+            "trackId" to trackId, "elementTypes" to elementTypes, "addressRange" to addressRange)
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
+        val context = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
+        return if (context != null) {
+            toElementListing(context, track, alignment, elementTypes, addressRange, ::getHeaderAndAlignment)
+        } else emptyList()
+    }
+
+    private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
+        val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::fetchPlanHeader)
+        val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
+        return header to geometryAlignment
     }
 
     fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder): Comparator<GeometryPlanHeader> =

@@ -6,12 +6,10 @@ import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN_HEADER
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_SWITCH
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.linking.RemovedTrackNumberReferenceIds
-import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -652,6 +650,21 @@ class GeometryDao @Autowired constructor(
 
     fun fetchPlanVersion(id: IntId<GeometryPlan>) = fetchRowVersion(id, GEOMETRY_PLAN)
 
+    fun fetchAlignmentPlanVersion(alignmentId: IntId<GeometryAlignment>): RowVersion<GeometryPlan> {
+        //language=SQL
+        val sql = """
+            select plan.id, plan.version
+            from geometry.alignment 
+              left join geometry.plan on plan.id = alignment.plan_id
+            where alignment.id = :alignment_id
+        """.trimIndent()
+        val params = mapOf(
+            "alignment_id" to alignmentId.intValue,
+        )
+        return jdbcTemplate.queryOne(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+    }
+
+
     fun fetchPlanChangeTime(): Instant = fetchLatestChangeTime(GEOMETRY_PLAN)
 
     fun fetchPlanAreas(mapBoundingBox: BoundingBox): List<GeometryPlanArea> {
@@ -1058,7 +1071,6 @@ class GeometryDao @Autowired constructor(
         return jdbcTemplate.queryOne(sql, params, id.toString()) { rs, _ -> rs.getSridOrNull("srid") }
     }
 
-    @Transactional
     fun fetchElement(geometryElementId: IndexedId<GeometryElement>): GeometryElement {
         val alignmentId = IntId<GeometryAlignment>(geometryElementId.parentId)
         val planUnits = fetchPlanUnits(alignmentId)
