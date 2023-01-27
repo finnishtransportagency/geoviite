@@ -8,7 +8,10 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.radsToGrads
+import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FileName
@@ -26,12 +29,13 @@ class ElementListingTest {
     fun `Basic info is filled from LocationTrack & GeometryPlanHeader`() {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
         val alignment = geometryAlignment(
-            id = IntId(1),
             trackNumberId = trackNumberId,
-            elements = listOf(
-                minimalLine(id = IndexedId(1, 1)),
-                minimalCurve(id = IndexedId(1, 2)),
-                minimalClothoid(id = IndexedId(1, 3)),
+            id = IntId(1),
+            elements = createElements(
+                1,
+                GeometryElementType.LINE,
+                GeometryElementType.CURVE,
+                GeometryElementType.CLOTHOID,
             ),
             name = "TSTTrack002",
         )
@@ -151,22 +155,16 @@ class ElementListingTest {
     @Test
     fun `Plan element listing is filtered by types`() {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
-        val plan = plan(
-            trackNumberId = trackNumberId,
-            alignments = listOf(
-                geometryAlignment(
-                    trackNumberId = trackNumberId,
-                    elements = listOf(
-                        minimalLine(),
-                        minimalCurve(),
-                        minimalClothoid(),
-                        minimalCurve(),
-                        minimalClothoid(),
-                        minimalLine(),
-                    ),
-                )
-            ),
+        val geometryAlignment = createAlignment(
+            trackNumberId,
+            GeometryElementType.LINE,
+            GeometryElementType.CURVE,
+            GeometryElementType.CLOTHOID,
+            GeometryElementType.CLOTHOID,
+            GeometryElementType.CURVE,
+            GeometryElementType.LINE,
         )
+        val plan = plan(trackNumberId = trackNumberId, alignments = listOf(geometryAlignment))
         assertEquals(listOf(LINE, LINE), getElementListingTypes(plan, GeometryElementType.LINE))
         assertEquals(listOf(CURVE, CURVE), getElementListingTypes(plan, GeometryElementType.CURVE))
         assertEquals(listOf(CLOTHOID, CLOTHOID), getElementListingTypes(plan, GeometryElementType.CLOTHOID))
@@ -175,7 +173,7 @@ class ElementListingTest {
             getElementListingTypes(plan, GeometryElementType.LINE, GeometryElementType.CLOTHOID),
         )
         assertEquals(
-            listOf(LINE, CURVE, CLOTHOID, CURVE, CLOTHOID, LINE),
+            listOf(LINE, CURVE, CLOTHOID, CLOTHOID, CURVE, LINE),
             getElementListingTypes(plan, GeometryElementType.LINE, GeometryElementType.CURVE, GeometryElementType.CLOTHOID),
         )
     }
@@ -185,61 +183,35 @@ class ElementListingTest {
     fun `Track element listing is filtered by types`() {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
         val plan = planHeader(trackNumberId = trackNumberId)
-        val geometryAlignment = geometryAlignment(
-            trackNumberId = trackNumberId,
-            elements = listOf(
-                minimalLine(),
-                minimalCurve(),
-                minimalClothoid(),
-                minimalCurve(),
-                minimalClothoid(),
-                minimalLine(),
-            ),
+        val geometryAlignment = createAlignment(
+            trackNumberId,
+            GeometryElementType.LINE,
+            GeometryElementType.CURVE,
+            GeometryElementType.CLOTHOID,
+            GeometryElementType.CLOTHOID,
+            GeometryElementType.CURVE,
+            GeometryElementType.LINE,
         )
         val (track, layoutAlignment) = locationTrackAndAlignment(trackNumberId, createSegments(geometryAlignment))
         assertEquals(
-            listOf(LINE, LINE),
+            getElementTypes(geometryAlignment).filter { t -> t == LINE },
             getListingTypes(track, layoutAlignment, plan, geometryAlignment, listOf(LINE)),
         )
         assertEquals(
-            listOf(CURVE, CURVE),
+            getElementTypes(geometryAlignment).filter { t -> t == CURVE },
             getListingTypes(track, layoutAlignment, plan, geometryAlignment, listOf(CURVE)),
         )
         assertEquals(
-            listOf(CLOTHOID, CLOTHOID),
+            getElementTypes(geometryAlignment).filter { t -> t == CLOTHOID },
             getListingTypes(track, layoutAlignment, plan, geometryAlignment, listOf(CLOTHOID)),
         )
         assertEquals(
-            listOf(LINE, CLOTHOID, CLOTHOID, LINE),
+            getElementTypes(geometryAlignment).filter { t -> t == CLOTHOID || t == LINE },
             getListingTypes(track, layoutAlignment, plan, geometryAlignment, listOf(LINE, CLOTHOID)),
         )
         assertEquals(
-            listOf(LINE, CURVE, CLOTHOID, CURVE, CLOTHOID, LINE),
+            getElementTypes(geometryAlignment).filter { t -> t == CLOTHOID || t == LINE || t == CURVE },
             getListingTypes(track, layoutAlignment, plan, geometryAlignment, listOf(LINE, CURVE, CLOTHOID)),
-        )
-    }
-
-    @Test
-    fun `Track element listing is filtered by ids`() {
-        val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
-        val track = locationTrack(trackNumberId)
-        val plan = planHeader(trackNumberId = trackNumberId)
-        val alignment = geometryAlignment(
-            trackNumberId = trackNumberId,
-            elements = listOf(
-                minimalLine(),
-                minimalCurve(),
-                minimalClothoid(),
-                minimalCurve(),
-                minimalClothoid(),
-                minimalLine(),
-            ),
-        )
-        val alignments = listOf(plan to alignment)
-        val ids = listOf(alignment.elements[1].id, alignment.elements[4].id)
-        assertEquals(
-            ids,
-            toElementListing(null, getTransformation, track, alignments, ids, allElementTypes).map(ElementListing::elementId),
         )
     }
 
@@ -277,8 +249,14 @@ class ElementListingTest {
             referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
             trackNumberId = trackNumberId,
         )
-        val addressRange = Range(TrackMeter(KmNumber.ZERO, 25), TrackMeter(KmNumber.ZERO, 35))
-        val listing = toElementListing(context, getTransformation, track, layoutAlignment, allElementTypes, addressRange) { id ->
+        val listing = toElementListing(
+            context,
+            getTransformation,
+            track,
+            layoutAlignment,
+            allTrackElementTypes,
+            TrackMeter(KmNumber.ZERO, 25),
+            TrackMeter(KmNumber.ZERO, 35)) { id ->
             alignments.find { a -> a.second.id == id }!!
         }
 
@@ -288,9 +266,40 @@ class ElementListingTest {
         assertEquals(expectedIds, listing.map(ElementListing::elementId))
     }
 
+    private fun createAlignment(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        vararg elementTypes: GeometryElementType,
+    ) = geometryAlignment(
+        id = IntId(1),
+        trackNumberId = trackNumberId,
+        elements = createElements(1, *elementTypes),
+    )
+
+    private fun createElements(parentId: Int, vararg types: GeometryElementType) = types.mapIndexed { index, t ->
+        when (t) {
+            GeometryElementType.LINE -> minimalLine(
+                id = IndexedId(parentId, index),
+                start = Point(index.toDouble(), index.toDouble()),
+                end = Point((index+1).toDouble(), (index+1).toDouble()),
+            )
+            GeometryElementType.CURVE -> minimalCurve(
+                id = IndexedId(parentId, index),
+                start = Point(index.toDouble(), index.toDouble()),
+                end = Point((index+1).toDouble(), (index+1).toDouble()),
+            )
+            GeometryElementType.CLOTHOID -> minimalClothoid(
+                id = IndexedId(parentId, index),
+                start = Point(index.toDouble(), index.toDouble()),
+                end = Point((index+1).toDouble(), (index+1).toDouble()),
+            )
+            else -> throw IllegalStateException("element $t not supported by this test method")
+        }
+    }
+
     private fun createSegments(alignment: GeometryAlignment) =
-        if (alignment.id is IntId) alignment.elements.map { e -> segment(points = listOf(), sourceId = e.id) }
-        else throw IllegalStateException("Alignment must have int-id for element seeking to work")
+        if (alignment.id !is IntId) throw IllegalStateException("Alignment must have int-id for element seeking to work")
+        else if (alignment.elements.isEmpty()) throw IllegalStateException("Must have elements to generate the segments for")
+        else alignment.elements.map { e -> segment(e.start, e.end, sourceId = e.id) }
 
     private fun getElementListingTypes(plan: GeometryPlan, vararg types: GeometryElementType) =
         toElementListing(null, getTransformation, plan, types.toList()).map { e -> e.elementType }
@@ -319,4 +328,7 @@ class ElementListingTest {
         null,
         null,
     ) { _ -> planHeader to geometryAlignment }
+
+    private fun getElementTypes(alignment: GeometryAlignment) =
+        alignment.elements.map { e -> TrackGeometryElementType.of(e.type) }
 }
