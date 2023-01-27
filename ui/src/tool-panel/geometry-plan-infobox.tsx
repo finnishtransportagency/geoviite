@@ -1,4 +1,5 @@
 import * as React from 'react';
+import styles from './geometry-plan-infobox.scss';
 
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
@@ -15,6 +16,9 @@ import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useAppNavigate } from 'common/navigate';
+import { Link } from 'vayla-design-lib/link/link';
+import { INFRAMODEL_URI } from 'infra-model/infra-model-api';
+import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -98,6 +102,16 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                         onClick={() => navigate('inframodel-edit', planHeader.id)}>
                         {t('tool-panel.geometry-plan.open-inframodel')}
                     </Button>
+                    {planHeader.source !== 'PAIKANNUSPALVELU' && (
+                        <Link
+                            className={styles['geometry-plan-tool-panel__download-link']}
+                            href={`${INFRAMODEL_URI}/${planHeader.id}/file`}>
+                            <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}>
+                                <Icons.Download size={IconSize.SMALL} />{' '}
+                                {t('tool-panel.geometry-plan.download-file')}
+                            </Button>
+                        </Link>
+                    )}
                 </InfoboxButtons>
             </InfoboxContent>
         </Infobox>

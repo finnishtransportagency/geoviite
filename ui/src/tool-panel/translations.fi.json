@@ -14,7 +14,8 @@
             "plan-age": "Suunniteltu",
             "has-vertical-geometry": "Sisältää pystygeometriaa",
             "has-cant": "Sisältää kallistustietoja",
-            "open-inframodel": "Avaa lomakkeella"
+            "open-inframodel": "Avaa lomakkeella",
+            "download-file": "Lataa tiedosto"
         },
         "track-number": {
             "general-title": "Ratanumeron perustiedot",
