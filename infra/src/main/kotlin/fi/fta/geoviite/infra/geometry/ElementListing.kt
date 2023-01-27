@@ -1,17 +1,15 @@
+package fi.fta.geoviite.infra.geometry
+
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.Transformation
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.MISSING_SECTION
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutSegment
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
 
@@ -21,19 +19,19 @@ const val DIRECTION_DECIMALS = 6
 const val CANT_DECIMALS = 6
 
 data class ElementListing(
-    val planId: DomainId<GeometryPlan>,
-    val fileName: FileName,
+    val planId: DomainId<GeometryPlan>?,
+    val fileName: FileName?,
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
 
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val trackNumberDescription: PlanElementName?,
 
-    val alignmentId: DomainId<GeometryAlignment>,
-    val alignmentName: AlignmentName,
+    val alignmentId: DomainId<GeometryAlignment>?,
+    val alignmentName: AlignmentName?,
 
-    val elementId: DomainId<GeometryElement>,
-    val elementType: GeometryElementType,
+    val elementId: DomainId<GeometryElement>?,
+    val elementType: TrackGeometryElementType,
     val lengthMeters: BigDecimal,
 
     val start: ElementLocation,
@@ -48,37 +46,55 @@ data class ElementLocation(
     val cant: BigDecimal?,
 )
 
-fun toElementListing(
-    context: GeocodingContext,
-    getTransformation: (srid: Srid) -> Transformation,
-    track: LocationTrack,
-    layoutAlignment: LayoutAlignment,
-    elementTypes: List<GeometryElementType>,
-    addressRange: Range<TrackMeter>?,
-    getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
-): List<ElementListing> {
-    val linkedElementIds = layoutAlignment.segments
-        .filter { segment -> addressRange == null || isInTrackMeterInterval(segment, context, addressRange) }
-        .mapNotNull { s -> if (s.sourceId is IndexedId) s.sourceId else null }
-        .distinct()
-    val linkedAlignmentIds = linkedElementIds
-        .map { id -> IntId<GeometryAlignment>(id.parentId) }
-        .distinct()
-    val headersAndAlignments = linkedAlignmentIds.map(getPlanHeaderAndAlignment)
-    return toElementListing(context, getTransformation, track, headersAndAlignments, linkedElementIds, elementTypes)
+enum class TrackGeometryElementType {
+    LINE,
+    CURVE,
+    CLOTHOID,
+    BIQUADRATIC_PARABOLA,
+    MISSING_SECTION,
+    ;
+
+    companion object {
+        fun of(elementType: GeometryElementType): TrackGeometryElementType = when (elementType) {
+            GeometryElementType.LINE -> LINE
+            GeometryElementType.CURVE -> CURVE
+            GeometryElementType.CLOTHOID -> CLOTHOID
+            GeometryElementType.BIQUADRATIC_PARABOLA -> BIQUADRATIC_PARABOLA
+        }
+    }
 }
 
 fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
-    plansAndAlignments: List<Pair<GeometryPlanHeader, GeometryAlignment>>,
-    linkedElementIds: List<DomainId<GeometryElement>>,
-    elementTypes: List<GeometryElementType>,
-) = plansAndAlignments.flatMap { (plan, alignment) ->
-    alignment.elements
-        .filter { element -> elementTypes.contains(element.type) && linkedElementIds.contains(element.id) }
-        .map { element -> toElementListing(context, getTransformation, track, plan, alignment, element) }
+    layoutAlignment: LayoutAlignment,
+    elementTypes: List<TrackGeometryElementType>,
+    startAddress: TrackMeter?,
+    endAddress: TrackMeter?,
+    getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
+): List<ElementListing> {
+    val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
+    val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
+    val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
+    return linkedElementIds.mapNotNull { (segment, elementId) ->
+        if (elementId == null) {
+            if (elementTypes.contains(MISSING_SECTION)) toElementListing(context, track.trackNumberId, segment)
+            else null
+        }
+        else {
+            val (planHeader, alignment) = headersAndAlignments[getAlignmentId(elementId)]
+                ?: throw IllegalStateException("Failed to fetch geometry alignment for element: element=$elementId")
+            val element = alignment.elements.find { e -> e.id == elementId } ?: throw IllegalStateException(
+                "Geometry element not found on its parent alignment: alignment=${alignment.id} element=$elementId"
+            )
+            if (elementTypes.contains(TrackGeometryElementType.of(element.type))) {
+                toElementListing(context, getTransformation, track, planHeader, alignment, element)
+            } else {
+                null
+            }
+        }
+    }
 }
 
 fun toElementListing(
@@ -92,7 +108,27 @@ fun toElementListing(
         .map { element -> toElementListing(context, getTransformation, plan, alignment, element) }
 }
 
-fun toElementListing(
+private fun toElementListing(
+    context: GeocodingContext?,
+    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    segment: LayoutSegment,
+) = ElementListing(
+    planId = null,
+    fileName = null,
+    coordinateSystemSrid = null,
+    coordinateSystemName = null,
+    trackNumberId = trackNumberId,
+    trackNumberDescription = null,
+    alignmentId = null,
+    alignmentName = null,
+    elementId = null,
+    elementType = MISSING_SECTION,
+    lengthMeters = round(segment.length, LENGTH_DECIMALS),
+    start = getLocation(context, segment.points.first(), segment.startDirection()),
+    end = getLocation(context, segment.points.last(), segment.endDirection()),
+)
+
+private fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     locationTrack: LocationTrack,
@@ -111,7 +147,7 @@ fun toElementListing(
     element = element,
 )
 
-fun toElementListing(
+private fun toElementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     plan: GeometryPlan,
@@ -129,7 +165,7 @@ fun toElementListing(
     element = element,
 )
 
-fun elementListing(
+private fun elementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     planId: DomainId<GeometryPlan>,
@@ -150,14 +186,26 @@ fun elementListing(
         alignmentId = alignment.id,
         alignmentName = alignment.name,
         elementId = element.id,
-        elementType = element.type,
+        elementType = TrackGeometryElementType.of(element.type),
         lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
         start = getStartLocation(context, transformation, alignment, element),
         end = getEndLocation(context, transformation, alignment, element),
     )
 }
 
-fun getStartLocation(
+private fun getLocation(
+    context: GeocodingContext?,
+    point: LayoutPoint,
+    directionRads: Double,
+) = ElementLocation(
+    coordinate = point.toPoint(),
+    address = context?.getAddress(point)?.first,
+    directionGrads = round(radsToGrads(directionRads), DIRECTION_DECIMALS),
+    radiusMeters = null,
+    cant = point.cant?.let { c -> round(c, CANT_DECIMALS) },
+)
+
+private fun getStartLocation(
     context: GeocodingContext?,
     transformation: Transformation?,
     alignment: GeometryAlignment,
@@ -170,7 +218,7 @@ fun getStartLocation(
     cant = getStartCant(alignment, element)
 )
 
-fun getEndLocation(
+private fun getEndLocation(
     context: GeocodingContext?,
     transformation: Transformation?,
     alignment: GeometryAlignment,
@@ -182,6 +230,15 @@ fun getEndLocation(
     radiusMeters = getEndRadius(element),
     cant = getEndCant(alignment, element)
 )
+
+private fun collectLinkedElements(
+    segments: List<LayoutSegment>,
+    context: GeocodingContext?,
+    startAddress: TrackMeter?,
+    endAddress: TrackMeter?,
+) = segments
+    .filter { segment -> overlapsAddressInterval(segment, context, startAddress, endAddress) }
+    .map { s -> if (s.sourceId is IndexedId) s to s.sourceId else s to null }
 
 private fun getAddress(context: GeocodingContext?, transformation: Transformation?, coordinate: Point) =
     if (context == null || transformation == null) null
@@ -214,10 +271,19 @@ private fun getCantAt(alignment: GeometryAlignment, locationDistance: Double) =
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
     alignment.cant?.getCantValue(locationDistance)?.let { v -> round(v, CANT_DECIMALS) }
 
-private fun isInTrackMeterInterval(
+private fun overlapsAddressInterval(
     segment: LayoutSegment,
-    context: GeocodingContext,
-    interval: Range<TrackMeter>,
+    context: GeocodingContext?,
+    start: TrackMeter?,
+    end: TrackMeter?,
 ): Boolean =
-    if (context.getAddress(segment.points.first())?.first?.let { a -> a >= interval.max } == true) false
-    else context.getAddress(segment.points.last())?.first?.let { a -> a <= interval.min } != true
+    (end == null || context != null && getStartAddress(segment, context)?.let { it < end } == true) &&
+    (start == null || context != null && getEndAddress(segment, context)?.let { it > start } == true)
+
+private fun getStartAddress(segment: LayoutSegment, context: GeocodingContext) =
+    context.getAddress(segment.points.first())?.first
+
+private fun getEndAddress(segment: LayoutSegment, context: GeocodingContext) =
+    context.getAddress(segment.points.last())?.first
+
+private fun getAlignmentId(elementId: IndexedId<GeometryElement>) = IntId<GeometryAlignment>(elementId.parentId)

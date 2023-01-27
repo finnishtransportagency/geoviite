@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.geometry
 
-import ElementListing
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -20,7 +19,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import toElementListing
 import java.time.Instant
 
 
@@ -223,24 +221,25 @@ class GeometryService @Autowired constructor(
 
     fun getElementListing(
         trackId: IntId<LocationTrack>,
-        elementTypes: List<GeometryElementType>,
-        addressRange: Range<TrackMeter>?,
+        elementTypes: List<TrackGeometryElementType>,
+        startAddress: TrackMeter?,
+        endAddress: TrackMeter?,
     ): List<ElementListing> {
         logger.serviceCall("getElementListing",
-            "trackId" to trackId, "elementTypes" to elementTypes, "addressRange" to addressRange)
+            "trackId" to trackId, "elementTypes" to elementTypes,
+            "startAddress" to startAddress, "endAdress" to endAddress,
+        )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
-        val context = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
-        return if (context != null) {
-            toElementListing(
-                context,
-                coordinateTransformationService::getLayoutTransformation,
-                track,
-                alignment,
-                elementTypes,
-                addressRange,
-                ::getHeaderAndAlignment,
-            )
-        } else emptyList()
+        return toElementListing(
+            geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId),
+            coordinateTransformationService::getLayoutTransformation,
+            track,
+            alignment,
+            elementTypes,
+            startAddress,
+            endAddress,
+            ::getHeaderAndAlignment,
+        )
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
