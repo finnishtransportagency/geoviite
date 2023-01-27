@@ -196,7 +196,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 </thead>
                 <tbody>
                     {sortedPublicationEntries.map((entry) => (
-                        <React.Fragment key={entry.id}>
+                        <React.Fragment key={`${entry.type}_${entry.id}`}>
                             {
                                 <PreviewTableItem
                                     onPublishItemSelect={() =>
