@@ -6,6 +6,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import {
+    ContinuousSearchParameters,
     ElementListContinuousGeometrySearchState,
     selectedElementTypes,
     validTrackMeterOrUndefined,
@@ -20,10 +21,10 @@ import { getLocationTrackElements } from 'geometry/geometry-api';
 
 type ContinuousGeometrySearchProps = {
     state: ElementListContinuousGeometrySearchState;
-    onUpdateProp: <TKey extends keyof ElementListContinuousGeometrySearchState>(
-        propEdit: PropEdit<ElementListContinuousGeometrySearchState, TKey>,
+    onUpdateProp: <TKey extends keyof ContinuousSearchParameters>(
+        propEdit: PropEdit<ContinuousSearchParameters, TKey>,
     ) => void;
-    onCommitField: <TKey extends keyof ElementListContinuousGeometrySearchState>(key: TKey) => void;
+    onCommitField: <TKey extends keyof ContinuousSearchParameters>(key: TKey) => void;
 };
 
 const ContinuousGeometrySearch = ({
@@ -62,9 +63,9 @@ const ContinuousGeometrySearch = ({
         [selectedLocationTrack],
     );
 
-    function updateProp<TKey extends keyof ElementListContinuousGeometrySearchState>(
+    function updateProp<TKey extends keyof ContinuousSearchParameters>(
         key: TKey,
-        value: ElementListContinuousGeometrySearchState[TKey],
+        value: ContinuousSearchParameters[TKey],
     ) {
         onUpdateProp({
             key: key,
@@ -73,7 +74,7 @@ const ContinuousGeometrySearch = ({
         });
     }
 
-    function getVisibleErrorsByProp(prop: keyof ElementListContinuousGeometrySearchState) {
+    function getVisibleErrorsByProp(prop: keyof ContinuousSearchParameters) {
         return state.committedFields.includes(prop)
             ? state.validationErrors
                   .filter((error) => error.field == prop)
@@ -81,7 +82,7 @@ const ContinuousGeometrySearch = ({
             : [];
     }
 
-    function hasErrors(prop: keyof ElementListContinuousGeometrySearchState) {
+    function hasErrors(prop: keyof ContinuousSearchParameters) {
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
@@ -91,11 +92,11 @@ const ContinuousGeometrySearch = ({
 
         return getLocationTrackElements(
             selectedLocationTrack.id,
-            selectedElementTypes(state.searchGeometries),
-            validTrackMeterOrUndefined(state.startTrackMeter),
-            validTrackMeterOrUndefined(state.endTrackMeter),
+            selectedElementTypes(state.searchParameters.searchGeometries),
+            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
         );
-    }, [selectedLocationTrack, state.startTrackMeter, state.endTrackMeter, state.searchGeometries]);
+    }, [selectedLocationTrack, state.searchParameters]);
 
     return (
         <div className={styles['element-list__geometry-search']}>
@@ -120,7 +121,7 @@ const ContinuousGeometrySearch = ({
                 label={t('data-products.element-list.search.track-address-start')}
                 value={
                     <TextField
-                        value={state.startTrackMeter}
+                        value={state.searchFields.startTrackMeter}
                         onChange={(e) => updateProp('startTrackMeter', e.target.value)}
                         onBlur={() => onCommitField('startTrackMeter')}
                         hasError={hasErrors('startTrackMeter')}
@@ -133,7 +134,7 @@ const ContinuousGeometrySearch = ({
                 label={t('data-products.element-list.search.track-address-end')}
                 value={
                     <TextField
-                        value={state.endTrackMeter}
+                        value={state.searchFields.endTrackMeter}
                         onChange={(e) => updateProp('endTrackMeter', e.target.value)}
                         onBlur={() => onCommitField('endTrackMeter')}
                         hasError={hasErrors('endTrackMeter')}
@@ -148,40 +149,40 @@ const ContinuousGeometrySearch = ({
                     value={
                         <div className={styles['element-list__geometry-checkbox']}>
                             <Checkbox
-                                checked={state.searchGeometries.searchLines}
+                                checked={state.searchFields.searchGeometries.searchLines}
                                 onChange={(e) =>
                                     updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
+                                        ...state.searchFields.searchGeometries,
                                         searchLines: e.target.checked,
                                     })
                                 }>
                                 {t('data-products.element-list.search.line')}
                             </Checkbox>
                             <Checkbox
-                                checked={state.searchGeometries.searchCurves}
+                                checked={state.searchFields.searchGeometries.searchCurves}
                                 onChange={(e) =>
                                     updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
+                                        ...state.searchFields.searchGeometries,
                                         searchCurves: e.target.checked,
                                     })
                                 }>
                                 {t('data-products.element-list.search.curve')}
                             </Checkbox>
                             <Checkbox
-                                checked={state.searchGeometries.searchClothoids}
+                                checked={state.searchFields.searchGeometries.searchClothoids}
                                 onChange={(e) =>
                                     updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
+                                        ...state.searchFields.searchGeometries,
                                         searchClothoids: e.target.checked,
                                     })
                                 }>
                                 {t('data-products.element-list.search.clothoid')}
                             </Checkbox>
                             <Checkbox
-                                checked={state.searchGeometries.searchMissingGeometry}
+                                checked={state.searchFields.searchGeometries.searchMissingGeometry}
                                 onChange={(e) =>
                                     updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
+                                        ...state.searchFields.searchGeometries,
                                         searchMissingGeometry: e.target.checked,
                                     })
                                 }>

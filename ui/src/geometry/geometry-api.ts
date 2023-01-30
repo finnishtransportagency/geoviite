@@ -115,7 +115,6 @@ export async function getLocationTrackElements(
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    console.log(startAddress, endAddress);
     return getIgnoreError(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
 }
 

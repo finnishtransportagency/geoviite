@@ -1,5 +1,4 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import {
     isPropEditFieldCommitted,
     PropEdit,
@@ -43,25 +42,41 @@ export const initialPlanGeometrySearchState: PlanGeometrySearchState = {
     committedFields: [],
 };
 
-export type ElementListContinuousGeometrySearchState = {
-    locationTrack: LayoutLocationTrack | undefined;
+export type ContinuousSearchParameters = {
     startTrackMeter: string;
     endTrackMeter: string;
     searchGeometries: SearchGeometries;
+};
 
-    validationErrors: ValidationError<ElementListContinuousGeometrySearchState>[];
-    committedFields: (keyof ElementListContinuousGeometrySearchState)[];
+export type ElementListContinuousGeometrySearchState = {
+    searchFields: ContinuousSearchParameters;
+    searchParameters: ContinuousSearchParameters;
+
+    validationErrors: ValidationError<ContinuousSearchParameters>[];
+    committedFields: (keyof ContinuousSearchParameters)[];
 };
 
 export const initialContinuousSearchState: ElementListContinuousGeometrySearchState = {
-    locationTrack: undefined,
-    startTrackMeter: '',
-    endTrackMeter: '',
-    searchGeometries: {
-        searchLines: true,
-        searchCurves: true,
-        searchClothoids: true,
-        searchMissingGeometry: true,
+    searchFields: {
+        startTrackMeter: '',
+        endTrackMeter: '',
+        searchGeometries: {
+            searchLines: true,
+            searchCurves: true,
+            searchClothoids: true,
+            searchMissingGeometry: true,
+        },
+    },
+
+    searchParameters: {
+        startTrackMeter: '',
+        endTrackMeter: '',
+        searchGeometries: {
+            searchLines: true,
+            searchMissingGeometry: true,
+            searchClothoids: true,
+            searchCurves: true,
+        },
     },
 
     validationErrors: [],
@@ -79,7 +94,6 @@ export const selectedElementTypes = (
     ].filter(filterNotEmpty);
 
 export const validTrackMeterOrUndefined = (trackMeterCandidate: string) => {
-    console.log(trackMeterCandidate);
     if (trackMeterIsValid(trackMeterCandidate)) return trackMeterCandidate;
     else return undefined;
 };
@@ -97,26 +111,28 @@ export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(
 
 const validateContinuousGeometry = (
     state: ElementListContinuousGeometrySearchState,
-): ValidationError<ElementListContinuousGeometrySearchState>[] =>
+): ValidationError<ContinuousSearchParameters>[] =>
     [
-        hasAtLeastOneTypeSelected(state.searchGeometries)
+        hasAtLeastOneTypeSelected(state.searchFields.searchGeometries)
             ? undefined
             : {
-                  field: 'searchGeometries' as keyof ElementListContinuousGeometrySearchState,
+                  field: 'searchGeometries' as keyof ContinuousSearchParameters,
                   reason: 'no-types-selected',
                   type: ValidationErrorType.ERROR,
               },
-        state.startTrackMeter === '' || trackMeterIsValid(state.startTrackMeter)
+        state.searchFields.startTrackMeter === '' ||
+        trackMeterIsValid(state.searchFields.startTrackMeter)
             ? undefined
             : {
-                  field: 'startTrackMeter' as keyof ElementListContinuousGeometrySearchState,
+                  field: 'startTrackMeter' as keyof ContinuousSearchParameters,
                   reason: 'invalid-track-meter',
                   type: ValidationErrorType.ERROR,
               },
-        state.endTrackMeter === '' || trackMeterIsValid(state.endTrackMeter)
+        state.searchFields.endTrackMeter === '' ||
+        trackMeterIsValid(state.searchFields.endTrackMeter)
             ? undefined
             : {
-                  field: 'endTrackMeter' as keyof ElementListContinuousGeometrySearchState,
+                  field: 'endTrackMeter' as keyof ContinuousSearchParameters,
                   reason: 'invalid-track-meter',
                   type: ValidationErrorType.ERROR,
               },
@@ -126,20 +142,22 @@ const continuousGeometrySearchSlice = createSlice({
     name: 'continousGeometrySearch',
     initialState: initialContinuousSearchState,
     reducers: {
-        onUpdateProp: function <TKey extends keyof ElementListContinuousGeometrySearchState>(
+        onUpdateProp: function <TKey extends keyof ContinuousSearchParameters>(
             state: ElementListContinuousGeometrySearchState,
-            {
-                payload: propEdit,
-            }: PayloadAction<PropEdit<ElementListContinuousGeometrySearchState, TKey>>,
+            { payload: propEdit }: PayloadAction<PropEdit<ContinuousSearchParameters, TKey>>,
         ) {
-            state[propEdit.key] = propEdit.value;
+            state.searchFields[propEdit.key] = propEdit.value;
             state.validationErrors = validateContinuousGeometry(state);
             if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
+
+            if (state.committedFields.includes(propEdit.key)) {
+                state.searchParameters[propEdit.key] = propEdit.value;
+            }
         },
-        onCommitField: function <TKey extends keyof ElementListContinuousGeometrySearchState>(
+        onCommitField: function <TKey extends keyof ContinuousSearchParameters>(
             state: ElementListContinuousGeometrySearchState,
             { payload: key }: PayloadAction<TKey>,
         ) {
