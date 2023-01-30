@@ -47,9 +47,11 @@ import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
+import { useAppNavigate } from 'common/navigate';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
+    viewType: InfraModelViewType;
     onInfraModelExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
         infraModelExtraParameters: Prop<ExtraInfraModelParameters, TKey>,
     ) => void;
@@ -64,7 +66,6 @@ export type InfraModelViewProps = InfraModelState & {
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
-    onInfraModelViewChange: (viewType: InfraModelViewType) => void;
     getGeometryElement: (geomElemId: GeometryElementId) => Promise<GeometryElement | null>;
     getGeometrySwitch: (geomSwitchId: GeometrySwitchId) => Promise<GeometrySwitch | null>;
     onCommitField: (fieldName: string) => void;
@@ -135,6 +136,7 @@ const getValidationResponseGeometryPlan = async (
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
     const { t } = useTranslation();
+    const navigate = useAppNavigate();
 
     const [file, setFile] = React.useState<File>();
     const [loadingInProgress, setLoadingInProgress] = React.useState(false);
@@ -182,7 +184,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         setLoadingInProgress(false);
 
         if (succeed) {
-            props.onInfraModelViewChange(InfraModelViewType.LIST);
+            navigate('inframodel-list');
         }
     };
 
@@ -254,12 +256,14 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         validateFile().finally(() => setLoadingInProgress(false));
     }, [file, props.overrideInfraModelParameters]);
 
+    const navigateToList = () => navigate('inframodel-list');
+
     return (
         <div className={styles['infra-model-upload']}>
             <InfraModelToolbar
-                onInfraModelViewChange={props.onInfraModelViewChange}
                 fileName={props.plan?.fileName}
                 viewType={props.viewType}
+                navigateToList={navigateToList}
             />
             <div className={styles['infra-model-upload__form-column']}>
                 <div className={styles['infra-model-upload__file-info-container']}>
@@ -301,6 +305,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             extraInframodelParameters={props.extraInframodelParameters}
                             onCommitField={props.onCommitField}
                             committedFields={props.committedFields}
+                            onSelect={props.onSelect}
                         />
                     )}
                 </div>
@@ -314,7 +319,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 <div className={styles['infra-model-upload__buttons-container']}>
                     {props.viewType === InfraModelViewType.UPLOAD && (
                         <Button
-                            onClick={() => props.onInfraModelViewChange(InfraModelViewType.LIST)}
+                            onClick={navigateToList}
                             variant={ButtonVariant.WARNING}
                             disabled={loadingInProgress}
                             icon={Icons.Delete}>
@@ -323,7 +328,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     )}
                     {props.viewType === InfraModelViewType.EDIT && (
                         <Button
-                            onClick={() => props.onInfraModelViewChange(InfraModelViewType.LIST)}
+                            onClick={navigateToList}
                             variant={ButtonVariant.SECONDARY}
                             disabled={loadingInProgress}>
                             {t('button.return')}

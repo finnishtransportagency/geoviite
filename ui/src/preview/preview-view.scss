@@ -121,6 +121,10 @@ $color-warning: #9f6700;
     &__buttons {
         display: inline-flex;
     }
+
+    &__revert-spinner {
+        padding: 10px;
+    }
 }
 
 .preview-table-item__status-cell {

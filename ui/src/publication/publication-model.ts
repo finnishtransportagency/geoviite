@@ -79,7 +79,7 @@ export type PublishCandidates = {
 
 export type ValidatedPublishCandidates = {
     validatedAsPublicationUnit: PublishCandidates;
-    validatedSeparately: PublishCandidates;
+    allChangesValidated: PublishCandidates;
 };
 
 export type PublicationDetails = {
@@ -106,6 +106,7 @@ export type PublishedReferenceLine = {
     version: RowVersion;
     trackNumberId: LayoutTrackNumberId;
     operation: Operation;
+    changedKmNumbers: KmNumber[];
 };
 
 export type PublishedLocationTrack = {
@@ -113,6 +114,7 @@ export type PublishedLocationTrack = {
     name: string;
     trackNumberId: LayoutTrackNumberId;
     operation: Operation;
+    changedKmNumbers: KmNumber[];
 };
 
 export type PublishedSwitch = {

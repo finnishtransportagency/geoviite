@@ -67,17 +67,16 @@ class CoordinateTransformationService @Autowired constructor(
 ) {
     private val transformations = mutableMapOf<Pair<Srid, Srid>, Transformation>()
 
+    fun getLayoutTransformation(sourceSrid: Srid) = getTransformation(sourceSrid, LAYOUT_SRID)
+
     fun getTransformation(sourceSrid: Srid, targetSrid: Srid): Transformation =
-        transformations.getOrPut(
-            Pair(sourceSrid, targetSrid),
-            {
-                Transformation.possiblyKKJToETRSTransform(
-                    sourceSrid,
-                    targetSrid,
-                    kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-                )
-            }
-        )
+        transformations.getOrPut(Pair(sourceSrid, targetSrid)) {
+            Transformation.possiblyKKJToETRSTransform(
+                sourceSrid,
+                targetSrid,
+                kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
+            )
+        }
 
     fun transformCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint) =
         getTransformation(sourceSrid, targetSrid).transform(point)

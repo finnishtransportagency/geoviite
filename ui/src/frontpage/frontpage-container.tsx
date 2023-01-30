@@ -5,13 +5,17 @@ import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hook
 import Frontpage from 'frontpage/frontpage';
 
 export const FrontpageContainer: React.FC = () => {
-    const selectionState = useTrackLayoutAppSelector((state) => state.trackLayout.selection);
+    const state = useTrackLayoutAppSelector((state) => ({
+        publication: state.trackLayout.selection.publication,
+        changeTime: state.trackLayout.changeTimes.publication,
+    }));
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, actionCreators);
 
     return (
         <Frontpage
-            selectedPublication={selectionState.publication}
+            selectedPublication={state.publication}
+            changeTime={state.changeTime}
             onSelectedPublicationChanged={delegates.onSelectedPublicationChanged}
         />
     );

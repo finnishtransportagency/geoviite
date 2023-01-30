@@ -76,6 +76,7 @@ module.exports = (env) => {
         output: {
             path: path.join(__dirname, '/dist'),
             filename: 'bundle.js',
+            assetModuleFilename: '[name][ext]',
         },
         module: {
             rules: [
@@ -84,7 +85,7 @@ module.exports = (env) => {
                     loader: 'ts-loader',
                 },
                 {
-                    test: /\.(png|jp(e*)g|gif)$/,
+                    test: /\.(png|jp(e*)g|gif|woff|woff2|ttf|eot|ico|otf)$/,
                     type: 'asset/resource',
                 },
                 // For now import all SVG files as text, this is needed by icon component.

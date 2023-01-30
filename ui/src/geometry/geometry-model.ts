@@ -80,6 +80,9 @@ export type GeometryPlanHeader = {
     linkedAsPlanId: GeometryPlanId | null;
     uploadTime: TimeStamp;
     units: GeometryUnits;
+    author: string;
+    hasProfile: boolean;
+    hasCant: boolean;
 };
 
 export type GeometryPlan = {

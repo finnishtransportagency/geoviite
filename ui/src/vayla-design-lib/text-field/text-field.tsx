@@ -2,6 +2,7 @@ import * as React from 'react';
 import styles from './text-field.scss';
 import { IconColor, IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
+import { useCloneRef } from 'utils/react-utils';
 
 export enum TextFieldVariant {
     NO_BORDER = 'text-field--no-border',
@@ -36,7 +37,7 @@ export const TextField = React.forwardRef(
         }: TextFieldProps,
         forwardedRef,
     ) => {
-        const localRef = React.useRef<HTMLInputElement | null>();
+        const localRef = useCloneRef(forwardedRef);
 
         const hasFocus = document.activeElement == localRef.current;
 
@@ -68,12 +69,6 @@ export const TextField = React.forwardRef(
                         )}
                         ref={(instance) => {
                             localRef.current = instance;
-
-                            if (typeof forwardedRef === 'function') {
-                                forwardedRef(instance);
-                            } else if (forwardedRef != null) {
-                                forwardedRef.current = instance;
-                            }
                         }}
                         onFocus={(e) => {
                             props.onFocus && props.onFocus(e);

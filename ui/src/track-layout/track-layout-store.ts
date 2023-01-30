@@ -48,6 +48,7 @@ export type ChangeTimes = {
     layoutSwitch: TimeStamp;
     layoutKmPost: TimeStamp;
     geometryPlan: TimeStamp;
+    publication: TimeStamp;
 };
 
 export const initialSelectedPublishCandidateIdsState: SelectedPublishChanges = {
@@ -66,6 +67,7 @@ export const initialChangeTimes: ChangeTimes = {
     layoutSwitch: initialChangeTime,
     layoutKmPost: initialChangeTime,
     geometryPlan: initialChangeTime,
+    publication: initialChangeTime,
 };
 
 export type TrackLayoutState = {
@@ -311,6 +313,9 @@ const trackLayoutSlice = createSlice({
             if (toDate(changeTimes.geometryPlan) < toDate(payload.geometryPlan)) {
                 changeTimes.geometryPlan = payload.geometryPlan;
             }
+            if (toDate(changeTimes.publication) < toDate(payload.publication)) {
+                changeTimes.publication = payload.publication;
+            }
         },
         setLayoutTrackNumberChangeTime: function (
             { changeTimes }: TrackLayoutState,
@@ -353,6 +358,13 @@ const trackLayoutSlice = createSlice({
         ) {
             if (toDate(changeTimes.geometryPlan) < toDate(payload))
                 changeTimes.geometryPlan = payload;
+        },
+        setPublicationChangeTime: function (
+            { changeTimes }: TrackLayoutState,
+            { payload }: PayloadAction<TimeStamp>,
+        ) {
+            if (toDate(changeTimes.publication) < toDate(payload))
+                changeTimes.publication = payload;
         },
         onPublishTypeChange: (
             state: TrackLayoutState,

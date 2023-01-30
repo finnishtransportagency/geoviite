@@ -13,6 +13,8 @@
         "observations-help": "Huomiot näkyvät info-symbolina listanäkymässä.",
         "location-formgroup-title": "Sijaintitiedot",
         "tracknumberfield": "Ratanumero",
+        "track-numbers": "Ratanumerot",
+        "search": "Hae...",
         "km-start-field": "Alkukm",
         "km-end-field": "Loppukm",
         "km-interval-field": "Kilometriväli",

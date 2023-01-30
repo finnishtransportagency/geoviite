@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { debounce } from 'ts-debounce';
+import { ForwardedRef, useEffect, useRef } from 'react';
 
 /**
  * To load/get something asynchronously and to set that into state
@@ -126,4 +127,22 @@ export function useDebouncedState<TValue>(value: TValue, delay: number) {
     );
     setValue(value);
     return debouncedValue;
+}
+
+// https://github.com/facebook/react/issues/24722
+export function useCloneRef<T>(
+    ref: ForwardedRef<T>,
+    initialValue: T | null = null,
+): React.MutableRefObject<T | null> {
+    const localRef = useRef<T>(initialValue);
+    useEffect(() => {
+        if (ref) {
+            if (typeof ref === 'function') {
+                ref(localRef.current);
+            } else {
+                ref.current = localRef.current;
+            }
+        }
+    }, [ref]);
+    return localRef;
 }

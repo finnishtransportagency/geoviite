@@ -84,6 +84,27 @@ class AddressChangesServiceIT @Autowired constructor(
     }
 
     @Test
+    fun addressChangesContainAllAddressesIfTrackIsBeingRestoredFromBeingDeleted() {
+        val setupData = createAndInsertTrackNumberAndLocationTrack()
+        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val changes = addressChangesService.getAddressChanges(
+            beforeTrack = setupData.locationTrack.copy(state = LayoutState.DELETED),
+            afterTrack = setupData.locationTrack,
+            beforeContextKey = contextKey,
+            afterContextKey = contextKey,
+        )
+        assertTrue(changes.isChanged())
+        assertTrue(changes.startPointChanged)
+        assertTrue(changes.endPointChanged)
+        val allKms = getAllKms(
+            contextKey,
+            setupData.locationTrackGeometry.start!!,
+            setupData.locationTrackGeometry.end!!,
+        )
+        assertEquals(allKms, changes.changedKmNumbers)
+    }
+
+    @Test
     fun addressChangesContainAllAddressesIfAfterVersionHasNoGeometry() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
         val initialLocationTrack = setupData.locationTrack

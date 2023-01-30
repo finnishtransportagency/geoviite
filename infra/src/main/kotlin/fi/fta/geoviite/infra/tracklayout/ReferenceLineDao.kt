@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.DataType
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_REFERENCE_LINE
 import fi.fta.geoviite.infra.linking.Operation
 import fi.fta.geoviite.infra.linking.Publication
@@ -249,7 +246,8 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             layout.infer_operation_from_state_transition(
               tn.old_state,
               tn.state
-            ) as operation
+            ) as operation,
+            array_remove(array_agg(cctn.km_number), null) as changed_km
           from publication.reference_line prl
             left join layout.reference_line_version rl
               on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
@@ -257,13 +255,17 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               on ptn.track_number_id = rl.track_number_id and ptn.publication_id = prl.publication_id
             left join layout.track_number_change_view tn
               on ptn.track_number_id = tn.id and ptn.track_number_version = tn.version
-          where prl.publication_id = :publication_id;
+            left join publication.calculated_change_to_track_number_km cctn 
+              on cctn.track_number_id = rl.track_number_id and cctn.publication_id = prl.publication_id
+          where prl.publication_id = :publication_id
+          group by prl.reference_line_id, reference_line_version, rl.track_number_id, operation;
         """.trimIndent()
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             PublishedReferenceLine(
                 version = rs.getRowVersion("id", "version"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY
+                operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
+                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet()
             )
         }.also { referenceLines ->
             logger.daoAccess(

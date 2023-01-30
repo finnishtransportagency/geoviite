@@ -43,7 +43,7 @@ private fun findDiffAddresses(
             differences.add(point1.address.kmNumber)
 
             // Move indexes to the start of the next kilometer
-            points1Index = findFistIndexAfterKm(points1, point1.address.kmNumber)
+            points1Index = findFirstIndexAfterKm(points1, point1.address.kmNumber)
             val nextKm = points1.getOrNull(points1Index)?.address?.kmNumber
             points2Index = findFirstIndexForKm(points2, nextKm)
         } else {
@@ -55,7 +55,7 @@ private fun findDiffAddresses(
     return differences
 }
 
-private fun findFistIndexAfterKm(list: List<AddressPoint>, kmNumber: KmNumber) =
+private fun findFirstIndexAfterKm(list: List<AddressPoint>, kmNumber: KmNumber) =
     list.indexOfFirst { point -> point.address.kmNumber > kmNumber }
 
 private fun findFirstIndexForKm(list: List<AddressPoint>, kmNumber: KmNumber?) =
@@ -91,7 +91,7 @@ class AddressChangesService(val geocodingService: GeocodingService) {
         }
 
     private fun getAddresses(track: LocationTrack?, contextKey: GeocodingContextCacheKey?) =
-        if (track == null || contextKey == null) null
+        if (track == null || contextKey == null || !track.exists) null
         else geocodingService.getAddressPoints(contextKey, track.getAlignmentVersionOrThrow())
 
 }

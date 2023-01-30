@@ -63,7 +63,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
             .flatMap((linkStatus) => linkStatus.linkedKmPosts);
         const kmPostPromises = kmPostIds.map((kmPostId) => getKmPost(kmPostId, publishType));
         return Promise.all(kmPostPromises).then((posts) => posts.filter(filterNotEmpty));
-    }, [planStatus]);
+    }, [planStatus, geometryKmPost.sourceId]);
 
     const kmPosts =
         useLoader(async () => {
@@ -76,7 +76,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                       40,
                   )
                 : [];
-        }, [geometryKmPost.trackNumberId, geometryKmPost.location, layoutKmPost]) || [];
+        }, [publishType, geometryKmPost.trackNumberId, geometryKmPost.location, layoutKmPost]) ||
+        [];
 
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
     const canLink = !linkingCallInProgress && linkingState && geometryKmPost && layoutKmPost;

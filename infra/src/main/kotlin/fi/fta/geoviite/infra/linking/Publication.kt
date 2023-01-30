@@ -27,7 +27,8 @@ data class PublishedTrackNumber(
 data class PublishedReferenceLine(
     val version: RowVersion<ReferenceLine>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val operation: Operation
+    val operation: Operation,
+    val changedKmNumbers: Set<KmNumber>
 )
 
 data class PublishedLocationTrack(
@@ -35,6 +36,7 @@ data class PublishedLocationTrack(
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
+    val changedKmNumbers: Set<KmNumber>
 )
 
 data class PublishedSwitch(
@@ -81,7 +83,7 @@ enum class Operation {
 
 data class ValidatedPublishCandidates(
     val validatedAsPublicationUnit: PublishCandidates,
-    val validatedSeparately: PublishCandidates,
+    val allChangesValidated: PublishCandidates,
 )
 
 data class PublishCandidates(
@@ -91,19 +93,13 @@ data class PublishCandidates(
     val switches: List<SwitchPublishCandidate>,
     val kmPosts: List<KmPostPublishCandidate>,
 ) {
-    fun splitByRequest(versions: PublicationVersions) =
+    fun candidatesInRequest(versions: PublicationVersions) =
         PublishCandidates(
             trackNumbers.filter { candidate -> versions.containsTrackNumber(candidate.id) },
             locationTracks.filter { candidate -> versions.containsLocationTrack(candidate.id) },
             referenceLines.filter { candidate -> versions.containsReferenceLine(candidate.id) },
             switches.filter { candidate -> versions.containsSwitch(candidate.id) },
             kmPosts.filter { candidate -> versions.containsKmPost(candidate.id) },
-        ) to PublishCandidates(
-            trackNumbers.filterNot { candidate -> versions.containsTrackNumber(candidate.id) },
-            locationTracks.filterNot { candidate -> versions.containsLocationTrack(candidate.id) },
-            referenceLines.filterNot { candidate -> versions.containsReferenceLine(candidate.id) },
-            switches.filterNot { candidate -> versions.containsSwitch(candidate.id) },
-            kmPosts.filterNot { candidate -> versions.containsKmPost(candidate.id) },
         )
 
     fun ids(): PublishRequest = PublishRequest(
@@ -138,9 +134,6 @@ data class PublicationVersions(
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
-    fun findReferenceLine(id: IntId<ReferenceLine>) = referenceLines.find { it.officialId == id }
-    fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
-    fun findKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.find { it.officialId == id }
 }
 
 data class PublicationVersion<T>(val officialId: IntId<T>, val draftVersion: RowVersion<T>)

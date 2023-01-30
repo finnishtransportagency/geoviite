@@ -4,7 +4,7 @@ import { InfraModelViewType } from 'infra-model/infra-model-store';
 import { useTranslation } from 'react-i18next';
 
 export type InfraModelToolbarProps = {
-    onInfraModelViewChange: (viewType: InfraModelViewType) => void;
+    navigateToList: () => void;
     fileName?: string;
     viewType: InfraModelViewType;
 };
@@ -17,8 +17,7 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
     return (
         <div className="infra-model-upload__tool-bar">
             <Breadcrumb>
-                <BreadcrumbItem
-                    onClick={() => props.onInfraModelViewChange(InfraModelViewType.LIST)}>
+                <BreadcrumbItem onClick={props.navigateToList}>
                     {t('im-form.toolbar.files')}
                 </BreadcrumbItem>
                 <BreadcrumbItem>

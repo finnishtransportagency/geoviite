@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.linking.PublicationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -19,6 +20,7 @@ data class CollectedChangeTimes(
     val layoutSwitch: Instant,
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
+    val publication: Instant,
 )
 
 @RestController
@@ -30,6 +32,7 @@ class ChangeTimeController(
     private val kmPostService: LayoutKmPostService,
     private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
+    private val publicationService: PublicationService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -45,6 +48,7 @@ class ChangeTimeController(
             layoutKmPost = kmPostService.getChangeTime(),
             layoutSwitch = switchService.getChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
+            publication = publicationService.getChangeTime(),
         )
     }
 
@@ -88,5 +92,12 @@ class ChangeTimeController(
     fun getGeometryPlanChangeTime(): Instant {
         logger.apiCall("getGeometryPlanChangeTime")
         return geometryService.getGeometryPlanChangeTime()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/publications")
+    fun getPublicationChangeTime(): Instant {
+        logger.apiCall("getPublicationChangeTime")
+        return publicationService.getChangeTime()
     }
 }

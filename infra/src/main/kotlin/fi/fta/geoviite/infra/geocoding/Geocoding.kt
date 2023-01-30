@@ -90,6 +90,9 @@ data class GeocodingContext(
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
     }
+    val allKms: List<KmNumber> by lazy {
+        referencePoints.map(GeocodingReferencePoint::kmNumber).distinct()
+    }
 
     fun getProjectionLine(address: TrackMeter): ProjectionLine? =
         projectionLines.getOrNull(projectionLines.binarySearch { projectionLine ->
@@ -234,7 +237,44 @@ data class GeocodingContext(
             ?: throw GeocodingFailureException("Target point is not withing the reference line length")
     }
 
+    fun cutRangeByKms(range: ClosedRange<TrackMeter>, kms: Set<KmNumber>): List<ClosedRange<TrackMeter>> {
+        if (projectionLines.isEmpty()) return listOf()
+        val addressRanges = getKmRanges(kms).mapNotNull(::toAddressRange)
+        return splitRange(range, addressRanges)
+    }
+
+    private fun getKmRanges(kms: Set<KmNumber>): List<ClosedRange<KmNumber>> {
+        val ranges: MutableList<ClosedRange<KmNumber>> = mutableListOf()
+        var currentRange: ClosedRange<KmNumber>? = null
+        allKms.forEach { kmNumber ->
+            currentRange = if (kms.contains(kmNumber)) {
+                currentRange?.let { c -> c.start..kmNumber } ?: kmNumber..kmNumber
+            } else {
+                currentRange?.let(ranges::add)
+                null
+            }
+        }
+        currentRange?.let(ranges::add)
+        return ranges
+    }
+
+    /**
+     * Returns the inclusive range of addresses in the given range of km-numbers.
+     * Note: Since this is inclusive, it does not include decimal meters after the last even meter,
+     * even though such addresses can be calculated
+     */
+    private fun toAddressRange(kmRange: ClosedRange<KmNumber>): ClosedRange<TrackMeter>? {
+        val startAddress = projectionLines.find { l -> l.address.kmNumber == kmRange.start }?.address
+        val endAddress = projectionLines.findLast { l -> l.address.kmNumber == kmRange.endInclusive }?.address
+        return if (startAddress != null && endAddress != null) startAddress..endAddress else null
+    }
 }
+
+fun splitRange(range: ClosedRange<TrackMeter>, splits: List<ClosedRange<TrackMeter>>): List<ClosedRange<TrackMeter>> =
+    splits.mapNotNull { allowedRange ->
+        if (range.start >= allowedRange.endInclusive || range.endInclusive <= allowedRange.start) null
+        else maxOf(range.start, allowedRange.start)..minOf(range.endInclusive, allowedRange.endInclusive)
+    }
 
 fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
     things: List<T>,

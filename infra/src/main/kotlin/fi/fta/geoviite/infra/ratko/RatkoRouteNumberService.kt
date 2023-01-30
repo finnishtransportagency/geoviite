@@ -33,7 +33,7 @@ class RatkoRouteNumberService @Autowired constructor(
                     try {
                         ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
                             if (trackNumber.state == LayoutState.DELETED) {
-                                deleteRouteNumber(trackNumber)
+                                deleteRouteNumber(trackNumber, existingRouteNumber)
                             } else {
                                 updateRouteNumber(
                                     existingRatkoRouteNumber = existingRouteNumber,
@@ -55,20 +55,11 @@ class RatkoRouteNumberService @Autowired constructor(
         }
     }
 
-    private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber) {
+    private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber, existingRatkoRouteNumber: RatkoRouteNumber) {
         logger.serviceCall("deleteRouteNumber", "trackNumber" to trackNumber)
         requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid $trackNumber" }
 
-        val addresses =
-            geocodingService.getGeocodingContext(PublishType.OFFICIAL, trackNumber.id)?.referenceLineAddresses
-        checkNotNull(addresses) { "Cannot calculate addresses for track number ${trackNumber.id}" }
-
-        val deletedEndsPoints = getEndPointNodeCollection(
-            alignmentAddresses = addresses,
-            startChanged = true,
-            endChanged = true,
-            pointState = RatkoPointStates.NOT_IN_USE
-        )
+        val deletedEndsPoints = existingRatkoRouteNumber.nodecollection?.let { nodes -> toNodeCollectionMarkingEndpointsNotInUse(nodes) }
 
         updateRouteNumberProperties(trackNumber, deletedEndsPoints)
 
@@ -99,8 +90,7 @@ class RatkoRouteNumberService @Autowired constructor(
         val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
         val endPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            startChanged = routeNumberChange.isStartChanged,
-            endChanged = routeNumberChange.isEndChanged,
+            changedKmNumbers = routeNumberChange.changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )

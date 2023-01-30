@@ -13,13 +13,30 @@ class GeometryPlanGeneralInfoBox(by: By) : InfoBox(by) {
         Thread.sleep(500)
     }
 
+    fun huomiot(): String = fieldValue("Huomiot")
+    fun author(): String = fieldValue("Yritys")
     fun projekti(): String = fieldValue("Projekti")
-    fun luotu(): String = fieldValue("Luotu")
-    fun laatu(): String = fieldValue("Laatu")
+    fun tiedosto(): String = fieldValue("Tiedosto")
     fun vaihe(): String = fieldValue("Vaihe")
     fun vaiheenTarkennus(): String = fieldValue("Vaiheen tarkennus")
     fun ratanumero(): String = fieldValue("Ratanumero")
-    fun alkupKoordinaattijarstelma(): String = fieldValue("Alkuperäinen koordinaattijärjest.")
+    fun kilometriAlku(): String = fieldValue("Kilometri alku")
+    fun kilometriLoppu(): String = fieldValue("Kilometri loppu")
+}
+
+class GeometryPlanQualityInfobox(by: By) : InfoBox(by) {
+    init {
+        //Object initializes too quickly and webelement is not stable/ready
+        Thread.sleep(500)
+    }
+
+    fun lahde(): String = fieldValue("Lähde")
+    fun laadittu(): String = fieldValue("Laadittu")
+    fun laatu(): String = fieldValue("Laatu")
+    fun koordinaattijarjest(): String = fieldValue("Koordinaattijärjest.")
+    fun pystygeometria(): String = fieldValue("Pystygeometria")
+    fun kallistus(): String = fieldValue("Kallistus")
+    fun korkeusjarjestelma(): String = fieldValue("Korkeusjärjestelmä")
 }
 
 class LayoutKmPostGeneralInfoBox(by: By) : InfoBox(by) {

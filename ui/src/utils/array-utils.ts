@@ -1,3 +1,5 @@
+import { TimeStamp } from 'common/common-model';
+
 export function nonEmptyArray<T>(...values: Array<T | null | undefined>): T[] {
     return values.filter(filterNotEmpty);
 }
@@ -39,6 +41,22 @@ export function negComparator<T>(comparator: (v1: T, v2: T) => number): (v1: T, 
 
 export function fieldComparator<T, S>(getter: (obj: T) => S): (v1: T, v2: T) => number {
     return (v1: T, v2: T) => compareByField(v1, v2, getter);
+}
+
+//Null and undefined values are considered "max"
+export function timeStampComparator<T>(
+    getter: (obj: T) => TimeStamp | undefined | null,
+): (v1: T, v2: T) => number {
+    return (v1: T, v2: T) => {
+        const aTime = getter(v1);
+        const bTime = getter(v2);
+
+        if (!aTime && !bTime) return 0;
+        if (!aTime) return 1;
+        if (!bTime) return -1;
+
+        return aTime < bTime ? -1 : aTime == bTime ? 0 : 1;
+    };
 }
 
 export function multiFieldComparator<T, S>(

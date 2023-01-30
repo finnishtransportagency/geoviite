@@ -74,7 +74,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
-                operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
+                operation = rs.getEnum<Operation>("operation"),
             )
         }
         logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
@@ -334,6 +334,12 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 publicationTime = rs.getInstant("publication_time")
             )
         }.onEach { publication -> logger.daoAccess(FETCH, Publication::class, publication.id) }
+    }
+
+    fun fetchChangeTime(): Instant {
+        val sql = "select max(publication_time) as publication_time from publication.publication"
+        return jdbcTemplate.query(sql) {rs, _ -> rs.getInstantOrNull("publication_time")}
+            .first() ?: Instant.ofEpochSecond(0)
     }
 
     private fun <T> publishedRowParams(publicationId: IntId<Publication>, rows: List<RowVersion<T>>) =
