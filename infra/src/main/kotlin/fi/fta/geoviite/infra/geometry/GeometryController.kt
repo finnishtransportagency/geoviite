@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.geometry
 
-import ElementListing
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IndexedId
@@ -9,7 +8,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -156,10 +154,11 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     @PostMapping("/layout/location-tracks/{id}/element-listing")
     fun getTrackElementListing(
         @PathVariable("id") id: IntId<LocationTrack>,
-        @RequestParam("element-types") elementTypes: List<GeometryElementType>,
-        @RequestParam("address-range") addressRange: Range<TrackMeter>? = null,
+        @RequestParam("elementTypes") elementTypes: List<TrackGeometryElementType>,
+        @RequestParam("startAddress") startAddress: TrackMeter? = null,
+        @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<ElementListing> {
         log.apiCall("getPlanElementList")
-        return geometryService.getElementListing(id, elementTypes, addressRange)
+        return geometryService.getElementListing(id, elementTypes, startAddress, endAddress)
     }
 }
