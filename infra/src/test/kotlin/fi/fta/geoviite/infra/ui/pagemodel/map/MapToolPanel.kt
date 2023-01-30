@@ -66,5 +66,9 @@ class MapToolPanel {
         GeometrySwitchLinkingInfoBox(By.xpath("//div[@qa-id='geometry-switch-linking-infobox']"))
 
     fun geometryPlanGeneral(): GeometryPlanGeneralInfoBox =
-        GeometryPlanGeneralInfoBox(By.xpath("//div[@qa-id='geometry-plan-infobox']"))
+        GeometryPlanGeneralInfoBox(By.xpath("//div[@qa-id='geometry-plan-general-infobox']"))
+
+    fun geometryPlanQuality(): GeometryPlanQualityInfobox =
+        GeometryPlanQualityInfobox(By.xpath("//div[@qa-id='geometry-plan-quality-infobox']"))
+
 }

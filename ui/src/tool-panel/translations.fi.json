@@ -1,20 +1,31 @@
 {
     "tool-panel": {
         "geometry-plan": {
-            "title": "Infra model metatiedot",
+            "general-title": "Suunnitelman perustiedot",
+            "quality-title": "Laatutiedot",
+            "message": "Huomiot",
+            "author": "Yritys",
             "project": "Projekti",
+            "file": "Tiedosto",
             "created": "Luotu",
             "source": "Lähde",
             "measurement-method": "Laatu",
             "phase": "Vaihe",
             "decision": "Vaiheen tarkennus",
             "track-number": "Ratanumero",
-            "coordinate-system": "Alkuperäinen koordinaattijärjest.",
+            "start-km": "Kilometri alku",
+            "end-km": "Kilometri loppu",
+            "coordinate-system": "Koordinaattijärjest.",
             "linked-as": "Paikannuspalvelussa linkitetty",
-            "plan-age": "Suunniteltu",
-            "has-vertical-geometry": "Sisältää pystygeometriaa",
-            "has-cant": "Sisältää kallistustietoja",
-            "open-inframodel": "Avaa lomakkeella"
+            "plan-age": "Laadittu",
+            "plan-age-content": "ikä {{ageYears}}v",
+            "plan-age-under-1-year": "ikä alle 1v",
+            "measurement-method": "Laatu",
+            "vertical-coordinate-system": "Korkeusjärjestelmä",
+            "has-vertical-geometry": "Pystygeometria",
+            "has-cant": "Kallistus",
+            "open-inframodel": "Avaa lomakkeella",
+            "download-file": "Lataa tiedosto"
         },
         "track-number": {
             "general-title": "Ratanumeron perustiedot",
