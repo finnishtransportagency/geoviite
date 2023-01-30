@@ -427,6 +427,7 @@ fun planHeader(
     source = PlanSource.GEOVIITE,
     hasCant = false,
     hasProfile = false,
+    author = "Test Company",
 )
 
 fun minimalPlan(
