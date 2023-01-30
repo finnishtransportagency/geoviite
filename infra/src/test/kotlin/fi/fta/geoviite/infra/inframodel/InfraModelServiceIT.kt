@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.inframodel
 import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -16,6 +17,11 @@ class InfraModelServiceIT @Autowired constructor(
     val infraModelService: InfraModelService,
     val geometryDao: GeometryDao,
 ): ITTestBase() {
+
+    @BeforeEach
+    fun clearPlanFiles() {
+        jdbc.execute("delete from geometry.plan_file") { it.execute() }
+    }
 
     @Test
     fun simpleFileIsWrittenAndReadCorrectly() {
