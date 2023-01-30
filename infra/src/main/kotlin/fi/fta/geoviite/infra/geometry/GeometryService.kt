@@ -15,14 +15,38 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVPrinter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.io.StringWriter
 import java.time.Instant
 
 
 const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformation"
+
+val ELEMENT_LISTING_CSV_HEADERS = listOf(
+        "Ratanumero",
+        "Raide",
+        "Elementin tyyppi",
+        "Rataosoite alussa",
+        "Rataosoite lopussa",
+        "Sijainti alussa E",
+        "Sijainti alussa N",
+        "Sijainti lopussa E",
+        "Sijainti lopussa N",
+        "Pituus (m)",
+        "Kaarresäde alussa",
+        "Kaarresäde lopussa",
+        "Kallistus alussa",
+        "Kallistus lopussa",
+        "Suuntakulma alussa (grad)",
+        "Suuntakulma lopussa (grad)",
+        "Suunnitelma",
+        "Koordinaatisto"
+    )
 
 data class TransformationError(
     private val key: String,
@@ -242,6 +266,59 @@ class GeometryService @Autowired constructor(
         )
     }
 
+    fun getElementListingCsv(
+        trackId: IntId<LocationTrack>,
+        elementTypes: List<TrackGeometryElementType>,
+        startAddress: TrackMeter?,
+        endAddress: TrackMeter?,
+    ): String {
+        logger.serviceCall("getElementListing",
+            "trackId" to trackId, "elementTypes" to elementTypes,
+            "startAddress" to startAddress, "endAdress" to endAddress,
+        )
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
+        val elementListing = toElementListing(
+            geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId),
+            coordinateTransformationService::getLayoutTransformation,
+            track,
+            alignment,
+            elementTypes,
+            startAddress,
+            endAddress,
+            ::getHeaderAndAlignment,
+        )
+        val trackNumbers = trackNumberService.list(OFFICIAL)
+
+        val writer = StringWriter()
+        CSVPrinter(writer, CSVFormat.EXCEL).let { wryy ->
+            wryy.printRecord(ELEMENT_LISTING_CSV_HEADERS)
+
+            elementListing.forEach {
+                wryy.printRecord(
+                    it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
+                    it.alignmentName,
+                    it.elementType.let(::translateTrackGeometryElementType),
+                    it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                    it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                    it.start.coordinate.x,
+                    it.start.coordinate.y,
+                    it.end.coordinate.x,
+                    it.end.coordinate.y,
+                    it.lengthMeters,
+                    it.start.radiusMeters,
+                    it.end.radiusMeters,
+                    it.start.cant,
+                    it.end.cant,
+                    it.start.directionGrads,
+                    it.end.directionGrads,
+                    it.fileName,
+                    it.coordinateSystemName
+                )
+            }
+        }
+        return writer.toString()
+    }
+
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::fetchPlanHeader)
         val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
@@ -305,6 +382,15 @@ private fun splitSearchTerms(freeText: FreeText?): List<String> =
         ?.map { s -> s.lowercase().trim() }
         ?.filter(String::isNotBlank)
         ?: listOf()
+
+private fun translateTrackGeometryElementType(type: TrackGeometryElementType) =
+    when (type) {
+        TrackGeometryElementType.LINE -> "suora"
+        TrackGeometryElementType.CURVE -> "kaari"
+        TrackGeometryElementType.CLOTHOID -> "siirtymäkaari"
+        TrackGeometryElementType.MISSING_SECTION -> "generoitu"
+        TrackGeometryElementType.BIQUADRATIC_PARABOLA -> ""
+    }
 
 enum class GeometryPlanSortField {
     ID,
