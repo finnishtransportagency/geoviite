@@ -141,17 +141,17 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @PostMapping("/plans/{id}/element-listing")
+    @GetMapping("/plans/{id}/element-listing")
     fun getPlanElementListing(
         @PathVariable("id") id: IntId<GeometryPlan>,
-        @RequestParam("element-types") elementTypes: List<GeometryElementType>,
+        @RequestParam("elementTypes") elementTypes: List<GeometryElementType>,
     ): List<ElementListing> {
         log.apiCall("getPlanElementList")
         return geometryService.getElementListing(id, elementTypes)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @PostMapping("/layout/location-tracks/{id}/element-listing")
+    @GetMapping("/layout/location-tracks/{id}/element-listing")
     fun getTrackElementListing(
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("elementTypes") elementTypes: List<TrackGeometryElementType>,
