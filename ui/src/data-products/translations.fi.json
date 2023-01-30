@@ -1,6 +1,19 @@
 {
     "data-products": {
         "element-list": {
+            "search": {
+                "location-track": "Sijaintiraide",
+                "track-address-start": "Rataosoitteen alku",
+                "track-address-end": "Rataosoitteen loppu",
+                "plan": "Suunnitelma",
+                "line": "Suora",
+                "curve": "Kaari",
+                "clothoid": "Siirtymäkaari",
+                "missing-section": "Puuttuva osuus",
+                "no-types-selected": "Valitse vähintään yksi elementin tyyppi",
+                "invalid-track-meter": "Tarkista osoitteen muoto",
+                "not-selected": "Ei valittu"
+            },
             "element-list-title": "Elementtiluettelo",
             "continuous-geometry": "Jatkuva geometria",
             "plan-geometry": "Suunnitelman geometria",

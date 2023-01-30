@@ -3,6 +3,17 @@ import { useTranslation } from 'react-i18next';
 import styles from './element-list-view.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { EnvRestricted } from 'environment/env-restricted';
+import ContinuousGeometrySearch from 'data-products/element-list/continuous-geometry-search';
+import {
+    continuousGeometryReducer,
+    continuousGeometryActions,
+    initialContinuousSearchState,
+    initialPlanGeometrySearchState,
+    planSearchReducer,
+    planSearchActions,
+} from 'data-products/element-list/element-list-store';
+import { createDelegates } from 'store/store-utils';
+import PlanGeometrySearch from 'data-products/element-list/plan-geometry-search';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -11,6 +22,21 @@ const ElementListView = () => {
     const handleRadioClick = () => {
         setContinuousGeometrySelected(!continuousGeometrySelected);
     };
+
+    const [continuousSearchState, continuousStateSearchDispatcher] = React.useReducer(
+        continuousGeometryReducer,
+        initialContinuousSearchState,
+    );
+    const continuousSearchStateActions = createDelegates(
+        continuousStateSearchDispatcher,
+        continuousGeometryActions,
+    );
+
+    const [planSearchState, planSearchStateDispatcher] = React.useReducer(
+        planSearchReducer,
+        initialPlanGeometrySearchState,
+    );
+    const planSearchStateActions = createDelegates(planSearchStateDispatcher, planSearchActions);
 
     return (
         <EnvRestricted restrictTo={'dev'}>
@@ -26,6 +52,18 @@ const ElementListView = () => {
                         </Radio>
                     </span>
                 </div>
+                {continuousGeometrySelected ? (
+                    <ContinuousGeometrySearch
+                        state={continuousSearchState}
+                        onUpdateProp={continuousSearchStateActions.onUpdateProp}
+                        onCommitField={continuousSearchStateActions.onCommitField}
+                    />
+                ) : (
+                    <PlanGeometrySearch
+                        state={planSearchState}
+                        onUpdateProp={planSearchStateActions.onUpdateProp}
+                    />
+                )}
             </div>
         </EnvRestricted>
     );
