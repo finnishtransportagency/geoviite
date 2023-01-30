@@ -2,9 +2,12 @@ package fi.fta.geoviite.infra.inframodel
 
 import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
+import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
@@ -41,6 +44,17 @@ class InfraModelServiceIT @Autowired constructor(
         val planId = infraModelService.saveInfraModel(file, null, null)
 
         assertPlansMatch(parsedPlan, geometryDao.fetchPlan(planId))
+    }
+
+    @Test
+    fun duplicatePlanCausesParsingException() {
+        val file = getMockedMultipartFile(TESTFILE_CLOTHOID_AND_PARABOLA)
+
+        infraModelService.saveInfraModel(file, null, null)
+        val exception = assertThrows<InframodelParsingException> {
+            infraModelService.saveInfraModel(file, null, null)
+        }
+        assertTrue(exception.message?.contains("InfraModel file exists already") ?: false)
     }
 
     fun getMockedMultipartFile(fileLocation: String): MockMultipartFile = MockMultipartFile(
