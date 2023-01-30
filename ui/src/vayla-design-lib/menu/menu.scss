@@ -9,6 +9,10 @@
     @include shadow-8dp;
     background: $color-white-default;
     border-radius: 4px;
+
+    > :not(:last-child) {
+        border-bottom: 0.5px solid $color-white-darker;
+    }
 }
 
 .menu__item,
@@ -20,7 +24,6 @@
     align-items: center;
     white-space: nowrap;
     box-sizing: border-box;
-    border-bottom: 0.5px solid $color-white-darker;
     padding: 0 24px 0 12px;
     cursor: pointer;
     user-select: none;

@@ -1,0 +1,30 @@
+{
+    "data-products": {
+        "element-list": {
+            "element-list-title": "Elementtiluettelo",
+            "continuous-geometry": "Jatkuva geometria",
+            "plan-geometry": "Suunnitelman geometria",
+            "geometry-elements": "Geometriaelementit",
+            "element-list-table": {
+                "track-number": "Ratanumero",
+                "alignment": "Raide",
+                "element-type": "Elementin tyyppi",
+                "track-address-start": "Rataosoite alussa",
+                "track-address-end": "Rataosoite lopussa",
+                "location-start-e": "Sijainti alussa E",
+                "location-start-n": "Sijainti alussa N",
+                "location-end-e": "Sijainti lopussa E",
+                "location-end-n": "Sijainti lopussa N",
+                "length": "Pituus (m)",
+                "curve-radius-start": "Kaarresäde alussa",
+                "curve-radius-end": "Kaarresäde lopussa",
+                "cant-start": "Kallistus alussa",
+                "cant-end": "Kallistus lopussa",
+                "angle-start": "Suuntakulma alussa (grad)",
+                "angle-end": "Suuntakulma lopussa (grad)",
+                "plan": "Suunnitelma",
+                "coordinate-system": "Koordinaatisto"
+            }
+        }
+    }
+}

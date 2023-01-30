@@ -5,7 +5,6 @@ import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
 import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
-import { Menu } from 'vayla-design-lib/menu/menu';
 import { useTranslation } from 'react-i18next';
 
 type Link = {
@@ -26,16 +25,6 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
-
-    const dataMenuItems = [
-        { value: 'MENU1', name: t('app-bar.data-products.element-list') },
-        { value: 'MENU2', name: t('app-bar.data-products.vertical-geometry') },
-        { value: 'MENU3', name: t('app-bar.data-products.km-lengths') },
-    ];
-
-    const handleItemChange = (_item: string) => {
-        // TODO add navigation to subpages
-    };
 
     return (
         <nav className={styles['app-bar']}>
@@ -71,9 +60,19 @@ export const AppBar: React.FC = () => {
                             <span>{t('app-bar.data-products-title')}</span>
                             {dataMenuOpen && (
                                 <div className={styles['app-bar__data-menu']}>
-                                    <Menu
-                                        items={dataMenuItems}
-                                        onChange={(item) => item && handleItemChange(item)}></Menu>
+                                    <div>
+                                        <NavLink
+                                            className={styles['menu__item']}
+                                            to={'data-products/element-list'}>
+                                            {t('app-bar.data-products.element-list')}
+                                        </NavLink>
+                                    </div>
+                                    <div className={styles['menu__item']}>
+                                        {t('app-bar.data-products.vertical-geometry')}
+                                    </div>
+                                    <div className={styles['menu__item']}>
+                                        {t('app-bar.data-products.km-lengths')}
+                                    </div>
                                 </div>
                             )}
                         </div>

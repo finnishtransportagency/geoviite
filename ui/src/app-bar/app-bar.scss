@@ -1,5 +1,6 @@
 @import '../vayla-design-lib/typography';
 @import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/menu/menu';
 
 $appbar-height: 48px;
 
@@ -67,22 +68,22 @@ $appbar-height: 48px;
         position: relative;
     }
 
-    &__data-menu > .menu {
+    &__data-menu {
+        @extend .menu;
         position: absolute;
         z-index: 10;
-        background-color: $color-blue-darker;
+        background: $color-blue-darker;
+        border-radius: 5px;
 
         .menu__item {
+            @extend .menu__item;
             color: $color-white-default;
-        }
+            text-decoration: underline $color-blue-darker;
 
-        &:hover {
-            color: $color-blue-light;
-        }
-
-        &--active {
-            color: $color-blue-light;
-            border-bottom-color: $color-blue-light;
+            &:hover {
+                background: $color-blue-dark;
+                text-decoration: underline $color-blue-dark;
+            }
         }
     }
 }

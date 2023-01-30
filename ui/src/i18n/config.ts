@@ -17,6 +17,7 @@ import kmPostDialogFi from 'tool-panel/km-post/dialog/translations.fi.json';
 import trackNumberDialogFi from 'tool-panel/track-number/dialog/translations.fi.json';
 import linkingFi from 'linking/translations.fi.json';
 import userFi from 'user/translations.fi.json';
+import dataProductsFi from 'data-products/translations.fi.json';
 
 export const resources = {
     en: {
@@ -40,6 +41,7 @@ export const resources = {
             ...kmPostDialogFi,
             ...linkingFi,
             ...userFi,
+            ...dataProductsFi,
         },
     },
 } as const;
