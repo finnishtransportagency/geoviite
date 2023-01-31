@@ -9,7 +9,6 @@
             "file": "Tiedosto",
             "created": "Luotu",
             "source": "Lähde",
-            "measurement-method": "Laatu",
             "phase": "Vaihe",
             "decision": "Vaiheen tarkennus",
             "track-number": "Ratanumero",
@@ -171,6 +170,7 @@
             "geometry-segment": {
                 "title": "Vaaka- ja pystygeometriat",
                 "no-geometry-information": "Ei geometriatietoja valitulle segmentille.",
+                "no-segment-selected": "Valitse segmentti kartalta nähdäksesi sen geometriatiedot.",
                 "horizontal": "Vaakageometriat",
                 "vertical": "Pystygeometriat",
                 "chosen-segment": "Valittu kohta",
