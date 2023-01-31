@@ -21,9 +21,31 @@ import { getCoordinateSystem } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
 import CoordinateSystem from 'geoviite-design-lib/coordinate-system/coordinate-system';
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
+import { TimeStamp } from 'common/common-model';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
+};
+
+interface AgeProps {
+    timeStamp: TimeStamp;
+}
+const Age: React.FC<AgeProps> = ({ timeStamp }) => {
+    const { t } = useTranslation();
+    const time = toDateOrUndefined(timeStamp);
+    if (time === undefined) {
+        return <React.Fragment />;
+    } else {
+        const ageYears = differenceInYears(new Date(), time);
+        const ageString =
+            formatDateShort(time) +
+            ' (' +
+            (ageYears === 0
+                ? t(`tool-panel.geometry-plan.plan-age-under-1-year`)
+                : t(`tool-panel.geometry-plan.plan-age-content`, { ageYears })) +
+            ')';
+        return <>{ageString}</>;
+    }
 };
 
 const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
@@ -38,22 +60,6 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
             undefined,
         [planHeader.units.coordinateSystemSrid],
     );
-
-    const planTime = toDateOrUndefined(planHeader.planTime);
-    const age =
-        planTime === undefined
-            ? ''
-            : (() => {
-                  const ageYears = differenceInYears(new Date(), planTime);
-                  return (
-                      formatDateShort(planTime) +
-                      ' (' +
-                      (ageYears === 0
-                          ? t('tool-panel.geometry-plan.plan-age-under-1-year')
-                          : t('tool-panel.geometry-plan.plan-age-content', { ageYears })) +
-                      ')'
-                  );
-              })();
 
     const generalInfobox = (
         <Infobox
@@ -118,7 +124,12 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     label={t('tool-panel.geometry-plan.source')}
                     value={planHeader.source}
                 />
-                <InfoboxField label={t('tool-panel.geometry-plan.plan-age')} value={age} />
+                <InfoboxField label={t('tool-panel.geometry-plan.plan-age')}>
+                    <Age timeStamp={planHeader.planTime} />
+                </InfoboxField>
+                <InfoboxField label={t('tool-panel.geometry-plan.plan-uploaded')}>
+                    <Age timeStamp={planHeader.uploadTime} />
+                </InfoboxField>
                 <InfoboxField
                     label={t('tool-panel.geometry-plan.measurement-method')}
                     value={<MeasurementMethod method={planHeader.measurementMethod} />}
