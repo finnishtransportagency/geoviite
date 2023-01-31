@@ -411,8 +411,8 @@ private fun translateTrackGeometryElementType(type: TrackGeometryElementType) =
         TrackGeometryElementType.LINE -> "suora"
         TrackGeometryElementType.CURVE -> "kaari"
         TrackGeometryElementType.CLOTHOID -> "siirtymäkaari"
+        TrackGeometryElementType.BIQUADRATIC_PARABOLA -> "helmert"
         TrackGeometryElementType.MISSING_SECTION -> "generoitu"
-        TrackGeometryElementType.BIQUADRATIC_PARABOLA -> ""
     }
 
 enum class GeometryPlanSortField {
