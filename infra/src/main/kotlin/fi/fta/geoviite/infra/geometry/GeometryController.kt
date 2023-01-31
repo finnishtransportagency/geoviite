@@ -79,7 +79,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     @GetMapping("/switches/{switchId}")
     fun getGeometrySwitch(@PathVariable("switchId") switchId: IntId<GeometrySwitch>): GeometrySwitch {
         log.apiCall("getGeometrySwitch", "switchId" to switchId)
-        return geometryService.getSwitch(switchId);
+        return geometryService.getSwitch(switchId)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -154,6 +154,23 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/{id}/element-listing/file")
+    fun getPlanElementListingCsv(
+        @PathVariable("id") id: IntId<GeometryPlan>,
+        @RequestParam("elementTypes") elementTypes: List<GeometryElementType>,
+    ): ResponseEntity<ByteArray> {
+        log.apiCall("getPlanElementList")
+        val (filename, content) = geometryService.getElementListingCsv(id, elementTypes)
+
+        val headers = HttpHeaders()
+        headers.contentType = MediaType.APPLICATION_OCTET_STREAM
+        headers.set(
+            HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment().filename("${filename}.csv").build().toString())
+        return ResponseEntity.ok().headers(headers).body(content)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/layout/location-tracks/{id}/element-listing")
     fun getTrackElementListing(
         @PathVariable("id") id: IntId<LocationTrack>,
@@ -166,20 +183,22 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/layout/location-tracks/{id}/element-listing-csv")
+    @GetMapping("/layout/location-tracks/{id}/element-listing/file")
     fun getTrackElementListingCSV(
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("elementTypes") elementTypes: List<TrackGeometryElementType>,
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanElementList")
+        log.apiCall("getPlanElementListCsv")
+        val (filename, content) = geometryService
+            .getElementListingCsv(id, elementTypes, startAddress, endAddress)
+
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_OCTET_STREAM
         headers.set(
             HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename("${id}.csv").build().toString())
-        return ResponseEntity.ok().headers(headers).body(geometryService
-            .getElementListingCsv(id, elementTypes, startAddress, endAddress).toByteArray())
+            ContentDisposition.attachment().filename("${filename}.csv").build().toString())
+        return ResponseEntity.ok().headers(headers).body(content)
     }
 }

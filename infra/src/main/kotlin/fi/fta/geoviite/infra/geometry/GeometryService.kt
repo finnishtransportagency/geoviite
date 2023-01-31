@@ -21,7 +21,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.io.StringWriter
 import java.time.Instant
 
 
@@ -243,6 +242,18 @@ class GeometryService @Autowired constructor(
         return toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
     }
 
+    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): Pair<String, ByteArray> {
+        logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
+        val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
+        val context = plan.trackNumberId?.let { tnId ->
+            geocodingService.getGeocodingContext(OFFICIAL, tnId)
+        }
+        val elementListing = toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
+
+        val csvFileContent = elementListingToCsv(elementListing)
+        return plan.fileName.toString() to csvFileContent
+    }
+
     fun getElementListing(
         trackId: IntId<LocationTrack>,
         elementTypes: List<TrackGeometryElementType>,
@@ -271,7 +282,7 @@ class GeometryService @Autowired constructor(
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
-    ): String {
+    ): Pair<String, ByteArray> {
         logger.serviceCall("getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
             "startAddress" to startAddress, "endAdress" to endAddress,
@@ -287,36 +298,48 @@ class GeometryService @Autowired constructor(
             endAddress,
             ::getHeaderAndAlignment,
         )
+
+        val csvFileContent = elementListingToCsv(elementListing)
+        return track.name.toString() to csvFileContent
+    }
+
+    private fun elementListingToCsv(
+        elementListing: List<ElementListing>,
+    ): ByteArray {
         val trackNumbers = trackNumberService.list(OFFICIAL)
 
-        val writer = StringWriter()
-        CSVPrinter(writer, CSVFormat.EXCEL).let { wryy ->
-            wryy.printRecord(ELEMENT_LISTING_CSV_HEADERS)
+        val csvBuilder = StringBuilder()
+        CSVPrinter(csvBuilder, CSVFormat.EXCEL).let { csvPrinter ->
+            try {
+                csvPrinter.printRecord(ELEMENT_LISTING_CSV_HEADERS)
 
-            elementListing.forEach {
-                wryy.printRecord(
-                    it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
-                    it.alignmentName,
-                    it.elementType.let(::translateTrackGeometryElementType),
-                    it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                    it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                    it.start.coordinate.x,
-                    it.start.coordinate.y,
-                    it.end.coordinate.x,
-                    it.end.coordinate.y,
-                    it.lengthMeters,
-                    it.start.radiusMeters,
-                    it.end.radiusMeters,
-                    it.start.cant,
-                    it.end.cant,
-                    it.start.directionGrads,
-                    it.end.directionGrads,
-                    it.fileName,
-                    it.coordinateSystemName
-                )
+                elementListing.forEach {
+                    csvPrinter.printRecord(
+                        it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
+                        it.alignmentName,
+                        it.elementType.let(::translateTrackGeometryElementType),
+                        it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                        it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                        it.start.coordinate.x,
+                        it.start.coordinate.y,
+                        it.end.coordinate.x,
+                        it.end.coordinate.y,
+                        it.lengthMeters,
+                        it.start.radiusMeters,
+                        it.end.radiusMeters,
+                        it.start.cant,
+                        it.end.cant,
+                        it.start.directionGrads,
+                        it.end.directionGrads,
+                        it.fileName,
+                        it.coordinateSystemName
+                    )
+                }
+            } finally {
+                csvPrinter.close()
             }
         }
-        return writer.toString()
+        return csvBuilder.toString().toByteArray()
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
