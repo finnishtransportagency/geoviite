@@ -228,10 +228,11 @@ const MapView: React.FC<MapViewProps> = ({
         const clusterPoint = selection.selectedItems.clusterPoints[0];
 
         if (!olMap || !clusterPoint) return;
-        const pos = [clusterPoint.x + 0.5, clusterPoint.y];
+        const pos = [clusterPoint.x, clusterPoint.y];
         const popupElement = document.getElementById('clusteroverlay') || undefined;
         const popup = new Overlay({
             position: pos,
+            offset: [7, 0],
             element: popupElement,
         });
         olMap.addOverlay(popup);
