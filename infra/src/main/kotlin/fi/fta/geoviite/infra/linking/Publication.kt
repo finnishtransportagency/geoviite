@@ -11,6 +11,29 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
+
+enum class PublicationCsvSortField {
+    NAME,
+    TRACK_NUMBERS,
+    CHANGED_KM_NUMBERS,
+    OPERATION,
+    PUBLICATION_TIME,
+    PUBLICATION_USER,
+    DEFINITION,
+    RATKO_PUSH_TIME,
+}
+
+data class PublicationCsvRow(
+    val name: String,
+    val trackNumbers: List<TrackNumber>,
+    val changedKmNumbers: List<KmNumber>? = null,
+    val operation: Operation,
+    val publicationTime: Instant,
+    val publicationUser: UserName,
+    val definition: String,
+    val ratkoPushTime: Instant?,
+)
+
 open class Publication(
     open val id: IntId<Publication>,
     open val publicationTime: Instant,
@@ -22,7 +45,7 @@ data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
     val id: IntId<TrackLayoutTrackNumber> = version.id,
     val number: TrackNumber,
-    val operation: Operation
+    val operation: Operation,
 )
 
 data class PublishedReferenceLine(
@@ -76,18 +99,14 @@ data class PublicationDetails(
 ) : Publication(id, publicationTime, publicationUser, message)
 
 enum class DraftChangeType {
-    TRACK_NUMBER,
-    LOCATION_TRACK,
-    REFERENCE_LINE,
-    SWITCH,
-    KM_POST,
+    TRACK_NUMBER, LOCATION_TRACK, REFERENCE_LINE, SWITCH, KM_POST,
 }
 
-enum class Operation {
-    CREATE,
-    MODIFY,
-    DELETE,
-    RESTORE
+enum class Operation(val priority: Int) {
+    CREATE(0),
+    MODIFY(1),
+    DELETE(2),
+    RESTORE(3),
 }
 
 data class ValidatedPublishCandidates(
@@ -102,14 +121,13 @@ data class PublishCandidates(
     val switches: List<SwitchPublishCandidate>,
     val kmPosts: List<KmPostPublishCandidate>,
 ) {
-    fun candidatesInRequest(versions: PublicationVersions) =
-        PublishCandidates(
-            trackNumbers.filter { candidate -> versions.containsTrackNumber(candidate.id) },
-            locationTracks.filter { candidate -> versions.containsLocationTrack(candidate.id) },
-            referenceLines.filter { candidate -> versions.containsReferenceLine(candidate.id) },
-            switches.filter { candidate -> versions.containsSwitch(candidate.id) },
-            kmPosts.filter { candidate -> versions.containsKmPost(candidate.id) },
-        )
+    fun candidatesInRequest(versions: PublicationVersions) = PublishCandidates(
+        trackNumbers.filter { candidate -> versions.containsTrackNumber(candidate.id) },
+        locationTracks.filter { candidate -> versions.containsLocationTrack(candidate.id) },
+        referenceLines.filter { candidate -> versions.containsReferenceLine(candidate.id) },
+        switches.filter { candidate -> versions.containsSwitch(candidate.id) },
+        kmPosts.filter { candidate -> versions.containsKmPost(candidate.id) },
+    )
 
     fun ids(): PublishRequestIds = PublishRequestIds(
         trackNumbers.map { candidate -> candidate.id },
@@ -125,7 +143,8 @@ data class PublishCandidates(
     fun getKmPost(id: IntId<TrackLayoutKmPost>): KmPostPublishCandidate = getOrThrow(kmPosts, id)
     fun getSwitch(id: IntId<TrackLayoutSwitch>): SwitchPublishCandidate = getOrThrow(switches, id)
 }
-private inline fun <reified T, reified S: PublishCandidate<T>> getOrThrow(all: List<S>, id: IntId<T>) =
+
+private inline fun <reified T, reified S : PublishCandidate<T>> getOrThrow(all: List<S>, id: IntId<T>) =
     all.find { c -> c.id == id } ?: throw NoSuchEntityException(S::class, id)
 
 data class PublicationVersions(
@@ -163,14 +182,13 @@ data class PublishRequestIds(
     )
 
 
-    operator fun minus(other: PublishRequestIds) =
-        PublishRequestIds(
-            trackNumbers - other.trackNumbers.toSet(),
-            locationTracks - other.locationTracks.toSet(),
-            referenceLines - other.referenceLines.toSet(),
-            switches - other.switches.toSet(),
-            kmPosts - other.kmPosts.toSet(),
-        )
+    operator fun minus(other: PublishRequestIds) = PublishRequestIds(
+        trackNumbers - other.trackNumbers.toSet(),
+        locationTracks - other.locationTracks.toSet(),
+        referenceLines - other.referenceLines.toSet(),
+        switches - other.switches.toSet(),
+        kmPosts - other.kmPosts.toSet(),
+    )
 }
 
 data class PublishRequest(
@@ -197,8 +215,11 @@ data class PublishValidationError(
     val localizationKey: LocalizationKey,
     val params: List<String> = listOf(),
 ) {
-    constructor(type: PublishValidationErrorType, localizationKey: String, params: List<String> = listOf())
-            : this(type, LocalizationKey(localizationKey), params)
+    constructor(type: PublishValidationErrorType, localizationKey: String, params: List<String> = listOf()) : this(
+        type,
+        LocalizationKey(localizationKey),
+        params
+    )
 }
 
 interface PublishCandidate<T> {
@@ -216,7 +237,7 @@ data class TrackNumberPublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation
+    override val operation: Operation,
 ) : PublishCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
 }
@@ -228,7 +249,7 @@ data class ReferenceLinePublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation?
+    override val operation: Operation?,
 ) : PublishCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
 }
@@ -241,7 +262,7 @@ data class LocationTrackPublishCandidate(
     val duplicateOf: IntId<LocationTrack>?,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation
+    override val operation: Operation,
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
 }
@@ -253,7 +274,7 @@ data class SwitchPublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation
+    override val operation: Operation,
 ) : PublishCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
 }
@@ -265,13 +286,13 @@ data class KmPostPublishCandidate(
     override val draftChangeTime: Instant,
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
-    override val operation: Operation
+    override val operation: Operation,
 ) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }
 
 data class RemovedTrackNumberReferenceIds(
-    val kmPostIds:  List<IntId<GeometryKmPost>>,
-    val alignmentIds:  List<IntId<GeometryAlignment>>,
-    val planIds:  List<IntId<GeometryPlan>>,
+    val kmPostIds: List<IntId<GeometryKmPost>>,
+    val alignmentIds: List<IntId<GeometryAlignment>>,
+    val planIds: List<IntId<GeometryPlan>>,
 )
