@@ -25,6 +25,7 @@ import { OnSelectOptions } from 'selection/selection-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { BoundingBox } from 'model/geometry';
+import InfoboxText from 'tool-panel/infobox/infobox-text';
 
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
@@ -115,9 +116,20 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
             )}
 
             {planHeader && <GeometryPlanInfobox planHeader={planHeader} />}
-            {segment && planHeader && (
-                <GeometrySegmentInfobox chosenSegment={segment} planHeader={planHeader} />
-            )}
+            {planHeader &&
+                (segment ? (
+                    <GeometrySegmentInfobox chosenSegment={segment} planHeader={planHeader} />
+                ) : (
+                    <Infobox title={t('tool-panel.alignment.geometry-segment.title')}>
+                        <InfoboxContent>
+                            <InfoboxText
+                                value={t(
+                                    'tool-panel.alignment.geometry-segment.no-segment-selected',
+                                )}
+                            />
+                        </InfoboxContent>
+                    </Infobox>
+                ))}
         </React.Fragment>
     );
 };

@@ -14,7 +14,6 @@ import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useAppNavigate } from 'common/navigate';
-import { Link } from 'vayla-design-lib/link/link';
 import { INFRAMODEL_URI } from 'infra-model/infra-model-api';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getCoordinateSystem } from 'common/common-api';
@@ -162,14 +161,16 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                         {t('tool-panel.geometry-plan.open-inframodel')}
                     </Button>
                     {planHeader.source !== 'PAIKANNUSPALVELU' && (
-                        <Link
+                        <Button
+                            size={ButtonSize.SMALL}
+                            variant={ButtonVariant.SECONDARY}
                             className={styles['geometry-plan-tool-panel__download-link']}
-                            href={`${INFRAMODEL_URI}/${planHeader.id}/file`}>
-                            <Button size={ButtonSize.SMALL} variant={ButtonVariant.SECONDARY}>
-                                <Icons.Download size={IconSize.SMALL} />{' '}
-                                {t('tool-panel.geometry-plan.download-file')}
-                            </Button>
-                        </Link>
+                            onClick={() =>
+                                (location.href = `${INFRAMODEL_URI}/${planHeader.id}/file`)
+                            }>
+                            <Icons.Download size={IconSize.SMALL} />{' '}
+                            {t('tool-panel.geometry-plan.download-file')}
+                        </Button>
                     )}
                 </InfoboxButtons>
             </InfoboxContent>
