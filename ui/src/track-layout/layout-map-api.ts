@@ -20,6 +20,7 @@ const alignmentTilesCache = asyncCache<string, MapAlignment[]>();
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
 type MapDataType = 'alignments' | 'location-tracks' | 'reference-lines';
+export type AlignmentFetchType = 'locationtrack' | 'reference' | 'all';
 
 function mapUri(dataType: MapDataType, publishType: PublishType, id?: string): string {
     const baseUri = `${TRACK_LAYOUT_URI}/map/${publishType.toLowerCase()}/${dataType}`;
@@ -34,12 +35,12 @@ export async function getAlignmentsByTile(
     changeTime: TimeStamp,
     mapTile: MapTile,
     publishType: PublishType,
-    referenceLineOnly: boolean,
+    fetchType: AlignmentFetchType,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
-    const tileKey = `${mapTile.id}_${publishType}_${referenceLineOnly ? '1' : '0'}`;
+    const tileKey = `${mapTile.id}_${publishType}_${fetchType}`;
     return alignmentTilesCache.get(changeTime, tileKey, () =>
-        getAlignments(mapTile.area, mapTile.resolution, publishType, referenceLineOnly, selectedId),
+        getAlignments(mapTile.area, mapTile.resolution, publishType, fetchType, selectedId),
     );
 }
 
@@ -47,13 +48,13 @@ export async function getAlignmentsByTiles(
     changeTime: TimeStamp,
     mapTiles: MapTile[],
     publishType: PublishType,
-    referenceLineOnly: boolean,
+    fetchType: AlignmentFetchType,
     selectedId?: AlignmentId,
 ): Promise<MapAlignment[]> {
     return (
         await Promise.all(
             mapTiles.map((tile) =>
-                getAlignmentsByTile(changeTime, tile, publishType, referenceLineOnly, selectedId),
+                getAlignmentsByTile(changeTime, tile, publishType, fetchType, selectedId),
             ),
         )
     ).flat();
@@ -87,7 +88,7 @@ export async function getLinkPointsByTiles(
 ): Promise<LinkPoint[]> {
     return (
         await Promise.all(
-            mapTiles.map((tile) => getAlignmentsByTile(changeTime, tile, 'DRAFT', false)),
+            mapTiles.map((tile) => getAlignmentsByTile(changeTime, tile, 'DRAFT', 'all')),
         ).then((alignments) => {
             const allAlignments = alignments.flat().filter((a) => a.alignmentType == alignmentType);
             if (allAlignments.length == 0) return [];
@@ -138,13 +139,13 @@ async function getAlignments(
     area: BoundingBox,
     resolution: number,
     publishType: PublishType,
-    referenceLineOnly: boolean,
+    fetchType: AlignmentFetchType,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
     const params = queryParams({
         resolution: toMapAlignmentResolution(resolution),
         bbox: bboxString(area),
-        type: referenceLineOnly ? 'REFERENCE' : null,
+        type: fetchType.toUpperCase(),
         selectedId,
     });
     return await getWithDefault<MapAlignment[]>(

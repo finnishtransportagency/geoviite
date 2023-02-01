@@ -494,7 +494,7 @@ adapterInfoRegister.add('alignment', {
             ),
             mapTiles,
             publishType,
-            resolution > Limits.ALL_ALIGNMENTS,
+            resolution > Limits.ALL_ALIGNMENTS ? 'reference' : 'all',
             selectedAlignment,
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
