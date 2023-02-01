@@ -82,7 +82,7 @@ fun toElementListing(
     val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
     return linkedElementIds.mapNotNull { (segment, elementId) ->
         if (elementId == null) {
-            if (elementTypes.contains(MISSING_SECTION)) toElementListing(context, track.trackNumberId, segment)
+            if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(context, track.trackNumberId, segment)
             else null
         }
         else {
@@ -111,7 +111,7 @@ fun toElementListing(
         .map { element -> toElementListing(context, getTransformation, plan, alignment, element) }
 }
 
-private fun toElementListing(
+private fun toMissingElementListing(
     context: GeocodingContext?,
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     segment: LayoutSegment,
