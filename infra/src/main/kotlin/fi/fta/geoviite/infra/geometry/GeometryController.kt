@@ -159,7 +159,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @PathVariable("id") id: IntId<GeometryPlan>,
         @RequestParam("elementTypes") elementTypes: List<GeometryElementType>,
     ): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanElementList")
+        log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes)
 
         val headers = HttpHeaders()
@@ -178,7 +178,9 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<ElementListing> {
-        log.apiCall("getPlanElementList")
+        log.apiCall("getPlanElementList",
+            "id" to id, "elementTypes" to elementTypes, "startAddress" to startAddress,
+            "endAddress" to endAddress)
         return geometryService.getElementListing(id, elementTypes, startAddress, endAddress)
     }
 
@@ -190,7 +192,9 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanElementListCsv")
+        log.apiCall("getPlanElementListCsv",
+            "id" to id, "elementTypes" to elementTypes, "startAddress" to startAddress,
+            "endAddress" to endAddress)
         val (filename, content) = geometryService
             .getElementListingCsv(id, elementTypes, startAddress, endAddress)
 
