@@ -5,9 +5,26 @@
 
     &__radio-layout > .radio {
         margin-right: 20px;
-        position: relative;
-        top: 10px;
+        display: inline-block;
+        margin-top: 15px;
+        margin-bottom: 20px;
     }
+
+    &__table-layout {
+        margin-top: 100px;
+        position: absolute;
+    }
+
+    &__table-container {
+        width: 1800px;
+        overflow-x: auto;
+    }
+
+    /*
+    &__table-heading {
+        //mieti otsikoiden rivitys
+    }
+     */
 }
 
 .element-list__geometry-search {

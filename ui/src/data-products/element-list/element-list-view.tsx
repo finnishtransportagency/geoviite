@@ -14,6 +14,7 @@ import {
 } from 'data-products/element-list/element-list-store';
 import { createDelegates } from 'store/store-utils';
 import PlanGeometrySearch from 'data-products/element-list/plan-geometry-search';
+import { ElementTable } from 'data-products/element-list/element-table';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -52,18 +53,21 @@ const ElementListView = () => {
                         </Radio>
                     </span>
                 </div>
-                {continuousGeometrySelected ? (
-                    <ContinuousGeometrySearch
-                        state={continuousSearchState}
-                        onUpdateProp={continuousSearchStateActions.onUpdateProp}
-                        onCommitField={continuousSearchStateActions.onCommitField}
-                    />
-                ) : (
-                    <PlanGeometrySearch
-                        state={planSearchState}
-                        onUpdateProp={planSearchStateActions.onUpdateProp}
-                    />
-                )}
+                <span>
+                    {continuousGeometrySelected ? (
+                        <ContinuousGeometrySearch
+                            state={continuousSearchState}
+                            onUpdateProp={continuousSearchStateActions.onUpdateProp}
+                            onCommitField={continuousSearchStateActions.onCommitField}
+                        />
+                    ) : (
+                        <PlanGeometrySearch
+                            state={planSearchState}
+                            onUpdateProp={planSearchStateActions.onUpdateProp}
+                        />
+                    )}
+                </span>
+                <ElementTable />
             </div>
         </EnvRestricted>
     );

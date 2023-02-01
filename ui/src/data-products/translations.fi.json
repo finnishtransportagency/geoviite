@@ -18,6 +18,7 @@
             "continuous-geometry": "Jatkuva geometria",
             "plan-geometry": "Suunnitelman geometria",
             "geometry-elements": "Geometriaelementit",
+            "pcs": "kpl",
             "element-list-table": {
                 "track-number": "Ratanumero",
                 "alignment": "Raide",
@@ -36,7 +37,12 @@
                 "angle-start": "Suuntakulma alussa (grad)",
                 "angle-end": "Suuntakulma lopussa (grad)",
                 "plan": "Suunnitelma",
-                "coordinate-system": "Koordinaatisto"
+                "coordinate-system": "Koordinaatisto",
+                "LINE": "Suora",
+                "CURVE": "Kaari",
+                "CLOTHOID": "Siirtymäkaari",
+                "BIQUADRATIC_PARABOLA": "Helmert",
+                "missing": "Puuttuu"
             }
         }
     }
