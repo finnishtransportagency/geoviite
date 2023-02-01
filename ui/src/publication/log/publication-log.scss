@@ -1,11 +1,16 @@
 @import '../../vayla-design-lib/colors';
 @import '../../vayla-design-lib/typography';
 
-.publication-log__datepickers {
+.publication-log__actions {
     display: grid;
-    grid-template-columns: max-content max-content;
+    grid-template-columns: max-content max-content auto;
     gap: 12px;
-    padding-left: 24px;
+    padding: 0 24px;
+}
+
+.publication-log__export_button {
+    align-self: end;
+    justify-self: end;
 }
 
 .publication-log__content {

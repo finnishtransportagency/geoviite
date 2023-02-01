@@ -5,10 +5,12 @@ import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
 import { addDays, startOfDay, subMonths } from 'date-fns';
-import { getPublications } from 'publication/publication-api';
+import { getPublications, publicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PublicationDetails } from 'publication/publication-model';
+import { Button } from 'vayla-design-lib/button/button';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 
 export type PublicationLogViewProps = {
     onClose: () => void;
@@ -40,7 +42,7 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                     {' > ' + t('publication-log.breadcrumbs-text')}
                 </span>
             </div>
-            <div className={styles['publication-log__datepickers']}>
+            <div className={styles['publication-log__actions']}>
                 <div>
                     {t('publication-log.start-date')}
                     <DatePicker
@@ -51,6 +53,13 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                 <div>
                     {t('publication-log.end-date')}
                     <DatePicker value={endDate} onChange={(endDate) => setEndDate(endDate)} />
+                </div>
+                <div className={styles['publication-log__export_button']}>
+                    <Button
+                        icon={Icons.Download}
+                        onClick={() => (location.href = publicationsCsvUri)}>
+                        {t('publication-log.export-csv')}
+                    </Button>
                 </div>
             </div>
             <div className={styles['publication-log__content']}>

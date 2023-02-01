@@ -20,7 +20,8 @@
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",
-        "end-date": "Loppupvm."
+        "end-date": "Loppupvm.",
+        "export-csv": "Lataa CSV"
     },
     "publication-card": {
         "latest": "Viimeisimmät",

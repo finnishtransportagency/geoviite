@@ -106,6 +106,8 @@ export const getPublications = (fromDate?: Date, toDate?: Date) => {
     return getIgnoreError<PublicationDetails[]>(`${PUBLICATION_URL}${params}`);
 };
 
+export const publicationsCsvUri = `${PUBLICATION_URL}/csv`;
+
 export const getPublication = (id: PublicationId) =>
     getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
