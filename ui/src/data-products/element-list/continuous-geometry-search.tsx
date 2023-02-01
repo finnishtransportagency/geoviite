@@ -17,7 +17,10 @@ import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-trac
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import { useLoader } from 'utils/react-utils';
-import { getLocationTrackElements } from 'geometry/geometry-api';
+import { GEOMETRY_URI, getLocationTrackElements } from 'geometry/geometry-api';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { queryParams } from 'api/api-fetch';
+import { Button } from 'vayla-design-lib/button/button';
 
 type ContinuousGeometrySearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -86,6 +89,12 @@ const ContinuousGeometrySearch = ({
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
+    const searchQueryParameters = queryParams({
+        elementTypes: selectedElementTypes(state.searchParameters.searchGeometries),
+        startAddress: validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+        endAddress: validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+    });
+
     // TODO Use plans when table is added
     const _plans = useLoader(() => {
         if (!selectedLocationTrack || hasErrors('searchGeometries')) return Promise.resolve([]);
@@ -97,6 +106,8 @@ const ContinuousGeometrySearch = ({
             validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
         );
     }, [selectedLocationTrack, state.searchParameters]);
+
+    const downloadUri = `${GEOMETRY_URI}/layout/location-tracks/${selectedLocationTrack?.id}/element-listing/file${searchQueryParameters}`;
 
     return (
         <div className={styles['element-list__geometry-search']}>
@@ -193,6 +204,12 @@ const ContinuousGeometrySearch = ({
                     errors={getVisibleErrorsByProp('searchGeometries')}
                 />
             </div>
+            <Button
+                className={styles['element-list__download-button']}
+                disabled={!_plans || _plans.length === 0}
+                onClick={() => (location.href = downloadUri)}>
+                <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
+            </Button>
         </div>
     );
 };

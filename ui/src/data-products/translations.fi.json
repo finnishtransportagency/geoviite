@@ -12,7 +12,8 @@
                 "missing-section": "Puuttuva osuus",
                 "no-types-selected": "Valitse vähintään yksi elementin tyyppi",
                 "invalid-track-meter": "Tarkista osoitteen muoto",
-                "not-selected": "Ei valittu"
+                "not-selected": "Ei valittu",
+                "download-csv": "Lataa CSV"
             },
             "element-list-title": "Elementtiluettelo",
             "continuous-geometry": "Jatkuva geometria",

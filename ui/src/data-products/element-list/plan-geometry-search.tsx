@@ -11,9 +11,16 @@ import {
 import { isNullOrBlank } from 'utils/string-utils';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
-import { getGeometryPlanElements, getGeometryPlanHeaders } from 'geometry/geometry-api';
+import {
+    GEOMETRY_URI,
+    getGeometryPlanElements,
+    getGeometryPlanHeaders,
+} from 'geometry/geometry-api';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
 import { useLoader } from 'utils/react-utils';
+import { queryParams } from 'api/api-fetch';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { Button } from 'vayla-design-lib/button/button';
 
 type ContinuousGeometrySearchProps = {
     state: PlanGeometrySearchState;
@@ -84,14 +91,22 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
+    const searchQueryParameters = queryParams({
+        elementTypes: selectedElementTypes(state.searchGeometries),
+    });
+
+    const canSearch = selectedPlanHeader && !hasErrors('searchGeometries');
+
     const _plans = useLoader(() => {
-        if (!selectedPlanHeader || hasErrors('searchGeometries')) return Promise.resolve([]);
+        if (!canSearch) return Promise.resolve([]);
 
         return getGeometryPlanElements(
             selectedPlanHeader.id,
             selectedElementTypes(state.searchGeometries),
         );
     }, [selectedPlanHeader, state.searchGeometries]);
+
+    const downloadUri = `${GEOMETRY_URI}/plans/${selectedPlanHeader?.id}/element-listing/file${searchQueryParameters}`;
 
     return (
         <div className={styles['element-list__geometry-search']}>
@@ -153,6 +168,12 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
                     errors={getVisibleErrorsByProp('searchGeometries')}
                 />
             </div>
+            <Button
+                className={styles['element-list__download-button']}
+                disabled={!_plans || _plans.length === 0}
+                onClick={() => (location.href = downloadUri)}>
+                <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
+            </Button>
         </div>
     );
 };
