@@ -26,27 +26,6 @@ import java.time.Instant
 
 const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformation"
 
-val ELEMENT_LISTING_CSV_HEADERS = listOf(
-        "Ratanumero",
-        "Raide",
-        "Elementin tyyppi",
-        "Rataosoite alussa",
-        "Rataosoite lopussa",
-        "Sijainti alussa E",
-        "Sijainti alussa N",
-        "Sijainti lopussa E",
-        "Sijainti lopussa N",
-        "Pituus (m)",
-        "Kaarresäde alussa",
-        "Kaarresäde lopussa",
-        "Kallistus alussa",
-        "Kallistus lopussa",
-        "Suuntakulma alussa (grad)",
-        "Suuntakulma lopussa (grad)",
-        "Suunnitelma",
-        "Koordinaatisto"
-    )
-
 data class TransformationError(
     private val key: String,
     private val units: GeometryUnits,
@@ -309,7 +288,7 @@ class GeometryService @Autowired constructor(
         val trackNumbers = trackNumberService.list(OFFICIAL)
 
         val csvBuilder = StringBuilder()
-        CSVPrinter(csvBuilder, CSVFormat.EXCEL).let { csvPrinter ->
+        CSVPrinter(csvBuilder, CSVFormat.RFC4180).let { csvPrinter ->
             try {
                 csvPrinter.printRecord(ELEMENT_LISTING_CSV_HEADERS)
 
@@ -332,7 +311,8 @@ class GeometryService @Autowired constructor(
                         it.start.directionGrads,
                         it.end.directionGrads,
                         it.fileName,
-                        it.coordinateSystemName
+                        null, // TODO Add plan source (geometriapalvelu/paikannuspalvelu/geoviite) when ElementListing supports it
+                        it.coordinateSystemSrid ?: it.coordinateSystemName
                     )
                 }
             } finally {
@@ -405,15 +385,6 @@ private fun splitSearchTerms(freeText: FreeText?): List<String> =
         ?.map { s -> s.lowercase().trim() }
         ?.filter(String::isNotBlank)
         ?: listOf()
-
-private fun translateTrackGeometryElementType(type: TrackGeometryElementType) =
-    when (type) {
-        TrackGeometryElementType.LINE -> "suora"
-        TrackGeometryElementType.CURVE -> "kaari"
-        TrackGeometryElementType.CLOTHOID -> "siirtymäkaari"
-        TrackGeometryElementType.BIQUADRATIC_PARABOLA -> "helmert"
-        TrackGeometryElementType.MISSING_SECTION -> "generoitu"
-    }
 
 enum class GeometryPlanSortField {
     ID,
