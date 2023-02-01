@@ -135,7 +135,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
     @Test
     fun shouldReturnMultipleUnpublishedLayoutPublishes() {
         val locationTrack2Response = insertAndPublishLocationTrack()
-        val layoutPublishId2 = createPublication(locationTracks = listOf(locationTrack2Response.rowVersion))
+        val layoutPublishId2 = createPublication(locationTracks = listOf(locationTrack2Response.rowVersion), message = "Test")
 
         val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment()
         Assertions.assertTrue(latestPushedMoment < layoutPublishMoment)
@@ -187,11 +187,13 @@ internal class RatkoPushDaoIT @Autowired constructor(
         locationTracks: List<RowVersion<LocationTrack>> = listOf(),
         switches: List<RowVersion<TrackLayoutSwitch>> = listOf(),
         kmPosts: List<RowVersion<TrackLayoutKmPost>> = listOf(),
+        message: String = ""
     ) = publicationDao.createPublication(
         trackNumbers = trackNumbers,
         referenceLines = referenceLines,
         locationTracks = locationTracks,
         switches = switches,
         kmPosts = kmPosts,
+        message = message
     )
 }

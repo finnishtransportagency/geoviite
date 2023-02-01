@@ -94,7 +94,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val publicationVersions = publicationService.getPublicationVersions(publishRequest)
         val draftCalculatedChanges = getCalculatedChangesInRequest(publicationVersions)
-        val publishResult = publicationService.publishChanges(publicationVersions, draftCalculatedChanges)
+        val publishResult = publicationService.publishChanges(publicationVersions, draftCalculatedChanges, "Test")
         val afterInsert = getDbTime()
         assertNotNull(publishResult.publishId)
         val publish = publicationService.getPublicationDetails(publishResult.publishId!!)
@@ -163,7 +163,7 @@ class PublicationServiceIT @Autowired constructor(
         val publishRequest = publishRequest(referenceLines = listOf(draftId))
         val versions = publicationService.getPublicationVersions(publishRequest)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
-        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges)
+        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges, "Test")
         assertNotNull(publishResult.publishId)
         assertEquals(0, publishResult.trackNumbers)
         assertEquals(1, publishResult.referenceLines)
@@ -596,7 +596,7 @@ class PublicationServiceIT @Autowired constructor(
         val versions = publicationService.getPublicationVersions(request)
         verifyVersions(request, versions)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
-        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges)
+        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges, "Test")
         assertNotNull(publishResult.publishId)
         verifyPublished(versions.trackNumbers, trackNumberDao) { draft, published ->
             assertMatches(draft.copy(draft = null), published)

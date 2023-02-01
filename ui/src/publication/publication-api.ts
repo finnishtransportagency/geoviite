@@ -25,13 +25,17 @@ import { formatISODate } from 'utils/date-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
-export interface PublishRequest {
+export type PublishRequest = {
     trackNumbers: LayoutTrackNumberId[];
     referenceLines: ReferenceLineId[];
     locationTracks: LocationTrackId[];
     switches: LayoutSwitchId[];
     kmPosts: LayoutKmPostId[];
-}
+};
+
+export type PublishRequestWithMessage = {
+    message: string;
+} & PublishRequest;
 
 export interface PublishResult {
     trackNumbers: number;
@@ -89,8 +93,8 @@ export const validatePublishCandidates = (request: PublishRequest) =>
 export const revertCandidates = (request: PublishRequest) =>
     deleteAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
 
-export const publishCandidates = (request: PublishRequest) => {
-    return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
+export const publishCandidates = (request: PublishRequestWithMessage) => {
+    return postAdt<PublishRequestWithMessage, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
 export const getPublications = (fromDate?: Date, toDate?: Date) => {

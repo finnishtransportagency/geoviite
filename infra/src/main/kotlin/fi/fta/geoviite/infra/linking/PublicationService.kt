@@ -300,7 +300,7 @@ class PublicationService @Autowired constructor(
         calculatedChangesService.getCalculatedChangesInDraft(versions)
 
     @Transactional
-    fun publishChanges(versions: PublicationVersions, calculatedChanges: CalculatedChanges): PublishResult {
+    fun publishChanges(versions: PublicationVersions, calculatedChanges: CalculatedChanges, message: String): PublishResult {
         logger.serviceCall("publishChanges", "versions" to versions)
 
         val trackNumbers = versions.trackNumbers.map(trackNumberService::publish).map { r -> r.rowVersion }
@@ -310,7 +310,7 @@ class PublicationService @Autowired constructor(
         val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
 
         val publishId =
-            publicationDao.createPublication(trackNumbers, referenceLines, locationTracks, switches, kmPosts)
+            publicationDao.createPublication(trackNumbers, referenceLines, locationTracks, switches, kmPosts, message)
 
         publicationDao.savePublishCalculatedChanges(publishId, calculatedChanges)
 
@@ -546,6 +546,7 @@ class PublicationService @Autowired constructor(
             id = publication.id,
             publicationTime = publication.publicationTime,
             publicationUser = publication.publicationUser,
+            message = publication.message,
             trackNumbers = trackNumbers,
             referenceLines = referenceLines,
             locationTracks = locationTracks,

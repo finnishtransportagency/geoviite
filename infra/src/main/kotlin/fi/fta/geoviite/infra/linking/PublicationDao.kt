@@ -191,14 +191,15 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         locationTracks: List<RowVersion<LocationTrack>>,
         switches: List<RowVersion<TrackLayoutSwitch>>,
         kmPosts: List<RowVersion<TrackLayoutKmPost>>,
+        message: String,
     ): IntId<Publication> {
         jdbcTemplate.setUser()
         val sql = """
-            insert into publication.publication(publication_user, publication_time)
-            values (current_setting('geoviite.edit_user'), now())
+            insert into publication.publication(publication_user, publication_time, message)
+            values (current_setting('geoviite.edit_user'), now(), :message)
             returning id
         """.trimIndent()
-        val publicationId: IntId<Publication> = jdbcTemplate.queryForObject(sql, mapOf<String, Any>()) { rs, _ ->
+        val publicationId: IntId<Publication> = jdbcTemplate.queryForObject(sql, mapOf<String, Any>("message" to message)) { rs, _ ->
             rs.getIntId("id")
         } ?: throw IllegalStateException("Failed to generate ID for new publish row")
 
@@ -277,7 +278,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             select
               id,
               publication_user,
-              publication_time
+              publication_time,
+              message
             from publication.publication
             where publication.id = :id
         """.trimIndent()
@@ -288,7 +290,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 Publication(
                     id = rs.getIntId("id"),
                     publicationUser = rs.getString("publication_user").let(::UserName),
-                    publicationTime = rs.getInstant("publication_time")
+                    publicationTime = rs.getInstant("publication_time"),
+                    message = rs.getString("message")
                 )
             }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }
@@ -317,7 +320,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     //Inclusive from/start time, but exclusive to/end time
     fun fetchPublications(from: Instant?, to: Instant?): List<Publication> {
         val sql = """
-            select id, publication_user, publication_time
+            select id, publication_user, publication_time, message
             from publication.publication
             where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
         """.trimIndent()
@@ -331,7 +334,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             Publication(
                 id = rs.getIntId("id"),
                 publicationUser = rs.getString("publication_user").let(::UserName),
-                publicationTime = rs.getInstant("publication_time")
+                publicationTime = rs.getInstant("publication_time"),
+                message = rs.getString("message")
             )
         }.onEach { publication -> logger.daoAccess(FETCH, Publication::class, publication.id) }
     }
