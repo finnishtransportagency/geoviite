@@ -207,9 +207,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanId(newFile: InfraModelFile): IntId<GeometryPlan>? {
+    fun getDuplicateGeometryPlanHeader(newFile: InfraModelFile): GeometryPlanHeader? {
         logger.serviceCall("getDuplicateGeometryPlanId", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanId(newFile)
+        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile)?.let(geometryDao::fetchPlanHeader)
     }
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {

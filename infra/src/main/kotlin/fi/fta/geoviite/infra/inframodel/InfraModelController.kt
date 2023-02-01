@@ -106,7 +106,7 @@ class InfraModelController @Autowired constructor(
         return infraModelService.validateInfraModelFile(file, overrideParameters)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/{planId}/validate")
     fun validateGeometryPlan(
         @PathVariable("planId") planId: IntId<GeometryPlan>,

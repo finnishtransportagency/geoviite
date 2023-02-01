@@ -20,7 +20,6 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.GEOMETRY_PLAN
-import org.apache.logging.log4j.core.util.NameUtil.md5
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -150,15 +149,20 @@ class GeometryDao @Autowired constructor(
         val sql = """
            insert into geometry.plan_file(plan_id, name, content) 
            values (:plan_id, :file_name, xmlparse(document :file_content))
-           returning id
+           returning id, hash
        """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
             "file_name" to file.name,
             "file_content" to file.content,
         )
-        val fileId = jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId<InfraModelFile>("id") }
-            ?: throw IllegalStateException("Failed to get generated ID for new plan")
+        val (fileId, hash) = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getIntId<InfraModelFile>("id") to rs.getString("hash")
+        } ?: throw IllegalStateException("Failed to insert plan file into DB")
+        require(hash == file.hash) {
+            "Backend hash calculation should match the automatic DB-generated: file=${file.name} db=$hash backend=${file.hash}"
+        }
+
         logger.daoAccess(INSERT, InfraModelFile::class, fileId)
         return fileId
     }
@@ -178,19 +182,20 @@ class GeometryDao @Autowired constructor(
         })
     }
 
-    fun fetchDuplicateGeometryPlanId(newFile: InfraModelFile): IntId<GeometryPlan>? {
+    fun fetchDuplicateGeometryPlanVersion(newFile: InfraModelFile): RowVersion<GeometryPlan>? {
+        //language=SQL
         val sql = """
             select
-              plan_file.id
-              from geometry.plan_file
-              where hash = :hash
+              plan.id, plan.version
+            from geometry.plan left join geometry.plan_file on plan.id = plan_file.plan_id
+              where plan_file.hash = :hash
         """.trimIndent()
-        val params = mapOf(
-            "hash" to md5(newFile.content)
-        )
+        val params = mapOf("hash" to newFile.hash)
 
         logger.daoAccess(FETCH, InfraModelFile::class, params)
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getIntIdOrNull("id") }
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+            rs.getRowVersion("id", "version")
+        }
     }
 
     @Transactional
