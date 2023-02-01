@@ -40,7 +40,7 @@ import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
 
-const GEOMETRY_URI = `${API_URI}/geometry`;
+export const GEOMETRY_URI = `${API_URI}/geometry`;
 
 const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | null>();
 const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | null>();
@@ -97,7 +97,7 @@ export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<Geo
 export async function getGeometryPlanElements(
     planId: GeometryPlanId,
     elementTypes: GeometryTypeIncludingMissing[],
-) {
+): Promise<unknown[] | null> {
     const params = queryParams({
         elementTypes,
     });
@@ -109,7 +109,7 @@ export async function getLocationTrackElements(
     elementTypes: GeometryTypeIncludingMissing[],
     startAddress: string | undefined,
     endAddress: string | undefined,
-) {
+): Promise<unknown[] | null> {
     const params = queryParams({
         elementTypes: elementTypes,
         startAddress: startAddress,
