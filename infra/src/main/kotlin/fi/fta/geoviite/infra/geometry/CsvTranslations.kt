@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+val ELEMENT_LISTING = "Elementtilistaus"
 val ELEMENT_LISTING_CSV_HEADERS = listOf(
     "Ratanumero",
     "Raide",

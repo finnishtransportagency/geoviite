@@ -230,7 +230,7 @@ class GeometryService @Autowired constructor(
         val elementListing = toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
 
         val csvFileContent = elementListingToCsv(elementListing)
-        return plan.fileName.toString() to csvFileContent
+        return "${ELEMENT_LISTING} ${plan.fileName}" to csvFileContent
     }
 
     fun getElementListing(
@@ -279,7 +279,7 @@ class GeometryService @Autowired constructor(
         )
 
         val csvFileContent = elementListingToCsv(elementListing)
-        return track.name.toString() to csvFileContent
+        return "${ELEMENT_LISTING} ${track.name}" to csvFileContent
     }
 
     private fun elementListingToCsv(
@@ -311,7 +311,7 @@ class GeometryService @Autowired constructor(
                         it.start.directionGrads,
                         it.end.directionGrads,
                         it.fileName,
-                        null, // TODO Add plan source (geometriapalvelu/paikannuspalvelu/geoviite) when ElementListing supports it
+                        it.planSource,
                         it.coordinateSystemSrid ?: it.coordinateSystemName
                     )
                 }
