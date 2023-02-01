@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.math
 
+import java.math.BigDecimal
 import kotlin.math.*
 
 
@@ -93,6 +94,8 @@ interface IPoint {
     }
 
     fun toPoint() = Point(this)
+
+    fun round(scale: Int) = RoundedPoint(x, y, scale)
 }
 
 data class Point(override val x: Double, override val y: Double) : IPoint {
@@ -109,6 +112,18 @@ data class Point(override val x: Double, override val y: Double) : IPoint {
 
     companion object {
         fun zero(): Point = Point(0.0, 0.0)
+    }
+}
+
+data class RoundedPoint(val roundedX: BigDecimal, val roundedY: BigDecimal): IPoint {
+    override val x: Double get() = roundedX.toDouble()
+    override val y: Double get() = roundedY.toDouble()
+
+    constructor(x: Double, y: Double, scale: Int): this(round(x, scale), round(y, scale))
+    init {
+        require(roundedX.scale() == roundedY.scale()) {
+            "Point X & Y must be rounded to the same scale: x=$roundedX y=$roundedY"
+        }
     }
 }
 

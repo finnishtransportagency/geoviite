@@ -47,7 +47,6 @@ class GeometryDao @Autowired constructor(
         plan: GeometryPlan,
         file: InfraModelFile,
         boundingBoxInLayoutCoordinates: List<Point>?,
-        source: PlanSource = PlanSource.GEOVIITE,
     ): RowVersion<GeometryPlan> {
         jdbcTemplate.setUser()
 
@@ -127,7 +126,7 @@ class GeometryDao @Autowired constructor(
                     else null,
             "vertical_coordinate_system" to plan.units.verticalCoordinateSystem?.name,
             "mapSrid" to LAYOUT_SRID.code,
-            "source" to source.name,
+            "source" to plan.source.name,
             "oid" to plan.oid?.toString(),
             "plan_phase" to plan.planPhase?.name,
             "plan_decision" to plan.decisionPhase?.name,
@@ -705,6 +704,7 @@ class GeometryDao @Autowired constructor(
         val sql = """
             select
               plan.id,
+              plan.source,
               plan.linear_unit,
               plan.direction_unit,
               plan.track_number_id,
@@ -746,6 +746,7 @@ class GeometryDao @Autowired constructor(
             val authorId = rs.getIntIdOrNull<Author>("author_id")
             val geometryPlan = GeometryPlan(
                 id = rs.getIntId("id"),
+                source = rs.getEnum("source"),
                 project = getProject(rs.getIntId("plan_project_id")),
                 author = authorId?.let { id ->
                     Author(id = id, companyName = MetaDataName(rs.getString("author_company_name")))

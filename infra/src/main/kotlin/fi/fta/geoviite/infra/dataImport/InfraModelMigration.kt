@@ -172,6 +172,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                 val metadata = metadatas[xmlFile.nameWithoutExtension]
                 if (metadata == null) logger.warn("No metadata available for file $readablePath")
                 val (plan, file) = parseGeometryPlan(
+                    type,
                     xmlFile,
                     "${dirName}${xmlFile.name}",
                     csMap,
@@ -188,7 +189,7 @@ class V12_01__InfraModelMigration : BaseJavaMigration() {
                     ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
                     ?.let { transformation -> getBoundingPolygonPointsFromAlignments(plan.alignments, transformation) }
 
-                geometryDao.insertPlan(plan, file, layoutBoundingBox, type)
+                geometryDao.insertPlan(plan, file, layoutBoundingBox)
                 imCount++
             }
             catch (e: InframodelParsingException) {

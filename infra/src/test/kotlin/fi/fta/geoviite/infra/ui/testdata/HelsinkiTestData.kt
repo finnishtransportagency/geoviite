@@ -27,6 +27,7 @@ class HelsinkiTestData {
 
         fun geometryPlan(trackLayoutTrackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan {
             return GeometryPlan(
+                source = PlanSource.GEOVIITE,
                 project = createProject(GEOMETRY_PLAN_NAME),
                 application = application(),
                 author = null,
