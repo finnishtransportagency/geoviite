@@ -104,7 +104,7 @@ data class PublishCandidates(
             kmPosts.filter { candidate -> versions.containsKmPost(candidate.id) },
         )
 
-    fun ids(): PublishRequest = PublishRequest(
+    fun ids(): PublishRequestIds = PublishRequestIds(
         trackNumbers.map { candidate -> candidate.id },
         locationTracks.map { candidate -> candidate.id },
         referenceLines.map { candidate -> candidate.id },
@@ -140,14 +140,14 @@ data class PublicationVersions(
 
 data class PublicationVersion<T>(val officialId: IntId<T>, val draftVersion: RowVersion<T>)
 
-data class PublishRequest(
+data class PublishRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,
     val referenceLines: List<IntId<ReferenceLine>>,
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
 ) {
-    constructor(withMessage: PublishRequestWithMessage): this(
+    constructor(withMessage: PublishRequest): this(
         withMessage.trackNumbers,
         withMessage.locationTracks,
         withMessage.referenceLines,
@@ -156,8 +156,8 @@ data class PublishRequest(
     )
 
 
-    operator fun minus(other: PublishRequest) =
-        PublishRequest(
+    operator fun minus(other: PublishRequestIds) =
+        PublishRequestIds(
             trackNumbers - other.trackNumbers.toSet(),
             locationTracks - other.locationTracks.toSet(),
             referenceLines - other.referenceLines.toSet(),
@@ -166,7 +166,7 @@ data class PublishRequest(
         )
 }
 
-data class PublishRequestWithMessage(
+data class PublishRequest(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,
     val referenceLines: List<IntId<ReferenceLine>>,

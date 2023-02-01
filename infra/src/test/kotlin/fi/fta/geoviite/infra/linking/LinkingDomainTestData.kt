@@ -9,7 +9,7 @@ fun publishRequest(
     switches: List<IntId<TrackLayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
-) = PublishRequest(
+) = PublishRequestIds(
     trackNumbers = trackNumbers,
     kmPosts = kmPosts,
     switches = switches,
@@ -40,7 +40,7 @@ fun publish(
     locationTracks: List<IntId<LocationTrack>> = listOf(),
 ) = publish(publicationService, publishRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks))
 
-fun publish(publicationService: PublicationService, request: PublishRequest): PublishResult {
+fun publish(publicationService: PublicationService, request: PublishRequestIds): PublishResult {
     val versions = publicationService.getPublicationVersions(request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
     return publicationService.publishChanges(versions, calculatedChanges, "Test")

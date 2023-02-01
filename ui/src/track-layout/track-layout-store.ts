@@ -23,7 +23,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { addIfExists, subtract } from 'utils/array-utils';
-import { PublishRequest } from 'publication/publication-api';
+import { PublishRequestIds } from 'publication/publication-api';
 
 export type SelectedPublishChanges = {
     trackNumbers: LayoutTrackNumberId[];
@@ -240,7 +240,7 @@ const trackLayoutSlice = createSlice({
 
         onPublishPreviewRemove: function (
             state: TrackLayoutState,
-            action: PayloadAction<PublishRequest>,
+            action: PayloadAction<PublishRequestIds>,
         ): void {
             const stateCandidates = state.selectedPublishCandidateIds;
             const toRemove = action.payload;

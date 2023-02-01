@@ -25,7 +25,7 @@ import { formatISODate } from 'utils/date-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
-export type PublishRequest = {
+export type PublishRequestIds = {
     trackNumbers: LayoutTrackNumberId[];
     referenceLines: ReferenceLineId[];
     locationTracks: LocationTrackId[];
@@ -33,9 +33,9 @@ export type PublishRequest = {
     kmPosts: LayoutKmPostId[];
 };
 
-export type PublishRequestWithMessage = {
+export type PublishRequest = {
     message: string;
-} & PublishRequest;
+} & PublishRequestIds;
 
 export interface PublishResult {
     trackNumbers: number;
@@ -84,17 +84,17 @@ export interface CalculatedChanges {
 export const getPublishCandidates = () =>
     getIgnoreError<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
 
-export const validatePublishCandidates = (request: PublishRequest) =>
-    postIgnoreError<PublishRequest, ValidatedPublishCandidates>(
+export const validatePublishCandidates = (request: PublishRequestIds) =>
+    postIgnoreError<PublishRequestIds, ValidatedPublishCandidates>(
         `${PUBLICATION_URL}/validate`,
         request,
     );
 
-export const revertCandidates = (request: PublishRequest) =>
-    deleteAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
+export const revertCandidates = (request: PublishRequestIds) =>
+    deleteAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request, true);
 
-export const publishCandidates = (request: PublishRequestWithMessage) => {
-    return postAdt<PublishRequestWithMessage, PublishResult>(`${PUBLICATION_URL}`, request, true);
+export const publishCandidates = (request: PublishRequest) => {
+    return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
 export const getPublications = (fromDate?: Date, toDate?: Date) => {
@@ -109,14 +109,14 @@ export const getPublications = (fromDate?: Date, toDate?: Date) => {
 export const getPublication = (id: PublicationId) =>
     getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
-export const getCalculatedChanges = (request: PublishRequest) =>
-    postIgnoreError<PublishRequest, CalculatedChanges>(
+export const getCalculatedChanges = (request: PublishRequestIds) =>
+    postIgnoreError<PublishRequestIds, CalculatedChanges>(
         `${PUBLICATION_URL}/calculated-changes`,
         request,
     );
 
-export const getRevertRequestDependencies = (request: PublishRequest) =>
-    postIgnoreError<PublishRequest, PublishRequest>(
+export const getRevertRequestDependencies = (request: PublishRequestIds) =>
+    postIgnoreError<PublishRequestIds, PublishRequestIds>(
         `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
         request,
     );

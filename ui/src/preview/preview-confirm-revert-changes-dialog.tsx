@@ -1,5 +1,5 @@
 import { ChangeTimes } from 'track-layout/track-layout-store';
-import { PublishRequest } from 'publication/publication-api';
+import { PublishRequestIds } from 'publication/publication-api';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import * as React from 'react';
@@ -44,7 +44,7 @@ const typeTranslationKey = (type: PreviewSelectType) => {
     }
 };
 
-const onlyDependencies = (changesBeingReverted: ChangesBeingReverted): PublishRequest => {
+const onlyDependencies = (changesBeingReverted: ChangesBeingReverted): PublishRequestIds => {
     const allChanges = changesBeingReverted.changeIncludingDependencies;
     const reqType = changesBeingReverted.requestedRevertChange.type;
     const reqId = changesBeingReverted.requestedRevertChange.id;
@@ -65,7 +65,7 @@ const onlyDependencies = (changesBeingReverted: ChangesBeingReverted): PublishRe
     };
 };
 
-const publicationRequestSize = (req: PublishRequest): number =>
+const publicationRequestSize = (req: PublishRequestIds): number =>
     req.switches.length +
     req.trackNumbers.length +
     req.locationTracks.length +

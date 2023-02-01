@@ -5,7 +5,7 @@ import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
 import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
-import { publishCandidates, PublishRequest, PublishResult } from 'publication/publication-api';
+import { publishCandidates, PublishRequestIds, PublishResult } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     updateKmPostChangeTime,
@@ -24,7 +24,7 @@ import { TextArea } from 'vayla-design-lib/text-area/text-area';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
-    request: PublishRequest;
+    request: PublishRequestIds;
     onPublish: () => void;
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;

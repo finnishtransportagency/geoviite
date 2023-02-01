@@ -131,30 +131,30 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getRevertRequestDependencies(publishRequest: PublishRequest): PublishRequest {
-        val newTrackNumbers = publishRequest.referenceLines
+    fun getRevertRequestDependencies(publishRequestIds: PublishRequestIds): PublishRequestIds {
+        val newTrackNumbers = publishRequestIds.referenceLines
             .mapNotNull { id -> referenceLineService.get(DRAFT, id) }
             .map { rl -> rl.trackNumberId }
             .filter(trackNumberService::draftExists)
 
-        val newReferenceLines = publishRequest.trackNumbers
+        val newReferenceLines = publishRequestIds.trackNumbers
             .mapNotNull { id -> referenceLineService.getByTrackNumber(DRAFT, id) }
             .filter { line -> line.draft != null }
             .map { line -> line.id as IntId }
-        val allTrackNumbers = publishRequest.trackNumbers.toSet() + newTrackNumbers.toSet()
-        val allReferenceLines = publishRequest.referenceLines.toSet() + newReferenceLines.toSet()
-        val locationTracks = publishRequest.locationTracks.toSet()
-        val switches = publishRequest.switches.toSet()
+        val allTrackNumbers = publishRequestIds.trackNumbers.toSet() + newTrackNumbers.toSet()
+        val allReferenceLines = publishRequestIds.referenceLines.toSet() + newReferenceLines.toSet()
+        val locationTracks = publishRequestIds.locationTracks.toSet()
+        val switches = publishRequestIds.switches.toSet()
         val (allLocationTracks, allSwitches) = getRevertRequestLocationTrackAndSwitchDependenciesTransitively(
             locationTracks, locationTracks, switches, switches
         )
 
-        return PublishRequest(
+        return PublishRequestIds(
             trackNumbers = allTrackNumbers.toList(),
             referenceLines = allReferenceLines.toList(),
             locationTracks = allLocationTracks.toList(),
             switches = allSwitches.toList(),
-            kmPosts = publishRequest.kmPosts
+            kmPosts = publishRequestIds.kmPosts
         )
     }
 
@@ -193,7 +193,7 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional
-    fun revertPublishCandidates(toDelete: PublishRequest): PublishResult {
+    fun revertPublishCandidates(toDelete: PublishRequestIds): PublishResult {
         logger.serviceCall("revertPublishCandidates", "toDelete" to toDelete)
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(id) }.size
@@ -219,7 +219,7 @@ class PublicationService @Autowired constructor(
      * Note: this is intentionally not transactional:
      * each ID is fetched from ratko and becomes an object there -> we want to store it, even if the rest fail
      */
-    fun updateExternalId(request: PublishRequest) {
+    fun updateExternalId(request: PublishRequestIds) {
         logger.serviceCall("updateExternalId", "request" to request)
 
         try {
@@ -239,7 +239,7 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getPublicationVersions(request: PublishRequest): PublicationVersions {
+    fun getPublicationVersions(request: PublishRequestIds): PublicationVersions {
         logger.serviceCall("getPublicationVersions", "request" to request)
         return PublicationVersions(
             trackNumbers = trackNumberDao.fetchPublicationVersions(request.trackNumbers),
