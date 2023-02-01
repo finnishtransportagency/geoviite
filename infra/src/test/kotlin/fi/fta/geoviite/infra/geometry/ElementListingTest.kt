@@ -40,6 +40,7 @@ class ElementListingTest {
             name = "TSTTrack002",
         )
         val planHeader = planHeader(
+            source = PlanSource.PAIKANNUSPALVELU,
             id = IntId(2),
             trackNumberId = trackNumberId,
             fileName = FileName("test-file 002.xml"),
@@ -49,6 +50,7 @@ class ElementListingTest {
         val (locationTrack, layoutAlignment) = locationTrackAndAlignment(trackNumberId, createSegments(alignment))
         val listing = getListing(locationTrack, layoutAlignment, planHeader, alignment)
         listing.forEach { l ->
+            assertEquals(PlanSource.PAIKANNUSPALVELU, l.planSource)
             assertEquals(IntId(2), l.planId)
             assertEquals(FileName("test-file 002.xml"), l.fileName)
             assertEquals(LAYOUT_SRID, l.coordinateSystemSrid)
@@ -63,8 +65,8 @@ class ElementListingTest {
             alignment.elements.map { e -> roundTo3Decimals(e.calculatedLength) },
             listing.map { l -> l.lengthMeters },
         )
-        assertEquals(alignment.elements.map { e -> e.start }, listing.map { l -> l.start.coordinate })
-        assertEquals(alignment.elements.map { e -> e.end }, listing.map { l -> l.end.coordinate })
+        assertEquals(alignment.elements.map { e -> e.start.round(3) }, listing.map { l -> l.start.coordinate })
+        assertEquals(alignment.elements.map { e -> e.end.round(3) }, listing.map { l -> l.end.coordinate })
     }
 
     @Test
@@ -76,6 +78,7 @@ class ElementListingTest {
             name = "TSTTrack001",
         )
         val plan = plan(
+            source = PlanSource.GEOVIITE,
             trackNumberId = trackNumberId,
             trackNumberDesc = PlanElementName("test track number"),
             alignments = listOf(alignment),
@@ -85,6 +88,7 @@ class ElementListingTest {
         )
         val listing = toElementListing(null, getTransformation, plan, allElementTypes)
         listing.forEach { l ->
+            assertEquals(PlanSource.GEOVIITE, l.planSource)
             assertEquals(plan.id, l.planId)
             assertEquals(FileName("test-file 001.xml"), l.fileName)
             assertEquals(LAYOUT_SRID, l.coordinateSystemSrid)
@@ -100,8 +104,8 @@ class ElementListingTest {
             alignment.elements.map { e -> roundTo3Decimals(e.calculatedLength) },
             listing.map { l -> l.lengthMeters },
         )
-        assertEquals(alignment.elements.map { e -> e.start }, listing.map { l -> l.start.coordinate })
-        assertEquals(alignment.elements.map { e -> e.end }, listing.map { l -> l.end.coordinate })
+        assertEquals(alignment.elements.map { e -> e.start.round(3) }, listing.map { l -> l.start.coordinate })
+        assertEquals(alignment.elements.map { e -> e.end.round(3) }, listing.map { l -> l.end.coordinate })
     }
 
     @Test
@@ -137,14 +141,14 @@ class ElementListingTest {
         assertEquals(1, elementListing.size)
         val element1 = elementListing[0]
 
-        assertEquals(Point(10.0, 10.0) + gk27CoordinateBase, element1.start.coordinate)
+        assertEquals((Point(10.0, 10.0) + gk27CoordinateBase).round(3), element1.start.coordinate)
         // Geocoding is not 1mm accurate so round decimals
         assertEquals( TrackMeter(KmNumber(1), BigDecimal("110.0")), element1.start.address!!.round(1))
         assertEquals(round(radsToGrads(clothoid.startDirectionRads), 6), element1.start.directionGrads)
         assertEquals(clothoid.radiusStart, element1.start.radiusMeters)
         assertEquals(BigDecimal("0.001000"), element1.start.cant)
 
-        assertEquals(Point(20.0, 20.0) + gk27CoordinateBase, element1.end.coordinate)
+        assertEquals((Point(20.0, 20.0) + gk27CoordinateBase).round(3), element1.end.coordinate)
         // Geocoding is not 1mm accurate so round decimals
         assertEquals(TrackMeter(KmNumber(1), BigDecimal("120.0")), element1.end.address!!.round(1))
         assertEquals(round(radsToGrads(clothoid.endDirectionRads), 6), element1.end.directionGrads)

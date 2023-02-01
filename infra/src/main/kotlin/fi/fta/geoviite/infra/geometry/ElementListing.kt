@@ -7,12 +7,14 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.MISSING_SECTION
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.RoundedPoint
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
 
+const val COORDINATE_DECIMALS = 3
 const val ADDRESS_DECIMALS = 3
 const val LENGTH_DECIMALS = 3
 const val DIRECTION_DECIMALS = 6
@@ -20,6 +22,7 @@ const val CANT_DECIMALS = 6
 
 data class ElementListing(
     val planId: DomainId<GeometryPlan>?,
+    val planSource: PlanSource?,
     val fileName: FileName?,
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
@@ -39,7 +42,7 @@ data class ElementListing(
 )
 
 data class ElementLocation(
-    val coordinate: Point,
+    val coordinate: RoundedPoint,
     val address: TrackMeter?,
     val directionGrads: BigDecimal,
     val radiusMeters: BigDecimal?,
@@ -114,8 +117,9 @@ private fun toElementListing(
     segment: LayoutSegment,
 ) = ElementListing(
     planId = null,
+    planSource = null,
     fileName = null,
-    coordinateSystemSrid = null,
+    coordinateSystemSrid = LAYOUT_SRID,
     coordinateSystemName = null,
     trackNumberId = trackNumberId,
     trackNumberDescription = null,
@@ -139,6 +143,7 @@ private fun toElementListing(
     context = context,
     getTransformation = getTransformation,
     planId = planHeader.id,
+    planSource = planHeader.source,
     fileName = planHeader.fileName,
     units = planHeader.units,
     trackNumberId = locationTrack.trackNumberId,
@@ -157,6 +162,7 @@ private fun toElementListing(
     context = context,
     getTransformation = getTransformation,
     planId = plan.id,
+    planSource = plan.source,
     fileName = plan.fileName,
     units = plan.units,
     trackNumberId = plan.trackNumberId,
@@ -169,6 +175,7 @@ private fun elementListing(
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     planId: DomainId<GeometryPlan>,
+    planSource: PlanSource?,
     fileName: FileName,
     units: GeometryUnits,
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
@@ -178,6 +185,7 @@ private fun elementListing(
 ) = units.coordinateSystemSrid?.let(getTransformation).let { transformation ->
     ElementListing(
         planId = planId,
+        planSource = planSource,
         fileName = fileName,
         coordinateSystemSrid = units.coordinateSystemSrid,
         coordinateSystemName = units.coordinateSystemName,
@@ -198,7 +206,7 @@ private fun getLocation(
     point: LayoutPoint,
     directionRads: Double,
 ) = ElementLocation(
-    coordinate = point.toPoint(),
+    coordinate = point.round(COORDINATE_DECIMALS),
     address = context?.getAddress(point)?.first,
     directionGrads = round(radsToGrads(directionRads), DIRECTION_DECIMALS),
     radiusMeters = null,
@@ -211,7 +219,7 @@ private fun getStartLocation(
     alignment: GeometryAlignment,
     element: GeometryElement,
 ) = ElementLocation(
-    coordinate = element.start,
+    coordinate = element.start.round(COORDINATE_DECIMALS),
     address = getAddress(context, transformation, element.start),
     directionGrads = getDirectionGrads(element.startDirectionRads),
     radiusMeters = getStartRadius(element),
@@ -224,7 +232,7 @@ private fun getEndLocation(
     alignment: GeometryAlignment,
     element: GeometryElement,
 ) = ElementLocation(
-    coordinate = element.end,
+    coordinate = element.end.round(COORDINATE_DECIMALS),
     address = getAddress(context, transformation, element.end),
     directionGrads = getDirectionGrads(element.endDirectionRads),
     radiusMeters = getEndRadius(element),

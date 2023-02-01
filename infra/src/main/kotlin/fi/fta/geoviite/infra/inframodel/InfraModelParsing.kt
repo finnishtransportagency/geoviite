@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.ErrorType
 import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.ValidationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
@@ -96,6 +97,7 @@ fun toSaxSource(xmlString: String) = SAXSource(
 )
 
 fun parseGeometryPlan(
+    source: PlanSource,
     file: File,
     fileName: String = file.name,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
@@ -106,6 +108,7 @@ fun parseGeometryPlan(
     val imFile = toInfraModelFile(fileName, fileToString(file))
 
     return parseFromString(
+        source,
         imFile,
         coordinateSystems,
         switchStructuresByType,
@@ -115,6 +118,7 @@ fun parseGeometryPlan(
 }
 
 fun parseGeometryPlan(
+    source: PlanSource,
     file: MultipartFile,
     fileEncodingOverride: Charset?,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
@@ -124,6 +128,7 @@ fun parseGeometryPlan(
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
     return parseFromString(
+        source,
         imFile,
         coordinateSystems,
         switchStructuresByType,
@@ -133,6 +138,7 @@ fun parseGeometryPlan(
 }
 
 fun parseFromClasspath(
+    source: PlanSource,
     fileName: String,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
@@ -141,6 +147,7 @@ fun parseFromClasspath(
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, classpathResourceToString(fileName))
     return parseFromString(
+        source,
         imFile,
         coordinateSystems,
         switchStructuresByType,
@@ -153,6 +160,7 @@ fun toInfraModelFile(fileName: String, fileContent: String) =
     InfraModelFile(name = FileName(fileName), content = censorAuthorIdentifyingInfo(fileContent))
 
 fun parseFromString(
+    source: PlanSource,
     file: InfraModelFile,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
@@ -160,6 +168,7 @@ fun parseFromString(
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
     return toGvtPlan(
+        source,
         file.name,
         stringToInfraModel(file.content),
         coordinateSystems,

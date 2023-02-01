@@ -55,6 +55,7 @@ data class GeometryPlanHeader(
  * It is typically handled as a single file, and can consists of a number of parallel ways (alignments), each with their own geometries.
  */
 data class GeometryPlan(
+    val source: PlanSource,
     val project: Project,
     val application: Application,
     val author: Author?,

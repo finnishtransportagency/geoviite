@@ -5,7 +5,10 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geography.GeographyService
+import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
+import fi.fta.geoviite.infra.geography.YKJ_CRS
+import fi.fta.geoviite.infra.geography.toJtsPoint
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
@@ -121,6 +124,7 @@ class InfraModelParsingIT @Autowired constructor(
         assertEquals("ETRS89 / GK25FIN", infraModel.coordinateSystem?.name)
         assertEquals("2392", infraModel.coordinateSystem?.epsgCode)
         val converted = toGvtPlan(
+            PlanSource.GEOVIITE,
             FileName(TESTFILE_SIMPLE),
             infraModel,
             coordinateSystemNameToSrid,
@@ -137,6 +141,7 @@ class InfraModelParsingIT @Autowired constructor(
     @Test
     fun differentSpiralsCanBeParsed() {
         val (parsed, _) = parseFromClasspath(
+            PlanSource.GEOVIITE,
             TESTFILE_CLOTHOID_AND_PARABOLA,
             coordinateSystemNameToSrid,
             switchStructuresByType,
