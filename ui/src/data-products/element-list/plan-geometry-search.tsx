@@ -173,8 +173,9 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
                 <Button
                     className={styles['element-list__download-button']}
                     disabled={!elementList || elementList.length === 0}
-                    onClick={() => (location.href = downloadUri)}>
-                    <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
+                    onClick={() => (location.href = downloadUri)}
+                    icon={Icons.Download}>
+                    {t(`data-products.element-list.search.download-csv`)}
                 </Button>
             </div>
             {elementList && <ElementTable plans={elementList} />}
