@@ -178,10 +178,10 @@ class GeometryDao @Autowired constructor(
         })
     }
 
-    fun fetchDuplicateGeometryPlanId(newFile: InfraModelFile): IntId<GeometryPlan>? {
+    fun fetchDuplicateGeometryPlanName(newFile: InfraModelFile): FileName? {
         val sql = """
             select
-              plan_file.id
+              plan_file.name
               from geometry.plan_file
               where hash = :hash
         """.trimIndent()
@@ -190,7 +190,7 @@ class GeometryDao @Autowired constructor(
         )
 
         logger.daoAccess(FETCH, InfraModelFile::class, params)
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getIntIdOrNull("id") }
+        return jdbcTemplate.queryOptional(sql, params) { rs, _ -> rs.getFileName("name") }
     }
 
     @Transactional
