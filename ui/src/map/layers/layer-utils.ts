@@ -246,6 +246,7 @@ function _findEntities<TVal>(
     options?: MatchOptions,
 ): TVal[] {
     const match: { [key: string]: { feature: Feature<Geometry>; entity: TVal } } = {};
+    let itemCount = 0;
     // Use "some" instead of "forEach" to stop iteration when needed (e.g. enough hits)
     features.some((feature) => {
         let continueSearching = true;
@@ -264,7 +265,7 @@ function _findEntities<TVal>(
                     feature: feature,
                     entity: entity,
                 };
-                const itemCount = Object.keys(match).length;
+                itemCount++;
 
                 if (options?.strategy == 'limit' && options?.limit && itemCount >= options?.limit) {
                     // Limit exceeded
