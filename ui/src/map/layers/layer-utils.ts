@@ -224,10 +224,9 @@ export function addBbox(feature: Feature<Polygon | LineString>): void {
     }
 }
 
-function hasBoundsMatch(shape: Polygon, feature: Feature<Geometry>): boolean {
+function hasBoundsMatch(turfPolyShape: turf.Feature, feature: Feature<Geometry>): boolean {
     const featBounds = feature.get('bboxTurfPolygon') as turf.Polygon;
     if (featBounds) {
-        const turfPolyShape = turf.polygon(toWgs84Polygon(shape.getCoordinates()));
         return !turf.booleanDisjoint(featBounds, turfPolyShape);
     } else {
         return true;
@@ -247,6 +246,7 @@ function _findEntities<TVal>(
 ): TVal[] {
     const match: { [key: string]: { feature: Feature<Geometry>; entity: TVal } } = {};
     let itemCount = 0;
+    const turfPolyShape = turf.polygon(toWgs84Polygon(shape.getCoordinates()));
     // Use "some" instead of "forEach" to stop iteration when needed (e.g. enough hits)
     features.some((feature) => {
         let continueSearching = true;
@@ -257,7 +257,7 @@ function _findEntities<TVal>(
             if (
                 entity &&
                 !match[id] &&
-                hasBoundsMatch(shape, feature) &&
+                hasBoundsMatch(turfPolyShape, feature) &&
                 hasAccurateMatch(shape, feature)
             ) {
                 // New match found
