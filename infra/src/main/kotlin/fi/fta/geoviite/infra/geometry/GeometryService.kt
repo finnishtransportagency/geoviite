@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
@@ -207,9 +208,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanId(newFile: InfraModelFile): IntId<GeometryPlan>? {
-        logger.serviceCall("getDuplicateGeometryPlanId", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanId(newFile)
+    fun getDuplicateGeometryPlanName(newFile: InfraModelFile): FileName? {
+        logger.serviceCall("getDuplicateGeometryPlan", "newFile" to newFile)
+        return geometryDao.fetchDuplicateGeometryPlanName(newFile)
     }
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
@@ -230,7 +231,7 @@ class GeometryService @Autowired constructor(
         val elementListing = toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
 
         val csvFileContent = elementListingToCsv(elementListing)
-        return plan.fileName.toString() to csvFileContent
+        return "${ELEMENT_LISTING} ${plan.fileName}" to csvFileContent
     }
 
     fun getElementListing(
@@ -279,7 +280,7 @@ class GeometryService @Autowired constructor(
         )
 
         val csvFileContent = elementListingToCsv(elementListing)
-        return track.name.toString() to csvFileContent
+        return "${ELEMENT_LISTING} ${track.name}" to csvFileContent
     }
 
     private fun elementListingToCsv(
@@ -311,7 +312,7 @@ class GeometryService @Autowired constructor(
                         it.start.directionGrads,
                         it.end.directionGrads,
                         it.fileName,
-                        null, // TODO Add plan source (geometriapalvelu/paikannuspalvelu/geoviite) when ElementListing supports it
+                        it.planSource,
                         it.coordinateSystemSrid ?: it.coordinateSystemName
                     )
                 }

@@ -381,8 +381,10 @@ fun plan(
     trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
     coordinateSystemName: CoordinateSystemName? = null,
+    source: PlanSource = PlanSource.GEOVIITE,
 ): GeometryPlan {
     return GeometryPlan(
+        source = source,
         project = project(),
         application = application(),
         author = author("TEST Company"),
@@ -410,6 +412,7 @@ fun planHeader(
     srid: Srid = Srid(3879),
     coordinateSystemName: CoordinateSystemName? = null,
     trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    source: PlanSource = PlanSource.GEOVIITE,
 ) = GeometryPlanHeader(
     id = id,
     fileName = fileName,
@@ -424,7 +427,7 @@ fun planHeader(
     linkedAsPlanId = null,
     message = FreeText("test text description"),
     uploadTime = Instant.now(),
-    source = PlanSource.GEOVIITE,
+    source = source,
     hasCant = false,
     hasProfile = false,
     author = "Test Company",
@@ -433,6 +436,7 @@ fun planHeader(
 fun minimalPlan(
     fileName: FileName = FileName("TEST_FILE.xml"),
 ) = GeometryPlan(
+    source = PlanSource.GEOVIITE,
     fileName = fileName,
     units = GeometryUnits(
         null,

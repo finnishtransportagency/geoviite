@@ -39,6 +39,7 @@ val defaultTimeZone: ZoneId = ZoneId.of("Europe/Helsinki")
 val logger: Logger = LoggerFactory.getLogger(InfraModel::class.java)
 
 fun toGvtPlan(
+    source: PlanSource,
     fileName: FileName,
     infraModel: InfraModel,
     coordinateSystemNameToSrid: Map<CoordinateSystemName, Srid>,
@@ -93,6 +94,7 @@ fun toGvtPlan(
     }
 
     return GeometryPlan(
+        source = source,
         project = Project(
             name = tryParseText(project.name, ::ProjectName) ?: ProjectName(""),
             description = project.desc?.let(::tryParseFreeText),

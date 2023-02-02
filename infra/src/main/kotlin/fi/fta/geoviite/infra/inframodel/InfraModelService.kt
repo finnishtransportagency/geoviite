@@ -4,8 +4,8 @@ import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
-import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.error.InframodelParsingException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -41,27 +41,26 @@ class InfraModelService @Autowired constructor(
     ): RowVersion<GeometryPlan> {
         logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
 
-        val (parsedGeometryPlan, imFile) = validateInputFileAndParseInfraModel(file, overrideParameters?.encoding)
+        val (parsedGeometryPlan, imFile) = parseInfraModel(file, overrideParameters?.encoding)
         val geometryPlan =
         overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
 
-        val planId = geometryService.getDuplicateGeometryPlanId(imFile)
-        val duplicateFileName = planId?.let { plan -> geometryService.getPlanFile(plan).name.toString() } ?: ""
-        if (duplicateFileName.length > 0) {
-            throw InframodelParsingException(
-                message = "InfraModel file exists already",
-                localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                localizedMessageParams = listOf(duplicateFileName),
-            )
+        val duplicateFileName = geometryService.getDuplicateGeometryPlanName(imFile)
+        if (duplicateFileName != null) {
+                throw InframodelParsingException(
+                    message = "InfraModel file exists already",
+                    localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
+                    localizedMessageParams = listOf(duplicateFileName.toString()),
+                )
         }
 
         return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
 
-    fun validateInputFileAndParseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {
+    fun parseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {
         logger.serviceCall(
             "validateInputFileAndParseGeometryPlan",
             "file.originalFilename" to file.originalFilename
@@ -71,6 +70,7 @@ class InfraModelService @Autowired constructor(
         val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
 
         return parseGeometryPlan(
+            PlanSource.GEOVIITE,
             file,
             encodingOverride?.let(::findXmlCharset),
             geographyService.getCoordinateSystemNameToSridMapping(),
@@ -90,7 +90,7 @@ class InfraModelService @Autowired constructor(
         )
 
         val parsedGeometryPlan = try {
-            validateInputFileAndParseInfraModel(file, overrideParameters?.encoding).first
+            parseInfraModel(file, overrideParameters?.encoding).first
         } catch (e: Exception) {
             logger.warn("Failed to parse InfraModel", e)
             return ValidationResponse(
@@ -120,7 +120,6 @@ class InfraModelService @Autowired constructor(
 
         return mapToTrackLayoutPlan(geometryPlan, overrideParameters)
     }
-
 
     private fun mapToTrackLayoutPlan(
         plan: GeometryPlan,

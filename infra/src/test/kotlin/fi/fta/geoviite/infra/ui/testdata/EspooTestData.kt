@@ -65,6 +65,7 @@ class EspooTestData {
             GEO_SWITCH_2_ALIGNMENT_NAMES = switchAndAlignments2.second.map { it.name.toString() }
 
             return GeometryPlan(
+                source = PlanSource.GEOVIITE,
                 project = createProject(GEOMETRY_PLAN_NAME),
                 application = application(),
                 author = null,
