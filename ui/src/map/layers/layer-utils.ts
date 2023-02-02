@@ -30,12 +30,14 @@ import {
 } from 'model/geometry';
 import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
 
+const layoutToWgs84 = proj4(LAYOUT_SRID, 'WGS84');
+
 function toWgs84(coordinate: number[]): number[] {
-    return proj4(LAYOUT_SRID, 'WGS84', coordinate);
+    return layoutToWgs84.forward(coordinate);
 }
 
 function toMapProjection(coordinate: number[]): number[] {
-    return proj4('WGS84', LAYOUT_SRID, coordinate);
+    return layoutToWgs84.inverse(coordinate);
 }
 
 function toWgs84Multi(coordinates: number[][]): number[][] {
