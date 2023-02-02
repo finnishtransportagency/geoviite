@@ -32,6 +32,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     type,
     trackAddressStart,
     trackAddressEnd,
+    coordinateSystem,
     locationStartE,
     locationStartN,
     locationEndE,
@@ -45,7 +46,6 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     angleEnd,
     plan,
     source,
-    coordinateSystem,
 }) => {
     return (
         <React.Fragment>
@@ -55,6 +55,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{type}</td>
                 <td>{trackAddressStart && formatTrackMeter(trackAddressStart)}</td>
                 <td>{trackAddressEnd && formatTrackMeter(trackAddressEnd)}</td>
+                <td>{coordinateSystem}</td>
                 <td>{roundToPrecision(locationStartE, Precision.TM35FIN)}</td>
                 <td>{roundToPrecision(locationStartN, Precision.TM35FIN)}</td>
                 <td>{roundToPrecision(locationEndE, Precision.TM35FIN)}</td>
@@ -70,7 +71,6 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{angleEnd && roundToPrecision(angleEnd, Precision.angleFractions)}</td>
                 <td>{plan}</td>
                 <td>{source}</td>
-                <td>{coordinateSystem}</td>
             </tr>
         </React.Fragment>
     );

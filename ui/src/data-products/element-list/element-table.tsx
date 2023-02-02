@@ -61,7 +61,12 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                             </th>
                             <th>
                                 {t(
-                                    'data-products.element-list.element-list-table.track-address-start',
+                                    'data-products.element-list.element-list-table.track-address-end',
+                                )}
+                            </th>
+                            <th>
+                                {t(
+                                    'data-products.element-list.element-list-table.coordinate-system',
                                 )}
                             </th>
                             <th>
@@ -99,11 +104,6 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                             <th>{t('data-products.element-list.element-list-table.angle-end')}</th>
                             <th>{t('data-products.element-list.element-list-table.plan')}</th>
                             <th>{t('data-products.element-list.element-list-table.source')}</th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.coordinate-system',
-                                )}
-                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -121,7 +121,10 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                                         `data-products.element-list.element-list-table.${item.elementType}`,
                                     )}
                                     trackAddressStart={item.start.address}
-                                    trackAddressEnd={item.start.address}
+                                    trackAddressEnd={item.end.address}
+                                    coordinateSystem={
+                                        item.coordinateSystemSrid ?? item.coordinateSystemName
+                                    }
                                     locationStartE={item.start.coordinate.x}
                                     locationStartN={item.start.coordinate.y}
                                     locationEndE={item.end.coordinate.x}
@@ -135,9 +138,6 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                                     angleEnd={item.end.directionGrads}
                                     plan={item.fileName}
                                     source={item.planSource}
-                                    coordinateSystem={
-                                        item.coordinateSystemSrid ?? item.coordinateSystemName
-                                    }
                                 />
                             </React.Fragment>
                         ))}
