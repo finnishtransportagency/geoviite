@@ -119,9 +119,14 @@ export function createMapAlignmentBadgeFeature(
     trackNumber: LayoutTrackNumber,
     lineHighlighted: boolean,
     displayMode: DisplayMode,
+    showReferenceLines: boolean,
 ): Feature<Point>[] {
     //When zoomed out enough, show track number alignment badges only
-    if (displayMode === DisplayMode.NUMBER && alignment.alignmentType == 'LOCATION_TRACK') {
+    if (
+        displayMode === DisplayMode.NUMBER &&
+        alignment.alignmentType == 'LOCATION_TRACK' &&
+        showReferenceLines
+    ) {
         return [];
     }
 
@@ -204,6 +209,7 @@ function createFeatures(
     highlighted: boolean,
     trackNumberDisplayMode: DisplayMode,
     drawDistance: number,
+    showReferenceLines: boolean,
 ): Feature<LineString | Point>[] {
     const { trackNumber, alignment, segment } = dataHolder;
     const lineString = new LineString(segment.points.map((point) => [point.x, point.y]));
@@ -263,6 +269,7 @@ function createFeatures(
             trackNumber,
             selected || highlighted,
             trackNumberDisplayMode,
+            showReferenceLines,
         );
         features.push(...alignmentBadgeFeatures);
     }
@@ -374,6 +381,7 @@ function createFeaturesCached(
     linkingState: LinkingState | undefined,
     trackNumberDisplayMode: DisplayMode,
     trackNumberDrawDistance: number,
+    showReferenceLines: boolean,
 ): Feature<LineString | Point>[] {
     const previousFeatures = new Map<string, Feature<LineString | Point>[]>(featureCache);
     featureCache.clear();
@@ -409,6 +417,7 @@ function createFeaturesCached(
                           highlighted,
                           trackNumberDisplayMode,
                           trackNumberDrawDistance,
+                          showReferenceLines,
                       );
             featureCache.set(key, features);
             return features;
@@ -494,7 +503,11 @@ adapterInfoRegister.add('alignment', {
             ),
             mapTiles,
             publishType,
-            resolution > Limits.ALL_ALIGNMENTS ? 'reference' : 'all',
+            resolution > Limits.ALL_ALIGNMENTS
+                ? 'reference'
+                : mapLayer.showReferenceLines
+                ? 'all'
+                : 'locationtrack',
             selectedAlignment,
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
@@ -514,6 +527,7 @@ adapterInfoRegister.add('alignment', {
                     linkingState,
                     trackNumberDisplayMode,
                     trackNumberDrawDistance || 0,
+                    mapLayer.showReferenceLines,
                 );
                 // All features ready, clear old ones and add new ones
                 vectorSource.clear();

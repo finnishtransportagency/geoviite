@@ -31,6 +31,7 @@ export type TrackLayoutParams = TrackLayoutState & {
     onOpenPreview: () => void;
     onLayerVisibilityChange: (layerId: string, visible: boolean) => void;
     onTrackNumberVisibilityChange: (layerId: string, visible: boolean) => void;
+    onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
     onShownItemsChange: (shownItems: OptionalShownItems) => void;
     showArea: (area: BoundingBox) => void;
     onSetLayoutClusterLinkPoint: (linkPoint: LinkPoint) => void;
@@ -91,6 +92,9 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                             <MapLayersSettings
                                 map={props.map}
                                 onTrackNumberVisibilityChange={props.onTrackNumberVisibilityChange}
+                                onReferenceLineVisibilityChange={
+                                    props.onReferenceLineVisibilityChange
+                                }
                                 onLayerVisibilityChange={props.onLayerVisibilityChange}
                                 onClose={() => props.onMapSettingsVisibilityChange(false)}
                             />

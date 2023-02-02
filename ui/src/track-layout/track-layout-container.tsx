@@ -29,6 +29,11 @@ export const TrackLayoutContainer: React.FC = () => {
                 layerId: id,
                 visible: visible,
             }),
+        onReferenceLineVisibilityChange: (id: string, visible: boolean) =>
+            delegates.onReferencelineVisibilityChange({
+                layerId: id,
+                visible: visible,
+            }),
         changeTimes: trackLayoutState.changeTimes,
         onShownItemsChange: delegates.onShownItemsChange,
         showArea: delegates.showArea,
