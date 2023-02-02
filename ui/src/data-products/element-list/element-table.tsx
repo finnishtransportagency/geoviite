@@ -107,39 +107,38 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {plans.map((item) => (
-                            <React.Fragment key={item.alignmentId}>
-                                {
-                                    <ElementTableItem
-                                        id={item.alignmentId}
-                                        trackNumber={
-                                            trackNumbers?.find((tn) => tn.id === item.trackNumberId)
-                                                ?.number
-                                        }
-                                        track={item.alignmentName}
-                                        type={t(
-                                            `data-products.element-list.element-list-table.${item.elementType}`,
-                                        )}
-                                        trackAddressStart={item.start.address}
-                                        trackAddressEnd={item.start.address}
-                                        locationStartE={item.start.coordinate.x}
-                                        locationStartN={item.start.coordinate.y}
-                                        locationEndE={item.end.coordinate.x}
-                                        locationEndN={item.end.coordinate.y}
-                                        length={item.lengthMeters}
-                                        curveRadiusStart={item.start.radiusMeters}
-                                        curveRadiusEnd={item.end.radiusMeters}
-                                        cantStart={item.start.cant}
-                                        cantEnd={item.end.cant}
-                                        angleStart={item.start.directionGrads}
-                                        angleEnd={item.end.directionGrads}
-                                        plan={item.fileName}
-                                        source={item.planSource}
-                                        coordinateSystem={
-                                            item.coordinateSystemSrid ?? item.coordinateSystemName
-                                        }
-                                    />
-                                }
+                        {plans.map((item, index) => (
+                            // Element list can contain the same element multiple times -> use index in list as key
+                            <React.Fragment key={`${index}`}>
+                                <ElementTableItem
+                                    id={item.alignmentId}
+                                    trackNumber={
+                                        trackNumbers?.find((tn) => tn.id === item.trackNumberId)
+                                            ?.number
+                                    }
+                                    track={item.alignmentName}
+                                    type={t(
+                                        `data-products.element-list.element-list-table.${item.elementType}`,
+                                    )}
+                                    trackAddressStart={item.start.address}
+                                    trackAddressEnd={item.start.address}
+                                    locationStartE={item.start.coordinate.x}
+                                    locationStartN={item.start.coordinate.y}
+                                    locationEndE={item.end.coordinate.x}
+                                    locationEndN={item.end.coordinate.y}
+                                    length={item.lengthMeters}
+                                    curveRadiusStart={item.start.radiusMeters}
+                                    curveRadiusEnd={item.end.radiusMeters}
+                                    cantStart={item.start.cant}
+                                    cantEnd={item.end.cant}
+                                    angleStart={item.start.directionGrads}
+                                    angleEnd={item.end.directionGrads}
+                                    plan={item.fileName}
+                                    source={item.planSource}
+                                    coordinateSystem={
+                                        item.coordinateSystemSrid ?? item.coordinateSystemName
+                                    }
+                                />
                             </React.Fragment>
                         ))}
                     </tbody>
