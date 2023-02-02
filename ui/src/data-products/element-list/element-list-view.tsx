@@ -14,7 +14,6 @@ import {
 } from 'data-products/element-list/element-list-store';
 import { createDelegates } from 'store/store-utils';
 import PlanGeometrySearch from 'data-products/element-list/plan-geometry-search';
-import { ElementTable } from 'data-products/element-list/element-table';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -67,7 +66,6 @@ const ElementListView = () => {
                         />
                     )}
                 </span>
-                <ElementTable />
             </div>
         </EnvRestricted>
     );

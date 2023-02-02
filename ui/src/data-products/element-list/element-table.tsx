@@ -2,96 +2,46 @@ import * as React from 'react';
 import { ElementTableItem } from 'data-products/element-list/element-table-item';
 import { Table } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
-import { GeometryType } from 'geometry/geometry-model';
 import styles from './element-list-view.scss';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
+import { ElementLocation, Srid } from 'common/common-model';
+import { GeometryElementId, GeometryPlanId, PlanSource } from 'geometry/geometry-model';
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 
-type ElementItem = {
-    id: string;
-    trackNumber: string;
-    track: string;
-    type: GeometryType;
-    trackAddressStart: string;
-    trackAddressEnd: string;
-    locationStartE: string;
-    locationStartN: string;
-    locationEndE: string;
-    locationEndN: string;
-    length: string;
-    curveRadiusStart: string;
-    curveRadiusEnd: string;
-    cantStart: string;
-    cantEnd: string;
-    angleStart: string;
-    angleEnd: string;
-    plan: string;
-    coordinateSystem: string;
+export type ElementItem = {
+    alignmentId: LocationTrackId;
+    alignmentName: string;
+    elementId: GeometryElementId;
+    elementType: GeometryTypeIncludingMissing;
+    start: ElementLocation;
+    end: ElementLocation;
+    lengthMeters: number;
+    planId: GeometryPlanId;
+    planSource: PlanSource;
+    fileName: string;
+    coordinateSystemSrid: Srid;
+    trackNumberId: LayoutTrackNumberId;
+    trackNumberDescription: string;
+    coordinateSystemName: string;
 };
-/*
+
 type ElementTableProps = {
-    plans: JOTAIN;
-    continuousGeometrySelected: boolean;
+    plans: ElementItem[];
 };
 
-const ElementTable: React.FC<ElementTableProps> = ({
-    plans,
-    continuousGeometrySelected,
-*/
-
-export const ElementTable = () => {
+export const ElementTable = ({ plans }: ElementTableProps) => {
     const { t } = useTranslation();
-    const amount = 123;
-
-    //testidataa; simuloi bäkkäristä tulevaa dataa
-    const item1: ElementItem = {
-        id: 'abcde',
-        trackNumber: '123',
-        track: 'HKI-TRE',
-        type: GeometryType.LINE,
-        trackAddressStart: 'aa',
-        trackAddressEnd: ' bb',
-        locationStartE: 'cc',
-        locationStartN: 'dd',
-        locationEndE: 'hh',
-        locationEndN: 'ii',
-        length: 'ee',
-        curveRadiusStart: 'jj',
-        curveRadiusEnd: 'uhuh',
-        cantStart: 'ee',
-        cantEnd: 'ww',
-        angleStart: 'ijij',
-        angleEnd: 'eye',
-        plan: 'ueue',
-        coordinateSystem: 'iauhew',
-    };
-    const item2: ElementItem = {
-        id: 'fghij',
-        trackNumber: '456',
-        track: 'HKI-JKL',
-        type: GeometryType.CLOTHOID,
-        trackAddressStart: 'aa',
-        trackAddressEnd: ' bb',
-        locationStartE: 'cc',
-        locationStartN: 'dd',
-        locationEndE: 'hh',
-        locationEndN: 'ii',
-        length: 'ee',
-        curveRadiusStart: 'jj',
-        curveRadiusEnd: 'uhuh',
-        cantStart: 'ee',
-        cantEnd: 'ww',
-        angleStart: 'ijij',
-        angleEnd: 'eye',
-        plan: 'ueue',
-        coordinateSystem: 'iauhew',
-    };
-    const myList: ElementItem[] = [item1, item2];
+    const amount = plans.length;
+    const trackNumbers = useTrackNumbers('OFFICIAL');
 
     //Siirrä translations-tiedostoon "Geometriaelementit (x kpl)"?
     return (
         <div>
             <p>
                 {t('data-products.element-list.geometry-elements') + ` (${amount}`}
-                {t('data-products.element-list.pcs')} {')'}
+                {t('data-products.element-list.pcs')}
+                {')'}
             </p>
             <div className={styles['element-list-view__table-container']}>
                 <Table wide>
@@ -148,6 +98,7 @@ export const ElementTable = () => {
                             </th>
                             <th>{t('data-products.element-list.element-list-table.angle-end')}</th>
                             <th>{t('data-products.element-list.element-list-table.plan')}</th>
+                            <th>{t('data-products.element-list.element-list-table.source')}</th>
                             <th>
                                 {t(
                                     'data-products.element-list.element-list-table.coordinate-system',
@@ -156,31 +107,37 @@ export const ElementTable = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {myList.map((item) => (
-                            <React.Fragment key={item.id}>
+                        {plans.map((item) => (
+                            <React.Fragment key={item.alignmentId}>
                                 {
                                     <ElementTableItem
-                                        id={item.id}
-                                        trackNumber={item.trackNumber}
-                                        track={item.track}
+                                        id={item.alignmentId}
+                                        trackNumber={
+                                            trackNumbers?.find((tn) => tn.id === item.trackNumberId)
+                                                ?.number
+                                        }
+                                        track={item.alignmentName}
                                         type={t(
-                                            `data-products.element-list.element-list-table.${item.type}`,
+                                            `data-products.element-list.element-list-table.${item.elementType}`,
                                         )}
-                                        trackAddressStart={item.trackAddressStart}
-                                        trackAddressEnd={item.trackAddressEnd}
-                                        locationStartE={item.locationStartE}
-                                        locationStartN={item.locationStartN}
-                                        locationEndE={item.locationEndE}
-                                        locationEndN={item.locationEndN}
-                                        length={item.length}
-                                        curveRadiusStart={item.curveRadiusEnd}
-                                        curveRadiusEnd={item.curveRadiusEnd}
-                                        cantStart={item.cantStart}
-                                        cantEnd={item.cantEnd}
-                                        angleStart={item.angleStart}
-                                        angleEnd={item.angleEnd}
-                                        plan={item.plan}
-                                        coordinateSystem={item.coordinateSystem}
+                                        trackAddressStart={item.start.address}
+                                        trackAddressEnd={item.start.address}
+                                        locationStartE={item.start.coordinate.x}
+                                        locationStartN={item.start.coordinate.y}
+                                        locationEndE={item.end.coordinate.x}
+                                        locationEndN={item.end.coordinate.y}
+                                        length={item.lengthMeters}
+                                        curveRadiusStart={item.start.radiusMeters}
+                                        curveRadiusEnd={item.end.radiusMeters}
+                                        cantStart={item.start.cant}
+                                        cantEnd={item.end.cant}
+                                        angleStart={item.start.directionGrads}
+                                        angleEnd={item.end.directionGrads}
+                                        plan={item.fileName}
+                                        source={item.planSource}
+                                        coordinateSystem={
+                                            item.coordinateSystemSrid ?? item.coordinateSystemName
+                                        }
                                     />
                                 }
                             </React.Fragment>

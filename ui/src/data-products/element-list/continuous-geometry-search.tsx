@@ -21,6 +21,7 @@ import { GEOMETRY_URI, getLocationTrackElements } from 'geometry/geometry-api';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { queryParams } from 'api/api-fetch';
 import { Button } from 'vayla-design-lib/button/button';
+import { ElementTable } from 'data-products/element-list/element-table';
 
 type ContinuousGeometrySearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -95,8 +96,7 @@ const ContinuousGeometrySearch = ({
         endAddress: validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
     });
 
-    // TODO Use plans when table is added
-    const plans = useLoader(() => {
+    const elementList = useLoader(() => {
         if (!selectedLocationTrack || hasErrors('searchGeometries')) return Promise.resolve([]);
 
         return getLocationTrackElements(
@@ -110,107 +110,112 @@ const ContinuousGeometrySearch = ({
     const downloadUri = `${GEOMETRY_URI}/layout/location-tracks/${selectedLocationTrack?.id}/element-listing/file${searchQueryParameters}`;
 
     return (
-        <div className={styles['element-list__geometry-search']}>
-            <FieldLayout
-                label={t('data-products.element-list.search.location-track')}
-                value={
-                    <Dropdown
-                        value={selectedLocationTrack}
-                        getName={(item) => item.name}
-                        placeholder={t('location-track-dialog.search')}
-                        options={getDuplicateTrackOptions}
-                        searchable
-                        onChange={setSelectedLocationTrack}
-                        canUnselect={true}
-                        unselectText={t('data-products.element-list.search.not-selected')}
-                        wideList
-                        wide
-                    />
-                }
-            />
-            <FieldLayout
-                label={t('data-products.element-list.search.track-address-start')}
-                value={
-                    <TextField
-                        value={state.searchFields.startTrackMeter}
-                        onChange={(e) => updateProp('startTrackMeter', e.target.value)}
-                        onBlur={() => onCommitField('startTrackMeter')}
-                        hasError={hasErrors('startTrackMeter')}
-                        wide
-                    />
-                }
-                errors={getVisibleErrorsByProp('startTrackMeter')}
-            />
-            <FieldLayout
-                label={t('data-products.element-list.search.track-address-end')}
-                value={
-                    <TextField
-                        value={state.searchFields.endTrackMeter}
-                        onChange={(e) => updateProp('endTrackMeter', e.target.value)}
-                        onBlur={() => onCommitField('endTrackMeter')}
-                        hasError={hasErrors('endTrackMeter')}
-                        wide
-                    />
-                }
-                errors={getVisibleErrorsByProp('endTrackMeter')}
-            />
-            <div className={styles['element-list__geometry-checkboxes']}>
+        <React.Fragment>
+            <div className={styles['element-list__geometry-search']}>
                 <FieldLayout
-                    label={''}
+                    label={t('data-products.element-list.search.location-track')}
                     value={
-                        <div className={styles['element-list__geometry-checkbox']}>
-                            <Checkbox
-                                checked={state.searchFields.searchGeometries.searchLines}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchFields.searchGeometries,
-                                        searchLines: e.target.checked,
-                                    })
-                                }>
-                                {t('data-products.element-list.search.line')}
-                            </Checkbox>
-                            <Checkbox
-                                checked={state.searchFields.searchGeometries.searchCurves}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchFields.searchGeometries,
-                                        searchCurves: e.target.checked,
-                                    })
-                                }>
-                                {t('data-products.element-list.search.curve')}
-                            </Checkbox>
-                            <Checkbox
-                                checked={state.searchFields.searchGeometries.searchClothoids}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchFields.searchGeometries,
-                                        searchClothoids: e.target.checked,
-                                    })
-                                }>
-                                {t('data-products.element-list.search.clothoid')}
-                            </Checkbox>
-                            <Checkbox
-                                checked={state.searchFields.searchGeometries.searchMissingGeometry}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchFields.searchGeometries,
-                                        searchMissingGeometry: e.target.checked,
-                                    })
-                                }>
-                                {t('data-products.element-list.search.missing-section')}
-                            </Checkbox>
-                        </div>
+                        <Dropdown
+                            value={selectedLocationTrack}
+                            getName={(item) => item.name}
+                            placeholder={t('location-track-dialog.search')}
+                            options={getDuplicateTrackOptions}
+                            searchable
+                            onChange={setSelectedLocationTrack}
+                            canUnselect={true}
+                            unselectText={t('data-products.element-list.search.not-selected')}
+                            wideList
+                            wide
+                        />
                     }
-                    errors={getVisibleErrorsByProp('searchGeometries')}
                 />
+                <FieldLayout
+                    label={t('data-products.element-list.search.track-address-start')}
+                    value={
+                        <TextField
+                            value={state.searchFields.startTrackMeter}
+                            onChange={(e) => updateProp('startTrackMeter', e.target.value)}
+                            onBlur={() => onCommitField('startTrackMeter')}
+                            hasError={hasErrors('startTrackMeter')}
+                            wide
+                        />
+                    }
+                    errors={getVisibleErrorsByProp('startTrackMeter')}
+                />
+                <FieldLayout
+                    label={t('data-products.element-list.search.track-address-end')}
+                    value={
+                        <TextField
+                            value={state.searchFields.endTrackMeter}
+                            onChange={(e) => updateProp('endTrackMeter', e.target.value)}
+                            onBlur={() => onCommitField('endTrackMeter')}
+                            hasError={hasErrors('endTrackMeter')}
+                            wide
+                        />
+                    }
+                    errors={getVisibleErrorsByProp('endTrackMeter')}
+                />
+                <div className={styles['element-list__geometry-checkboxes']}>
+                    <FieldLayout
+                        label={''}
+                        value={
+                            <div className={styles['element-list__geometry-checkbox']}>
+                                <Checkbox
+                                    checked={state.searchFields.searchGeometries.searchLines}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchFields.searchGeometries,
+                                            searchLines: e.target.checked,
+                                        })
+                                    }>
+                                    {t('data-products.element-list.search.line')}
+                                </Checkbox>
+                                <Checkbox
+                                    checked={state.searchFields.searchGeometries.searchCurves}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchFields.searchGeometries,
+                                            searchCurves: e.target.checked,
+                                        })
+                                    }>
+                                    {t('data-products.element-list.search.curve')}
+                                </Checkbox>
+                                <Checkbox
+                                    checked={state.searchFields.searchGeometries.searchClothoids}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchFields.searchGeometries,
+                                            searchClothoids: e.target.checked,
+                                        })
+                                    }>
+                                    {t('data-products.element-list.search.clothoid')}
+                                </Checkbox>
+                                <Checkbox
+                                    checked={
+                                        state.searchFields.searchGeometries.searchMissingGeometry
+                                    }
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchFields.searchGeometries,
+                                            searchMissingGeometry: e.target.checked,
+                                        })
+                                    }>
+                                    {t('data-products.element-list.search.missing-section')}
+                                </Checkbox>
+                            </div>
+                        }
+                        errors={getVisibleErrorsByProp('searchGeometries')}
+                    />
+                </div>
+                <Button
+                    className={styles['element-list__download-button']}
+                    disabled={!elementList || elementList.length === 0}
+                    onClick={() => (location.href = downloadUri)}>
+                    <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
+                </Button>
             </div>
-            <Button
-                className={styles['element-list__download-button']}
-                disabled={!plans || plans.length === 0}
-                onClick={() => (location.href = downloadUri)}>
-                <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
-            </Button>
-        </div>
+            {elementList && <ElementTable plans={elementList} />}
+        </React.Fragment>
     );
 };
 

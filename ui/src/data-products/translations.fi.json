@@ -39,11 +39,12 @@
                 "angle-end": "Suuntakulma lopussa (grad)",
                 "plan": "Suunnitelma",
                 "coordinate-system": "Koordinaatisto",
+                "source": "Lähde",
                 "LINE": "Suora",
                 "CURVE": "Kaari",
                 "CLOTHOID": "Siirtymäkaari",
                 "BIQUADRATIC_PARABOLA": "Helmert",
-                "missing": "Puuttuu"
+                "MISSING_SECTION": "Linkitys puuttuu"
             }
         }
     }

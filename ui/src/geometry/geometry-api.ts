@@ -39,6 +39,7 @@ import { TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
+import { ElementItem } from 'data-products/element-list/element-table';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
@@ -97,7 +98,7 @@ export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<Geo
 export async function getGeometryPlanElements(
     planId: GeometryPlanId,
     elementTypes: GeometryTypeIncludingMissing[],
-): Promise<unknown[] | null> {
+): Promise<ElementItem[] | null> {
     const params = queryParams({
         elementTypes,
     });
@@ -109,7 +110,7 @@ export async function getLocationTrackElements(
     elementTypes: GeometryTypeIncludingMissing[],
     startAddress: string | undefined,
     endAddress: string | undefined,
-): Promise<unknown[] | null> {
+): Promise<ElementItem[] | null> {
     const params = queryParams({
         elementTypes: elementTypes,
         startAddress: startAddress,
