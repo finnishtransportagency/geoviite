@@ -96,7 +96,7 @@ const ContinuousGeometrySearch = ({
     });
 
     // TODO Use plans when table is added
-    const _plans = useLoader(() => {
+    const plans = useLoader(() => {
         if (!selectedLocationTrack || hasErrors('searchGeometries')) return Promise.resolve([]);
 
         return getLocationTrackElements(
@@ -206,7 +206,7 @@ const ContinuousGeometrySearch = ({
             </div>
             <Button
                 className={styles['element-list__download-button']}
-                disabled={!_plans || _plans.length === 0}
+                disabled={!plans || plans.length === 0}
                 onClick={() => (location.href = downloadUri)}>
                 <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
             </Button>
