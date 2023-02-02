@@ -46,3 +46,6 @@ export function validateOid(oid: string): string[] {
         tooLong ? 'too-many-values' : null,
     ].filter(filterNotEmpty);
 }
+
+export const validate = <T>(isValid: boolean, error: ValidationError<T>) =>
+    isValid ? undefined : error;

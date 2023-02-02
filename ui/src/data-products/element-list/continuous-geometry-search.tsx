@@ -52,12 +52,7 @@ const ContinuousGeometrySearch = ({
         (searchTerm) =>
             debouncedGetLocationTrackOptions(searchTerm).then((locationTracks) =>
                 locationTracks
-                    .filter((lt) => {
-                        return (
-                            !selectedLocationTrack ||
-                            (selectedLocationTrack && lt.id !== selectedLocationTrack.id)
-                        );
-                    })
+                    .filter((lt) => !selectedLocationTrack || lt.id !== selectedLocationTrack.id)
                     .map((lt) => ({
                         name: `${lt.name}, ${lt.description}`,
                         value: lt,

@@ -49,17 +49,12 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
     }
     // Use debounced function to collect keystrokes before triggering a search
     const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanHeaders, 250);
-    // Use memoized function to make debouncing functionality to work when re-rendering
+    // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
         (searchTerm) =>
             debouncedGetGeometryPlanHeaders(searchTerm).then((planHeaders) =>
                 planHeaders
-                    .filter((plan) => {
-                        return (
-                            !selectedPlanHeader ||
-                            (selectedPlanHeader && plan.id !== selectedPlanHeader.id)
-                        );
-                    })
+                    .filter((plan) => !selectedPlanHeader || plan.id !== selectedPlanHeader.id)
                     .map((plan) => ({
                         name: plan.fileName,
                         value: plan,

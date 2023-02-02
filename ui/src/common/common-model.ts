@@ -36,6 +36,10 @@ export type TrackMeter = {
     meters: number;
 };
 
+export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
+
+const TRACK_METER_REGEX = /([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4})$/;
+
 export type AddressPoint = {
     point: LayoutPoint;
     address: TrackMeter;
