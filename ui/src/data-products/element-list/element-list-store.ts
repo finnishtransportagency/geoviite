@@ -91,9 +91,14 @@ export const selectedElementTypes = (
     [
         searchGeometry.searchLines ? GeometryType.LINE : undefined,
         searchGeometry.searchCurves ? GeometryType.CURVE : undefined,
-        searchGeometry.searchClothoids ? GeometryType.CLOTHOID : undefined,
         searchGeometry.searchMissingGeometry ? MissingSection.MISSING_SECTION : undefined,
-    ].filter(filterNotEmpty);
+    ]
+        .concat(
+            searchGeometry.searchClothoids
+                ? [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA]
+                : [],
+        )
+        .filter(filterNotEmpty);
 
 const hasAtLeastOneTypeSelected = ({
     searchLines,
