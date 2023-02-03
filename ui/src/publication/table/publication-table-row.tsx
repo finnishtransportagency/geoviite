@@ -81,16 +81,15 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
             <td>{formatDateFull(publicationTime)}</td>
             <td>{publicationUser}</td>
             <td className={styles['publication-table__message-column']} title={message}>
-                <div>
-                    <Button
-                        className={chevronClassNames}
-                        icon={Icons.Down}
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SMALL}
-                        onClick={() => setMessageExpanded(!messageExpanded)}></Button>
-                    <div className={contentClassNames}>
-                        {messageExpanded ? message : messageRows[0]}
-                    </div>
+                <Button
+                    className={chevronClassNames}
+                    icon={Icons.Down}
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.SMALL}
+                    onClick={() => setMessageExpanded(!messageExpanded)}
+                />
+                <div className={contentClassNames}>
+                    {messageExpanded ? message : messageRows[0]}
                 </div>
             </td>
             <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
