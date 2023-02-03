@@ -238,7 +238,7 @@ function hasAccurateMatch(shape: Polygon, feature: Feature<Geometry>): boolean {
     return geom !== undefined && hasCollision(shape, geom);
 }
 
-function _findEntities<TVal>(
+function findEntities<TVal>(
     shape: Polygon,
     features: Feature<Geometry>[],
     getEntity: (feature: Feature<Geometry>) => [string, TVal] | undefined,
@@ -300,7 +300,7 @@ export function getMatchingSegmentDatas(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): SegmentDataHolder[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -317,7 +317,7 @@ export function getMatchingLinkPoints(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): LinkPoint[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -340,7 +340,7 @@ export function getMatchingKmPosts(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): KmPostDataHolder[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -362,7 +362,7 @@ export function getMatchingSwitches(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): SwitchDataHolder[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -378,7 +378,7 @@ export function getMatchingSuggestedSwitches(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): SuggestedSwitch[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -397,7 +397,7 @@ export function getMatchingEntities<T extends { id: string }>(
     propertyName: string,
     options?: MatchOptions,
 ): T[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
