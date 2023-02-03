@@ -88,6 +88,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.7.20")
     testImplementation("org.seleniumhq.selenium:selenium-java:4.6.0")
     testImplementation("io.github.bonigarcia:webdrivermanager:5.3.1")
+    testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
 }
 
 licenseReport {
@@ -116,6 +117,8 @@ tasks.withType<Test> {
     useJUnitPlatform()
     systemProperty("browser.name", System.getProperty("browser.name"))
     systemProperty("browser.headless", System.getProperty("browser.headless"))
+    systemProperty("geoviite.ratko.enabled", "true")
+    systemProperty("geoviite.ratko.url", "http://localhost:12345")
     testLogging.exceptionFormat = FULL
     //testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
