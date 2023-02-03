@@ -46,6 +46,14 @@ export type AddressPoint = {
     distance: number;
 };
 
+export type ElementLocation = {
+    coordinate: Point;
+    address: TrackMeter | undefined;
+    directionGrads: number | undefined;
+    radiusMeters: number | undefined;
+    cant: number | undefined;
+};
+
 export type ChangeTimes = {
     changed: Date;
     created: Date;

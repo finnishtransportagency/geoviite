@@ -4,6 +4,7 @@ import {
     GeometryAlignmentId,
     GeometryElement,
     GeometryElementId,
+    ElementItem,
     GeometryPlan,
     GeometryPlanHeader,
     GeometryPlanId,
@@ -97,7 +98,7 @@ export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<Geo
 export async function getGeometryPlanElements(
     planId: GeometryPlanId,
     elementTypes: GeometryTypeIncludingMissing[],
-): Promise<unknown[] | null> {
+): Promise<ElementItem[] | null> {
     const params = queryParams({
         elementTypes,
     });
@@ -109,7 +110,7 @@ export async function getLocationTrackElements(
     elementTypes: GeometryTypeIncludingMissing[],
     startAddress: string | undefined,
     endAddress: string | undefined,
-): Promise<unknown[] | null> {
+): Promise<ElementItem[] | null> {
     const params = queryParams({
         elementTypes: elementTypes,
         startAddress: startAddress,

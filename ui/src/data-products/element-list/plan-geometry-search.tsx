@@ -21,6 +21,7 @@ import { useLoader } from 'utils/react-utils';
 import { queryParams } from 'api/api-fetch';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
+import { ElementTable } from 'data-products/element-list/element-table';
 
 type ContinuousGeometrySearchProps = {
     state: PlanGeometrySearchState;
@@ -92,7 +93,7 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
 
     const canSearch = selectedPlanHeader && !hasErrors('searchGeometries');
 
-    const _plans = useLoader(() => {
+    const elementList = useLoader(() => {
         if (!canSearch) return Promise.resolve([]);
 
         return getGeometryPlanElements(
@@ -104,72 +105,76 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
     const downloadUri = `${GEOMETRY_URI}/plans/${selectedPlanHeader?.id}/element-listing/file${searchQueryParameters}`;
 
     return (
-        <div className={styles['element-list__geometry-search']}>
-            <div className={styles['element-list__plan-search-dropdown']}>
-                <FieldLayout
-                    label={t(`data-products.element-list.search.plan`)}
-                    value={
-                        <Dropdown
-                            value={selectedPlanHeader}
-                            getName={(item: GeometryPlanHeader) => item.fileName}
-                            placeholder={t('location-track-dialog.search')}
-                            options={geometryPlanHeaders}
-                            searchable
-                            onChange={setSelectedPlanHeader}
-                            canUnselect={true}
-                            unselectText={t('data-products.element-list.search.not-selected')}
-                            wideList
-                            wide
-                        />
-                    }
-                />
+        <React.Fragment>
+            <div className={styles['element-list__geometry-search']}>
+                <div className={styles['element-list__plan-search-dropdown']}>
+                    <FieldLayout
+                        label={t(`data-products.element-list.search.plan`)}
+                        value={
+                            <Dropdown
+                                value={selectedPlanHeader}
+                                getName={(item: GeometryPlanHeader) => item.fileName}
+                                placeholder={t('location-track-dialog.search')}
+                                options={geometryPlanHeaders}
+                                searchable
+                                onChange={setSelectedPlanHeader}
+                                canUnselect={true}
+                                unselectText={t('data-products.element-list.search.not-selected')}
+                                wideList
+                                wide
+                            />
+                        }
+                    />
+                </div>
+                <div className={styles['element-list__geometry-checkboxes']}>
+                    <FieldLayout
+                        value={
+                            <div className={styles['element-list__geometry-checkbox']}>
+                                <Checkbox
+                                    checked={state.searchGeometries.searchLines}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchGeometries,
+                                            searchLines: e.target.checked,
+                                        })
+                                    }>
+                                    {t(`data-products.element-list.search.line`)}
+                                </Checkbox>
+                                <Checkbox
+                                    checked={state.searchGeometries.searchCurves}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchGeometries,
+                                            searchCurves: e.target.checked,
+                                        })
+                                    }>
+                                    {t(`data-products.element-list.search.curve`)}
+                                </Checkbox>
+                                <Checkbox
+                                    checked={state.searchGeometries.searchClothoids}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchGeometries,
+                                            searchClothoids: e.target.checked,
+                                        })
+                                    }>
+                                    {t(`data-products.element-list.search.clothoid`)}
+                                </Checkbox>
+                            </div>
+                        }
+                        errors={getVisibleErrorsByProp('searchGeometries')}
+                    />
+                </div>
+                <Button
+                    className={styles['element-list__download-button']}
+                    disabled={!elementList || elementList.length === 0}
+                    onClick={() => (location.href = downloadUri)}
+                    icon={Icons.Download}>
+                    {t(`data-products.element-list.search.download-csv`)}
+                </Button>
             </div>
-            <div className={styles['element-list__geometry-checkboxes']}>
-                <FieldLayout
-                    value={
-                        <div className={styles['element-list__geometry-checkbox']}>
-                            <Checkbox
-                                checked={state.searchGeometries.searchLines}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
-                                        searchLines: e.target.checked,
-                                    })
-                                }>
-                                {t(`data-products.element-list.search.line`)}
-                            </Checkbox>
-                            <Checkbox
-                                checked={state.searchGeometries.searchCurves}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
-                                        searchCurves: e.target.checked,
-                                    })
-                                }>
-                                {t(`data-products.element-list.search.curve`)}
-                            </Checkbox>
-                            <Checkbox
-                                checked={state.searchGeometries.searchClothoids}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
-                                        searchClothoids: e.target.checked,
-                                    })
-                                }>
-                                {t(`data-products.element-list.search.clothoid`)}
-                            </Checkbox>
-                        </div>
-                    }
-                    errors={getVisibleErrorsByProp('searchGeometries')}
-                />
-            </div>
-            <Button
-                className={styles['element-list__download-button']}
-                disabled={!_plans || _plans.length === 0}
-                onClick={() => (location.href = downloadUri)}>
-                <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
-            </Button>
-        </div>
+            {elementList && <ElementTable plans={elementList} />}
+        </React.Fragment>
     );
 };
 

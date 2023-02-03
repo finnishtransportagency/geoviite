@@ -18,7 +18,8 @@
             "element-list-title": "Elementtiluettelo",
             "continuous-geometry": "Jatkuva geometria",
             "plan-geometry": "Suunnitelman geometria",
-            "geometry-elements": "Geometriaelementit",
+            "geometry-elements": "Geometriaelementit ({{amount}} kpl)",
+            "pcs": "kpl",
             "element-list-table": {
                 "track-number": "Ratanumero",
                 "alignment": "Raide",
@@ -34,10 +35,16 @@
                 "curve-radius-end": "Kaarresäde lopussa",
                 "cant-start": "Kallistus alussa",
                 "cant-end": "Kallistus lopussa",
-                "angle-start": "Suuntakulma alussa (grad)",
-                "angle-end": "Suuntakulma lopussa (grad)",
+                "angle-start": "Suuntakulma alussa (gooni)",
+                "angle-end": "Suuntakulma lopussa (gooni)",
                 "plan": "Suunnitelma",
-                "coordinate-system": "Koordinaatisto"
+                "coordinate-system": "Koordinaatisto",
+                "source": "Lähde",
+                "LINE": "Suora",
+                "CURVE": "Kaari",
+                "CLOTHOID": "Siirtymäkaari",
+                "BIQUADRATIC_PARABOLA": "Siirtymäkaari (Helmert)",
+                "MISSING_SECTION": "Linkitys puuttuu"
             }
         }
     }
