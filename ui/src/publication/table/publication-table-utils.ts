@@ -164,7 +164,7 @@ export const toPublicationTableRows = (
             publication.ratkoPushStatus === RatkoPushStatus.SUCCESSFUL
                 ? publication.ratkoPushTime
                 : null,
-        message: publication.message ? publication.message.split('\n')[0] : '',
+        message: publication.message ?? '',
     };
 
     const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({
