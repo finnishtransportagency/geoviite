@@ -20,7 +20,7 @@ export enum SortProps {
     PUBLICATION_TIME = 'PUBLICATION_TIME',
     PUBLICATION_USER = 'PUBLICATION_USER',
     RATKO_PUSH_TIME = 'RATKO_PUSH_TIME',
-    DEFINITION = 'DEFINITION',
+    MESSAGE = 'MESSAGE',
 }
 
 export enum SortDirection {
@@ -46,7 +46,7 @@ export const operationPriority = (operation: Operation | null) => {
 const nameCompare = fieldComparator((entry: PublicationTableRowProps) =>
     entry.name.toLocaleLowerCase(),
 );
-const definitionCompare = fieldComparator((entry: PublicationTableRowProps) =>
+const messageCompare = fieldComparator((entry: PublicationTableRowProps) =>
     entry.message.toLocaleLowerCase(),
 );
 
@@ -90,7 +90,7 @@ const sortFunctionsByPropName = {
     PUBLICATION_TIME: publicationTimeCompare,
     PUBLICATION_USER: publicationUserCompare,
     RATKO_PUSH_TIME: ratkoPushTimeCompare,
-    DEFINITION: definitionCompare,
+    MESSAGE: messageCompare,
     CHANGED_KM_NUMBERS: changedKmNumbersCompare,
 };
 

@@ -1,35 +1,37 @@
-import React from "react";
-import downloadSvg from "./glyphs/action/download.svg";
-import appendSvg from "./glyphs/action/append.svg";
-import deleteSvg from "./glyphs/action/delete.svg";
-import filterSvg from "./glyphs/action/filter.svg";
-import editSvg from "./glyphs/action/edit.svg";
-import searchSvg from "./glyphs/action/search.svg";
-import switchDirectionSvg from "./glyphs/action/switch-direction.svg";
-import setDateSvg from "./glyphs/action/set-date.svg";
-import ascending from "./glyphs/action/ascending.svg";
-import descending from "./glyphs/action/descending.svg";
-import infoSvg from "./glyphs/status/info.svg";
-import deniedSvg from "./glyphs/status/denied.svg";
-import selectedSvg from "./glyphs/status/selected.svg";
-import layersSvg from "./glyphs/misc/layers.svg";
-import closeSvg from "./glyphs/navigation/close.svg";
-import navigationDownSvg from "./glyphs/navigation/down.svg";
-import statusErrorSvg from "./glyphs/status/error.svg";
-import kmPostSvg from "./glyphs/misc/kmpost.svg";
-import kmPostSelectedSvg from "./glyphs/misc/kmpost-selected.svg";
-import switchSvg from "./glyphs/misc/switch.svg";
-import chevronSvg from "./glyphs/navigation/chevron.svg";
-import eyeSvg from "./glyphs/status/eye.svg";
-import tickSvg from "./glyphs/navigation/tick.svg";
-import moreSvg from "./glyphs/navigation/more.svg";
-import lockSvg from "./glyphs/status/lock.svg";
-import vectorRight from "./glyphs/navigation/vector-right.svg";
-import redoSvg from "./glyphs/action/redo.svg";
-import measureSvg from "./glyphs/action/measure.svg";
-import selectSvg from "./glyphs/action/select.svg";
-import styles from "./icon.scss";
-import { createClassName } from "vayla-design-lib/utils";
+import React from 'react';
+import downloadSvg from './glyphs/action/download.svg';
+import appendSvg from './glyphs/action/append.svg';
+import deleteSvg from './glyphs/action/delete.svg';
+import filterSvg from './glyphs/action/filter.svg';
+import editSvg from './glyphs/action/edit.svg';
+import searchSvg from './glyphs/action/search.svg';
+import switchDirectionSvg from './glyphs/action/switch-direction.svg';
+import setDateSvg from './glyphs/action/set-date.svg';
+import ascending from './glyphs/action/ascending.svg';
+import descending from './glyphs/action/descending.svg';
+import infoSvg from './glyphs/status/info.svg';
+import deniedSvg from './glyphs/status/denied.svg';
+import selectedSvg from './glyphs/status/selected.svg';
+import layersSvg from './glyphs/misc/layers.svg';
+import closeSvg from './glyphs/navigation/close.svg';
+import navigationDownSvg from './glyphs/navigation/down.svg';
+import statusErrorSvg from './glyphs/status/error.svg';
+import kmPostSvg from './glyphs/misc/kmpost.svg';
+import kmPostSelectedSvg from './glyphs/misc/kmpost-selected.svg';
+import switchSvg from './glyphs/misc/switch.svg';
+import chevronSvg from './glyphs/navigation/chevron.svg';
+import eyeSvg from './glyphs/status/eye.svg';
+import tickSvg from './glyphs/navigation/tick.svg';
+import moreSvg from './glyphs/navigation/more.svg';
+import lockSvg from './glyphs/status/lock.svg';
+import vectorRight from './glyphs/navigation/vector-right.svg';
+import redoSvg from './glyphs/action/redo.svg';
+import measureSvg from './glyphs/action/measure.svg';
+import selectSvg from './glyphs/action/select.svg';
+import fullScreen from './glyphs/navigation/fullscreen.svg';
+import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
+import styles from './icon.scss';
+import { createClassName } from 'vayla-design-lib/utils';
 
 /**
  *
@@ -68,6 +70,8 @@ const iconNameToSvgMap = {
     Tick: tickSvg,
     More: moreSvg,
     VectorRight: vectorRight,
+    FullScreen: fullScreen,
+    ExitFullScreen: exitFullScreen,
 
     // Status
     Info: infoSvg,

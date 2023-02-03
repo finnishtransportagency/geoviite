@@ -14,7 +14,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
     Icon,
     hasError = false,
     wide,
-    maxlength = 50,
+    maxlength,
     ...props
 }: TextAreaProps) => {
     const inputRef = React.useRef<HTMLTextAreaElement>(null);
