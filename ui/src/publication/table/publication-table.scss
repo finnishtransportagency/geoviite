@@ -12,3 +12,13 @@
 .publication-table__count-header {
     margin-bottom: 12px;
 }
+
+.publication-table__message-column {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.ellipsis-after {
+}

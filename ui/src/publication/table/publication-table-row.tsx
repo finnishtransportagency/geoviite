@@ -3,6 +3,7 @@ import { KmNumber, TimeStamp, TrackNumber } from 'common/common-model';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import { Operation } from 'publication/publication-model';
+import styles from './publication-table.scss';
 
 export type PublicationTableRowProps = {
     name: string;
@@ -68,7 +69,9 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
             <td>{t(`enum.publish-operation.${operation}`)}</td>
             <td>{formatDateFull(publicationTime)}</td>
             <td>{publicationUser}</td>
-            <td title={message}>{firstMessageRow}</td>
+            <td className={styles['publication-table__message-column']} title={message}>
+                {firstMessageRow}
+            </td>
             <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
         </tr>
     );
