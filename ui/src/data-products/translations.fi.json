@@ -18,7 +18,7 @@
             "element-list-title": "Elementtiluettelo",
             "continuous-geometry": "Jatkuva geometria",
             "plan-geometry": "Suunnitelman geometria",
-            "geometry-elements": "Geometriaelementit",
+            "geometry-elements": "Geometriaelementit ({{amount}} kpl)",
             "pcs": "kpl",
             "element-list-table": {
                 "track-number": "Ratanumero",

@@ -12,17 +12,12 @@ type ElementTableProps = {
 
 export const ElementTable = ({ plans }: ElementTableProps) => {
     const { t } = useTranslation();
-    const amount = plans.length;
     const trackNumbers = useTrackNumbers('OFFICIAL');
+    const amount = plans.length;
 
-    //Siirrä translations-tiedostoon "Geometriaelementit (x kpl)"?
     return (
         <div>
-            <p>
-                {t('data-products.element-list.geometry-elements') + ` (${amount}`}
-                {t('data-products.element-list.pcs')}
-                {')'}
-            </p>
+            <p>{t(`data-products.element-list.geometry-elements`, { amount })}</p>
             <div className={styles['element-list-view__table-container']}>
                 <Table wide>
                     <thead>
