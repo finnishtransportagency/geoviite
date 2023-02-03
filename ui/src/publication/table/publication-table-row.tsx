@@ -11,7 +11,7 @@ export type PublicationTableRowProps = {
     operation: Operation;
     publicationTime: TimeStamp;
     publicationUser: string;
-    definition: string;
+    message: string;
     ratkoPushTime: TimeStamp | null;
 };
 
@@ -51,7 +51,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     operation,
     publicationTime,
     publicationUser,
-    definition,
+    message,
     ratkoPushTime,
 }) => {
     const { t } = useTranslation();
@@ -64,7 +64,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
             <td>{t(`enum.publish-operation.${operation}`)}</td>
             <td>{formatDateFull(publicationTime)}</td>
             <td>{publicationUser}</td>
-            <td>{definition}</td>
+            <td>{message}</td>
             <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
         </tr>
     );
