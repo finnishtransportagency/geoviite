@@ -11,7 +11,7 @@ export type PublicationTableRowProps = {
     operation: Operation;
     publicationTime: TimeStamp;
     publicationUser: string;
-    definition: string;
+    message: string;
     ratkoPushTime: TimeStamp | null;
 };
 
@@ -51,10 +51,14 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     operation,
     publicationTime,
     publicationUser,
-    definition,
+    message,
     ratkoPushTime,
 }) => {
     const { t } = useTranslation();
+    const messageRows = message.split('\n');
+
+    // TODO Switch to CSS line-clamp when it's standardized and supported by browsers
+    const firstMessageRow = messageRows.length > 1 ? `${messageRows[0]}...` : messageRows[0];
 
     return (
         <tr className={'publication-table__row'}>
@@ -64,7 +68,7 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
             <td>{t(`enum.publish-operation.${operation}`)}</td>
             <td>{formatDateFull(publicationTime)}</td>
             <td>{publicationUser}</td>
-            <td>{definition}</td>
+            <td title={message}>{firstMessageRow}</td>
             <td>{ratkoPushTime ? formatDateFull(ratkoPushTime) : t('no')}</td>
         </tr>
     );

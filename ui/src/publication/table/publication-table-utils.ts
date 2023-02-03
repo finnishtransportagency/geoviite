@@ -47,7 +47,7 @@ const nameCompare = fieldComparator((entry: PublicationTableRowProps) =>
     entry.name.toLocaleLowerCase(),
 );
 const definitionCompare = fieldComparator((entry: PublicationTableRowProps) =>
-    entry.definition.toLocaleLowerCase(),
+    entry.message.toLocaleLowerCase(),
 );
 
 const compareStringArrays = (a: string[] | undefined, b: string[] | undefined) => {
@@ -164,7 +164,7 @@ export const toPublicationTableRows = (
             publication.ratkoPushStatus === RatkoPushStatus.SUCCESSFUL
                 ? publication.ratkoPushTime
                 : null,
-        definition: '',
+        message: publication.message ?? '',
     };
 
     const trackNumberItems = publication.trackNumbers.map((trackNumber) => ({

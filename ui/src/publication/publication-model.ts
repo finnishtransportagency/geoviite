@@ -93,6 +93,7 @@ export type PublicationDetails = {
     kmPosts: PublishedKmPost[];
     ratkoPushStatus: RatkoPushStatus | null;
     ratkoPushTime: TimeStamp | null;
+    message: string | undefined;
 };
 
 export type PublishedTrackNumber = {
