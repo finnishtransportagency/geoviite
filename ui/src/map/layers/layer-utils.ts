@@ -30,12 +30,14 @@ import {
 } from 'model/geometry';
 import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
 
+const layoutToWgs84 = proj4(LAYOUT_SRID, 'WGS84');
+
 function toWgs84(coordinate: number[]): number[] {
-    return proj4(LAYOUT_SRID, 'WGS84', coordinate);
+    return layoutToWgs84.forward(coordinate);
 }
 
 function toMapProjection(coordinate: number[]): number[] {
-    return proj4('WGS84', LAYOUT_SRID, coordinate);
+    return layoutToWgs84.inverse(coordinate);
 }
 
 function toWgs84Multi(coordinates: number[][]): number[][] {
@@ -222,10 +224,9 @@ export function addBbox(feature: Feature<Polygon | LineString>): void {
     }
 }
 
-function hasBoundsMatch(shape: Polygon, feature: Feature<Geometry>): boolean {
+function hasBoundsMatch(turfPolyShape: turf.Feature, feature: Feature<Geometry>): boolean {
     const featBounds = feature.get('bboxTurfPolygon') as turf.Polygon;
     if (featBounds) {
-        const turfPolyShape = turf.polygon(toWgs84Polygon(shape.getCoordinates()));
         return !turf.booleanDisjoint(featBounds, turfPolyShape);
     } else {
         return true;
@@ -237,13 +238,15 @@ function hasAccurateMatch(shape: Polygon, feature: Feature<Geometry>): boolean {
     return geom !== undefined && hasCollision(shape, geom);
 }
 
-function _findEntities<TVal>(
+function findEntities<TVal>(
     shape: Polygon,
     features: Feature<Geometry>[],
     getEntity: (feature: Feature<Geometry>) => [string, TVal] | undefined,
     options?: MatchOptions,
 ): TVal[] {
     const match: { [key: string]: { feature: Feature<Geometry>; entity: TVal } } = {};
+    let itemCount = 0;
+    const turfPolyShape = turf.polygon(toWgs84Polygon(shape.getCoordinates()));
     // Use "some" instead of "forEach" to stop iteration when needed (e.g. enough hits)
     features.some((feature) => {
         let continueSearching = true;
@@ -254,7 +257,7 @@ function _findEntities<TVal>(
             if (
                 entity &&
                 !match[id] &&
-                hasBoundsMatch(shape, feature) &&
+                hasBoundsMatch(turfPolyShape, feature) &&
                 hasAccurateMatch(shape, feature)
             ) {
                 // New match found
@@ -262,7 +265,7 @@ function _findEntities<TVal>(
                     feature: feature,
                     entity: entity,
                 };
-                const itemCount = Object.keys(match).length;
+                itemCount++;
 
                 if (options?.strategy == 'limit' && options?.limit && itemCount >= options?.limit) {
                     // Limit exceeded
@@ -297,7 +300,7 @@ export function getMatchingSegmentDatas(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): SegmentDataHolder[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -314,7 +317,7 @@ export function getMatchingLinkPoints(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): LinkPoint[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -337,7 +340,7 @@ export function getMatchingKmPosts(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): KmPostDataHolder[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -359,7 +362,7 @@ export function getMatchingSwitches(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): SwitchDataHolder[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -375,7 +378,7 @@ export function getMatchingSuggestedSwitches(
     features: Feature<Geometry>[],
     options?: MatchOptions,
 ): SuggestedSwitch[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {
@@ -394,7 +397,7 @@ export function getMatchingEntities<T extends { id: string }>(
     propertyName: string,
     options?: MatchOptions,
 ): T[] {
-    return _findEntities(
+    return findEntities(
         shape,
         features,
         (feature) => {

@@ -14,12 +14,13 @@ export function filterNotEmpty<TValue>(value: TValue | null | undefined): value 
  *
  * @param getId
  */
-export function filterUniqueById<T, TId>(
-    getId: (item: T) => TId,
-): (item: T, index: number, array: T[]) => boolean {
-    return (item: T, index: number, array: T[]) => {
+export function filterUniqueById<T, TId>(getId: (item: T) => TId): (item: T) => boolean {
+    const seen: Set<TId> = new Set();
+    return (item: T) => {
         const id = getId(item);
-        return array.findIndex((item2) => getId(item2) == id) == index;
+        const rv = !seen.has(id);
+        seen.add(id);
+        return rv;
     };
 }
 
