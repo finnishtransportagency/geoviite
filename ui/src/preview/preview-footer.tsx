@@ -5,7 +5,7 @@ import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
 import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
-import { publishCandidates, PublishRequest, PublishResult } from 'publication/publication-api';
+import { publishCandidates, PublishRequestIds, PublishResult } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     updateKmPostChangeTime,
@@ -19,10 +19,12 @@ import { PublishType } from 'common/common-model';
 import { PublishCandidates, PublishValidationError } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { PreviewCandidates } from 'preview/preview-view';
+import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
+import { TextArea } from 'vayla-design-lib/text-area/text-area';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
-    request: PublishRequest;
+    request: PublishRequestIds;
     onPublish: () => void;
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;
@@ -85,6 +87,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     const [publishConfirmVisible, setPublishConfirmVisible] = React.useState(false);
 
     const [isPublishing, setPublishing] = React.useState(false);
+    const [message, setMessage] = React.useState('');
 
     const emptyRequest =
         props.request.trackNumbers.length == 0 &&
@@ -102,7 +105,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const publish = () => {
         setPublishing(true);
-        publishCandidates(props.request)
+        publishCandidates({ ...props.request, message })
             .then((r) => {
                 if (r.isOk()) {
                     const result = r.unwrapOr(null);
@@ -116,6 +119,13 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                 setPublishing(false);
             });
     };
+
+    const candidateCount =
+        props.request.kmPosts.length +
+        props.request.trackNumbers.length +
+        props.request.locationTracks.length +
+        props.request.switches.length +
+        props.request.referenceLines.length;
 
     return (
         <footer className={styles['preview-footer']}>
@@ -145,7 +155,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     title={t('publish.publish-confirm.title')}
                     variant={DialogVariant.LIGHT}
                     allowClose={false}
-                    className={dialogStyles['dialog--normal']}
+                    className={dialogStyles['dialog--wide']}
                     footerContent={
                         <React.Fragment>
                             <Button
@@ -155,14 +165,28 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                                 {t('publish.publish-confirm.cancel')}
                             </Button>
                             <Button
-                                disabled={isPublishing}
+                                disabled={isPublishing || message.length === 0}
                                 isProcessing={isPublishing}
                                 onClick={publish}>
-                                {t('publish.publish-confirm.confirm')}
+                                {t('publish.publish-confirm.confirm', {
+                                    candidates: candidateCount,
+                                })}
                             </Button>
                         </React.Fragment>
                     }>
-                    <div>{t('publish.publish-confirm.description')}</div>
+                    <div className={styles['preview-confirm__description']}>
+                        {t('publish.publish-confirm.description')}
+                    </div>
+                    <FieldLayout
+                        label={`${t('publish.publish-confirm.message')} *`}
+                        value={
+                            <TextArea
+                                value={message}
+                                wide
+                                onChange={(e) => setMessage(e.currentTarget.value)}
+                            />
+                        }
+                    />
                 </Dialog>
             )}
         </footer>

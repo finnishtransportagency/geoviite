@@ -6,7 +6,7 @@ import {
     getCalculatedChanges,
     getPublishCandidates,
     getRevertRequestDependencies,
-    PublishRequest,
+    PublishRequestIds,
     revertCandidates,
     validatePublishCandidates,
 } from 'publication/publication-api';
@@ -85,7 +85,7 @@ export type PreviewCandidates = {
 
 export type ChangesBeingReverted = {
     requestedRevertChange: PreviewTableEntry;
-    changeIncludingDependencies: PublishRequest;
+    changeIncludingDependencies: PublishRequestIds;
 };
 
 type PreviewProps = {
@@ -102,11 +102,11 @@ type PreviewProps = {
     onPublish: () => void;
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
-    onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequest) => void;
+    onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequestIds) => void;
     onPublishPreviewRevert: () => void;
 };
 
-const publishCandidateIds = (candidates: PublishCandidates): PublishRequest => ({
+const publishCandidateIds = (candidates: PublishCandidates): PublishRequestIds => ({
     trackNumbers: candidates.trackNumbers.map((tn) => tn.id),
     locationTracks: candidates.locationTracks.map((lt) => lt.id),
     referenceLines: candidates.referenceLines.map((rl) => rl.id),
@@ -179,7 +179,7 @@ const pendingValidation = (
 
 const previewChanges = (
     stagedValidatedChanges: PublishCandidates,
-    allSelectedChanges: PublishRequest,
+    allSelectedChanges: PublishRequestIds,
     entireChangeset: PublishCandidates,
 ) => {
     const validatedIds = publishCandidateIds(stagedValidatedChanges);
@@ -256,7 +256,7 @@ const pendingCandidate = <T extends PublishCandidate>(candidate: T) => ({
 const singleRowPublishRequestOfPreviewTableEntry = (
     id: PublicationId,
     type: PreviewSelectType,
-): PublishRequest => ({
+): PublishRequestIds => ({
     trackNumbers: type === 'trackNumber' ? [id] : [],
     referenceLines: type === 'referenceLine' ? [id] : [],
     locationTracks: type === 'locationTrack' ? [id] : [],
@@ -266,7 +266,7 @@ const singleRowPublishRequestOfPreviewTableEntry = (
 
 const singleRowPublishRequestOfSelectedPublishChange = (
     change: SelectedPublishChange,
-): PublishRequest => ({
+): PublishRequestIds => ({
     trackNumbers: change.trackNumber ? [change.trackNumber] : [],
     referenceLines: change.referenceLine ? [change.referenceLine] : [],
     locationTracks: change.locationTrack ? [change.locationTrack] : [],

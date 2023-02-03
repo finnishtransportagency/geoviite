@@ -37,10 +37,11 @@
     },
     "publish": {
         "publish-confirm": {
-            "title": "Julkaisu",
-            "description": "Julkaisun jälkeen Geoviite lähettää tiedot Ratkoon",
+            "title": "Julkaise muutokset",
+            "description": "Syötä vielä muutoksia kuvaava selite. Julkaisun jälkeen Geoviite lähettää muutokset automaattisesti Ratkoon.",
             "cancel": "Peruuta",
-            "confirm": "Julkaise"
+            "message": "Selite",
+            "confirm": "Julkaise muutokset ({{candidates}} kpl)"
         },
         "revert-confirm": {
             "title": "Muutoksen hylkääminen",

@@ -15,6 +15,7 @@ open class Publication(
     open val id: IntId<Publication>,
     open val publicationTime: Instant,
     open val publicationUser: UserName,
+    open val message: String?,
 )
 
 data class PublishedTrackNumber(
@@ -57,6 +58,7 @@ data class PublicationDetails(
     override val id: IntId<Publication>,
     override val publicationTime: Instant,
     override val publicationUser: UserName,
+    override val message: String?,
     val trackNumbers: List<PublishedTrackNumber>,
     val referenceLines: List<PublishedReferenceLine>,
     val locationTracks: List<PublishedLocationTrack>,
@@ -64,7 +66,7 @@ data class PublicationDetails(
     val kmPosts: List<PublishedKmPost>,
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
-) : Publication(id, publicationTime, publicationUser)
+) : Publication(id, publicationTime, publicationUser, message)
 
 enum class DraftChangeType {
     TRACK_NUMBER,
@@ -102,7 +104,7 @@ data class PublishCandidates(
             kmPosts.filter { candidate -> versions.containsKmPost(candidate.id) },
         )
 
-    fun ids(): PublishRequest = PublishRequest(
+    fun ids(): PublishRequestIds = PublishRequestIds(
         trackNumbers.map { candidate -> candidate.id },
         locationTracks.map { candidate -> candidate.id },
         referenceLines.map { candidate -> candidate.id },
@@ -138,15 +140,24 @@ data class PublicationVersions(
 
 data class PublicationVersion<T>(val officialId: IntId<T>, val draftVersion: RowVersion<T>)
 
-data class PublishRequest(
+data class PublishRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,
     val referenceLines: List<IntId<ReferenceLine>>,
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
 ) {
-    operator fun minus(other: PublishRequest) =
-        PublishRequest(
+    constructor(withMessage: PublishRequest): this(
+        withMessage.trackNumbers,
+        withMessage.locationTracks,
+        withMessage.referenceLines,
+        withMessage.switches,
+        withMessage.kmPosts
+    )
+
+
+    operator fun minus(other: PublishRequestIds) =
+        PublishRequestIds(
             trackNumbers - other.trackNumbers.toSet(),
             locationTracks - other.locationTracks.toSet(),
             referenceLines - other.referenceLines.toSet(),
@@ -154,6 +165,15 @@ data class PublishRequest(
             kmPosts - other.kmPosts.toSet(),
         )
 }
+
+data class PublishRequest(
+    val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
+    val locationTracks: List<IntId<LocationTrack>>,
+    val referenceLines: List<IntId<ReferenceLine>>,
+    val switches: List<IntId<TrackLayoutSwitch>>,
+    val kmPosts: List<IntId<TrackLayoutKmPost>>,
+    val message: String,
+)
 
 data class PublishResult(
     val publishId: IntId<Publication>?,

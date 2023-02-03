@@ -184,10 +184,17 @@ class PublicationDaoIT @Autowired constructor(
                 SwitchChange(switchId, listOf(switchJointChange))
             )
         )
-        val publishId = publicationDao.createPublication(listOf(), listOf(), listOf(), listOf(), listOf())
+        val publishId = publicationDao.createPublication(listOf(), listOf(), listOf(), listOf(), listOf(), "")
         publicationDao.savePublishCalculatedChanges(publishId, changes)
         val fetchedChanges = publicationDao.fetchCalculatedChangesInPublish(publishId)
         assertEquals(changes, fetchedChanges)
+    }
+
+    @Test
+    fun `Publication message is stored and fetched correctly`() {
+        val message = "Test"
+        val publishId = publicationDao.createPublication(listOf(), listOf(), listOf(), listOf(), listOf(), message)
+        assertEquals(message, publicationDao.getPublication(publishId).message)
     }
 
     @Test

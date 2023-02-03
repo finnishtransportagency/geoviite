@@ -38,14 +38,14 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/validate")
-    fun validatePublishCandidates(@RequestBody publishRequest: PublishRequest): ValidatedPublishCandidates {
+    fun validatePublishCandidates(@RequestBody publishRequestIds: PublishRequestIds): ValidatedPublishCandidates {
         logger.apiCall("validatePublishCandidates")
-        return publicationService.validatePublishCandidates(publicationService.getPublicationVersions(publishRequest))
+        return publicationService.validatePublishCandidates(publicationService.getPublicationVersions(publishRequestIds))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/calculated-changes")
-    fun getCalculatedChanges(@RequestBody request: PublishRequest): CalculatedChanges {
+    fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
         logger.apiCall("getCalculatedChanges")
         return calculatedChangesService.getCalculatedChangesInDraft(
             publicationService.getPublicationVersions(request)
@@ -54,7 +54,7 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @DeleteMapping("/candidates")
-    fun revertPublishCandidates(@RequestBody toDelete: PublishRequest): PublishResult {
+    fun revertPublishCandidates(@RequestBody toDelete: PublishRequestIds): PublishResult {
         logger.apiCall("revertPublishCandidates")
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.revertPublishCandidates(toDelete)
@@ -66,7 +66,7 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/candidates/revert-request-dependencies")
-    fun getRevertRequestDependencies(@RequestBody toDelete: PublishRequest): PublishRequest {
+    fun getRevertRequestDependencies(@RequestBody toDelete: PublishRequestIds): PublishRequestIds {
         logger.apiCall("getRevertRequestDependencies")
         return publicationService.getRevertRequestDependencies(toDelete)
     }
@@ -76,11 +76,12 @@ class PublicationController @Autowired constructor(
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publicationService.updateExternalId(request)
-            val versions = publicationService.getPublicationVersions(request)
+            val withoutMessage = PublishRequestIds(request)
+            publicationService.updateExternalId(withoutMessage)
+            val versions = publicationService.getPublicationVersions(withoutMessage)
             publicationService.validatePublishRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
-            publicationService.publishChanges(versions, calculatedChanges)
+            publicationService.publishChanges(versions, calculatedChanges, request.message)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",

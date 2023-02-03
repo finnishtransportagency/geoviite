@@ -43,7 +43,7 @@ class PublicationServiceIT @Autowired constructor(
     @BeforeEach
     fun clearDrafts() {
         val request = publicationService.getAllPublicationVersions().let {
-            PublishRequest(
+            PublishRequestIds(
                 it.trackNumbers.map { it.draftVersion.id },
                 it.locationTracks.map { it.draftVersion.id },
                 it.referenceLines.map { it.draftVersion.id },
@@ -84,7 +84,7 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         val beforeInsert = getDbTime()
-        val publishRequest = PublishRequest(
+        val publishRequestIds = PublishRequestIds(
             trackNumbers.map { it.id },
             locationTracks.map { it.id },
             referenceLines.map { it.id },
@@ -92,9 +92,9 @@ class PublicationServiceIT @Autowired constructor(
             kmPosts.map { it.id }
         )
 
-        val publicationVersions = publicationService.getPublicationVersions(publishRequest)
+        val publicationVersions = publicationService.getPublicationVersions(publishRequestIds)
         val draftCalculatedChanges = getCalculatedChangesInRequest(publicationVersions)
-        val publishResult = publicationService.publishChanges(publicationVersions, draftCalculatedChanges)
+        val publishResult = publicationService.publishChanges(publicationVersions, draftCalculatedChanges, "Test")
         val afterInsert = getDbTime()
         assertNotNull(publishResult.publishId)
         val publish = publicationService.getPublicationDetails(publishResult.publishId!!)
@@ -163,7 +163,7 @@ class PublicationServiceIT @Autowired constructor(
         val publishRequest = publishRequest(referenceLines = listOf(draftId))
         val versions = publicationService.getPublicationVersions(publishRequest)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
-        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges)
+        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges, "Test")
         assertNotNull(publishResult.publishId)
         assertEquals(0, publishResult.trackNumbers)
         assertEquals(1, publishResult.referenceLines)
@@ -497,7 +497,7 @@ class PublicationServiceIT @Autowired constructor(
         val switch2 = switchService.saveDraft(switch(234)).id
 
         val revertResult = publicationService.revertPublishCandidates(
-            PublishRequest(listOf(), listOf(), listOf(), listOf(switch1), listOf())
+            PublishRequestIds(listOf(), listOf(), listOf(), listOf(switch1), listOf())
         )
 
         assertEquals(revertResult.switches, 1)
@@ -592,11 +592,11 @@ class PublicationServiceIT @Autowired constructor(
     private fun getCalculatedChangesInRequest(versions: PublicationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChangesInDraft(versions)
 
-    private fun publishAndVerify(request: PublishRequest): PublishResult {
+    private fun publishAndVerify(request: PublishRequestIds): PublishResult {
         val versions = publicationService.getPublicationVersions(request)
         verifyVersions(request, versions)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
-        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges)
+        val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges, "Test")
         assertNotNull(publishResult.publishId)
         verifyPublished(versions.trackNumbers, trackNumberDao) { draft, published ->
             assertMatches(draft.copy(draft = null), published)
@@ -619,12 +619,12 @@ class PublicationServiceIT @Autowired constructor(
     }
 }
 
-private fun verifyVersions(publishRequest: PublishRequest, publicationVersions: PublicationVersions) {
-    verifyVersions(publishRequest.trackNumbers, publicationVersions.trackNumbers)
-    verifyVersions(publishRequest.referenceLines, publicationVersions.referenceLines)
-    verifyVersions(publishRequest.kmPosts, publicationVersions.kmPosts)
-    verifyVersions(publishRequest.locationTracks, publicationVersions.locationTracks)
-    verifyVersions(publishRequest.switches, publicationVersions.switches)
+private fun verifyVersions(publishRequestIds: PublishRequestIds, publicationVersions: PublicationVersions) {
+    verifyVersions(publishRequestIds.trackNumbers, publicationVersions.trackNumbers)
+    verifyVersions(publishRequestIds.referenceLines, publicationVersions.referenceLines)
+    verifyVersions(publishRequestIds.kmPosts, publicationVersions.kmPosts)
+    verifyVersions(publishRequestIds.locationTracks, publicationVersions.locationTracks)
+    verifyVersions(publishRequestIds.switches, publicationVersions.switches)
 }
 
 private fun <T : Draftable<T>> verifyVersions(ids: List<IntId<T>>, versions: List<PublicationVersion<T>>) {
