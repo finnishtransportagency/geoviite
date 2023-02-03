@@ -4,6 +4,7 @@ import {
     GeometryAlignmentId,
     GeometryElement,
     GeometryElementId,
+    ElementItem,
     GeometryPlan,
     GeometryPlanHeader,
     GeometryPlanId,
@@ -39,7 +40,6 @@ import { TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
-import { ElementItem } from 'data-products/element-list/element-table';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { TrackMeter } from 'common/common-model';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
+import { TrackMeter } from 'common/common-model';
 
 export type ElementTableItemProps = {
     id: string;
@@ -37,7 +37,6 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     locationStartN,
     locationEndE,
     locationEndN,
-    length,
     curveRadiusStart,
     curveRadiusEnd,
     cantStart,
@@ -61,14 +60,12 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{roundToPrecision(locationEndE, Precision.TM35FIN)}</td>
                 <td>{roundToPrecision(locationEndN, Precision.TM35FIN)}</td>
                 <td>{roundToPrecision(length, Precision.measurementMeterDistance)}</td>
-                <td>
-                    {curveRadiusStart && roundToPrecision(curveRadiusStart, Precision.curveMeters)}
-                </td>
-                <td>{curveRadiusEnd && roundToPrecision(curveRadiusEnd, Precision.curveMeters)}</td>
+                <td>{curveRadiusStart}</td>
+                <td>{curveRadiusEnd}</td>
                 <td>{cantStart && roundToPrecision(cantStart, Precision.cantMillimeters)}</td>
                 <td>{cantEnd && roundToPrecision(cantEnd, Precision.cantMillimeters)}</td>
-                <td>{angleStart && roundToPrecision(angleStart, Precision.angleFractions)}</td>
-                <td>{angleEnd && roundToPrecision(angleEnd, Precision.angleFractions)}</td>
+                <td>{angleStart}</td>
+                <td>{angleEnd}</td>
                 <td>{plan}</td>
                 <td>{source}</td>
             </tr>

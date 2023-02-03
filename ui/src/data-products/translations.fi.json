@@ -43,7 +43,7 @@
                 "LINE": "Suora",
                 "CURVE": "Kaari",
                 "CLOTHOID": "Siirtymäkaari",
-                "BIQUADRATIC_PARABOLA": "Helmert",
+                "BIQUADRATIC_PARABOLA": "Siirtymäkaari (Helmert)",
                 "MISSING_SECTION": "Linkitys puuttuu"
             }
         }

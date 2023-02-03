@@ -52,20 +52,18 @@ const ElementListView = () => {
                         </Radio>
                     </span>
                 </div>
-                <span>
-                    {continuousGeometrySelected ? (
-                        <ContinuousGeometrySearch
-                            state={continuousSearchState}
-                            onUpdateProp={continuousSearchStateActions.onUpdateProp}
-                            onCommitField={continuousSearchStateActions.onCommitField}
-                        />
-                    ) : (
-                        <PlanGeometrySearch
-                            state={planSearchState}
-                            onUpdateProp={planSearchStateActions.onUpdateProp}
-                        />
-                    )}
-                </span>
+                {continuousGeometrySelected ? (
+                    <ContinuousGeometrySearch
+                        state={continuousSearchState}
+                        onUpdateProp={continuousSearchStateActions.onUpdateProp}
+                        onCommitField={continuousSearchStateActions.onCommitField}
+                    />
+                ) : (
+                    <PlanGeometrySearch
+                        state={planSearchState}
+                        onUpdateProp={planSearchStateActions.onUpdateProp}
+                    />
+                )}
             </div>
         </EnvRestricted>
     );

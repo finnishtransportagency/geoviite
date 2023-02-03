@@ -1,8 +1,9 @@
 import { Point } from 'model/geometry';
-import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import {
     AngularUnit,
     DataType,
+    ElementLocation,
     JointNumber,
     KmNumber,
     LinearUnit,
@@ -14,6 +15,7 @@ import {
     TimeStamp,
     VerticalCoordinateSystem,
 } from 'common/common-model';
+import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
 
 export type GeometryPlanLayoutId = string;
 export type GeometryPlanId = string;
@@ -254,3 +256,20 @@ export type GeometryElement =
     | GeometryCurve
     | GeometryBiquadraticParabola
     | GeometryClothoid;
+
+export type ElementItem = {
+    alignmentId: LocationTrackId;
+    alignmentName: string;
+    elementId: GeometryElementId;
+    elementType: GeometryTypeIncludingMissing;
+    start: ElementLocation;
+    end: ElementLocation;
+    lengthMeters: number;
+    planId: GeometryPlanId;
+    planSource: PlanSource;
+    fileName: string;
+    coordinateSystemSrid: Srid;
+    trackNumberId: LayoutTrackNumberId;
+    trackNumberDescription: string;
+    coordinateSystemName: string;
+};

@@ -3,28 +3,8 @@ import { ElementTableItem } from 'data-products/element-list/element-table-item'
 import { Table } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from './element-list-view.scss';
-import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
-import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
-import { ElementLocation, Srid } from 'common/common-model';
-import { GeometryElementId, GeometryPlanId, PlanSource } from 'geometry/geometry-model';
+import { ElementItem } from 'geometry/geometry-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-
-export type ElementItem = {
-    alignmentId: LocationTrackId;
-    alignmentName: string;
-    elementId: GeometryElementId;
-    elementType: GeometryTypeIncludingMissing;
-    start: ElementLocation;
-    end: ElementLocation;
-    lengthMeters: number;
-    planId: GeometryPlanId;
-    planSource: PlanSource;
-    fileName: string;
-    coordinateSystemSrid: Srid;
-    trackNumberId: LayoutTrackNumberId;
-    trackNumberDescription: string;
-    coordinateSystemName: string;
-};
 
 type ElementTableProps = {
     plans: ElementItem[];
