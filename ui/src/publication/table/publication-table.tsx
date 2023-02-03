@@ -92,7 +92,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
                             SortProps.PUBLICATION_USER,
                             'publication-table.publication-user',
                         )}
-                        {sortableTableHeader(SortProps.DEFINITION, 'publication-table.definition')}
+                        {sortableTableHeader(SortProps.MESSAGE, 'publication-table.message')}
                         {sortableTableHeader(
                             SortProps.RATKO_PUSH_TIME,
                             'publication-table.pushed-to-ratko',

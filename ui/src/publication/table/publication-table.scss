@@ -14,11 +14,29 @@
 }
 
 .publication-table__message-column {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     max-width: 200px;
 }
 
-.ellipsis-after {
+.publication-table__message-content {
+    text-overflow: ellipsis;
+    overflow: hidden;
+
+    &--collapsed {
+        white-space: nowrap;
+    }
+
+    &--expanded {
+        white-space: pre-wrap;
+    }
+}
+
+.publication-table__message-icon {
+    float: right;
+    .icon {
+        transition: transform 150ms;
+    }
+
+    &--open .icon {
+        transform: rotate(180deg);
+    }
 }
