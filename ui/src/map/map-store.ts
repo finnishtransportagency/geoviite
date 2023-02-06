@@ -33,6 +33,7 @@ export const initialMapState: Map = {
             id: 'trackLayout-1',
             visible: true,
             showTrackNumbers: true,
+            showReferenceLines: true,
         },
         {
             type: 'geometry',
@@ -180,6 +181,16 @@ export const mapReducers = {
             }
         });
     },
+    onReferencelineVisibilityChange: (
+        state: Map,
+        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
+    ): void => {
+        state.mapLayers.forEach((layer) => {
+            if (layer.id == visibilitySetting.layerId) {
+                (<LayoutAlignmentsLayer>layer).showReferenceLines = visibilitySetting.visible;
+            }
+        });
+    },
     onMapSettingsVisibilityChange: (
         state: Map,
         {payload: visible}: PayloadAction<boolean>,
@@ -222,4 +233,5 @@ export const {
     onHoverLocation,
     onLayerVisibilityChange,
     onTrackNumberVisibilityChange,
+    onReferencelineVisibilityChange,
 } = mapSlice.actions;

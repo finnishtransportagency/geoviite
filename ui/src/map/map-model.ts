@@ -23,6 +23,7 @@ export type TileMapLayer = MapLayerBase & {
 
 export type LayoutAlignmentsLayer = MapLayerBase & {
     type: 'alignment';
+    showReferenceLines: boolean;
     showTrackNumbers: boolean;
 };
 

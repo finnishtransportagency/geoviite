@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 enum class AlignmentFetchType {
+    LOCATIONTRACK,
     REFERENCE,
     ALL,
 }
@@ -36,7 +37,11 @@ class MapAlignmentService(
             "selectedId" to selectedId,
         )
         val trackNumbers = trackNumberService.mapById(publishType)
-        val referenceLines = getMapReferenceLines(trackNumbers, publishType, bbox, resolution)
+        val referenceLines =
+            if (type != AlignmentFetchType.LOCATIONTRACK) {
+                getMapReferenceLines(trackNumbers, publishType, bbox, resolution)
+            }
+            else listOf()
         val locationTracks =
             if (type != AlignmentFetchType.REFERENCE) getMapLocationTracks(publishType, bbox, resolution)
             else listOf()
