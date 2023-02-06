@@ -6,10 +6,7 @@ import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.MISSING_SECTION
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.RoundedPoint
-import fi.fta.geoviite.infra.math.radsToGrads
-import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import org.apache.commons.csv.CSVFormat
@@ -342,7 +339,7 @@ private fun getAddress(context: GeocodingContext?, transformation: Transformatio
     if (context == null || transformation == null) null
     else context.getAddress(transformation.transform(coordinate), ADDRESS_DECIMALS)?.first
 
-private fun getDirectionGrads(rads: Double) = round(radsToGrads(rads), DIRECTION_DECIMALS)
+private fun getDirectionGrads(rads: Double) = round(radsToGrads(radsMathToGeo(rads)), DIRECTION_DECIMALS)
 
 private fun getStartRadius(element: GeometryElement) = when (element) {
     is GeometryLine -> null

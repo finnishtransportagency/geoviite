@@ -162,4 +162,24 @@ class AngleTest {
             }
         }
     }
+
+    @Test
+    fun geoMathAngleConversionWorks() {
+        verifyMathGeoConversion(0.0, 0.5*PI)
+        verifyMathGeoConversion(0.1*PI, 0.4*PI)
+        verifyMathGeoConversion(0.6*PI, 1.9*PI)
+        verifyMathGeoConversion(0.9*PI, 1.6*PI)
+        verifyMathGeoConversion(-0.1*PI, 0.6*PI)
+        verifyMathGeoConversion(-0.4*PI, 0.9*PI)
+        verifyMathGeoConversion(-0.6*PI, 1.1*PI)
+        verifyMathGeoConversion(-0.9*PI, 1.4*PI)
+    }
+
+    private fun verifyMathGeoConversion(mathRads: Double, geoRads: Double) {
+        val delta = 0.00000001
+        assertEquals(geoRads, radsMathToGeo(mathRads), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
+        assertEquals(mathRads, radsGeoToMath(geoRads), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
+        assertEquals(geoRads, radsMathToGeo(radsGeoToMath(geoRads)), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
+        assertEquals(mathRads, radsGeoToMath(radsMathToGeo(mathRads)), delta, "math=PI*${mathRads/PI} geo=PI*${geoRads/PI}")
+    }
 }

@@ -206,9 +206,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanName(newFile: InfraModelFile): FileName? {
-        logger.serviceCall("getDuplicateGeometryPlan", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanName(newFile)
+    fun getDuplicateGeometryPlanHeader(newFile: InfraModelFile): GeometryPlanHeader? {
+        logger.serviceCall("getDuplicateGeometryPlanHeader", "newFile" to newFile)
+        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile)?.let(geometryDao::fetchPlanHeader)
     }
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
@@ -221,12 +221,12 @@ class GeometryService @Autowired constructor(
     }
 
     fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): Pair<FileName, ByteArray> {
-        logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
+        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes)
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
 
         val csvFileContent = planElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        return FileName("${ELEMENT_LISTING} ${plan.fileName}") to csvFileContent
+        return FileName("$ELEMENT_LISTING ${plan.fileName}") to csvFileContent
     }
 
     fun getElementListing(
@@ -265,7 +265,7 @@ class GeometryService @Autowired constructor(
         val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        return FileName("${ELEMENT_LISTING} ${track.name}") to csvFileContent
+        return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
