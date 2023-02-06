@@ -98,6 +98,10 @@ export function compareByField<T, S>(v1: T, v2: T, getter: (obj: T) => S): numbe
     const f1 = getter(v1);
     const f2 = getter(v2);
 
+    return compare(f1, f2);
+}
+
+export function compare<T>(f1: T, f2: T): number {
     if (f1 == null && f2 == null) return 0;
     else if (f1 == null) return -1;
     else if (f2 == null) return 1;

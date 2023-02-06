@@ -8,7 +8,7 @@ import {
 } from 'utils/validation-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryPlanHeader, GeometryType } from 'geometry/geometry-model';
-import { trackMeterIsValid } from 'common/common-model';
+import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
 
 type SearchGeometries = {
     searchLines: boolean;
@@ -131,9 +131,12 @@ const validateContinuousGeometry = (
             },
         ),
         validate(
-            state.searchFields.endTrackMeter >= state.searchFields.startTrackMeter ||
-                !trackMeterIsValid(state.searchFields.endTrackMeter) ||
-                !trackMeterIsValid(state.searchFields.startTrackMeter),
+            !trackMeterIsValid(state.searchFields.endTrackMeter) ||
+                !trackMeterIsValid(state.searchFields.startTrackMeter) ||
+                compareTrackMeterStrings(
+                    state.searchFields.startTrackMeter,
+                    state.searchFields.endTrackMeter,
+                ) <= 0,
             {
                 field: 'endTrackMeter',
                 reason: 'end-before-start',
