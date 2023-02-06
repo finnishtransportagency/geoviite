@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
@@ -208,9 +207,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanName(newFile: InfraModelFile): FileName? {
-        logger.serviceCall("getDuplicateGeometryPlan", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanName(newFile)
+    fun getDuplicateGeometryPlanHeader(newFile: InfraModelFile): GeometryPlanHeader? {
+        logger.serviceCall("getDuplicateGeometryPlanHeader", "newFile" to newFile)
+        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile)?.let(geometryDao::fetchPlanHeader)
     }
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
@@ -223,7 +222,7 @@ class GeometryService @Autowired constructor(
     }
 
     fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): Pair<String, ByteArray> {
-        logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
+        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes)
         val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
         val context = plan.trackNumberId?.let { tnId ->
             geocodingService.getGeocodingContext(OFFICIAL, tnId)
@@ -231,7 +230,7 @@ class GeometryService @Autowired constructor(
         val elementListing = toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
 
         val csvFileContent = elementListingToCsv(elementListing)
-        return "${ELEMENT_LISTING} ${plan.fileName}" to csvFileContent
+        return "$ELEMENT_LISTING ${plan.fileName}" to csvFileContent
     }
 
     fun getElementListing(
@@ -280,7 +279,7 @@ class GeometryService @Autowired constructor(
         )
 
         val csvFileContent = elementListingToCsv(elementListing)
-        return "${ELEMENT_LISTING} ${track.name}" to csvFileContent
+        return "$ELEMENT_LISTING ${track.name}" to csvFileContent
     }
 
     private fun elementListingToCsv(
