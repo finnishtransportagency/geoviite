@@ -52,7 +52,9 @@ const onlyDependencies = (changesBeingReverted: ChangesBeingReverted): PublishRe
         trackNumbers: allChanges.trackNumbers.filter(
             (tn) => reqType != PreviewSelectType.trackNumber || tn !== reqId,
         ),
-        kmPosts: allChanges.kmPosts,
+        kmPosts: allChanges.kmPosts.filter(
+            (kmPost) => reqType != PreviewSelectType.kmPost || kmPost !== reqId,
+        ),
         referenceLines: allChanges.referenceLines.filter(
             (rl) => reqType != PreviewSelectType.referenceLine || rl !== reqId,
         ),
