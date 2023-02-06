@@ -48,10 +48,30 @@ fun rotateAngle(rads: Double, delta: Double): Double =
     normalizeDirectionRads(rads + delta)
 
 /**
+ * Converts math angle (rads) to geodetic angle:
+ * - Math: [-PI,PI) counter-clockwise with 0 at positive X
+ * - Geodetic: [0,2*PI) clockwise with 0 at positive Y
+ */
+fun radsMathToGeo(rads: Double) = normalizeGeodeticRads(0.5 * PI - rads)
+
+/**
+ * Converts geodetic angle (rads) to math angle:
+ * - Math: [-PI,PI) counter-clockwise with 0 at positive X
+ * - Geodetic: [0,2*PI) clockwise with 0 at positive Y
+ */
+fun radsGeoToMath(rads: Double) = normalizeDirectionRads(0.5 * PI - rads)
+
+/**
  * Normalize radian angle value into the half-closed range [-PI,PI)
  */
 private fun normalizeDirectionRads(rads: Double): Double =
     fract((rads - PI) / (PI * 2.0)) * (PI * 2.0) - PI
+
+/**
+ * Normalize radian angle value into the half-closed range [0,2*PI)
+ */
+private fun normalizeGeodeticRads(rads: Double): Double =
+    fract(rads / (PI * 2.0)) * (PI * 2.0)
 
 private fun fract(x: Double) = x - floor(x)
 
@@ -94,7 +114,7 @@ data class Rads(override val original: BigDecimal) : Angle() {
     }
 
     override fun mathToGeo(): Angle {
-        return Rads((-0.5 * PI).toBigDecimal().minus(original))
+        return Rads((0.5 * PI).toBigDecimal().minus(original))
     }
 }
 
@@ -105,6 +125,6 @@ data class Grads(override val original: BigDecimal) : Angle() {
     }
 
     override fun mathToGeo(): Angle {
-        return Grads(BigDecimal.valueOf(-100).minus(original))
+        return Grads(BigDecimal.valueOf(100).minus(original))
     }
 }
