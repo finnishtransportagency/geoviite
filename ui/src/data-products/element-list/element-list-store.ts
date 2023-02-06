@@ -131,6 +131,16 @@ const validateContinuousGeometry = (
             },
         ),
         validate(
+            state.searchFields.endTrackMeter >= state.searchFields.startTrackMeter ||
+                !trackMeterIsValid(state.searchFields.endTrackMeter) ||
+                !trackMeterIsValid(state.searchFields.startTrackMeter),
+            {
+                field: 'endTrackMeter',
+                reason: 'end-before-start',
+                type: ValidationErrorType.ERROR,
+            },
+        ),
+        validate(
             state.searchFields.endTrackMeter === '' ||
                 trackMeterIsValid(state.searchFields.endTrackMeter),
             {
