@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushDao
+import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -581,6 +582,7 @@ class PublicationService @Autowired constructor(
         to: Instant? = null,
         sortBy: PublicationCsvSortField? = null,
         order: SortOrder? = null,
+        timeZone: ZoneId? = null,
     ): String {
         logger.serviceCall(
             "fetchPublicationsAsCsv",
@@ -618,10 +620,10 @@ class PublicationService @Autowired constructor(
                     item.trackNumbers.sorted().joinToString(", "),
                     item.changedKmNumbers?.let(::formatChangedKmNumbers),
                     formatOperation(item.operation),
-                    formatInstant(item.publicationTime),
+                    formatInstant(item.publicationTime, timeZone),
                     item.publicationUser,
                     item.definition,
-                    item.ratkoPushTime?.let(::formatInstant) ?: "Ei"
+                    item.ratkoPushTime?.let { pushTime -> formatInstant(pushTime, timeZone) } ?: "Ei"
                 )
             }
         }
@@ -673,11 +675,10 @@ class PublicationService @Autowired constructor(
         }
     }
 
-    //todo: pass this info from frontend
-    private fun formatInstant(time: Instant) =
+    private fun formatInstant(time: Instant, timeZone: ZoneId? = null) =
         DateTimeFormatter
-            .ofPattern("dd.MM.yyyy HH:mm z")
-            .withZone(ZoneId.of("UTC"))
+            .ofPattern("dd.MM.yyyy HH:mm")
+            .withZone(timeZone ?: ZoneId.of("UTC"))
             .format(time)
 
     private fun formatOperation(operation: Operation) =
@@ -844,7 +845,7 @@ class PublicationService @Autowired constructor(
         publicationTime = publication.publicationTime,
         publicationUser = publication.publicationUser,
         definition = definition,
-        ratkoPushTime = publication.ratkoPushTime,
+        ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
     )
 
     private fun getTrackNumberAtMomentOrThrow(

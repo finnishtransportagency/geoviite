@@ -23,6 +23,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.time.*
+import java.time.format.DateTimeFormatter
+
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
@@ -118,33 +120,22 @@ class PublicationController @Autowired constructor(
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationCsvSortField?,
         @RequestParam("order", required = false) order: SortOrder?,
+        @RequestParam("timeZone") timeZone: ZoneId?,
     ): ResponseEntity<ByteArray> {
         logger.apiCall(
             "getPublicationsAsCsv",
             "from" to from,
             "to" to to,
             "sortBy" to sortBy,
-            "order" to order
+            "order" to order,
+            "timeZone" to timeZone
         )
 
         val publicationsAsCsv =
-            publicationService.fetchPublicationsAsCsv(from, to, sortBy, order)
+            publicationService.fetchPublicationsAsCsv(from, to, sortBy, order, timeZone)
 
-        val headers = HttpHeaders()
-        headers.contentType = MediaType.APPLICATION_OCTET_STREAM
-        headers.set(
-            HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition
-                .attachment()
-                .filename("julkaisuloki.csv")
-                .build()
-                .toString()
-        )
-
-        return ResponseEntity
-            .ok()
-            .headers(headers)
-            .body(publicationsAsCsv.toByteArray())
+        val fileName = FileName("julkaisuloki${getDateStringForFileName(from, to, timeZone)}.csv")
+        return getCsvResponseEntity(publicationsAsCsv, fileName)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -153,4 +144,34 @@ class PublicationController @Autowired constructor(
         logger.apiCall("getPublicationDetails", "id" to id)
         return publicationService.getPublicationDetails(id)
     }
+}
+
+private fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<ByteArray> {
+    val headers = HttpHeaders()
+    headers.contentType = MediaType.APPLICATION_OCTET_STREAM
+    headers.set(
+        HttpHeaders.CONTENT_DISPOSITION,
+        ContentDisposition
+            .attachment()
+            .filename(fileName.toString())
+            .build()
+            .toString()
+    )
+
+    return ResponseEntity
+        .ok()
+        .headers(headers)
+        .body(content.toByteArray())
+}
+
+private fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId?): String {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        .withZone(timeZone ?: ZoneId.of("UTC"))
+    val instant1Date = instant1?.let { formatter.format(it) }
+    val instant2Date = instant2?.let { formatter.format(it) }
+
+    return if (instant1Date == null && instant2Date == null) ""
+    else if (instant1Date == null) " -$instant2Date"
+    else if (instant2Date == null) " $instant1Date"
+    else " $instant1Date-$instant2Date"
 }
