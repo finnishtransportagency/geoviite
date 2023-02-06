@@ -2,6 +2,7 @@ import {
     API_URI,
     deleteAdt,
     getIgnoreError,
+    Page,
     postAdt,
     postIgnoreError,
     queryParams,
@@ -22,6 +23,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { formatISODate } from 'utils/date-utils';
+import { SortDirection, SortProps } from 'publication/table/publication-table-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -103,7 +105,7 @@ export const getPublications = (fromDate?: Date, toDate?: Date) => {
         to: toDate ? formatISODate(toDate) : '',
     });
 
-    return getIgnoreError<PublicationDetails[]>(`${PUBLICATION_URL}${params}`);
+    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
 };
 
 export const publicationsCsvUri = `${PUBLICATION_URL}/csv`;

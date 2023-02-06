@@ -11,6 +11,8 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PublicationDetails } from 'publication/publication-model';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
+import { SortInformation } from 'publication/table/publication-table-utils';
+import { Page } from 'api/api-fetch';
 
 export type PublicationLogViewProps = {
     onClose: () => void;
@@ -21,15 +23,16 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
 
     const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
     const [endDate, setEndDate] = React.useState<Date>();
-    const [publications, setPublications] = React.useState<PublicationDetails[]>();
+    const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationDetails>>();
+    const [sortInfo, setSortInfo] = React.useState<SortInformation>();
 
     React.useEffect(() => {
         if (startDate) {
             const to = endDate ? startOfDay(addDays(endDate, 1)) : undefined;
-            setPublications(undefined);
+            setPagedPublications(undefined);
 
             getPublications(startOfDay(startDate), to).then((p) => {
-                setPublications(p ?? []);
+                setPagedPublications(p ?? undefined);
             });
         }
     }, [startDate, endDate]);
@@ -63,8 +66,14 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                 </div>
             </div>
             <div className={styles['publication-log__content']}>
-                {publications && <PublicationTable publications={publications}></PublicationTable>}
-                {!publications && <Spinner />}
+                {pagedPublications && (
+                    <PublicationTable
+                        truncated={pagedPublications?.totalCount != pagedPublications?.items.length}
+                        publications={pagedPublications.items}
+                        onSortChange={setSortInfo}
+                    />
+                )}
+                {!pagedPublications && <Spinner />}
             </div>
         </div>
     );

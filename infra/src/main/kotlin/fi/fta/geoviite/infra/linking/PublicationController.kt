@@ -9,6 +9,8 @@ import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -98,11 +100,15 @@ class PublicationController @Autowired constructor(
     fun getPublications(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
-    ): List<PublicationDetails> {
+    ): Page<PublicationDetails> {
         logger.apiCall("getPublications", "from" to from, "to" to to)
-        return publicationService
-            .fetchPublicationDetails(from, to)
-            .take(50) //Just to prevent frontend from crashing
+        val publications = publicationService.fetchPublicationDetails(from, to)
+
+        return Page(
+            totalCount = publications.size,
+            start = 0,
+            items = publications.take(50) //Prevents frontend from going kaput
+        )
     }
 
     @PreAuthorize(AUTH_ALL_READ)

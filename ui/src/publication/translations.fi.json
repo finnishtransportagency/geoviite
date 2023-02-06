@@ -13,9 +13,9 @@
         "reference-line": "Pituusmittauslinja",
         "switch": "Vaihde",
         "km-post": "Tasakilometripiste",
-        "count-header": "Julkaistut muutokset ({{number}} kpl)",
+        "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
         "calculated-change": "Laskettu muutos",
-        "truncated": "Käyttöliittymässä näytetään vain 50 ensimmäistä julkaisua."
+        "truncated": "Käyttöliittymässä näytetään 50 ensimmäistä julkaisua"
     },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",

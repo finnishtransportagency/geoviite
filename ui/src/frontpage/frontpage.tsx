@@ -29,7 +29,10 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     const publication = publications?.find((p) => p.id == selectedPublication);
     useLoader(
-        () => getPublications(startOfDay(subMonths(new Date(), 1))).then(setPublications),
+        () =>
+            getPublications(startOfDay(subMonths(new Date(), 1))).then((result) =>
+                setPublications(result?.items),
+            ),
         [changeTime],
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
