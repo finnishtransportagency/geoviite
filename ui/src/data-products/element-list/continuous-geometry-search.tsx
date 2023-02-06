@@ -17,14 +17,14 @@ import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-trac
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import { useLoader } from 'utils/react-utils';
-import { GEOMETRY_URI, getLocationTrackElements } from 'geometry/geometry-api';
+import { getLocationTrackElements, getLocationTrackElementsCsv } from 'geometry/geometry-api';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { queryParams } from 'api/api-fetch';
 import { Button } from 'vayla-design-lib/button/button';
-import { ElementTable } from 'data-products/element-list/element-table';
+import { ElementItem } from 'geometry/geometry-model';
 
 type ContinuousGeometrySearchProps = {
     state: ElementListContinuousGeometrySearchState;
+    setElements: (elements: ElementItem[]) => void;
     onUpdateProp: <TKey extends keyof ContinuousSearchParameters>(
         propEdit: PropEdit<ContinuousSearchParameters, TKey>,
     ) => void;
@@ -35,9 +35,9 @@ const ContinuousGeometrySearch = ({
     state,
     onUpdateProp,
     onCommitField,
+    setElements,
 }: ContinuousGeometrySearchProps) => {
     const { t } = useTranslation();
-    const [selectedLocationTrack, setSelectedLocationTrack] = React.useState<LayoutLocationTrack>();
 
     function searchLocationTracks(searchTerm: string): Promise<LayoutLocationTrack[]> {
         if (isNullOrBlank(searchTerm)) {
@@ -49,17 +49,21 @@ const ContinuousGeometrySearch = ({
     // Use debounced function to collect keystrokes before triggering a search
     const debouncedGetLocationTrackOptions = debounceAsync(searchLocationTracks, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
-    const getDuplicateTrackOptions = React.useCallback(
+    const getLocationTracks = React.useCallback(
         (searchTerm) =>
             debouncedGetLocationTrackOptions(searchTerm).then((locationTracks) =>
                 locationTracks
-                    .filter((lt) => !selectedLocationTrack || lt.id !== selectedLocationTrack.id)
+                    .filter(
+                        (lt) =>
+                            !state.searchParameters.locationTrack ||
+                            lt.id !== state.searchParameters.locationTrack.id,
+                    )
                     .map((lt) => ({
                         name: `${lt.name}, ${lt.description}`,
                         value: lt,
                     })),
             ),
-        [selectedLocationTrack],
+        [state.searchParameters.locationTrack],
     );
 
     function updateProp<TKey extends keyof ContinuousSearchParameters>(
@@ -85,24 +89,21 @@ const ContinuousGeometrySearch = ({
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    const searchQueryParameters = queryParams({
-        elementTypes: selectedElementTypes(state.searchParameters.searchGeometries),
-        startAddress: validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-        endAddress: validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-    });
-
-    const elementList = useLoader(() => {
-        if (!selectedLocationTrack || hasErrors('searchGeometries')) return Promise.resolve([]);
-
-        return getLocationTrackElements(
-            selectedLocationTrack.id,
-            selectedElementTypes(state.searchParameters.searchGeometries),
-            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-        );
-    }, [selectedLocationTrack, state.searchParameters]);
-
-    const downloadUri = `${GEOMETRY_URI}/layout/location-tracks/${selectedLocationTrack?.id}/element-listing/file${searchQueryParameters}`;
+    useLoader(() => {
+        return (
+            !state.searchParameters.locationTrack || hasErrors('searchGeometries')
+                ? Promise.resolve([])
+                : getLocationTrackElements(
+                      state.searchParameters.locationTrack.id,
+                      selectedElementTypes(state.searchParameters.searchGeometries),
+                      validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                      validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                  )
+        ).then((elements) => {
+            setElements(elements ?? []);
+            return elements;
+        });
+    }, [state.searchParameters.locationTrack, state.searchParameters]);
 
     return (
         <React.Fragment>
@@ -111,12 +112,13 @@ const ContinuousGeometrySearch = ({
                     label={t('data-products.element-list.search.location-track')}
                     value={
                         <Dropdown
-                            value={selectedLocationTrack}
+                            value={state.searchParameters.locationTrack}
                             getName={(item) => item.name}
                             placeholder={t('location-track-dialog.search')}
-                            options={getDuplicateTrackOptions}
+                            options={getLocationTracks}
                             searchable
-                            onChange={setSelectedLocationTrack}
+                            onChange={(e) => updateProp('locationTrack', e)}
+                            onBlur={() => onCommitField('locationTrack')}
                             canUnselect={true}
                             unselectText={t('data-products.element-list.search.not-selected')}
                             wideList
@@ -204,13 +206,21 @@ const ContinuousGeometrySearch = ({
                 </div>
                 <Button
                     className={styles['element-list__download-button']}
-                    disabled={!elementList || elementList.length === 0}
-                    onClick={() => (location.href = downloadUri)}
+                    disabled={!state.elements || state.elements.length === 0}
+                    onClick={() => {
+                        if (state.searchParameters.locationTrack) {
+                            location.href = getLocationTrackElementsCsv(
+                                state.searchParameters.locationTrack?.id,
+                                selectedElementTypes(state.searchParameters.searchGeometries),
+                                validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                                validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                            );
+                        }
+                    }}
                     icon={Icons.Download}>
                     {t(`data-products.element-list.search.download-csv`)}
                 </Button>
             </div>
-            {elementList && <ElementTable plans={elementList} />}
         </React.Fragment>
     );
 };

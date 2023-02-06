@@ -14,6 +14,7 @@ import {
 } from 'data-products/element-list/element-list-store';
 import { createDelegates } from 'store/store-utils';
 import PlanGeometrySearch from 'data-products/element-list/plan-geometry-search';
+import { ElementTable } from 'data-products/element-list/element-table';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -41,29 +42,43 @@ const ElementListView = () => {
     return (
         <EnvRestricted restrictTo={'dev'}>
             <div className={styles['element-list-view']}>
-                <h2>{t('data-products.element-list.element-list-title')}</h2>
-                <div>
-                    <span className={styles['element-list-view__radio-layout']}>
-                        <Radio onChange={handleRadioClick} checked={continuousGeometrySelected}>
-                            {t('data-products.element-list.continuous-geometry')}
-                        </Radio>
-                        <Radio onChange={handleRadioClick} checked={!continuousGeometrySelected}>
-                            {t('data-products.element-list.plan-geometry')}
-                        </Radio>
-                    </span>
+                <div className={styles['element-list-view__header-container']}>
+                    <h2>{t('data-products.element-list.element-list-title')}</h2>
+                    <div>
+                        <span className={styles['element-list-view__radio-layout']}>
+                            <Radio onChange={handleRadioClick} checked={continuousGeometrySelected}>
+                                {t('data-products.element-list.continuous-geometry')}
+                            </Radio>
+                            <Radio
+                                onChange={handleRadioClick}
+                                checked={!continuousGeometrySelected}>
+                                {t('data-products.element-list.plan-geometry')}
+                            </Radio>
+                        </span>
+                    </div>
+                    {continuousGeometrySelected ? (
+                        <ContinuousGeometrySearch
+                            state={continuousSearchState}
+                            onUpdateProp={continuousSearchStateActions.onUpdateProp}
+                            onCommitField={continuousSearchStateActions.onCommitField}
+                            setElements={continuousSearchStateActions.onSetElements}
+                        />
+                    ) : (
+                        <PlanGeometrySearch
+                            state={planSearchState}
+                            onUpdateProp={planSearchStateActions.onUpdateProp}
+                            setElements={planSearchStateActions.onSetElements}
+                        />
+                    )}
                 </div>
-                {continuousGeometrySelected ? (
-                    <ContinuousGeometrySearch
-                        state={continuousSearchState}
-                        onUpdateProp={continuousSearchStateActions.onUpdateProp}
-                        onCommitField={continuousSearchStateActions.onCommitField}
-                    />
-                ) : (
-                    <PlanGeometrySearch
-                        state={planSearchState}
-                        onUpdateProp={planSearchStateActions.onUpdateProp}
-                    />
-                )}
+                <ElementTable
+                    elements={
+                        continuousGeometrySelected
+                            ? continuousSearchState.elements
+                            : planSearchState.elements
+                    }
+                    showLocationTrackName={true}
+                />
             </div>
         </EnvRestricted>
     );

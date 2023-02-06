@@ -6,8 +6,9 @@ import { TrackMeter } from 'common/common-model';
 export type ElementTableItemProps = {
     id: string;
     trackNumber: string | undefined;
-    track: string;
+    geometryAlignmentName: string;
     type: string;
+    locationTrackName: string;
     trackAddressStart: TrackMeter | undefined;
     trackAddressEnd: TrackMeter | undefined;
     locationStartE: number;
@@ -24,11 +25,14 @@ export type ElementTableItemProps = {
     plan: string;
     source: string;
     coordinateSystem: string;
+
+    showLocationTrackName: boolean;
 };
 
 export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     trackNumber,
-    track,
+    geometryAlignmentName,
+    locationTrackName,
     type,
     trackAddressStart,
     trackAddressEnd,
@@ -45,12 +49,14 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     angleEnd,
     plan,
     source,
+    showLocationTrackName,
 }) => {
     return (
         <React.Fragment>
             <tr>
                 <td>{trackNumber}</td>
-                <td>{track}</td>
+                {showLocationTrackName && <td>{locationTrackName}</td>}
+                <td>{geometryAlignmentName}</td>
                 <td>{type}</td>
                 <td>{trackAddressStart && formatTrackMeter(trackAddressStart)}</td>
                 <td>{trackAddressEnd && formatTrackMeter(trackAddressEnd)}</td>

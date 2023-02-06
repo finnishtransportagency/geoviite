@@ -105,6 +105,11 @@ export async function getGeometryPlanElements(
     return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/element-listing${params}`);
 }
 
+export const getGeometryPlanElementsCsv = (
+    planId: GeometryPlanId,
+    elementTypes: GeometryTypeIncludingMissing[],
+) => `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes })}`;
+
 export async function getLocationTrackElements(
     id: LocationTrackId,
     elementTypes: GeometryTypeIncludingMissing[],
@@ -118,6 +123,20 @@ export async function getLocationTrackElements(
     });
     return getIgnoreError(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
 }
+
+export const getLocationTrackElementsCsv = (
+    locationTrackId: LocationTrackId,
+    elementTypes: GeometryTypeIncludingMissing[],
+    startAddress: string | undefined,
+    endAddress: string | undefined,
+) => {
+    const searchQueryParameters = queryParams({
+        elementTypes,
+        startAddress,
+        endAddress,
+    });
+    return `${GEOMETRY_URI}/layout/location-tracks/${locationTrackId}/element-listing/file${searchQueryParameters}`;
+};
 
 export async function getGeometryPlan(
     planId: GeometryPlanId,

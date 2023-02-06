@@ -260,6 +260,7 @@ export type GeometryElement =
 export type ElementItem = {
     alignmentId: LocationTrackId;
     alignmentName: string;
+    locationTrackName: string;
     elementId: GeometryElementId;
     elementType: GeometryTypeIncludingMissing;
     start: ElementLocation;
