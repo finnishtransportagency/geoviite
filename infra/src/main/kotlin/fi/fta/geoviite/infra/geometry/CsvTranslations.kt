@@ -1,9 +1,8 @@
 package fi.fta.geoviite.infra.geometry
 
 val ELEMENT_LISTING = "Elementtilistaus"
-val ELEMENT_LISTING_CSV_HEADERS = listOf(
-    "Ratanumero",
-    "Raide",
+private val ELEMENT_LISTING_COMMON_CSV_HEADERS = listOf(
+    "Suunnitelman raide",
     "Elementin tyyppi",
     "Rataosoite alussa",
     "Rataosoite lopussa",
@@ -22,6 +21,14 @@ val ELEMENT_LISTING_CSV_HEADERS = listOf(
     "Lähde",
     "Koordinaatisto"
 )
+
+val CONTINUOUS_ELEMENT_LISTING_CSV_HEADERS = listOf(
+    "Ratanumero",
+    "Sijaintiraide"
+) + ELEMENT_LISTING_COMMON_CSV_HEADERS
+
+val PLAN_ELEMENT_LISTING_CSV_HEADERS = listOf("Ratanumero") + ELEMENT_LISTING_COMMON_CSV_HEADERS
+
 
 fun translateTrackGeometryElementType(type: TrackGeometryElementType) =
     when (type) {

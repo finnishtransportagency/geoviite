@@ -7,24 +7,34 @@ import { ElementItem } from 'geometry/geometry-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 
 type ElementTableProps = {
-    plans: ElementItem[];
+    elements: ElementItem[];
+    showLocationTrackName: boolean;
 };
 
-export const ElementTable = ({ plans }: ElementTableProps) => {
+export const ElementTable = ({ elements, showLocationTrackName }: ElementTableProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
-    const amount = plans.length;
+    const amount = elements.length;
 
     return (
         <div>
-            <p>{t(`data-products.element-list.geometry-elements`, { amount })}</p>
+            <p className={styles['element-list-view__table-container']}>
+                {t(`data-products.element-list.geometry-elements`, { amount })}
+            </p>
             <div className={styles['element-list-view__table-container']}>
                 <Table wide>
-                    <thead>
+                    <thead className={styles['element-list-view__table-heading']}>
                         <tr>
                             <th>
                                 {t('data-products.element-list.element-list-table.track-number')}
                             </th>
+                            {showLocationTrackName && (
+                                <th>
+                                    {t(
+                                        'data-products.element-list.element-list-table.location-track',
+                                    )}
+                                </th>
+                            )}
                             <th>{t('data-products.element-list.element-list-table.alignment')}</th>
                             <th>
                                 {t('data-products.element-list.element-list-table.element-type')}
@@ -82,7 +92,7 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {plans.map((item, index) => (
+                        {elements.map((item, index) => (
                             // Element list can contain the same element multiple times -> use index in list as key
                             <React.Fragment key={`${index}`}>
                                 <ElementTableItem
@@ -91,7 +101,8 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                                         trackNumbers?.find((tn) => tn.id === item.trackNumberId)
                                             ?.number
                                     }
-                                    track={item.alignmentName}
+                                    geometryAlignmentName={item.alignmentName}
+                                    locationTrackName={item.locationTrackName}
                                     type={t(
                                         `data-products.element-list.element-list-table.${item.elementType}`,
                                     )}
@@ -113,6 +124,7 @@ export const ElementTable = ({ plans }: ElementTableProps) => {
                                     angleEnd={item.end.directionGrads}
                                     plan={item.fileName}
                                     source={item.planSource}
+                                    showLocationTrackName={showLocationTrackName}
                                 />
                             </React.Fragment>
                         ))}

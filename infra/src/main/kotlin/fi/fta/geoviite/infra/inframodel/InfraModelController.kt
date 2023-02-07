@@ -9,11 +9,10 @@ import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.ContentDisposition
-import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -141,12 +140,8 @@ class InfraModelController @Autowired constructor(
     @GetMapping("{id}/file", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadFile(@PathVariable("id") id: IntId<GeometryPlan>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadFile", "id" to id)
-        val headers = HttpHeaders()
         val infraModelFile: InfraModelFile = geometryService.getPlanFile(id)
-        headers.contentType = MediaType.APPLICATION_OCTET_STREAM
-        headers.set(HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename(fileNameWithSuffix(infraModelFile.name)).build().toString())
-        return ResponseEntity.ok().headers(headers).body(infraModelFile.content.toByteArray())
+        return toFileDownloadResponse(fileNameWithSuffix(infraModelFile.name), infraModelFile.content.toByteArray())
     }
 }
 

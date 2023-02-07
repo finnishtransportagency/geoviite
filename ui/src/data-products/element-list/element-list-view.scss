@@ -1,7 +1,6 @@
 @import '../../vayla-design-lib/radio/radio';
 
 .element-list-view {
-    padding-left: 32px;
     width: 100%;
 
     &__radio-layout > .radio {
@@ -17,8 +16,16 @@
     }
 
     &__table-container {
-        width: 1865px;
         overflow-x: auto;
+        padding-left: 32px;
+    }
+
+    &__header-container {
+        padding-left: 32px;
+    }
+
+    &__table-heading th {
+        min-width: 100px;
     }
 }
 

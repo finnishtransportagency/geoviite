@@ -9,7 +9,11 @@ export type TableProps = {
 } & React.HTMLProps<HTMLTableElement>;
 
 export const Table: React.FC<TableProps> = (props: TableProps) => {
-    const className = createClassName(styles.table, props.wide && styles['table--wide']);
+    const className = createClassName(
+        props.className,
+        styles.table,
+        props.wide && styles['table--wide'],
+    );
     return <table className={className}>{props.children}</table>;
 };
 

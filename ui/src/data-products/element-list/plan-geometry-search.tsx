@@ -12,27 +12,29 @@ import { isNullOrBlank } from 'utils/string-utils';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import {
-    GEOMETRY_URI,
     getGeometryPlanElements,
+    getGeometryPlanElementsCsv,
     getGeometryPlanHeaders,
 } from 'geometry/geometry-api';
-import { GeometryPlanHeader } from 'geometry/geometry-model';
+import { ElementItem, GeometryPlanHeader } from 'geometry/geometry-model';
 import { useLoader } from 'utils/react-utils';
-import { queryParams } from 'api/api-fetch';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
-import { ElementTable } from 'data-products/element-list/element-table';
 
 type ContinuousGeometrySearchProps = {
     state: PlanGeometrySearchState;
     onUpdateProp: <TKey extends keyof PlanGeometrySearchState>(
         propEdit: PropEdit<PlanGeometrySearchState, TKey>,
     ) => void;
+    setElements: (elements: ElementItem[]) => void;
 };
 
-const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchProps) => {
+const PlanGeometrySearch = ({
+    state,
+    onUpdateProp,
+    setElements,
+}: ContinuousGeometrySearchProps) => {
     const { t } = useTranslation();
-    const [selectedPlanHeader, setSelectedPlanHeader] = React.useState<GeometryPlanHeader>();
 
     function searchGeometryPlanHeaders(searchTerm: string): Promise<GeometryPlanHeader[]> {
         if (isNullOrBlank(searchTerm)) {
@@ -55,13 +57,13 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         (searchTerm) =>
             debouncedGetGeometryPlanHeaders(searchTerm).then((planHeaders) =>
                 planHeaders
-                    .filter((plan) => !selectedPlanHeader || plan.id !== selectedPlanHeader.id)
+                    .filter((plan) => !state.plan || plan.id !== state.plan.id)
                     .map((plan) => ({
                         name: plan.fileName,
                         value: plan,
                     })),
             ),
-        [selectedPlanHeader],
+        [state.plan],
     );
 
     function updateProp<TKey extends keyof PlanGeometrySearchState>(
@@ -87,22 +89,19 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    const searchQueryParameters = queryParams({
-        elementTypes: selectedElementTypes(state.searchGeometries),
-    });
-
-    const canSearch = selectedPlanHeader && !hasErrors('searchGeometries');
-
-    const elementList = useLoader(() => {
-        if (!canSearch) return Promise.resolve([]);
-
-        return getGeometryPlanElements(
-            selectedPlanHeader.id,
-            selectedElementTypes(state.searchGeometries),
-        );
-    }, [selectedPlanHeader, state.searchGeometries]);
-
-    const downloadUri = `${GEOMETRY_URI}/plans/${selectedPlanHeader?.id}/element-listing/file${searchQueryParameters}`;
+    useLoader(() => {
+        return (
+            !state.plan || hasErrors('searchGeometries')
+                ? Promise.resolve([])
+                : getGeometryPlanElements(
+                      state.plan.id,
+                      selectedElementTypes(state.searchGeometries),
+                  )
+        ).then((elements) => {
+            setElements(elements ?? []);
+            return elements;
+        });
+    }, [state.plan, state.searchGeometries]);
 
     return (
         <React.Fragment>
@@ -112,12 +111,12 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
                         label={t(`data-products.element-list.search.plan`)}
                         value={
                             <Dropdown
-                                value={selectedPlanHeader}
+                                value={state.plan}
                                 getName={(item: GeometryPlanHeader) => item.fileName}
                                 placeholder={t('location-track-dialog.search')}
                                 options={geometryPlanHeaders}
                                 searchable
-                                onChange={setSelectedPlanHeader}
+                                onChange={(e) => updateProp('plan', e)}
                                 canUnselect={true}
                                 unselectText={t('data-products.element-list.search.not-selected')}
                                 wideList
@@ -167,13 +166,19 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
                 </div>
                 <Button
                     className={styles['element-list__download-button']}
-                    disabled={!elementList || elementList.length === 0}
-                    onClick={() => (location.href = downloadUri)}
+                    disabled={!state.elements || state.elements.length === 0}
+                    onClick={() => {
+                        if (state.plan) {
+                            location.href = getGeometryPlanElementsCsv(
+                                state.plan?.id,
+                                selectedElementTypes(state.searchGeometries),
+                            );
+                        }
+                    }}
                     icon={Icons.Download}>
                     {t(`data-products.element-list.search.download-csv`)}
                 </Button>
             </div>
-            {elementList && <ElementTable plans={elementList} />}
         </React.Fragment>
     );
 };

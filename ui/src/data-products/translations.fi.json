@@ -22,8 +22,9 @@
             "geometry-elements": "Geometriaelementit ({{amount}} kpl)",
             "pcs": "kpl",
             "element-list-table": {
+                "location-track": "Sijaintiraide",
                 "track-number": "Ratanumero",
-                "alignment": "Raide",
+                "alignment": "Suunnitelman raide",
                 "element-type": "Elementin tyyppi",
                 "track-address-start": "Rataosoite alussa",
                 "track-address-end": "Rataosoite lopussa",
