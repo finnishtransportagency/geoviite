@@ -188,7 +188,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 on ratko_push.id = ratko_push_error.ratko_push_id
               inner join integrations.ratko_push_content using(ratko_push_id)
             where ratko_push_content.publication_id = :id
-            order by ratko_push.end_time desc
+            order by ratko_push_error.id desc
             limit 1;
         """.trimIndent()
 

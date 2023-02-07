@@ -159,12 +159,20 @@ internal class RatkoPushDaoIT @Autowired constructor(
     }
 
     @Test
-    fun shouldFindPushErrorByPublicationId() {
+    fun shouldFindLatestPushErrorByPublicationId() {
         val ratkoPushId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
             RatkoOperation.UPDATE,
+            RatkoAssetType.LOCATION_TRACK,
+            locationTrackId,
+            "Response body"
+        )
+        ratkoPushDao.insertRatkoPushError(
+            ratkoPushId,
+            RatkoPushErrorType.PROPERTIES,
+            RatkoOperation.CREATE,
             RatkoAssetType.TRACK_NUMBER,
             trackNumberId,
             "Response body"
@@ -174,6 +182,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         assertNotNull(ratkoPushError)
         assertEquals(trackNumberId, ratkoPushError.assetId)
+        assertEquals(RatkoOperation.CREATE, ratkoPushError.operation)
     }
 
     fun insertAndPublishLocationTrack() = locationTrackAndAlignment(trackNumberId).let { (track, alignment) ->
