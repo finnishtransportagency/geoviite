@@ -153,7 +153,8 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
         <Dialog
             title={t('publish.revert-confirm.title')}
             variant={DialogVariant.LIGHT}
-            allowClose={false}
+            allowClose={!isReverting}
+            onClose={cancelRevertChanges}
             className={dialogStyles['dialog--wide']}
             footerContent={
                 <React.Fragment>

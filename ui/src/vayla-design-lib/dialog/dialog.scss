@@ -41,17 +41,14 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
 
 .dialog__close {
     fill: $color-blue-dark;
+    cursor: pointer;
+    line-height: 0;
 }
 
 .dialog__title {
     @include typography-heading-small;
     flex: 1;
     margin-right: 40px;
-}
-
-.dialog__close {
-    cursor: pointer;
-    line-height: 0;
 }
 
 .dialog__content {
@@ -145,10 +142,6 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
 
     .dialog__footer {
         border: none;
-    }
-
-    .dialog__close {
-        fill: $color-white-default;
     }
 }
 
