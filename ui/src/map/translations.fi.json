@@ -1,6 +1,8 @@
 {
     "map-layer-settings": {
         "layout": "Paikannuspohja",
+        "track-numbers": "Ratanumerot",
+        "reference-lines": "Pituusmittauslinjat",
         "geometry": "Geometriat",
         "debug": "Debug-työkalut"
     },

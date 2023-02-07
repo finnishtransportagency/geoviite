@@ -264,7 +264,7 @@ class CalculatedChangesService(
                 locationTrack = newLocationTrack,
                 alignment = newAlignment,
                 geocodingContext = context,
-                fetchSwitch = changeContext.switches::getAfter,
+                fetchSwitch = changeContext.switches::getAfterIfExists,
                 fetchStructure = switchLibraryService::getSwitchStructure,
             )
         } ?: emptyList()

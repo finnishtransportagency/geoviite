@@ -9,8 +9,6 @@ import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.radsToGrads
-import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
@@ -143,15 +141,17 @@ class ElementListingTest {
 
         assertEquals((Point(10.0, 10.0) + gk27CoordinateBase).round(3), element1.start.coordinate)
         // Geocoding is not 1mm accurate so round decimals
-        assertEquals( TrackMeter(KmNumber(1), BigDecimal("110.0")), element1.start.address!!.round(1))
-        assertEquals(round(radsToGrads(clothoid.startDirectionRads), 6), element1.start.directionGrads)
+        assertEquals(TrackMeter(KmNumber(1), BigDecimal("110.0")), element1.start.address!!.round(1))
+        // Direction in grads (geodetic) from start to pi
+        assertEquals(BigDecimal("46.259488"), element1.start.directionGrads)
         assertEquals(clothoid.radiusStart, element1.start.radiusMeters)
         assertEquals(BigDecimal("0.001000"), element1.start.cant)
 
         assertEquals((Point(20.0, 20.0) + gk27CoordinateBase).round(3), element1.end.coordinate)
         // Geocoding is not 1mm accurate so round decimals
         assertEquals(TrackMeter(KmNumber(1), BigDecimal("120.0")), element1.end.address!!.round(1))
-        assertEquals(round(radsToGrads(clothoid.endDirectionRads), 6), element1.end.directionGrads)
+        // Direction in grads (geodetic) from pi to end
+        assertEquals(BigDecimal("70.483276"), element1.end.directionGrads)
         assertEquals(clothoid.radiusEnd, element1.end.radiusMeters)
         assertEquals(BigDecimal("0.005000"), element1.end.cant)
     }

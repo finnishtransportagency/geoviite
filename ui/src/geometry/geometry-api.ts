@@ -4,6 +4,7 @@ import {
     GeometryAlignmentId,
     GeometryElement,
     GeometryElementId,
+    ElementItem,
     GeometryPlan,
     GeometryPlanHeader,
     GeometryPlanId,
@@ -97,19 +98,24 @@ export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<Geo
 export async function getGeometryPlanElements(
     planId: GeometryPlanId,
     elementTypes: GeometryTypeIncludingMissing[],
-): Promise<unknown[] | null> {
+): Promise<ElementItem[] | null> {
     const params = queryParams({
         elementTypes,
     });
     return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/element-listing${params}`);
 }
 
+export const getGeometryPlanElementsCsv = (
+    planId: GeometryPlanId,
+    elementTypes: GeometryTypeIncludingMissing[],
+) => `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes })}`;
+
 export async function getLocationTrackElements(
     id: LocationTrackId,
     elementTypes: GeometryTypeIncludingMissing[],
     startAddress: string | undefined,
     endAddress: string | undefined,
-): Promise<unknown[] | null> {
+): Promise<ElementItem[] | null> {
     const params = queryParams({
         elementTypes: elementTypes,
         startAddress: startAddress,
@@ -117,6 +123,20 @@ export async function getLocationTrackElements(
     });
     return getIgnoreError(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
 }
+
+export const getLocationTrackElementsCsv = (
+    locationTrackId: LocationTrackId,
+    elementTypes: GeometryTypeIncludingMissing[],
+    startAddress: string | undefined,
+    endAddress: string | undefined,
+) => {
+    const searchQueryParameters = queryParams({
+        elementTypes,
+        startAddress,
+        endAddress,
+    });
+    return `${GEOMETRY_URI}/layout/location-tracks/${locationTrackId}/element-listing/file${searchQueryParameters}`;
+};
 
 export async function getGeometryPlan(
     planId: GeometryPlanId,

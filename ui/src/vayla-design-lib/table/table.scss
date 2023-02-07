@@ -19,7 +19,7 @@ $table-cell-padding: 10px 16px;
             background: $color-white-dark;
             padding: $table-cell-padding;
             text-align: left;
-            white-space: nowrap;
+            white-space: break-spaces;
 
             &.table__th--clickable {
                 cursor: pointer;

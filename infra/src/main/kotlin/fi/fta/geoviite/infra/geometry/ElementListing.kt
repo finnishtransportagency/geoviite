@@ -6,12 +6,11 @@ import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.MISSING_SECTION
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.RoundedPoint
-import fi.fta.geoviite.infra.math.radsToGrads
-import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVPrinter
 import java.math.BigDecimal
 
 const val COORDINATE_DECIMALS = 3
@@ -32,6 +31,8 @@ data class ElementListing(
 
     val alignmentId: DomainId<GeometryAlignment>?,
     val alignmentName: AlignmentName?,
+
+    val locationTrackName: AlignmentName?,
 
     val elementId: DomainId<GeometryElement>?,
     val elementType: TrackGeometryElementType,
@@ -82,7 +83,7 @@ fun toElementListing(
     val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
     return linkedElementIds.mapNotNull { (segment, elementId) ->
         if (elementId == null) {
-            if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(context, track.trackNumberId, segment)
+            if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(context, track.trackNumberId, segment, track)
             else null
         }
         else {
@@ -115,6 +116,7 @@ private fun toMissingElementListing(
     context: GeocodingContext?,
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     segment: LayoutSegment,
+    locationTrack: LocationTrack
 ) = ElementListing(
     planId = null,
     planSource = null,
@@ -130,6 +132,7 @@ private fun toMissingElementListing(
     lengthMeters = round(segment.length, LENGTH_DECIMALS),
     start = getLocation(context, segment.points.first(), segment.startDirection()),
     end = getLocation(context, segment.points.last(), segment.endDirection()),
+    locationTrackName = locationTrack.name
 )
 
 private fun toElementListing(
@@ -150,6 +153,7 @@ private fun toElementListing(
     trackNumberDescription = null,
     alignment = alignment,
     element = element,
+    locationTrack = locationTrack
 )
 
 private fun toElementListing(
@@ -169,7 +173,88 @@ private fun toElementListing(
     trackNumberDescription = plan.trackNumberDescription,
     alignment = alignment,
     element = element,
+    locationTrack = null,
 )
+
+fun planElementListingToCsv(
+    trackNumbers: List<TrackLayoutTrackNumber>,
+    elementListing: List<ElementListing>,
+): ByteArray {
+    val csvBuilder = StringBuilder()
+    CSVPrinter(csvBuilder, CSVFormat.RFC4180).let { csvPrinter ->
+        try {
+            csvPrinter.printRecord(PLAN_ELEMENT_LISTING_CSV_HEADERS)
+
+            elementListing.forEach {
+                csvPrinter.printRecord(
+                    it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
+                    it.alignmentName,
+                    it.elementType.let(::translateTrackGeometryElementType),
+                    it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                    it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                    it.start.coordinate.x,
+                    it.start.coordinate.y,
+                    it.end.coordinate.x,
+                    it.end.coordinate.y,
+                    it.lengthMeters,
+                    it.start.radiusMeters,
+                    it.end.radiusMeters,
+                    it.start.cant,
+                    it.end.cant,
+                    it.start.directionGrads,
+                    it.end.directionGrads,
+                    it.fileName,
+                    it.planSource,
+                    it.coordinateSystemSrid ?: it.coordinateSystemName
+                )
+
+            }
+        } finally {
+            csvPrinter.close()
+        }
+    }
+    return csvBuilder.toString().toByteArray()
+}
+
+fun locationTrackElementListingToCsv(
+    trackNumbers: List<TrackLayoutTrackNumber>,
+    elementListing: List<ElementListing>,
+): ByteArray {
+    val csvBuilder = StringBuilder()
+    CSVPrinter(csvBuilder, CSVFormat.RFC4180).let { csvPrinter ->
+        try {
+            csvPrinter.printRecord(CONTINUOUS_ELEMENT_LISTING_CSV_HEADERS)
+
+            elementListing.forEach {
+                csvPrinter.printRecord(
+                    it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
+                    it.locationTrackName,
+                    it.alignmentName,
+                    it.elementType.let(::translateTrackGeometryElementType),
+                    it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                    it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
+                    it.start.coordinate.x,
+                    it.start.coordinate.y,
+                    it.end.coordinate.x,
+                    it.end.coordinate.y,
+                    it.lengthMeters,
+                    it.start.radiusMeters,
+                    it.end.radiusMeters,
+                    it.start.cant,
+                    it.end.cant,
+                    it.start.directionGrads,
+                    it.end.directionGrads,
+                    it.fileName,
+                    it.planSource,
+                    it.coordinateSystemSrid ?: it.coordinateSystemName
+                )
+            }
+        } finally {
+            csvPrinter.close()
+        }
+    }
+    return csvBuilder.toString().toByteArray()
+}
 
 private fun elementListing(
     context: GeocodingContext?,
@@ -181,6 +266,7 @@ private fun elementListing(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     trackNumberDescription: PlanElementName?,
     alignment: GeometryAlignment,
+    locationTrack: LocationTrack?,
     element: GeometryElement,
 ) = units.coordinateSystemSrid?.let(getTransformation).let { transformation ->
     ElementListing(
@@ -193,6 +279,7 @@ private fun elementListing(
         trackNumberDescription = trackNumberDescription,
         alignmentId = alignment.id,
         alignmentName = alignment.name,
+        locationTrackName = locationTrack?.name,
         elementId = element.id,
         elementType = TrackGeometryElementType.of(element.type),
         lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
@@ -252,7 +339,7 @@ private fun getAddress(context: GeocodingContext?, transformation: Transformatio
     if (context == null || transformation == null) null
     else context.getAddress(transformation.transform(coordinate), ADDRESS_DECIMALS)?.first
 
-private fun getDirectionGrads(rads: Double) = round(radsToGrads(rads), DIRECTION_DECIMALS)
+private fun getDirectionGrads(rads: Double) = round(radsToGrads(radsMathToGeo(rads)), DIRECTION_DECIMALS)
 
 private fun getStartRadius(element: GeometryElement) = when (element) {
     is GeometryLine -> null

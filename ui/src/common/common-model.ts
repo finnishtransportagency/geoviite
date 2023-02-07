@@ -1,5 +1,6 @@
 import { Point } from 'model/geometry';
 import { LayoutPoint } from 'track-layout/track-layout-model';
+import { compare } from 'utils/array-utils';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -36,14 +37,42 @@ export type TrackMeter = {
     meters: number;
 };
 
+const TRACK_METER_REGEX = /([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4})$/;
+
 export const trackMeterIsValid = (trackMeter: string) => TRACK_METER_REGEX.test(trackMeter);
 
-const TRACK_METER_REGEX = /([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4})$/;
+const splitTrackMeterIntoComponents = (trackMeterString: string) => {
+    const components = trackMeterString.match(TRACK_METER_REGEX);
+    return {
+        kms: components && components[1].padStart(4, '0'),
+        letters: components && components[2],
+        meters: components && components[3],
+    };
+};
+
+export const compareTrackMeterStrings = (a: string, b: string) => {
+    const aComponents = splitTrackMeterIntoComponents(a);
+    const bComponents = splitTrackMeterIntoComponents(b);
+
+    const kmDiff = compare(aComponents.kms, bComponents.kms);
+    const letterDiff = compare(aComponents.letters, bComponents.letters);
+    const meterDiff = compare(aComponents.meters, bComponents.meters);
+
+    return kmDiff !== 0 ? kmDiff : letterDiff !== 0 ? letterDiff : meterDiff;
+};
 
 export type AddressPoint = {
     point: LayoutPoint;
     address: TrackMeter;
     distance: number;
+};
+
+export type ElementLocation = {
+    coordinate: Point;
+    address: TrackMeter | undefined;
+    directionGrads: number | undefined;
+    radiusMeters: number | undefined;
+    cant: number | undefined;
 };
 
 export type ChangeTimes = {

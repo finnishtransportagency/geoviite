@@ -12,13 +12,12 @@ import { isNullOrBlank } from 'utils/string-utils';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import {
-    GEOMETRY_URI,
     getGeometryPlanElements,
+    getGeometryPlanElementsCsv,
     getGeometryPlanHeaders,
 } from 'geometry/geometry-api';
-import { GeometryPlanHeader } from 'geometry/geometry-model';
+import { ElementItem, GeometryPlanHeader } from 'geometry/geometry-model';
 import { useLoader } from 'utils/react-utils';
-import { queryParams } from 'api/api-fetch';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 
@@ -27,11 +26,15 @@ type ContinuousGeometrySearchProps = {
     onUpdateProp: <TKey extends keyof PlanGeometrySearchState>(
         propEdit: PropEdit<PlanGeometrySearchState, TKey>,
     ) => void;
+    setElements: (elements: ElementItem[]) => void;
 };
 
-const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchProps) => {
+const PlanGeometrySearch = ({
+    state,
+    onUpdateProp,
+    setElements,
+}: ContinuousGeometrySearchProps) => {
     const { t } = useTranslation();
-    const [selectedPlanHeader, setSelectedPlanHeader] = React.useState<GeometryPlanHeader>();
 
     function searchGeometryPlanHeaders(searchTerm: string): Promise<GeometryPlanHeader[]> {
         if (isNullOrBlank(searchTerm)) {
@@ -54,13 +57,13 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         (searchTerm) =>
             debouncedGetGeometryPlanHeaders(searchTerm).then((planHeaders) =>
                 planHeaders
-                    .filter((plan) => !selectedPlanHeader || plan.id !== selectedPlanHeader.id)
+                    .filter((plan) => !state.plan || plan.id !== state.plan.id)
                     .map((plan) => ({
                         name: plan.fileName,
                         value: plan,
                     })),
             ),
-        [selectedPlanHeader],
+        [state.plan],
     );
 
     function updateProp<TKey extends keyof PlanGeometrySearchState>(
@@ -86,90 +89,97 @@ const PlanGeometrySearch = ({ state, onUpdateProp }: ContinuousGeometrySearchPro
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    const searchQueryParameters = queryParams({
-        elementTypes: selectedElementTypes(state.searchGeometries),
-    });
-
-    const canSearch = selectedPlanHeader && !hasErrors('searchGeometries');
-
-    const _plans = useLoader(() => {
-        if (!canSearch) return Promise.resolve([]);
-
-        return getGeometryPlanElements(
-            selectedPlanHeader.id,
-            selectedElementTypes(state.searchGeometries),
-        );
-    }, [selectedPlanHeader, state.searchGeometries]);
-
-    const downloadUri = `${GEOMETRY_URI}/plans/${selectedPlanHeader?.id}/element-listing/file${searchQueryParameters}`;
+    useLoader(() => {
+        return (
+            !state.plan || hasErrors('searchGeometries')
+                ? Promise.resolve([])
+                : getGeometryPlanElements(
+                      state.plan.id,
+                      selectedElementTypes(state.searchGeometries),
+                  )
+        ).then((elements) => {
+            setElements(elements ?? []);
+            return elements;
+        });
+    }, [state.plan, state.searchGeometries]);
 
     return (
-        <div className={styles['element-list__geometry-search']}>
-            <div className={styles['element-list__plan-search-dropdown']}>
-                <FieldLayout
-                    label={t(`data-products.element-list.search.plan`)}
-                    value={
-                        <Dropdown
-                            value={selectedPlanHeader}
-                            getName={(item: GeometryPlanHeader) => item.fileName}
-                            placeholder={t('location-track-dialog.search')}
-                            options={geometryPlanHeaders}
-                            searchable
-                            onChange={setSelectedPlanHeader}
-                            canUnselect={true}
-                            unselectText={t('data-products.element-list.search.not-selected')}
-                            wideList
-                            wide
-                        />
-                    }
-                />
+        <React.Fragment>
+            <div className={styles['element-list__geometry-search']}>
+                <div className={styles['element-list__plan-search-dropdown']}>
+                    <FieldLayout
+                        label={t(`data-products.element-list.search.plan`)}
+                        value={
+                            <Dropdown
+                                value={state.plan}
+                                getName={(item: GeometryPlanHeader) => item.fileName}
+                                placeholder={t('location-track-dialog.search')}
+                                options={geometryPlanHeaders}
+                                searchable
+                                onChange={(e) => updateProp('plan', e)}
+                                canUnselect={true}
+                                unselectText={t('data-products.element-list.search.not-selected')}
+                                wideList
+                                wide
+                            />
+                        }
+                    />
+                </div>
+                <div className={styles['element-list__geometry-checkboxes']}>
+                    <FieldLayout
+                        value={
+                            <div className={styles['element-list__geometry-checkbox']}>
+                                <Checkbox
+                                    checked={state.searchGeometries.searchLines}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchGeometries,
+                                            searchLines: e.target.checked,
+                                        })
+                                    }>
+                                    {t(`data-products.element-list.search.line`)}
+                                </Checkbox>
+                                <Checkbox
+                                    checked={state.searchGeometries.searchCurves}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchGeometries,
+                                            searchCurves: e.target.checked,
+                                        })
+                                    }>
+                                    {t(`data-products.element-list.search.curve`)}
+                                </Checkbox>
+                                <Checkbox
+                                    checked={state.searchGeometries.searchClothoids}
+                                    onChange={(e) =>
+                                        updateProp('searchGeometries', {
+                                            ...state.searchGeometries,
+                                            searchClothoids: e.target.checked,
+                                        })
+                                    }>
+                                    {t(`data-products.element-list.search.clothoid`)}
+                                </Checkbox>
+                            </div>
+                        }
+                        errors={getVisibleErrorsByProp('searchGeometries')}
+                    />
+                </div>
+                <Button
+                    className={styles['element-list__download-button']}
+                    disabled={!state.elements || state.elements.length === 0}
+                    onClick={() => {
+                        if (state.plan) {
+                            location.href = getGeometryPlanElementsCsv(
+                                state.plan?.id,
+                                selectedElementTypes(state.searchGeometries),
+                            );
+                        }
+                    }}
+                    icon={Icons.Download}>
+                    {t(`data-products.element-list.search.download-csv`)}
+                </Button>
             </div>
-            <div className={styles['element-list__geometry-checkboxes']}>
-                <FieldLayout
-                    value={
-                        <div className={styles['element-list__geometry-checkbox']}>
-                            <Checkbox
-                                checked={state.searchGeometries.searchLines}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
-                                        searchLines: e.target.checked,
-                                    })
-                                }>
-                                {t(`data-products.element-list.search.line`)}
-                            </Checkbox>
-                            <Checkbox
-                                checked={state.searchGeometries.searchCurves}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
-                                        searchCurves: e.target.checked,
-                                    })
-                                }>
-                                {t(`data-products.element-list.search.curve`)}
-                            </Checkbox>
-                            <Checkbox
-                                checked={state.searchGeometries.searchClothoids}
-                                onChange={(e) =>
-                                    updateProp('searchGeometries', {
-                                        ...state.searchGeometries,
-                                        searchClothoids: e.target.checked,
-                                    })
-                                }>
-                                {t(`data-products.element-list.search.clothoid`)}
-                            </Checkbox>
-                        </div>
-                    }
-                    errors={getVisibleErrorsByProp('searchGeometries')}
-                />
-            </div>
-            <Button
-                className={styles['element-list__download-button']}
-                disabled={!_plans || _plans.length === 0}
-                onClick={() => (location.href = downloadUri)}>
-                <Icons.Download /> {t(`data-products.element-list.search.download-csv`)}
-            </Button>
-        </div>
+        </React.Fragment>
     );
 };
 

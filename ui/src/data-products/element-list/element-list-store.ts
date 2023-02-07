@@ -7,8 +7,9 @@ import {
     ValidationErrorType,
 } from 'utils/validation-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { GeometryPlanHeader, GeometryType } from 'geometry/geometry-model';
-import { trackMeterIsValid } from 'common/common-model';
+import { ElementItem, GeometryPlanHeader, GeometryType } from 'geometry/geometry-model';
+import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
+import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 
 type SearchGeometries = {
     searchLines: boolean;
@@ -21,6 +22,7 @@ export type PlanGeometrySearchState = {
     plan: GeometryPlanHeader | undefined;
     searchGeometries: SearchGeometries;
 
+    elements: ElementItem[];
     validationErrors: ValidationError<PlanGeometrySearchState>[];
     committedFields: (keyof PlanGeometrySearchState)[];
 };
@@ -40,11 +42,13 @@ export const initialPlanGeometrySearchState: PlanGeometrySearchState = {
         searchMissingGeometry: false,
     },
 
+    elements: [],
     validationErrors: [],
     committedFields: [],
 };
 
 export type ContinuousSearchParameters = {
+    locationTrack: LayoutLocationTrack | undefined;
     startTrackMeter: string;
     endTrackMeter: string;
     searchGeometries: SearchGeometries;
@@ -54,12 +58,14 @@ export type ElementListContinuousGeometrySearchState = {
     searchFields: ContinuousSearchParameters;
     searchParameters: ContinuousSearchParameters;
 
+    elements: ElementItem[];
     validationErrors: ValidationError<ContinuousSearchParameters>[];
     committedFields: (keyof ContinuousSearchParameters)[];
 };
 
 export const initialContinuousSearchState: ElementListContinuousGeometrySearchState = {
     searchFields: {
+        locationTrack: undefined,
         startTrackMeter: '',
         endTrackMeter: '',
         searchGeometries: {
@@ -71,6 +77,7 @@ export const initialContinuousSearchState: ElementListContinuousGeometrySearchSt
     },
 
     searchParameters: {
+        locationTrack: undefined,
         startTrackMeter: '',
         endTrackMeter: '',
         searchGeometries: {
@@ -81,6 +88,7 @@ export const initialContinuousSearchState: ElementListContinuousGeometrySearchSt
         },
     },
 
+    elements: [],
     validationErrors: [],
     committedFields: [],
 };
@@ -91,9 +99,14 @@ export const selectedElementTypes = (
     [
         searchGeometry.searchLines ? GeometryType.LINE : undefined,
         searchGeometry.searchCurves ? GeometryType.CURVE : undefined,
-        searchGeometry.searchClothoids ? GeometryType.CLOTHOID : undefined,
         searchGeometry.searchMissingGeometry ? MissingSection.MISSING_SECTION : undefined,
-    ].filter(filterNotEmpty);
+    ]
+        .concat(
+            searchGeometry.searchClothoids
+                ? [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA]
+                : [],
+        )
+        .filter(filterNotEmpty);
 
 const hasAtLeastOneTypeSelected = ({
     searchLines,
@@ -122,6 +135,19 @@ const validateContinuousGeometry = (
             {
                 field: 'startTrackMeter',
                 reason: 'invalid-track-meter',
+                type: ValidationErrorType.ERROR,
+            },
+        ),
+        validate(
+            !trackMeterIsValid(state.searchFields.endTrackMeter) ||
+                !trackMeterIsValid(state.searchFields.startTrackMeter) ||
+                compareTrackMeterStrings(
+                    state.searchFields.startTrackMeter,
+                    state.searchFields.endTrackMeter,
+                ) <= 0,
+            {
+                field: 'endTrackMeter',
+                reason: 'end-before-start',
                 type: ValidationErrorType.ERROR,
             },
         ),
@@ -161,6 +187,12 @@ const continuousGeometrySearchSlice = createSlice({
         ) {
             state.committedFields = [...state.committedFields, key];
         },
+        onSetElements: function (
+            state: ElementListContinuousGeometrySearchState,
+            { payload: elements }: PayloadAction<ElementItem[]>,
+        ) {
+            state.elements = elements;
+        },
     },
 });
 
@@ -184,6 +216,12 @@ const planSearchSlice = createSlice({
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
+        },
+        onSetElements: function (
+            state: PlanGeometrySearchState,
+            { payload: elements }: PayloadAction<ElementItem[]>,
+        ) {
+            state.elements = elements;
         },
     },
 });

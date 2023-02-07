@@ -71,7 +71,7 @@ $appbar-height: 48px;
     &__data-menu {
         @extend .menu;
         position: absolute;
-        z-index: 10;
+        z-index: 21;
         background: $color-blue-darker;
         border-radius: 5px;
 

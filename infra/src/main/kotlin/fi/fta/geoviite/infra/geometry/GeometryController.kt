@@ -17,9 +17,6 @@ import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.ContentDisposition
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -161,13 +158,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes)
-
-        val headers = HttpHeaders()
-        headers.contentType = MediaType.APPLICATION_OCTET_STREAM
-        headers.set(
-            HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename("${filename}.csv").build().toString())
-        return ResponseEntity.ok().headers(headers).body(content)
+        return toFileDownloadResponse("${filename}.csv", content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -197,12 +188,6 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
             "endAddress" to endAddress)
         val (filename, content) = geometryService
             .getElementListingCsv(id, elementTypes, startAddress, endAddress)
-
-        val headers = HttpHeaders()
-        headers.contentType = MediaType.APPLICATION_OCTET_STREAM
-        headers.set(
-            HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename("${filename}.csv").build().toString())
-        return ResponseEntity.ok().headers(headers).body(content)
+        return toFileDownloadResponse("${filename}.csv", content)
     }
 }

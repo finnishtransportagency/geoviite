@@ -16,8 +16,6 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVPrinter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -208,9 +206,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanName(newFile: InfraModelFile): FileName? {
-        logger.serviceCall("getDuplicateGeometryPlan", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanName(newFile)
+    fun getDuplicateGeometryPlanHeader(newFile: InfraModelFile): GeometryPlanHeader? {
+        logger.serviceCall("getDuplicateGeometryPlanHeader", "newFile" to newFile)
+        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile)?.let(geometryDao::fetchPlanHeader)
     }
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
@@ -222,16 +220,13 @@ class GeometryService @Autowired constructor(
         return toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
     }
 
-    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): Pair<String, ByteArray> {
-        logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
-        val plan = geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
-        val context = plan.trackNumberId?.let { tnId ->
-            geocodingService.getGeocodingContext(OFFICIAL, tnId)
-        }
-        val elementListing = toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
+    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): Pair<FileName, ByteArray> {
+        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes)
+        val plan = getPlanHeader(planId)
+        val elementListing = getElementListing(planId, elementTypes)
 
-        val csvFileContent = elementListingToCsv(elementListing)
-        return "${ELEMENT_LISTING} ${plan.fileName}" to csvFileContent
+        val csvFileContent = planElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        return FileName("$ELEMENT_LISTING ${plan.fileName}") to csvFileContent
     }
 
     fun getElementListing(
@@ -262,65 +257,15 @@ class GeometryService @Autowired constructor(
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
-    ): Pair<String, ByteArray> {
+    ): Pair<FileName, ByteArray> {
         logger.serviceCall("getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
             "startAddress" to startAddress, "endAdress" to endAddress,
         )
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
-        val elementListing = toElementListing(
-            geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId),
-            coordinateTransformationService::getLayoutTransformation,
-            track,
-            alignment,
-            elementTypes,
-            startAddress,
-            endAddress,
-            ::getHeaderAndAlignment,
-        )
-
-        val csvFileContent = elementListingToCsv(elementListing)
-        return "${ELEMENT_LISTING} ${track.name}" to csvFileContent
-    }
-
-    private fun elementListingToCsv(
-        elementListing: List<ElementListing>,
-    ): ByteArray {
-        val trackNumbers = trackNumberService.list(OFFICIAL)
-
-        val csvBuilder = StringBuilder()
-        CSVPrinter(csvBuilder, CSVFormat.RFC4180).let { csvPrinter ->
-            try {
-                csvPrinter.printRecord(ELEMENT_LISTING_CSV_HEADERS)
-
-                elementListing.forEach {
-                    csvPrinter.printRecord(
-                        it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
-                        it.alignmentName,
-                        it.elementType.let(::translateTrackGeometryElementType),
-                        it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                        it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                        it.start.coordinate.x,
-                        it.start.coordinate.y,
-                        it.end.coordinate.x,
-                        it.end.coordinate.y,
-                        it.lengthMeters,
-                        it.start.radiusMeters,
-                        it.end.radiusMeters,
-                        it.start.cant,
-                        it.end.cant,
-                        it.start.directionGrads,
-                        it.end.directionGrads,
-                        it.fileName,
-                        it.planSource,
-                        it.coordinateSystemSrid ?: it.coordinateSystemName
-                    )
-                }
-            } finally {
-                csvPrinter.close()
-            }
-        }
-        return csvBuilder.toString().toByteArray()
+        val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
+        val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
+        val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {

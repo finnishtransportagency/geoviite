@@ -1,13 +1,31 @@
 @import '../../vayla-design-lib/radio/radio';
 
 .element-list-view {
-    padding-left: 32px;
     width: 100%;
 
     &__radio-layout > .radio {
         margin-right: 20px;
-        position: relative;
-        top: 10px;
+        display: inline-block;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+
+    &__table-layout {
+        margin-top: 100px;
+        position: absolute;
+    }
+
+    &__table-container {
+        overflow-x: auto;
+        padding-left: 32px;
+    }
+
+    &__header-container {
+        padding-left: 32px;
+    }
+
+    &__table-heading th {
+        min-width: 100px;
     }
 }
 
