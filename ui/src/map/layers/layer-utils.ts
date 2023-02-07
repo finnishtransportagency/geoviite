@@ -408,6 +408,8 @@ export function getMatchingEntities<T extends { id: string }>(
     );
 }
 
+const tickImageCache = new Map<string,RegularShape>();
+
 export function getTickStyle(
     point1: Coordinate,
     point2: Coordinate,
@@ -415,15 +417,27 @@ export function getTickStyle(
     position: 'start' | 'end',
     style: Style,
 ): Style {
-    return new Style({
-        geometry: new Point(position == 'start' ? point1 : point2),
-        image: new RegularShape({
+    const angleVersionCount = 100;
+    const angleStep = Math.PI*2/angleVersionCount;
+    const actualAngle = Math.atan2(point1[0] - point2[0], point1[1] - point2[1]) + Math.PI / 2;
+    const roundAngle = Math.round(actualAngle/angleStep)*angleStep;
+    const strokeData = JSON.stringify(style.getStroke());
+    const key = `${roundAngle}_${length}_${strokeData}`
+    let image = tickImageCache.get(key);
+    if (!image) {
+        image = new RegularShape({
             stroke: style.getStroke(),
             points: 2,
             radius: length,
             radius2: 0,
-            angle: Math.atan2(point1[0] - point2[0], point1[1] - point2[1]) + Math.PI / 2,
-        }),
+            angle: roundAngle,
+        })
+        tickImageCache.set(key, image);
+    }
+
+    return new Style({
+        geometry: new Point(position == 'start' ? point1 : point2),
+        image: image,
         zIndex: style.getZIndex(),
     });
 }
