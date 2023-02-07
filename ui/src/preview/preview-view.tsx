@@ -6,7 +6,6 @@ import {
     getCalculatedChanges,
     getPublishCandidates,
     getRevertRequestDependencies,
-    PublishRequest,
     revertCandidates,
     validatePublishCandidates,
 } from 'publication/publication-api';
@@ -32,6 +31,7 @@ import {
     PublicationId,
     PublishCandidate,
     PublishCandidates,
+    PublishRequest,
     ReferenceLinePublishCandidate,
     SwitchPublishCandidate,
     TrackNumberPublishCandidate,
@@ -95,7 +95,6 @@ type PreviewProps = {
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
     onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequest) => void;
-    onPublishPreviewRevert: () => void;
 };
 
 const publishCandidateIds = (candidates: PublishCandidates): PublishRequest => ({
@@ -481,7 +480,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
                     previewChanges={stagedPreviewChanges ? stagedPreviewChanges : emptyChanges}
-                    onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>
             {changesBeingReverted !== undefined && (
