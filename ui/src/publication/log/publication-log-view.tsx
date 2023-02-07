@@ -9,6 +9,7 @@ import { getPublications } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PublicationDetails } from 'publication/publication-model';
+import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 
 export type PublicationLogViewProps = {
     onClose: () => void;
@@ -32,6 +33,9 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
         }
     }, [startDate, endDate]);
 
+    const endDateErrors =
+        endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
+
     return (
         <div className={styles['publication-log__view']}>
             <div className={styles['publication-log__title']}>
@@ -41,17 +45,22 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                 </span>
             </div>
             <div className={styles['publication-log__datepickers']}>
-                <div>
-                    {t('publication-log.start-date')}
-                    <DatePicker
-                        value={startDate}
-                        onChange={(startDate) => setStartDate(startDate)}
-                    />
-                </div>
-                <div>
-                    {t('publication-log.end-date')}
-                    <DatePicker value={endDate} onChange={(endDate) => setEndDate(endDate)} />
-                </div>
+                <FieldLayout
+                    label={t('publication-log.start-date')}
+                    value={
+                        <DatePicker
+                            value={startDate}
+                            onChange={(startDate) => setStartDate(startDate)}
+                        />
+                    }
+                />
+                <FieldLayout
+                    label={t('publication-log.end-date')}
+                    value={
+                        <DatePicker value={endDate} onChange={(endDate) => setEndDate(endDate)} />
+                    }
+                    errors={endDateErrors}
+                />
             </div>
             <div className={styles['publication-log__content']}>
                 {publications && <PublicationTable publications={publications}></PublicationTable>}
