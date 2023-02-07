@@ -5,7 +5,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
 import { addDays, startOfDay, subMonths } from 'date-fns';
-import { getPublications, publicationsCsvUri } from 'publication/publication-api';
+import { getPublications, getPublicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { PublicationDetails } from 'publication/publication-model';
@@ -60,7 +60,14 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                 <div className={styles['publication-log__export_button']}>
                     <Button
                         icon={Icons.Download}
-                        onClick={() => (location.href = publicationsCsvUri)}>
+                        onClick={() =>
+                            (location.href = getPublicationsCsvUri(
+                                startDate,
+                                endDate ? startOfDay(addDays(endDate, 1)) : undefined,
+                                sortInfo?.propName,
+                                sortInfo?.direction,
+                            ))
+                        }>
                         {t('publication-log.export-csv')}
                     </Button>
                 </div>

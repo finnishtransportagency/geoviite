@@ -108,7 +108,24 @@ export const getPublications = (fromDate?: Date, toDate?: Date) => {
     return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
 };
 
-export const publicationsCsvUri = `${PUBLICATION_URL}/csv`;
+export const getPublicationsCsvUri = (
+    fromDate?: Date,
+    toDate?: Date,
+    sortBy?: SortProps,
+    order?: SortDirection,
+): string => {
+    const isSorted = order != SortDirection.UNSORTED;
+
+    const params = queryParams({
+        from: fromDate ? formatISODate(fromDate) : undefined,
+        to: toDate ? formatISODate(toDate) : undefined,
+        sortBy: isSorted && sortBy ? sortBy : undefined,
+        order: isSorted ? order : undefined,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+
+    return `${PUBLICATION_URL}/csv${params}`;
+};
 
 export const getPublication = (id: PublicationId) =>
     getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
