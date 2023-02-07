@@ -73,9 +73,11 @@ export const Dialog: React.FC<DialogProps> = ({
                 ref={dialogHeaderRef}>
                 <div
                     className={styles['dialog__header']}
-                    onMouseDown={() => {
-                        setInMovingMode(true);
-                        setMoved(true);
+                    onMouseDown={(e) => {
+                        if (e.button === 0) {
+                            setInMovingMode(true);
+                            setMoved(true);
+                        }
                     }}>
                     <span className={styles['dialog__title']}>{props.title}</span>
                     {allowClose && (
