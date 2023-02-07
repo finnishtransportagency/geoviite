@@ -16,13 +16,18 @@ import {
     OptionalItemCollections,
     SelectableItemType,
 } from 'selection/selection-model';
-import { GeometryPlanHeader, SortByValue, SortOrderValue } from 'geometry/geometry-model';
+import {
+    GeometryPlanHeader,
+    GeometryPlanId,
+    SortByValue,
+    SortOrderValue,
+} from 'geometry/geometry-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
-import { getGeometryPlanHeaders } from 'geometry/geometry-api';
+import { getGeometryPlanHeaders, getTrackLayoutPlan } from 'geometry/geometry-api';
 import { MapViewport } from 'map/map-model';
 import {
     createEmptyItemCollections,
@@ -37,6 +42,10 @@ import { PublishType } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/alignment-panel/location-tracks-panel';
 import ReferenceLinesPanel from 'selection-panel/alignment-panel/reference-lines-panel';
+import { Eye } from 'geoviite-design-lib/eye/eye';
+import { GeometryPlanLinkStatus } from 'linking/linking-model';
+import { getPlanLinkStatus } from 'linking/linking-api';
+import { useMapState, useSetState } from 'utils/react-utils';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -62,6 +71,11 @@ type SelectionPanelProps = {
 };
 
 const MAX_PLAN_HEADERS = 50;
+
+type LoadedGeometryPlan = {
+    planLayout: GeometryPlanLayout;
+    linkStatus: GeometryPlanLinkStatus;
+};
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
@@ -89,6 +103,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     const [trackNumberFilter, setTrackNumberFilter] = React.useState<LayoutTrackNumber[]>([]);
     const [planHeaders, setPlanHeaders] = React.useState<GeometryPlanHeader[]>([]);
+    const [loadedPlans, setLoadedPlan] = useMapState<GeometryPlanId, LoadedGeometryPlan>();
+    const [plansBeingLoaded, startLoadingPlan, finishLoadingPlan] = useSetState<GeometryPlanId>();
     const [planHeaderCount, setPlanHeaderCount] = React.useState<number>(0);
 
     React.useEffect(() => {
@@ -106,6 +122,18 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             setPlanHeaderCount(page.totalCount);
         });
     }, [viewport.area, changeTimes.geometryPlan, trackNumberFilter]);
+
+    React.useEffect(
+        () => [...loadedPlans.keys()].forEach(loadPlanLayout),
+        [
+            publishType,
+            changeTimes.geometryPlan,
+            changeTimes.layoutReferenceLine,
+            changeTimes.layoutLocationTrack,
+            changeTimes.layoutSwitch,
+            changeTimes.layoutKmPost,
+        ],
+    );
 
     const toggleTrackNumberFilter = React.useCallback(
         (tn: LayoutTrackNumber) => {
@@ -179,6 +207,41 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     }, [referenceLines, trackNumberFilter]);
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
+    const planHeaderIds = planHeaders
+        .map((plan) => plan.id)
+        .reduce((set, id) => set.add(id), new Set());
+    const visibleSelectedPlans = (selectedPlanLayouts ?? []).filter((plan) =>
+        planHeaderIds.has(plan.planId),
+    );
+    const anyPlansVisible = visibleSelectedPlans.length > 0;
+
+    const loadPlanLayout = (id: GeometryPlanId) => {
+        startLoadingPlan(id);
+        const rv = Promise.all([
+            getTrackLayoutPlan(id, changeTimes.geometryPlan, false),
+            getPlanLinkStatus(id, publishType),
+        ]).then(([planLayout, linkStatus]) => {
+            if (planLayout) {
+                setLoadedPlan(id, { planLayout, linkStatus });
+            }
+            return planLayout;
+        });
+        rv.finally(() => finishLoadingPlan(id));
+        return rv;
+    };
+
+    const toggleAllPlanVisibilities = () => {
+        if (anyPlansVisible) {
+            visibleSelectedPlans.forEach(onTogglePlanVisibility);
+        } else {
+            planHeaders.forEach((ph) => {
+                loadPlanLayout(ph.id).then((loadedPlan) => {
+                    onTogglePlanVisibility(loadedPlan);
+                });
+            });
+        }
+    };
+
     return (
         <div className={styles['selection-panel']}>
             <section>
@@ -198,7 +261,13 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     <h3 className={styles['selection-panel__title']}>
                         {`${t('selection-panel.geometries-title')} (${
                             planHeaders.length
-                        }/${planHeaderCount})`}
+                        }/${planHeaderCount})`}{' '}
+                        {planHeaders.length > 1 && planHeaders.length === planHeaderCount && (
+                            <Eye
+                                onVisibilityToggle={toggleAllPlanVisibilities}
+                                visibility={anyPlansVisible}
+                            />
+                        )}
                     </h3>
                     <div
                         className={createClassName(
@@ -267,6 +336,10 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                                         togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                                         togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                                         togglePlanSwitchesOpen={togglePlanSwitchesOpen}
+                                        planLayout={loadedPlans.get(h.id)?.planLayout ?? null}
+                                        linkStatus={loadedPlans.get(h.id)?.linkStatus ?? null}
+                                        planBeingLoaded={plansBeingLoaded.has(h.id)}
+                                        loadPlanLayout={() => loadPlanLayout(h.id)}
                                     />
                                 );
                             })}

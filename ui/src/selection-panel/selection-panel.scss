@@ -12,10 +12,13 @@
         @include typography-sub-heading;
         box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
 
-        padding: 12px 0 8px 20px;
+        padding: 12px 20px 8px 20px;
         background-color: $color-white-dark;
         color: $color-black-default;
         margin: 0 0 12px 0;
+
+        display: flex;
+        flex-direction: row;
     }
 
     &__subtitle {

@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { ForwardedRef, useEffect, useRef, useState } from 'react';
 import { debounce } from 'ts-debounce';
-import { ForwardedRef, useEffect, useRef } from 'react';
 
 /**
  * To load/get something asynchronously and to set that into state
@@ -145,4 +145,41 @@ export function useCloneRef<T>(
         }
     }, [ref]);
     return localRef;
+}
+
+export function useMapState<K, V>(
+    initial?: Map<K, V> | (() => Map<K, V>),
+): [
+    map: Map<K, V>,
+    setValue: (key: K, value: V) => void,
+    removeKey: (key: K) => void,
+    setMap: React.Dispatch<React.SetStateAction<Map<K, V>>>,
+] {
+    const [map, setMap] = useState<Map<K, V>>(initial ?? (() => new Map()));
+    const setValue = (key: K, value: V) => setMap((prevMap) => new Map(prevMap).set(key, value));
+    const removeKey = (key: K) =>
+        setMap((prevMap) => {
+            const copy = new Map(prevMap);
+            copy.delete(key);
+            return copy;
+        });
+    return [map, setValue, removeKey, setMap];
+}
+export function useSetState<T>(
+    initial?: Set<T> | (() => Set<T>),
+): [
+    set: Set<T>,
+    addToSet: (member: T) => void,
+    deleteFromSet: (member: T) => void,
+    setSet: React.Dispatch<React.SetStateAction<Set<T>>>,
+] {
+    const [set, setSet] = useState<Set<T>>(initial ?? (() => new Set()));
+    const addToSet = (member: T) => setSet((prevSet) => new Set(prevSet).add(member));
+    const deleteFromSet = (member: T) =>
+        setSet((prevSet) => {
+            const copy = new Set(prevSet);
+            copy.delete(member);
+            return copy;
+        });
+    return [set, addToSet, deleteFromSet, setSet];
 }

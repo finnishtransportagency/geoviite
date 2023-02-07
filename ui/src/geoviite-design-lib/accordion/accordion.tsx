@@ -1,9 +1,8 @@
 import * as React from 'react';
-import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import styles from './accordion.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
-import CircularProgress from 'vayla-design-lib/progress/circular-progress';
+import { Eye } from 'geoviite-design-lib/eye/eye';
 
 type AccordionProps = {
     open: boolean;
@@ -45,7 +44,11 @@ export const Accordion: React.FC<AccordionProps> = ({
     return (
         <div className="accordion">
             <h4 className={accordionClasses}>
-                <AccordionToggle onToggle={disabled ? undefined : onToggle} open={open} disabled={disabled} />
+                <AccordionToggle
+                    onToggle={disabled ? undefined : onToggle}
+                    open={open}
+                    disabled={disabled}
+                />
                 <span
                     className={titleClasses}
                     title={header}
@@ -54,17 +57,11 @@ export const Accordion: React.FC<AccordionProps> = ({
                     {subheader && <div className="accordion__subheader">{subheader}</div>}
                 </span>
                 {onVisibilityToggle && (
-                    <span
-                        className={`${styles['accordion__visibility']} ${
-                            visibility ? styles['accordion__visibility--visible'] : ''
-                        }`}
-                        onClick={onVisibilityToggle}>
-                        {fetchingContent ? (
-                            <CircularProgress />
-                        ) : (
-                            <Icons.Eye color={IconColor.INHERIT} />
-                        )}
-                    </span>
+                    <Eye
+                        onVisibilityToggle={onVisibilityToggle}
+                        visibility={visibility}
+                        fetchingContent={fetchingContent}
+                    />
                 )}
             </h4>
             {open && <div className={styles['accordion__body']}>{children}</div>}
