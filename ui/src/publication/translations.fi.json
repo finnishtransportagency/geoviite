@@ -19,7 +19,8 @@
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",
-        "end-date": "Loppupvm."
+        "end-date": "Loppupvm.",
+        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää"
     },
     "publication-card": {
         "latest": "Viimeisimmät",
