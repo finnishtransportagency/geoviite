@@ -2,6 +2,8 @@
 
 .element-list-view {
     width: 100%;
+    display: flex;
+    flex-direction: column;
 
     &__radio-layout > .radio {
         margin-right: 20px;
@@ -16,7 +18,11 @@
     }
 
     &__table-container {
-        overflow-x: auto;
+        overflow: auto;
+        padding-left: 32px;
+    }
+
+    &__element-count {
         padding-left: 32px;
     }
 
@@ -24,8 +30,13 @@
         padding-left: 32px;
     }
 
-    &__table-heading th {
-        min-width: 100px;
+    &__table-heading {
+        position: sticky;
+        top: 0;
+
+        th {
+            min-width: 100px;
+        }
     }
 }
 
