@@ -152,7 +152,7 @@ const trackLayoutSlice = createSlice({
         },
 
         // Intercept select/highlight reducers to modify options
-        onSelect: function(state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
+        onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
             // Handle selection
             const options = filterItemSelectOptions(state, action.payload);
             selectionReducers.onSelect(state.selection, {
@@ -196,7 +196,7 @@ const trackLayoutSlice = createSlice({
                 }
             }
         },
-        onPreviewSelect: function(
+        onPreviewSelect: function (
             state: TrackLayoutState,
             action: PayloadAction<SelectedPublishChange>,
         ): void {
@@ -230,7 +230,7 @@ const trackLayoutSlice = createSlice({
             };
         },
 
-        onPublishPreviewRemove: function(
+        onPublishPreviewRemove: function (
             state: TrackLayoutState,
             action: PayloadAction<PublishRequest>,
         ): void {
@@ -256,7 +256,7 @@ const trackLayoutSlice = createSlice({
             };
         },
 
-        onHighlightItems: function(
+        onHighlightItems: function (
             state: TrackLayoutState,
             action: PayloadAction<OnSelectOptions>,
         ): void {
@@ -273,7 +273,7 @@ const trackLayoutSlice = createSlice({
                 selectionReducers.togglePlanVisibility(state.selection, action);
             }
         },
-        setChangeTimes: function(
+        setChangeTimes: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<ChangeTimes>,
         ) {
@@ -299,49 +299,49 @@ const trackLayoutSlice = createSlice({
                 changeTimes.publication = payload.publication;
             }
         },
-        setLayoutTrackNumberChangeTime: function(
+        setLayoutTrackNumberChangeTime: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutTrackNumber) < toDate(payload))
                 changeTimes.layoutTrackNumber = payload;
         },
-        setLayoutLocationTrackChangeTime: function(
+        setLayoutLocationTrackChangeTime: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutLocationTrack) < toDate(payload))
                 changeTimes.layoutLocationTrack = payload;
         },
-        setLayoutReferenceLineChangeTime: function(
+        setLayoutReferenceLineChangeTime: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutReferenceLine) < toDate(payload))
                 changeTimes.layoutReferenceLine = payload;
         },
-        setLayoutSwitchChangeTime: function(
+        setLayoutSwitchChangeTime: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutSwitch) < toDate(payload))
                 changeTimes.layoutSwitch = payload;
         },
-        setLayoutKmPostChangeTime: function(
+        setLayoutKmPostChangeTime: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.layoutKmPost) < toDate(payload))
                 changeTimes.layoutKmPost = payload;
         },
-        setGeometryPlanChangeTime: function(
+        setGeometryPlanChangeTime: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
             if (toDate(changeTimes.geometryPlan) < toDate(payload))
                 changeTimes.geometryPlan = payload;
         },
-        setPublicationChangeTime: function(
+        setPublicationChangeTime: function (
             { changeTimes }: TrackLayoutState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
