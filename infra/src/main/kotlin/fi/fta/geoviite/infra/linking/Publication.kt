@@ -19,7 +19,7 @@ enum class PublicationCsvSortField {
     OPERATION,
     PUBLICATION_TIME,
     PUBLICATION_USER,
-    DEFINITION,
+    MESSAGE,
     RATKO_PUSH_TIME,
 }
 
@@ -30,7 +30,7 @@ data class PublicationCsvRow(
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
-    val definition: String,
+    val message: String,
     val ratkoPushTime: Instant?,
 )
 

@@ -608,7 +608,7 @@ class PublicationService @Autowired constructor(
                 "operation",
                 "publication-time",
                 "publication-user",
-                "definition",
+                "message",
                 "ratko"
             ).map { getTranslation("$it-header") }
 
@@ -622,7 +622,7 @@ class PublicationService @Autowired constructor(
                     formatOperation(item.operation),
                     formatInstant(item.publicationTime, timeZone),
                     item.publicationUser,
-                    item.definition,
+                    item.message,
                     item.ratkoPushTime?.let { pushTime -> formatInstant(pushTime, timeZone) } ?: "Ei"
                 )
             }
@@ -730,7 +730,7 @@ class PublicationService @Autowired constructor(
             PublicationCsvSortField.OPERATION -> Comparator.comparing { p -> p.operation.priority }
             PublicationCsvSortField.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
             PublicationCsvSortField.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
-            PublicationCsvSortField.DEFINITION -> Comparator.comparing { p -> p.definition }
+            PublicationCsvSortField.MESSAGE -> Comparator.comparing { p -> p.message }
             PublicationCsvSortField.RATKO_PUSH_TIME -> Comparator { a, b ->
                 compareNullableValues(a.ratkoPushTime, b.ratkoPushTime)
             }
@@ -793,7 +793,7 @@ class PublicationService @Autowired constructor(
                 trackNumberIds = setOf(tn.id),
                 operation = tn.operation,
                 publication = publication,
-                definition = getTranslation("calculated-change")
+                message = getTranslation("calculated-change")
             )
         }
 
@@ -804,7 +804,7 @@ class PublicationService @Autowired constructor(
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
                 publication = publication,
-                definition = getTranslation("calculated-change")
+                message = getTranslation("calculated-change")
             )
         }
 
@@ -814,7 +814,7 @@ class PublicationService @Autowired constructor(
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
                 publication = publication,
-                definition = getTranslation("calculated-change")
+                message = getTranslation("calculated-change")
             )
         }
 
@@ -834,7 +834,7 @@ class PublicationService @Autowired constructor(
         operation: Operation,
         publication: PublicationDetails,
         changedKmNumbers: List<KmNumber>? = null,
-        definition: String = "",
+        message: String? = null,
     ) = PublicationCsvRow(
         name = name,
         trackNumbers = trackNumberIds.map { id ->
@@ -844,7 +844,7 @@ class PublicationService @Autowired constructor(
         operation = operation,
         publicationTime = publication.publicationTime,
         publicationUser = publication.publicationUser,
-        definition = definition,
+        message = message ?: publication.message ?: "",
         ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
     )
 
@@ -880,6 +880,6 @@ private val publicationTranslations = mapOf(
     "operation-header" to "Muutos",
     "publication-time-header" to "Aika",
     "publication-user-header" to "Käyttäjä",
-    "definition-header" to "Selite",
+    "message-header" to "Selite",
     "ratko-header" to "Viety Ratkoon"
 )
