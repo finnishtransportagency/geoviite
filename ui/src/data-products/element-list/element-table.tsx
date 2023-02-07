@@ -17,8 +17,8 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
     const amount = elements.length;
 
     return (
-        <div>
-            <p className={styles['element-list-view__table-container']}>
+        <React.Fragment>
+            <p className={styles['element-list-view__element-count']}>
                 {t(`data-products.element-list.geometry-elements`, { amount })}
             </p>
             <div className={styles['element-list-view__table-container']}>
@@ -131,6 +131,6 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                     </tbody>
                 </Table>
             </div>
-        </div>
+        </React.Fragment>
     );
 };
