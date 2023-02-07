@@ -23,7 +23,7 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
             </p>
             <div className={styles['element-list-view__table-container']}>
                 <Table wide>
-                    <thead>
+                    <thead className={styles['element-list-view__table-heading']}>
                         <tr>
                             <th>
                                 {t('data-products.element-list.element-list-table.track-number')}

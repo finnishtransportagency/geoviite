@@ -77,7 +77,7 @@ const ElementListView = () => {
                             ? continuousSearchState.elements
                             : planSearchState.elements
                     }
-                    showLocationTrackName={true}
+                    showLocationTrackName={continuousGeometrySelected}
                 />
             </div>
         </EnvRestricted>

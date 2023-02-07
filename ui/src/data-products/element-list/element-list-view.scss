@@ -23,6 +23,10 @@
     &__header-container {
         padding-left: 32px;
     }
+
+    &__table-heading th {
+        min-width: 100px;
+    }
 }
 
 .element-list__geometry-search {
