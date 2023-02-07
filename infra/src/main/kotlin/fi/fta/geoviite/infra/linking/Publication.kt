@@ -29,7 +29,7 @@ data class PublishedReferenceLine(
     val version: RowVersion<ReferenceLine>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
-    val changedKmNumbers: Set<KmNumber>
+    val changedKmNumbers: List<KmNumber>,
 )
 
 data class PublishedLocationTrack(
@@ -37,21 +37,27 @@ data class PublishedLocationTrack(
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
-    val changedKmNumbers: Set<KmNumber>
+    val changedKmNumbers: List<KmNumber>,
 )
 
 data class PublishedSwitch(
     val version: RowVersion<TrackLayoutSwitch>,
     val trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
     val name: SwitchName,
-    val operation: Operation
+    val operation: Operation,
 )
 
 data class PublishedKmPost(
     val version: RowVersion<TrackLayoutKmPost>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
-    val operation: Operation
+    val operation: Operation,
+)
+
+data class PublishedCalculatedChanges(
+    val trackNumbers: List<PublishedTrackNumber>,
+    val locationTracks: List<PublishedLocationTrack>,
+    val switches: List<PublishedSwitch>,
 )
 
 data class PublicationDetails(
@@ -66,6 +72,7 @@ data class PublicationDetails(
     val kmPosts: List<PublishedKmPost>,
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
+    val calculatedChanges: PublishedCalculatedChanges,
 ) : Publication(id, publicationTime, publicationUser, message)
 
 enum class DraftChangeType {

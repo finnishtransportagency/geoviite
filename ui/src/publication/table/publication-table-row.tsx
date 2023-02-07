@@ -45,7 +45,12 @@ const formatKmNumber = (kmNumbers: KmNumber[]) => {
             return acc;
         }, [] as KmNumber[][])
         .map((kmNumbers) => kmNumbers.join('–'))
-        .join(', ');
+        .map((kmNumbers) => (
+            <span key={kmNumbers}>
+                {kmNumbers}
+                <br />
+            </span>
+        ));
 };
 
 export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({

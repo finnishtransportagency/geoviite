@@ -13,7 +13,8 @@
         "reference-line": "Pituusmittauslinja",
         "switch": "Vaihde",
         "km-post": "Tasakilometripiste",
-        "count-header": "Julkaistut muutokset ({{number}} kpl)"
+        "count-header": "Julkaistut muutokset ({{number}} kpl)",
+        "calculated-change": "Laskettu muutos"
     },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",

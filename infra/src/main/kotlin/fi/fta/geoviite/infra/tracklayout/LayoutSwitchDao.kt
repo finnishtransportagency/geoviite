@@ -4,8 +4,6 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
 import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
-import fi.fta.geoviite.infra.linking.Publication
-import fi.fta.geoviite.infra.linking.PublishedSwitch
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
@@ -382,42 +380,6 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             SwitchLinkingInfo(prototype.switchId, prototype.switchStructureId,
                 switches.map { s -> s.second.jointLocation }.associate { it })
         }
-    }
-
-    fun fetchPublicationInformation(publicationId: IntId<Publication>): List<PublishedSwitch> {
-        val sql = """
-            select
-              pswitch.switch_id as id,
-              pswitch.switch_version as version,
-              switch.name,
-              layout.infer_operation_from_state_category_transition(switch.old_state_category, switch.state_category) as operation,
-              (
-                select array_agg(distinct track_number_id)
-                from (
-                  select lt.track_number_id
-                  from layout.segment
-                  left join layout.location_track_version lt using (alignment_id)
-                  where segment.switch_id = pswitch.switch_id and not lt.draft
-                  union all
-                  select lt.track_number_id
-                  from layout.location_track_version lt
-                  where (pswitch.switch_id = lt.topology_start_switch_id or pswitch.switch_id = lt.topology_end_switch_id) 
-                    and not lt.draft
-                ) tns
-              ) as track_number_ids
-            from publication.switch pswitch
-            left join layout.switch_change_view switch
-              on switch.id = pswitch.switch_id and switch.version = pswitch.switch_version
-            where publication_id = :publication_id
-        """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            PublishedSwitch(
-                version = rs.getRowVersion("id", "version"),
-                name = SwitchName(rs.getString("name")),
-                trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
-                operation = rs.getEnum("operation"),
-            )
-        }.also { switches -> logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version }) }
     }
 
     data class LocationTrackIdentifiers(
