@@ -14,8 +14,6 @@ $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
     left: 0;
     bottom: 0;
     right: 0;
-    align-items: center;
-    justify-content: center;
     background: rgba($color-black-lighter, 0.5);
     z-index: $layer-popup;
 }
