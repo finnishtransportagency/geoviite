@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
-import { addDays, startOfDay, subMonths } from 'date-fns';
+import { addDays, endOfDay, startOfDay, subMonths } from 'date-fns';
 import { getPublications, getPublicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -22,16 +22,15 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
     const { t } = useTranslation();
 
     const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
-    const [endDate, setEndDate] = React.useState<Date>();
+    const [endDate, setEndDate] = React.useState<Date>(currentDay);
     const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationDetails>>();
     const [sortInfo, setSortInfo] = React.useState<SortInformation>();
 
     React.useEffect(() => {
         if (startDate) {
-            const to = endDate ? startOfDay(addDays(endDate, 1)) : undefined;
             setPagedPublications(undefined);
 
-            getPublications(startOfDay(startDate), to).then((p) => {
+            getPublications(startOfDay(startDate), addDays(endDate, 1)).then((p) => {
                 setPagedPublications(p ?? undefined);
             });
         }
@@ -63,7 +62,7 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                         onClick={() =>
                             (location.href = getPublicationsCsvUri(
                                 startDate,
-                                endDate ? startOfDay(addDays(endDate, 1)) : undefined,
+                                endOfDay(endDate),
                                 sortInfo?.propName,
                                 sortInfo?.direction,
                             ))

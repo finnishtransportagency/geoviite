@@ -23,7 +23,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.time.*
-import java.time.format.DateTimeFormatter
 
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
@@ -109,7 +108,7 @@ class PublicationController @Autowired constructor(
         return Page(
             totalCount = publications.size,
             start = 0,
-            items = publications.take(50) //Prevents frontend from going kaput
+            items = publications.take(50) //Prevents frontend from going kaput, todo: replace with proper paging
         )
     }
 
@@ -134,7 +133,7 @@ class PublicationController @Autowired constructor(
         val publicationsAsCsv =
             publicationService.fetchPublicationsAsCsv(from, to, sortBy, order, timeZone)
 
-        val fileName = FileName("julkaisuloki${getDateStringForFileName(from, to, timeZone)}.csv")
+        val fileName = FileName("julkaisuloki${getDateStringForFileName(from, to)}.csv")
         return getCsvResponseEntity(publicationsAsCsv, fileName)
     }
 
@@ -164,13 +163,11 @@ private fun getCsvResponseEntity(content: String, fileName: FileName): ResponseE
         .body(content.toByteArray())
 }
 
-private fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId?): String {
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        .withZone(timeZone ?: ZoneId.of("UTC"))
-    val instant1Date = instant1?.let { formatter.format(it) }
-    val instant2Date = instant2?.let { formatter.format(it) }
+private fun getDateStringForFileName(instant1: Instant?, instant2: Instant?): String {
+    val instant1Date = instant1?.let { it.toString().split("T")[0] }
+    val instant2Date = instant2?.let { it.toString().split("T")[0] }
 
-    return if (instant1Date == null && instant2Date == null) ""
+    return if (instant1Date == instant2Date) instant1Date?.let { " $it" } ?: ""
     else if (instant1Date == null) " -$instant2Date"
     else if (instant2Date == null) " $instant1Date"
     else " $instant1Date-$instant2Date"
