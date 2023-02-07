@@ -8,176 +8,181 @@ $dialog-padding-vertical: 16px;
 $dialog-padding: $dialog-padding-vertical $dialog-padding-horizontal;
 
 .dialog {
-  margin: 0;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($color-black-lighter, 0.5);
-  z-index: $layer-popup;
+    margin: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    align-items: center;
+    justify-content: center;
+    background: rgba($color-black-lighter, 0.5);
+    z-index: $layer-popup;
 }
 
 .dialog__popup {
-  @include shadow-8dp;
-  display: flex;
-  flex-direction: column;
-  border-radius: 4px;
-  background: $color-white-default;
-  min-height: 200px;
+    @include shadow-8dp;
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
+    background: $color-white-default;
+    min-height: 200px;
+    position: relative;
+
+    &--moving {
+        user-select: none;
+    }
 }
 
 .dialog__header {
-  display: flex;
-  align-items: center;
-  padding: $dialog-padding;
+    display: flex;
+    align-items: center;
+    padding: $dialog-padding;
+    cursor: grab;
 }
 
 .dialog__close {
-  fill: $color-blue-dark;
+    fill: $color-blue-dark;
 }
 
 .dialog__title {
-  @include typography-heading-small;
-  flex: 1;
-  margin-right: 40px;
+    @include typography-heading-small;
+    flex: 1;
+    margin-right: 40px;
 }
 
 .dialog__close {
-  cursor: pointer;
-  line-height: 0;
+    cursor: pointer;
+    line-height: 0;
 }
 
 .dialog__content {
-  flex: 1;
-  background: $color-white-default;
-  padding: 0 $dialog-padding-horizontal;
-  min-height: 120px;
+    flex: 1;
+    background: $color-white-default;
+    padding: 0 $dialog-padding-horizontal;
+    min-height: 120px;
 
-  .dialog__text {
-    margin-bottom: 14px;
-  }
+    .dialog__text {
+        margin-bottom: 14px;
+    }
 }
 
 .dialog__content-spread {
-  margin: 0 (-$dialog-padding-horizontal);
+    margin: 0 (-$dialog-padding-horizontal);
 }
 
 .dialog-footer--centered {
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: 8px;
-  align-items: center;
-  justify-content: center;
-  padding: $dialog-padding;
-  border-top: 1px solid $color-white-darker;
+    display: grid;
+    grid-auto-flow: column;
+    grid-gap: 8px;
+    align-items: center;
+    justify-content: center;
+    padding: $dialog-padding;
+    border-top: 1px solid $color-white-darker;
 }
 
 .dialog-footer {
-  display: grid;
-  grid-auto-flow: column;
-  grid-gap: 8px;
-  padding: $dialog-padding;
-  border-top: 1px solid $color-white-darker;
+    display: grid;
+    grid-auto-flow: column;
+    grid-gap: 8px;
+    padding: $dialog-padding;
+    border-top: 1px solid $color-white-darker;
 }
 
 .dialog-footer__content-area {
-  display: flex;
-  justify-content: space-between;
+    display: flex;
+    justify-content: space-between;
 }
 
 .dialog-footer__content {
-  &--shrink {
-    flex-grow: 0;
-  }
-
-  &--grow {
-    flex-grow: 1;
-  }
-
-  &--centered {
-    display: flex;
-    justify-content: center;
-  }
-
-  &--padded {
-    > :not(:last-child) {
-      margin-right: 20px;
+    &--shrink {
+        flex-grow: 0;
     }
-  }
+
+    &--grow {
+        flex-grow: 1;
+    }
+
+    &--centered {
+        display: flex;
+        justify-content: center;
+    }
+
+    &--padded {
+        > :not(:last-child) {
+            margin-right: 20px;
+        }
+    }
 }
 
 .dialog--dark {
-  .dialog__popup {
-    background: $color-blue-darker;
-    color: $color-white-default;
-    fill: $color-white-default;
-  }
+    .dialog__popup {
+        background: $color-blue-darker;
+        color: $color-white-default;
+        fill: $color-white-default;
+    }
 
-  .dialog__content {
-    background: $color-blue-darker;
-  }
+    .dialog__content {
+        background: $color-blue-darker;
+    }
 
-  .dialog__footer {
-    border: none;
-  }
+    .dialog__footer {
+        border: none;
+    }
 
-  .dialog__close {
-    fill: $color-white-default;
-  }
+    .dialog__close {
+        fill: $color-white-default;
+    }
 }
 
 .dialog--light {
-  .dialog__popup {
-    background: $color-white-default;
-    color: $color-black-default;
-  }
+    .dialog__popup {
+        background: $color-white-default;
+        color: $color-black-default;
+    }
 
-  .dialog__content {
-    background: $color-white-default;
-  }
+    .dialog__content {
+        background: $color-white-default;
+    }
 
-  .dialog__footer {
-    border: none;
-  }
+    .dialog__footer {
+        border: none;
+    }
 
-  .dialog__close {
-    fill: $color-white-default;
-  }
+    .dialog__close {
+        fill: $color-white-default;
+    }
 }
 
 .dialog--scrollable {
-  .dialog__popup {
-    max-height: 80vh;
+    .dialog__popup {
+        max-height: 80vh;
 
-    resize: both;
-    overflow: hidden;
-  }
+        resize: both;
+        overflow: hidden;
+    }
 
-  .dialog__content {
-    overflow-y: auto;
-  }
+    .dialog__content {
+        overflow-y: auto;
+    }
 }
 
 .dialog--narrow {
-  min-width: 250px;
-  max-width: 250px;
+    min-width: 250px;
+    max-width: 250px;
 }
 
 .dialog--normal {
-  min-width: 300px;
-  max-width: 300px;
+    min-width: 300px;
+    max-width: 300px;
 }
 
 .dialog--wide {
-  min-width: 380px;
-  max-width: 380px;
+    min-width: 380px;
+    max-width: 380px;
 }
 
 .dialog--ultrawide {
-  min-width: 700px;
-  max-width: 700px;
+    min-width: 700px;
+    max-width: 700px;
 }
