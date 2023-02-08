@@ -5,7 +5,7 @@ import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
 import dialogStyles from '../vayla-design-lib/dialog/dialog.scss';
-import { publishCandidates, PublishRequest, PublishResult } from 'publication/publication-api';
+import { publishCandidates } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     updateKmPostChangeTime,
@@ -16,7 +16,12 @@ import {
 } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import { PublishType } from 'common/common-model';
-import { PublishCandidates, PublishValidationError } from 'publication/publication-model';
+import {
+    PublishCandidates,
+    PublishRequest,
+    PublishResult,
+    PublishValidationError,
+} from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { PreviewCandidates } from 'preview/preview-view';
 
@@ -27,7 +32,6 @@ type PreviewFooterProps = {
     mapMode: PublishType;
     onChangeMapMode: (type: PublishType) => void;
     previewChanges: PreviewCandidates;
-    onPublishPreviewRevert: () => void;
 };
 
 function previewChangesCanBePublished(previewChanges: PublishCandidates) {

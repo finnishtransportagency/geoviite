@@ -23,15 +23,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { addIfExists, subtract } from 'utils/array-utils';
-import { PublishRequest } from 'publication/publication-api';
-
-export type SelectedPublishChanges = {
-    trackNumbers: LayoutTrackNumberId[];
-    referenceLines: ReferenceLineId[];
-    locationTracks: LocationTrackId[];
-    switches: LayoutSwitchId[];
-    kmPosts: LayoutKmPostId[];
-};
+import { PublishRequest } from 'publication/publication-model';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -51,7 +43,7 @@ export type ChangeTimes = {
     publication: TimeStamp;
 };
 
-export const initialSelectedPublishCandidateIdsState: SelectedPublishChanges = {
+export const initialPublicationRequest: PublishRequest = {
     trackNumbers: [],
     referenceLines: [],
     locationTracks: [],
@@ -75,7 +67,7 @@ export type TrackLayoutState = {
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
-    selectedPublishCandidateIds: SelectedPublishChanges;
+    stagedPublicationRequest: PublishRequest;
     linkingState?: LinkingState;
     changeTimes: ChangeTimes;
     linkingIssuesSelectedBeforeLinking: boolean;
@@ -88,7 +80,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
-    selectedPublishCandidateIds: initialSelectedPublishCandidateIdsState,
+    stagedPublicationRequest: initialPublicationRequest,
     changeTimes: initialChangeTimes,
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
@@ -209,27 +201,27 @@ const trackLayoutSlice = createSlice({
             action: PayloadAction<SelectedPublishChange>,
         ): void {
             const trackNumbers = addIfExists(
-                state.selectedPublishCandidateIds.trackNumbers,
+                state.stagedPublicationRequest.trackNumbers,
                 action.payload.trackNumber,
             );
             const referenceLines = addIfExists(
-                state.selectedPublishCandidateIds.referenceLines,
+                state.stagedPublicationRequest.referenceLines,
                 action.payload.referenceLine,
             );
             const locationTracks = addIfExists(
-                state.selectedPublishCandidateIds.locationTracks,
+                state.stagedPublicationRequest.locationTracks,
                 action.payload.locationTrack,
             );
             const switches = addIfExists(
-                state.selectedPublishCandidateIds.switches,
+                state.stagedPublicationRequest.switches,
                 action.payload.switch,
             );
             const kmPosts = addIfExists(
-                state.selectedPublishCandidateIds.kmPosts,
+                state.stagedPublicationRequest.kmPosts,
                 action.payload.kmPost,
             );
 
-            state.selectedPublishCandidateIds = {
+            state.stagedPublicationRequest = {
                 trackNumbers: trackNumbers,
                 referenceLines: referenceLines,
                 locationTracks: locationTracks,
@@ -242,7 +234,7 @@ const trackLayoutSlice = createSlice({
             state: TrackLayoutState,
             action: PayloadAction<PublishRequest>,
         ): void {
-            const stateCandidates = state.selectedPublishCandidateIds;
+            const stateCandidates = state.stagedPublicationRequest;
             const toRemove = action.payload;
             const trackNumbers = subtract(stateCandidates.trackNumbers, toRemove.trackNumbers);
             const referenceLines = subtract(
@@ -255,7 +247,7 @@ const trackLayoutSlice = createSlice({
             );
             const switches = subtract(stateCandidates.switches, toRemove.switches);
             const kmPosts = subtract(stateCandidates.kmPosts, toRemove.kmPosts);
-            state.selectedPublishCandidateIds = {
+            state.stagedPublicationRequest = {
                 trackNumbers,
                 referenceLines,
                 locationTracks,
@@ -264,16 +256,6 @@ const trackLayoutSlice = createSlice({
             };
         },
 
-        // TODO when Hylkää muutokset -button is removed from Preview-view, this reducer will become obsolete
-        onPublishPreviewRevert: function (state: TrackLayoutState): void {
-            state.selectedPublishCandidateIds = {
-                trackNumbers: [],
-                referenceLines: [],
-                locationTracks: [],
-                switches: [],
-                kmPosts: [],
-            };
-        },
         onHighlightItems: function (
             state: TrackLayoutState,
             action: PayloadAction<OnSelectOptions>,
@@ -382,7 +364,7 @@ const trackLayoutSlice = createSlice({
         onPublish: (state: TrackLayoutState): void => {
             console.log('huh?');
             state.layoutMode = 'DEFAULT';
-            state.selectedPublishCandidateIds = initialSelectedPublishCandidateIdsState;
+            state.stagedPublicationRequest = initialPublicationRequest;
         },
         setToolPanelTab: (
             state: TrackLayoutState,
