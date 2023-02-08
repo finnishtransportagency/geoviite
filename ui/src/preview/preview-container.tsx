@@ -13,7 +13,7 @@ export const PreviewContainer: React.FC = () => {
         map: trackLayoutState.map,
         selection: trackLayoutState.selection,
         changeTimes: trackLayoutState.changeTimes,
-        selectedPublishCandidateIds: trackLayoutState.selectedPublishCandidateIds,
+        selectedPublishCandidateIds: trackLayoutState.stagedPublicationRequestIds,
         onViewportChange: delegates.onViewportChange,
         onSelect: delegates.onSelect,
         onHighlightItems: delegates.onHighlightItems,
@@ -24,7 +24,6 @@ export const PreviewContainer: React.FC = () => {
         onPublish: delegates.onPublish,
         onPreviewSelect: delegates.onPreviewSelect,
         onPublishPreviewRemove: delegates.onPublishPreviewRemove,
-        onPublishPreviewRevert: delegates.onPublishPreviewRevert,
     };
 
     return <PreviewView {...props} />;

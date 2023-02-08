@@ -1,6 +1,6 @@
 import { Point } from 'model/geometry';
 
-export function directionBetweenPoints(p1: Point, p2: Point) {
+export function directionBetweenPoints(p1: Point, p2: Point): number {
     return Math.atan2(p2.y - p1.y, p2.x - p1.x);
 }
 
@@ -9,7 +9,7 @@ export function angleDiffRads(rads1: number, rads2: number): number {
     return diff > Math.PI ? 2 * Math.PI - diff : diff;
 }
 
-function normalizeRads(rads: number) {
+function normalizeRads(rads: number): number {
     return normalizeToRangeNonInclusive(rads, 2 * Math.PI);
 }
 

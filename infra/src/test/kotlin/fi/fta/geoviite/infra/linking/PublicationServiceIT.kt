@@ -42,13 +42,13 @@ class PublicationServiceIT @Autowired constructor(
 
     @BeforeEach
     fun clearDrafts() {
-        val request = publicationService.getAllPublicationVersions().let {
+        val request = publicationService.collectPublishCandidates().let {
             PublishRequestIds(
-                it.trackNumbers.map { it.draftVersion.id },
-                it.locationTracks.map { it.draftVersion.id },
-                it.referenceLines.map { it.draftVersion.id },
-                it.switches.map { it.draftVersion.id },
-                it.kmPosts.map { it.draftVersion.id }
+                it.trackNumbers.map(TrackNumberPublishCandidate::id),
+                it.locationTracks.map(LocationTrackPublishCandidate::id),
+                it.referenceLines.map(ReferenceLinePublishCandidate::id),
+                it.switches.map(SwitchPublishCandidate::id),
+                it.kmPosts.map(KmPostPublishCandidate::id),
             )
         }
         publicationService.revertPublishCandidates(request)
@@ -111,24 +111,36 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Fetching all publication versions works`() {
+    fun `Fetching all publication candidates works`() {
         val switch = switchService.saveDraft(switch(123))
-        val trackNumberId = insertDraftTrackNumber()
+        val trackNumber = insertNewTrackNumber(getUnusedTrackNumber(), true)
 
-        val (t, a) = locationTrackAndAlignment(trackNumberId, segment(Point(0.0, 0.0), Point(1.0, 1.0)))
-        locationTrackService.saveDraft(t.copy(alignmentVersion =
-            alignmentDao.insert(a.copy(segments = listOf(a.segments[0].copy(switchId = switch.id))))))
-        locationTrackService.saveDraft(locationTrack(trackNumberId, name = "TEST-1"))
+        val (t, a) = locationTrackAndAlignment(trackNumber.id, segment(Point(0.0, 0.0), Point(1.0, 1.0)))
+        val track1 = locationTrackService.saveDraft(t.copy(
+            alignmentVersion = alignmentDao.insert(a.copy(
+                segments = listOf(a.segments[0].copy(switchId = switch.id)),
+            )),
+        ))
+        val track2 = locationTrackService.saveDraft(locationTrack(trackNumber.id, name = "TEST-1"))
 
-        referenceLineService.saveDraft(referenceLine(trackNumberId))
-        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber.ZERO))
+        val referenceLine = referenceLineService.saveDraft(referenceLine(trackNumber.id))
+        val kmPost = kmPostService.saveDraft(kmPost(trackNumber.id, KmNumber.ZERO))
 
-        val versions = publicationService.getAllPublicationVersions()
-        assertEquals(versions.switches.size, 1)
-        assertEquals(versions.locationTracks.size, 2)
-        assertEquals(versions.trackNumbers.size, 1)
-        assertEquals(versions.referenceLines.size, 1)
-        assertEquals(versions.kmPosts.size, 1)
+        val candidates = publicationService.collectPublishCandidates()
+        assertMatches(candidates.switches, switch)
+        assertMatches(candidates.locationTracks, track1, track2)
+        assertMatches(candidates.trackNumbers, trackNumber)
+        assertMatches(candidates.referenceLines, referenceLine)
+        assertMatches(candidates.kmPosts, kmPost)
+    }
+
+    private fun <T> assertMatches(candidates: List<PublishCandidate<T>>, vararg responses: DaoResponse<T>) {
+        assertEquals(responses.size, candidates.size)
+        responses.forEach { response ->
+            val candidate = candidates.find { c -> c.id == response.id }
+            assertNotNull(candidate)
+            assertEquals(response.rowVersion, candidate.rowVersion)
+        }
     }
 
     @Test

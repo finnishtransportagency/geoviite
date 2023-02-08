@@ -1,4 +1,12 @@
-import { KmNumber, RowVersion, TimeStamp, TrackNumber } from 'common/common-model';
+import {
+    JointNumber,
+    KmNumber,
+    Oid,
+    RowVersion,
+    TimeStamp,
+    TrackMeter,
+    TrackNumber,
+} from 'common/common-model';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
@@ -7,6 +15,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { RatkoPushStatus } from 'ratko/ratko-model';
+import { Point } from 'model/geometry';
 
 export type PublishValidationError = {
     type: 'ERROR' | 'WARNING';
@@ -132,6 +141,62 @@ export type PublishedKmPost = {
     kmNumber: KmNumber;
     operation: Operation;
 };
+
+export type PublishRequestIds = {
+    trackNumbers: LayoutTrackNumberId[];
+    referenceLines: ReferenceLineId[];
+    locationTracks: LocationTrackId[];
+    switches: LayoutSwitchId[];
+    kmPosts: LayoutKmPostId[];
+};
+
+export type PublishRequest = {
+    message: string;
+} & PublishRequestIds;
+
+export interface PublishResult {
+    trackNumbers: number;
+    locationTracks: number;
+    referenceLines: number;
+    switches: number;
+    kmPosts: number;
+}
+
+export interface TrackNumberChange {
+    trackNumberId: LayoutTrackNumberId;
+    changedKilometers: KmNumber[];
+    isStartChanged: boolean;
+    isEndChanged: boolean;
+}
+
+export interface LocationTrackChange {
+    locationTrackId: LocationTrackId;
+    changedKilometers: KmNumber[];
+    isStartChanged: boolean;
+    isEndChanged: boolean;
+}
+
+export interface SwitchJointChange {
+    number: JointNumber;
+    isRemoved: boolean;
+    address: TrackMeter;
+    point: Point;
+    locationTrackId: LocationTrackId;
+    locationTrackExternalId: Oid | null;
+    trackNumberId: LayoutTrackNumberId;
+    trackNumberExternalId: Oid | null;
+}
+
+export interface SwitchChange {
+    switchId: LayoutSwitchId;
+    changedJoints: SwitchJointChange[];
+}
+
+export interface CalculatedChanges {
+    trackNumberChanges: TrackNumberChange[];
+    locationTracksChanges: LocationTrackChange[];
+    switchChanges: SwitchChange[];
+}
 
 export type PublishedCalculatedChanges = {
     trackNumbers: PublishedTrackNumber[];

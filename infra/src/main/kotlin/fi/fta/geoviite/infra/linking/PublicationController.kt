@@ -33,20 +33,20 @@ class PublicationController @Autowired constructor(
     @GetMapping("/candidates")
     fun getPublishCandidates(): PublishCandidates {
         logger.apiCall("getPublishCandidates")
-        return publicationService.getPublishCandidates()
+        return publicationService.collectPublishCandidates()
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/validate")
-    fun validatePublishCandidates(@RequestBody publishRequestIds: PublishRequestIds): ValidatedPublishCandidates {
-        logger.apiCall("validatePublishCandidates")
-        return publicationService.validatePublishCandidates(publicationService.getPublicationVersions(publishRequestIds))
+    fun validatePublishCandidates(@RequestBody request: PublishRequestIds): ValidatedPublishCandidates {
+        logger.apiCall("validatePublishCandidates", "request" to request)
+        return publicationService.validatePublishCandidates(publicationService.collectPublishCandidates(), request)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/calculated-changes")
     fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
-        logger.apiCall("getCalculatedChanges")
+        logger.apiCall("getCalculatedChanges", "request" to request)
         return calculatedChangesService.getCalculatedChangesInDraft(
             publicationService.getPublicationVersions(request)
         )
@@ -55,7 +55,7 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_WRITE)
     @DeleteMapping("/candidates")
     fun revertPublishCandidates(@RequestBody toDelete: PublishRequestIds): PublishResult {
-        logger.apiCall("revertPublishCandidates")
+        logger.apiCall("revertPublishCandidates", "toDelete" to toDelete)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.revertPublishCandidates(toDelete)
         } ?: throw PublicationFailureException(

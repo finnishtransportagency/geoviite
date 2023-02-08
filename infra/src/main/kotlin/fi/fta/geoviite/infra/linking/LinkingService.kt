@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -73,7 +72,6 @@ class LinkingService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
     private val coordinateTransformationService: CoordinateTransformationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
