@@ -337,7 +337,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
-        }.onEach { publication -> logger.daoAccess(FETCH, Publication::class, publication.id) }
+        }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
     fun fetchChangeTime(): Instant {
@@ -669,7 +669,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 from (
                   select location_track.track_number_id
                   from (
-                    select distinct on (segment_index)
+                    select distinct on (alignment_id, alignment_version, segment_index)
                       switch_id,
                       alignment_id,
                       alignment_version,
@@ -677,7 +677,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                     from layout.segment_version
                     where change_time <= publication.publication_time
                       and switch_id = ps.switch_id
-                    order by segment_index, version desc
+                    order by alignment_id, alignment_version, segment_index, version desc
                   ) segment
                     inner join layout.alignment_version alignment
                       on alignment.id = segment.alignment_id and alignment.version = segment.alignment_version
@@ -788,7 +788,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 from (
                   select location_track.track_number_id
                   from (
-                    select distinct on (segment_index)
+                    select distinct on (alignment_id, alignment_version, segment_index)
                       switch_id,
                       alignment_id,
                       alignment_version,
@@ -796,7 +796,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                     from layout.segment_version
                     where change_time <= publication.publication_time
                       and switch_id = pswitch.switch_id
-                    order by segment_index, version desc
+                    order by alignment_id, alignment_version, segment_index, version desc
                   ) segment
                     inner join layout.alignment_version alignment
                       on alignment.id = segment.alignment_id and alignment.version = segment.alignment_version
