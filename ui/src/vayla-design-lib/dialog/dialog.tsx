@@ -21,6 +21,10 @@ export type DialogProps = {
     className?: string;
 } & Pick<React.HTMLProps<HTMLElement>, 'style'>;
 
+type DragParams = {
+    x: number;
+    y: number;
+};
 export const Dialog: React.FC<DialogProps> = ({
     scrollable = true,
     allowClose = true,
@@ -33,15 +37,15 @@ export const Dialog: React.FC<DialogProps> = ({
     );
 
     const dialogHeaderRef = React.useRef<HTMLDivElement>(null);
-    const [inMovingMode, setInMovingMode] = React.useState(false);
+    const [inMovingMode, setInMovingMode] = React.useState<DragParams | null>(null);
     const [moved, setMoved] = React.useState(false);
     const [x, setX] = React.useState(0);
     const [y, setY] = React.useState(0);
 
     const moveDialog = (e: React.MouseEvent) => {
         if (inMovingMode) {
-            setX(x + e.movementX);
-            setY(y + e.movementY);
+            setX(e.clientX + inMovingMode.x);
+            setY(e.clientY + inMovingMode.y);
         }
     };
 
@@ -61,7 +65,7 @@ export const Dialog: React.FC<DialogProps> = ({
     return (
         <div
             className={className}
-            onMouseUp={() => setInMovingMode(false)}
+            onMouseUp={() => setInMovingMode(null)}
             onMouseMove={(e) => moveDialog(e)}>
             <div
                 className={createClassName(
@@ -75,7 +79,7 @@ export const Dialog: React.FC<DialogProps> = ({
                     className={styles['dialog__header']}
                     onMouseDown={(e) => {
                         if (e.button === 0) {
-                            setInMovingMode(true);
+                            setInMovingMode({ x: x - e.clientX, y: y - e.clientY });
                             setMoved(true);
                         }
                     }}>
