@@ -15,6 +15,30 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
+    const commonTableHeadings = [
+        'alignment',
+        'element-type',
+        'track-address-start',
+        'track-address-end',
+        'coordinate-system',
+        'location-start-e',
+        'location-start-n',
+        'location-end-e',
+        'location-end-n',
+        'length',
+        'curve-radius-start',
+        'curve-radius-end',
+        'cant-start',
+        'cant-end',
+        'angle-start',
+        'angle-end',
+        'plan',
+        'source',
+    ];
+
+    const tableHeadingsToShowInUI = showLocationTrackName
+        ? ['track-number', 'location-track'].concat(commonTableHeadings)
+        : ['track-number'].concat(commonTableHeadings);
 
     return (
         <React.Fragment>
@@ -25,6 +49,59 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                 <Table wide>
                     <thead className={styles['element-list-view__table-heading']}>
                         <tr>
+                            {tableHeadingsToShowInUI.map((heading) => (
+                                <th key={heading}>
+                                    {t(`data-products.element-list.element-list-table.${heading}`)}
+                                </th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {elements.map((item, index) => (
+                            // Element list can contain the same element multiple times -> use index in list as key
+                            <React.Fragment key={`${index}`}>
+                                <ElementTableItem
+                                    id={item.alignmentId}
+                                    trackNumber={
+                                        trackNumbers?.find((tn) => tn.id === item.trackNumberId)
+                                            ?.number
+                                    }
+                                    geometryAlignmentName={item.alignmentName}
+                                    locationTrackName={item.locationTrackName}
+                                    type={t(
+                                        `data-products.element-list.element-list-table.${item.elementType}`,
+                                    )}
+                                    trackAddressStart={item.start.address}
+                                    trackAddressEnd={item.end.address}
+                                    coordinateSystem={
+                                        item.coordinateSystemSrid ?? item.coordinateSystemName
+                                    }
+                                    locationStartE={item.start.coordinate.x}
+                                    locationStartN={item.start.coordinate.y}
+                                    locationEndE={item.end.coordinate.x}
+                                    locationEndN={item.end.coordinate.y}
+                                    length={item.lengthMeters}
+                                    curveRadiusStart={item.start.radiusMeters}
+                                    curveRadiusEnd={item.end.radiusMeters}
+                                    cantStart={item.start.cant}
+                                    cantEnd={item.end.cant}
+                                    angleStart={item.start.directionGrads}
+                                    angleEnd={item.end.directionGrads}
+                                    plan={item.fileName}
+                                    source={item.planSource}
+                                    showLocationTrackName={showLocationTrackName}
+                                />
+                            </React.Fragment>
+                        ))}
+                    </tbody>
+                </Table>
+            </div>
+        </React.Fragment>
+    );
+};
+
+/*
+<tr>
                             <th>
                                 {t('data-products.element-list.element-list-table.track-number')}
                             </th>
@@ -90,47 +167,4 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                             <th>{t('data-products.element-list.element-list-table.plan')}</th>
                             <th>{t('data-products.element-list.element-list-table.source')}</th>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {elements.map((item, index) => (
-                            // Element list can contain the same element multiple times -> use index in list as key
-                            <React.Fragment key={`${index}`}>
-                                <ElementTableItem
-                                    id={item.alignmentId}
-                                    trackNumber={
-                                        trackNumbers?.find((tn) => tn.id === item.trackNumberId)
-                                            ?.number
-                                    }
-                                    geometryAlignmentName={item.alignmentName}
-                                    locationTrackName={item.locationTrackName}
-                                    type={t(
-                                        `data-products.element-list.element-list-table.${item.elementType}`,
-                                    )}
-                                    trackAddressStart={item.start.address}
-                                    trackAddressEnd={item.end.address}
-                                    coordinateSystem={
-                                        item.coordinateSystemSrid ?? item.coordinateSystemName
-                                    }
-                                    locationStartE={item.start.coordinate.x}
-                                    locationStartN={item.start.coordinate.y}
-                                    locationEndE={item.end.coordinate.x}
-                                    locationEndN={item.end.coordinate.y}
-                                    length={item.lengthMeters}
-                                    curveRadiusStart={item.start.radiusMeters}
-                                    curveRadiusEnd={item.end.radiusMeters}
-                                    cantStart={item.start.cant}
-                                    cantEnd={item.end.cant}
-                                    angleStart={item.start.directionGrads}
-                                    angleEnd={item.end.directionGrads}
-                                    plan={item.fileName}
-                                    source={item.planSource}
-                                    showLocationTrackName={showLocationTrackName}
-                                />
-                            </React.Fragment>
-                        ))}
-                    </tbody>
-                </Table>
-            </div>
-        </React.Fragment>
-    );
-};
+ */
