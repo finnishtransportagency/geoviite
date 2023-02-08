@@ -171,15 +171,6 @@ data class PublishRequestIds(
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
 ) {
-    constructor(withMessage: PublishRequest): this(
-        withMessage.trackNumbers,
-        withMessage.locationTracks,
-        withMessage.referenceLines,
-        withMessage.switches,
-        withMessage.kmPosts
-    )
-
-
     operator fun minus(other: PublishRequestIds) =
         PublishRequestIds(
             trackNumbers - other.trackNumbers.toSet(),
@@ -191,11 +182,7 @@ data class PublishRequestIds(
 }
 
 data class PublishRequest(
-    val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
-    val locationTracks: List<IntId<LocationTrack>>,
-    val referenceLines: List<IntId<ReferenceLine>>,
-    val switches: List<IntId<TrackLayoutSwitch>>,
-    val kmPosts: List<IntId<TrackLayoutKmPost>>,
+    val content: PublishRequestIds,
     val message: String,
 )
 

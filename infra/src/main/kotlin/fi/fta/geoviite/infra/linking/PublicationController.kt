@@ -76,9 +76,8 @@ class PublicationController @Autowired constructor(
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            val withoutMessage = PublishRequestIds(request)
-            publicationService.updateExternalId(withoutMessage)
-            val versions = publicationService.getPublicationVersions(withoutMessage)
+            publicationService.updateExternalId(request.content)
+            val versions = publicationService.getPublicationVersions(request.content)
             publicationService.validatePublishRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
             publicationService.publishChanges(versions, calculatedChanges, request.message)

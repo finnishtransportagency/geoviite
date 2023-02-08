@@ -109,7 +109,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const publish = () => {
         setPublishing(true);
-        publishCandidates({ ...props.request, message })
+        publishCandidates({ content: props.request, message })
             .then((r) => {
                 if (r.isOk()) {
                     const result = r.unwrapOr(null);

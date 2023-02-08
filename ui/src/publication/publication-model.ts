@@ -151,8 +151,9 @@ export type PublishRequestIds = {
 };
 
 export type PublishRequest = {
+    content: PublishRequestIds;
     message: string;
-} & PublishRequestIds;
+};
 
 export interface PublishResult {
     trackNumbers: number;
