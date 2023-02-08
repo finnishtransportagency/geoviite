@@ -140,8 +140,11 @@ class InfraModelController @Autowired constructor(
     @GetMapping("{id}/file", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadFile(@PathVariable("id") id: IntId<GeometryPlan>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadFile", "id" to id)
-        val infraModelFile: InfraModelFile = geometryService.getPlanFile(id)
-        return toFileDownloadResponse(fileNameWithSuffix(infraModelFile.name), infraModelFile.content.toByteArray())
+        val infraModelFileAndSource = geometryService.getPlanFile(id)
+        return toFileDownloadResponse(
+            fileNameWithSuffix(infraModelFileAndSource.name),
+            infraModelFileAndSource.content.toByteArray()
+        )
     }
 }
 

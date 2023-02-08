@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDateFull, formatDateShort } from 'utils/date-utils';
 
 import {
+    GeometryPlanHeader,
     GeometryPlanId,
     GeometryPlanSearchParams,
     SortByValue,
@@ -13,13 +14,13 @@ import {
 } from 'geometry/geometry-model';
 import { IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Table, Th } from 'vayla-design-lib/table/table';
-import { Link } from 'vayla-design-lib/link/link';
 import DecisionPhase from 'geoviite-design-lib/plan-decision/plan-decision-phase';
 import PlanPhase from 'geoviite-design-lib/plan-phase/plan-phase';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { INFRAMODEL_URI } from 'infra-model/infra-model-api';
+import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
+import { UnreliableInframodelDownloadConfirmDialog } from 'infra-model/list/UnreliableInframodelDownloadConfirmDialog';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -53,6 +54,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     const [linkingSummaries, setLinkingSummaries] = useState<
         Map<GeometryPlanId, GeometryPlanLinkingSummary | null>
     >(() => new Map());
+    const [downloadConfirmPlan, setDownloadConfirmPlan] = React.useState<GeometryPlanHeader>();
 
     useEffect(() => {
         const newPlans: GeometryPlanId[] = [];
@@ -273,13 +275,21 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         <td>{linkingSummaryDate(plan.id)}</td>
                                         <td>{linkingSummaryUsers(plan.id)}</td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            {plan.source !== 'PAIKANNUSPALVELU' && (
-                                                <Link
-                                                    href={`${INFRAMODEL_URI}/${plan.id}/file`}
-                                                    title={t('im-form.download-file')}>
-                                                    <Icons.Download size={IconSize.SMALL} />
-                                                </Link>
-                                            )}
+                                            <Button
+                                                title={t('im-form.download-file')}
+                                                onClick={() => {
+                                                    if (plan.source === 'PAIKANNUSPALVELU') {
+                                                        setDownloadConfirmPlan(plan);
+                                                    } else {
+                                                        location.href = inframodelDownloadUri(
+                                                            plan.id,
+                                                        );
+                                                    }
+                                                }}
+                                                variant={ButtonVariant.GHOST}
+                                                size={ButtonSize.SMALL}
+                                                icon={Icons.Download}
+                                            />
                                         </td>
                                         <td>
                                             {plan.message ? (
@@ -294,6 +304,12 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                     </tbody>
                 </Table>
             </div>
+            {downloadConfirmPlan && (
+                <UnreliableInframodelDownloadConfirmDialog
+                    onClose={() => setDownloadConfirmPlan(undefined)}
+                    plan={downloadConfirmPlan}
+                />
+            )}
         </div>
     );
 };

@@ -43,9 +43,6 @@
 .element-list__geometry-search {
     display: flex;
 
-    > :first-child {
-        color: red;
-    }
     > :not(:last-child) {
         margin-right: 16px;
     }

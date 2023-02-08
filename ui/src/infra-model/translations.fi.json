@@ -1,4 +1,9 @@
 {
+    "infra-model-download": {
+        "download": "Lataa",
+        "unreliable-plan": "Epäluotettava suunnitelma",
+        "warning-content": "{{planFileName}}-suunnitelman lähde on Paikannuspalvelu ja se saattaa sisältää mm. ilmakuvista digitoitua epätarkkaa geometriaa. Tätä suunnitelmaa ei saa välittää vastauksena  tietopyyntöihin tai käyttää muutoinkaan mihinkään tarkkuuttaa vaativaan tehtävään."
+    },
     "im-form": {
         "uploading-file-msg": "Tiedostoa ladataan tietokantaan ...",
         "project-information": "Projektin tiedot",

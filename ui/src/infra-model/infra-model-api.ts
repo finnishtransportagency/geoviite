@@ -43,6 +43,8 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 
 export const INFRAMODEL_URI = `${API_URI}/inframodel`;
 
+export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
+
 const defaultValidationErrorHandler = (response: ApiErrorResponse): ValidationResponse => ({
     ...EMPTY_VALIDATION_RESPONSE,
     validationErrors: [

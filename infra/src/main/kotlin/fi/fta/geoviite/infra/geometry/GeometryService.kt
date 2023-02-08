@@ -198,8 +198,19 @@ class GeometryService @Autowired constructor(
 
     fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFile {
         logger.serviceCall("getPlanFile", "planId" to planId)
-        return geometryDao.getPlanFile(planId)
+
+        val fileAndSource = geometryDao.getPlanFile(planId)
+        return if (fileAndSource.source == PAIKANNUSPALVELU) {
+            InfraModelFile(
+                fileNameWithSourcePrefixIfPaikannuspalvelu(fileAndSource.file.name, fileAndSource.source),
+                fileAndSource.file.content
+            )
+        } else fileAndSource.file
     }
+
+    private fun fileNameWithSourcePrefixIfPaikannuspalvelu(originalFileName: FileName, source: PlanSource): FileName =
+        if (source == PAIKANNUSPALVELU) FileName("EPÄLUOTETTAVA SUUNNITELMA $originalFileName")
+        else originalFileName
 
     fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         logger.serviceCall("getLinkingSummaries", "planIds" to planIds)

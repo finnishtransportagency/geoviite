@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.error.InframodelParsingException
+import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.util.FileName
 import org.apache.commons.codec.digest.DigestUtils
 
@@ -14,6 +15,11 @@ data class InfraModelFile(
         require(!containsIdentifyingInfo(content)) { "Identifying info must be censored from IM before storing" }
     }
 }
+
+data class InfraModelFileWithSource(
+    val file: InfraModelFile,
+    val source: PlanSource
+)
 
 private val authorTagRegex = Regex("<Author [^>]*>")
 private val createdByRegex = Regex("createdBy=\"[^\"]+\"")
