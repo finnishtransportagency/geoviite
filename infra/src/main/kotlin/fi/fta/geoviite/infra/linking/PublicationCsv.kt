@@ -42,7 +42,7 @@ fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<By
         .body(content.toByteArray())
 }
 
-fun asCsvFile(rows: List<PublicationCsvRow>, timeZone: ZoneId = ZoneId.of("UTC")): String {
+fun asCsvFile(rows: List<PublicationTableRow>, timeZone: ZoneId = ZoneId.of("UTC")): String {
     val writer = StringWriter()
     CSVPrinter(writer, CSVFormat.RFC4180).let { printer ->
         val headers = listOf(

@@ -536,6 +536,11 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    fun getPublicationDetailsAsTableRows(id: IntId<Publication>): List<PublicationTableRow> {
+        logger.serviceCall("getPublicationDetailsAsTableRows", "id" to id)
+        return getPublicationDetails(id).let(::mapToPublicationTableRows)
+    }
+
     fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
         logger.serviceCall("fetchPublications", "from" to from, "to" to to)
         return publicationDao.fetchPublications(from, to)
@@ -546,10 +551,32 @@ class PublicationService @Autowired constructor(
         return publicationDao.fetchPublications(from, to).map { getPublicationDetails(it.id) }
     }
 
+    fun fetchPublicationDetails(
+        from: Instant? = null,
+        to: Instant? = null,
+        sortBy: PublicationTableSortField? = null,
+        order: SortOrder? = null,
+    ): List<PublicationTableRow> {
+        logger.serviceCall(
+            "fetchPublicationDetails",
+            "from" to from,
+            "to" to to,
+            "sortBy" to sortBy,
+            "order" to order,
+        )
+
+        return fetchPublicationDetails(from, to)
+            .flatMap(this::mapToPublicationTableRows)
+            .let { publications ->
+                if (sortBy == null) publications
+                else publications.sortedWith(getComparator(sortBy, order))
+            }
+    }
+
     fun fetchPublicationsAsCsv(
         from: Instant? = null,
         to: Instant? = null,
-        sortBy: PublicationCsvSortField? = null,
+        sortBy: PublicationTableSortField? = null,
         order: SortOrder? = null,
         timeZone: ZoneId? = null,
     ): String {
@@ -559,16 +586,17 @@ class PublicationService @Autowired constructor(
             "to" to to,
             "sortBy" to sortBy,
             "order" to order,
+            "timeZone" to timeZone
         )
 
-        val orderedPublishedItem = fetchPublicationDetails(from, to)
-            .flatMap(this::mapToPublicationCsvRow)
-            .let { publications ->
-                if (sortBy == null) publications
-                else publications.sortedWith(getComparator(sortBy, order))
-            }
+        val orderedPublishedItems = fetchPublicationDetails(
+            from = from,
+            to = to,
+            sortBy = sortBy,
+            order = order
+        )
 
-        return asCsvFile(orderedPublishedItem)
+        return asCsvFile(orderedPublishedItems)
     }
 
     fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
@@ -611,7 +639,7 @@ class PublicationService @Autowired constructor(
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
 
-    private fun getComparator(sortBy: PublicationCsvSortField, order: SortOrder? = null) =
+    private fun getComparator(sortBy: PublicationTableSortField, order: SortOrder? = null) =
         if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
 
     //Nulls are "last", e.g., 0, 1, 2, null
@@ -621,30 +649,30 @@ class PublicationService @Autowired constructor(
         else if (b == null) -1
         else a.compareTo(b)
 
-    private fun getComparator(sortBy: PublicationCsvSortField): Comparator<PublicationCsvRow> {
+    private fun getComparator(sortBy: PublicationTableSortField): Comparator<PublicationTableRow> {
         return when (sortBy) {
-            PublicationCsvSortField.NAME -> Comparator.comparing { p -> p.name }
-            PublicationCsvSortField.TRACK_NUMBERS -> Comparator { a, b ->
+            PublicationTableSortField.NAME -> Comparator.comparing { p -> p.name }
+            PublicationTableSortField.TRACK_NUMBERS -> Comparator { a, b ->
                 compareNullableValues(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
             }
 
-            PublicationCsvSortField.CHANGED_KM_NUMBERS -> Comparator { a, b ->
+            PublicationTableSortField.CHANGED_KM_NUMBERS -> Comparator { a, b ->
                 compareNullableValues(a.changedKmNumbers?.minOrNull(), b.changedKmNumbers?.minOrNull())
             }
 
-            PublicationCsvSortField.OPERATION -> Comparator.comparing { p -> p.operation.priority }
-            PublicationCsvSortField.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
-            PublicationCsvSortField.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
-            PublicationCsvSortField.MESSAGE -> Comparator.comparing { p -> p.message }
-            PublicationCsvSortField.RATKO_PUSH_TIME -> Comparator { a, b ->
+            PublicationTableSortField.OPERATION -> Comparator.comparing { p -> p.operation.priority }
+            PublicationTableSortField.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
+            PublicationTableSortField.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
+            PublicationTableSortField.MESSAGE -> Comparator.comparing { p -> p.message }
+            PublicationTableSortField.RATKO_PUSH_TIME -> Comparator { a, b ->
                 compareNullableValues(a.ratkoPushTime, b.ratkoPushTime)
             }
         }
     }
 
-    private fun mapToPublicationCsvRow(publication: PublicationDetails): List<PublicationCsvRow> {
+    private fun mapToPublicationTableRows(publication: PublicationDetails): List<PublicationTableRow> {
         val trackNumbers = publication.trackNumbers.map { tn ->
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("track-number")} ${tn.number}",
                 trackNumberIds = setOf(tn.id),
                 operation = tn.operation,
@@ -655,7 +683,7 @@ class PublicationService @Autowired constructor(
         val referenceLines = publication.referenceLines.map { rl ->
             val trackNumber = getTrackNumberAtMomentOrThrow(rl.trackNumberId, publication.publicationTime)
 
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("reference-line")} ${trackNumber.number}",
                 trackNumberIds = setOf(rl.trackNumberId),
                 changedKmNumbers = rl.changedKmNumbers,
@@ -665,7 +693,7 @@ class PublicationService @Autowired constructor(
         }
 
         val locationTracks = publication.locationTracks.map { lt ->
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("location-track")} ${lt.name}",
                 trackNumberIds = setOf(lt.trackNumberId),
                 changedKmNumbers = lt.changedKmNumbers,
@@ -675,7 +703,7 @@ class PublicationService @Autowired constructor(
         }
 
         val switches = publication.switches.map { s ->
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("switch")} ${s.name}",
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
@@ -684,7 +712,7 @@ class PublicationService @Autowired constructor(
         }
 
         val kmPosts = publication.kmPosts.map { kp ->
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("km-post")} ${kp.kmNumber}",
                 trackNumberIds = setOf(kp.trackNumberId),
                 operation = kp.operation,
@@ -693,7 +721,7 @@ class PublicationService @Autowired constructor(
         }
 
         val calculatedTrackNumbers = publication.calculatedChanges.trackNumbers.map { tn ->
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("track-number")} ${tn.number}",
                 trackNumberIds = setOf(tn.id),
                 operation = tn.operation,
@@ -703,7 +731,7 @@ class PublicationService @Autowired constructor(
         }
 
         val calculatedLocationTracks = publication.calculatedChanges.locationTracks.map { lt ->
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("location-track")} ${lt.name}",
                 trackNumberIds = setOf(lt.trackNumberId),
                 changedKmNumbers = lt.changedKmNumbers,
@@ -714,7 +742,7 @@ class PublicationService @Autowired constructor(
         }
 
         val calculatedSwitches = publication.calculatedChanges.switches.map { s ->
-            mapToPublicationCsvRow(
+            mapToPublicationTableRow(
                 name = "${getTranslation("switch")} ${s.name}",
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
@@ -733,14 +761,14 @@ class PublicationService @Autowired constructor(
                 + calculatedSwitches)
     }
 
-    private fun mapToPublicationCsvRow(
+    private fun mapToPublicationTableRow(
         name: String,
         trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
         operation: Operation,
         publication: PublicationDetails,
         changedKmNumbers: List<KmNumber>? = null,
         message: String? = null,
-    ) = PublicationCsvRow(
+    ) = PublicationTableRow(
         name = name,
         trackNumbers = trackNumberIds.map { id ->
             getTrackNumberAtMomentOrThrow(id, publication.publicationTime).number

@@ -113,7 +113,7 @@ class PublicationController @Autowired constructor(
     fun getPublicationsAsCsv(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
-        @RequestParam("sortBy", required = false) sortBy: PublicationCsvSortField?,
+        @RequestParam("sortBy", required = false) sortBy: PublicationTableSortField?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
     ): ResponseEntity<ByteArray> {
@@ -133,6 +133,43 @@ class PublicationController @Autowired constructor(
 
         val fileName = FileName("julkaisuloki${dateString?.let { " $it" } ?: ""}.csv")
         return getCsvResponseEntity(publicationsAsCsv, fileName)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/table-rows")
+    fun getPublicationDetailsAsTableRows(
+        @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
+        @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
+        @RequestParam("sortBy", required = false) sortBy: PublicationTableSortField?,
+        @RequestParam("order", required = false) order: SortOrder?,
+    ): Page<PublicationTableRow> {
+        logger.apiCall(
+            "getPublicationDetailsAsTableRows",
+            "from" to from,
+            "to" to to,
+            "sortBy" to sortBy,
+            "order" to order,
+        )
+
+        val publications = publicationService.fetchPublicationDetails(
+            from = from,
+            to = to,
+            sortBy = sortBy,
+            order = order,
+        )
+
+        return Page(
+            totalCount = publications.size,
+            start = 0,
+            items = publications.take(1000) //Prevents frontend from going kaput
+        )
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{id}/table-rows")
+    fun getPublicationDetailsAsTableRows(@PathVariable("id") id: IntId<Publication>): List<PublicationTableRow> {
+        logger.apiCall("getPublicationDetailsAsTableRow", "id" to id)
+        return publicationService.getPublicationDetailsAsTableRows(id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
