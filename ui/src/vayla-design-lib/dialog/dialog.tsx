@@ -22,8 +22,8 @@ export type DialogProps = {
 } & Pick<React.HTMLProps<HTMLElement>, 'style'>;
 
 type DragParams = {
-    x: number;
-    y: number;
+    dragPointX: number;
+    dragPointY: number;
 };
 export const Dialog: React.FC<DialogProps> = ({
     scrollable = true,
@@ -37,15 +37,15 @@ export const Dialog: React.FC<DialogProps> = ({
     );
 
     const dialogHeaderRef = React.useRef<HTMLDivElement>(null);
-    const [inMovingMode, setInMovingMode] = React.useState<DragParams | null>(null);
+    const [dialogDragParams, setDialogDragParams] = React.useState<DragParams | null>(null);
     const [moved, setMoved] = React.useState(false);
-    const [x, setX] = React.useState(0);
-    const [y, setY] = React.useState(0);
+    const [dialogPositionX, setDialogPositionX] = React.useState(0);
+    const [dialogPositionY, setDialogPositionY] = React.useState(0);
 
     const moveDialog = (e: React.MouseEvent) => {
-        if (inMovingMode) {
-            setX(e.clientX + inMovingMode.x);
-            setY(e.clientY + inMovingMode.y);
+        if (dialogDragParams) {
+            setDialogPositionX(e.clientX - dialogDragParams.dragPointX);
+            setDialogPositionY(e.clientY - dialogDragParams.dragPointY);
         }
     };
 
@@ -53,8 +53,8 @@ export const Dialog: React.FC<DialogProps> = ({
         const dialogBounds =
             dialogHeaderRef.current && dialogHeaderRef.current.getBoundingClientRect();
         if (dialogBounds && !moved) {
-            setX((window.innerWidth - dialogBounds.width) / 2);
-            setY((window.innerHeight - dialogBounds.height) / 2);
+            setDialogPositionX((window.innerWidth - dialogBounds.width) / 2);
+            setDialogPositionY((window.innerHeight - dialogBounds.height) / 2);
         }
     });
 
@@ -65,21 +65,24 @@ export const Dialog: React.FC<DialogProps> = ({
     return (
         <div
             className={className}
-            onMouseUp={() => setInMovingMode(null)}
+            onMouseUp={() => setDialogDragParams(null)}
             onMouseMove={(e) => moveDialog(e)}>
             <div
                 className={createClassName(
                     styles['dialog__popup'],
                     props.className,
-                    inMovingMode && styles['dialog__popup--moving'],
+                    dialogDragParams && styles['dialog__popup--moving'],
                 )}
-                style={{ left: x, top: y }}
+                style={{ left: dialogPositionX, top: dialogPositionY }}
                 ref={dialogHeaderRef}>
                 <div
                     className={styles['dialog__header']}
                     onMouseDown={(e) => {
                         if (e.button === 0) {
-                            setInMovingMode({ x: x - e.clientX, y: y - e.clientY });
+                            setDialogDragParams({
+                                dragPointX: e.clientX - dialogPositionX,
+                                dragPointY: e.clientY - dialogPositionY,
+                            });
                             setMoved(true);
                         }
                     }}>
