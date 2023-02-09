@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.inframodel.InfraModelFileWithSource
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.linking.RemovedTrackNumberReferenceIds
 import fi.fta.geoviite.infra.logging.AccessType.*
@@ -167,17 +168,22 @@ class GeometryDao @Autowired constructor(
         return fileId
     }
 
-    fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFile {
+    fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFileWithSource {
         val sql = """
-            select name as file_name, xmlserialize(document content as varchar) as file_content
-            from geometry.plan_file 
-            where plan_id = :plan_id
+          select name as file_name, plan.source, xmlserialize(document content as varchar) as file_content
+            from geometry.plan_file
+            inner join geometry.plan 
+            on plan_id = plan.id
+          where plan_id = :plan_id
         """.trimIndent()
         val params = mapOf("plan_id" to planId.intValue)
         return getOne(planId, jdbcTemplate.query(sql, params) { rs, _ ->
-            InfraModelFile(
-                name = rs.getFileName("file_name"),
-                content = rs.getString("file_content"),
+            InfraModelFileWithSource(
+                file = InfraModelFile(
+                    name = rs.getFileName("file_name"),
+                    content = rs.getString("file_content"),
+                ),
+                source = rs.getEnum("source")
             )
         })
     }
