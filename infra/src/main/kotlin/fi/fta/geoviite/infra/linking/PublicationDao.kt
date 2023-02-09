@@ -680,58 +680,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               ps.switch_id as id,
               ps.switch_version as version,
               switch.name,
-              layout.infer_operation_from_state_category_transition(switch.old_state_category, switch.state_category) as operation,
-              (
-                select array_agg(distinct track_number_id)
-                from (
-                  select location_track.track_number_id
-                  from (
-                    select distinct on (alignment_id, alignment_version, segment_index)
-                      switch_id,
-                      alignment_id,
-                      alignment_version,
-                      deleted
-                    from layout.segment_version
-                    where change_time <= publication.publication_time
-                      and switch_id = ps.switch_id
-                    order by alignment_id, alignment_version, segment_index, version desc
-                  ) segment
-                    inner join layout.alignment_version alignment
-                      on alignment.id = segment.alignment_id and alignment.version = segment.alignment_version
-                    inner join (
-                      select distinct on (id)
-                        alignment_id, alignment_version,
-                        track_number_id,
-                        state,
-                        draft
-                      from layout.location_track_version
-                      where change_time <= publication.publication_time
-                      order by id, version desc
-                    ) location_track
-                      on location_track.alignment_id = segment.alignment_id
-                        and location_track.alignment_version = segment.alignment_version
-                  where segment.switch_id = ps.switch_id
-                    and location_track.state != 'NOT_IN_USE'
-                    and not location_track.draft
-                    and not alignment.deleted
-                    and not segment.deleted
-                  union all
-                  select location_track.track_number_id
-                  from (
-                    select distinct on (id)
-                      track_number_id,
-                      state,
-                      draft,
-                      topology_start_switch_id,
-                      topology_end_switch_id
-                    from layout.location_track_version
-                    where change_time <= publication.publication_time
-                      and (topology_start_switch_id = ps.switch_id or topology_end_switch_id = ps.switch_id)
-                    order by id, version desc
-                  ) location_track
-                  where location_track.state != 'NOT_IN_USE' and not location_track.draft
-                ) tns
-              ) as track_number_ids
+              layout.infer_operation_from_state_category_transition(switch.old_state_category, switch.state_category) as operation
             from publication.switch ps
               inner join publication.publication on publication.id = ps.publication_id
               inner join layout.switch_change_view switch
@@ -743,7 +692,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             PublishedSwitch(
                 version = rs.getRowVersion("id", "version"),
                 name = SwitchName(rs.getString("name")),
-                trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
+                trackNumberIds = emptySet(),
                 operation = rs.getEnum("operation"),
             )
         }.also { switches -> logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version }) }
@@ -799,58 +748,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             select
               switch.id,
               switch.version,
-              switch.name,
-              (
-                select array_agg(distinct track_number_id)
-                from (
-                  select location_track.track_number_id
-                  from (
-                    select distinct on (alignment_id, alignment_version, segment_index)
-                      switch_id,
-                      alignment_id,
-                      alignment_version,
-                      deleted
-                    from layout.segment_version
-                    where change_time <= publication.publication_time
-                      and switch_id = pswitch.switch_id
-                    order by alignment_id, alignment_version, segment_index, version desc
-                  ) segment
-                    inner join layout.alignment_version alignment
-                      on alignment.id = segment.alignment_id and alignment.version = segment.alignment_version
-                    inner join (
-                      select distinct on (id)
-                        alignment_id, alignment_version,
-                        track_number_id,
-                        state,
-                        draft
-                      from layout.location_track_version
-                      where change_time <= publication.publication_time
-                      order by id, version desc
-                    ) location_track 
-                      on location_track.alignment_id = segment.alignment_id
-                        and location_track.alignment_version = segment.alignment_version
-                  where segment.switch_id = pswitch.switch_id
-                    and location_track.state != 'NOT_IN_USE'
-                    and not location_track.draft
-                    and not alignment.deleted
-                    and not segment.deleted
-                  union all
-                  select location_track.track_number_id
-                  from (
-                    select distinct on (id)
-                      track_number_id,
-                      state,
-                      draft,
-                      topology_start_switch_id,
-                      topology_end_switch_id
-                    from layout.location_track_version
-                    where change_time <= publication.publication_time
-                      and (topology_start_switch_id = pswitch.switch_id or topology_end_switch_id = pswitch.switch_id)
-                    order by id, version desc
-                  ) location_track
-                  where location_track.state != 'NOT_IN_USE' and not location_track.draft
-                ) tns
-              ) as track_number_ids
+              switch.name
             from publication.calculated_change_to_switch ccs
               inner join publication.publication on publication.id = ccs.publication_id
               inner join layout.switch_version switch
@@ -871,7 +769,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             PublishedSwitch(
                 version = rs.getRowVersion("id", "version"),
                 name = SwitchName(rs.getString("name")),
-                trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
+                trackNumberIds = emptySet(),
                 operation = Operation.MODIFY,
             )
         }
