@@ -1,10 +1,8 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
@@ -13,16 +11,21 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.RatkoPushDao
+import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.time.ZoneId
+import java.util.*
+
 
 @Service
 class PublicationService @Autowired constructor(
@@ -258,7 +261,7 @@ class PublicationService @Autowired constructor(
     }
 
     private inline fun <reified T> assertNoErrors(
-        version: PublicationVersion<T>, errors: List<PublishValidationError>
+        version: PublicationVersion<T>, errors: List<PublishValidationError>,
     ) {
         val severeErrors = errors.filter { error -> error.type == PublishValidationErrorType.ERROR }
         if (severeErrors.isNotEmpty()) {
@@ -467,7 +470,7 @@ class PublicationService @Autowired constructor(
 
     private fun getReferenceLineByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        versions: PublicationVersions
+        versions: PublicationVersions,
     ): ReferenceLine? {
         val officialVersion = referenceLineDao.fetchVersion(OFFICIAL, trackNumberId)
         val publicationLine = versions.referenceLines
@@ -493,7 +496,7 @@ class PublicationService @Autowired constructor(
     ).map(locationTrackDao::fetch).filter { lt -> lt.trackNumberId == trackNumberId }
 
     private fun <T> combineVersions(
-        official: List<RowVersion<T>>, draft: List<PublicationVersion<T>>
+        official: List<RowVersion<T>>, draft: List<PublicationVersion<T>>,
     ) = (official.associateBy { it.id } + draft.associate { it.officialId to it.draftVersion }).values
 
     private fun getReferenceLineAndAlignment(version: RowVersion<ReferenceLine>) =
@@ -543,6 +546,31 @@ class PublicationService @Autowired constructor(
         return publicationDao.fetchPublications(from, to).map { getPublicationDetails(it.id) }
     }
 
+    fun fetchPublicationsAsCsv(
+        from: Instant? = null,
+        to: Instant? = null,
+        sortBy: PublicationCsvSortField? = null,
+        order: SortOrder? = null,
+        timeZone: ZoneId? = null,
+    ): String {
+        logger.serviceCall(
+            "fetchPublicationsAsCsv",
+            "from" to from,
+            "to" to to,
+            "sortBy" to sortBy,
+            "order" to order,
+        )
+
+        val orderedPublishedItem = fetchPublicationDetails(from, to)
+            .flatMap(this::mapToPublicationCsvRow)
+            .let { publications ->
+                if (sortBy == null) publications
+                else publications.sortedWith(getComparator(sortBy, order))
+            }
+
+        return asCsvFile(orderedPublishedItem)
+    }
+
     fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
         cacheKey?.let(geocodingDao::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
             ?: listOf(noGeocodingContext(localizationKey))
@@ -581,5 +609,159 @@ class PublicationService @Autowired constructor(
                         versions.referenceLines.map { v -> referenceLineDao.fetch(v.draftVersion).trackNumberId }
                 ).toSet()
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
+    }
+
+    private fun getComparator(sortBy: PublicationCsvSortField, order: SortOrder? = null) =
+        if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
+
+    //Nulls are "last", e.g., 0, 1, 2, null
+    private fun <T : Comparable<T>> compareNullableValues(a: T?, b: T?) =
+        if (a == null && b == null) 0
+        else if (a == null) 1
+        else if (b == null) -1
+        else a.compareTo(b)
+
+    private fun getComparator(sortBy: PublicationCsvSortField): Comparator<PublicationCsvRow> {
+        return when (sortBy) {
+            PublicationCsvSortField.NAME -> Comparator.comparing { p -> p.name }
+            PublicationCsvSortField.TRACK_NUMBERS -> Comparator { a, b ->
+                compareNullableValues(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
+            }
+
+            PublicationCsvSortField.CHANGED_KM_NUMBERS -> Comparator { a, b ->
+                compareNullableValues(a.changedKmNumbers?.minOrNull(), b.changedKmNumbers?.minOrNull())
+            }
+
+            PublicationCsvSortField.OPERATION -> Comparator.comparing { p -> p.operation.priority }
+            PublicationCsvSortField.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
+            PublicationCsvSortField.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
+            PublicationCsvSortField.MESSAGE -> Comparator.comparing { p -> p.message }
+            PublicationCsvSortField.RATKO_PUSH_TIME -> Comparator { a, b ->
+                compareNullableValues(a.ratkoPushTime, b.ratkoPushTime)
+            }
+        }
+    }
+
+    private fun mapToPublicationCsvRow(publication: PublicationDetails): List<PublicationCsvRow> {
+        val trackNumbers = publication.trackNumbers.map { tn ->
+            mapToPublicationCsvRow(
+                name = "${getTranslation("track-number")} ${tn.number}",
+                trackNumberIds = setOf(tn.id),
+                operation = tn.operation,
+                publication = publication,
+            )
+        }
+
+        val referenceLines = publication.referenceLines.map { rl ->
+            val trackNumber = getTrackNumberAtMomentOrThrow(rl.trackNumberId, publication.publicationTime)
+
+            mapToPublicationCsvRow(
+                name = "${getTranslation("reference-line")} ${trackNumber.number}",
+                trackNumberIds = setOf(rl.trackNumberId),
+                changedKmNumbers = rl.changedKmNumbers,
+                operation = rl.operation,
+                publication = publication,
+            )
+        }
+
+        val locationTracks = publication.locationTracks.map { lt ->
+            mapToPublicationCsvRow(
+                name = "${getTranslation("location-track")} ${lt.name}",
+                trackNumberIds = setOf(lt.trackNumberId),
+                changedKmNumbers = lt.changedKmNumbers,
+                operation = lt.operation,
+                publication = publication,
+            )
+        }
+
+        val switches = publication.switches.map { s ->
+            mapToPublicationCsvRow(
+                name = "${getTranslation("switch")} ${s.name}",
+                trackNumberIds = s.trackNumberIds,
+                operation = s.operation,
+                publication = publication,
+            )
+        }
+
+        val kmPosts = publication.kmPosts.map { kp ->
+            mapToPublicationCsvRow(
+                name = "${getTranslation("km-post")} ${kp.kmNumber}",
+                trackNumberIds = setOf(kp.trackNumberId),
+                operation = kp.operation,
+                publication = publication,
+            )
+        }
+
+        val calculatedTrackNumbers = publication.calculatedChanges.trackNumbers.map { tn ->
+            mapToPublicationCsvRow(
+                name = "${getTranslation("track-number")} ${tn.number}",
+                trackNumberIds = setOf(tn.id),
+                operation = tn.operation,
+                publication = publication,
+                message = getTranslation("calculated-change")
+            )
+        }
+
+        val calculatedLocationTracks = publication.calculatedChanges.locationTracks.map { lt ->
+            mapToPublicationCsvRow(
+                name = "${getTranslation("location-track")} ${lt.name}",
+                trackNumberIds = setOf(lt.trackNumberId),
+                changedKmNumbers = lt.changedKmNumbers,
+                operation = lt.operation,
+                publication = publication,
+                message = getTranslation("calculated-change")
+            )
+        }
+
+        val calculatedSwitches = publication.calculatedChanges.switches.map { s ->
+            mapToPublicationCsvRow(
+                name = "${getTranslation("switch")} ${s.name}",
+                trackNumberIds = s.trackNumberIds,
+                operation = s.operation,
+                publication = publication,
+                message = getTranslation("calculated-change")
+            )
+        }
+
+        return (trackNumbers
+                + referenceLines
+                + locationTracks
+                + switches
+                + kmPosts
+                + calculatedTrackNumbers
+                + calculatedLocationTracks
+                + calculatedSwitches)
+    }
+
+    private fun mapToPublicationCsvRow(
+        name: String,
+        trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
+        operation: Operation,
+        publication: PublicationDetails,
+        changedKmNumbers: List<KmNumber>? = null,
+        message: String? = null,
+    ) = PublicationCsvRow(
+        name = name,
+        trackNumbers = trackNumberIds.map { id ->
+            getTrackNumberAtMomentOrThrow(id, publication.publicationTime).number
+        },
+        changedKmNumbers = changedKmNumbers,
+        operation = operation,
+        publicationTime = publication.publicationTime,
+        publicationUser = publication.publicationUser,
+        message = message ?: publication.message ?: "",
+        ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
+    )
+
+    private fun getTrackNumberAtMomentOrThrow(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): TrackLayoutTrackNumber {
+        return checkNotNull(
+            trackNumberService.getOfficialAtMoment(
+                trackNumberId,
+                moment
+            )
+        ) { "Track number with official id $trackNumberId does not exist at moment $moment" }
     }
 }

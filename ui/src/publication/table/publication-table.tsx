@@ -20,10 +20,16 @@ import {
 } from './publication-table-utils';
 
 export type PublicationTableProps = {
+    truncated?: boolean;
     publications: PublicationDetails[];
+    onSortChange?: (sortInfo: SortInformation) => void;
 };
 
-const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => {
+const PublicationTable: React.FC<PublicationTableProps> = ({
+    publications,
+    truncated,
+    onSortChange,
+}) => {
     const { t } = useTranslation();
 
     //Track numbers rarely change, therefore we can always use the "latest" version
@@ -55,6 +61,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
     const sortByProp = (propName: SortProps) => {
         const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
         setSortInfo(newSortInfo);
+        onSortChange && onSortChange(newSortInfo);
     };
 
     const sortableTableHeader = (prop: SortProps, translationKey: string) => (
@@ -67,9 +74,14 @@ const PublicationTable: React.FC<PublicationTableProps> = ({ publications }) => 
 
     return (
         <div className={styles['publication-table__container']}>
-            <div className={styles['publication-table__count-header']}>
+            <div
+                className={styles['publication-table__count-header']}
+                title={truncated ? t('publication-table.truncated') : ''}>
                 {sortedPublicationRows &&
-                    t('publication-table.count-header', { number: sortedPublicationRows.length })}
+                    t('publication-table.count-header', {
+                        number: sortedPublicationRows.length,
+                        truncated: truncated ? '+' : '',
+                    })}
             </div>
             <Table wide>
                 <thead className={styles['publication-table__header']}>

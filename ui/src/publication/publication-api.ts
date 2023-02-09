@@ -2,6 +2,7 @@ import {
     API_URI,
     deleteAdt,
     getIgnoreError,
+    Page,
     postAdt,
     postIgnoreError,
     queryParams,
@@ -16,7 +17,7 @@ import {
     PublishResult,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
-import { formatISODate } from 'utils/date-utils';
+import { SortDirection, SortProps } from 'publication/table/publication-table-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -38,11 +39,30 @@ export const publishCandidates = (request: PublishRequest) => {
 
 export const getPublications = (fromDate?: Date, toDate?: Date) => {
     const params = queryParams({
-        from: fromDate ? formatISODate(fromDate) : '',
-        to: toDate ? formatISODate(toDate) : '',
+        from: fromDate ? fromDate.toISOString() : '',
+        to: toDate ? toDate.toISOString() : '',
     });
 
-    return getIgnoreError<PublicationDetails[]>(`${PUBLICATION_URL}${params}`);
+    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
+};
+
+export const getPublicationsCsvUri = (
+    fromDate?: Date,
+    toDate?: Date,
+    sortBy?: SortProps,
+    order?: SortDirection,
+): string => {
+    const isSorted = order != SortDirection.UNSORTED;
+
+    const params = queryParams({
+        from: fromDate ? fromDate.toISOString() : undefined,
+        to: toDate ? toDate.toISOString() : undefined,
+        sortBy: isSorted && sortBy ? sortBy : undefined,
+        order: isSorted ? order : undefined,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+
+    return `${PUBLICATION_URL}/csv${params}`;
 };
 
 export const getPublication = (id: PublicationId) =>

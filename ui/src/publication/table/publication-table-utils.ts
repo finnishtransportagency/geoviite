@@ -210,9 +210,9 @@ const publishedChangesToTableRows = (
     }));
 
     return [...trackNumberItems, ...referenceLines, ...locationTracks, ...switches, ...kmPosts].map(
-        (c) => ({
+        (publicationItem) => ({
             ...publicationInfo,
-            ...c,
+            ...publicationItem,
         }),
     );
 };
@@ -246,9 +246,9 @@ const calculatedChangesToPublicationTableRows = (
     );
 
     return [...calculatedTrackNumbers, ...calculatedLocationTracks, ...calculatedSwitches].map(
-        (c) => ({
+        (publicationItem) => ({
             ...calculatedPublicationInfo,
-            ...c,
+            ...publicationItem,
         }),
     );
 };

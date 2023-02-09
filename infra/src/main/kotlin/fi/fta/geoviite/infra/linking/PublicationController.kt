@@ -9,13 +9,18 @@ import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.Page
+import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.time.*
+
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
@@ -91,10 +96,43 @@ class PublicationController @Autowired constructor(
     @GetMapping
     fun getPublications(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
-        @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?
-    ): List<PublicationDetails> {
+        @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
+    ): Page<PublicationDetails> {
         logger.apiCall("getPublications", "from" to from, "to" to to)
-        return publicationService.fetchPublicationDetails(from, to)
+        val publications = publicationService.fetchPublicationDetails(from, to)
+
+        return Page(
+            totalCount = publications.size,
+            start = 0,
+            items = publications.take(50) //Prevents frontend from going kaput, todo: replace with proper paging
+        )
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("csv")
+    fun getPublicationsAsCsv(
+        @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
+        @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
+        @RequestParam("sortBy", required = false) sortBy: PublicationCsvSortField?,
+        @RequestParam("order", required = false) order: SortOrder?,
+        @RequestParam("timeZone") timeZone: ZoneId?,
+    ): ResponseEntity<ByteArray> {
+        logger.apiCall(
+            "getPublicationsAsCsv",
+            "from" to from,
+            "to" to to,
+            "sortBy" to sortBy,
+            "order" to order,
+            "timeZone" to timeZone
+        )
+
+        val publicationsAsCsv =
+            publicationService.fetchPublicationsAsCsv(from, to, sortBy, order, timeZone)
+
+        val dateString = getDateStringForFileName(from, to, timeZone)
+
+        val fileName = FileName("julkaisuloki${dateString?.let { " $it" } ?: ""}.csv")
+        return getCsvResponseEntity(publicationsAsCsv, fileName)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

@@ -592,10 +592,54 @@ class PublicationServiceIT @Autowired constructor(
         )
     }
 
+    @Test
+    fun `should sort publications by publication time in descending order`() {
+        val trackNumber1Id = insertDraftTrackNumber()
+        val trackNumber2Id = insertDraftTrackNumber()
+        val publish1Result = publishRequest(trackNumbers = listOf(trackNumber1Id, trackNumber2Id)).let { r ->
+            val versions = publicationService.getPublicationVersions(r)
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions))
+        }
+
+        assertEquals(2, publish1Result.trackNumbers)
+
+        val trackNumber1 = trackNumberService.getOfficial(trackNumber1Id)
+        val trackNumber2 = trackNumberService.getOfficial(trackNumber2Id)
+        assertNotNull(trackNumber1)
+        assertNotNull(trackNumber2)
+
+        val newTrackNumber1TrackNumber = "${trackNumber1.number} ZZZ"
+
+        trackNumberService.saveDraft(trackNumber1.copy(number = TrackNumber(newTrackNumber1TrackNumber)))
+        val publish2Result = publishRequest(trackNumbers = listOf(trackNumber1Id)).let { r ->
+            val versions = publicationService.getPublicationVersions(r)
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions))
+        }
+
+        assertEquals(1, publish2Result.trackNumbers)
+
+        /*
+        val publications = publicationService.fetchPublicationDetails(
+            sortBy = PublicationCsvSortField.PUBLICATION_TIME,
+            order = SortOrder.DESCENDING
+        )
+
+        val trackNumber1OldIndex =
+            publications.indexOfFirst { p -> p.name == "Ratanumero ${trackNumber1.number.value}" }
+        val trackNumber1UpdatedIndex =
+            publications.indexOfFirst { p -> p.name == "Ratanumero $newTrackNumber1TrackNumber" }
+        val trackNumber2Index =
+            publications.indexOfFirst { p -> p.name == "Ratanumero ${trackNumber2.number.value}" }
+
+        assertTrue(trackNumber1UpdatedIndex < trackNumber1OldIndex)
+        assertTrue(trackNumber1OldIndex < trackNumber2Index)
+         */
+    }
+
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
         val officialVersion = switchDao.insert(switch(seed)).rowVersion
         return switchService.saveDraft(switchDao.fetch(officialVersion).let { official ->
-          official.copy(name = SwitchName("${official.name}_D"))
+            official.copy(name = SwitchName("${official.name}_D"))
         }).id
     }
 

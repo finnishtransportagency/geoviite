@@ -13,13 +13,15 @@
         "reference-line": "Pituusmittauslinja",
         "switch": "Vaihde",
         "km-post": "Tasakilometripiste",
-        "count-header": "Julkaistut muutokset ({{number}} kpl)",
-        "calculated-change": "Laskettu muutos"
+        "count-header": "Julkaistut muutokset ({{number}}{{truncated}} kpl)",
+        "calculated-change": "Laskettu muutos",
+        "truncated": "Käyttöliittymässä näytetään 50 ensimmäistä julkaisua"
     },
     "publication-log": {
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
+        "export-csv": "Lataa CSV",
         "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää"
     },
     "publication-card": {
