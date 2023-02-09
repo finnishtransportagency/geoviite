@@ -8,6 +8,12 @@ import {
 } from 'track-layout/track-layout-model';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 
+export enum SwitchTypeMatch {
+    Exact,
+    Similar,
+    Invalid,
+}
+
 type LocationTracksEndingAtJoint = {
     jointNumber: JointNumber;
     locationTrackIds: LocationTrackId[];

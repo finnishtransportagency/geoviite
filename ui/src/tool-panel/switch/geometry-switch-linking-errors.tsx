@@ -6,12 +6,7 @@ import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { useTranslation } from 'react-i18next';
 import { SuggestedSwitch } from 'linking/linking-model';
 import { SwitchStructure } from 'common/common-model';
-
-export enum SwitchTypeMatch {
-    Exact,
-    Similar,
-    Invalid,
-}
+import { SwitchTypeMatch } from 'linking/linking-utils';
 
 type GeometrySwitchLinkingErrorsProps = {
     selectedLayoutSwitchStructure: SwitchStructure | undefined;

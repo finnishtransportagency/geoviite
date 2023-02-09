@@ -25,10 +25,8 @@ import { LinkingStatus } from 'linking/linking-status';
 import { GeometrySwitchLinkingStartButton } from 'tool-panel/switch/geometry-switch-linking-start-button';
 import { GeometrySwitchLinkingCandidates } from 'tool-panel/switch/geometry-switch-linking-candidates';
 import { SwitchJointInfoboxContainer } from 'tool-panel/switch/switch-joint-infobox-container';
-import {
-    GeometrySwitchLinkingErrors,
-    SwitchTypeMatch,
-} from 'tool-panel/switch/geometry-switch-linking-errors';
+import { GeometrySwitchLinkingErrors } from 'tool-panel/switch/geometry-switch-linking-errors';
+import { SwitchTypeMatch } from 'linking/linking-utils';
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
