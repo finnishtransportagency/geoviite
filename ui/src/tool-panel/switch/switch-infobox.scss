@@ -2,157 +2,156 @@
 @import '../../vayla-design-lib/colors';
 
 .geometry-switch-infobox {
-  &__linked-status .infobox__field-label {
-    line-height: 24px;
-  }
-
-  &__not-linked-text,
-  &__linked-text {
-    padding: 4px 8px;
-  }
-
-  &__not-linked-text {
-    background-color: $color-red-lighter;
-  }
-
-  &__linked-text {
-    background-color: $color-green-lighter;
-  }
-
-  &__linking-container {
-    padding: 8px 0 8px 4px;
-  }
-
-  &__info-text {
-    @include typography-caption;
-
-    padding: 10px 0;
-  }
-
-  &__search-container {
-    display: flex;
-    align-items: center;
-  }
-
-  &__search-input {
-    flex: 1;
-  }
-
-  &__switches-container {
-    border: 1px solid $color-white-darker;
-    border-radius: 4px;
-    padding: 10px 20px 10px 12px;
-
-    max-height: 200px;
-    overflow: auto;
-    list-style: none;
-    margin: 0;
-  }
-
-  &__switch {
-    display: flex;
-    align-items: center;
-    padding: 4px 0;
-    cursor: pointer;
-
-    .switch-badge {
-      margin-right: 8px;
+    &__linked-status .infobox__field-label {
+        line-height: 24px;
     }
 
-    .icon {
-      fill: $color-black-light;
+    &__not-linked-text,
+    &__linked-text {
+        padding: 4px 8px;
     }
-  }
 
-  &__zoom-warning {
-    display: flex;
-    align-items: center;
-    background-color: $color-lemon-light;
-    padding: 10px 16px 10px 26px;
-    margin: 0 -16px 0 -20px;
-    font-size: 12px;
-
-    .icon {
-      fill: $color-black-lighter;
-      margin-right: 12px;
+    &__not-linked-text {
+        background-color: $color-red-lighter;
     }
-  }
+
+    &__linked-text {
+        background-color: $color-green-lighter;
+    }
+
+    &__linking-container {
+        padding: 8px 0 8px 4px;
+    }
+
+    &__info-text {
+        @include typography-caption;
+
+        padding: 10px 0;
+    }
+
+    &__search-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    &__search-input {
+        flex: 1;
+    }
+
+    &__switches-container {
+        border: 1px solid $color-white-darker;
+        border-radius: 4px;
+        padding: 10px 20px 10px 12px;
+
+        max-height: 200px;
+        overflow: auto;
+        list-style: none;
+        margin: 0;
+    }
+
+    &__switch {
+        display: flex;
+        align-items: center;
+        padding: 4px 0;
+        cursor: pointer;
+
+        .switch-badge {
+            margin-right: 8px;
+        }
+
+        .icon {
+            fill: $color-black-light;
+        }
+    }
+
+    &__zoom-warning {
+        display: flex;
+        align-items: center;
+        background-color: $color-lemon-light;
+        padding: 10px 16px 10px 26px;
+        margin: 0 -16px 0 -20px;
+        font-size: 12px;
+
+        .icon {
+            fill: $color-black-lighter;
+            margin-right: 12px;
+        }
+    }
 }
 
 .geometry-switch-infobox__switch-type-warning-msg {
-  white-space: pre-line;
+    white-space: pre-line;
 }
 
 .geometry-switch-infobox__switch-type-confirm {
-  margin-top: 20px;
+    margin-top: 20px;
 }
 
 .switch-edit-dialog__delete-button {
-  position: absolute;
+    position: absolute;
 }
 
 .switch-edit-dialog__confirmation-list {
-  margin: 0;
-  padding: 0;
-  list-style: inside;
+    margin: 0;
+    padding: 0;
+    list-style: inside;
 }
 
 .switch-infobox-track-meters {
+    &__track-meters {
+        list-style-type: none; /* Remove bullets */
+        padding: 0; /* Remove padding */
+        margin: 0; /* Remove margins */
+    }
 
-  &__track-meters {
-  list-style-type: none; /* Remove bullets */
-  padding: 0; /* Remove padding */
-  margin: 0; /* Remove margins */
-  }
+    &__track-meter {
+        margin-bottom: 4px;
+    }
 
-  &__track-meter {
-    margin-bottom: 4px;
-  }
+    &__joint-number {
+        @include typography-caption;
+        color: $color-black-light;
 
-  &__joint-number {
-    @include typography-caption;
-    color: $color-black-light;
+        display: inline-block;
+        margin: 6px 0 2px 0;
+    }
 
-    display: inline-block;
-    margin: 6px 0 2px 0;
-  }
-
-  &__show-more {
-    margin-top: 8px;
-  }
-
+    &__show-more {
+        margin-top: 8px;
+    }
 }
 
 .switch-joint-infobox {
-  &__joints-container {
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    margin: 12px 0 16px 0;
+    &__joints-container {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        margin: 12px 0 16px 0;
 
-    dd {
-      margin-left: 0;
+        dd {
+            margin-left: 0;
+        }
     }
-  }
 
-  &__joint-title {
-    @include typography-caption-strong;
+    &__joint-title {
+        @include typography-caption-strong;
 
-    color: $color-black-light;
-    padding: 4px 0;
-  }
-
-  &__joint-alignments-title,
-  &__joint-points-title {
-    @include typography-caption;
-    padding: 6px 0;
-    line-height: 20px;
-  }
-
-  &__location-tracks {
-    padding: 6px 0;
-
-    .alignment-badge {
-      margin: 0 4px 4px 0;
+        color: $color-black-light;
+        padding: 4px 0;
     }
-  }
+
+    &__joint-alignments-title,
+    &__joint-points-title {
+        @include typography-caption;
+        padding: 6px 0;
+        line-height: 20px;
+    }
+
+    &__location-tracks {
+        padding: 6px 0;
+
+        .alignment-badge {
+            margin: 0 4px 4px 0;
+        }
+    }
 }

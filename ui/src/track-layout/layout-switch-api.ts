@@ -27,7 +27,6 @@ const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
 export async function getSwitchesByBoundingBox(
     bbox: BoundingBox,
     publishType: PublishType,
-    _searchTerm?: string,
     comparisonPoint?: Point,
     includeSwitchesWithNoJoints = false,
 ): Promise<LayoutSwitch[]> {
