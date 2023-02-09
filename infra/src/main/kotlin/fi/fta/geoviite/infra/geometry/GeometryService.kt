@@ -209,7 +209,7 @@ class GeometryService @Autowired constructor(
     }
 
     private fun fileNameWithSourcePrefixIfPaikannuspalvelu(originalFileName: FileName, source: PlanSource): FileName =
-        if (source == PAIKANNUSPALVELU) FileName("EPÄLUOTETTAVA SUUNNITELMA $originalFileName")
+        if (source == PAIKANNUSPALVELU) FileName("PAIKANNUSPALVELU_EPÄLUOTETTAVA_$originalFileName")
         else originalFileName
 
     fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
