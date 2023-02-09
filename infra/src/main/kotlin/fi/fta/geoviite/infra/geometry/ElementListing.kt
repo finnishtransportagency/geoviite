@@ -20,6 +20,7 @@ const val DIRECTION_DECIMALS = 6
 const val CANT_DECIMALS = 6
 
 data class ElementListing(
+    val id: StringId<ElementListing>,
     val planId: DomainId<GeometryPlan>?,
     val planSource: PlanSource?,
     val fileName: FileName?,
@@ -118,6 +119,7 @@ private fun toMissingElementListing(
     segment: LayoutSegment,
     locationTrack: LocationTrack
 ) = ElementListing(
+    id = StringId("EL_${segment.id.stringFormat()}"),
     planId = null,
     planSource = null,
     fileName = null,
@@ -270,6 +272,7 @@ private fun elementListing(
     element: GeometryElement,
 ) = units.coordinateSystemSrid?.let(getTransformation).let { transformation ->
     ElementListing(
+        id = StringId("EL_${element.id.stringFormat()}"),
         planId = planId,
         planSource = planSource,
         fileName = fileName,
@@ -295,7 +298,7 @@ private fun getLocation(
 ) = ElementLocation(
     coordinate = point.round(COORDINATE_DECIMALS),
     address = context?.getAddress(point)?.first,
-    directionGrads = round(radsToGrads(directionRads), DIRECTION_DECIMALS),
+    directionGrads = getDirectionGrads(directionRads),
     radiusMeters = null,
     cant = point.cant?.let { c -> round(c, CANT_DECIMALS) },
 )
@@ -334,6 +337,7 @@ private fun collectLinkedElements(
 ) = segments
     .filter { segment -> overlapsAddressInterval(segment, context, startAddress, endAddress) }
     .map { s -> if (s.sourceId is IndexedId) s to s.sourceId else s to null }
+    .distinctBy { (segment, elementId) -> elementId ?: segment.id }
 
 private fun getAddress(context: GeocodingContext?, transformation: Transformation?, coordinate: Point) =
     if (context == null || transformation == null) null

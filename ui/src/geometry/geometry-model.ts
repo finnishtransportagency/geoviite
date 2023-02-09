@@ -258,6 +258,7 @@ export type GeometryElement =
     | GeometryClothoid;
 
 export type ElementItem = {
+    id: string;
     alignmentId: LocationTrackId;
     alignmentName: string;
     locationTrackName: string;
