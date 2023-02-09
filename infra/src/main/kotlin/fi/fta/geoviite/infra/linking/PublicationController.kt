@@ -16,9 +16,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.format.annotation.DateTimeFormat
-import org.springframework.http.ContentDisposition
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -132,7 +129,9 @@ class PublicationController @Autowired constructor(
         val publicationsAsCsv =
             publicationService.fetchPublicationsAsCsv(from, to, sortBy, order, timeZone)
 
-        val fileName = FileName("julkaisuloki${getDateStringForFileName(from, to)}.csv")
+        val dateString = getDateStringForFileName(from, to, timeZone)
+
+        val fileName = FileName("julkaisuloki${dateString?.let { " $it" } ?: ""}.csv")
         return getCsvResponseEntity(publicationsAsCsv, fileName)
     }
 
@@ -142,32 +141,4 @@ class PublicationController @Autowired constructor(
         logger.apiCall("getPublicationDetails", "id" to id)
         return publicationService.getPublicationDetails(id)
     }
-}
-
-private fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<ByteArray> {
-    val headers = HttpHeaders()
-    headers.contentType = MediaType.APPLICATION_OCTET_STREAM
-    headers.set(
-        HttpHeaders.CONTENT_DISPOSITION,
-        ContentDisposition
-            .attachment()
-            .filename(fileName.toString())
-            .build()
-            .toString()
-    )
-
-    return ResponseEntity
-        .ok()
-        .headers(headers)
-        .body(content.toByteArray())
-}
-
-private fun getDateStringForFileName(instant1: Instant?, instant2: Instant?): String {
-    val instant1Date = instant1?.let { it.toString().split("T")[0] }
-    val instant2Date = instant2?.let { it.toString().split("T")[0] }
-
-    return if (instant1Date == instant2Date) instant1Date?.let { " $it" } ?: ""
-    else if (instant1Date == null) " -$instant2Date"
-    else if (instant2Date == null) " $instant1Date"
-    else " $instant1Date-$instant2Date"
 }

@@ -17,17 +17,13 @@ import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.SortOrder
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVPrinter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.io.StringWriter
 import java.time.Instant
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.*
 
 
@@ -572,36 +568,7 @@ class PublicationService @Autowired constructor(
                 else publications.sortedWith(getComparator(sortBy, order))
             }
 
-        val writer = StringWriter()
-        CSVPrinter(writer, CSVFormat.RFC4180).let { printer ->
-            val headers = listOf(
-                "name",
-                "track-number",
-                "km-numbers",
-                "operation",
-                "publication-time",
-                "publication-user",
-                "message",
-                "ratko"
-            ).map { getTranslation("$it-header") }
-
-            printer.printRecord(headers)
-
-            orderedPublishedItem.forEach { item ->
-                printer.printRecord(
-                    item.name,
-                    item.trackNumbers.sorted().joinToString(", "),
-                    item.changedKmNumbers?.let(::formatChangedKmNumbers),
-                    formatOperation(item.operation),
-                    formatInstant(item.publicationTime, timeZone),
-                    item.publicationUser,
-                    item.message,
-                    item.ratkoPushTime?.let { pushTime -> formatInstant(pushTime, timeZone) } ?: "Ei"
-                )
-            }
-        }
-
-        return writer.toString()
+        return asCsvFile(orderedPublishedItem)
     }
 
     fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
@@ -643,37 +610,6 @@ class PublicationService @Autowired constructor(
                 ).toSet()
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
-
-    private fun formatInstant(time: Instant, timeZone: ZoneId? = null) =
-        DateTimeFormatter
-            .ofPattern("dd.MM.yyyy HH:mm")
-            .withZone(timeZone ?: ZoneId.of("UTC"))
-            .format(time)
-
-    private fun formatOperation(operation: Operation) =
-        when (operation) {
-            Operation.CREATE -> getTranslation("create")
-            Operation.MODIFY -> getTranslation("modify")
-            Operation.DELETE -> getTranslation("delete")
-            Operation.RESTORE -> getTranslation("restore")
-        }
-
-    private fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
-        kmNumbers
-            .sorted()
-            .fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
-                if (acc.isEmpty()) acc.add(listOf(kmNumber))
-                else {
-                    val previousKmNumbers = acc.last()
-                    val previousKmNumber = previousKmNumbers.last().number
-
-                    if (kmNumber.number == previousKmNumber || kmNumber.number == previousKmNumber + 1) {
-                        acc[acc.lastIndex] = listOf(previousKmNumbers.first(), kmNumber)
-                    } else acc.add(listOf(kmNumber))
-                }
-
-                acc
-            }.joinToString(", ") { it.joinToString("-") }
 
     private fun getComparator(sortBy: PublicationCsvSortField, order: SortOrder? = null) =
         if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
@@ -829,26 +765,3 @@ class PublicationService @Autowired constructor(
         ) { "Track number with official id $trackNumberId does not exist at moment $moment" }
     }
 }
-
-private fun getTranslation(key: String) = publicationTranslations[key] ?: ""
-
-private val publicationTranslations = mapOf(
-    "track-number" to "Ratanumero",
-    "reference-line" to "Pituusmittauslinja",
-    "km-post" to "Tasakilometripiste",
-    "location-track" to "Sijaintiraide",
-    "switch" to "Vaihde",
-    "calculated-change" to "Laskettu muutos",
-    "create" to "Luonti",
-    "modify" to "Muokkaus",
-    "delete" to "Poisto",
-    "restore" to "Palautus",
-    "name-header" to "Muutoskohde",
-    "track-number-header" to "Ratanro",
-    "km-numbers-header" to "Kilometrit",
-    "operation-header" to "Muutos",
-    "publication-time-header" to "Aika",
-    "publication-user-header" to "Käyttäjä",
-    "message-header" to "Selite",
-    "ratko-header" to "Viety Ratkoon"
-)

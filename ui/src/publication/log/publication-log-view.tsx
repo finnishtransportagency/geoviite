@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
-import { addDays, endOfDay, startOfDay, subMonths } from 'date-fns';
+import { endOfDay, startOfDay, subMonths } from 'date-fns';
 import { getPublications, getPublicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -31,7 +31,7 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
         if (startDate) {
             setPagedPublications(undefined);
 
-            getPublications(startOfDay(startDate), addDays(endDate, 1)).then((p) => {
+            getPublications(startOfDay(startDate), endOfDay(endDate)).then((p) => {
                 setPagedPublications(p ?? undefined);
             });
         }
