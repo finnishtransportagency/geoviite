@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { GeometryPlanHeader, GeometryPlanId } from 'geometry/geometry-model';
-import { getTrackLayoutPlan } from 'geometry/geometry-api';
+import { GeometryPlanHeader } from 'geometry/geometry-model';
 import {
     GeometryPlanLayout,
     LayoutKmPost,
@@ -24,7 +23,6 @@ import {
     ToggleSwitchPayload,
 } from 'selection/selection-store';
 import { ChangeTimes } from 'track-layout/track-layout-store';
-import { getPlanLinkStatus } from 'linking/linking-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { useTranslation } from 'react-i18next';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
@@ -50,6 +48,10 @@ type GeometryPlanProps = {
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
+    loadPlanLayout: () => Promise<GeometryPlanLayout | null>;
+    planLayout: GeometryPlanLayout | null;
+    linkStatus: GeometryPlanLinkStatus | null;
+    planBeingLoaded: boolean;
 };
 
 type Visibilities = {
@@ -59,27 +61,9 @@ type Visibilities = {
     kmPosts: boolean;
 };
 
-async function fetchTrackLayoutPlan(
-    planId: GeometryPlanId,
-    publishType: PublishType,
-    changeTimes: ChangeTimes,
-) {
-    return Promise.all([
-        getTrackLayoutPlan(planId, changeTimes.geometryPlan, false),
-        getPlanLinkStatus(planId, publishType),
-    ]).then((r) => {
-        return {
-            planLayout: r[0],
-            linkStatus: r[1],
-        };
-    });
-}
-
 export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     planHeader,
     onPlanHeaderSelection,
-    publishType,
-    changeTimes,
     onTogglePlanVisibility,
     onToggleAlignmentVisibility,
     onToggleAlignmentSelection,
@@ -94,6 +78,10 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
+    loadPlanLayout,
+    planLayout,
+    linkStatus,
+    planBeingLoaded,
 }: GeometryPlanProps) => {
     const { t } = useTranslation();
     const openedPlanLayout = openedPlanLayouts.find((p) => p.id === planHeader.id);
@@ -101,10 +89,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     const isKmPostsOpen = openedPlanLayout ? openedPlanLayout.isKmPostsOpen : false;
     const isAlignmentsOpen = openedPlanLayout ? openedPlanLayout.isAlignmentsOpen : false;
     const isSwitchesOpen = openedPlanLayout ? openedPlanLayout.isSwitchesOpen : false;
-    const [planLayout, setPlanLayout] = React.useState<GeometryPlanLayout | null>();
-    const [linkStatus, setLinkStatus] = React.useState<GeometryPlanLinkStatus>();
     const [openingAccordion, setOpeningAccordion] = React.useState(false);
-    const [planVisible, setPlanVisible] = React.useState(false);
     const [visibilities, setVisibilities] = React.useState<Visibilities>({
         planHeader: false,
         alignments: false,
@@ -135,24 +120,6 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         });
     }, [planLayout, selectedPlanLayouts]);
 
-    React.useEffect(() => {
-        if (isPlanOpen) {
-            fetchTrackLayoutPlan(planHeader.id, publishType, changeTimes).then(
-                ({ planLayout, linkStatus }) => {
-                    setPlanLayout(planLayout);
-                    setLinkStatus(linkStatus);
-                },
-            );
-        }
-    }, [
-        publishType,
-        changeTimes.geometryPlan,
-        changeTimes.layoutReferenceLine,
-        changeTimes.layoutLocationTrack,
-        changeTimes.layoutSwitch,
-        changeTimes.layoutKmPost,
-    ]);
-
     const onPlanToggle = () => {
         if (planLayout) {
             togglePlanOpen({
@@ -164,9 +131,8 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
             });
         } else {
             setOpeningAccordion(true);
-            fetchTrackLayoutPlan(planHeader.id, publishType, changeTimes)
-                .then(({ planLayout, linkStatus }) => {
-                    setPlanLayout(planLayout);
+            loadPlanLayout()
+                .then((planLayout) => {
                     if (planLayout) {
                         togglePlanOpen({
                             isKmPostsOpen: isKmPostsOpen,
@@ -176,7 +142,6 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                             isOpen: true,
                         });
                     }
-                    setLinkStatus(linkStatus);
                 })
                 .finally(() => setOpeningAccordion(false));
         }
@@ -186,14 +151,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         if (planLayout) {
             onTogglePlanVisibility(planLayout);
         } else {
-            setPlanVisible(true);
-            fetchTrackLayoutPlan(planHeader.id, publishType, changeTimes)
-                .then(({ planLayout, linkStatus }) => {
-                    setPlanLayout(planLayout);
-                    setLinkStatus(linkStatus);
-                    onTogglePlanVisibility(planLayout);
-                })
-                .finally(() => setPlanVisible(false));
+            loadPlanLayout().then(onTogglePlanVisibility);
         }
     };
 
@@ -251,7 +209,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 visibility={visibilities.planHeader}
                 onHeaderClick={() => onPlanHeaderSelection(planHeader)}
                 headerSelected={selectedItems?.geometryPlans?.some((p) => p.id === planHeader.id)}
-                fetchingContent={openingAccordion || planVisible}>
+                fetchingContent={openingAccordion || planBeingLoaded}>
                 {planLayout && (
                     <div className={styles['geometry-plan-panel__alignments']}>
                         <Accordion

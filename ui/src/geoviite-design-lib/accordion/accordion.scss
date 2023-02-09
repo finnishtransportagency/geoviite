@@ -33,17 +33,4 @@
     &__body {
         padding-left: 16px;
     }
-
-    &__visibility {
-        cursor: pointer;
-        margin-left: auto;
-        transition: fill 150ms;
-        fill: $color-white-darker;
-        height: 20px;
-        padding-left: 4px;
-
-        &--visible {
-            fill: $color-blue-default;
-        }
-    }
 }
