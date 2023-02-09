@@ -69,10 +69,10 @@ export type AddressPoint = {
 
 export type ElementLocation = {
     coordinate: Point;
-    address: TrackMeter | undefined;
-    directionGrads: number | undefined;
+    address: TrackMeter | null;
+    directionGrads: number;
     radiusMeters: number | undefined;
-    cant: number | undefined;
+    cant: number | null;
 };
 
 export type ChangeTimes = {
