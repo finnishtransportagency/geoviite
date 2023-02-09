@@ -15,80 +15,45 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
+    const commonTableHeadings = [
+        'alignment',
+        'element-type',
+        'track-address-start',
+        'track-address-end',
+        'coordinate-system',
+        'location-start-e',
+        'location-start-n',
+        'location-end-e',
+        'location-end-n',
+        'length',
+        'curve-radius-start',
+        'curve-radius-end',
+        'cant-start',
+        'cant-end',
+        'angle-start',
+        'angle-end',
+        'plan',
+        'source',
+    ];
+
+    const tableHeadingsToShowInUI = showLocationTrackName
+        ? ['track-number', 'location-track'].concat(commonTableHeadings)
+        : ['track-number'].concat(commonTableHeadings);
 
     return (
-        <div>
-            <p className={styles['element-list-view__table-container']}>
+        <React.Fragment>
+            <p className={styles['element-list-view__element-count']}>
                 {t(`data-products.element-list.geometry-elements`, { amount })}
             </p>
             <div className={styles['element-list-view__table-container']}>
                 <Table wide>
                     <thead className={styles['element-list-view__table-heading']}>
                         <tr>
-                            <th>
-                                {t('data-products.element-list.element-list-table.track-number')}
-                            </th>
-                            {showLocationTrackName && (
-                                <th>
-                                    {t(
-                                        'data-products.element-list.element-list-table.location-track',
-                                    )}
+                            {tableHeadingsToShowInUI.map((heading) => (
+                                <th key={heading}>
+                                    {t(`data-products.element-list.element-list-table.${heading}`)}
                                 </th>
-                            )}
-                            <th>{t('data-products.element-list.element-list-table.alignment')}</th>
-                            <th>
-                                {t('data-products.element-list.element-list-table.element-type')}
-                            </th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.track-address-start',
-                                )}
-                            </th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.track-address-end',
-                                )}
-                            </th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.coordinate-system',
-                                )}
-                            </th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.location-start-e',
-                                )}
-                            </th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.location-start-n',
-                                )}
-                            </th>
-                            <th>
-                                {t('data-products.element-list.element-list-table.location-end-e')}
-                            </th>
-                            <th>
-                                {t('data-products.element-list.element-list-table.location-end-n')}
-                            </th>
-                            <th>{t('data-products.element-list.element-list-table.length')}</th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.curve-radius-start',
-                                )}
-                            </th>
-                            <th>
-                                {t(
-                                    'data-products.element-list.element-list-table.curve-radius-end',
-                                )}
-                            </th>
-                            <th>{t('data-products.element-list.element-list-table.cant-start')}</th>
-                            <th>{t('data-products.element-list.element-list-table.cant-end')}</th>
-                            <th>
-                                {t('data-products.element-list.element-list-table.angle-start')}
-                            </th>
-                            <th>{t('data-products.element-list.element-list-table.angle-end')}</th>
-                            <th>{t('data-products.element-list.element-list-table.plan')}</th>
-                            <th>{t('data-products.element-list.element-list-table.source')}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
@@ -131,6 +96,6 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                     </tbody>
                 </Table>
             </div>
-        </div>
+        </React.Fragment>
     );
 };

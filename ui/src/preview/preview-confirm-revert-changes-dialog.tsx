@@ -1,5 +1,5 @@
 import { ChangeTimes } from 'track-layout/track-layout-store';
-import { PublishRequestIds } from 'publication/publication-api';
+import { PublishRequestIds } from 'publication/publication-model';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import * as React from 'react';
@@ -153,7 +153,8 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
         <Dialog
             title={t('publish.revert-confirm.title')}
             variant={DialogVariant.LIGHT}
-            allowClose={false}
+            allowClose={!isReverting}
+            onClose={cancelRevertChanges}
             className={dialogStyles['dialog--wide']}
             footerContent={
                 <React.Fragment>

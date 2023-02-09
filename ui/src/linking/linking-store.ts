@@ -71,7 +71,7 @@ export const linkingReducers = {
             };
         }
     },
-    stopLinking: function (state: TrackLayoutState): void {
+    stopLinking: function(state: TrackLayoutState): void {
         state.linkingState = undefined;
         state.selection.selectedItems.clusterPoints = [];
         state.selection.selectedItems.suggestedSwitches = [];
@@ -83,7 +83,7 @@ export const linkingReducers = {
             }
         });
     },
-    setLayoutLinkPoint: function (
+    setLayoutLinkPoint: function(
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -99,7 +99,7 @@ export const linkingReducers = {
             state.linkingState = validateLinkingState(state.linkingState);
         }
     },
-    setGeometryLinkPoint: function (
+    setGeometryLinkPoint: function(
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -115,7 +115,7 @@ export const linkingReducers = {
             state.linkingState = validateLinkingState(state.linkingState);
         }
     },
-    setLayoutClusterLinkPoint: function (
+    setLayoutClusterLinkPoint: function(
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -132,7 +132,7 @@ export const linkingReducers = {
             state.selection.selectedItems.clusterPoints = [];
         }
     },
-    setGeometryClusterLinkPoint: function (
+    setGeometryClusterLinkPoint: function(
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -149,7 +149,7 @@ export const linkingReducers = {
             state.selection.selectedItems.clusterPoints = [];
         }
     },
-    removeGeometryLinkPoint: function (
+    removeGeometryLinkPoint: function(
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -167,7 +167,7 @@ export const linkingReducers = {
             state.selection.selectedItems.clusterPoints = [];
         }
     },
-    removeLayoutLinkPoint: function (
+    removeLayoutLinkPoint: function(
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -400,16 +400,28 @@ function isConnectorTooSteep(
     geometryPoint: LinkPoint,
     direction: 'LayoutToGeometry' | 'GeometryToLayout',
 ): boolean {
-    const layoutDirection = layoutPoint.direction;
-    const geometryDirection = geometryPoint.direction;
-    const connectDirection =
-        direction == 'LayoutToGeometry'
-            ? directionBetweenPoints(layoutPoint, geometryPoint)
-            : directionBetweenPoints(geometryPoint, layoutPoint);
-    return (
-        (!!layoutDirection && angleDiffRads(connectDirection, layoutDirection) > Math.PI / 2) ||
-        (!!geometryDirection && angleDiffRads(connectDirection, geometryDirection) > Math.PI / 2)
-    );
+    if (layoutPoint.x === geometryPoint.x && layoutPoint.y === geometryPoint.y) {
+        return isSharpAngle(layoutPoint.direction, geometryPoint.direction);
+    } else {
+        const layoutDirection = layoutPoint.direction;
+        const geometryDirection = geometryPoint.direction;
+        const connectDirection =
+            direction == 'LayoutToGeometry'
+                ? directionBetweenPoints(layoutPoint, geometryPoint)
+                : directionBetweenPoints(geometryPoint, layoutPoint);
+        return (
+            isSharpAngle(connectDirection, layoutDirection) ||
+            isSharpAngle(connectDirection, geometryDirection)
+        );
+    }
+}
+
+function isSharpAngle(
+    directionRads1: number | null | undefined,
+    directionRads2: number | null | undefined,
+): boolean {
+    if (directionRads1 == null || directionRads2 == null) return false;
+    else return angleDiffRads(directionRads1, directionRads2) > Math.PI / 2;
 }
 
 const isSinglePointSelection = (

@@ -9,8 +9,8 @@ export type ElementTableItemProps = {
     geometryAlignmentName: string;
     type: string;
     locationTrackName: string;
-    trackAddressStart: TrackMeter | undefined;
-    trackAddressEnd: TrackMeter | undefined;
+    trackAddressStart: TrackMeter | null;
+    trackAddressEnd: TrackMeter | null;
     locationStartE: number;
     locationStartN: number;
     locationEndE: number;
@@ -18,10 +18,10 @@ export type ElementTableItemProps = {
     length: number;
     curveRadiusStart: number | undefined;
     curveRadiusEnd: number | undefined;
-    cantStart: number | undefined;
-    cantEnd: number | undefined;
-    angleStart: number | undefined;
-    angleEnd: number | undefined;
+    cantStart: number | null;
+    cantEnd: number | null;
+    angleStart: number;
+    angleEnd: number;
     plan: string;
     source: string;
     coordinateSystem: string;

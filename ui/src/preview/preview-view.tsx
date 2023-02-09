@@ -6,7 +6,6 @@ import {
     getCalculatedChanges,
     getPublishCandidates,
     getRevertRequestDependencies,
-    PublishRequestIds,
     revertCandidates,
     validatePublishCandidates,
 } from 'publication/publication-api';
@@ -32,6 +31,7 @@ import {
     PublicationId,
     PublishCandidate,
     PublishCandidates,
+    PublishRequestIds,
     ReferenceLinePublishCandidate,
     SwitchPublishCandidate,
     TrackNumberPublishCandidate,
@@ -61,14 +61,6 @@ type Candidate = {
     id: CandidateId;
 };
 
-export type SelectedChanges = {
-    trackNumbers: LayoutTrackNumberId[];
-    referenceLines: ReferenceLineId[];
-    locationTracks: LocationTrackId[];
-    switches: LayoutSwitchId[];
-    kmPosts: LayoutKmPostId[];
-};
-
 type PendingValidation = {
     pendingValidation: boolean;
 };
@@ -92,7 +84,7 @@ type PreviewProps = {
     map: Map;
     selection: Selection;
     changeTimes: ChangeTimes;
-    selectedPublishCandidateIds: SelectedChanges;
+    selectedPublishCandidateIds: PublishRequestIds;
     onViewportChange: (viewport: MapViewport) => void;
     onSelect: OnSelectFunction;
     onHighlightItems: OnHighlightItemsFunction;
@@ -103,7 +95,6 @@ type PreviewProps = {
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
     onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequestIds) => void;
-    onPublishPreviewRevert: () => void;
 };
 
 const publishCandidateIds = (candidates: PublishCandidates): PublishRequestIds => ({
@@ -129,7 +120,7 @@ const filterUnstaged = (stagedIds: CandidateId[], candidate: Candidate) =>
 
 const getStagedChanges = (
     publishCandidates: PublishCandidates,
-    stagedChangeIds: SelectedChanges,
+    stagedChangeIds: PublishRequestIds,
 ) => ({
     trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
         filterStaged(stagedChangeIds.trackNumbers, trackNumber),
@@ -150,7 +141,7 @@ const getStagedChanges = (
 
 const getUnstagedChanges = (
     publishCandidates: PublishCandidates,
-    stagedChangeIds: SelectedChanges,
+    stagedChangeIds: PublishRequestIds,
 ) => ({
     trackNumbers: publishCandidates.trackNumbers.filter((trackNumber) =>
         filterUnstaged(stagedChangeIds.trackNumbers, trackNumber),
@@ -308,13 +299,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
     const validatedChangeset = useLoader(
         () =>
-            validatePublishCandidates(
-                publishCandidateIds(entireChangeset ? entireChangeset : emptyChanges),
-            ).then((validatedPublishCandidates) => {
-                updateChangeTables();
-                return validatedPublishCandidates;
-            }),
-        [entireChangeset],
+            validatePublishCandidates(props.selectedPublishCandidateIds).then(
+                (validatedPublishCandidates) => {
+                    updateChangeTables();
+                    return validatedPublishCandidates;
+                },
+            ),
+        [props.selectedPublishCandidateIds],
     );
     const unstagedChanges = validatedChangeset
         ? getUnstagedChanges(
@@ -489,7 +480,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     mapMode={mapMode}
                     onChangeMapMode={setMapMode}
                     previewChanges={stagedPreviewChanges ? stagedPreviewChanges : emptyChanges}
-                    onPublishPreviewRevert={props.onPublishPreviewRevert}
                 />
             </div>
             {changesBeingReverted !== undefined && (

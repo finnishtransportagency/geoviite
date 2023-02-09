@@ -44,7 +44,6 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
 
     fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>>
-    fun fetchAllPublicationVersions(): List<PublicationVersion<T>>
 
     fun draftExists(id: IntId<T>): Boolean
     fun officialExists(id: IntId<T>): Boolean
@@ -81,11 +80,11 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
         if (ids.isEmpty()) return listOf()
         val sql = """
-            select 
+            select
               coalesce(${table.draftLink}, id) as official_id,
-              id as row_id, 
+              id as row_id,
               version as row_version
-            from ${table.fullName} 
+            from ${table.fullName}
             where coalesce(${table.draftLink}, id) in (:ids)
               and draft = true
         """.trimIndent()
@@ -100,20 +99,6 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         } }
     }
 
-    override fun fetchAllPublicationVersions(): List<PublicationVersion<T>> {
-        val sql = """
-            select 
-              coalesce(${table.draftLink}, id) as official_id,
-              id as row_id, 
-              version as row_version
-            from ${table.fullName} 
-            where draft = true
-        """.trimIndent()
-        return jdbcTemplate.query<PublicationVersion<T>>(sql, emptyMap<String, Int>()) { rs, _ -> PublicationVersion(
-            rs.getIntId("official_id"),
-            rs.getRowVersion("row_id", "row_version"),
-        ) }
-    }
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
 
     override fun fetchChangeTimes(id: IntId<T>): ChangeTimes {

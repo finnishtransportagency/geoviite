@@ -1,6 +1,5 @@
 import * as React from 'react';
 import styles from './calculated-changes-view.scss';
-import { CalculatedChanges } from 'publication/publication-api';
 import { useTranslation } from 'react-i18next';
 import { Accordion } from 'geoviite-design-lib/accordion/accordion';
 import {
@@ -14,6 +13,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { getTrackNumberById } from 'track-layout/layout-track-number-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
+import { CalculatedChanges } from 'publication/publication-model';
 
 const calculatedChangesIsEmpty = (calculatedChanges: TrackNumberCalculatedChanges) => {
     return calculatedChanges.switches.length == 0 && calculatedChanges.locationTracks.length == 0;
@@ -102,7 +102,8 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                 {trackNumberCalculatedChanges.length > 0 &&
                     trackNumberCalculatedChanges.map(
                         (trackNumberChange: TrackNumberCalculatedChanges) => {
-                            const hasCalculatedChanges = !calculatedChangesIsEmpty(trackNumberChange);
+                            const hasCalculatedChanges =
+                                !calculatedChangesIsEmpty(trackNumberChange);
                             const trackNumber = trackNumberChange.trackNumber.number;
                             const trackNumberId = trackNumberChange.trackNumber.id;
                             const disabledMessage = hasCalculatedChanges
@@ -130,14 +131,16 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                                                 <li
                                                     className={
                                                         styles[
-                                                            'calculated-changes-view__location_tracks'
-                                                            ]
+                                                        'calculated-changes-view__location_tracks'
+                                                        ]
                                                     }>
                                                     {t('preview-view.location-tracks')}
                                                     <ul>
-                                                        {trackNumberChange.locationTracks.map((lt) => (
-                                                            <li key={lt.id}>{lt.name}</li>
-                                                        ))}
+                                                        {trackNumberChange.locationTracks.map(
+                                                            (lt) => (
+                                                                <li key={lt.id}>{lt.name}</li>
+                                                            ),
+                                                        )}
                                                     </ul>
                                                 </li>
                                             )}

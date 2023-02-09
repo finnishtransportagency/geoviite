@@ -142,6 +142,22 @@ data class PublishCandidates(
     fun getReferenceLine(id: IntId<ReferenceLine>): ReferenceLinePublishCandidate = getOrThrow(referenceLines, id)
     fun getKmPost(id: IntId<TrackLayoutKmPost>): KmPostPublishCandidate = getOrThrow(kmPosts, id)
     fun getSwitch(id: IntId<TrackLayoutSwitch>): SwitchPublishCandidate = getOrThrow(switches, id)
+
+    fun getPublicationVersions() = PublicationVersions(
+        trackNumbers = trackNumbers.map(TrackNumberPublishCandidate::getPublicationVersion),
+        referenceLines = referenceLines.map(ReferenceLinePublishCandidate::getPublicationVersion),
+        locationTracks = locationTracks.map(LocationTrackPublishCandidate::getPublicationVersion),
+        switches = switches.map(SwitchPublishCandidate::getPublicationVersion),
+        kmPosts = kmPosts.map(KmPostPublishCandidate::getPublicationVersion),
+    )
+
+    fun filter(request: PublishRequestIds) = PublishCandidates(
+        trackNumbers = trackNumbers.filter { candidate -> request.trackNumbers.contains(candidate.id) },
+        referenceLines = referenceLines.filter { candidate -> request.referenceLines.contains(candidate.id) },
+        locationTracks = locationTracks.filter { candidate -> request.locationTracks.contains(candidate.id) },
+        switches = switches.filter { candidate -> request.switches.contains(candidate.id) },
+        kmPosts = kmPosts.filter { candidate -> request.kmPosts.contains(candidate.id) },
+    )
 }
 
 private inline fun <reified T, reified S : PublishCandidate<T>> getOrThrow(all: List<S>, id: IntId<T>) =
@@ -173,15 +189,6 @@ data class PublishRequestIds(
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
 ) {
-    constructor(withMessage: PublishRequest): this(
-        withMessage.trackNumbers,
-        withMessage.locationTracks,
-        withMessage.referenceLines,
-        withMessage.switches,
-        withMessage.kmPosts
-    )
-
-
     operator fun minus(other: PublishRequestIds) = PublishRequestIds(
         trackNumbers - other.trackNumbers.toSet(),
         locationTracks - other.locationTracks.toSet(),
@@ -192,11 +199,7 @@ data class PublishRequestIds(
 }
 
 data class PublishRequest(
-    val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
-    val locationTracks: List<IntId<LocationTrack>>,
-    val referenceLines: List<IntId<ReferenceLine>>,
-    val switches: List<IntId<TrackLayoutSwitch>>,
-    val kmPosts: List<IntId<TrackLayoutKmPost>>,
+    val content: PublishRequestIds,
     val message: String,
 )
 
@@ -225,14 +228,18 @@ data class PublishValidationError(
 interface PublishCandidate<T> {
     val type: DraftChangeType
     val id: IntId<T>
+    val rowVersion: RowVersion<T>
     val draftChangeTime: Instant
     val userName: UserName
     val errors: List<PublishValidationError>
     val operation: Operation?
+
+    fun getPublicationVersion() = PublicationVersion(id, rowVersion)
 }
 
 data class TrackNumberPublishCandidate(
     override val id: IntId<TrackLayoutTrackNumber>,
+    override val rowVersion: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     override val draftChangeTime: Instant,
     override val userName: UserName,
@@ -244,6 +251,7 @@ data class TrackNumberPublishCandidate(
 
 data class ReferenceLinePublishCandidate(
     override val id: IntId<ReferenceLine>,
+    override val rowVersion: RowVersion<ReferenceLine>,
     val name: TrackNumber,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
@@ -256,6 +264,7 @@ data class ReferenceLinePublishCandidate(
 
 data class LocationTrackPublishCandidate(
     override val id: IntId<LocationTrack>,
+    override val rowVersion: RowVersion<LocationTrack>,
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
@@ -269,6 +278,7 @@ data class LocationTrackPublishCandidate(
 
 data class SwitchPublishCandidate(
     override val id: IntId<TrackLayoutSwitch>,
+    override val rowVersion: RowVersion<TrackLayoutSwitch>,
     val name: SwitchName,
     val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     override val draftChangeTime: Instant,
@@ -281,6 +291,7 @@ data class SwitchPublishCandidate(
 
 data class KmPostPublishCandidate(
     override val id: IntId<TrackLayoutKmPost>,
+    override val rowVersion: RowVersion<TrackLayoutKmPost>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
     override val draftChangeTime: Instant,

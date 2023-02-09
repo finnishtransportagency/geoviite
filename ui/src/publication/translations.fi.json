@@ -21,7 +21,8 @@
         "breadcrumbs-text": "Julkaisuloki",
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
-        "export-csv": "Lataa CSV"
+        "export-csv": "Lataa CSV",
+        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää"
     },
     "publication-card": {
         "latest": "Viimeisimmät",

@@ -9,20 +9,16 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
-import { GeometryPlanPanel } from 'selection-panel/geometry-plan-panel/geometry-plan-panel';
 import {
     OnSelectOptions,
     OpenedPlanLayout,
     OptionalItemCollections,
     SelectableItemType,
 } from 'selection/selection-model';
-import { GeometryPlanHeader, SortByValue, SortOrderValue } from 'geometry/geometry-model';
-import { createClassName } from 'vayla-design-lib/utils';
 import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
-import { getGeometryPlanHeaders } from 'geometry/geometry-api';
 import { MapViewport } from 'map/map-model';
 import {
     createEmptyItemCollections,
@@ -37,6 +33,7 @@ import { PublishType } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/alignment-panel/location-tracks-panel';
 import ReferenceLinesPanel from 'selection-panel/alignment-panel/reference-lines-panel';
+import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -60,8 +57,6 @@ type SelectionPanelProps = {
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
 };
-
-const MAX_PLAN_HEADERS = 50;
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
     publishType,
@@ -88,24 +83,6 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
     const [trackNumberFilter, setTrackNumberFilter] = React.useState<LayoutTrackNumber[]>([]);
-    const [planHeaders, setPlanHeaders] = React.useState<GeometryPlanHeader[]>([]);
-    const [planHeaderCount, setPlanHeaderCount] = React.useState<number>(0);
-
-    React.useEffect(() => {
-        getGeometryPlanHeaders(
-            MAX_PLAN_HEADERS,
-            0,
-            viewport.area,
-            ['GEOVIITE', 'GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
-            trackNumberFilter.map((tn) => tn.id),
-            undefined,
-            SortByValue.UPLOADED_AT,
-            SortOrderValue.ASCENDING,
-        ).then((page) => {
-            setPlanHeaders(page.items);
-            setPlanHeaderCount(page.totalCount);
-        });
-    }, [viewport.area, changeTimes.geometryPlan, trackNumberFilter]);
 
     const toggleTrackNumberFilter = React.useCallback(
         (tn: LayoutTrackNumber) => {
@@ -193,97 +170,24 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     />
                 </div>
             </section>
-            {planHeaders && (
-                <section>
-                    <h3 className={styles['selection-panel__title']}>
-                        {`${t('selection-panel.geometries-title')} (${
-                            planHeaders.length
-                        }/${planHeaderCount})`}
-                    </h3>
-                    <div
-                        className={createClassName(
-                            styles['selection-panel__content'],
-                            styles['selection-panel__content--unpadded'],
-                        )}>
-                        {planHeaders.length == planHeaderCount &&
-                            planHeaders.map((h) => {
-                                return (
-                                    <GeometryPlanPanel
-                                        key={h.id}
-                                        planHeader={h}
-                                        onPlanHeaderSelection={(header) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometryPlans: [header],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        publishType={publishType}
-                                        changeTimes={changeTimes}
-                                        onTogglePlanVisibility={onTogglePlanVisibility}
-                                        onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                                        onToggleAlignmentSelection={(alignment) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometryAlignments: [
-                                                    {
-                                                        geometryItem: alignment,
-                                                        planId: h.id,
-                                                    },
-                                                ],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        onToggleSwitchVisibility={onToggleSwitchVisibility}
-                                        onToggleSwitchSelection={(switchItem) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometrySwitches: [
-                                                    {
-                                                        geometryItem: switchItem,
-                                                        planId: h.id,
-                                                    },
-                                                ],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        onToggleKmPostVisibility={onToggleKmPostVisibility}
-                                        onToggleKmPostSelection={(kmPost) =>
-                                            onSelect({
-                                                ...createEmptyItemCollections(),
-                                                geometryKmPosts: [
-                                                    {
-                                                        geometryItem: kmPost,
-                                                        planId: h.id,
-                                                    },
-                                                ],
-                                                isToggle: true,
-                                            })
-                                        }
-                                        selectedItems={selectedItems}
-                                        selectedPlanLayouts={selectedPlanLayouts}
-                                        togglePlanOpen={togglePlanOpen}
-                                        openedPlanLayouts={openedPlanLayouts}
-                                        togglePlanKmPostsOpen={togglePlanKmPostsOpen}
-                                        togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
-                                        togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                                    />
-                                );
-                            })}
-                        {planHeaders.length < planHeaderCount && (
-                            <span className={styles['selection-panel__subtitle']}>{`${t(
-                                'selection-panel.zoom-closer',
-                            )}`}</span>
-                        )}
-
-                        {planHeaders.length === 0 && (
-                            <span className={styles['selection-panel__subtitle']}>
-                                {`${t('selection-panel.no-results')}`}{' '}
-                            </span>
-                        )}
-                    </div>
-                </section>
-            )}
+            <SelectionPanelGeometrySection
+                publishType={publishType}
+                changeTimes={changeTimes}
+                selectedItems={selectedItems}
+                selectedPlanLayouts={selectedPlanLayouts}
+                viewport={viewport}
+                onToggleAlignmentVisibility={onToggleAlignmentVisibility}
+                onToggleKmPostVisibility={onToggleKmPostVisibility}
+                onTogglePlanVisibility={onTogglePlanVisibility}
+                onToggleSwitchVisibility={onToggleSwitchVisibility}
+                openedPlanLayouts={openedPlanLayouts}
+                togglePlanKmPostsOpen={togglePlanKmPostsOpen}
+                togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
+                togglePlanSwitchesOpen={togglePlanSwitchesOpen}
+                trackNumberFilter={trackNumberFilter}
+                togglePlanOpen={togglePlanOpen}
+                onSelect={onSelect}
+            />
             <section>
                 <h3 className={styles['selection-panel__title']}>
                     {t('selection-panel.km-posts-title')} ({filteredKmPosts.length}/{kmPosts.length}

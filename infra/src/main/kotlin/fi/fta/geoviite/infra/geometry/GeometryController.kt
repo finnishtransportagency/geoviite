@@ -136,7 +136,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     fun getLinkingSummaries(
         @RequestBody planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
-        log.apiCall("getLinkingSummaries")
+        log.apiCall("getLinkingSummaries", "planIds" to planIds)
         return geometryService.getLinkingSummaries(planIds)
     }
 
@@ -146,7 +146,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @PathVariable("id") id: IntId<GeometryPlan>,
         @RequestParam("elementTypes") elementTypes: List<GeometryElementType>,
     ): List<ElementListing> {
-        log.apiCall("getPlanElementList")
+        log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         return geometryService.getElementListing(id, elementTypes)
     }
 
