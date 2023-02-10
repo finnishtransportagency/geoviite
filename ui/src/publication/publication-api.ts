@@ -11,6 +11,7 @@ import {
     CalculatedChanges,
     PublicationDetails,
     PublicationId,
+    PublicationTableRowModel,
     PublishCandidates,
     PublishRequest,
     PublishRequestIds,
@@ -37,13 +38,34 @@ export const publishCandidates = (request: PublishRequest) => {
     return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-export const getPublications = (fromDate?: Date, toDate?: Date) => {
+export const getPublicationDetails = (fromDate?: Date, toDate?: Date) => {
     const params = queryParams({
         from: fromDate ? fromDate.toISOString() : '',
         to: toDate ? toDate.toISOString() : '',
     });
 
     return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
+};
+
+export const getPublicationAsTableRows = (id: PublicationId) =>
+    getIgnoreError<PublicationTableRowModel[]>(`${PUBLICATION_URL}/${id}/table-rows`);
+
+export const getPublicationsAsTableRows = (
+    from?: Date,
+    to?: Date,
+    sortBy?: SortProps,
+    order?: SortDirection,
+) => {
+    const isSorted = order != SortDirection.UNSORTED;
+
+    const params = queryParams({
+        from: from ? from.toISOString() : undefined,
+        to: to ? to.toISOString() : undefined,
+        sortBy: isSorted && sortBy ? sortBy : undefined,
+        order: isSorted ? order : undefined,
+    });
+
+    return getIgnoreError<Page<PublicationTableRowModel>>(`${PUBLICATION_URL}/table-rows${params}`);
 };
 
 export const getPublicationsCsvUri = (
@@ -64,9 +86,6 @@ export const getPublicationsCsvUri = (
 
     return `${PUBLICATION_URL}/csv${params}`;
 };
-
-export const getPublication = (id: PublicationId) =>
-    getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
 export const getCalculatedChanges = (request: PublishRequestIds) =>
     postIgnoreError<PublishRequestIds, CalculatedChanges>(

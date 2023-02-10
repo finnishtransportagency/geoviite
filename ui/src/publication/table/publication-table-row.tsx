@@ -1,23 +1,12 @@
 import * as React from 'react';
-import { KmNumber, TimeStamp, TrackNumber } from 'common/common-model';
+import { KmNumber } from 'common/common-model';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { Operation } from 'publication/publication-model';
+import { PublicationTableRowModel } from 'publication/publication-model';
 import styles from './publication-table.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-
-export type PublicationTableRowProps = {
-    name: string;
-    trackNumbers: TrackNumber[];
-    changedKmNumbers?: KmNumber[];
-    operation: Operation;
-    publicationTime: TimeStamp;
-    publicationUser: string;
-    message: string;
-    ratkoPushTime: TimeStamp | null;
-};
 
 const formatKmNumber = (kmNumbers: KmNumber[]) => {
     return kmNumbers
@@ -52,6 +41,8 @@ const formatKmNumber = (kmNumbers: KmNumber[]) => {
             </span>
         ));
 };
+
+type PublicationTableRowProps = Omit<PublicationTableRowModel, 'id'>;
 
 export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     name,

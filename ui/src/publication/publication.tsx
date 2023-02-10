@@ -8,6 +8,8 @@ import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
+import { useLoader } from 'utils/react-utils';
+import { getPublicationAsTableRows } from 'publication/publication-api';
 
 export type PublicationDetailsProps = {
     publication: PublicationDetails;
@@ -23,6 +25,8 @@ const Publication: React.FC<PublicationDetailsProps> = ({
     const { t } = useTranslation();
 
     const waitingAfterFail = publication.ratkoPushStatus === null && anyFailed;
+    const tableRows =
+        useLoader(() => getPublicationAsTableRows(publication.id), [publication.id]) || [];
 
     return (
         <div className={styles['publication-details__publication']}>
@@ -38,7 +42,7 @@ const Publication: React.FC<PublicationDetailsProps> = ({
                 </span>
             </div>
             <div className={styles['publication-details__content']}>
-                <PublicationTable publications={[publication]} />
+                <PublicationTable items={tableRows} />
             </div>
             {(ratkoPushFailed(publication.ratkoPushStatus) || waitingAfterFail) && (
                 <footer className={styles['publication-details__footer']}>

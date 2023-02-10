@@ -5,14 +5,12 @@ import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
 import { endOfDay, startOfDay, subMonths } from 'date-fns';
-import { getPublications, getPublicationsCsvUri } from 'publication/publication-api';
+import { getPublicationsAsTableRows, getPublicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { PublicationDetails } from 'publication/publication-model';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { SortInformation } from 'publication/table/publication-table-utils';
-import { Page } from 'api/api-fetch';
+import { InitiallyUnsorted, SortInformation } from 'publication/table/publication-table-utils';
+import { useLoaderWithStatus } from 'utils/react-utils';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 
 export type PublicationLogViewProps = {
@@ -24,18 +22,18 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
 
     const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
     const [endDate, setEndDate] = React.useState<Date>(currentDay);
-    const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationDetails>>();
-    const [sortInfo, setSortInfo] = React.useState<SortInformation>();
+    const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 
-    React.useEffect(() => {
-        if (startDate) {
-            setPagedPublications(undefined);
-
-            getPublications(startOfDay(startDate), endOfDay(endDate)).then((p) => {
-                setPagedPublications(p ?? undefined);
-            });
-        }
-    }, [startDate, endDate]);
+    const [publications, _] = useLoaderWithStatus(
+        () =>
+            getPublicationsAsTableRows(
+                startOfDay(startDate),
+                endOfDay(endDate),
+                sortInfo.propName,
+                sortInfo.direction,
+            ),
+        [startDate, endDate, sortInfo],
+    );
 
     const endDateErrors =
         endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
@@ -81,14 +79,14 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                 </div>
             </div>
             <div className={styles['publication-log__content']}>
-                {pagedPublications && (
+                {publications && (
                     <PublicationTable
-                        truncated={pagedPublications?.totalCount != pagedPublications?.items.length}
-                        publications={pagedPublications.items}
+                        truncated={publications.totalCount != publications.items.length}
+                        items={publications.items}
+                        sortInfo={sortInfo}
                         onSortChange={setSortInfo}
                     />
                 )}
-                {!pagedPublications && <Spinner />}
             </div>
         </div>
     );

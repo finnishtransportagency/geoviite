@@ -1,87 +1,58 @@
 import { Table, Th } from 'vayla-design-lib/table/table';
-import {
-    PublicationTableRow,
-    PublicationTableRowProps,
-} from 'publication/table/publication-table-row';
+import { PublicationTableRow } from 'publication/table/publication-table-row';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
-import { negComparator } from 'utils/array-utils';
-import { PublicationDetails } from 'publication/publication-model';
-import { useTrackNumbersIncludingDeleted } from 'track-layout/track-layout-react-utils';
+import { PublicationTableRowModel } from 'publication/publication-model';
 import {
     getSortInfoForProp,
-    InitiallyUnsorted,
-    SortDirection,
     sortDirectionIcon,
     SortInformation,
     SortProps,
-    toPublicationTableRows,
 } from './publication-table-utils';
 
 export type PublicationTableProps = {
     truncated?: boolean;
-    publications: PublicationDetails[];
+    items: PublicationTableRowModel[];
+    sortInfo?: SortInformation;
     onSortChange?: (sortInfo: SortInformation) => void;
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
-    publications,
+    items,
     truncated,
     onSortChange,
+    sortInfo,
 }) => {
     const { t } = useTranslation();
 
-    //Track numbers rarely change, therefore we can always use the "latest" version
-    const trackNumbers = useTrackNumbersIncludingDeleted('OFFICIAL');
-
-    const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
-    const [sortedPublicationRows, setSortedPublicationRows] = React.useState<
-        PublicationTableRowProps[]
-    >([]);
-
-    React.useEffect(() => {
-        if (trackNumbers) {
-            const publicationRows = publications.flatMap((p) =>
-                toPublicationTableRows(p, trackNumbers),
-            );
-
-            if (sortInfo.direction !== SortDirection.UNSORTED) {
-                publicationRows.sort(
-                    sortInfo.direction == SortDirection.ASCENDING
-                        ? sortInfo.function
-                        : negComparator(sortInfo.function),
-                );
-            }
-
-            setSortedPublicationRows(publicationRows);
-        }
-    }, [publications, sortInfo, trackNumbers]);
-
     const sortByProp = (propName: SortProps) => {
-        const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
-        setSortInfo(newSortInfo);
-        onSortChange && onSortChange(newSortInfo);
+        if (sortInfo && onSortChange) {
+            const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
+            onSortChange(newSortInfo);
+        }
     };
 
     const sortableTableHeader = (prop: SortProps, translationKey: string) => (
         <Th
             onClick={() => sortByProp(prop)}
-            icon={sortInfo.propName === prop ? sortDirectionIcon(sortInfo.direction) : undefined}>
+            icon={sortInfo?.propName === prop ? sortDirectionIcon(sortInfo.direction) : undefined}>
             {t(translationKey)}
         </Th>
     );
 
     return (
         <div className={styles['publication-table__container']}>
-            <div
-                className={styles['publication-table__count-header']}
-                title={truncated ? t('publication-table.truncated') : ''}>
-                {sortedPublicationRows &&
-                    t('publication-table.count-header', {
-                        number: sortedPublicationRows.length,
+            <div className={styles['publication-table__count-header']}>
+                <span
+                    title={
+                        truncated ? t('publication-table.truncated', { number: items.length }) : ''
+                    }>
+                    {t('publication-table.count-header', {
+                        number: items.length,
                         truncated: truncated ? '+' : '',
                     })}
+                </span>
             </div>
             <Table wide>
                 <thead className={styles['publication-table__header']}>
@@ -112,9 +83,9 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     </tr>
                 </thead>
                 <tbody>
-                    {sortedPublicationRows.map((entry) => (
+                    {items.map((entry) => (
                         <PublicationTableRow
-                            key={`${entry.name}_${entry.publicationTime}`}
+                            key={entry.id}
                             name={entry.name}
                             trackNumbers={entry.trackNumbers}
                             publicationTime={entry.publicationTime}

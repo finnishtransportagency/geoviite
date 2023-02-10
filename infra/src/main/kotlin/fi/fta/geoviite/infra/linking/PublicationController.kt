@@ -161,7 +161,7 @@ class PublicationController @Autowired constructor(
         return Page(
             totalCount = publications.size,
             start = 0,
-            items = publications.take(1000) //Prevents frontend from going kaput
+            items = publications.take(500) //Prevents frontend from going kaput
         )
     }
 

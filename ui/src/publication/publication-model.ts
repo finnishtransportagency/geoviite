@@ -204,3 +204,59 @@ export type PublishedCalculatedChanges = {
     locationTracks: PublishedLocationTrack[];
     switches: PublishedSwitch[];
 };
+
+export type PublicationTableRowModel = {
+    id: string; //Auto generated
+    name: string;
+    trackNumbers: TrackNumber[];
+    changedKmNumbers: KmNumber[];
+    operation: Operation;
+    publicationTime: TimeStamp;
+    publicationUser: string;
+    message: string;
+    ratkoPushTime: TimeStamp;
+};
+
+export interface PublishResult {
+    trackNumbers: number;
+    locationTracks: number;
+    referenceLines: number;
+    switches: number;
+    kmPosts: number;
+}
+
+export interface TrackNumberChange {
+    trackNumberId: LayoutTrackNumberId;
+    changedKilometers: KmNumber[];
+    isStartChanged: boolean;
+    isEndChanged: boolean;
+}
+
+export interface LocationTrackChange {
+    locationTrackId: LocationTrackId;
+    changedKilometers: KmNumber[];
+    isStartChanged: boolean;
+    isEndChanged: boolean;
+}
+
+export interface SwitchJointChange {
+    number: JointNumber;
+    isRemoved: boolean;
+    address: TrackMeter;
+    point: Point;
+    locationTrackId: LocationTrackId;
+    locationTrackExternalId: Oid | null;
+    trackNumberId: LayoutTrackNumberId;
+    trackNumberExternalId: Oid | null;
+}
+
+export interface SwitchChange {
+    switchId: LayoutSwitchId;
+    changedJoints: SwitchJointChange[];
+}
+
+export interface CalculatedChanges {
+    trackNumberChanges: TrackNumberChange[];
+    locationTracksChanges: LocationTrackChange[];
+    switchChanges: SwitchChange[];
+}
