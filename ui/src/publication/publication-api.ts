@@ -9,7 +9,7 @@ import {
 } from 'api/api-fetch';
 import {
     CalculatedChanges,
-    PublicationDetails,
+    PublicationDetailsModel,
     PublicationId,
     PublicationTableRowModel,
     PublishCandidates,
@@ -18,7 +18,10 @@ import {
     PublishResult,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
-import { SortDirection, SortProps } from 'publication/table/publication-table-utils';
+import {
+    PublicationDetailsTableSortField,
+    SortDirection,
+} from 'publication/table/publication-table-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -44,7 +47,7 @@ export const getPublicationDetails = (fromDate?: Date, toDate?: Date) => {
         to: toDate ? toDate.toISOString() : '',
     });
 
-    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
+    return getIgnoreError<Page<PublicationDetailsModel>>(`${PUBLICATION_URL}${params}`);
 };
 
 export const getPublicationAsTableRows = (id: PublicationId) =>
@@ -53,7 +56,7 @@ export const getPublicationAsTableRows = (id: PublicationId) =>
 export const getPublicationsAsTableRows = (
     from?: Date,
     to?: Date,
-    sortBy?: SortProps,
+    sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ) => {
     const isSorted = order != SortDirection.UNSORTED;
@@ -71,7 +74,7 @@ export const getPublicationsAsTableRows = (
 export const getPublicationsCsvUri = (
     fromDate?: Date,
     toDate?: Date,
-    sortBy?: SortProps,
+    sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ): string => {
     const isSorted = order != SortDirection.UNSORTED;

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
-import { PublicationDetails } from 'publication/publication-model';
+import { PublicationDetailsModel } from 'publication/publication-model';
 import { PublicationList } from 'publication/card/publication-list';
 import { ButtonSize } from 'vayla-design-lib/button/button';
 import RatkoPublishButton from 'ratko/ratko-publish-button';
@@ -14,9 +14,9 @@ import i18n from 'i18next';
 import { Link } from 'vayla-design-lib/link/link';
 
 type PublishListProps = {
-    itemClicked: (pub: PublicationDetails) => void;
+    onPublicationSelect: (pub: PublicationDetailsModel) => void;
     onShowPublicationLog: () => void;
-    publications: PublicationDetails[];
+    publications: PublicationDetailsModel[];
     ratkoStatus: RatkoStatus | undefined;
 };
 
@@ -62,7 +62,7 @@ const MAX_SUCCESS_PUBLICATIONS = 8;
 
 const PublicationCard: React.FC<PublishListProps> = ({
     publications,
-    itemClicked,
+    onPublicationSelect,
     ratkoStatus,
     onShowPublicationLog,
 }) => {
@@ -110,7 +110,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                     </div>
                                     <PublicationList
                                         publications={failures}
-                                        publicationClicked={itemClicked}
+                                        onPublicationSelect={onPublicationSelect}
                                         anyFailed={failures.length > 0}
                                     />
                                 </React.Fragment>
@@ -123,7 +123,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                         </h3>
                         <PublicationList
                             publications={successes}
-                            publicationClicked={itemClicked}
+                            onPublicationSelect={onPublicationSelect}
                         />
                     </section>
 

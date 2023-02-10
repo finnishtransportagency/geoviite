@@ -5,17 +5,18 @@ import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
 import { PublicationTableRowModel } from 'publication/publication-model';
 import {
+    getSortDirectionIcon,
     getSortInfoForProp,
-    sortDirectionIcon,
-    SortInformation,
-    SortProps,
+    PublicationDetailsTableSortField,
+    PublicationDetailsTableSortInformation,
 } from './publication-table-utils';
 
 export type PublicationTableProps = {
     truncated?: boolean;
     items: PublicationTableRowModel[];
-    sortInfo?: SortInformation;
-    onSortChange?: (sortInfo: SortInformation) => void;
+    sortInfo?: PublicationDetailsTableSortInformation;
+    onSortChange?: (sortInfo: PublicationDetailsTableSortInformation) => void;
+    isLoading?: boolean;
 };
 
 const PublicationTable: React.FC<PublicationTableProps> = ({
@@ -23,26 +24,32 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
     truncated,
     onSortChange,
     sortInfo,
+    isLoading,
 }) => {
     const { t } = useTranslation();
 
-    const sortByProp = (propName: SortProps) => {
+    const sortByProp = (propName: PublicationDetailsTableSortField) => {
         if (sortInfo && onSortChange) {
             const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
             onSortChange(newSortInfo);
         }
     };
 
-    const sortableTableHeader = (prop: SortProps, translationKey: string) => (
+    const sortableTableHeader = (
+        prop: PublicationDetailsTableSortField,
+        translationKey: string,
+    ) => (
         <Th
             onClick={() => sortByProp(prop)}
-            icon={sortInfo?.propName === prop ? sortDirectionIcon(sortInfo.direction) : undefined}>
+            icon={
+                sortInfo?.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
+            }>
             {t(translationKey)}
         </Th>
     );
 
     return (
-        <div className={styles['publication-table__container']}>
+        <div className={styles['publication-table']}>
             <div className={styles['publication-table__count-header']}>
                 <span
                     title={
@@ -54,50 +61,62 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     })}
                 </span>
             </div>
-            <Table wide>
-                <thead className={styles['publication-table__header']}>
-                    <tr>
-                        {sortableTableHeader(SortProps.NAME, 'publication-table.name')}
-                        {sortableTableHeader(
-                            SortProps.TRACK_NUMBERS,
-                            'publication-table.track-number',
-                        )}
-                        {sortableTableHeader(
-                            SortProps.CHANGED_KM_NUMBERS,
-                            'publication-table.km-number',
-                        )}
-                        {sortableTableHeader(SortProps.OPERATION, 'publication-table.operation')}
-                        {sortableTableHeader(
-                            SortProps.PUBLICATION_TIME,
-                            'publication-table.publication-time',
-                        )}
-                        {sortableTableHeader(
-                            SortProps.PUBLICATION_USER,
-                            'publication-table.publication-user',
-                        )}
-                        {sortableTableHeader(SortProps.MESSAGE, 'publication-table.message')}
-                        {sortableTableHeader(
-                            SortProps.RATKO_PUSH_TIME,
-                            'publication-table.pushed-to-ratko',
-                        )}
-                    </tr>
-                </thead>
-                <tbody>
-                    {items.map((entry) => (
-                        <PublicationTableRow
-                            key={entry.id}
-                            name={entry.name}
-                            trackNumbers={entry.trackNumbers}
-                            publicationTime={entry.publicationTime}
-                            ratkoPushTime={entry.ratkoPushTime}
-                            publicationUser={entry.publicationUser}
-                            operation={entry.operation}
-                            changedKmNumbers={entry.changedKmNumbers}
-                            message={entry.message}
-                        />
-                    ))}
-                </tbody>
-            </Table>
+            <div className={styles['publication-table__table-container']}>
+                <Table wide>
+                    <thead className={styles['publication-table__table-header']}>
+                        <tr>
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.NAME,
+                                'publication-table.name',
+                            )}
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.TRACK_NUMBERS,
+                                'publication-table.track-number',
+                            )}
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.CHANGED_KM_NUMBERS,
+                                'publication-table.km-number',
+                            )}
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.OPERATION,
+                                'publication-table.operation',
+                            )}
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.PUBLICATION_TIME,
+                                'publication-table.publication-time',
+                            )}
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.PUBLICATION_USER,
+                                'publication-table.publication-user',
+                            )}
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.MESSAGE,
+                                'publication-table.message',
+                            )}
+                            {sortableTableHeader(
+                                PublicationDetailsTableSortField.RATKO_PUSH_TIME,
+                                'publication-table.pushed-to-ratko',
+                            )}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((entry) => (
+                            <PublicationTableRow
+                                key={entry.id}
+                                name={entry.name}
+                                trackNumbers={entry.trackNumbers}
+                                publicationTime={entry.publicationTime}
+                                ratkoPushTime={entry.ratkoPushTime}
+                                publicationUser={entry.publicationUser}
+                                operation={entry.operation}
+                                changedKmNumbers={entry.changedKmNumbers}
+                                message={entry.message}
+                            />
+                        ))}
+                    </tbody>
+                </Table>
+                {isLoading && <div className={styles['publication-table__backdrop']} />}
+            </div>
         </div>
     );
 };

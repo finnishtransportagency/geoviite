@@ -14,13 +14,8 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import {
-    getKmPostUiName,
-    getLocationTrackUiName,
-    getReferenceLineUiName,
-    getSwitchUiName,
-    getTrackNumberUiName,
-} from 'publication/table/publication-table-utils';
+import { KmNumber, TrackNumber } from 'common/common-model';
+import i18n from 'i18next';
 
 type PublicationId =
     | LayoutTrackNumberId
@@ -52,6 +47,26 @@ const changeTableEntryCommonFields = (
     changeTime: candidate.draftChangeTime,
     operation: candidate.operation,
 });
+
+export function getTrackNumberUiName(trackNumber: TrackNumber | undefined) {
+    return `${i18n.t('publication-table.track-number-long')} ${trackNumber}`;
+}
+
+export function getReferenceLineUiName(trackNumber: TrackNumber | undefined) {
+    return `${i18n.t('publication-table.reference-line')} ${trackNumber}`;
+}
+
+export function getLocationTrackUiName(name: string) {
+    return `${i18n.t('publication-table.location-track')} ${name}`;
+}
+
+export function getSwitchUiName(name: string) {
+    return `${i18n.t('publication-table.switch')} ${name}`;
+}
+
+export function getKmPostUiName(kmNumber: KmNumber) {
+    return `${i18n.t('publication-table.km-post')} ${kmNumber}`;
+}
 
 export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublishCandidate) => ({
     ...changeTableEntryCommonFields(trackNumber),

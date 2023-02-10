@@ -1,9 +1,6 @@
-import { Operation } from 'publication/publication-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { KmNumber, TrackNumber } from 'common/common-model';
-import i18n from 'i18next';
 
-export enum SortProps {
+export enum PublicationDetailsTableSortField {
     NAME = 'NAME',
     CHANGED_KM_NUMBERS = 'CHANGED_KM_NUMBERS',
     TRACK_NUMBERS = 'TRACK_NUMBERS',
@@ -20,17 +17,9 @@ export enum SortDirection {
     UNSORTED = 'UNSORTED',
 }
 
-export type SortInformation = {
-    propName: SortProps;
+export type PublicationDetailsTableSortInformation = {
+    propName: PublicationDetailsTableSortField;
     direction: SortDirection;
-};
-
-export const operationPriority = (operation: Operation | null) => {
-    if (operation === 'CREATE') return 4;
-    if (operation === 'MODIFY') return 3;
-    if (operation === 'DELETE') return 2;
-    if (operation === 'RESTORE') return 1;
-    return 0;
 };
 
 export const nextSortDirection = {
@@ -40,14 +29,14 @@ export const nextSortDirection = {
 };
 
 export const InitiallyUnsorted = {
-    propName: SortProps.NAME,
+    propName: PublicationDetailsTableSortField.NAME,
     direction: SortDirection.UNSORTED,
 };
 
 export const getSortInfoForProp = (
     oldSortDirection: SortDirection,
-    oldSortPropName: SortProps,
-    newSortPropName: SortProps,
+    oldSortPropName: PublicationDetailsTableSortField,
+    newSortPropName: PublicationDetailsTableSortField,
 ) => ({
     propName: newSortPropName,
     direction:
@@ -56,7 +45,7 @@ export const getSortInfoForProp = (
             : SortDirection.ASCENDING,
 });
 
-export const sortDirectionIcon = (direction: SortDirection) => {
+export const getSortDirectionIcon = (direction: SortDirection) => {
     switch (direction) {
         case SortDirection.ASCENDING:
             return Icons.Ascending;
@@ -66,23 +55,3 @@ export const sortDirectionIcon = (direction: SortDirection) => {
             return undefined;
     }
 };
-
-export function getTrackNumberUiName(trackNumber: TrackNumber | undefined) {
-    return `${i18n.t('publication-table.track-number-long')} ${trackNumber}`;
-}
-
-export function getReferenceLineUiName(trackNumber: TrackNumber | undefined) {
-    return `${i18n.t('publication-table.reference-line')} ${trackNumber}`;
-}
-
-export function getLocationTrackUiName(name: string) {
-    return `${i18n.t('publication-table.location-track')} ${name}`;
-}
-
-export function getSwitchUiName(name: string) {
-    return `${i18n.t('publication-table.switch')} ${name}`;
-}
-
-export function getKmPostUiName(kmNumber: KmNumber) {
-    return `${i18n.t('publication-table.km-post')} ${kmNumber}`;
-}

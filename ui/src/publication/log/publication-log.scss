@@ -1,38 +1,38 @@
 @import '../../vayla-design-lib/colors';
 @import '../../vayla-design-lib/typography';
 
-.publication-log__actions {
-    display: grid;
-    grid-template-columns: max-content max-content auto;
-    gap: 12px;
-    padding: 0 24px;
-}
-
-.publication-log__export_button {
-    align-self: end;
-    justify-self: end;
-}
-
-.publication-log__content {
-    background: $color-white-default;
-    padding: 24px;
-    flex-grow: 1;
-}
-
-.publication-log__view {
+.publication-log {
     width: 100%;
-}
 
-.publication-log__title {
-    @include typography-body;
+    &__actions {
+        display: grid;
+        grid-template-columns: max-content max-content auto;
+        gap: 12px;
+        padding: 0 24px;
+    }
 
-    color: $color-black-lighter;
-    background-color: $color-white-dark;
-    box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
-    margin-bottom: 8px;
-    padding: 12px 0 8px 20px;
-}
+    &__export_button {
+        align-self: end;
+        justify-self: end;
+    }
 
-.publication-log__breadcrumbs {
-    white-space: pre;
+    &__table {
+        background: $color-white-default;
+        padding: 24px;
+        flex-grow: 1;
+    }
+
+    &__title {
+        @include typography-body;
+
+        color: $color-black-lighter;
+        background-color: $color-white-dark;
+        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+        margin-bottom: 8px;
+        padding: 12px 0 8px 20px;
+    }
+
+    &__breadcrumbs {
+        white-space: pre;
+    }
 }

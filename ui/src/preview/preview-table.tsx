@@ -30,7 +30,7 @@ import {
 import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
-import { SortDirection, sortDirectionIcon } from 'publication/table/publication-table-utils';
+import { getSortDirectionIcon, SortDirection } from 'publication/table/publication-table-utils';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -169,7 +169,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     const sortableTableHeader = (prop: SortProps, translationKey: string) => (
         <Th
             onClick={() => sortByProp(prop)}
-            icon={sortInfo.propName === prop ? sortDirectionIcon(sortInfo.direction) : undefined}>
+            icon={
+                sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
+            }>
             {t(translationKey)}
         </Th>
     );

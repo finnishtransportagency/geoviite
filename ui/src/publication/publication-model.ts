@@ -91,7 +91,7 @@ export type ValidatedPublishCandidates = {
     allChangesValidated: PublishCandidates;
 };
 
-export type PublicationDetails = {
+export type PublicationDetailsModel = {
     id: PublicationId;
     publicationTime: TimeStamp;
     publicationUser: string;
@@ -216,47 +216,3 @@ export type PublicationTableRowModel = {
     message: string;
     ratkoPushTime: TimeStamp;
 };
-
-export interface PublishResult {
-    trackNumbers: number;
-    locationTracks: number;
-    referenceLines: number;
-    switches: number;
-    kmPosts: number;
-}
-
-export interface TrackNumberChange {
-    trackNumberId: LayoutTrackNumberId;
-    changedKilometers: KmNumber[];
-    isStartChanged: boolean;
-    isEndChanged: boolean;
-}
-
-export interface LocationTrackChange {
-    locationTrackId: LocationTrackId;
-    changedKilometers: KmNumber[];
-    isStartChanged: boolean;
-    isEndChanged: boolean;
-}
-
-export interface SwitchJointChange {
-    number: JointNumber;
-    isRemoved: boolean;
-    address: TrackMeter;
-    point: Point;
-    locationTrackId: LocationTrackId;
-    locationTrackExternalId: Oid | null;
-    trackNumberId: LayoutTrackNumberId;
-    trackNumberExternalId: Oid | null;
-}
-
-export interface SwitchChange {
-    switchId: LayoutSwitchId;
-    changedJoints: SwitchJointChange[];
-}
-
-export interface CalculatedChanges {
-    trackNumberChanges: TrackNumberChange[];
-    locationTracksChanges: LocationTrackChange[];
-    switchChanges: SwitchChange[];
-}

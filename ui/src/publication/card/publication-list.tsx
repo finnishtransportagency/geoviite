@@ -7,16 +7,16 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { useTranslation } from 'react-i18next';
 import { ratkoPushFailed, ratkoPushInProgress } from 'ratko/ratko-model';
-import { PublicationDetails } from 'publication/publication-model';
+import { PublicationDetailsModel } from 'publication/publication-model';
 import { filterUnique } from 'utils/array-utils';
 
 type PublicationListProps = {
-    publications: PublicationDetails[];
-    publicationClicked: (publication: PublicationDetails) => void;
+    publications: PublicationDetailsModel[];
+    onPublicationSelect: (publication: PublicationDetailsModel) => void;
     anyFailed?: boolean;
 };
 
-const getPublicationTrackNumbers = (publication: PublicationDetails) => {
+const getPublicationTrackNumbers = (publication: PublicationDetailsModel) => {
     return [
         ...publication.trackNumbers.map((tn) => tn.id),
         ...publication.referenceLines.map((rl) => rl.trackNumberId),
@@ -27,7 +27,7 @@ const getPublicationTrackNumbers = (publication: PublicationDetails) => {
 
 export const PublicationList: React.FC<PublicationListProps> = ({
     publications,
-    publicationClicked,
+    onPublicationSelect,
     anyFailed,
 }) => {
     const { t } = useTranslation();
@@ -36,12 +36,12 @@ export const PublicationList: React.FC<PublicationListProps> = ({
 
     return (
         <div>
-            {publications.map((publication, publicationIndex) => {
+            {publications.map((publication) => {
                 const isWaitingAfterFailure = anyFailed && publication.ratkoPushStatus === null;
                 const trackNumberIds = getPublicationTrackNumbers(publication);
 
                 return (
-                    <div className={styles['publication-list-item']} key={publicationIndex}>
+                    <div className={styles['publication-list-item']} key={publication.id}>
                         {publication.ratkoPushStatus === null && (
                             <div
                                 className={styles['publication-list-item__status--waiting']}
@@ -56,7 +56,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                             />
                         )}
                         <div className={styles['publication-list-item__text']}>
-                            <Link onClick={() => publicationClicked(publication)}>
+                            <Link onClick={() => onPublicationSelect(publication)}>
                                 {formatDateFull(publication.publicationTime)}
                             </Link>
                         </div>

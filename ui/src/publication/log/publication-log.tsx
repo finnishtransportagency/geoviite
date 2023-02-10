@@ -9,37 +9,48 @@ import { getPublicationsAsTableRows, getPublicationsCsvUri } from 'publication/p
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { InitiallyUnsorted, SortInformation } from 'publication/table/publication-table-utils';
-import { useLoaderWithStatus } from 'utils/react-utils';
+import {
+    InitiallyUnsorted,
+    PublicationDetailsTableSortInformation,
+} from 'publication/table/publication-table-utils';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
+import { PublicationTableRowModel } from 'publication/publication-model';
+import { Page } from 'api/api-fetch';
 
-export type PublicationLogViewProps = {
+export type PublicationLogProps = {
     onClose: () => void;
 };
 
-const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
+const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     const { t } = useTranslation();
 
     const [startDate, setStartDate] = React.useState<Date>(subMonths(currentDay, 1));
     const [endDate, setEndDate] = React.useState<Date>(currentDay);
-    const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
+    const [sortInfo, setSortInfo] =
+        React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [pagedPublications, setPagedPublications] =
+        React.useState<Page<PublicationTableRowModel>>();
 
-    const [publications, _] = useLoaderWithStatus(
-        () =>
-            getPublicationsAsTableRows(
-                startOfDay(startDate),
-                endOfDay(endDate),
-                sortInfo.propName,
-                sortInfo.direction,
-            ),
-        [startDate, endDate, sortInfo],
-    );
+    React.useEffect(() => {
+        setIsLoading(true);
+
+        getPublicationsAsTableRows(
+            startOfDay(startDate),
+            endOfDay(endDate),
+            sortInfo.propName,
+            sortInfo.direction,
+        ).then((r) => {
+            r && setPagedPublications(r);
+            setIsLoading(false);
+        });
+    }, [startDate, endDate, sortInfo]);
 
     const endDateErrors =
         endDate && startDate > endDate ? [t('publication-log.end-before-start')] : [];
 
     return (
-        <div className={styles['publication-log__view']}>
+        <div className={styles['publication-log']}>
             <div className={styles['publication-log__title']}>
                 <Link onClick={onClose}>{t('frontpage.frontpage-link')}</Link>
                 <span className={styles['publication-log__breadcrumbs']}>
@@ -78,18 +89,17 @@ const PublicationLogView: React.FC<PublicationLogViewProps> = ({ onClose }) => {
                     </Button>
                 </div>
             </div>
-            <div className={styles['publication-log__content']}>
-                {publications && (
-                    <PublicationTable
-                        truncated={publications.totalCount != publications.items.length}
-                        items={publications.items}
-                        sortInfo={sortInfo}
-                        onSortChange={setSortInfo}
-                    />
-                )}
+            <div className={styles['publication-log__table']}>
+                <PublicationTable
+                    isLoading={isLoading}
+                    truncated={pagedPublications?.totalCount != pagedPublications?.items.length}
+                    items={pagedPublications?.items || []}
+                    sortInfo={sortInfo}
+                    onSortChange={setSortInfo}
+                />
             </div>
         </div>
     );
 };
 
-export default PublicationLogView;
+export default PublicationLog;
