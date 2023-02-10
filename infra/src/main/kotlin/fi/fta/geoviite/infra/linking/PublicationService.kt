@@ -726,7 +726,7 @@ class PublicationService @Autowired constructor(
                 trackNumberIds = setOf(tn.version.id),
                 operation = tn.operation,
                 publication = publication,
-                message = getTranslation("calculated-change")
+                isCalculatedChange = true
             )
         }
 
@@ -737,7 +737,7 @@ class PublicationService @Autowired constructor(
                 changedKmNumbers = lt.changedKmNumbers,
                 operation = lt.operation,
                 publication = publication,
-                message = getTranslation("calculated-change")
+                isCalculatedChange = true
             )
         }
 
@@ -747,7 +747,7 @@ class PublicationService @Autowired constructor(
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
                 publication = publication,
-                message = getTranslation("calculated-change")
+                isCalculatedChange = true
             )
         }
 
@@ -767,7 +767,7 @@ class PublicationService @Autowired constructor(
         operation: Operation,
         publication: PublicationDetails,
         changedKmNumbers: List<KmNumber>? = null,
-        message: String? = null,
+        isCalculatedChange: Boolean = false,
     ) = PublicationTableRow(
         name = name,
         trackNumbers = trackNumberIds.map { id ->
@@ -777,7 +777,7 @@ class PublicationService @Autowired constructor(
         operation = operation,
         publicationTime = publication.publicationTime,
         publicationUser = publication.publicationUser,
-        message = message ?: publication.message ?: "",
+        message = publication.message + if (isCalculatedChange) " ${getTranslation("calculated-change")}" else "",
         ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
     )
 
