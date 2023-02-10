@@ -32,7 +32,9 @@ data class PublicationTableRow(
     val publicationUser: UserName,
     val message: String,
     val ratkoPushTime: Instant?,
-)
+) {
+    val id: StringId<PublicationTableRow> = StringId(hashCode().toString())
+}
 
 open class Publication(
     open val id: IntId<Publication>,
@@ -43,7 +45,6 @@ open class Publication(
 
 data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
-    val id: IntId<TrackLayoutTrackNumber> = version.id,
     val number: TrackNumber,
     val operation: Operation,
 )

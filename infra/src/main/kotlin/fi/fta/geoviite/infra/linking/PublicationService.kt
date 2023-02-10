@@ -674,7 +674,7 @@ class PublicationService @Autowired constructor(
         val trackNumbers = publication.trackNumbers.map { tn ->
             mapToPublicationTableRow(
                 name = "${getTranslation("track-number")} ${tn.number}",
-                trackNumberIds = setOf(tn.id),
+                trackNumberIds = setOf(tn.version.id),
                 operation = tn.operation,
                 publication = publication,
             )
@@ -723,7 +723,7 @@ class PublicationService @Autowired constructor(
         val calculatedTrackNumbers = publication.calculatedChanges.trackNumbers.map { tn ->
             mapToPublicationTableRow(
                 name = "${getTranslation("track-number")} ${tn.number}",
-                trackNumberIds = setOf(tn.id),
+                trackNumberIds = setOf(tn.version.id),
                 operation = tn.operation,
                 publication = publication,
                 message = getTranslation("calculated-change")

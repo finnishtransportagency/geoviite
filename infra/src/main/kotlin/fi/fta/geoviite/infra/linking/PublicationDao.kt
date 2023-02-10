@@ -777,32 +777,37 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun fetchCalculatedTrackNumberChanges(publicationId: IntId<Publication>): List<PublishedTrackNumber> {
         val sql = """
-          select
-            tn.id,
-            tn.version,
-            tn.number
-          from publication.calculated_change_to_track_number cctn
-            inner join publication.publication on publication.id = cctn.publication_id
-            inner join layout.track_number_version tn
-              on tn.id = cctn.track_number_id
-                and tn.version = (
-                  select version
-                  from layout.track_number_version
-                  where change_time <= publication.publication_time and id = cctn.track_number_id
-                  order by change_time desc
-                  limit 1)
-            left join publication.km_post pkp on pkp.publication_id = cctn.publication_id
-            left join layout.km_post_version kp 
-              on kp.id = pkp.km_post_id and kp.version = pkp.km_post_version 
-                and kp.track_number_id = cctn.track_number_id
-            left join publication.reference_line prl on prl.publication_id = cctn.publication_id
-            left join layout.reference_line_version rl 
-              on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version 
-                and rl.track_number_id = cctn.track_number_id
-            left join publication.track_number ptn 
-              on ptn.publication_id = cctn.publication_id and ptn.track_number_id = cctn.track_number_id
-          where kp.track_number_id is null and rl.track_number_id is null and ptn.track_number_id is null 
-            and cctn.publication_id = :publication_id 
+            select
+              track_number.id,
+              track_number.version,
+              track_number.number
+            from publication.calculated_change_to_track_number cctn
+              inner join publication.publication on publication.id = cctn.publication_id
+              inner join layout.track_number_version track_number
+                on track_number.id = cctn.track_number_id
+                  and track_number.version = (
+                    select version
+                    from layout.track_number_version
+                    where change_time <= publication.publication_time and id = cctn.track_number_id
+                    order by change_time desc
+                    limit 1
+                  )
+            where cctn.publication_id = :publication_id 
+              and track_number.id not in (
+                select track_number_id
+                from publication.km_post kp
+                  inner join layout.km_post_version kpv on kpv.id = kp.km_post_id and kpv.version = kp.km_post_version
+                where kp.publication_id = cctn.publication_id
+                union all
+                select track_number_id
+                from publication.reference_line rl
+                  inner join layout.reference_line_version rlv on rlv.id = rl.reference_line_id and rlv.version = rl.reference_line_version
+                where rl.publication_id = cctn.publication_id
+                union all
+                select track_number_id
+                from publication.track_number tn
+                where tn.publication_id = cctn.publication_id
+            )
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
@@ -835,10 +840,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               left join publication.calculated_change_to_location_track_km ccltkm
                 on ccltkm.location_track_id = cclt.location_track_id and ccltkm.publication_id = cclt.publication_id
               left join publication.location_track plt 
-                on plt.location_track_id = lt.id and plt.location_track_version = lt.version 
-                  and plt.publication_id = cclt.publication_id
+                on plt.location_track_id = lt.id and plt.publication_id = cclt.publication_id
             where cclt.publication_id = :publication_id and plt.location_track_id is null
-            group by lt.id, lt.version, name, track_number_id;
+            group by lt.id, lt.version, name, track_number_id
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
