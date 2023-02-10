@@ -8,9 +8,9 @@ import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.MISSING_SECTION
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVPrinter
+import fi.fta.geoviite.infra.util.printCsv
 import java.math.BigDecimal
 
 const val COORDINATE_DECIMALS = 3
@@ -179,82 +179,71 @@ private fun toElementListing(
 fun planElementListingToCsv(
     trackNumbers: List<TrackLayoutTrackNumber>,
     elementListing: List<ElementListing>,
-): ByteArray {
-    val csvBuilder = StringBuilder()
-    CSVPrinter(csvBuilder, CSVFormat.RFC4180).let { csvPrinter ->
-        try {
-            csvPrinter.printRecord(PLAN_ELEMENT_LISTING_CSV_HEADERS)
-
-            elementListing.forEach {
-                csvPrinter.printRecord(
-                    it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
-                    it.alignmentName,
-                    it.elementType.let(::translateTrackGeometryElementType),
-                    it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                    it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                    it.start.coordinate.x,
-                    it.start.coordinate.y,
-                    it.end.coordinate.x,
-                    it.end.coordinate.y,
-                    it.lengthMeters,
-                    it.start.radiusMeters,
-                    it.end.radiusMeters,
-                    it.start.cant,
-                    it.end.cant,
-                    it.start.directionGrads,
-                    it.end.directionGrads,
-                    it.fileName,
-                    it.planSource,
-                    it.coordinateSystemSrid ?: it.coordinateSystemName
-                )
-
-            }
-        } finally {
-            csvPrinter.close()
-        }
-    }
-    return csvBuilder.toString().toByteArray()
-}
+) = printCsv(planCsvEntries(trackNumbers), elementListing)
 
 fun locationTrackElementListingToCsv(
     trackNumbers: List<TrackLayoutTrackNumber>,
     elementListing: List<ElementListing>,
-): ByteArray {
-    val csvBuilder = StringBuilder()
-    CSVPrinter(csvBuilder, CSVFormat.RFC4180).let { csvPrinter ->
-        try {
-            csvPrinter.printRecord(CONTINUOUS_ELEMENT_LISTING_CSV_HEADERS)
+) = printCsv(locationTrackCsvEntries(trackNumbers), elementListing)
 
-            elementListing.forEach {
-                csvPrinter.printRecord(
-                    it.trackNumberId.let { locationTrackTrackNumber -> trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number },
-                    it.locationTrackName,
-                    it.alignmentName,
-                    it.elementType.let(::translateTrackGeometryElementType),
-                    it.start.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                    it.end.address?.let { address -> formatTrackMeter(address.kmNumber, address.meters) },
-                    it.start.coordinate.x,
-                    it.start.coordinate.y,
-                    it.end.coordinate.x,
-                    it.end.coordinate.y,
-                    it.lengthMeters,
-                    it.start.radiusMeters,
-                    it.end.radiusMeters,
-                    it.start.cant,
-                    it.end.cant,
-                    it.start.directionGrads,
-                    it.end.directionGrads,
-                    it.fileName,
-                    it.planSource,
-                    it.coordinateSystemSrid ?: it.coordinateSystemName
-                )
-            }
-        } finally {
-            csvPrinter.close()
+private fun trackNumberCsvEntry(trackNumbers: List<TrackLayoutTrackNumber>) =
+    CsvEntry<ElementListing>(translateElementListingHeader(ElementListingHeader.TRACK_NUMBER)) {
+        it.trackNumberId.let { locationTrackTrackNumber ->
+            trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number
         }
     }
-    return csvBuilder.toString().toByteArray()
-}
+
+private val commonElementListingCsvEntries = arrayOf(
+    CsvEntry<ElementListing>(translateElementListingHeader(ElementListingHeader.PLAN_TRACK)) { it.alignmentName },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.ELEMENT_TYPE)) {
+        translateTrackGeometryElementType(
+            it.elementType
+        )
+    },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.TRACK_ADDRESS_START)) {
+        it.start.address?.let { address ->
+            formatTrackMeter(
+                address.kmNumber,
+                address.meters
+            )
+        }
+    },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.TRACK_ADDRESS_END)) {
+        it.end.address?.let { address ->
+            formatTrackMeter(
+                address.kmNumber,
+                address.meters
+            )
+        }
+    },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.CRS)) {
+        it.coordinateSystemSrid ?: it.coordinateSystemName
+    },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_START_E)) { it.start.coordinate.x },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_START_N)) { it.start.coordinate.y },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_END_E)) { it.end.coordinate.x },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_END_N)) { it.end.coordinate.y },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LENGTH)) { it.lengthMeters },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.RADIUS_START)) { it.start.radiusMeters },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.RADIUS_END)) { it.end.radiusMeters },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.CANT_START)) { it.start.cant },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.CANT_END)) { it.end.cant },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.DIRECTION_START)) { it.start.directionGrads },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.DIRECTION_END)) { it.end.directionGrads },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_NAME)) { it.fileName },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_SOURCE)) { it.planSource },
+)
+
+fun locationTrackCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
+    trackNumberCsvEntry(trackNumbers),
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_TRACK)) { it.locationTrackName },
+    *commonElementListingCsvEntries
+)
+
+fun planCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
+    trackNumberCsvEntry(trackNumbers),
+    *commonElementListingCsvEntries
+)
 
 private fun elementListing(
     context: GeocodingContext?,
