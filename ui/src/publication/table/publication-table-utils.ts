@@ -228,7 +228,9 @@ const calculatedChangesToPublicationTableRows = (
             publication.ratkoPushStatus === RatkoPushStatus.SUCCESSFUL
                 ? publication.ratkoPushTime
                 : null,
-        message: i18n.t('publication-table.calculated-change'),
+        message: publication.message
+            ? `${publication.message} (${i18n.t('publication-table.calculated-change')})`
+            : i18n.t('publication-table.calculated-change'),
     };
 
     const calculatedTrackNumbers = publishedTrackNumbersToTableRows(
