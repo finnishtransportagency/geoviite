@@ -128,7 +128,7 @@ const validateContinuousGeometry = (
         }),
         validate(
             state.searchFields.startTrackMeter === '' ||
-            trackMeterIsValid(state.searchFields.startTrackMeter),
+                trackMeterIsValid(state.searchFields.startTrackMeter),
             {
                 field: 'startTrackMeter',
                 reason: 'invalid-track-meter',
@@ -137,11 +137,11 @@ const validateContinuousGeometry = (
         ),
         validate(
             !trackMeterIsValid(state.searchFields.endTrackMeter) ||
-            !trackMeterIsValid(state.searchFields.startTrackMeter) ||
-            compareTrackMeterStrings(
-                state.searchFields.startTrackMeter,
-                state.searchFields.endTrackMeter,
-            ) <= 0,
+                !trackMeterIsValid(state.searchFields.startTrackMeter) ||
+                compareTrackMeterStrings(
+                    state.searchFields.startTrackMeter,
+                    state.searchFields.endTrackMeter,
+                ) <= 0,
             {
                 field: 'endTrackMeter',
                 reason: 'end-before-start',
@@ -150,7 +150,7 @@ const validateContinuousGeometry = (
         ),
         validate(
             state.searchFields.endTrackMeter === '' ||
-            trackMeterIsValid(state.searchFields.endTrackMeter),
+                trackMeterIsValid(state.searchFields.endTrackMeter),
             {
                 field: 'endTrackMeter' as keyof ContinuousSearchParameters,
                 reason: 'invalid-track-meter',
@@ -184,7 +184,7 @@ const continuousGeometrySearchSlice = createSlice({
         ) {
             state.committedFields = [...state.committedFields, key];
         },
-        onSetElements: function(
+        onSetElements: function (
             state: ElementListContinuousGeometrySearchState,
             { payload: elements }: PayloadAction<ElementItem[]>,
         ) {
@@ -214,7 +214,7 @@ const planSearchSlice = createSlice({
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
         },
-        onSetElements: function(
+        onSetElements: function (
             state: PlanGeometrySearchState,
             { payload: elements }: PayloadAction<ElementItem[]>,
         ) {
