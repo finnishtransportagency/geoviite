@@ -57,6 +57,8 @@ class InfraModelService @Autowired constructor(
             )
         }
 
+        require(geometryPlan.source != null) {"Plan source must be set"}
+
         return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
 
@@ -70,7 +72,7 @@ class InfraModelService @Autowired constructor(
         val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
 
         return parseGeometryPlan(
-            PlanSource.GEOVIITE,
+            null,
             file,
             encodingOverride?.let(::findXmlCharset),
             geographyService.getCoordinateSystemNameToSridMapping(),
@@ -148,6 +150,7 @@ class InfraModelService @Autowired constructor(
 
         val geometryPlan = geometryService.getGeometryPlan(planId)
         val overriddenPlan = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters, extraInfoParameters)
+        require(geometryPlan.source != null) {"Inframodel source must be set"}
 
         return geometryDao.updatePlan(planId, overriddenPlan)
     }
@@ -187,6 +190,7 @@ class InfraModelService @Autowired constructor(
             message = extraInfoParameters?.message ?: plan.message,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
+            source = extraInfoParameters?.source ?: plan.source,
         )
     }
 

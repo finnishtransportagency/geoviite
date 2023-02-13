@@ -25,7 +25,7 @@ export type GeometryElementId = string;
 export type GeometrySwitchId = string;
 export type GeometryKmPostId = string;
 
-export type PlanSource = 'GEOVIITE' | 'GEOMETRIAPALVELU' | 'PAIKANNUSPALVELU';
+export type PlanSource = 'GEOMETRIAPALVELU' | 'PAIKANNUSPALVELU';
 export type PlanState = 'ABANDONED' | 'DESTROYED' | 'EXISTING' | 'PROPOSED';
 export type CantTransitionType = 'LINEAR' | 'BIQUADRATIC_PARABOLA';
 
@@ -96,6 +96,7 @@ export type GeometryPlan = {
     planTime: Date | undefined;
     fileName: string;
     units: GeometryUnits;
+    source: PlanSource;
     trackNumberId: LayoutTrackNumberId | undefined;
     trackNumberDescription: string;
     alignments: GeometryAlignment[];

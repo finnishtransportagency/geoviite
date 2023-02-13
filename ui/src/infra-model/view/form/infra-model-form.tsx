@@ -4,6 +4,7 @@ import {
     GeometryAlignment,
     GeometryKmPost,
     GeometryPlan,
+    PlanSource,
     Project,
 } from 'geometry/geometry-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -72,7 +73,8 @@ export type EditablePlanField =
     | 'measurementMethod'
     | 'heightSystem'
     | 'author'
-    | 'createdTime';
+    | 'createdTime'
+    | 'source';
 
 function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
     const sorted = kmPosts
@@ -102,6 +104,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
     const [coordinateSystem, setCoordinateSystem] = React.useState<CoordinateSystemModel | null>();
+    const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
     const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | null>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
     const [projects, setProjects] = React.useState<Project[]>();
@@ -475,6 +478,45 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         extraInframodelParameters={extraInframodelParameters}
                         changeInExtraParametersField={changeInExtraParametersField}
                     />
+                    <FormgroupField
+                        label={t('im-form.plan-source')}
+                        inEditMode={fieldInEdit === 'source'}
+                        onEdit={() => setFieldInEdit('source')}
+                        onClose={() => setFieldInEdit(undefined)}>
+                        {fieldInEdit !== 'source' ? (
+                            planSource ? (
+                                t(`enum.plan-source.${planSource}`)
+                            ) : (
+                                t('im-form.information-missing')
+                            )
+                        ) : (
+                            <FieldLayout
+                                value={
+                                    <Dropdown
+                                        placeholder={t('im-form.coordinate-system-dropdown')}
+                                        value={planSource}
+                                        options={[
+                                            {
+                                                name: 'Geometriapalvelu',
+                                                value: 'GEOMETRIAPALVELU' as PlanSource,
+                                            },
+                                            {
+                                                name: 'Paikannuspalvelu',
+                                                value: 'PAIKANNUSPALVELU' as PlanSource,
+                                            },
+                                        ]}
+                                        onChange={(srid) => {
+                                            setPlanSource(srid);
+                                            changeInExtraParametersField(
+                                                srid as PlanSource,
+                                                'source',
+                                            );
+                                        }}
+                                    />
+                                }
+                            />
+                        )}
+                    </FormgroupField>
                 </FormgroupContent>
             </Formgroup>
 

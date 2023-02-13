@@ -109,7 +109,6 @@
             "UNKNOWN": "Ei tiedossa"
         },
         "plan-source": {
-            "GEOVIITE": "Geoviite",
             "GEOMETRIAPALVELU": "Geometriapalvelu",
             "PAIKANNUSPALVELU": "Paikannuspalvelu"
         },

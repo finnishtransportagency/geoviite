@@ -37,6 +37,7 @@ data class ExtraInfoParameters(
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,
     val message: FreeText?,
+    val source: PlanSource?,
 )
 
 data class OverrideParameters(
@@ -75,6 +76,7 @@ class InfraModelController @Autowired constructor(
             "decisionPhase" to extraInfoParameters?.decisionPhase,
             "measurementMethod" to extraInfoParameters?.measurementMethod,
             "message" to extraInfoParameters?.message,
+            "source" to extraInfoParameters?.source,
             "createdDate" to overrideParameters?.createdDate,
             "projectId" to overrideParameters?.projectId,
             "authorId" to overrideParameters?.authorId,

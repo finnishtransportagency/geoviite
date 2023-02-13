@@ -45,7 +45,7 @@ const PlanGeometrySearch = ({
             10,
             undefined,
             undefined,
-            ['GEOVIITE', 'GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+            ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
             [],
             searchTerm,
         ).then((t) => t.items);

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
@@ -73,6 +74,7 @@ export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
         <Dialog
             title={t('im-form.new-project-dialog-title')}
             onClose={onClose}
+            className={dialogStyles['dialog--normal']}
             footerContent={
                 <React.Fragment>
                     <Button

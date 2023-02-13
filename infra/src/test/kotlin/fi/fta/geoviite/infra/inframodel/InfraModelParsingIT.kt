@@ -124,7 +124,7 @@ class InfraModelParsingIT @Autowired constructor(
         assertEquals("ETRS89 / GK25FIN", infraModel.coordinateSystem?.name)
         assertEquals("2392", infraModel.coordinateSystem?.epsgCode)
         val converted = toGvtPlan(
-            PlanSource.GEOVIITE,
+            PlanSource.GEOMETRIAPALVELU,
             FileName(TESTFILE_SIMPLE),
             infraModel,
             coordinateSystemNameToSrid,
@@ -141,7 +141,7 @@ class InfraModelParsingIT @Autowired constructor(
     @Test
     fun differentSpiralsCanBeParsed() {
         val (parsed, _) = parseFromClasspath(
-            PlanSource.GEOVIITE,
+            PlanSource.GEOMETRIAPALVELU,
             TESTFILE_CLOTHOID_AND_PARABOLA,
             coordinateSystemNameToSrid,
             switchStructuresByType,

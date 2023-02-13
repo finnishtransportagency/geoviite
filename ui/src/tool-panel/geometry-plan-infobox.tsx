@@ -21,7 +21,7 @@ import { useLoader } from 'utils/react-utils';
 import CoordinateSystem from 'geoviite-design-lib/coordinate-system/coordinate-system';
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 import { TimeStamp } from 'common/common-model';
-import { UnreliableInframodelDownloadConfirmDialog } from 'infra-model/list/UnreliableInframodelDownloadConfirmDialog';
+import { UnreliableInfraModelDownloadConfirmDialog } from 'infra-model/list/unreliable-infra-model-download-confirm-dialog';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -182,7 +182,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {downloadConfirmPlan && (
-                <UnreliableInframodelDownloadConfirmDialog
+                <UnreliableInfraModelDownloadConfirmDialog
                     onClose={() => setDownloadConfirmPlan(undefined)}
                     plan={downloadConfirmPlan}
                 />

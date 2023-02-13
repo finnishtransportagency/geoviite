@@ -14,6 +14,7 @@ import {
     DecisionPhase,
     GeometryPlan,
     PlanPhase,
+    PlanSource,
     ProjectId,
 } from 'geometry/geometry-model';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
@@ -52,6 +53,7 @@ export type ExtraInfraModelParameters = {
     decisionPhase: DecisionPhase | undefined;
     measurementMethod: MeasurementMethod | undefined;
     message: Message | undefined;
+    source: PlanSource | undefined;
 };
 
 export type OverrideInfraModelParameters = {
@@ -105,6 +107,7 @@ export const initialInfraModelState: InfraModelState = {
         decisionPhase: undefined,
         measurementMethod: undefined,
         message: undefined,
+        source: undefined,
     },
     overrideInfraModelParameters: {
         coordinateSystemSrid: undefined,
@@ -253,6 +256,8 @@ function validateParams(
         errors.push(createError('measurementMethod', 'critical', ValidationErrorType.WARNING));
     extraParams.decisionPhase === undefined &&
         errors.push(createError('decisionPhase', 'critical', ValidationErrorType.WARNING));
+    extraParams.source === undefined &&
+        errors.push(createError('source', 'missing-source', ValidationErrorType.ERROR));
     overrideParams.createdDate === undefined &&
         plan?.planTime === undefined &&
         errors.push(createError('createdDate', 'critical', ValidationErrorType.WARNING));

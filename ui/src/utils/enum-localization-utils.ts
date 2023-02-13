@@ -25,15 +25,9 @@ function values<T>(keyBase: string, ...enumValues: T[]): LocalizedEnum<T>[] {
 
 export const planSources: LocalizedEnum<PlanSource>[] = values(
     'plan-source',
-    'GEOVIITE',
     'GEOMETRIAPALVELU',
     'PAIKANNUSPALVELU',
 );
-/* export const planSources: { value: PlanSource; name: string }[] = [
-    { value: 'GEOVIITE', name: i18n.t('enum.plan-source.GEOVIITE') },
-    { value: 'GEOMETRIAPALVELU', name: i18n.t('enum.plan-source.GEOMETRIAPALVELU') },
-    { value: 'PAIKANNUSPALVELU', name: i18n.t('enum.plan-source.PAIKANNUSPALVELU') },
-]; */
 
 export const layoutStates: { value: LayoutState; name: string }[] = [
     { value: 'PLANNED', name: i18n.t('enum.layout-state.PLANNED') },

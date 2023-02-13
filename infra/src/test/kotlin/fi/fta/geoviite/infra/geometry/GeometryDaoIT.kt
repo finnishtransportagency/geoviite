@@ -147,7 +147,7 @@ class GeometryDaoIT @Autowired constructor(
 
     @Test
     fun insertPlanWorks() {
-        val plan = plan(insertOfficialTrackNumber(), source = PlanSource.GEOVIITE)
+        val plan = plan(insertOfficialTrackNumber(), source = PlanSource.GEOMETRIAPALVELU)
         val fileContent = "<a></a>"
         val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
         val fetchedPlan = geometryDao.fetchPlan(id)
@@ -155,7 +155,7 @@ class GeometryDaoIT @Autowired constructor(
         assertPlansMatch(plan, fetchedPlan)
         assertEquals(fileContent, file.file.content)
         assertEquals(plan.fileName, file.file.name)
-        assertEquals(PlanSource.GEOVIITE, file.source)
+        assertEquals(PlanSource.GEOMETRIAPALVELU, file.source)
     }
 
     @Test

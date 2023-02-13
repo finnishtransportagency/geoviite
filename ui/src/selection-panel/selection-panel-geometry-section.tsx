@@ -86,7 +86,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             MAX_PLAN_HEADERS,
             0,
             viewport.area,
-            ['GEOVIITE', 'GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+            ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
             trackNumberFilter.map((tn) => tn.id),
             undefined,
             SortByValue.UPLOADED_AT,
