@@ -1,6 +1,6 @@
 import * as React from 'react';
 import PublicationTable from 'publication/table/publication-table';
-import { PublicationDetailsModel, PublicationTableRowModel } from 'publication/publication-model';
+import { PublicationDetails, PublicationTableItem } from 'publication/publication-model';
 import styles from './publication.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
@@ -8,17 +8,17 @@ import RatkoPublishButton from 'ratko/ratko-publish-button';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
-import { getPublicationAsTableRows } from 'publication/publication-api';
+import { getPublicationAsTableItems } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
 
-export type PublicationDetailsProps = {
-    publication: PublicationDetailsModel;
+export type PublicationDetailsViewProps = {
+    publication: PublicationDetails;
     onPublicationUnselected: () => void;
     anyFailed: boolean;
     changeTime: TimeStamp;
 };
 
-const PublicationDetails: React.FC<PublicationDetailsProps> = ({
+const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     publication,
     onPublicationUnselected,
     anyFailed,
@@ -27,13 +27,13 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     const { t } = useTranslation();
 
     const waitingAfterFail = publication.ratkoPushStatus === null && anyFailed;
-    const [publicationItems, setPublicationItems] = React.useState<PublicationTableRowModel[]>([]);
+    const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
 
     React.useEffect(() => {
         setIsLoading(true);
 
-        getPublicationAsTableRows(publication.id).then((p) => {
+        getPublicationAsTableItems(publication.id).then((p) => {
             p && setPublicationItems(p);
             setIsLoading(false);
         });
@@ -99,4 +99,4 @@ const PublicationDetails: React.FC<PublicationDetailsProps> = ({
     );
 };
 
-export default PublicationDetails;
+export default PublicationDetailsView;

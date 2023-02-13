@@ -1,8 +1,8 @@
 import * as React from 'react';
 import PublicationCard from 'publication/card/publication-card';
 import styles from './frontpage.scss';
-import PublicationDetails from 'publication/publication';
-import { PublicationDetailsModel, PublicationId } from 'publication/publication-model';
+import PublicationDetailsView from 'publication/publication';
+import { PublicationDetails, PublicationId } from 'publication/publication-model';
 import { useLoader, useLoaderWithTimer } from 'utils/react-utils';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
@@ -23,7 +23,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
     onSelectedPublicationChanged,
     changeTime,
 }) => {
-    const [publications, setPublications] = React.useState<PublicationDetailsModel[] | null>();
+    const [publications, setPublications] = React.useState<PublicationDetails[] | null>();
     const [ratkoStatus, setRatkoStatus] = React.useState<RatkoStatus | undefined>();
     const [showPublicationLog, setShowPublicationLog] = React.useState(false);
 
@@ -63,7 +63,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
                 <PublicationLog onClose={() => setShowPublicationLog(false)} />
             )}
             {publication && (
-                <PublicationDetails
+                <PublicationDetailsView
                     changeTime={changeTime}
                     publication={publication}
                     onPublicationUnselected={() => onSelectedPublicationChanged(undefined)}

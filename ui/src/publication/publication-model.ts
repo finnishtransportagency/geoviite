@@ -91,7 +91,7 @@ export type ValidatedPublishCandidates = {
     allChangesValidated: PublishCandidates;
 };
 
-export type PublicationDetailsModel = {
+export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
     publicationUser: string;
@@ -205,7 +205,7 @@ export type PublishedCalculatedChanges = {
     switches: PublishedSwitch[];
 };
 
-export type PublicationTableRowModel = {
+export type PublicationTableItem = {
     id: string; //Auto generated
     name: string;
     trackNumbers: TrackNumber[];

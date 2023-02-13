@@ -5,7 +5,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { currentDay } from 'utils/date-utils';
 import { endOfDay, startOfDay, subMonths } from 'date-fns';
-import { getPublicationsAsTableRows, getPublicationsCsvUri } from 'publication/publication-api';
+import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -14,7 +14,7 @@ import {
     PublicationDetailsTableSortInformation,
 } from 'publication/table/publication-table-utils';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
-import { PublicationTableRowModel } from 'publication/publication-model';
+import { PublicationTableItem } from 'publication/publication-model';
 import { Page } from 'api/api-fetch';
 
 export type PublicationLogProps = {
@@ -29,13 +29,12 @@ const PublicationLog: React.FC<PublicationLogProps> = ({ onClose }) => {
     const [sortInfo, setSortInfo] =
         React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [pagedPublications, setPagedPublications] =
-        React.useState<Page<PublicationTableRowModel>>();
+    const [pagedPublications, setPagedPublications] = React.useState<Page<PublicationTableItem>>();
 
     React.useEffect(() => {
         setIsLoading(true);
 
-        getPublicationsAsTableRows(
+        getPublicationsAsTableItems(
             startOfDay(startDate),
             endOfDay(endDate),
             sortInfo.propName,

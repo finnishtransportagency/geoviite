@@ -3,7 +3,7 @@ import { PublicationTableRow } from 'publication/table/publication-table-row';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './publication-table.scss';
-import { PublicationTableRowModel } from 'publication/publication-model';
+import { PublicationTableItem } from 'publication/publication-model';
 import {
     getSortDirectionIcon,
     getSortInfoForProp,
@@ -13,7 +13,7 @@ import {
 
 export type PublicationTableProps = {
     truncated?: boolean;
-    items: PublicationTableRowModel[];
+    items: PublicationTableItem[];
     sortInfo?: PublicationDetailsTableSortInformation;
     onSortChange?: (sortInfo: PublicationDetailsTableSortInformation) => void;
     isLoading?: boolean;

@@ -536,9 +536,9 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun getPublicationDetailsAsTableRows(id: IntId<Publication>): List<PublicationTableRow> {
+    fun getPublicationDetailsAsTableItems(id: IntId<Publication>): List<PublicationTableItem> {
         logger.serviceCall("getPublicationDetailsAsTableRows", "id" to id)
-        return getPublicationDetails(id).let(::mapToPublicationTableRows)
+        return getPublicationDetails(id).let(::mapToPublicationTableItems)
     }
 
     fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
@@ -556,7 +556,7 @@ class PublicationService @Autowired constructor(
         to: Instant? = null,
         sortBy: PublicationTableSortField? = null,
         order: SortOrder? = null,
-    ): List<PublicationTableRow> {
+    ): List<PublicationTableItem> {
         logger.serviceCall(
             "fetchPublicationDetails",
             "from" to from,
@@ -566,7 +566,7 @@ class PublicationService @Autowired constructor(
         )
 
         return fetchPublicationDetails(from, to)
-            .flatMap(this::mapToPublicationTableRows)
+            .flatMap(this::mapToPublicationTableItems)
             .let { publications ->
                 if (sortBy == null) publications
                 else publications.sortedWith(getComparator(sortBy, order))
@@ -649,7 +649,7 @@ class PublicationService @Autowired constructor(
         else if (b == null) -1
         else a.compareTo(b)
 
-    private fun getComparator(sortBy: PublicationTableSortField): Comparator<PublicationTableRow> {
+    private fun getComparator(sortBy: PublicationTableSortField): Comparator<PublicationTableItem> {
         return when (sortBy) {
             PublicationTableSortField.NAME -> Comparator.comparing { p -> p.name }
             PublicationTableSortField.TRACK_NUMBERS -> Comparator { a, b ->
@@ -670,9 +670,9 @@ class PublicationService @Autowired constructor(
         }
     }
 
-    private fun mapToPublicationTableRows(publication: PublicationDetails): List<PublicationTableRow> {
+    private fun mapToPublicationTableItems(publication: PublicationDetails): List<PublicationTableItem> {
         val trackNumbers = publication.trackNumbers.map { tn ->
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("track-number")} ${tn.number}",
                 trackNumberIds = setOf(tn.version.id),
                 operation = tn.operation,
@@ -683,7 +683,7 @@ class PublicationService @Autowired constructor(
         val referenceLines = publication.referenceLines.map { rl ->
             val trackNumber = getTrackNumberAtMomentOrThrow(rl.trackNumberId, publication.publicationTime)
 
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("reference-line")} ${trackNumber.number}",
                 trackNumberIds = setOf(rl.trackNumberId),
                 changedKmNumbers = rl.changedKmNumbers,
@@ -693,7 +693,7 @@ class PublicationService @Autowired constructor(
         }
 
         val locationTracks = publication.locationTracks.map { lt ->
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("location-track")} ${lt.name}",
                 trackNumberIds = setOf(lt.trackNumberId),
                 changedKmNumbers = lt.changedKmNumbers,
@@ -703,7 +703,7 @@ class PublicationService @Autowired constructor(
         }
 
         val switches = publication.switches.map { s ->
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("switch")} ${s.name}",
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
@@ -712,7 +712,7 @@ class PublicationService @Autowired constructor(
         }
 
         val kmPosts = publication.kmPosts.map { kp ->
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("km-post")} ${kp.kmNumber}",
                 trackNumberIds = setOf(kp.trackNumberId),
                 operation = kp.operation,
@@ -721,7 +721,7 @@ class PublicationService @Autowired constructor(
         }
 
         val calculatedTrackNumbers = publication.calculatedChanges.trackNumbers.map { tn ->
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("track-number")} ${tn.number}",
                 trackNumberIds = setOf(tn.version.id),
                 operation = tn.operation,
@@ -731,7 +731,7 @@ class PublicationService @Autowired constructor(
         }
 
         val calculatedLocationTracks = publication.calculatedChanges.locationTracks.map { lt ->
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("location-track")} ${lt.name}",
                 trackNumberIds = setOf(lt.trackNumberId),
                 changedKmNumbers = lt.changedKmNumbers,
@@ -742,7 +742,7 @@ class PublicationService @Autowired constructor(
         }
 
         val calculatedSwitches = publication.calculatedChanges.switches.map { s ->
-            mapToPublicationTableRow(
+            mapToPublicationTableItem(
                 name = "${getTranslation("switch")} ${s.name}",
                 trackNumberIds = s.trackNumberIds,
                 operation = s.operation,
@@ -761,14 +761,14 @@ class PublicationService @Autowired constructor(
                 + calculatedSwitches)
     }
 
-    private fun mapToPublicationTableRow(
+    private fun mapToPublicationTableItem(
         name: String,
         trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
         operation: Operation,
         publication: PublicationDetails,
         changedKmNumbers: List<KmNumber>? = null,
         isCalculatedChange: Boolean = false,
-    ) = PublicationTableRow(
+    ) = PublicationTableItem(
         name = name,
         trackNumbers = trackNumberIds.map { id ->
             getTrackNumberAtMomentOrThrow(id, publication.publicationTime).number

@@ -142,7 +142,7 @@ class PublicationController @Autowired constructor(
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableSortField?,
         @RequestParam("order", required = false) order: SortOrder?,
-    ): Page<PublicationTableRow> {
+    ): Page<PublicationTableItem> {
         logger.apiCall(
             "getPublicationDetailsAsTableRows",
             "from" to from,
@@ -167,9 +167,9 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{id}/table-rows")
-    fun getPublicationDetailsAsTableRows(@PathVariable("id") id: IntId<Publication>): List<PublicationTableRow> {
+    fun getPublicationDetailsAsTableRows(@PathVariable("id") id: IntId<Publication>): List<PublicationTableItem> {
         logger.apiCall("getPublicationDetailsAsTableRow", "id" to id)
-        return publicationService.getPublicationDetailsAsTableRows(id)
+        return publicationService.getPublicationDetailsAsTableItems(id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

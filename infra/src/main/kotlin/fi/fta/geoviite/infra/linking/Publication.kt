@@ -23,7 +23,7 @@ enum class PublicationTableSortField {
     RATKO_PUSH_TIME,
 }
 
-data class PublicationTableRow(
+data class PublicationTableItem(
     val name: String,
     val trackNumbers: List<TrackNumber>,
     val changedKmNumbers: List<KmNumber>? = null,
@@ -33,7 +33,7 @@ data class PublicationTableRow(
     val message: String,
     val ratkoPushTime: Instant?,
 ) {
-    val id: StringId<PublicationTableRow> = StringId(hashCode().toString())
+    val id: StringId<PublicationTableItem> = StringId(hashCode().toString())
 }
 
 open class Publication(

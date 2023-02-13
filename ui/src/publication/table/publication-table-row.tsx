@@ -2,7 +2,7 @@ import * as React from 'react';
 import { KmNumber } from 'common/common-model';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { PublicationTableRowModel } from 'publication/publication-model';
+import { PublicationTableItem } from 'publication/publication-model';
 import styles from './publication-table.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -42,7 +42,7 @@ const formatKmNumber = (kmNumbers: KmNumber[]) => {
         ));
 };
 
-type PublicationTableRowProps = Omit<PublicationTableRowModel, 'id'>;
+type PublicationTableRowProps = Omit<PublicationTableItem, 'id'>;
 
 export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     name,

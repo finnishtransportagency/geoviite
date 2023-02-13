@@ -9,9 +9,9 @@ import {
 } from 'api/api-fetch';
 import {
     CalculatedChanges,
-    PublicationDetailsModel,
+    PublicationDetails,
     PublicationId,
-    PublicationTableRowModel,
+    PublicationTableItem,
     PublishCandidates,
     PublishRequest,
     PublishRequestIds,
@@ -47,13 +47,13 @@ export const getPublicationDetails = (fromDate?: Date, toDate?: Date) => {
         to: toDate ? toDate.toISOString() : '',
     });
 
-    return getIgnoreError<Page<PublicationDetailsModel>>(`${PUBLICATION_URL}${params}`);
+    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
 };
 
-export const getPublicationAsTableRows = (id: PublicationId) =>
-    getIgnoreError<PublicationTableRowModel[]>(`${PUBLICATION_URL}/${id}/table-rows`);
+export const getPublicationAsTableItems = (id: PublicationId) =>
+    getIgnoreError<PublicationTableItem[]>(`${PUBLICATION_URL}/${id}/table-rows`);
 
-export const getPublicationsAsTableRows = (
+export const getPublicationsAsTableItems = (
     from?: Date,
     to?: Date,
     sortBy?: PublicationDetailsTableSortField,
@@ -68,7 +68,7 @@ export const getPublicationsAsTableRows = (
         order: isSorted ? order : undefined,
     });
 
-    return getIgnoreError<Page<PublicationTableRowModel>>(`${PUBLICATION_URL}/table-rows${params}`);
+    return getIgnoreError<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
 };
 
 export const getPublicationsCsvUri = (

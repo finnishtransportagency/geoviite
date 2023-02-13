@@ -7,16 +7,16 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { useTranslation } from 'react-i18next';
 import { ratkoPushFailed, ratkoPushInProgress } from 'ratko/ratko-model';
-import { PublicationDetailsModel } from 'publication/publication-model';
+import { PublicationDetails } from 'publication/publication-model';
 import { filterUnique } from 'utils/array-utils';
 
 type PublicationListProps = {
-    publications: PublicationDetailsModel[];
-    onPublicationSelect: (publication: PublicationDetailsModel) => void;
+    publications: PublicationDetails[];
+    onPublicationSelect: (publication: PublicationDetails) => void;
     anyFailed?: boolean;
 };
 
-const getPublicationTrackNumbers = (publication: PublicationDetailsModel) => {
+const getPublicationTrackNumbers = (publication: PublicationDetails) => {
     return [
         ...publication.trackNumbers.map((tn) => tn.id),
         ...publication.referenceLines.map((rl) => rl.trackNumberId),
