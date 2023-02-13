@@ -57,9 +57,9 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                         </tr>
                     </thead>
                     <tbody>
-                        {elements.map((item, index) => (
+                        {elements.map((item) => (
                             // Element list can contain the same element multiple times -> use index in list as key
-                            <React.Fragment key={`${index}`}>
+                            <React.Fragment key={`${item.id}`}>
                                 <ElementTableItem
                                     id={item.alignmentId}
                                     trackNumber={
