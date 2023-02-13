@@ -381,7 +381,7 @@ fun plan(
     trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
     coordinateSystemName: CoordinateSystemName? = null,
-    source: PlanSource = PlanSource.GEOMETRIAPALVELU,
+    source: PlanSource? = PlanSource.GEOMETRIAPALVELU,
 ): GeometryPlan {
     return GeometryPlan(
         source = source,

@@ -13,10 +13,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import java.lang.IllegalArgumentException
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 
@@ -164,6 +166,21 @@ class GeometryDaoIT @Autowired constructor(
         val plan = minimalPlan(fileName = file.name)
         val version = geometryDao.insertPlan(plan, file, null)
         assertPlansMatch(plan, geometryDao.fetchPlan(version))
+    }
+
+    @Test
+    fun `Trying to insert plan without source fails`() {
+        val plan = plan(insertOfficialTrackNumber(), source = null)
+        val fileContent = "<a></a>"
+        assertThrows<IllegalArgumentException> { geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null) }
+    }
+
+    @Test
+    fun `Trying to update plan source to null fails`() {
+        val plan = plan(insertOfficialTrackNumber(), source = PlanSource.GEOMETRIAPALVELU)
+        val fileContent = "<a></a>"
+        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
+        assertThrows<IllegalArgumentException> { geometryDao.updatePlan(id.id, plan.copy(source = null)) }
     }
 
     @Test

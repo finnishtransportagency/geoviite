@@ -57,8 +57,6 @@ class InfraModelService @Autowired constructor(
             )
         }
 
-        require(geometryPlan.source != null) {"Plan source must be set"}
-
         return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
 
@@ -150,7 +148,6 @@ class InfraModelService @Autowired constructor(
 
         val geometryPlan = geometryService.getGeometryPlan(planId)
         val overriddenPlan = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters, extraInfoParameters)
-        require(geometryPlan.source != null) {"Inframodel source must be set"}
 
         return geometryDao.updatePlan(planId, overriddenPlan)
     }

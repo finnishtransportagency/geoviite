@@ -48,6 +48,7 @@ class GeometryDao @Autowired constructor(
         file: InfraModelFile,
         boundingBoxInLayoutCoordinates: List<Point>?,
     ): RowVersion<GeometryPlan> {
+        require(plan.source != null) {"Plan source must be set"}
         jdbcTemplate.setUser()
 
         val projectId: IntId<Project> =
@@ -126,7 +127,7 @@ class GeometryDao @Autowired constructor(
                     else null,
             "vertical_coordinate_system" to plan.units.verticalCoordinateSystem?.name,
             "mapSrid" to LAYOUT_SRID.code,
-            "source" to plan.source?.name,
+            "source" to plan.source.name,
             "oid" to plan.oid?.toString(),
             "plan_phase" to plan.planPhase?.name,
             "plan_decision" to plan.decisionPhase?.name,
@@ -209,6 +210,7 @@ class GeometryDao @Autowired constructor(
         planId: IntId<GeometryPlan>,
         geometryPlan: GeometryPlan,
     ): GeometryPlan {
+        require(geometryPlan.source != null) {"Inframodel source must be set"}
         jdbcTemplate.setUser()
         val sql = """
             update geometry.plan
@@ -245,7 +247,7 @@ class GeometryDao @Autowired constructor(
             "plan_decision" to geometryPlan.decisionPhase?.name,
             "measurement_method" to geometryPlan.measurementMethod?.name,
             "message" to geometryPlan.message,
-            "source" to geometryPlan.source?.name,
+            "source" to geometryPlan.source.name,
         )
 
         check(jdbcTemplate.update(sql, params) > 0)
