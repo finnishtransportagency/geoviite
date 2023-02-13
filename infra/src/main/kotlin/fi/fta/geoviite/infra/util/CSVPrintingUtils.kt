@@ -8,18 +8,14 @@ data class CsvEntry<T>(
     val getValue: (data: T) -> Any?,
 )
 
-fun <T>printCsv(columns: List<CsvEntry<T>>, data: List<T>): ByteArray {
+fun <T> printCsv(columns: List<CsvEntry<T>>, data: List<T>): String {
     val csvBuilder = StringBuilder()
-    CSVPrinter(csvBuilder, CSVFormat.RFC4180).let { csvPrinter ->
-        try {
-            csvPrinter.printRecord(columns.map { it.header })
-            data.forEach { dataRow ->
-                columns.map { column -> csvPrinter.print(column.getValue(dataRow)) }
-                csvPrinter.println()
-            }
-        } finally {
-            csvPrinter.close()
+    CSVPrinter(csvBuilder, CSVFormat.RFC4180).use { csvPrinter ->
+        csvPrinter.printRecord(columns.map { it.header })
+        data.forEach { dataRow ->
+            columns.map { column -> csvPrinter.print(column.getValue(dataRow)) }
+            csvPrinter.println()
         }
     }
-    return csvBuilder.toString().toByteArray()
+    return csvBuilder.toString()
 }

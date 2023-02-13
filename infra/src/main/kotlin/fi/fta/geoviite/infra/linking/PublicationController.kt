@@ -113,7 +113,7 @@ class PublicationController @Autowired constructor(
     fun getPublicationsAsCsv(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
-        @RequestParam("sortBy", required = false) sortBy: PublicationTableSortField?,
+        @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
     ): ResponseEntity<ByteArray> {
@@ -140,7 +140,7 @@ class PublicationController @Autowired constructor(
     fun getPublicationDetailsAsTableRows(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
-        @RequestParam("sortBy", required = false) sortBy: PublicationTableSortField?,
+        @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
     ): Page<PublicationTableItem> {
         logger.apiCall(

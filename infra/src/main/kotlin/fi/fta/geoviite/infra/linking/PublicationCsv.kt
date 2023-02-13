@@ -1,14 +1,13 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
-import org.apache.commons.csv.CSVFormat
-import org.apache.commons.csv.CSVPrinter
+import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import java.io.StringWriter
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -43,36 +42,31 @@ fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<By
 }
 
 fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId = ZoneId.of("UTC")): String {
-    val writer = StringWriter()
-    CSVPrinter(writer, CSVFormat.RFC4180).let { printer ->
-        val headers = listOf(
-            "name",
-            "track-number",
-            "km-numbers",
-            "operation",
-            "publication-time",
-            "publication-user",
-            "message",
-            "ratko"
-        ).map { getTranslation("$it-header") }
-
-        printer.printRecord(headers)
-
-        items.forEach { item ->
-            printer.printRecord(
-                item.name,
-                item.trackNumbers.sorted().joinToString(", "),
-                item.changedKmNumbers?.let(::formatChangedKmNumbers),
-                formatOperation(item.operation),
-                formatInstant(item.publicationTime, timeZone),
-                item.publicationUser,
-                item.message,
-                item.ratkoPushTime?.let { pushTime -> formatInstant(pushTime, timeZone) } ?: getTranslation("no")
-            )
-        }
+    val columns = mapOf<PublicationTableColumn, (item: PublicationTableItem) -> Any?>(
+        PublicationTableColumn.NAME to { it.name },
+        PublicationTableColumn.TRACK_NUMBERS to {
+            it.trackNumbers.sorted().joinToString(", ")
+        },
+        PublicationTableColumn.CHANGED_KM_NUMBERS to {
+            it.changedKmNumbers?.let(::formatChangedKmNumbers)
+        },
+        PublicationTableColumn.OPERATION to { formatOperation(it.operation) },
+        PublicationTableColumn.PUBLICATION_TIME to { formatInstant(it.publicationTime, timeZone) },
+        PublicationTableColumn.PUBLICATION_USER to { it.publicationUser },
+        PublicationTableColumn.MESSAGE to { it.message },
+        PublicationTableColumn.RATKO_PUSH_TIME to {
+            it.ratkoPushTime?.let { pushTime ->
+                formatInstant(
+                    pushTime,
+                    timeZone
+                )
+            } ?: getTranslation("no")
+        },
+    ).map { (column, fn) ->
+        CsvEntry(getTranslation("$column-header"), fn)
     }
 
-    return writer.toString()
+    return printCsv(columns, items)
 }
 
 private fun formatInstant(time: Instant, timeZone: ZoneId) =
@@ -88,6 +82,15 @@ private fun formatOperation(operation: Operation) =
         Operation.DELETE -> getTranslation("delete")
         Operation.RESTORE -> getTranslation("restore")
     }
+
+fun formatMessage(message: String?, isCalculatedChange: Boolean): String {
+    val calculatedChangeTranslation = getTranslation("calculated-change")
+
+    return if (message == null) {
+        if (isCalculatedChange) calculatedChangeTranslation else ""
+    } else if (isCalculatedChange) "$message ($calculatedChangeTranslation)"
+    else message
+}
 
 private fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
     kmNumbers
@@ -120,12 +123,12 @@ private val publicationTranslations = mapOf(
     "modify" to "Muokkaus",
     "delete" to "Poisto",
     "restore" to "Palautus",
-    "name-header" to "Muutoskohde",
-    "track-number-header" to "Ratanro",
-    "km-numbers-header" to "Kilometrit",
-    "operation-header" to "Muutos",
-    "publication-time-header" to "Aika",
-    "publication-user-header" to "Käyttäjä",
-    "message-header" to "Selite",
-    "ratko-header" to "Viety Ratkoon"
+    "NAME-header" to "Muutoskohde",
+    "TRACK-NUMBERS-header" to "Ratanro",
+    "CHANGED_KM_NUMBERS-header" to "Kilometrit",
+    "OPERATION-header" to "Muutos",
+    "PUBLICATION_TIME-header" to "Aika",
+    "PUBLICATION_USER-header" to "Käyttäjä",
+    "MESSAGE-header" to "Selite",
+    "RATKO_PUSH_TIME-header" to "Viety Ratkoon"
 )

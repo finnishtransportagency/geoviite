@@ -554,7 +554,7 @@ class PublicationService @Autowired constructor(
     fun fetchPublicationDetails(
         from: Instant? = null,
         to: Instant? = null,
-        sortBy: PublicationTableSortField? = null,
+        sortBy: PublicationTableColumn? = null,
         order: SortOrder? = null,
     ): List<PublicationTableItem> {
         logger.serviceCall(
@@ -576,7 +576,7 @@ class PublicationService @Autowired constructor(
     fun fetchPublicationsAsCsv(
         from: Instant? = null,
         to: Instant? = null,
-        sortBy: PublicationTableSortField? = null,
+        sortBy: PublicationTableColumn? = null,
         order: SortOrder? = null,
         timeZone: ZoneId? = null,
     ): String {
@@ -639,7 +639,7 @@ class PublicationService @Autowired constructor(
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
     }
 
-    private fun getComparator(sortBy: PublicationTableSortField, order: SortOrder? = null) =
+    private fun getComparator(sortBy: PublicationTableColumn, order: SortOrder? = null) =
         if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
 
     //Nulls are "last", e.g., 0, 1, 2, null
@@ -649,22 +649,22 @@ class PublicationService @Autowired constructor(
         else if (b == null) -1
         else a.compareTo(b)
 
-    private fun getComparator(sortBy: PublicationTableSortField): Comparator<PublicationTableItem> {
+    private fun getComparator(sortBy: PublicationTableColumn): Comparator<PublicationTableItem> {
         return when (sortBy) {
-            PublicationTableSortField.NAME -> Comparator.comparing { p -> p.name }
-            PublicationTableSortField.TRACK_NUMBERS -> Comparator { a, b ->
+            PublicationTableColumn.NAME -> Comparator.comparing { p -> p.name }
+            PublicationTableColumn.TRACK_NUMBERS -> Comparator { a, b ->
                 compareNullableValues(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
             }
 
-            PublicationTableSortField.CHANGED_KM_NUMBERS -> Comparator { a, b ->
+            PublicationTableColumn.CHANGED_KM_NUMBERS -> Comparator { a, b ->
                 compareNullableValues(a.changedKmNumbers?.minOrNull(), b.changedKmNumbers?.minOrNull())
             }
 
-            PublicationTableSortField.OPERATION -> Comparator.comparing { p -> p.operation.priority }
-            PublicationTableSortField.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
-            PublicationTableSortField.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
-            PublicationTableSortField.MESSAGE -> Comparator.comparing { p -> p.message }
-            PublicationTableSortField.RATKO_PUSH_TIME -> Comparator { a, b ->
+            PublicationTableColumn.OPERATION -> Comparator.comparing { p -> p.operation.priority }
+            PublicationTableColumn.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
+            PublicationTableColumn.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
+            PublicationTableColumn.MESSAGE -> Comparator.comparing { p -> p.message }
+            PublicationTableColumn.RATKO_PUSH_TIME -> Comparator { a, b ->
                 compareNullableValues(a.ratkoPushTime, b.ratkoPushTime)
             }
         }
@@ -777,7 +777,7 @@ class PublicationService @Autowired constructor(
         operation = operation,
         publicationTime = publication.publicationTime,
         publicationUser = publication.publicationUser,
-        message = publication.message + if (isCalculatedChange) " ${getTranslation("calculated-change")}" else "",
+        message = formatMessage(publication.message, isCalculatedChange),
         ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
     )
 

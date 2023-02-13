@@ -237,7 +237,7 @@ class GeometryService @Autowired constructor(
         val elementListing = getElementListing(planId, elementTypes)
 
         val csvFileContent = planElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        return FileName("$ELEMENT_LISTING ${plan.fileName}") to csvFileContent
+        return FileName("$ELEMENT_LISTING ${plan.fileName}") to csvFileContent.toByteArray()
     }
 
     fun getElementListing(
@@ -276,7 +276,7 @@ class GeometryService @Autowired constructor(
         val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent
+        return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {

@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
 
-enum class PublicationTableSortField {
+enum class PublicationTableColumn {
     NAME,
     TRACK_NUMBERS,
     CHANGED_KM_NUMBERS,
