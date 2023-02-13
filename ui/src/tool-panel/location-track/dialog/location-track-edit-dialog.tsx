@@ -37,7 +37,6 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { createClassName } from 'vayla-design-lib/utils';
 import { debounceAsync } from 'utils/async-utils';
-import { isNullOrBlank } from 'utils/string-utils';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import styles from './location-track-edit-dialog.scss';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
@@ -53,6 +52,8 @@ export type LocationTrackDialogProps = {
     existingDuplicateTrack?: LayoutLocationTrack | undefined;
     duplicatesExist?: boolean;
 };
+
+const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
 
 export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     props: LocationTrackDialogProps,
@@ -196,8 +197,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`location-track-dialog.${error.reason}`))
+                .filter((error) => error.field == prop)
+                .map((error) => t(`location-track-dialog.${error.reason}`))
             : [];
     }
 
@@ -210,20 +211,10 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         type: 'locationTrackSearchItem';
     };
 
-    function searchLocationTracks(searchTerm: string): Promise<LayoutLocationTrack[]> {
-        if (isNullOrBlank(searchTerm)) {
-            return Promise.resolve([]);
-        }
-
-        return getLocationTracksBySearchTerm(searchTerm, props.publishType, 10);
-    }
-
-    // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetLocationTrackOptions = debounceAsync(searchLocationTracks, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
     const getDuplicateTrackOptions = React.useCallback(
         (searchTerm) =>
-            debouncedGetLocationTrackOptions(searchTerm).then((locationTracks) =>
+            debouncedSearchTracks(searchTerm, props.publishType, 10).then((locationTracks) =>
                 locationTracks
                     .filter((lt) => {
                         return lt.id !== props.locationTrack?.id && lt.duplicateOf === null;
@@ -484,9 +475,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={
                                         props.locationTrack
                                             ? roundToPrecision(
-                                                  props.locationTrack.length,
-                                                  Precision.alignmentLengthMeters,
-                                              )
+                                                props.locationTrack.length,
+                                                Precision.alignmentLengthMeters,
+                                            )
                                             : '-'
                                     }
                                     wide
