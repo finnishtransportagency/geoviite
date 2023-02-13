@@ -204,3 +204,15 @@ export type PublishedCalculatedChanges = {
     locationTracks: PublishedLocationTrack[];
     switches: PublishedSwitch[];
 };
+
+export type PublicationTableItem = {
+    id: string; //Auto generated
+    name: string;
+    trackNumbers: TrackNumber[];
+    changedKmNumbers: KmNumber[];
+    operation: Operation;
+    publicationTime: TimeStamp;
+    publicationUser: string;
+    message: string;
+    ratkoPushTime: TimeStamp;
+};

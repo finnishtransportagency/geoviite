@@ -4,7 +4,6 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
 
 export type TableProps = {
-    foo?: string;
     wide?: boolean;
 } & React.HTMLProps<HTMLTableElement>;
 

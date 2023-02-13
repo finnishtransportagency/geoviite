@@ -10,6 +10,11 @@
     margin-bottom: 12px;
     display: flex;
 
+    > div {
+        margin-top: auto;
+        margin-bottom: auto;
+    }
+
     &__status {
         border-radius: 4px;
         width: 8px;
@@ -27,11 +32,6 @@
 
             background: $color-blue-default;
         }
-    }
-
-    > div {
-        margin-top: auto;
-        margin-bottom: auto;
     }
 
     &__text {

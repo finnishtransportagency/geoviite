@@ -3,6 +3,10 @@
 @import '../vayla-design-lib/shadows';
 
 .publication-details {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+
     &__title {
         @include typography-body;
 
@@ -15,12 +19,6 @@
 
     &__publication-time {
         white-space: pre;
-    }
-
-    &__publication {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
     }
 
     &__footer {

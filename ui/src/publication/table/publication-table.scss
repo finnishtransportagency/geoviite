@@ -1,42 +1,58 @@
-.publication-table__container {
+@import 'vayla-design-lib/colors';
+
+.publication-table {
     overflow-y: auto;
     height: 100%;
-}
 
-.publication-table__header {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-.publication-table__count-header {
-    margin-bottom: 12px;
-}
-
-.publication-table__message-column {
-    max-width: 200px;
-}
-
-.publication-table__message-content {
-    text-overflow: ellipsis;
-    overflow: hidden;
-
-    &--collapsed {
-        white-space: nowrap;
+    &__table-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
     }
 
-    &--expanded {
-        white-space: pre-wrap;
-    }
-}
-
-.publication-table__message-icon {
-    float: right;
-    .icon {
-        transition: transform 150ms;
+    &__count-header {
+        margin-bottom: 12px;
     }
 
-    &--open .icon {
-        transform: rotate(180deg);
+    &__message-column {
+        max-width: 200px;
+    }
+
+    &__message-content {
+        text-overflow: ellipsis;
+        overflow: hidden;
+
+        &--collapsed {
+            white-space: nowrap;
+        }
+
+        &--expanded {
+            white-space: pre-wrap;
+        }
+    }
+
+    &__message-icon {
+        float: right;
+        .icon {
+            transition: transform 150ms;
+        }
+
+        &--open .icon {
+            transform: rotate(180deg);
+        }
+    }
+
+    &__table-container {
+        position: relative;
+    }
+
+    &__backdrop {
+        position: absolute;
+        z-index: 1;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba($color-white-default, 0.67);
     }
 }
