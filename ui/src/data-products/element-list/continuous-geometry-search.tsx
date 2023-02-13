@@ -91,8 +91,11 @@ const ContinuousGeometrySearch = ({
 
     useLoader(() => {
         return (
-            !state.searchParameters.locationTrack || hasErrors('searchGeometries')
-                ? Promise.resolve([])
+            !state.searchParameters.locationTrack ||
+            hasErrors('searchGeometries') ||
+            hasErrors('startTrackMeter') ||
+            hasErrors('endTrackMeter')
+                ? Promise.resolve(state.elements)
                 : getLocationTrackElements(
                       state.searchParameters.locationTrack.id,
                       selectedElementTypes(state.searchParameters.searchGeometries),
