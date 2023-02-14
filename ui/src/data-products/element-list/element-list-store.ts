@@ -93,7 +93,7 @@ export const initialContinuousSearchState: ElementListContinuousGeometrySearchSt
     committedFields: [],
 };
 
-const clotoidTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
+const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
 export const selectedElementTypes = (
     searchGeometry: SearchGeometries,
 ): GeometryTypeIncludingMissing[] =>
@@ -102,7 +102,7 @@ export const selectedElementTypes = (
         searchGeometry.searchCurves ? GeometryType.CURVE : undefined,
         searchGeometry.searchMissingGeometry ? MissingSection.MISSING_SECTION : undefined,
     ]
-        .concat(searchGeometry.searchClothoids ? clotoidTypes : [])
+        .concat(searchGeometry.searchClothoids ? spiralTypes : [])
         .filter(filterNotEmpty);
 
 const hasAtLeastOneTypeSelected = ({
