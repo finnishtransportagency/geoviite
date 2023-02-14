@@ -302,7 +302,7 @@ private fun getStartLocation(
     address = getAddress(context, transformation, element.start),
     directionGrads = getDirectionGrads(element.startDirectionRads),
     radiusMeters = getStartRadius(element),
-    cant = getStartCant(alignment, element)
+    cant = getStartCant(alignment, element),
 )
 
 private fun getEndLocation(
@@ -315,7 +315,7 @@ private fun getEndLocation(
     address = getAddress(context, transformation, element.end),
     directionGrads = getDirectionGrads(element.endDirectionRads),
     radiusMeters = getEndRadius(element),
-    cant = getEndCant(alignment, element)
+    cant = getEndCant(alignment, element),
 )
 
 private fun collectLinkedElements(
