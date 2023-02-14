@@ -17,6 +17,7 @@ import {
     InfraModelViewType,
     OnPlanFetchReady,
     OverrideInfraModelParameters,
+    XmlCharset,
 } from 'infra-model/infra-model-store';
 import {
     GeometryElement,
@@ -42,7 +43,7 @@ import { Prop } from 'utils/type-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import { useTranslation } from 'react-i18next';
 import { InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
-import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
@@ -71,15 +72,12 @@ export type InfraModelViewProps = InfraModelState & {
     onCommitField: (fieldName: string) => void;
 };
 
-const XmlEncodings = ['ISO-8859-1', 'UTF-8', 'UTF-16', 'US ASCII'];
-
-const XmlEncodingsToDropdownEntries = () =>
-    XmlEncodings.map((encoding) => {
-        return {
-            name: encoding,
-            value: encoding,
-        };
-    });
+const xmlEncodingOptions: Item<XmlCharset>[] = [
+    { name: 'ISO-8859-1', value: 'ISO_8859_1' },
+    { name: 'UTF-8', value: 'UTF_8' },
+    { name: 'UTF-16', value: 'UTF_16' },
+    { name: 'US ASCII', value: 'US_ASCII' },
+];
 
 const getFormFile = (
     file?: Blob,
@@ -140,7 +138,6 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
 
     const [file, setFile] = React.useState<File>();
     const [loadingInProgress, setLoadingInProgress] = React.useState(false);
-    const [showMap, setShowMap] = React.useState<boolean>();
 
     const [infraModelValidationResponse, setInfraModelValidationResponse] =
         React.useState<ValidationResponse | null>(null);
@@ -152,7 +149,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     const [showFileHandlingFailed, setShowFileHandlingFailed] = React.useState(false);
     const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
     const [showCharsetPicker, setShowCharsetPicker] = React.useState(false);
-    const [charsetOverride, setCharsetOverride] = React.useState<string | undefined>(undefined);
+    const [charsetOverride, setCharsetOverride] = React.useState<XmlCharset | undefined>(undefined);
 
     const fileMenuItems = [
         { value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') },
@@ -202,25 +199,23 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         const response =
             props.viewType === InfraModelViewType.UPLOAD
                 ? await getValidationResponseForFile(file, overrideParameters)
-                : await getValidationResponseGeometryPlan(
-                      (props.plan as GeometryPlan).id,
-                      overrideParameters,
-                  );
+                : props.plan
+                ? await getValidationResponseGeometryPlan(props.plan.id, overrideParameters)
+                : null;
 
         setInfraModelValidationResponse(response);
 
-        const processingErrors = response.validationErrors
-            .filter((e) => e.errorType === 'PARSING_ERROR' || e.errorType === 'REQUEST_ERROR')
-            .map((item) => item.localizationKey);
+        const processingErrors =
+            response?.validationErrors
+                .filter((e) => e.errorType === 'PARSING_ERROR' || e.errorType === 'REQUEST_ERROR')
+                .map((item) => item.localizationKey) || [];
         setFileHandlingFailedErrors(processingErrors);
         setShowFileHandlingFailed(processingErrors.length > 0);
 
         props.onPlanFetchReady({
-            plan: response.geometryPlan,
-            planLayout: response.planLayout,
+            plan: response?.geometryPlan || null,
+            planLayout: response?.planLayout || null,
         });
-
-        setShowMap(response.planLayout != undefined);
     };
 
     const getFieldValidationWarnings = () => {
@@ -257,6 +252,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     }, [file, props.overrideInfraModelParameters]);
 
     const navigateToList = () => navigate('inframodel-list');
+    const showMap = infraModelValidationResponse?.planLayout != undefined;
 
     return (
         <div className={styles['infra-model-upload']}>
@@ -368,7 +364,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         onClickLocation={props.onClickLocation}
                     />
                 )}
-                {showMap === false && <div className={styles['infra-model-upload__error-photo']} />}
+                {!showMap && <div className={styles['infra-model-upload__error-photo']} />}
             </div>
             {showCriticalWarning && (
                 <Dialog
@@ -410,6 +406,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     title={t('im-form.file-handling-failed.title')}
                     scrollable={false}
                     className={dialogStyles['dialog--wide']}
+                    onClose={() => setShowFileHandlingFailed(false)}
                     footerContent={
                         <React.Fragment>
                             {showCharsetPicker && (
@@ -455,7 +452,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 {t('im-form.file-handling-failed.encoding')}
                             </label>
                             <Dropdown
-                                options={XmlEncodingsToDropdownEntries()}
+                                options={xmlEncodingOptions}
                                 value={charsetOverride}
                                 onChange={setCharsetOverride}
                             />
@@ -468,6 +465,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     title={t('im-form.file-handling-failed.change-encoding')}
                     scrollable={false}
                     className={dialogStyles['dialog--wide']}
+                    onClose={() => setShowChangeCharsetDialog(false)}
                     footerContent={
                         <React.Fragment>
                             <Button
@@ -489,7 +487,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('im-form.file-handling-failed.encoding')}
                         </label>
                         <Dropdown
-                            options={XmlEncodingsToDropdownEntries()}
+                            options={xmlEncodingOptions}
                             value={charsetOverride}
                             onChange={setCharsetOverride}
                         />

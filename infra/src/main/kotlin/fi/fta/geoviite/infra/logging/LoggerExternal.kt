@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.logging
 
+import fi.fta.geoviite.infra.util.formatForLog
 import fi.fta.geoviite.infra.util.resetCollected
 import org.slf4j.Logger
 import org.springframework.web.reactive.function.client.ClientRequest
@@ -52,7 +53,8 @@ fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
     debug("method=$method params=${paramsToLog(params)}")
 }
 
-fun paramsToLog(params: Array<out Pair<String, *>>): List<String> = params.map { p -> "${p.first}=${p.second}" }
+fun paramsToLog(params: Array<out Pair<String, *>>): List<String> =
+    params.map { p -> "${p.first}=${p.second?.let { formatForLog(it.toString(), 1000) }}" }
 
 fun Logger.integrationCall(method: String, vararg params: Pair<String, *>) {
     info("method=$method params=${paramsToLog(params)}")

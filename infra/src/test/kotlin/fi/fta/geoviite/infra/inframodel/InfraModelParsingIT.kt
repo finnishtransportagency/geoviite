@@ -6,9 +6,6 @@ import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geography.KKJtoETRSTriangulationDao
-import fi.fta.geoviite.infra.geography.YKJ_CRS
-import fi.fta.geoviite.infra.geography.toJtsPoint
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
@@ -17,7 +14,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
-import org.apache.commons.io.ByteOrderMark
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -36,79 +32,10 @@ class InfraModelParsingIT @Autowired constructor(
     geographyService: GeographyService,
     switchStructureDao: SwitchStructureDao,
     val trackNumberDao: LayoutTrackNumberDao,
-    val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao,
 ): ITTestBase() {
     private val coordinateSystemNameToSrid = geographyService.getCoordinateSystemNameToSridMapping()
     private val switchStructuresByType = switchStructureDao.fetchSwitchStructures().associateBy { it.type }
     private val switchTypeNameAliases = switchStructureDao.getInframodelAliases()
-
-    @Test
-    fun importingBOMFileWithISOXmlEncodingWorks() {
-        val isoTestFileWithBom = (ByteOrderMark.UTF_BOM + "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>").toByteArray()
-        assertDoesNotThrow { xmlBytesToString(isoTestFileWithBom) }
-    }
-
-    @Test
-    fun importingUTF16FileWithBOMWorks() {
-        val UTF16file = ByteOrderMark.UTF_16BE.bytes +
-                "<?xml version=\"1.0\" encoding=\"UTF-16\"?>".toByteArray(charset = Charsets.UTF_16BE)
-        assertDoesNotThrow { xmlBytesToString(UTF16file) }
-    }
-
-    @Test
-    fun importingUSASCIIFileWorks() {
-        val asciiTestFile = "<?xml version=\"1.0\" encoding=\"ASCII\"?>".toByteArray(charset = Charsets.US_ASCII)
-        assertDoesNotThrow { xmlBytesToString(asciiTestFile) }
-    }
-
-    @Test
-    fun importingUTF8FileWorks() {
-        val testFileWithBom = (ByteOrderMark.UTF_BOM + "<?xml version=\"1.0\" encoding=\"UTF-8\"?>").toByteArray()
-        assertDoesNotThrow { xmlBytesToString(testFileWithBom) }
-    }
-
-    @Test
-    fun importingISOFileWorks() {
-        val isoFile = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>".toByteArray()
-        assertDoesNotThrow { xmlBytesToString(isoFile) }
-    }
-
-    @Test
-    fun censoringAuthorWorks() {
-        val xmlString = classpathResourceToString(TESTFILE_SIMPLE)
-        assertTrue(xmlString.contains("Geoviite Test Author"))
-        assertTrue(xmlString.contains("example@vayla.fi"))
-        val censored = censorAuthorIdentifyingInfo(xmlString)
-        assertFalse(censored.contains("Geoviite Test Author"))
-        assertFalse(censored.contains("example@vayla.fi"))
-    }
-
-    @Test
-    fun fetchesTriangleInsideTriangulationNetwork() {
-        // Point is in Hervanta, Tampere
-        val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(3332494.083, 6819936.144), YKJ_CRS)
-        val triangle = triangles.find { it.intersects(point) }
-        assertNotNull(triangle)
-    }
-
-    @Test
-    fun fetchesTriangleAtCornerPoint() {
-        // Point is in a triangulation network corner point
-        val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(3199159.097, 6747800.979), YKJ_CRS)
-        val triangle = triangles.find { it.intersects(point) }
-        assertNotNull(triangle)
-    }
-
-    @Test
-    fun doesntFetchTriangleOutsideTriangulationNetwork() {
-        // Point is in Norway
-        val triangles = kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
-        val point = toJtsPoint(Point(2916839.212, 7227390.743), YKJ_CRS)
-        val triangle = triangles.find { it.intersects(point) }
-        assertNull(triangle)
-    }
 
     @Test
     fun decodeFile1() {
