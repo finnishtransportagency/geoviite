@@ -48,7 +48,6 @@ class GeometryDao @Autowired constructor(
         file: InfraModelFile,
         boundingBoxInLayoutCoordinates: List<Point>?,
     ): RowVersion<GeometryPlan> {
-        require(plan.source != null) {"Inframodel source must be set"}
         jdbcTemplate.setUser()
 
         val projectId: IntId<Project> =
@@ -210,7 +209,6 @@ class GeometryDao @Autowired constructor(
         planId: IntId<GeometryPlan>,
         geometryPlan: GeometryPlan,
     ): GeometryPlan {
-        require(geometryPlan.source != null) {"Inframodel source must be set"}
         jdbcTemplate.setUser()
         val sql = """
             update geometry.plan

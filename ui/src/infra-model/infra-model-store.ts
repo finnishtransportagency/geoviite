@@ -53,7 +53,6 @@ export type ExtraInfraModelParameters = {
     decisionPhase: DecisionPhase | undefined;
     measurementMethod: MeasurementMethod | undefined;
     message: Message | undefined;
-    source: PlanSource | undefined;
 };
 
 export type OverrideInfraModelParameters = {
@@ -64,6 +63,7 @@ export type OverrideInfraModelParameters = {
     trackNumberId?: LayoutTrackNumberId;
     createdDate: Date | undefined;
     encoding?: string;
+    source: PlanSource | undefined;
 };
 
 export type InfraModelParameters = ExtraInfraModelParameters & OverrideInfraModelParameters;
@@ -107,12 +107,12 @@ export const initialInfraModelState: InfraModelState = {
         decisionPhase: undefined,
         measurementMethod: undefined,
         message: undefined,
-        source: undefined,
     },
     overrideInfraModelParameters: {
         coordinateSystemSrid: undefined,
         verticalCoordinateSystem: undefined,
         createdDate: undefined,
+        source: undefined,
     },
     validationErrors: [],
     committedFields: [],
@@ -256,8 +256,6 @@ function validateParams(
         errors.push(createError('measurementMethod', 'critical', ValidationErrorType.WARNING));
     extraParams.decisionPhase === undefined &&
         errors.push(createError('decisionPhase', 'critical', ValidationErrorType.WARNING));
-    extraParams.source === undefined &&
-        errors.push(createError('source', 'missing-source', ValidationErrorType.ERROR));
     overrideParams.createdDate === undefined &&
         plan?.planTime === undefined &&
         errors.push(createError('createdDate', 'critical', ValidationErrorType.WARNING));

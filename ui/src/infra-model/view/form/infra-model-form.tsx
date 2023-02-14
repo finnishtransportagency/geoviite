@@ -507,7 +507,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         ]}
                                         onChange={(srid) => {
                                             setPlanSource(srid);
-                                            changeInExtraParametersField(
+                                            changeInOverrideParametersField(
                                                 srid as PlanSource,
                                                 'source',
                                             );

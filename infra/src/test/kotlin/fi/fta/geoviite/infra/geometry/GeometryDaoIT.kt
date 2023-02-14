@@ -169,21 +169,6 @@ class GeometryDaoIT @Autowired constructor(
     }
 
     @Test
-    fun `Trying to insert plan without source fails`() {
-        val plan = plan(insertOfficialTrackNumber(), source = null)
-        val fileContent = "<a></a>"
-        assertThrows<IllegalArgumentException> { geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null) }
-    }
-
-    @Test
-    fun `Trying to update plan source to null fails`() {
-        val plan = plan(insertOfficialTrackNumber(), source = PlanSource.GEOMETRIAPALVELU)
-        val fileContent = "<a></a>"
-        val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
-        assertThrows<IllegalArgumentException> { geometryDao.updatePlan(id.id, plan.copy(source = null)) }
-    }
-
-    @Test
     fun minimalElementInsertsWork() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
         val plan = plan(

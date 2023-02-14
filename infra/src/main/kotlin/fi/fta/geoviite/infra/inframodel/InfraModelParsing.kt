@@ -118,7 +118,7 @@ fun parseGeometryPlan(
 }
 
 fun parseGeometryPlan(
-    source: PlanSource?,
+    source: PlanSource,
     file: MultipartFile,
     fileEncodingOverride: Charset?,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
@@ -160,7 +160,7 @@ fun toInfraModelFile(fileName: String, fileContent: String) =
     InfraModelFile(name = FileName(fileName), content = censorAuthorIdentifyingInfo(fileContent))
 
 fun parseFromString(
-    source: PlanSource?,
+    source: PlanSource,
     file: InfraModelFile,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,

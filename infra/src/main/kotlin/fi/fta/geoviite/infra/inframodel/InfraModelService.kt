@@ -70,7 +70,7 @@ class InfraModelService @Autowired constructor(
         val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
 
         return parseGeometryPlan(
-            null,
+            PlanSource.GEOMETRIAPALVELU,
             file,
             encodingOverride?.let(::findXmlCharset),
             geographyService.getCoordinateSystemNameToSridMapping(),
@@ -100,6 +100,7 @@ class InfraModelService @Autowired constructor(
                 )),
                 geometryPlan = null,
                 planLayout = null,
+                source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU
             )
         }
 
@@ -132,7 +133,7 @@ class InfraModelService @Autowired constructor(
             pointListStepLength = 10,
         )
         val validationErrors = validateGeometryPlanContent(planWithParameters) + listOfNotNull(layoutCreationError)
-        return ValidationResponse(validationErrors, planWithParameters, planLayout)
+        return ValidationResponse(validationErrors, planWithParameters, planLayout, plan.source)
     }
 
     fun updateInfraModel(
@@ -187,7 +188,7 @@ class InfraModelService @Autowired constructor(
             message = extraInfoParameters?.message ?: plan.message,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
-            source = extraInfoParameters?.source ?: plan.source,
+            source = overrideParameters?.source ?: plan.source,
         )
     }
 

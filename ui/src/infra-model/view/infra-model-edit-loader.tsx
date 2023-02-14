@@ -31,7 +31,6 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
                                 ? plan.measurementMethod
                                 : undefined,
                             message: plan.message ? plan.message : undefined,
-                            source: plan.source ? plan.source : undefined,
                         },
                     });
                     setIsLoading(false);

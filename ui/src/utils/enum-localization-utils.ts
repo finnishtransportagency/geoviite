@@ -16,18 +16,17 @@ export interface LocalizedEnum<T> {
     name: string;
 }
 
-function values<T>(keyBase: string, ...enumValues: T[]): LocalizedEnum<T>[] {
+function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
     return enumValues.map((v) => ({
         value: v,
         name: i18n.t(`enum.${keyBase}.${v}`),
     }));
 }
 
-export const planSources: LocalizedEnum<PlanSource>[] = values(
-    'plan-source',
+export const planSources: LocalizedEnum<PlanSource>[] = values('plan-source', [
     'GEOMETRIAPALVELU',
     'PAIKANNUSPALVELU',
-);
+]);
 
 export const layoutStates: { value: LayoutState; name: string }[] = [
     { value: 'PLANNED', name: i18n.t('enum.layout-state.PLANNED') },

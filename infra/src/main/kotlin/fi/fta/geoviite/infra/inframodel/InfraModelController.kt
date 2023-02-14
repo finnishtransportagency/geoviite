@@ -24,6 +24,7 @@ data class ValidationResponse(
     val validationErrors: List<ValidationError>,
     val geometryPlan: GeometryPlan?,
     val planLayout: GeometryPlanLayout?,
+    val source: PlanSource,
 )
 
 data class InsertResponse(
@@ -37,7 +38,6 @@ data class ExtraInfoParameters(
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,
     val message: FreeText?,
-    val source: PlanSource?,
 )
 
 data class OverrideParameters(
@@ -47,7 +47,8 @@ data class OverrideParameters(
     val authorId: IntId<Author>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val createdDate: Instant?,
-    val encoding: String?
+    val encoding: String?,
+    val source: PlanSource?,
 )
 
 @RestController
@@ -69,19 +70,8 @@ class InfraModelController @Autowired constructor(
         logger.apiCall(
             "saveInfraModel",
             "file.originalFilename" to file.originalFilename,
-            "coordinateSystemSrid" to overrideParameters?.coordinateSystemSrid,
-            "verticalCoordinateSystem" to overrideParameters?.verticalCoordinateSystem,
-            "oid" to extraInfoParameters?.oid,
-            "planPhase" to extraInfoParameters?.planPhase,
-            "decisionPhase" to extraInfoParameters?.decisionPhase,
-            "measurementMethod" to extraInfoParameters?.measurementMethod,
-            "message" to extraInfoParameters?.message,
-            "source" to extraInfoParameters?.source,
-            "createdDate" to overrideParameters?.createdDate,
-            "projectId" to overrideParameters?.projectId,
-            "authorId" to overrideParameters?.authorId,
-            "trackNumberId" to overrideParameters?.trackNumberId,
-            "encodingOverride" to overrideParameters?.encoding
+            "overrideParameters" to overrideParameters,
+            "extraInfoParameters" to extraInfoParameters
         )
         return InsertResponse("New plan inserted successfully",
             infraModelService.saveInfraModel(file, overrideParameters, extraInfoParameters).id)
@@ -96,13 +86,7 @@ class InfraModelController @Autowired constructor(
         logger.apiCall(
             "validateFile",
             "file.originalFilename" to file.originalFilename,
-            "coordinateSystemSrid" to overrideParameters?.coordinateSystemSrid,
-            "verticalCoordinateSystem" to overrideParameters?.verticalCoordinateSystem,
-            "projectId" to overrideParameters?.projectId,
-            "authorId" to overrideParameters?.authorId,
-            "trackNumber" to overrideParameters?.trackNumberId,
-            "createdDate" to overrideParameters?.createdDate,
-            "encodingOverride" to overrideParameters?.encoding
+            "overrideParameters" to overrideParameters
         )
         return infraModelService.validateInfraModelFile(file, overrideParameters)
     }
