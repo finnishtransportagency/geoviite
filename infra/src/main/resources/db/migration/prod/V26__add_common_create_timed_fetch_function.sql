@@ -4,11 +4,14 @@ $$
 declare
   version_table               varchar := format('%I.%I_version', main_schema_name, main_table_name);
   declare function_name       varchar := format('%I.%I_at', main_schema_name, main_table_name);
+  declare primary_key varchar := (
+    select common.get_primary_key_description(main_schema_name, main_table_name)
+  );
   declare version_select_sql  varchar :=
-        'select distinct on (id) *' ||
+        'select distinct on (' || primary_key || ') *' ||
         ' from ' || version_table ||
         ' where change_time <= $1' ||
-        ' order by id, version desc';
+        ' order by ' || primary_key || ', version desc';
   declare select_sql          varchar :=
         'select *' ||
         ' from (' || version_select_sql || ') versions' ||
