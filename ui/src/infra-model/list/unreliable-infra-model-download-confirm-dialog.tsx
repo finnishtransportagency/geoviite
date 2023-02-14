@@ -12,7 +12,7 @@ type UnreliableInframodelDownloadConfirmDialogProps = {
     plan: GeometryPlanHeader;
 };
 
-export const UnreliableInframodelDownloadConfirmDialog: React.FC<
+export const UnreliableInfraModelDownloadConfirmDialog: React.FC<
     UnreliableInframodelDownloadConfirmDialogProps
 > = ({ onClose, plan }: UnreliableInframodelDownloadConfirmDialogProps) => {
     const { t } = useTranslation();

@@ -76,7 +76,7 @@ class ElementListingTest {
             name = "TSTTrack001",
         )
         val plan = plan(
-            source = PlanSource.GEOVIITE,
+            source = PlanSource.GEOMETRIAPALVELU,
             trackNumberId = trackNumberId,
             trackNumberDesc = PlanElementName("test track number"),
             alignments = listOf(alignment),
@@ -86,7 +86,7 @@ class ElementListingTest {
         )
         val listing = toElementListing(null, getTransformation, plan, allElementTypes)
         listing.forEach { l ->
-            assertEquals(PlanSource.GEOVIITE, l.planSource)
+            assertEquals(PlanSource.GEOMETRIAPALVELU, l.planSource)
             assertEquals(plan.id, l.planId)
             assertEquals(FileName("test-file 001.xml"), l.fileName)
             assertEquals(LAYOUT_SRID, l.coordinateSystemSrid)

@@ -15,7 +15,6 @@ import java.time.Instant
 
 
 enum class PlanSource {
-    GEOVIITE,
     GEOMETRIAPALVELU,
     PAIKANNUSPALVELU,
 }

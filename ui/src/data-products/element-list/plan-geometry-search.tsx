@@ -38,7 +38,7 @@ function searchGeometryPlanHeaders(searchTerm: string): Promise<GeometryPlanHead
         10,
         undefined,
         undefined,
-        ['GEOVIITE', 'GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+        ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
         [],
         searchTerm,
     ).then((t) => t.items);
@@ -62,7 +62,6 @@ const PlanGeometrySearch = ({
     setElements,
 }: ContinuousGeometrySearchProps) => {
     const { t } = useTranslation();
-
     // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
         (searchTerm) =>

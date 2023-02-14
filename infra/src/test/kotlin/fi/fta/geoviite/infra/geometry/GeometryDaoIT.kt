@@ -13,10 +13,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import java.lang.IllegalArgumentException
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 
@@ -147,7 +149,7 @@ class GeometryDaoIT @Autowired constructor(
 
     @Test
     fun insertPlanWorks() {
-        val plan = plan(insertOfficialTrackNumber(), source = PlanSource.GEOVIITE)
+        val plan = plan(insertOfficialTrackNumber(), source = PlanSource.GEOMETRIAPALVELU)
         val fileContent = "<a></a>"
         val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
         val fetchedPlan = geometryDao.fetchPlan(id)
@@ -155,7 +157,7 @@ class GeometryDaoIT @Autowired constructor(
         assertPlansMatch(plan, fetchedPlan)
         assertEquals(fileContent, file.file.content)
         assertEquals(plan.fileName, file.file.name)
-        assertEquals(PlanSource.GEOVIITE, file.source)
+        assertEquals(PlanSource.GEOMETRIAPALVELU, file.source)
     }
 
     @Test

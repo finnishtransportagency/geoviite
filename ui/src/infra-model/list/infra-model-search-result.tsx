@@ -20,7 +20,7 @@ import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
-import { UnreliableInframodelDownloadConfirmDialog } from 'infra-model/list/UnreliableInframodelDownloadConfirmDialog';
+import { UnreliableInfraModelDownloadConfirmDialog } from 'infra-model/list/unreliable-infra-model-download-confirm-dialog';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -305,7 +305,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                 </Table>
             </div>
             {downloadConfirmPlan && (
-                <UnreliableInframodelDownloadConfirmDialog
+                <UnreliableInfraModelDownloadConfirmDialog
                     onClose={() => setDownloadConfirmPlan(undefined)}
                     plan={downloadConfirmPlan}
                 />

@@ -14,6 +14,7 @@ import {
     DecisionPhase,
     GeometryPlan,
     PlanPhase,
+    PlanSource,
     ProjectId,
 } from 'geometry/geometry-model';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
@@ -62,6 +63,7 @@ export type OverrideInfraModelParameters = {
     trackNumberId?: LayoutTrackNumberId;
     createdDate: Date | undefined;
     encoding?: string;
+    source: PlanSource | undefined;
 };
 
 export type InfraModelParameters = ExtraInfraModelParameters & OverrideInfraModelParameters;
@@ -110,6 +112,7 @@ export const initialInfraModelState: InfraModelState = {
         coordinateSystemSrid: undefined,
         verticalCoordinateSystem: undefined,
         createdDate: undefined,
+        source: undefined,
     },
     validationErrors: [],
     committedFields: [],

@@ -225,7 +225,8 @@ class GeometryDao @Autowired constructor(
               plan_phase = :plan_phase::geometry.plan_phase,
               plan_decision = :plan_decision::geometry.plan_decision,
               measurement_method = :measurement_method::common.measurement_method,
-              message = :message
+              message = :message,
+              source = :source::geometry.plan_source
             where id = :id
         """.trimIndent()
 
@@ -244,6 +245,7 @@ class GeometryDao @Autowired constructor(
             "plan_decision" to geometryPlan.decisionPhase?.name,
             "measurement_method" to geometryPlan.measurementMethod?.name,
             "message" to geometryPlan.message,
+            "source" to geometryPlan.source.name,
         )
 
         check(jdbcTemplate.update(sql, params) > 0)
@@ -757,7 +759,7 @@ class GeometryDao @Autowired constructor(
             val authorId = rs.getIntIdOrNull<Author>("author_id")
             val geometryPlan = GeometryPlan(
                 id = rs.getIntId("id"),
-                source = rs.getEnum("source"),
+                source = rs.getEnum<PlanSource>("source"),
                 project = getProject(rs.getIntId("plan_project_id")),
                 author = authorId?.let { id ->
                     Author(id = id, companyName = MetaDataName(rs.getString("author_company_name")))

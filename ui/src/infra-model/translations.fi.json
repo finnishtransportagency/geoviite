@@ -57,6 +57,8 @@
         "vertical-coordinate-system-field": "Korkeusjärjestelmä",
         "save-changes": "Tallenna muutokset",
         "information-missing": "Ei tiedossa",
+        "plan-source": "Suunnitelman lähde",
+        "missing-source": "Suunnitelman lähde puuttuu",
         "toolbar": {
             "files": "IM-tiedostot",
             "upload": "Lataa uusi"
