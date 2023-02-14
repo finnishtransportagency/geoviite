@@ -93,6 +93,7 @@ export const initialContinuousSearchState: ElementListContinuousGeometrySearchSt
     committedFields: [],
 };
 
+const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
 export const selectedElementTypes = (
     searchGeometry: SearchGeometries,
 ): GeometryTypeIncludingMissing[] =>
@@ -101,11 +102,7 @@ export const selectedElementTypes = (
         searchGeometry.searchCurves ? GeometryType.CURVE : undefined,
         searchGeometry.searchMissingGeometry ? MissingSection.MISSING_SECTION : undefined,
     ]
-        .concat(
-            searchGeometry.searchClothoids
-                ? [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA]
-                : [],
-        )
+        .concat(searchGeometry.searchClothoids ? spiralTypes : [])
         .filter(filterNotEmpty);
 
 const hasAtLeastOneTypeSelected = ({
@@ -171,6 +168,13 @@ const continuousGeometrySearchSlice = createSlice({
             { payload: propEdit }: PayloadAction<PropEdit<ContinuousSearchParameters, TKey>>,
         ) {
             state.searchFields[propEdit.key] = propEdit.value;
+            if (propEdit.key === 'locationTrack') {
+                state.searchParameters['startTrackMeter'] = '';
+                state.searchParameters['endTrackMeter'] = '';
+                state.searchFields['startTrackMeter'] = '';
+                state.searchFields['endTrackMeter'] = '';
+            }
+
             state.validationErrors = validateContinuousGeometry(state);
             if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
                 // Valid value entered for a field, mark that field as committed

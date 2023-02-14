@@ -12,7 +12,6 @@ import {
     validTrackMeterOrUndefined,
 } from 'data-products/element-list/element-list-store';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
-import { isNullOrBlank } from 'utils/string-utils';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
@@ -31,6 +30,18 @@ type ContinuousGeometrySearchProps = {
     onCommitField: <TKey extends keyof ContinuousSearchParameters>(key: TKey) => void;
 };
 
+function getLocationTrackOptions(
+    tracks: LayoutLocationTrack[],
+    selectedTrack: LayoutLocationTrack | undefined,
+) {
+    return tracks
+        .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
+        .map((lt) => ({ name: `${lt.name}, ${lt.description}`, value: lt }));
+}
+
+const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
+const debouncedTrackElementsFetch = debounceAsync(getLocationTrackElements, 250);
+
 const ContinuousGeometrySearch = ({
     state,
     onUpdateProp,
@@ -39,29 +50,11 @@ const ContinuousGeometrySearch = ({
 }: ContinuousGeometrySearchProps) => {
     const { t } = useTranslation();
 
-    function searchLocationTracks(searchTerm: string): Promise<LayoutLocationTrack[]> {
-        if (isNullOrBlank(searchTerm)) {
-            return Promise.resolve([]);
-        }
-
-        return getLocationTracksBySearchTerm(searchTerm, 'OFFICIAL', 10);
-    }
-    // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetLocationTrackOptions = debounceAsync(searchLocationTracks, 250);
-    // Use memoized function to make debouncing functionality to work when re-rendering
+    // Use memoized function to make debouncing functionality work when re-rendering
     const getLocationTracks = React.useCallback(
         (searchTerm) =>
-            debouncedGetLocationTrackOptions(searchTerm).then((locationTracks) =>
-                locationTracks
-                    .filter(
-                        (lt) =>
-                            !state.searchParameters.locationTrack ||
-                            lt.id !== state.searchParameters.locationTrack.id,
-                    )
-                    .map((lt) => ({
-                        name: `${lt.name}, ${lt.description}`,
-                        value: lt,
-                    })),
+            debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
+                getLocationTrackOptions(locationTracks, state.searchParameters.locationTrack),
             ),
         [state.searchParameters.locationTrack],
     );
@@ -89,21 +82,21 @@ const ContinuousGeometrySearch = ({
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    useLoader(() => {
-        return (
-            !state.searchParameters.locationTrack || hasErrors('searchGeometries')
-                ? Promise.resolve([])
-                : getLocationTrackElements(
-                      state.searchParameters.locationTrack.id,
-                      selectedElementTypes(state.searchParameters.searchGeometries),
-                      validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                      validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-                  )
-        ).then((elements) => {
-            setElements(elements ?? []);
-            return elements;
-        });
-    }, [state.searchParameters.locationTrack, state.searchParameters]);
+    const elementList = useLoader(() => {
+        return !state.searchParameters.locationTrack ||
+            hasErrors('searchGeometries') ||
+            hasErrors('startTrackMeter') ||
+            hasErrors('endTrackMeter')
+            ? Promise.resolve(state.elements)
+            : debouncedTrackElementsFetch(
+                  state.searchParameters.locationTrack.id,
+                  selectedElementTypes(state.searchParameters.searchGeometries),
+                  validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                  validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+              );
+    }, [state.searchParameters]);
+
+    React.useEffect(() => setElements(elementList ?? []), [elementList]);
 
     return (
         <React.Fragment>

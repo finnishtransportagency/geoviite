@@ -12,7 +12,7 @@ import { filterUnique } from 'utils/array-utils';
 
 type PublicationListProps = {
     publications: PublicationDetails[];
-    publicationClicked: (publication: PublicationDetails) => void;
+    onPublicationSelect: (publication: PublicationDetails) => void;
     anyFailed?: boolean;
 };
 
@@ -27,7 +27,7 @@ const getPublicationTrackNumbers = (publication: PublicationDetails) => {
 
 export const PublicationList: React.FC<PublicationListProps> = ({
     publications,
-    publicationClicked,
+    onPublicationSelect,
     anyFailed,
 }) => {
     const { t } = useTranslation();
@@ -36,12 +36,12 @@ export const PublicationList: React.FC<PublicationListProps> = ({
 
     return (
         <div>
-            {publications.map((publication, publicationIndex) => {
+            {publications.map((publication) => {
                 const isWaitingAfterFailure = anyFailed && publication.ratkoPushStatus === null;
                 const trackNumberIds = getPublicationTrackNumbers(publication);
 
                 return (
-                    <div className={styles['publication-list-item']} key={publicationIndex}>
+                    <div className={styles['publication-list-item']} key={publication.id}>
                         {publication.ratkoPushStatus === null && (
                             <div
                                 className={styles['publication-list-item__status--waiting']}
@@ -56,7 +56,7 @@ export const PublicationList: React.FC<PublicationListProps> = ({
                             />
                         )}
                         <div className={styles['publication-list-item__text']}>
-                            <Link onClick={() => publicationClicked(publication)}>
+                            <Link onClick={() => onPublicationSelect(publication)}>
                                 {formatDateFull(publication.publicationTime)}
                             </Link>
                         </div>

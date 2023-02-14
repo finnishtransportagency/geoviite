@@ -11,13 +11,17 @@ import {
     CalculatedChanges,
     PublicationDetails,
     PublicationId,
+    PublicationTableItem,
     PublishCandidates,
     PublishRequest,
     PublishRequestIds,
     PublishResult,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
-import { SortDirection, SortProps } from 'publication/table/publication-table-utils';
+import {
+    PublicationDetailsTableSortField,
+    SortDirection,
+} from 'publication/table/publication-table-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
@@ -37,7 +41,7 @@ export const publishCandidates = (request: PublishRequest) => {
     return postAdt<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request, true);
 };
 
-export const getPublications = (fromDate?: Date, toDate?: Date) => {
+export const getPublicationDetails = (fromDate?: Date, toDate?: Date) => {
     const params = queryParams({
         from: fromDate ? fromDate.toISOString() : '',
         to: toDate ? toDate.toISOString() : '',
@@ -46,10 +50,31 @@ export const getPublications = (fromDate?: Date, toDate?: Date) => {
     return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
 };
 
+export const getPublicationAsTableItems = (id: PublicationId) =>
+    getIgnoreError<PublicationTableItem[]>(`${PUBLICATION_URL}/${id}/table-rows`);
+
+export const getPublicationsAsTableItems = (
+    from?: Date,
+    to?: Date,
+    sortBy?: PublicationDetailsTableSortField,
+    order?: SortDirection,
+) => {
+    const isSorted = order != SortDirection.UNSORTED;
+
+    const params = queryParams({
+        from: from ? from.toISOString() : undefined,
+        to: to ? to.toISOString() : undefined,
+        sortBy: isSorted && sortBy ? sortBy : undefined,
+        order: isSorted ? order : undefined,
+    });
+
+    return getIgnoreError<Page<PublicationTableItem>>(`${PUBLICATION_URL}/table-rows${params}`);
+};
+
 export const getPublicationsCsvUri = (
     fromDate?: Date,
     toDate?: Date,
-    sortBy?: SortProps,
+    sortBy?: PublicationDetailsTableSortField,
     order?: SortDirection,
 ): string => {
     const isSorted = order != SortDirection.UNSORTED;
@@ -64,9 +89,6 @@ export const getPublicationsCsvUri = (
 
     return `${PUBLICATION_URL}/csv${params}`;
 };
-
-export const getPublication = (id: PublicationId) =>
-    getIgnoreError<PublicationDetails>(`${PUBLICATION_URL}/${id}`);
 
 export const getCalculatedChanges = (request: PublishRequestIds) =>
     postIgnoreError<PublishRequestIds, CalculatedChanges>(

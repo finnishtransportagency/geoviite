@@ -14,7 +14,7 @@ import i18n from 'i18next';
 import { Link } from 'vayla-design-lib/link/link';
 
 type PublishListProps = {
-    itemClicked: (pub: PublicationDetails) => void;
+    onPublicationSelect: (pub: PublicationDetails) => void;
     onShowPublicationLog: () => void;
     publications: PublicationDetails[];
     ratkoStatus: RatkoStatus | undefined;
@@ -62,7 +62,7 @@ const MAX_SUCCESS_PUBLICATIONS = 8;
 
 const PublicationCard: React.FC<PublishListProps> = ({
     publications,
-    itemClicked,
+    onPublicationSelect,
     ratkoStatus,
     onShowPublicationLog,
 }) => {
@@ -110,7 +110,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                     </div>
                                     <PublicationList
                                         publications={failures}
-                                        publicationClicked={itemClicked}
+                                        onPublicationSelect={onPublicationSelect}
                                         anyFailed={failures.length > 0}
                                     />
                                 </React.Fragment>
@@ -123,7 +123,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                         </h3>
                         <PublicationList
                             publications={successes}
-                            publicationClicked={itemClicked}
+                            onPublicationSelect={onPublicationSelect}
                         />
                     </section>
 

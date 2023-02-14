@@ -32,15 +32,15 @@ export type ElementTableItemProps = {
 export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     trackNumber,
     geometryAlignmentName,
-    locationTrackName,
     type,
+    locationTrackName,
     trackAddressStart,
     trackAddressEnd,
-    coordinateSystem,
     locationStartE,
     locationStartN,
     locationEndE,
     locationEndN,
+    length,
     curveRadiusStart,
     curveRadiusEnd,
     cantStart,
@@ -49,6 +49,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     angleEnd,
     plan,
     source,
+    coordinateSystem,
     showLocationTrackName,
 }) => {
     return (

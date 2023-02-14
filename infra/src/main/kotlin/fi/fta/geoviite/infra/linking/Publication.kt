@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
 
-enum class PublicationCsvSortField {
+enum class PublicationTableColumn {
     NAME,
     TRACK_NUMBERS,
     CHANGED_KM_NUMBERS,
@@ -23,7 +23,7 @@ enum class PublicationCsvSortField {
     RATKO_PUSH_TIME,
 }
 
-data class PublicationCsvRow(
+data class PublicationTableItem(
     val name: String,
     val trackNumbers: List<TrackNumber>,
     val changedKmNumbers: List<KmNumber>? = null,
@@ -32,7 +32,9 @@ data class PublicationCsvRow(
     val publicationUser: UserName,
     val message: String,
     val ratkoPushTime: Instant?,
-)
+) {
+    val id: StringId<PublicationTableItem> = StringId(hashCode().toString())
+}
 
 open class Publication(
     open val id: IntId<Publication>,
@@ -43,7 +45,6 @@ open class Publication(
 
 data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
-    val id: IntId<TrackLayoutTrackNumber> = version.id,
     val number: TrackNumber,
     val operation: Operation,
 )

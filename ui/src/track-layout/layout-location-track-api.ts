@@ -30,6 +30,7 @@ import {
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
 import { MapTile } from 'map/map-model';
+import { isNullOrBlank } from 'utils/string-utils';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
@@ -52,6 +53,8 @@ export async function getLocationTracksBySearchTerm(
     publishType: PublishType,
     limit: number,
 ): Promise<LayoutLocationTrack[]> {
+    if (isNullOrBlank(searchTerm)) return [];
+
     const params = queryParams({
         searchTerm: searchTerm,
         limit: limit,
@@ -141,8 +144,8 @@ export const deleteLocationTrack = async (
 export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
     return ids.length > 0
         ? getThrowError<LayoutLocationTrack[]>(
-              `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
-          )
+            `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
+        )
         : Promise.resolve([]);
 }
 

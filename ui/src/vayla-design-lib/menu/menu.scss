@@ -9,6 +9,7 @@
     @include shadow-8dp;
     background: $color-white-default;
     border-radius: 4px;
+    overflow: hidden;
 
     > :not(:last-child) {
         border-bottom: 0.5px solid $color-white-darker;

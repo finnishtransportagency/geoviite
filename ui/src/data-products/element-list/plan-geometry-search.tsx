@@ -29,39 +29,44 @@ type ContinuousGeometrySearchProps = {
     setElements: (elements: ElementItem[]) => void;
 };
 
+function searchGeometryPlanHeaders(searchTerm: string): Promise<GeometryPlanHeader[]> {
+    if (isNullOrBlank(searchTerm)) {
+        return Promise.resolve([]);
+    }
+
+    return getGeometryPlanHeaders(
+        10,
+        undefined,
+        undefined,
+        ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
+        [],
+        searchTerm,
+    ).then((t) => t.items);
+}
+
+function getGeometryPlanOptions(
+    headers: GeometryPlanHeader[],
+    selectedHeader: GeometryPlanHeader | undefined,
+) {
+    return headers
+        .filter((plan) => !selectedHeader || plan.id !== selectedHeader.id)
+        .map((plan) => ({ name: plan.fileName, value: plan }));
+}
+
+const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanHeaders, 250);
+const debouncedGetPlanElements = debounceAsync(getGeometryPlanElements, 250);
+
 const PlanGeometrySearch = ({
     state,
     onUpdateProp,
     setElements,
 }: ContinuousGeometrySearchProps) => {
     const { t } = useTranslation();
-
-    function searchGeometryPlanHeaders(searchTerm: string): Promise<GeometryPlanHeader[]> {
-        if (isNullOrBlank(searchTerm)) {
-            return Promise.resolve([]);
-        }
-
-        return getGeometryPlanHeaders(
-            10,
-            undefined,
-            undefined,
-            ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
-            [],
-            searchTerm,
-        ).then((t) => t.items);
-    }
-    // Use debounced function to collect keystrokes before triggering a search
-    const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanHeaders, 250);
     // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
         (searchTerm) =>
             debouncedGetGeometryPlanHeaders(searchTerm).then((planHeaders) =>
-                planHeaders
-                    .filter((plan) => !state.plan || plan.id !== state.plan.id)
-                    .map((plan) => ({
-                        name: plan.fileName,
-                        value: plan,
-                    })),
+                getGeometryPlanOptions(planHeaders, state.plan),
             ),
         [state.plan],
     );
@@ -80,8 +85,8 @@ const PlanGeometrySearch = ({
     function getVisibleErrorsByProp(prop: keyof PlanGeometrySearchState) {
         return state.committedFields.includes(prop)
             ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
+                .filter((error) => error.field == prop)
+                .map((error) => t(`data-products.element-list.search.${error.reason}`))
             : [];
     }
 
@@ -89,19 +94,13 @@ const PlanGeometrySearch = ({
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
-    useLoader(() => {
-        return (
-            !state.plan || hasErrors('searchGeometries')
-                ? Promise.resolve([])
-                : getGeometryPlanElements(
-                      state.plan.id,
-                      selectedElementTypes(state.searchGeometries),
-                  )
-        ).then((elements) => {
-            setElements(elements ?? []);
-            return elements;
-        });
+    const elementList = useLoader(() => {
+        return !state.plan || hasErrors('searchGeometries')
+            ? Promise.resolve([])
+            : debouncedGetPlanElements(state.plan.id, selectedElementTypes(state.searchGeometries));
     }, [state.plan, state.searchGeometries]);
+
+    React.useEffect(() => setElements(elementList ?? []), [elementList]);
 
     return (
         <React.Fragment>
