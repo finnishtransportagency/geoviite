@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
+import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.createPostgis3DMLineString
 import fi.fta.geoviite.infra.geometry.parse3DMLineString
@@ -184,6 +185,41 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
                 start = rs.getDouble("start"),
                 source = rs.getEnum("source"),
+            )
+        }
+    }
+
+    data class SegmentGeometryAndPlan(
+        val planId: IntId<GeometryPlan>?,
+        val planFileName: FileName?,
+        val points: List<LayoutPoint>
+    )
+
+    fun fetchSegmentPlansAndEndpoints(alignmentId: IntId<LayoutAlignment>): List<SegmentGeometryAndPlan> {
+        val sql = """
+select plan.id as plan_id, plan_file.name as filename, postgis.st_astext(segment.geometry) as geometry_wkt,
+  case
+    when segment.height_values is null then null
+    else array_to_string(segment.height_values, ',', 'null')
+  end as height_values,
+  case
+    when segment.cant_values is null then null
+    else array_to_string(segment.cant_values, ',', 'null')
+  end as cant_values
+from layout.alignment
+  inner join layout.segment on alignment.id = segment.alignment_id
+  inner join geometry.alignment on segment.geometry_alignment_id = geometry.alignment.id
+  inner join geometry.plan on geometry.alignment.plan_id = plan.id
+  inner join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
+where layout.alignment.id = :id
+  order by segment_index
+        """.trimIndent()
+        val params = mapOf("id" to alignmentId.intValue)
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            SegmentGeometryAndPlan(
+                planId = rs.getIntIdOrNull("plan_id"),
+                planFileName = rs.getFileNameOrNull("filename"),
+                points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
             )
         }
     }

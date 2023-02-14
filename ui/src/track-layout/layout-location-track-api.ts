@@ -4,7 +4,7 @@ import {
     LayoutLocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
+import { ChangeTimes, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import {
     deleteAdt,
     getIgnoreError,
@@ -31,9 +31,16 @@ import {
 } from 'common/change-time-api';
 import { MapTile } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
+import { GEOMETRY_URI } from 'geometry/geometry-api';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
+
+export type LocationTrackGeometrySection = {
+    planName: string | undefined;
+    startAddress: TrackMeter;
+    endAddress: TrackMeter;
+};
 
 export async function getLocationTrack(
     id: LocationTrackId,
@@ -183,3 +190,8 @@ export async function getLocationTrackEndpointsByTile(
             })),
         );
 }
+
+export const getGeometries = async (
+    id: LocationTrackId,
+    _bbox: BoundingBox | undefined = undefined,
+) => getIgnoreError<LocationTrackGeometrySection[]>(`${GEOMETRY_URI}/location-tracks/${id}/plans`);

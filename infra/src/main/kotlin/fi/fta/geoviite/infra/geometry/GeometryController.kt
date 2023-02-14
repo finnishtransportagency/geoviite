@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
@@ -189,5 +190,16 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         val (filename, content) = geometryService
             .getElementListingCsv(id, elementTypes, startAddress, endAddress)
         return toFileDownloadResponse("${filename}.csv", content)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/location-tracks/{id}/plans")
+    fun getTrackElementListing(
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @RequestParam("bbox") boundingBox: BoundingBox? = null,
+    ): List<GeometryListingItem> {
+        log.apiCall("getPlanElementList",
+            "id" to id, "bbox" to boundingBox)
+        return geometryService.getPlans(id, PublishType.OFFICIAL)
     }
 }
