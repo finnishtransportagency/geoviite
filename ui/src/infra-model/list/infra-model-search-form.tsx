@@ -42,7 +42,8 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
     const currentlySelectedTrackNumbers = trackNumberOptions.filter(
         (tn) => tn.id && props.searchParams.trackNumberIds.includes(tn.id),
     );
-    const [searchTerm, setSearchTerm] = React.useState('');
+
+    const searchTerm = props.searchParams.freeText;
 
     function setSource(source: PlanSource, active: boolean) {
         props.onSearchParamsChange({
@@ -86,8 +87,8 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
             <div className="infra-model-search-form__auto-complete">
                 <Multiselect
                     value={currentlySelectedTrackNumbers}
+                    searchTerm={searchTerm}
                     onSearch={(searchTerm, metadata) => {
-                        setSearchTerm(searchTerm);
                         if (metadata.action === 'input') {
                             props.onSearchParamsChange({
                                 ...props.searchParams,
