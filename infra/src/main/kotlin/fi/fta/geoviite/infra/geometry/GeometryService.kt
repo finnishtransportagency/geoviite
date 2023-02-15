@@ -284,7 +284,7 @@ class GeometryService @Autowired constructor(
 
     private fun foldByPlanId(segmentGeometryAndPlans: List<LayoutAlignmentDao.SegmentGeometryAndPlan>) =
         segmentGeometryAndPlans.fold(mutableListOf<Pair<LayoutAlignmentDao.SegmentGeometryAndPlan, LayoutAlignmentDao.SegmentGeometryAndPlan>>()) { acc, element ->
-            if (acc.isEmpty() || acc.last().second.planId != element.planId) acc.add(element to element)
+            if (acc.isEmpty() || acc.last().second.planId != element.planId || acc.last().second.source != element.source) acc.add(element to element)
             else acc.set(acc.lastIndex, acc.last().first to element)
             acc
         }
@@ -295,7 +295,7 @@ class GeometryService @Autowired constructor(
         return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
             plansAndEndpoints.map {
                 GeometryListingItem(
-                    planName = if (it.second.planId != null) it.first.planFileName else null,
+                    planName = it.first.planFileName ?: it.first.metadataFileName,
                     startAddress = context.getAddress(it.first.points.first())?.first!!,
                     endAddress = context.getAddress(it.second.points.last())?.first!!
                 )

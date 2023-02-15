@@ -192,12 +192,14 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     data class SegmentGeometryAndPlan(
         val planId: IntId<GeometryPlan>?,
         val planFileName: FileName?,
-        val points: List<LayoutPoint>
+        val points: List<LayoutPoint>,
+        val source: GeometrySource,
+        val metadataFileName: FileName?
     )
 
     fun fetchSegmentPlansAndEndpoints(alignmentId: IntId<LayoutAlignment>): List<SegmentGeometryAndPlan> {
         val sql = """
-select plan.id as plan_id, plan_file.name as filename, postgis.st_astext(segment.geometry) as geometry_wkt,
+select plan.id as plan_id, plan_file.name as filename, layout.initial_import_metadata.plan_file_name, segment.source, postgis.st_astext(segment.geometry) as geometry_wkt,
   case
     when segment.height_values is null then null
     else array_to_string(segment.height_values, ',', 'null')
@@ -207,12 +209,15 @@ select plan.id as plan_id, plan_file.name as filename, postgis.st_astext(segment
     else array_to_string(segment.cant_values, ',', 'null')
   end as cant_values
 from layout.alignment
-  inner join layout.segment on alignment.id = segment.alignment_id
-  inner join geometry.alignment on segment.geometry_alignment_id = geometry.alignment.id
-  inner join geometry.plan on geometry.alignment.plan_id = plan.id
-  inner join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
+  left join layout.segment on alignment.id = segment.alignment_id
+  left join geometry.alignment on segment.geometry_alignment_id = geometry.alignment.id
+  left join geometry.plan on geometry.alignment.plan_id = plan.id
+  left join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
+  left join layout.initial_segment_metadata on layout.segment.alignment_id = initial_segment_metadata.alignment_id
+                                                  and layout.segment.segment_index = initial_segment_metadata.segment_index
+  left join layout.initial_import_metadata on initial_segment_metadata.metadata_id = initial_import_metadata.id
 where layout.alignment.id = :id
-  order by segment_index
+  order by segment.segment_index
         """.trimIndent()
         val params = mapOf("id" to alignmentId.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -220,6 +225,8 @@ where layout.alignment.id = :id
                 planId = rs.getIntIdOrNull("plan_id"),
                 planFileName = rs.getFileNameOrNull("filename"),
                 points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
+                source = rs.getEnum("source"),
+                metadataFileName = rs.getFileNameOrNull("plan_file_name")
             )
         }
     }
