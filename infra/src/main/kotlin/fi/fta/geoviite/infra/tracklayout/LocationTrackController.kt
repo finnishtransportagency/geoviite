@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geometry.AlignmentPlanGeometry
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
@@ -84,7 +85,8 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getLocationTrackStartAndEnd", "publishType" to publishType, "id" to id)
-        return toResponse(geocodingService.getLocationTrackStartAndEnd(publishType, id))
+        val locationTrackAndAlignment = locationTrackService.getWithAlignment(publishType, id)
+        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) -> geocodingService.getLocationTrackStartAndEnd(publishType, locationTrack, alignment) })
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -133,5 +135,17 @@ class LocationTrackController(
     fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): ChangeTimes {
         logger.apiCall("getLocationTrackChangeInfo", "id" to id)
         return locationTrackService.getChangeTimes(id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/plan-geometry")
+    fun getTrackElementListing(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @RequestParam("bbox") boundingBox: BoundingBox? = null,
+    ): List<AlignmentPlanGeometry> {
+        logger.apiCall("getTrackElementListing",
+            "id" to id, "bbox" to boundingBox)
+        return locationTrackService.getPlanInfoForSegments(id, publishType, boundingBox)
     }
 }

@@ -36,6 +36,7 @@ import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getSwitch } from 'track-layout/layout-switch-api';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { MapViewport } from 'map/map-model';
 
 type ToolPanelProps = {
     planHeaders: GeometryPlanHeader[];
@@ -57,6 +58,7 @@ type ToolPanelProps = {
     selectedTabId: string | undefined;
     setSelectedTabId: (id: string | undefined) => void;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
+    viewport: MapViewport;
 };
 
 type ToolPanelTab = {
@@ -85,6 +87,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     selectedTabId,
     setSelectedTabId,
     startSwitchPlacing,
+    viewport,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -280,6 +283,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         locationTrackChangeTime={changeTimes.layoutLocationTrack}
                         onDataChange={onDataChange}
                         onUnselect={onUnSelectLocationTracks}
+                        viewport={viewport}
                     />
                 ),
             };
@@ -327,6 +331,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         geometryAlignments,
         linkingState,
         publishType,
+        viewport,
         changeTimes,
     ]);
 

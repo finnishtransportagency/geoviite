@@ -4,16 +4,15 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geometry.AlignmentPlanGeometry
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
-import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +23,7 @@ class LocationTrackService(
     dao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
+    private val geocodingService: GeocodingService,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
 
     @Transactional
@@ -213,6 +213,48 @@ class LocationTrackService(
             "publishType" to publishType, "bbox" to bbox
         )
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
+    }
+
+    private fun foldByPlanId(segmentGeometryAndPlans: List<SegmentGeometryAndPlan>) =
+        segmentGeometryAndPlans.fold(mutableListOf<SegmentGeometryAndPlan>()) { acc, element ->
+            if (acc.isEmpty() || acc.last().planId != element.planId || acc.last().source != element.source) acc.add(
+                element
+            )
+            else acc.set(acc.lastIndex, acc.last().copy(points = acc.last().points + element.points))
+            acc
+        }
+
+    private fun filterByBoundingBox(
+        segments: List<SegmentGeometryAndPlan>,
+        boundingBox: BoundingBox
+    ): List<SegmentGeometryAndPlan> {
+        val firstIndex =
+            segments.indexOfFirst { segment -> segment.points.any{ boundingBox.contains(it) } }
+        val lastIndex =
+            segments.indexOfLast { segment -> segment.points.any{ boundingBox.contains(it) } }
+        return if (firstIndex >= 0 && lastIndex >= 0) segments.subList(firstIndex, lastIndex + 1) else emptyList()
+    }
+
+    fun getPlanInfoForSegments(
+        locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType,
+        boundingBox: BoundingBox?
+    ): List<AlignmentPlanGeometry> {
+        val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, locationTrackId)
+        val data = alignmentDao.fetchSegmentPlansAndEndpoints(alignment.id as IntId<LayoutAlignment>)
+
+        val filteredData = if (boundingBox != null) filterByBoundingBox(data, boundingBox) else data
+        val plansAndEndpoints = foldByPlanId(filteredData)
+        return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
+            plansAndEndpoints.map {
+                AlignmentPlanGeometry(
+                    planId = it.planId,
+                    planName = it.planFileName ?: it.metadataFileName,
+                    startAddress = context.getAddress(it.points.first())?.first!!,
+                    endAddress = context.getAddress(it.points.last())?.first!!
+                )
+            }
+        } ?: emptyList()
     }
 
     private fun getWithAlignmentInternalOrThrow(publishType: PublishType, id: IntId<LocationTrack>) =

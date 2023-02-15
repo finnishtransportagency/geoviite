@@ -45,6 +45,7 @@ import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalC
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
+import { MapViewport } from 'map/map-model';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -57,6 +58,7 @@ type LocationTrackInfoboxProps = {
     locationTrackChangeTime: TimeStamp;
     onUnselect: (track: LayoutLocationTrack) => void;
     onSelect: OnSelectFunction;
+    viewport: MapViewport;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -69,6 +71,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     publishType,
     locationTrackChangeTime,
     onUnselect,
+    viewport,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
@@ -351,8 +354,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             )}
             {
                 <LocationTrackGeometryInfobox
+                    publishType={publishType}
                     locationTrackId={locationTrack.id}
-                    boundingBox={undefined}
+                    viewport={viewport}
                 />
             }
             {changeTimes && (

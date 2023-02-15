@@ -1,4 +1,5 @@
 export enum Precision {
+    distanceKilometers,
     distanceMeters,
     cantMillimeters,
     radiusMeters,
@@ -11,6 +12,8 @@ export enum Precision {
 
 export function roundToPrecision(n: number, precision: Precision): string {
     switch (precision) {
+        case Precision.distanceKilometers:
+            return n.toFixed(0);
         case Precision.distanceMeters:
             return n.toFixed(3);
         case Precision.cantMillimeters:

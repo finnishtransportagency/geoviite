@@ -189,14 +189,6 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
-    data class SegmentGeometryAndPlan(
-        val planId: IntId<GeometryPlan>?,
-        val planFileName: FileName?,
-        val points: List<LayoutPoint>,
-        val source: GeometrySource,
-        val metadataFileName: FileName?
-    )
-
     fun fetchSegmentPlansAndEndpoints(alignmentId: IntId<LayoutAlignment>): List<SegmentGeometryAndPlan> {
         val sql = """
 select plan.id as plan_id, plan_file.name as filename, layout.initial_import_metadata.plan_file_name, segment.source, postgis.st_astext(segment.geometry) as geometry_wkt,

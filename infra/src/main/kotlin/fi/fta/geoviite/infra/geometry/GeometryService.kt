@@ -35,7 +35,7 @@ data class TransformationError(
     val coordinateSystemName = units.coordinateSystemName
 }
 
-data class GeometryListingItem(val planName: FileName?, val startAddress: TrackMeter, val endAddress: TrackMeter)
+data class AlignmentPlanGeometry(val planId: IntId<GeometryPlan>?, val planName: FileName?, val startAddress: TrackMeter, val endAddress: TrackMeter)
 
 @Service
 class GeometryService @Autowired constructor(
@@ -45,7 +45,6 @@ class GeometryService @Autowired constructor(
     private val coordinateTransformationService: CoordinateTransformationService,
     private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
-    private val layoutAlignmentDao: LayoutAlignmentDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -280,27 +279,6 @@ class GeometryService @Autowired constructor(
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
         return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
-    }
-
-    private fun foldByPlanId(segmentGeometryAndPlans: List<LayoutAlignmentDao.SegmentGeometryAndPlan>) =
-        segmentGeometryAndPlans.fold(mutableListOf<Pair<LayoutAlignmentDao.SegmentGeometryAndPlan, LayoutAlignmentDao.SegmentGeometryAndPlan>>()) { acc, element ->
-            if (acc.isEmpty() || acc.last().second.planId != element.planId || acc.last().second.source != element.source) acc.add(element to element)
-            else acc.set(acc.lastIndex, acc.last().first to element)
-            acc
-        }
-
-    fun getPlans(locationTrackId: IntId<LocationTrack>, publishType: PublishType): List<GeometryListingItem> {
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(publishType, locationTrackId)
-        val plansAndEndpoints = foldByPlanId(layoutAlignmentDao.fetchSegmentPlansAndEndpoints(alignment.id as IntId<LayoutAlignment>))
-        return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
-            plansAndEndpoints.map {
-                GeometryListingItem(
-                    planName = it.first.planFileName ?: it.first.metadataFileName,
-                    startAddress = context.getAddress(it.first.points.first())?.first!!,
-                    endAddress = context.getAddress(it.second.points.last())?.first!!
-                )
-            }
-        } ?: emptyList()
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {

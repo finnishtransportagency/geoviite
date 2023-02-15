@@ -31,13 +31,14 @@ import {
 } from 'common/change-time-api';
 import { MapTile } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
-import { GEOMETRY_URI } from 'geometry/geometry-api';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
 
 export type LocationTrackGeometrySection = {
     planName: string | undefined;
+    planId: GeometryPlanId;
     startAddress: TrackMeter;
     endAddress: TrackMeter;
 };
@@ -151,8 +152,8 @@ export const deleteLocationTrack = async (
 export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
     return ids.length > 0
         ? getThrowError<LayoutLocationTrack[]>(
-            `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
-        )
+              `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
+          )
         : Promise.resolve([]);
 }
 
@@ -192,6 +193,12 @@ export async function getLocationTrackEndpointsByTile(
 }
 
 export const getGeometries = async (
+    publishType: PublishType,
     id: LocationTrackId,
-    _bbox: BoundingBox | undefined = undefined,
-) => getIgnoreError<LocationTrackGeometrySection[]>(`${GEOMETRY_URI}/location-tracks/${id}/plans`);
+    bbox: BoundingBox | undefined = undefined,
+) => {
+    const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
+    return getIgnoreError<LocationTrackGeometrySection[]>(
+        `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
+    );
+};

@@ -16,7 +16,6 @@ import java.time.Instant
 class GeocodingService(
     private val addressPointsCache: AddressPointsCache,
     private val geocodingDao: GeocodingDao,
-    private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
 ) {
 
@@ -74,15 +73,13 @@ class GeocodingService(
 
     fun getLocationTrackStartAndEnd(
         publicationState: PublishType,
-        locationTrackId: IntId<LocationTrack>,
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
     ): AlignmentStartAndEnd? {
         logger.serviceCall(
             "getLocationTrackStartAndEnd",
-            "publicationState" to publicationState, "locationTrackId" to locationTrackId)
-        return locationTrackService.getWithAlignment(publicationState, locationTrackId)?.let { (track, alignment) ->
-            val geocodingContext = getGeocodingContext(publicationState, track.trackNumberId)
-            geocodingContext?.getStartAndEnd(alignment)
-        }
+            "publicationState" to publicationState, "locationTrack" to locationTrack, "alignment" to alignment)
+            return getGeocodingContext(publicationState, locationTrack.trackNumberId)?.getStartAndEnd(alignment)
     }
 
     fun getReferenceLineStartAndEnd(
@@ -98,15 +95,14 @@ class GeocodingService(
     }
 
     fun getTrackLocation(
-        locationTrackId: IntId<LocationTrack>,
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
         address: TrackMeter,
         publicationState: PublishType,
     ): AddressPoint? {
         logger.serviceCall("getTrackLocation",
-            "locationTrackId" to locationTrackId, "address" to address, "publicationState" to publicationState)
-        return locationTrackService.getWithAlignment(publicationState, locationTrackId)?.let { (track, alignment) ->
-            getGeocodingContext(publicationState, track.trackNumberId)?.getTrackLocation(alignment, address)
-        }
+            "locationTrack" to locationTrack, "address" to address, "publicationState" to publicationState)
+        return getGeocodingContext(publicationState, locationTrack.trackNumberId)?.getTrackLocation(alignment, address)
     }
 
     fun getGeocodingContext(
