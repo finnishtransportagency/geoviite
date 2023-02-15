@@ -53,30 +53,30 @@ export const AppBar: React.FC = () => {
                         );
                     })}
                 <li>
-                    <EnvRestricted restrictTo={'dev'}>
-                        <div
-                            className={`${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`}
-                            onClick={() => setDataMenuOpen(!dataMenuOpen)}>
-                            <span>{t('app-bar.data-products-title')}</span>
-                            {dataMenuOpen && (
-                                <div className={styles['app-bar__data-menu']}>
-                                    <div>
-                                        <NavLink
-                                            className={styles['menu__item']}
-                                            to={'data-products/element-list'}>
-                                            {t('app-bar.data-products.element-list')}
-                                        </NavLink>
-                                    </div>
+                    <div
+                        className={`${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`}
+                        onClick={() => setDataMenuOpen(!dataMenuOpen)}>
+                        <span>{t('app-bar.data-products-title')}</span>
+                        {dataMenuOpen && (
+                            <div className={styles['app-bar__data-menu']}>
+                                <div>
+                                    <NavLink
+                                        className={styles['menu__item']}
+                                        to={'data-products/element-list'}>
+                                        {t('app-bar.data-products.element-list')}
+                                    </NavLink>
+                                </div>
+                                <EnvRestricted restrictTo={'dev'}>
                                     <div className={styles['menu__item']}>
                                         {t('app-bar.data-products.vertical-geometry')}
                                     </div>
                                     <div className={styles['menu__item']}>
                                         {t('app-bar.data-products.km-lengths')}
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    </EnvRestricted>
+                                </EnvRestricted>
+                            </div>
+                        )}
+                    </div>
                 </li>
             </ul>
             <img
