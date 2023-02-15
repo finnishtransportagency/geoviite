@@ -55,6 +55,7 @@ export type ExtraInfraModelParameters = {
     message: Message | undefined;
 };
 
+export type XmlCharset = 'US_ASCII' | 'UTF_16LE' | 'UTF_16' | 'UTF_16BE' | 'UTF_8' | 'ISO_8859_1';
 export type OverrideInfraModelParameters = {
     coordinateSystemSrid: Srid | undefined;
     projectId?: ProjectId;
@@ -62,7 +63,7 @@ export type OverrideInfraModelParameters = {
     verticalCoordinateSystem: VerticalCoordinateSystem | undefined;
     trackNumberId?: LayoutTrackNumberId;
     createdDate: Date | undefined;
-    encoding?: string;
+    encoding?: XmlCharset;
     source: PlanSource | undefined;
 };
 

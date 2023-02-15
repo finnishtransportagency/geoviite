@@ -23,7 +23,7 @@ class InfraModelServiceIT @Autowired constructor(
 
     @BeforeEach
     fun clearPlanFiles() {
-        jdbc.execute("delete from geometry.plan_file") { it.execute() }
+        jdbc.execute("delete from geometry.plan_file where true") { it.execute() }
     }
 
     @Test

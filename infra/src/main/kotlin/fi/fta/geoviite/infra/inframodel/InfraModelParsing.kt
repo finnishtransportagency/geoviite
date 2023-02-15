@@ -14,24 +14,19 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.xmlBytesToString
 import jakarta.xml.bind.JAXBContext
 import jakarta.xml.bind.Marshaller
 import jakarta.xml.bind.UnmarshalException
 import jakarta.xml.bind.Unmarshaller
-import org.apache.commons.io.ByteOrderMark
-import org.apache.commons.io.input.BOMInputStream
 import org.springframework.http.MediaType
 import org.springframework.web.multipart.MultipartFile
 import org.xml.sax.InputSource
-import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.InputStream
 import java.io.StringReader
 import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets
 import javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI
 import javax.xml.parsers.SAXParserFactory
-import javax.xml.stream.XMLInputFactory
 import javax.xml.transform.sax.SAXSource
 import javax.xml.validation.Schema
 import javax.xml.validation.SchemaFactory
@@ -106,8 +101,7 @@ fun parseGeometryPlan(
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, fileToString(file))
-
-    return parseFromString(
+    return parseInfraModelFile(
         source,
         imFile,
         coordinateSystems,
@@ -126,8 +120,8 @@ fun parseGeometryPlan(
     switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
-    return parseFromString(
+    val imFile = toInfraModelFile(file, fileEncodingOverride)
+    return parseInfraModelFile(
         source,
         imFile,
         coordinateSystems,
@@ -146,7 +140,7 @@ fun parseFromClasspath(
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
     val imFile = toInfraModelFile(fileName, classpathResourceToString(fileName))
-    return parseFromString(
+    return parseInfraModelFile(
         source,
         imFile,
         coordinateSystems,
@@ -156,10 +150,13 @@ fun parseFromClasspath(
     ) to imFile
 }
 
+fun toInfraModelFile(file: MultipartFile, fileEncodingOverride: Charset?) =
+    toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
+
 fun toInfraModelFile(fileName: String, fileContent: String) =
     InfraModelFile(name = FileName(fileName), content = censorAuthorIdentifyingInfo(fileContent))
 
-fun parseFromString(
+fun parseInfraModelFile(
     source: PlanSource,
     file: InfraModelFile,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
@@ -178,44 +175,11 @@ fun parseFromString(
     )
 }
 
-val xmlCharsets = listOf(
-    StandardCharsets.UTF_8,
-    StandardCharsets.UTF_16,
-    StandardCharsets.UTF_16BE,
-    StandardCharsets.UTF_16LE,
-    StandardCharsets.US_ASCII,
-    StandardCharsets.ISO_8859_1,
-)
-
-fun mapBomToCharset(bom: ByteOrderMark) =
-    when (bom) {
-        ByteOrderMark.UTF_8 -> StandardCharsets.UTF_8
-        ByteOrderMark.UTF_16BE -> StandardCharsets.UTF_16BE
-        ByteOrderMark.UTF_16LE -> StandardCharsets.UTF_16LE
-        else -> null
-    }
-
-fun encodingsFromXmlStream(stream: InputStream) =
-    XMLInputFactory.newInstance().createXMLStreamReader(stream).let { xmlStreamReader ->
-        xmlStreamReader.encoding to xmlStreamReader.characterEncodingScheme
-    }
-
-fun findXmlCharset(name: String) = xmlCharsets.find { cs -> cs.name() == name }
-
-fun getEncodingAndBom(bytes: ByteArray): Pair<Charset, Boolean> {
-    BOMInputStream(ByteArrayInputStream(bytes)).use { stream ->
-        val encodingFromBOM = stream.bom?.let { bom -> mapBomToCharset(bom) }?.name()
-        val (fileEncoding, encodingFromXMLDeclaration) = encodingsFromXmlStream(stream)
-        val encoding = (encodingFromBOM ?: encodingFromXMLDeclaration ?: fileEncoding)?.let(::findXmlCharset)
-            ?: StandardCharsets.UTF_8
-        return encoding to (stream.bom != null)
-    }
-}
-
 fun stringToInfraModel(xmlString: String): InfraModel =
     try {
         unmarshaller.unmarshal(toSaxSource(xmlString)) as InfraModel
     } catch (e: UnmarshalException) {
+        logger.warn(xmlString)
         throw InframodelParsingException(
             message = "Failed to unmarshal XML",
             cause = e,
@@ -235,12 +199,6 @@ fun fileToString(file: MultipartFile, encodingOverride: Charset?): String {
 
 fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
-}
-
-fun xmlBytesToString(bytes: ByteArray, encodingOverride: Charset? = null): String {
-    val (encoding, hasBom) = getEncodingAndBom(bytes)
-    val stringifiedXml = String(bytes, encodingOverride ?: encoding)
-    return if (hasBom) stringifiedXml.substring(1) else stringifiedXml
 }
 
 fun checkForEmptyFileAndIncorrectFileType(file: MultipartFile, vararg fileContentTypes: MediaType) {
