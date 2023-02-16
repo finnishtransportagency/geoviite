@@ -199,14 +199,14 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         )
         val alignmentId = alignmentDao.insert(alignment)
 
-        val blaa = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentId.id)
-        assertEquals(blaa.size, 2)
-        assertEquals(blaa.first().points.first(), points.first())
-        assertEquals(blaa.first().points.last(), points.last())
-        assertEquals(blaa.first().source, GeometrySource.PLAN)
-        assertEquals(blaa.last().points.first(), points2.first())
-        assertEquals(blaa.last().points.last(), points2.last())
-        assertEquals(blaa.last().source, GeometrySource.GENERATED)
+        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentId.id)
+        assertEquals(segmentGeometriesAndPlanMetadatas.size, 2)
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().points.first(), points.first())
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().points.last(), points.last())
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().source, GeometrySource.PLAN)
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().points.first(), points2.first())
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().points.last(), points2.last())
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().source, GeometrySource.GENERATED)
     }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
