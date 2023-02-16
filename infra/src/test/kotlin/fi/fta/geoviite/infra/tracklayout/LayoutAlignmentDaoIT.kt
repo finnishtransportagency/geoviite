@@ -159,6 +159,56 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         assertEquals(points2, updatedFromDb.segments[0].points)
     }
 
+    @Test
+    fun `alignment segment plan metadata search works`() {
+        val points = listOf(
+            LayoutPoint(
+                x = 10.0,
+                y = 20.0,
+                z = 1.0,
+                cant = 0.1,
+                m = 0.0,
+            ),
+            LayoutPoint(
+                x = 10.0,
+                y = 21.0,
+                z = null,
+                cant = null,
+                m = 1.0,
+            ),
+        )
+        val points2 = listOf(
+            LayoutPoint(
+                x = 10.0,
+                y = 21.0,
+                z = 1.0,
+                cant = null,
+                m = 0.0,
+            ),
+            LayoutPoint(
+                x = 11.0,
+                y = 21.0,
+                z = null,
+                cant = 0.3,
+                m = 1.0,
+            ),
+        )
+        val alignment = alignment(
+            segment(points = points, source = GeometrySource.PLAN),
+            segment(points = points2, source = GeometrySource.GENERATED)
+        )
+        val alignmentId = alignmentDao.insert(alignment)
+
+        val blaa = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentId.id)
+        assertEquals(blaa.size, 2)
+        assertEquals(blaa.first().points.first(), points.first())
+        assertEquals(blaa.first().points.last(), points.last())
+        assertEquals(blaa.first().source, GeometrySource.PLAN)
+        assertEquals(blaa.last().points.first(), points2.first())
+        assertEquals(blaa.last().points.last(), points2.last())
+        assertEquals(blaa.last().source, GeometrySource.GENERATED)
+    }
+
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
         alignment(segmentsWithZAndCant(alignmentSeed, segmentCount))
 

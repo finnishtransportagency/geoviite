@@ -25,7 +25,7 @@ data class SegmentGeometryAndMetadata(
     val planId: IntId<GeometryPlan>?,
     val planFileName: FileName?,
     val points: List<LayoutPoint>,
-    val source: GeometrySource,
+    val source: GeometrySource?,
     val metadataFileName: FileName?
 )
 

@@ -216,7 +216,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 planId = rs.getIntIdOrNull("plan_id"),
                 planFileName = rs.getFileNameOrNull("filename"),
                 points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
-                source = rs.getEnum("source"),
+                source = rs.getEnumOrNull<GeometrySource>("source"),
                 metadataFileName = rs.getFileNameOrNull("plan_file_name")
             )
         }
@@ -363,6 +363,8 @@ fun getSegmentPoints(
     heightColumn: String,
     cantColumn: String,
 ): List<LayoutPoint> {
+    val rawGeometry = rs.getString(geometryColumn)
+    if (rawGeometry == null) return emptyList()
     val geometryValues = parse3DMLineString(rs.getString(geometryColumn))
     val heightValues = rs.getNullableDoubleListOrNullFromString(heightColumn)
     val cantValues = rs.getNullableDoubleListOrNullFromString(cantColumn)
