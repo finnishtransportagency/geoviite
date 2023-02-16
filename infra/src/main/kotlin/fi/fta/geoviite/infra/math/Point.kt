@@ -127,10 +127,10 @@ data class RoundedPoint(val roundedX: BigDecimal, val roundedY: BigDecimal): IPo
     }
 }
 
-fun minPoint(points: List<Point>): Point =
+fun minPoint(points: List<IPoint>): IPoint =
     points.reduceRight { acc, point -> Point(min(acc.x, point.x), min(acc.y, point.y)) }
 
-fun maxPoint(points: List<Point>): Point =
+fun maxPoint(points: List<IPoint>): IPoint =
     points.reduceRight { acc, point -> Point(max(acc.x, point.x), max(acc.y, point.y)) }
 
 fun parsePointPair(value: String): Pair<Double, Double> {

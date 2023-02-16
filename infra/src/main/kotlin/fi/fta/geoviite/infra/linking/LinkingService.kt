@@ -242,7 +242,7 @@ class LinkingService @Autowired constructor(
         return getSegmentsBetweenPoints(
             geometryIndexRange.start,
             geometryIndexRange.endInclusive,
-            getSegmentsWithoutSwitchInformation(geometryAlignment.segments),
+            transformGeometryToLayoutSegments(geometryAlignment.segments),
             fromGeometryPoint,
             toGeometryPoint,
             0.0,
