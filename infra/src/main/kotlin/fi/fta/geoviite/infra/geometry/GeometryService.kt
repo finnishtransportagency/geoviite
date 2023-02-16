@@ -35,8 +35,6 @@ data class TransformationError(
     val coordinateSystemName = units.coordinateSystemName
 }
 
-data class AlignmentPlanGeometry(val planId: IntId<GeometryPlan>?, val planName: FileName?, val startAddress: TrackMeter, val endAddress: TrackMeter)
-
 @Service
 class GeometryService @Autowired constructor(
     private val geometryDao: GeometryDao,

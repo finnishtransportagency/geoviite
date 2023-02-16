@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
 import { LocationTrackId } from 'track-layout/track-layout-model';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -13,6 +13,7 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { Link } from 'vayla-design-lib/link/link';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
@@ -26,7 +27,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     viewport,
 }) => {
     const [useBoungingBox, setUseBoundingBox] = React.useState(true);
-    const elements = useLoader(
+    const [elements, elementFetchStatus] = useLoaderWithStatus(
         () =>
             getGeometries(
                 publishType,
@@ -50,30 +51,43 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                         />
                     }
                 />
-                {elements?.map((linking) => (
-                    <InfoboxField
-                        key={formatTrackMeter(linking.startAddress)}
-                        label={
-                            <span className={styles['location-track-geometry-infobox__plan-name']}>
-                                {linking.planId ? (
-                                    <Link
-                                        onClick={() => onSelectPlan(linking.planId)}
-                                        title={linking.planName}>
-                                        {linking.planName}
-                                    </Link>
-                                ) : (
-                                    'Ei suunnitelmaa'
-                                )}
-                            </span>
-                        }
-                        value={
-                            <div>
-                                <span>{formatTrackMeterWithoutMeters(linking.startAddress)}</span>{' '}
-                                <span>{formatTrackMeterWithoutMeters(linking.endAddress)}</span>
-                            </div>
-                        }
-                    />
-                ))}
+                {elementFetchStatus === LoaderStatus.Ready ? (
+                    <React.Fragment>
+                        {elements?.map((linking) => (
+                            <InfoboxField
+                                key={formatTrackMeter(linking.startAddress)}
+                                label={
+                                    <span
+                                        className={
+                                            styles['location-track-geometry-infobox__plan-name']
+                                        }>
+                                        {linking.planId ? (
+                                            <Link
+                                                onClick={() => onSelectPlan(linking.planId)}
+                                                title={linking.planName}>
+                                                {linking.planName}
+                                            </Link>
+                                        ) : (
+                                            'Ei suunnitelmaa'
+                                        )}
+                                    </span>
+                                }
+                                value={
+                                    <div>
+                                        <span>
+                                            {formatTrackMeterWithoutMeters(linking.startAddress)}
+                                        </span>{' '}
+                                        <span>
+                                            {formatTrackMeterWithoutMeters(linking.endAddress)}
+                                        </span>
+                                    </div>
+                                }
+                            />
+                        ))}
+                    </React.Fragment>
+                ) : (
+                    <Spinner />
+                )}
             </InfoboxContent>
         </Infobox>
     );

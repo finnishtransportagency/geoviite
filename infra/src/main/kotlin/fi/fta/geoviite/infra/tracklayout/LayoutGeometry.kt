@@ -21,13 +21,15 @@ enum class GeometrySource {
 
 fun emptyAlignment() = LayoutAlignment(segments = listOf(), sourceId = null)
 
-data class SegmentGeometryAndPlan(
+data class SegmentGeometryAndMetadata(
     val planId: IntId<GeometryPlan>?,
     val planFileName: FileName?,
     val points: List<LayoutPoint>,
     val source: GeometrySource,
     val metadataFileName: FileName?
 )
+
+data class AlignmentPlanSection(val planId: IntId<GeometryPlan>?, val planName: FileName?, val startAddress: TrackMeter, val endAddress: TrackMeter)
 
 data class LayoutAlignment(
     val segments: List<LayoutSegment>,

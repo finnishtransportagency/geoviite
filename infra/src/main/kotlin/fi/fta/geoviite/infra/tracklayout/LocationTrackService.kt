@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geometry.AlignmentPlanGeometry
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
@@ -215,39 +214,21 @@ class LocationTrackService(
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
     }
 
-    private fun foldByPlanId(segmentGeometryAndPlans: List<SegmentGeometryAndPlan>) =
-        segmentGeometryAndPlans.fold(mutableListOf<SegmentGeometryAndPlan>()) { acc, element ->
-            if (acc.isEmpty() || acc.last().planId != element.planId || acc.last().source != element.source) acc.add(
-                element
-            )
-            else acc.set(acc.lastIndex, acc.last().copy(points = acc.last().points + element.points))
-            acc
-        }
-
-    private fun filterByBoundingBox(
-        segments: List<SegmentGeometryAndPlan>,
-        boundingBox: BoundingBox
-    ): List<SegmentGeometryAndPlan> {
-        val firstIndex =
-            segments.indexOfFirst { segment -> segment.points.any{ boundingBox.contains(it) } }
-        val lastIndex =
-            segments.indexOfLast { segment -> segment.points.any{ boundingBox.contains(it) } }
-        return if (firstIndex >= 0 && lastIndex >= 0) segments.subList(firstIndex, lastIndex + 1) else emptyList()
-    }
-
     fun getPlanInfoForSegments(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
         boundingBox: BoundingBox?
-    ): List<AlignmentPlanGeometry> {
+    ): List<AlignmentPlanSection> {
         val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, locationTrackId)
-        val data = alignmentDao.fetchSegmentPlansAndEndpoints(alignment.id as IntId<LayoutAlignment>)
-
-        val filteredData = if (boundingBox != null) filterByBoundingBox(data, boundingBox) else data
-        val plansAndEndpoints = foldByPlanId(filteredData)
+        val alignmentSegmentGeometryByPlan = alignmentService.getGeometrySectionsByPlan(
+            publishType,
+            alignment.id as IntId<LayoutAlignment>,
+            locationTrack.trackNumberId,
+            boundingBox
+        )
         return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
-            plansAndEndpoints.map {
-                AlignmentPlanGeometry(
+            alignmentSegmentGeometryByPlan.map {
+                AlignmentPlanSection(
                     planId = it.planId,
                     planName = it.planFileName ?: it.metadataFileName,
                     startAddress = context.getAddress(it.points.first())?.first!!,

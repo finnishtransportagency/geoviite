@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geometry.AlignmentPlanGeometry
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
@@ -143,7 +142,7 @@ class LocationTrackController(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
-    ): List<AlignmentPlanGeometry> {
+    ): List<AlignmentPlanSection> {
         logger.apiCall("getTrackElementListing",
             "id" to id, "bbox" to boundingBox)
         return locationTrackService.getPlanInfoForSegments(id, publishType, boundingBox)
