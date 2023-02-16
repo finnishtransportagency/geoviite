@@ -175,6 +175,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             linkingState={linkingState}
                             onUnselect={onUnselect}
                             referenceLineChangeTime={changeTimes.layoutReferenceLine}
+                            viewport={viewport}
                         />
                     ),
                 };

@@ -1,40 +1,40 @@
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LocationTrackId } from 'track-layout/track-layout-model';
+import { ReferenceLineId } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
+import { getReferenceLineSectionsByPlan } from 'track-layout/layout-reference-line-api';
 
-type LocationTrackGeometryInfoboxProps = {
+type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
-    locationTrackId: LocationTrackId;
+    referenceLineId: ReferenceLineId;
     viewport: MapViewport;
 };
 
-export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
+export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
     publishType,
-    locationTrackId,
+    referenceLineId,
     viewport,
 }) => {
     const [useBoungingBox, setUseBoundingBox] = React.useState(true);
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
-            getLocationTrackSectionsByPlan(
+            getReferenceLineSectionsByPlan(
                 publishType,
-                locationTrackId,
+                referenceLineId,
                 useBoungingBox ? viewport.area : undefined,
             ),
-        [locationTrackId, useBoungingBox, viewport.area],
+        [referenceLineId, useBoungingBox, viewport.area],
     );
 
     return (
-        <Infobox title={'Raiteen geometriat'}>
+        <Infobox title={'Pituusmittauslinjan geometriat'}>
             <InfoboxContent>
                 <InfoboxField
                     label={'Vain kartalle osuvat geometriat'}

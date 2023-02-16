@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.PublicationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -20,6 +21,7 @@ class ReferenceLineService(
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
+    private val geocodingService: GeocodingService,
 ): DraftableObjectService<ReferenceLine, ReferenceLineDao>(dao) {
 
     @Transactional
@@ -175,6 +177,33 @@ class ReferenceLineService(
     fun listNear(publishType: PublishType, bbox: BoundingBox): List<ReferenceLine> {
         logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
         return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch)
+    }
+
+    fun getSectionsByPlan(
+        referenceLineId: IntId<ReferenceLine>,
+        publishType: PublishType,
+        boundingBox: BoundingBox?
+    ): List<AlignmentPlanSection> {
+        val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, referenceLineId)
+        val alignmentSegmentGeometryByPlan = alignmentService.getGeometrySectionsByPlan(
+            publishType,
+            alignment.id as IntId<LayoutAlignment>,
+            locationTrack.trackNumberId,
+            boundingBox
+        )
+        return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
+            alignmentSegmentGeometryByPlan.mapNotNull {
+                val startAddress = context.getAddress(it.points.first())?.first
+                val endAddress = context.getAddress(it.points.last())?.first
+
+                if (startAddress != null && endAddress != null) AlignmentPlanSection(
+                    planId = it.planId,
+                    planName = it.planFileName ?: it.metadataFileName,
+                    startAddress = startAddress,
+                    endAddress = endAddress
+                ) else null
+            }
+        } ?: emptyList()
     }
 }
 

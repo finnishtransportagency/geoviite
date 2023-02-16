@@ -138,13 +138,13 @@ class LocationTrackController(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/{id}/plan-geometry")
-    fun getTrackElementListing(
+    fun getTrackSectionsByPlan(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
-        logger.apiCall("getTrackElementListing",
-            "id" to id, "bbox" to boundingBox)
-        return locationTrackService.getPlanInfoForSegments(id, publishType, boundingBox)
+        logger.apiCall("getTrackSectionsByPlan",
+            "publishType" to publishType, "id" to id, "bbox" to boundingBox)
+        return locationTrackService.getSectionsByPlan(id, publishType, boundingBox)
     }
 }

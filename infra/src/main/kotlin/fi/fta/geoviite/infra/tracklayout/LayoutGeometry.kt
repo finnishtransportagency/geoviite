@@ -29,7 +29,12 @@ data class SegmentGeometryAndMetadata(
     val metadataFileName: FileName?
 )
 
-data class AlignmentPlanSection(val planId: IntId<GeometryPlan>?, val planName: FileName?, val startAddress: TrackMeter, val endAddress: TrackMeter)
+data class AlignmentPlanSection(
+    val planId: IntId<GeometryPlan>?,
+    val planName: FileName?,
+    val startAddress: TrackMeter?,
+    val endAddress: TrackMeter?
+)
 
 data class LayoutAlignment(
     val segments: List<LayoutSegment>,

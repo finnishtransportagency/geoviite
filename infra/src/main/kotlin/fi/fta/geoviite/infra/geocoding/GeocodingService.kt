@@ -16,7 +16,6 @@ import java.time.Instant
 class GeocodingService(
     private val addressPointsCache: AddressPointsCache,
     private val geocodingDao: GeocodingDao,
-    private val referenceLineService: ReferenceLineService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -39,11 +38,6 @@ class GeocodingService(
             "alignmentVersion" to alignmentVersion, "contextKey" to contextKey
         )
         return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
-    }
-
-    fun getReferenceLineAddressPoints(contextKey: GeocodingContextCacheKey): AlignmentAddresses? {
-        logger.serviceCall("getReferenceLineAddressPoints", "contextKey" to contextKey)
-        return geocodingDao.getGeocodingContext(contextKey)?.referenceLineAddresses
     }
 
     fun getAddress(
@@ -84,14 +78,12 @@ class GeocodingService(
 
     fun getReferenceLineStartAndEnd(
         publicationState: PublishType,
-        referenceLineId: IntId<ReferenceLine>,
+        referenceLine: ReferenceLine,
+        alignment: LayoutAlignment,
     ): AlignmentStartAndEnd? {
         logger.serviceCall("getReferenceLineStartAndEnd",
-            "publicationState" to publicationState, "referenceLineId" to referenceLineId)
-        return referenceLineService.getWithAlignment(publicationState, referenceLineId)?.let { (line, alignment) ->
-            val geocodingContext = getGeocodingContext(publicationState, line.trackNumberId)
-            geocodingContext?.getStartAndEnd(alignment)
-        }
+            "publicationState" to publicationState, "referenceLine" to referenceLine, "alignment" to alignment)
+        return getGeocodingContext(publicationState, referenceLine.trackNumberId)?.getStartAndEnd(alignment)
     }
 
     fun getTrackLocation(

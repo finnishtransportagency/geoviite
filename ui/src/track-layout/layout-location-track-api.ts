@@ -36,9 +36,9 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
 
-export type LocationTrackGeometrySection = {
+export type AlignmentSectionByPlan = {
     planName: string | undefined;
-    planId: GeometryPlanId;
+    planId: GeometryPlanId | undefined;
     startAddress: TrackMeter;
     endAddress: TrackMeter;
 };
@@ -192,13 +192,13 @@ export async function getLocationTrackEndpointsByTile(
         );
 }
 
-export const getGeometries = async (
+export const getLocationTrackSectionsByPlan = async (
     publishType: PublishType,
     id: LocationTrackId,
     bbox: BoundingBox | undefined = undefined,
 ) => {
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
-    return getIgnoreError<LocationTrackGeometrySection[]>(
+    return getIgnoreError<AlignmentSectionByPlan[]>(
         `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
     );
 };

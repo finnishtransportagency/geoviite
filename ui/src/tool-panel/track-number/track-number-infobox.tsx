@@ -37,6 +37,8 @@ import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialo
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
+import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
+import { MapViewport } from 'map/map-model';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -47,6 +49,7 @@ type TrackNumberInfoboxProps = {
     onUnselect: () => void;
     onStartReferenceLineGeometryChange: (alignment: MapAlignment) => void;
     onEndReferenceLineGeometryChange: () => void;
+    viewport: MapViewport;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -57,6 +60,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     showArea,
     onStartReferenceLineGeometryChange,
     onEndReferenceLineGeometryChange,
+    viewport,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
@@ -239,6 +243,13 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         </InfoboxButtons>
                     </InfoboxContent>
                 </Infobox>
+            )}
+            {referenceLine && (
+                <TrackNumberGeometryInfobox
+                    referenceLineId={referenceLine.id}
+                    publishType={publishType}
+                    viewport={viewport}
+                />
             )}
             {changeTimes && (
                 <Infobox
