@@ -6,6 +6,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { AlignmentSectionByPlan } from 'track-layout/layout-location-track-api';
 import { useAppNavigate } from 'common/navigate';
+import { useTranslation } from 'react-i18next';
 
 type AlignmentPlanSectionInfoboxContentProps = {
     sections: AlignmentSectionByPlan[];
@@ -14,6 +15,7 @@ type AlignmentPlanSectionInfoboxContentProps = {
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
 > = ({ sections }) => {
+    const { t } = useTranslation();
     const navigate = useAppNavigate();
     const onSelectPlan = (planId: GeometryPlanId) => navigate('inframodel-edit', planId);
 
@@ -31,7 +33,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                     {section.planName}
                                 </Link>
                             ) : (
-                                'Ei suunnitelmaa'
+                                t('tool-panel.alignment-plan-sections.no-plan')
                             )}
                         </span>
                     }

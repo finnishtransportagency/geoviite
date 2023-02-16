@@ -10,6 +10,7 @@ import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
+import { useTranslation } from 'react-i18next';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
@@ -22,6 +23,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     locationTrackId,
     viewport,
 }) => {
+    const { t } = useTranslation();
     const [useBoungingBox, setUseBoundingBox] = React.useState(true);
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
@@ -34,10 +36,10 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     );
 
     return (
-        <Infobox title={'Raiteen geometriat'}>
+        <Infobox title={t('tool-panel.alignment-plan-sections.location-track-geometries')}>
             <InfoboxContent>
                 <InfoboxField
-                    label={'Vain kartalle osuvat geometriat'}
+                    label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
                     value={
                         <Checkbox
                             checked={useBoungingBox}

@@ -10,6 +10,7 @@ import { MapViewport } from 'map/map-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
 import { getReferenceLineSectionsByPlan } from 'track-layout/layout-reference-line-api';
+import { useTranslation } from 'react-i18next';
 
 type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
@@ -22,6 +23,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     referenceLineId,
     viewport,
 }) => {
+    const { t } = useTranslation();
     const [useBoungingBox, setUseBoundingBox] = React.useState(true);
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
@@ -34,10 +36,10 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     );
 
     return (
-        <Infobox title={'Pituusmittauslinjan geometriat'}>
+        <Infobox title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}>
             <InfoboxContent>
                 <InfoboxField
-                    label={'Vain kartalle osuvat geometriat'}
+                    label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
                     value={
                         <Checkbox
                             checked={useBoungingBox}
