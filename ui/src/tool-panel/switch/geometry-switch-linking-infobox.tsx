@@ -22,7 +22,7 @@ import { boundingBoxAroundPoints, expandBoundingBox } from 'model/geometry';
 import { useSwitch, useSwitchStructure } from 'track-layout/track-layout-react-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { LinkingStatus } from 'linking/linking-status';
-import { GeometrySwitchLinkingStartButton } from 'tool-panel/switch/geometry-switch-linking-start-button';
+import { GeometrySwitchLinkingInitiation } from 'tool-panel/switch/geometry-switch-linking-initiation';
 import { GeometrySwitchLinkingCandidates } from 'tool-panel/switch/geometry-switch-linking-candidates';
 import { SwitchJointInfoboxContainer } from 'tool-panel/switch/switch-joint-infobox-container';
 import { GeometrySwitchLinkingErrors } from 'tool-panel/switch/geometry-switch-linking-errors';
@@ -188,8 +188,8 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                 switchChangeTime={switchChangeTime}
                                 locationTrackChangeTime={locationTrackChangeTime}
                             />
-                            {suggestedSwitchFetchStatus !== LoaderStatus.Loading ? (
-                                <GeometrySwitchLinkingStartButton
+                            {suggestedSwitchFetchStatus === LoaderStatus.Ready ? (
+                                <GeometrySwitchLinkingInitiation
                                     onStartLinking={startLinking}
                                     hasSuggestedSwitch={suggestedSwitch !== null}
                                     linkingState={linkingState}

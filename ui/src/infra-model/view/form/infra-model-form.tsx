@@ -114,6 +114,17 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
 
+    const planSourceOptions = [
+        {
+            name: t('enum.plan-source.GEOMETRIAPALVELU'),
+            value: 'GEOMETRIAPALVELU' as PlanSource,
+        },
+        {
+            name: t('enum.plan-source.PAIKANNUSPALVELU'),
+            value: 'PAIKANNUSPALVELU' as PlanSource,
+        },
+    ];
+
     function changeInExtraParametersField<
         TKey extends keyof ExtraInfraModelParameters,
         TValue extends ExtraInfraModelParameters[TKey],
@@ -495,20 +506,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         placeholder={t('im-form.coordinate-system-dropdown')}
                                         value={planSource}
-                                        options={[
-                                            {
-                                                name: 'Geometriapalvelu',
-                                                value: 'GEOMETRIAPALVELU' as PlanSource,
-                                            },
-                                            {
-                                                name: 'Paikannuspalvelu',
-                                                value: 'PAIKANNUSPALVELU' as PlanSource,
-                                            },
-                                        ]}
-                                        onChange={(srid) => {
-                                            setPlanSource(srid);
+                                        options={planSourceOptions}
+                                        onChange={(planSource) => {
+                                            setPlanSource(planSource);
                                             changeInOverrideParametersField(
-                                                srid as PlanSource,
+                                                planSource as PlanSource,
                                                 'source',
                                             );
                                         }}

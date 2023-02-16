@@ -9,7 +9,7 @@ import { TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
-type GeometrySwitchLinkingCandidateListingProps = {
+type GeometrySwitchLinkingCandidatesProps = {
     suggestedSwitch: SuggestedSwitch | null | undefined;
     selectedSwitchId: LayoutSwitchId | undefined;
     onSelectSwitch: (selectedSwitch: LayoutSwitch) => void;
@@ -17,9 +17,7 @@ type GeometrySwitchLinkingCandidateListingProps = {
     onShowAddSwitchDialog: () => void;
 };
 
-export const GeometrySwitchLinkingCandidates: React.FC<
-    GeometrySwitchLinkingCandidateListingProps
-> = ({
+export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCandidatesProps> = ({
     suggestedSwitch,
     selectedSwitchId,
     onSelectSwitch,
@@ -51,7 +49,6 @@ export const GeometrySwitchLinkingCandidates: React.FC<
                     size={ButtonSize.SMALL}
                     icon={Icons.Append}
                     onClick={onShowAddSwitchDialog}
-                    qa-id=""
                 />
             </div>
             <ul className={styles['geometry-switch-infobox__switches-container']}>
