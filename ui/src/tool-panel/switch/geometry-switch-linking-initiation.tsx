@@ -6,13 +6,13 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { LinkingState } from 'linking/linking-model';
 
-type LinkingStatusProps = {
+type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
     hasSuggestedSwitch: boolean;
     onStartLinking: () => void;
 };
 
-export const GeometrySwitchLinkingStartButton: React.FC<LinkingStatusProps> = ({
+export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInitiationProps> = ({
     linkingState,
     hasSuggestedSwitch,
     onStartLinking,
