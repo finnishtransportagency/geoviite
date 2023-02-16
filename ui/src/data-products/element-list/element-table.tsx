@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import styles from './element-list-view.scss';
 import { ElementItem } from 'geometry/geometry-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { useLoader } from 'utils/react-utils';
+import { getSridList } from 'common/common-api';
+import { Srid } from 'common/common-model';
 
 type ElementTableProps = {
     elements: ElementItem[];
@@ -40,6 +43,10 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
         ? ['track-number', 'location-track'].concat(commonTableHeadings)
         : ['track-number'].concat(commonTableHeadings);
 
+    const coordinateSystems = useLoader(getSridList, []);
+    const findCoordinateSystem = (srid: Srid) =>
+        coordinateSystems && coordinateSystems.find((crs) => crs.srid === srid);
+
     return (
         <React.Fragment>
             <p className={styles['element-list-view__element-count']}>
@@ -72,9 +79,9 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                                     )}
                                     trackAddressStart={item.start.address}
                                     trackAddressEnd={item.end.address}
-                                    coordinateSystem={
-                                        item.coordinateSystemSrid ?? item.coordinateSystemName
-                                    }
+                                    coordinateSystem={findCoordinateSystem(
+                                        item.coordinateSystemSrid,
+                                    )}
                                     locationStartE={item.start.coordinate.x}
                                     locationStartN={item.start.coordinate.y}
                                     locationEndE={item.end.coordinate.x}

@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { TrackMeter } from 'common/common-model';
+import { CoordinateSystem, TrackMeter } from 'common/common-model';
+import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 
 export type ElementTableItemProps = {
     id: string;
@@ -24,7 +25,7 @@ export type ElementTableItemProps = {
     angleEnd: number;
     plan: string;
     source: string;
-    coordinateSystem: string;
+    coordinateSystem: CoordinateSystem | undefined;
 
     showLocationTrackName: boolean;
 };
@@ -61,7 +62,9 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{type}</td>
                 <td>{trackAddressStart && formatTrackMeter(trackAddressStart)}</td>
                 <td>{trackAddressEnd && formatTrackMeter(trackAddressEnd)}</td>
-                <td>{coordinateSystem}</td>
+                <td>
+                    <CoordinateSystemView coordinateSystem={coordinateSystem} />
+                </td>
                 <td>{roundToPrecision(locationStartE, Precision.TM35FIN)}</td>
                 <td>{roundToPrecision(locationStartN, Precision.TM35FIN)}</td>
                 <td>{roundToPrecision(locationEndE, Precision.TM35FIN)}</td>

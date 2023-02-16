@@ -18,7 +18,7 @@ import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getCoordinateSystem } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
-import CoordinateSystem from 'geoviite-design-lib/coordinate-system/coordinate-system';
+import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 import { TimeStamp } from 'common/common-model';
 import { UnreliableInfraModelDownloadConfirmDialog } from 'infra-model/list/unreliable-infra-model-download-confirm-dialog';
@@ -141,7 +141,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                         label={t('tool-panel.geometry-plan.coordinate-system')}
                         value={
                             coordinateSystemModel && (
-                                <CoordinateSystem coordinateSystem={coordinateSystemModel} />
+                                <CoordinateSystemView coordinateSystem={coordinateSystemModel} />
                             )
                         }
                     />
