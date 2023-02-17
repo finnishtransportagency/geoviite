@@ -115,9 +115,9 @@ class LocationTrackService(
     override fun publish(version: PublicationVersion<LocationTrack>): DaoResponse<LocationTrack> {
         logger.serviceCall("publish", "version" to version)
         val officialVersion = dao.fetchOfficialVersion(version.officialId)
-        val oldDraft = dao.fetch(version.draftVersion)
+        val oldDraft = dao.fetch(version.validatedAssetVersion)
         val oldOfficial = officialVersion?.let(dao::fetch)
-        val publishedVersion = publishInternal(VersionPair(officialVersion, version.draftVersion))
+        val publishedVersion = publishInternal(VersionPair(officialVersion, version.validatedAssetVersion))
         if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
             // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
             oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)

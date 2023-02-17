@@ -758,5 +758,5 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
     val currentDraftVersion = dao.fetchDraftVersionOrThrow(publicationVersion.officialId)
     assertEquals(currentDraftVersion.id, currentOfficialVersion.id)
     assertEquals(currentOfficialVersion, currentDraftVersion)
-    checkMatch(dao.fetch(publicationVersion.draftVersion), dao.fetch(currentOfficialVersion))
+    checkMatch(dao.fetch(publicationVersion.validatedAssetVersion), dao.fetch(currentOfficialVersion))
 }
