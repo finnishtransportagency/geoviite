@@ -51,6 +51,33 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         return candidates
     }
 
+    fun fetchOfficialTrackNumbersAsPublishCandidates(ids: List<IntId<TrackLayoutTrackNumber>>): List<TrackNumberPublishCandidate> {
+        if (ids.isEmpty()) return emptyList()
+        val sql = """
+            select
+              track_number.row_id,
+              track_number.row_version,
+              track_number.official_id,
+              track_number.number,
+              track_number.change_time,
+              track_number.change_user
+            from layout.track_number_publication_view track_number
+              where track_number.official_id in (:ids) and draft = false
+        """.trimIndent()
+        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>("ids" to ids.map { it.intValue })) { rs, _ ->
+            TrackNumberPublishCandidate(
+                id = rs.getIntId("official_id"),
+                rowVersion = rs.getRowVersion("row_id", "row_version"),
+                number = rs.getTrackNumber("number"),
+                draftChangeTime = rs.getInstant("change_time"),
+                operation = Operation.MODIFY,
+                userName = UserName(rs.getString("change_user"))
+            )
+        }
+        logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidate::id))
+        return candidates
+    }
+
     fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidate> {
         val sql = """
             select 
@@ -89,6 +116,38 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         return candidates
     }
 
+    fun fetchOfficialReferenceLinesAsPublishCandidates(ids: List<IntId<ReferenceLine>>): List<ReferenceLinePublishCandidate> {
+        if (ids.isEmpty()) return emptyList()
+        val sql = """
+            select
+              reference_line.row_id,
+              reference_line.row_version,
+              reference_line.official_id,
+              reference_line.track_number_id,
+              reference_line.change_time,
+              reference_line.change_user,
+              track_number.number as name
+            from layout.reference_line_publication_view reference_line
+              left join layout.track_number_publication_view track_number
+                        on track_number.official_id = reference_line.track_number_id
+                          and 'OFFICIAL' = any(track_number.publication_states)
+              where reference_line.official_id in (:ids) and reference_line.draft = false
+        """.trimIndent()
+        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>("ids" to ids.map { it.intValue })) { rs, _ ->
+            ReferenceLinePublishCandidate(
+                id = rs.getIntId("official_id"),
+                rowVersion = rs.getRowVersion("row_id", "row_version"),
+                name = rs.getTrackNumber("name"),
+                trackNumberId = rs.getIntId("track_number_id"),
+                draftChangeTime = rs.getInstant("change_time"),
+                userName = UserName(rs.getString("change_user")),
+                operation = Operation.MODIFY,
+            )
+        }
+        logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
+        return candidates
+    }
+
     fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
         val sql = """
             select 
@@ -120,6 +179,37 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
+            )
+        }
+        logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
+        return candidates
+    }
+
+    fun fetchOfficialLocationTracksAsPublishCandidates(ids: List<IntId<LocationTrack>>): List<LocationTrackPublishCandidate> {
+        if (ids.isEmpty()) return emptyList()
+        val sql = """
+            select
+              location_track.row_id,
+              location_track.row_version,
+              location_track.official_id,
+              location_track.name,
+              location_track.track_number_id,
+              location_track.change_time,
+              location_track.duplicate_of_location_track_id,
+              location_track.change_user
+            from layout.location_track_publication_view location_track
+              where location_track.official_id in (:ids) and location_track.draft = false
+        """.trimIndent()
+        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>("ids" to ids.map { it.intValue })) { rs, _ ->
+            LocationTrackPublishCandidate(
+                id = rs.getIntId("official_id"),
+                rowVersion = rs.getRowVersion("row_id", "row_version"),
+                name = AlignmentName(rs.getString("name")),
+                trackNumberId = rs.getIntId("track_number_id"),
+                draftChangeTime = rs.getInstant("change_time"),
+                duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
+                userName = UserName(rs.getString("change_user")),
+                operation = Operation.MODIFY,
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
@@ -165,6 +255,40 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         return candidates
     }
 
+    fun fetchOfficialSwitchesAsPublishCandidates(ids: List<IntId<TrackLayoutSwitch>>): List<SwitchPublishCandidate> {
+        if (ids.isEmpty()) return emptyList()
+        val sql = """
+            select
+              draft_switch.row_id,
+              draft_switch.row_version,
+              draft_switch.official_id,
+              draft_switch.name,
+              draft_switch.change_time,
+              draft_switch.change_user,
+              (select array_agg(sltn)
+                from layout.switch_linked_track_numbers(draft_switch.row_id, :publication_state) sltn
+              ) as track_numbers
+            from layout.switch_publication_view draft_switch
+              where draft_switch.official_id in (:ids) and draft_switch.draft = false
+        """.trimIndent()
+        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>(
+            "ids" to ids.map { it.intValue },
+            "publication_state" to PublishType.OFFICIAL.name,
+        )) { rs, _ ->
+            SwitchPublishCandidate(
+                id = rs.getIntId("official_id"),
+                rowVersion = rs.getRowVersion("row_id", "row_version"),
+                name = SwitchName(rs.getString("name")),
+                draftChangeTime = rs.getInstant("change_time"),
+                userName = UserName(rs.getString("change_user")),
+                operation = Operation.MODIFY,
+                trackNumberIds = rs.getIntIdArray("track_numbers"),
+            )
+        }
+        logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
+        return candidates
+    }
+
     fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
         val sql = """
             select
@@ -195,6 +319,36 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
+            )
+        }
+        logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))
+        return candidates
+    }
+
+    fun fetchOfficialKmPostsAsPublishCandidates(ids: List<IntId<TrackLayoutKmPost>>): List<KmPostPublishCandidate> {
+        if (ids.isEmpty()) return emptyList()
+        val sql = """
+            select
+              km_post.row_id,
+              km_post.row_version,
+              km_post.official_id,
+              km_post.track_number_id,
+              km_post.km_number,
+              km_post.change_time,
+              km_post.change_user
+              from layout.km_post_publication_view km_post
+            where km_post.official_id in (:ids) and km_post.draft = false
+              order by km_number
+        """.trimIndent()
+        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>("ids" to ids.map { it.intValue })) { rs, _ ->
+            KmPostPublishCandidate(
+                id = rs.getIntId("official_id"),
+                rowVersion = rs.getRowVersion("row_id", "row_version"),
+                trackNumberId = rs.getIntId("track_number_id"),
+                kmNumber = rs.getKmNumber("km_number"),
+                draftChangeTime = rs.getInstant("change_time"),
+                userName = UserName(rs.getString("change_user")),
+                operation = Operation.MODIFY,
             )
         }
         logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))

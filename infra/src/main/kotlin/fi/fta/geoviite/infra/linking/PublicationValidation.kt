@@ -34,7 +34,6 @@ const val MAX_KM_POST_OFFSET = 10.0
 
 fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<PublishValidationError> =
     listOfNotNull(
-        validate(trackNumber.draft != null) { "$VALIDATION_TRACK_NUMBER.not-draft" },
         validate(trackNumber.state.isPublishable()) { "$VALIDATION_TRACK_NUMBER.state.${trackNumber.state}" }
     )
 
@@ -75,7 +74,6 @@ fun validateTrackNumberReferences(
 
 fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidationError> =
     listOfNotNull(
-        validate(kmPost.draft != null) { "$VALIDATION_KM_POST.not-draft" },
         validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" },
         validate(kmPost.location != null) { "$VALIDATION_KM_POST.no-location" },
     )
@@ -102,7 +100,6 @@ fun validateKmPostReferences(
 
 fun validateDraftSwitchFields(switch: TrackLayoutSwitch): List<PublishValidationError> =
     listOfNotNull(
-        validate(switch.draft != null) { "$VALIDATION_SWITCH.not-draft" },
         validate(switch.stateCategory.isPublishable()) { "$VALIDATION_SWITCH.state-category.${switch.stateCategory}" },
     )
 
@@ -211,14 +208,8 @@ fun validateDuplicateOfState(
         }
     )
 
-fun validateDraftReferenceLineFields(referenceLine: ReferenceLine): List<PublishValidationError> =
-    listOfNotNull(
-        validate(referenceLine.draft != null) { "$VALIDATION_REFERENCE_LINE.not-draft" },
-    )
-
 fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<PublishValidationError> =
     listOfNotNull(
-        validate(locationTrack.draft != null) { "$VALIDATION_LOCATION_TRACK.not-draft" },
         validate(locationTrack.state.isPublishable()) { "$VALIDATION_LOCATION_TRACK.state.${locationTrack.state}" },
     )
 

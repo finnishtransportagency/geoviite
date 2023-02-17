@@ -76,6 +76,13 @@ class PublicationController @Autowired constructor(
         return publicationService.getRevertRequestDependencies(toDelete)
     }
 
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/validate-official")
+    fun validateOfficial(@RequestBody request: PublishRequestIds): PublishCandidates {
+        logger.apiCall("validateOfficial")
+        return publicationService.validateOfficial(request)
+    }
+
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping
     fun publishChanges(@RequestBody request: PublishRequest): PublishResult {

@@ -72,6 +72,18 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    fun validateOfficial(request: PublishRequestIds): PublishCandidates {
+        val requestAndDependencies = getRevertRequestDependencies(request)
+        val pcs = PublishCandidates(
+            trackNumbers = publicationDao.fetchOfficialTrackNumbersAsPublishCandidates(requestAndDependencies.trackNumbers),
+            referenceLines = publicationDao.fetchOfficialReferenceLinesAsPublishCandidates(requestAndDependencies.referenceLines),
+            locationTracks = publicationDao.fetchOfficialLocationTracksAsPublishCandidates(requestAndDependencies.locationTracks),
+            switches = publicationDao.fetchOfficialSwitchesAsPublishCandidates(requestAndDependencies.switches),
+            kmPosts = publicationDao.fetchOfficialKmPostsAsPublishCandidates(requestAndDependencies.kmPosts)
+        )
+        return validateAsPublicationUnit(pcs)
+    }
+
     fun getChangeTime(): Instant {
         logger.serviceCall("getChangeTime")
         return publicationDao.fetchChangeTime()
@@ -375,7 +387,6 @@ class PublicationService @Autowired constructor(
     ): List<PublishValidationError> {
         val (referenceLine, alignment) = getReferenceLineAndAlignment(version.draftVersion)
         val trackNumber = getTrackNumber(referenceLine.trackNumberId, publicationVersions)
-        val fieldErrors = validateDraftReferenceLineFields(referenceLine)
         val referenceErrors = validateReferenceLineReference(
             referenceLine,
             trackNumber,
@@ -393,7 +404,7 @@ class PublicationService @Autowired constructor(
             } ?: listOf()
             contextErrors + addressErrors
         } else listOf()
-        return fieldErrors + referenceErrors + alignmentErrors + geocodingErrors
+        return referenceErrors + alignmentErrors + geocodingErrors
     }
 
     fun validateLocationTrack(
