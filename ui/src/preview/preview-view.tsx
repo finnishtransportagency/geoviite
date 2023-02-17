@@ -26,6 +26,7 @@ import { PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
+    CandidateId,
     KmPostPublishCandidate,
     LocationTrackPublishCandidate,
     PublicationId,
@@ -36,13 +37,6 @@ import {
     SwitchPublishCandidate,
     TrackNumberPublishCandidate,
 } from 'publication/publication-model';
-import {
-    LayoutKmPostId,
-    LayoutSwitchId,
-    LayoutTrackNumberId,
-    LocationTrackId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
 import PreviewTable, { PreviewSelectType, PreviewTableEntry } from 'preview/preview-table';
 import { updateAllChangeTimes } from 'common/change-time-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -51,12 +45,6 @@ import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
 
-type CandidateId =
-    | LocationTrackId
-    | LayoutTrackNumberId
-    | ReferenceLineId
-    | LayoutSwitchId
-    | LayoutKmPostId;
 type Candidate = {
     id: CandidateId;
 };
