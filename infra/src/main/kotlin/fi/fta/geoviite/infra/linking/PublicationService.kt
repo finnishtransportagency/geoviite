@@ -138,23 +138,23 @@ class PublicationService @Autowired constructor(
         return publicationDao.fetchChangeTime()
     }
 
-    private fun validateAsPublicationUnit(publicationVersions: PublishCandidates): PublishCandidates {
-        val versions = publicationVersions.getPublicationVersions()
+    private fun validateAsPublicationUnit(candidates: PublishCandidates): PublishCandidates {
+        val versions = candidates.getPublicationVersions()
         val cacheKeys = collectCacheKeys(versions)
         return PublishCandidates(
-            trackNumbers = publicationVersions.trackNumbers.map { candidate ->
+            trackNumbers = candidates.trackNumbers.map { candidate ->
                 candidate.copy(errors = validateTrackNumber(candidate.getPublicationVersion(), versions, cacheKeys))
             },
-            referenceLines = publicationVersions.referenceLines.map { candidate ->
+            referenceLines = candidates.referenceLines.map { candidate ->
                 candidate.copy(errors = validateReferenceLine(candidate.getPublicationVersion(), versions, cacheKeys))
             },
-            locationTracks = publicationVersions.locationTracks.map { candidate ->
+            locationTracks = candidates.locationTracks.map { candidate ->
                 candidate.copy(errors = validateLocationTrack(candidate.getPublicationVersion(), versions, cacheKeys))
             },
-            switches = publicationVersions.switches.map { candidate ->
+            switches = candidates.switches.map { candidate ->
                 candidate.copy(errors = validateSwitch(candidate.getPublicationVersion(), versions))
             },
-            kmPosts = publicationVersions.kmPosts.map { candidate ->
+            kmPosts = candidates.kmPosts.map { candidate ->
                 candidate.copy(errors = validateKmPost(candidate.getPublicationVersion(), versions, cacheKeys))
             },
         )
