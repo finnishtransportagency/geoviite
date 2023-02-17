@@ -150,6 +150,26 @@ export type PublishRequestIds = {
     kmPosts: LayoutKmPostId[];
 };
 
+export type CandidateId =
+    | LayoutTrackNumberId
+    | ReferenceLineId
+    | LocationTrackId
+    | LayoutSwitchId
+    | LayoutKmPostId;
+
+export type ValidatedAsset = {
+    id: CandidateId;
+    errors: PublishValidationError[];
+};
+
+export type ValidatedAssets = {
+    trackNumbers: ValidatedAsset[];
+    locationTracks: ValidatedAsset[];
+    referenceLines: ValidatedAsset[];
+    switches: ValidatedAsset[];
+    kmPosts: ValidatedAsset[];
+};
+
 export type PublishRequest = {
     content: PublishRequestIds;
     message: string;

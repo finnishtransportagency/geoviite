@@ -37,6 +37,7 @@ import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialo
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
+import { TrackNumberValidationInfoboxContainer } from 'tool-panel/track-number/track-number-validation-infobox-container';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -239,6 +240,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         </InfoboxButtons>
                     </InfoboxContent>
                 </Infobox>
+            )}
+            {trackNumber.draftType !== 'NEW_DRAFT' && (
+                <TrackNumberValidationInfoboxContainer
+                    trackNumberId={trackNumber.id}
+                    referenceLineId={
+                        referenceLine?.draftType !== 'NEW_DRAFT' ? referenceLine?.id : undefined
+                    }
+                />
             )}
             {changeTimes && (
                 <Infobox

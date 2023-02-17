@@ -240,6 +240,17 @@
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
+        },
+        "validation": {
+            "location-track-prefix": "Raiteen",
+            "track-number-prefix": "Ratanumeron",
+            "reference-line-prefix": "Pituusmittauslinjan",
+            "switch-prefix": "Vaihteen",
+            "km-post-prefix": "Kilometripylvään",
+            "integrity": "eheys",
+            "all-ok": "Kaikki OK",
+            "errors": "Virheet",
+            "warnings": "Varoitukset"
         }
     }
 }

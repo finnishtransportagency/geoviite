@@ -1,0 +1,18 @@
+@import '../vayla-design-lib/colors';
+
+$color-error: $color-red-dark;
+$color-warning: #9f6700;
+
+.asset-validation__error-status {
+    color: $color-error;
+    fill: $color-error;
+
+    span {
+        margin-left: 8px;
+    }
+}
+
+.asset-validation__warning-status {
+    color: $color-warning;
+    fill: $color-warning;
+}
