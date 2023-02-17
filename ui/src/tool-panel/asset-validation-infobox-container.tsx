@@ -1,17 +1,17 @@
 import * as React from 'react';
 import { getOfficialValidation } from 'publication/publication-api';
-import { CandidateId, PublishRequestIds, ValidatedAssets } from 'publication/publication-model';
+import { AssetId, PublishRequestIds, ValidatedAssets } from 'publication/publication-model';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
 
 type AssetType = 'TRACK_NUMBER' | 'REFERENCE_LINE' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
 
 type AssetValidationInfoboxProps = {
-    id: CandidateId;
+    id: AssetId;
     type: AssetType;
 };
 
-const validationRequest = (id: CandidateId, type: AssetType): PublishRequestIds => ({
+const validationRequest = (id: AssetId, type: AssetType): PublishRequestIds => ({
     trackNumbers: type === 'TRACK_NUMBER' ? [id] : [],
     referenceLines: type === 'REFERENCE_LINE' ? [id] : [],
     locationTracks: type === 'LOCATION_TRACK' ? [id] : [],
@@ -19,7 +19,7 @@ const validationRequest = (id: CandidateId, type: AssetType): PublishRequestIds 
     kmPosts: type === 'KM_POST' ? [id] : [],
 });
 
-const unpackvalidation = (validation: ValidatedAssets, id: CandidateId, type: AssetType) => {
+const unpackvalidation = (validation: ValidatedAssets, id: AssetId, type: AssetType) => {
     if (type === 'TRACK_NUMBER')
         return validation.trackNumbers.find((val) => val.id === id) ?? undefined;
     if (type === 'REFERENCE_LINE')

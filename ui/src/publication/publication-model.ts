@@ -1,4 +1,5 @@
 import {
+    AssetId,
     JointNumber,
     KmNumber,
     Oid,
@@ -150,15 +151,8 @@ export type PublishRequestIds = {
     kmPosts: LayoutKmPostId[];
 };
 
-export type CandidateId =
-    | LayoutTrackNumberId
-    | ReferenceLineId
-    | LocationTrackId
-    | LayoutSwitchId
-    | LayoutKmPostId;
-
 export type ValidatedAsset = {
-    id: CandidateId;
+    id: AssetId;
     errors: PublishValidationError[];
 };
 

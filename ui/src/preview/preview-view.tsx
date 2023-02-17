@@ -26,7 +26,7 @@ import { PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
-    CandidateId,
+    AssetId,
     KmPostPublishCandidate,
     LocationTrackPublishCandidate,
     PublicationId,
@@ -46,7 +46,7 @@ import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
 
 type Candidate = {
-    id: CandidateId;
+    id: AssetId;
 };
 
 type PendingValidation = {
@@ -101,9 +101,9 @@ const emptyChanges = {
     kmPosts: [],
 };
 
-const filterStaged = (stagedIds: CandidateId[], candidate: Candidate) =>
+const filterStaged = (stagedIds: AssetId[], candidate: Candidate) =>
     stagedIds.includes(candidate.id);
-const filterUnstaged = (stagedIds: CandidateId[], candidate: Candidate) =>
+const filterUnstaged = (stagedIds: AssetId[], candidate: Candidate) =>
     !stagedIds.includes(candidate.id);
 
 const getStagedChanges = (
@@ -150,11 +150,8 @@ const getUnstagedChanges = (
 
 // Validating the change set takes time. After a change is staged, it should be regarded as staged, but pending
 // validation until validation is complete
-const pendingValidation = (
-    allStaged: CandidateId[],
-    allValidated: CandidateId[],
-    id: CandidateId,
-) => allStaged.includes(id) && !allValidated.includes(id);
+const pendingValidation = (allStaged: AssetId[], allValidated: AssetId[], id: AssetId) =>
+    allStaged.includes(id) && !allValidated.includes(id);
 
 const previewChanges = (
     stagedValidatedChanges: PublishCandidates,

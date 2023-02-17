@@ -1,5 +1,12 @@
 import { Point } from 'model/geometry';
-import { LayoutPoint } from 'track-layout/track-layout-model';
+import {
+    LayoutKmPostId,
+    LayoutPoint,
+    LayoutSwitchId,
+    LayoutTrackNumberId,
+    LocationTrackId,
+    ReferenceLineId,
+} from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
 
 export type RotationDirection = 'CW' | 'CCW';
@@ -36,6 +43,13 @@ export type TrackMeter = {
     kmNumber: KmNumber;
     meters: number;
 };
+
+export type AssetId =
+    | LayoutTrackNumberId
+    | ReferenceLineId
+    | LocationTrackId
+    | LayoutSwitchId
+    | LayoutKmPostId;
 
 const TRACK_METER_REGEX = /([0-9]{1,4})([a-zA-Z]{0,2})\+([0-9]{4})$/;
 
