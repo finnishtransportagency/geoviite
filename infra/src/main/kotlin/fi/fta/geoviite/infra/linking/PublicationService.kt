@@ -73,6 +73,7 @@ class PublicationService @Autowired constructor(
     }
 
     fun validateOfficialAssets(request: PublishRequestIds): ValidatedAssets {
+        logger.serviceCall("validateOfficialAssets", "request" to request)
         val requestAndDependencies = getRevertRequestDependencies(request)
         val versions = PublicationVersions(
             trackNumbers = requestAndDependencies.trackNumbers.map { PublicationVersion(

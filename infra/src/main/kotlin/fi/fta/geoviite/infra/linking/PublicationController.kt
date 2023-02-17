@@ -77,7 +77,7 @@ class PublicationController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/validate-official")
+    @PostMapping("/validate-official")
     fun validateOfficial(@RequestBody request: PublishRequestIds): ValidatedAssets {
         logger.apiCall("validateOfficial")
         return publicationService.validateOfficialAssets(request)

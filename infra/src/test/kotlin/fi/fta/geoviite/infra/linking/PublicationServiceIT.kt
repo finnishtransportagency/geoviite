@@ -620,23 +620,21 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         assertEquals(1, publish2Result.trackNumbers)
+    }
 
-        /*
-        val publications = publicationService.fetchPublicationDetails(
-            sortBy = PublicationCsvSortField.PUBLICATION_TIME,
-            order = SortOrder.DESCENDING
+    @Test
+    fun `Validating official assets should work`() {
+        val trackNumber = insertOfficialTrackNumber()
+        val publishRequest = PublishRequestIds(
+            trackNumbers = listOf(trackNumber),
+            referenceLines = listOf(),
+            locationTracks = listOf(),
+            switches = listOf(),
+            kmPosts = listOf()
         )
-
-        val trackNumber1OldIndex =
-            publications.indexOfFirst { p -> p.name == "Ratanumero ${trackNumber1.number.value}" }
-        val trackNumber1UpdatedIndex =
-            publications.indexOfFirst { p -> p.name == "Ratanumero $newTrackNumber1TrackNumber" }
-        val trackNumber2Index =
-            publications.indexOfFirst { p -> p.name == "Ratanumero ${trackNumber2.number.value}" }
-
-        assertTrue(trackNumber1UpdatedIndex < trackNumber1OldIndex)
-        assertTrue(trackNumber1OldIndex < trackNumber2Index)
-         */
+        val validation = publicationService.validateOfficialAssets(publishRequest)
+        assertEquals(validation.trackNumbers.size, 1)
+        assertEquals(validation.trackNumbers.first().errors.size, 1)
     }
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
