@@ -221,9 +221,9 @@ private val commonElementListingCsvEntries = arrayOf(
     CsvEntry(translateElementListingHeader(ElementListingHeader.CRS)) {
         it.coordinateSystemSrid ?: it.coordinateSystemName
     },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_START_E)) { it.start.coordinate.x },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_START_E)) { formatExponentialNumberToPlainDigits(it.start.coordinate.x) },
     CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_START_N)) { it.start.coordinate.y },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_END_E)) { it.end.coordinate.x },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_END_E)) { formatExponentialNumberToPlainDigits(it.end.coordinate.x) },
     CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_END_N)) { it.end.coordinate.y },
     CsvEntry(translateElementListingHeader(ElementListingHeader.LENGTH)) { it.lengthMeters },
     CsvEntry(translateElementListingHeader(ElementListingHeader.RADIUS_START)) { it.start.radiusMeters },
@@ -235,6 +235,9 @@ private val commonElementListingCsvEntries = arrayOf(
     CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_NAME)) { it.fileName },
     CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_SOURCE)) { it.planSource },
 )
+
+private fun formatExponentialNumberToPlainDigits(number: Double) =
+    String.format("%.3f", number).replace(",", ".")
 
 fun locationTrackCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
     trackNumberCsvEntry(trackNumbers),
