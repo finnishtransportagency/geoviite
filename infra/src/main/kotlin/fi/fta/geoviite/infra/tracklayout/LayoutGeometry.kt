@@ -151,8 +151,8 @@ data class LayoutAlignment(
         val segment = segments[segmentIndex]
         val start = segment.points[0]
         val end = segment.points[segment.points.lastIndex]
-        val prevDir = segments.getOrNull(segmentIndex - 1)?.endDirection()
-        val nextDir = segments.getOrNull(segmentIndex + 1)?.startDirection()
+        val prevDir = segments.getOrNull(segmentIndex - 1)?.endDirection
+        val nextDir = segments.getOrNull(segmentIndex + 1)?.startDirection
         val fakeDir =
             if (prevDir != null && nextDir != null) angleAvgRads(prevDir, nextDir)
             else prevDir ?: nextDir
@@ -203,6 +203,12 @@ data class LayoutSegmentMetadata(
 interface ISegmentGeometry {
     val resolution: Int
     val points: List<LayoutPoint>
+    val boundingBox: BoundingBox?
+    val length: Double
+    @get:JsonIgnore
+    val startDirection: Double
+    @get:JsonIgnore
+    val endDirection: Double
 }
 
 data class SegmentGeometry(
@@ -210,6 +216,16 @@ data class SegmentGeometry(
     override val points: List<LayoutPoint>,
     val id: DomainId<SegmentGeometry> = StringId(),
 ): ISegmentGeometry {
+    override val boundingBox: BoundingBox? by lazy { boundingBoxAroundPointsOrNull(points) }
+    override val length: Double by lazy { points.last().m }
+
+    override val startDirection: Double by lazy {
+        directionBetweenPoints(points[0], points[1])
+    }
+    override val endDirection: Double by lazy {
+        directionBetweenPoints(points[points.lastIndex - 1], points[points.lastIndex])
+    }
+
     init {
         require(resolution > 0) { "Invalid segment geometry resolution: $resolution" }
         require(points.size >= 2) { "Segment geometry must have at least 2 points: points=${points.size}" }
@@ -247,11 +263,6 @@ data class LayoutSegment(
     val source: GeometrySource,
     val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
 ): ISegmentGeometry by geometry {
-    val boundingBox: BoundingBox? = boundingBoxAroundPointsOrNull(points)
-    val length: Double = points.last().m
-
-    fun startDirection() = directionBetweenPoints(points[0], points[1])
-    fun endDirection() = directionBetweenPoints(points[points.lastIndex - 1], points[points.lastIndex])
 
     init {
         require(source != GENERATED || points.size == 2) { "Generated segment can't have more than 2 points" }
@@ -264,7 +275,7 @@ data class LayoutSegment(
         if (fromIndex >= toIndex) null
         else withPoints(points.slice(fromIndex..toIndex), newStart)
 
-    fun withPoints(points: List<LayoutPoint>, newStart: Double): LayoutSegment {
+    fun withPoints(points: List<LayoutPoint>, newStart: Double = start): LayoutSegment {
         val mOffset = points.first().m
         val newPoints =
             if (mOffset == 0.0) points

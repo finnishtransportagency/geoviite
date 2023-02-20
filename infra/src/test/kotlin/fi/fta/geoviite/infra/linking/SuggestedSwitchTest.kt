@@ -11,12 +11,12 @@ import kotlin.test.assertEquals
 import kotlin.test.fail
 
 class SuggestedSwitchTest {
-    val switchStructure = switchStructureYV60_300_1_9()
-    val switchAlignment_1_5_2 =
-        switchStructure.alignments.find { alignment -> alignment.jointNumbers.contains(JointNumber(5)) }
-            ?: throw IllegalStateException("Invalid switch structure")
+    private val switchStructure = switchStructureYV60_300_1_9()
+    private val switchAlignment_1_5_2 = switchStructure.alignments.find { alignment ->
+        alignment.jointNumbers.contains(JointNumber(5))
+    } ?: throw IllegalStateException("Invalid switch structure")
 
-    fun transformPoint(
+    private fun transformPoint(
         point: IPoint,
         translation: IPoint = Point(2000.0, 3000.0),
         rotation: Double = degreesToRads(45.0),
@@ -24,7 +24,7 @@ class SuggestedSwitchTest {
         return rotateAroundOrigin(rotation, point) + translation
     }
 
-    fun createAlignmentBySwitchAlignment(
+    private fun createAlignmentBySwitchAlignment(
         switchAlignment: SwitchAlignment,
         translation: Point,
         rotation: Double,
@@ -111,24 +111,17 @@ class SuggestedSwitchTest {
         val reverseSegments = fixStartDistances(alignment.segments.reversed().map { segment ->
             val reversedPoints = segment.points.reversed()
             var cumulativeM = 0.0
-            segment.copy(points = reversedPoints.mapIndexed { index, point ->
-                cumulativeM += if (index == 0) 0.0 else lineLength(reversedPoints[index - 1], point)
-                point.copy(m = cumulativeM)
-            })
+            segment.withPoints(
+                reversedPoints.mapIndexed { index, point ->
+                    cumulativeM += if (index == 0) 0.0 else lineLength(reversedPoints[index - 1], point)
+                    point.copy(m = cumulativeM)
+                }
+            )
         })
         return alignment.copy(segments = reverseSegments)
     }
 
-    private enum class SegmentEndPoint {
-        start,
-        end
-    }
-
-    private data class MatchToCheck(
-        val alignmentId: IntId<LocationTrack>,
-        val segmentIndex: Int,
-        val endPoint: SegmentEndPoint,
-    )
+    private enum class SegmentEndPoint { START, END }
 
     private fun assertSuggestedSwitchContainsMatch(
         suggestedSwitch: SuggestedSwitch,
@@ -187,7 +180,7 @@ class SuggestedSwitchTest {
                 JointNumber(1),
                 alignmentId = IntId(1),
                 segmentIndex = 1,
-                SegmentEndPoint.start
+                SegmentEndPoint.START
             )
 
             assertSuggestedSwitchContainsMatch(
@@ -195,7 +188,7 @@ class SuggestedSwitchTest {
                 JointNumber(5),
                 alignmentId = IntId(1),
                 segmentIndex = 1,
-                SegmentEndPoint.end
+                SegmentEndPoint.END
             )
 
             assertSuggestedSwitchContainsMatch(
@@ -203,7 +196,7 @@ class SuggestedSwitchTest {
                 JointNumber(2),
                 alignmentId = IntId(1),
                 segmentIndex = 2,
-                SegmentEndPoint.end
+                SegmentEndPoint.END
             )
         } else {
             fail("Should be able to create suggested switch")

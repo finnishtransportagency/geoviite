@@ -99,7 +99,7 @@ fun moveAlignmentPoints(
 ): LayoutAlignment {
     return alignment.copy(
         segments = alignment.segments.map { segment ->
-            segment.copy(
+            segment.withPoints(
                 points = segment.points.map { point ->
                     val length = segment.start + point.m
                     val newPoint = moveFunc(point, length)
@@ -107,7 +107,7 @@ fun moveAlignmentPoints(
                         x = newPoint.x,
                         y = newPoint.y
                     )
-                }
+                },
             )
         }
     )

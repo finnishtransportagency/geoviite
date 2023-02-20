@@ -132,8 +132,8 @@ private fun toMissingElementListing(
     elementId = null,
     elementType = MISSING_SECTION,
     lengthMeters = round(segment.length, LENGTH_DECIMALS),
-    start = getLocation(context, segment.points.first(), segment.startDirection()),
-    end = getLocation(context, segment.points.last(), segment.endDirection()),
+    start = getLocation(context, segment.points.first(), segment.startDirection),
+    end = getLocation(context, segment.points.last(), segment.endDirection),
     locationTrackName = locationTrack.name
 )
 

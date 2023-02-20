@@ -39,7 +39,7 @@ class SwitchLinkingTest {
         val (_, origAlignmentNoSwitchInfo) = locationTrackAndAlignment(IntId(0), (1..5).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), startLength = startLength)
+            segment(Point(start, start), Point(end, end), start = startLength)
                 .also { s -> startLength += s.length }
         }, locationTrackId)
 
@@ -111,7 +111,7 @@ class SwitchLinkingTest {
         val (_, origAlignmentNoSwitchInfo) = locationTrackAndAlignment(IntId(0), (1..5).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), startLength = startLength)
+            segment(Point(start, start), Point(end, end), start = startLength)
                 .also { s -> startLength += s.length }
         }, locationTrackId)
 
@@ -183,7 +183,7 @@ class SwitchLinkingTest {
         val (_, origAlignmentNoSwitchInfo) = locationTrackAndAlignment(IntId(0), (1..5).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), startLength = startLength)
+            segment(Point(start, start), Point(end, end), start = startLength)
                 .also { s -> startLength += s.length }
         }, locationTrackId)
 
@@ -236,7 +236,7 @@ class SwitchLinkingTest {
         val (_, origAlignmentNoSwitchInfo) = locationTrackAndAlignment(IntId(0), (1..5).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), startLength = startLength)
+            segment(Point(start, start), Point(end, end), start = startLength)
                 .also { s -> startLength += s.length }
         }, locationTrackId)
 
@@ -289,7 +289,7 @@ class SwitchLinkingTest {
         val (_, origAlignmentNoSwitchInfo) = locationTrackAndAlignment(IntId(0), (1..5).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), startLength = startLength)
+            segment(Point(start, start), Point(end, end), start = startLength)
                 .also { s -> startLength += s.length }
         }, locationTrackId)
 
@@ -352,7 +352,7 @@ class SwitchLinkingTest {
         val (_, origAlignmentNoSwitchInfo) = locationTrackAndAlignment(IntId(0), (1..3).map { num ->
             val start = (num - 1).toDouble() * 10.0
             val end = start + 10.0
-            segment(Point(start, start), Point(end, end), startLength = startLength)
+            segment(Point(start, start), Point(end, end), start = startLength)
                 .also { s -> startLength += s.length }
         }, locationTrackId)
 
@@ -569,19 +569,19 @@ class SwitchLinkingTest {
                     Point(5.0, 0.0),
                     Point(7.5, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 5.0
+                    start = 5.0
                 ),
                 segment(
                     Point(10.0, 0.0),
                     Point(12.5, 0.0),
                     Point(15.0, 0.0),
-                    startLength = 10.0
+                    start = 10.0
                 ),
                 segment(
                     Point(15.0, 0.0),
                     Point(17.5, 0.0),
                     Point(20.0, 0.0),
-                    startLength = 15.0
+                    start = 15.0
                 )
             ),
             sourceId = null
@@ -633,19 +633,19 @@ class SwitchLinkingTest {
                     Point(5.0, 0.0),
                     Point(7.5, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 5.0
+                    start = 5.0
                 ),
                 segment(
                     Point(10.0, 0.0),
                     Point(12.5, 0.0),
                     Point(15.0, 0.0),
-                    startLength = 10.0
+                    start = 10.0
                 ),
                 segment(
                     Point(15.0, 0.0),
                     Point(17.5, 0.0),
                     Point(20.0, 0.0),
-                    startLength = 15.0
+                    start = 15.0
                 )
             ),
             sourceId = null
@@ -697,18 +697,18 @@ class SwitchLinkingTest {
                     Point(0.5, 0.0),
                     Point(0.6, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 0.5
+                    start = 0.5
                 ),
                 segment(
                     Point(10.0, 0.0),
                     Point(10.6, 0.0),
                     Point(11.0, 0.0),
-                    startLength = 10.0
+                    start = 10.0
                 ),
                 segment(
                     Point(11.0, 0.0),
                     Point(20.0, 0.0),
-                    startLength = 11.0
+                    start = 11.0
                 )
             ),
             sourceId = null
@@ -760,7 +760,7 @@ class SwitchLinkingTest {
                     Point(1.0, 0.0),
                     Point(9.5, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 1.0
+                    start = 1.0
                 ),
             ),
             sourceId = null
@@ -811,7 +811,7 @@ class SwitchLinkingTest {
                 segment(
                     Point(5.0, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 4.999
+                    start = 4.999
                 ),
             ),
             sourceId = null
@@ -857,13 +857,13 @@ class SwitchLinkingTest {
                 segment(
                     Point(5.0, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 5.0
+                    start = 5.0
                 ),
                 segment(
                     Point(10.0009, 0.0),
                     Point(15.0, 0.0),
                     Point(20.0, 0.0),
-                    startLength = 10.0
+                    start = 10.0
                 )
             ),
             sourceId = null
@@ -908,32 +908,32 @@ class SwitchLinkingTest {
                 segment(
                     Point(4.0, 0.0),
                     Point(8.0, 0.0),
-                    startLength = 4.0
+                    start = 4.0
                 ),
                 segment(
                     Point(8.0, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 8.0
+                    start = 8.0
                 ),
                 segment(
                     Point(10.0, 0.0),
                     Point(12.0, 0.0),
-                    startLength = 10.0
+                    start = 10.0
                 ),
                 segment(
                     Point(12.0, 0.0),
                     Point(15.0, 0.0),
-                    startLength = 12.0
+                    start = 12.0
                 ),
                 segment(
                     Point(15.0, 0.0),
                     Point(16.0, 0.0),
-                    startLength = 15.0
+                    start = 15.0
                 ),
                 segment(
                     Point(16.0, 0.0),
                     Point(20.0, 0.0),
-                    startLength = 16.0
+                    start = 16.0
                 )
             ),
             sourceId = null
@@ -954,14 +954,14 @@ class SwitchLinkingTest {
                     Point(15.0, 0.0),
                     Point(14.0, 0.0),
                     Point(13.0, 0.0),
-                    startLength = 5.0
+                    start = 5.0
                 ),
                 segment(
                     Point(13.0, 0.0),
                     Point(12.0, 0.0),
                     Point(11.0, 0.0),
                     Point(10.0, 0.0),
-                    startLength = 7.0
+                    start = 7.0
                 ),
                 segment(
                     Point(10.0, 0.0),
@@ -970,7 +970,7 @@ class SwitchLinkingTest {
                     Point(7.0, 0.0),
                     Point(6.0, 0.0),
                     Point(5.0, 0.0),
-                    startLength = 10.0
+                    start = 10.0
                 ),
                 segment(
                     Point(5.0, 0.0),
@@ -979,7 +979,7 @@ class SwitchLinkingTest {
                     Point(2.0, 0.0),
                     Point(1.0, 0.0),
                     Point(0.0, 0.0),
-                    startLength = 15.0
+                    start = 15.0
                 ),
             ),
             sourceId = null
@@ -1036,12 +1036,12 @@ class SwitchLinkingTest {
                     Point(10.0, 0.0),
                     Point(12.5, 0.0),
                     Point(15.0, 0.0),
-                    startLength = 5.0
+                    start = 5.0
                 ),
                 segment(
                     Point(15.0, 0.0),
                     Point(20.0, 0.0),
-                    startLength = 15.0
+                    start = 15.0
                 )
             ),
             sourceId = null
@@ -1088,12 +1088,12 @@ class SwitchLinkingTest {
                     Point(5.0, 0.0),
                     Point(10.0, 0.0),
                     Point(15.0, 0.0),
-                    startLength = 5.0
+                    start = 5.0
                 ),
                 segment(
                     Point(15.0, 0.0),
                     Point(20.0, 0.0),
-                    startLength = 15.0
+                    start = 15.0
                 )
             ),
             sourceId = null

@@ -53,10 +53,11 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 location_track.alignment_id,
                 segment.segment_index,
                 segment.switch_id,
-                segment.geometry,
+                segment_geometry.geometry,
                 segment.switch_start_joint_number,
                 segment.switch_end_joint_number
               from layout.segment
+                inner join layout.segment_geometry on segment.geometry_id = segment_geometry.id
                 inner join layout.alignment on alignment.id = segment.alignment_id
                 inner join layout.location_track_publication_view location_track
                   on location_track.alignment_id = alignment.id

@@ -27,7 +27,7 @@ val segment1 = segment(
     Point(x = 385273.0397969192, y = 6675558.0948048225),
     Point(x = 385216.6663371209, y = 6675701.1816949705),
     Point(x = 385081.84688330034, y = 6675970.204397376),
-    startLength = 0.0,
+    start = 0.0,
 )
 val segment2 = segment(
     Point(x = 385081.84688330034, y = 6675970.204397376),
@@ -44,7 +44,7 @@ val segment2 = segment(
     Point(x = 382900.3670653631, y = 6677856.032651512),
     Point(x = 382761.2176702685, y = 6677923.467526838),
     Point(x = 382711.47467736073, y = 6677942.28533952),
-    startLength = segment1.start + segment1.length
+    start = segment1.start + segment1.length
 )
 val segment3 = segment(
     Point(x = 382711.47467736073, y = 6677942.28533952),
@@ -60,7 +60,7 @@ val segment3 = segment(
     Point(x = 380075.3780522702, y = 6677812.131510135),
     Point(x = 379546.59970029286, y = 6677795.661380321),
     Point(x = 379109.7436289962, y = 6677820.218810541),
-    startLength = segment2.start + segment2.length
+    start = segment2.start + segment2.length
 )
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
@@ -216,19 +216,19 @@ class GeocodingTest {
             Point(-0.7, 0.0),
             Point(1.0, 2.0),
             Point(3.0, 4.0),
-            startLength = 10.0,
+            start = 10.0,
             source = PLAN,
         )
         val connectSegment = segment(
             Point(3.0,4.0),
             Point(3.0,6.0),
-            startLength = startSegment.start + startSegment.length,
+            start = startSegment.start + startSegment.length,
             source = GENERATED,
         )
         val endSegment = segment(
             Point(3.0,6.0),
             Point(7.0,10.0),
-            startLength = connectSegment.start + connectSegment.length,
+            start = connectSegment.start + connectSegment.length,
             source = PLAN,
         )
         val startAddress = TrackMeter(KmNumber(2), 100)

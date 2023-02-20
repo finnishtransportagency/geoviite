@@ -134,20 +134,4 @@ class TrackLayoutTest {
             )
         }
     }
-
-
-    private fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double): LayoutSegment {
-        return LayoutSegment(
-            points = points(points, minX, maxX, minY, maxY),
-            sourceId = null,
-            sourceStart = null,
-            resolution = 1,
-            start = 0.0,
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null,
-            source = GeometrySource.PLAN,
-        )
-    }
-
 }

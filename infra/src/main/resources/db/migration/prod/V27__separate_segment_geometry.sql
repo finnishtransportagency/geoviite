@@ -59,7 +59,7 @@ alter table layout.segment disable trigger version_update_trigger;
 -- Remove indexes relying on old columns (new indices will be added in a repeatable migration)
 drop index if exists layout.layout_segment_bounding_box_index;
 
--- Swap geometry data for gemetry table id in the main table (null for now)
+-- Swap geometry data for geometry table id in the main table (null for now)
 alter table layout.segment
   drop column resolution,
   drop column geometry,
@@ -83,7 +83,3 @@ alter table layout.segment
 -- Re-enable versioning triggers
 alter table layout.segment enable trigger version_update_trigger;
 alter table layout.segment enable trigger version_row_trigger;
-
--- Full vacuum analyse for perf & storage space, as the tables have changed drastically
-vacuum full analyse layout.segment_version;
-vacuum full analyse layout.segment;

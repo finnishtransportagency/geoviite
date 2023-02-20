@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
+import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.createPostgis3DMLineString
 import fi.fta.geoviite.infra.geometry.parse3DMLineString
@@ -172,24 +173,32 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             "alignment_id" to alignmentVersion.id.intValue,
             "alignment_version" to alignmentVersion.version,
         )
-        // TODO: GVT-1691 check that this pattern actually works (iterating resultsets but keeping them for later)
-        val segmentResults = jdbcTemplate.query(sql, params) { rs, _ ->
-            rs to rs.getIntId<SegmentGeometry>("geometry_id")
-        }
-        val geometries = fetchSegmentGeometries(segmentResults.map { (_, id) -> id }.distinct())
-        return segmentResults.map { (rs, geometryId) ->
-            val id = rs.getIndexedId<LayoutSegment>("alignment_id", "segment_index")
+
+        val segmentResults = jdbcTemplate.query(sql, params) { rs, _ -> SegmentData(
+            id = rs.getIndexedId("alignment_id", "segment_index"),
+            sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+            sourceStart = rs.getDoubleOrNull("source_start"),
+            switchId = rs.getIntIdOrNull("switch_id"),
+            startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+            endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+            start = rs.getDouble("start"),
+            source = rs.getEnum("source"),
+        ) to rs.getIntId<SegmentGeometry>("geometry_id") }
+
+        val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
+
+        return segmentResults.map { (data, geometryId) ->
             LayoutSegment(
-                id = id,
-                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                sourceStart = rs.getDoubleOrNull("source_start"),
-                switchId = rs.getIntIdOrNull("switch_id"),
-                startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-                endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-                start = rs.getDouble("start"),
-                source = rs.getEnum("source"),
+                id = data.id,
+                sourceId = data.sourceId,
+                sourceStart = data.sourceStart,
+                switchId = data.switchId,
+                startJointNumber = data.startJointNumber,
+                endJointNumber = data.endJointNumber,
+                start = data.start,
+                source = data.source,
                 geometry = requireNotNull(geometries[geometryId]) {
-                    "Fetcing geometry failed for segment: id=$id geometryId=$geometryId"
+                    "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
                 },
             )
         }
@@ -377,7 +386,8 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 start = excluded.start,
                 length = excluded.length,
                 source_start = excluded.source_start,
-                source = excluded.source
+                source = excluded.source,
+                geometry_id = excluded.geometry_id
               """.trimIndent()
             val params = withGeometriesStored.mapIndexed { i, s ->
                 mapOf(
@@ -426,6 +436,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                     if (dbIds.contains(dbId)) {
                         val savedObject = unsaved.find { geometry -> geometry.id == tempId }
                             ?: throw IllegalStateException("Insert result incorrect: tempId=$tempId dbId=$dbId")
+                        logger.debug("Mapped temp geometry to DB: temp=$tempId db=$dbId")
                         dbId to savedObject.copy(id = dbId)
                     } else null
                 }.associate { it }
@@ -435,6 +446,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             is StringId -> {
                 val geometry = newGeometries[insertedIds[s.geometry.id]]
                     ?: throw IllegalStateException("Saving new geometry failed: segment=${s.id}")
+                require(geometry.id is IntId) { "Saving new geometry failed: segment=${s.id}" }
                 s.copy(geometry = geometry)
             }
             else -> throw IllegalStateException("Segment geometry with invalid ID: ${s.geometry.id}")
@@ -467,7 +479,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         string_to_array(:cant_values, ',', 'null')::decimal[]
       )
       on conflict (hash) do update
-      set resolution = resolution -- no-op update so that returns clause works on conflict as well
+      set resolution = segment_geometry.resolution -- no-op update so that returns clause works on conflict as well
       returning id, hash
     """.trimIndent()
 
@@ -501,10 +513,11 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   from layout.segment_geometry
                   where id in (:ids)
                 """.trimIndent()
-                val params = mapOf("ids" to ids)
+                val params = mapOf("ids" to ids.map(IntId<SegmentGeometry>::intValue))
                 jdbcTemplate.query(sql, params) { rs, _ ->
                     val id = rs.getIntId<SegmentGeometry>("id")
                     id to SegmentGeometry(
+                        id = id,
                         points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
                         resolution = rs.getInt("resolution"),
                     )
@@ -535,3 +548,14 @@ fun getSegmentPoints(
         )
     }
 }
+
+private data class SegmentData(
+    val id: IndexedId<LayoutSegment>,
+    val sourceId: DomainId<GeometryElement>?,
+    val sourceStart: Double?,
+    val switchId: DomainId<TrackLayoutSwitch>?,
+    val startJointNumber: JointNumber?,
+    val endJointNumber: JointNumber?,
+    val start: Double,
+    val source: GeometrySource,
+)

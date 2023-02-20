@@ -295,13 +295,14 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               distinct lt.row_id, lt.row_version
             from layout.location_track_publication_view lt
             inner join layout.segment s on lt.alignment_id = s.alignment_id
+            inner join layout.segment_geometry sg on s.geometry_id = sg.id
               and postgis.st_intersects(
                 postgis.st_makeenvelope (
                   :x_min, :y_min,
                   :x_max, :y_max,
                   :layout_srid
                 ),
-                s.bounding_box
+                sg.bounding_box
               )
             where :publication_state = any(lt.publication_states) 
               and lt.state != 'DELETED'

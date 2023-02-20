@@ -217,7 +217,7 @@ class LinkingService @Autowired constructor(
         }
         segments.forEachIndexed { index, segment ->
             segments.getOrNull(index - 1)?.let { previous ->
-                val diff = angleDiffRads(previous.endDirection(), segment.startDirection())
+                val diff = angleDiffRads(previous.endDirection, segment.startDirection)
                 if (diff > PI / 2) throw LinkingFailureException(
                     message = "Linked geometry has over 90 degree angles between segments: " +
                             "segment=${segment.id} angle=${radsToDegrees(diff)}",

@@ -52,13 +52,15 @@ class LayoutGeometryTest {
     @Test
     fun splitSegmentMetadataShouldBeCorrect() {
         val segment = LayoutSegment(
-            points = listOf(
-                point(10.0, 10.0, 0.0),
-                point(20.0, 20.0, hypot(10.0, 10.0)),
+            geometry = SegmentGeometry(
+                points = listOf(
+                    point(10.0, 10.0, 0.0),
+                    point(20.0, 20.0, hypot(10.0, 10.0)),
+                ),
+                resolution = 2,
             ),
             sourceId = StringId(),
             sourceStart = 15.0,
-            resolution = 2,
             switchId = StringId(),
             startJointNumber = JointNumber(2),
             endJointNumber = JointNumber(2),
@@ -263,15 +265,17 @@ class LayoutGeometryTest {
     fun sliceWorks() {
         val pointInterval = hypot(10.0, 10.0)
         val original = LayoutSegment(
-            points = listOf(
-                point(10.0, 10.0, 0.0),
-                point(20.0, 20.0, pointInterval),
-                point(30.0, 30.0, 2*pointInterval),
-                point(40.0, 40.0, 3*pointInterval),
+            geometry = SegmentGeometry(
+                points = listOf(
+                    point(10.0, 10.0, 0.0),
+                    point(20.0, 20.0, pointInterval),
+                    point(30.0, 30.0, 2*pointInterval),
+                    point(40.0, 40.0, 3*pointInterval),
+                ),
+                resolution = 2,
             ),
             sourceId = StringId(),
             sourceStart = 15.0,
-            resolution = 2,
             switchId = StringId(),
             startJointNumber = JointNumber(2),
             endJointNumber = JointNumber(2),

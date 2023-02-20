@@ -222,16 +222,17 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                   select
                     distinct e.switch_id
                   from layout.segment s
-                  inner join geometry.element e
-                    on e.alignment_id = s.geometry_alignment_id 
-                    and e.element_index = s.geometry_element_index
+                    inner join layout.segment_geometry sg on s.geometry_id = sg.id
+                    inner join geometry.element e
+                      on e.alignment_id = s.geometry_alignment_id 
+                        and e.element_index = s.geometry_element_index
                   left join layout.switch_publication_view switch 
                     on switch.official_id = s.switch_id
-                    and 'DRAFT' = any(switch.publication_states)
+                      and 'DRAFT' = any(switch.publication_states)
                   where
                     postgis.st_intersects(
                       postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                      s.bounding_box
+                      sg.bounding_box
                     )
                     and e.switch_id is not null
                     and (s.switch_id is null or switch.state_category != 'NOT_EXISTING')
@@ -282,13 +283,14 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                  when location_track.topology_end_switch_id = :switch_id and segment.segment_index = alignment.segment_count-1 then 1
                  else 0
                end as end_is_joint,
-               postgis.st_x(postgis.st_startpoint(segment.geometry)) as start_x,
-               postgis.st_y(postgis.st_startpoint(segment.geometry)) as start_y,
-               postgis.st_x(postgis.st_endpoint(segment.geometry)) as end_x,
-               postgis.st_y(postgis.st_endpoint(segment.geometry)) as end_y
+               postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_x,
+               postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_y,
+               postgis.st_x(postgis.st_endpoint(segment_geometry.geometry)) as end_x,
+               postgis.st_y(postgis.st_endpoint(segment_geometry.geometry)) as end_y
             from layout.segment
-            inner join layout.alignment on segment.alignment_id = alignment.id
-            inner join layout.location_track_publication_view location_track on location_track.alignment_id = alignment.id
+              inner join layout.segment_geometry on segment.geometry_id = segment_geometry.id
+              inner join layout.alignment on segment.alignment_id = alignment.id
+              inner join layout.location_track_publication_view location_track on location_track.alignment_id = alignment.id
             where :publication_state = any(publication_states)
               and (
                 segment.switch_id = :switch_id

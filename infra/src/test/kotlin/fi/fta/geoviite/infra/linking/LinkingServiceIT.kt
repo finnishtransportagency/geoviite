@@ -65,15 +65,15 @@ class LinkingServiceIT @Autowired constructor(
         val start = geometryStart - Point(1.0, 1.5)
         val segment1 = segment(
             start, start + 1.0, start + 2.0, start + 3.0, start + 4.0,
-            startLength = 0.0,
+            start = 0.0,
         )
         val segment2 = segment(
             start + 4.0, start + 5.0, start + 6.0, start + 7.0, start + 8.0, start + 9.0,
-            startLength = segment1.length,
+            start = segment1.length,
         )
         val segment3 = segment(
             start + 9.0, start + 10.0, start + 11.0,
-            startLength = segment2.length,
+            start = segment2.length,
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), segment1, segment2, segment3)

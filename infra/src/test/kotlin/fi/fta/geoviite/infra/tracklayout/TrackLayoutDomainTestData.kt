@@ -12,14 +12,12 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FreeText
 import kotlin.math.ceil
-import kotlin.math.hypot
 import kotlin.random.Random
 import kotlin.random.Random.Default.nextInt
 
 private const val SEED = 123321L
 
 private val rand = Random(SEED)
-
 
 fun switchStructureYV60_300_1_9(): SwitchStructure {
     return SwitchStructure(
@@ -106,20 +104,6 @@ fun switchOwnerVayla(): SwitchOwner {
         id = IntId(1),
         name = MetaDataName("Väylävirasto"),
     )
-}
-
-fun pointsWithZAndCant(count: Int, x: ClosedRange<Double>, y: ClosedRange<Double>): List<LayoutPoint> {
-    val xDiff = (x.endInclusive - x.start) / (count - 1)
-    val yDiff = (y.endInclusive - y.start) / (count - 1)
-    return (0..count).map { i ->
-        LayoutPoint(
-            x = x.start + i * xDiff,
-            y = y.start + i * yDiff,
-            z = null,
-            m = i * hypot(xDiff, yDiff),
-            cant = null,
-        )
-    }
 }
 
 fun points(
@@ -278,7 +262,7 @@ fun locationTrackWithTwoSwitches(
         segment(
             Point(i * segmentLength, 0.0),
             Point((i + 1) * segmentLength, 0.0),
-            startLength = i * segmentLength
+            start = i * segmentLength
         )
     }
     val (locationTrack, alignment) = locationTrackAndAlignment(
@@ -455,63 +439,57 @@ fun attachSwitches(
     vararg switchInfos: Pair<IntId<TrackLayoutSwitch>, TargetSegment>
 ): Pair<LocationTrack, LayoutAlignment> {
     return switchInfos.fold(locationTrackAndAlignment) { accLocationTrackAndAlignment, (switchId, targetSegment) ->
-        if (targetSegment is TargetSegmentStart) {
-            attachSwitchToStart(
-                accLocationTrackAndAlignment,
-                switchId
-            )
-        } else if (targetSegment is TargetSegmentEnd) {
-            attachSwitchToEnd(
-                accLocationTrackAndAlignment,
-                switchId
-            )
-        } else if (targetSegment is TargetSegmentMiddle) {
-            attachSwitchToIndex(
-                accLocationTrackAndAlignment,
-                switchId,
-                targetSegment.index
-            )
-        } else {
-            throw NotImplementedError()
+        when (targetSegment) {
+            is TargetSegmentStart -> attachSwitchToStart(accLocationTrackAndAlignment, switchId)
+            is TargetSegmentEnd -> attachSwitchToEnd(accLocationTrackAndAlignment, switchId)
+            is TargetSegmentMiddle -> attachSwitchToIndex(accLocationTrackAndAlignment, switchId, targetSegment.index)
+            else -> throw NotImplementedError()
         }
     }
 }
 
 fun segment(
     vararg points: IPoint,
-    startLength: Double = 0.0,
+    start: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
-) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), startLength, source, sourceId)
+) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), start, source, sourceId)
 
 fun segment(
     vararg points: Point3DZ,
-    startLength: Double = 0.0,
+    start: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
-) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), startLength, source, sourceId)
+) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), start, source, sourceId)
 
 fun segment(
     vararg points: IPoint3DM,
-    startLength: Double = 0.0,
+    start: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
-) = segment(toTrackLayoutPoints(points.asList()), startLength, source, sourceId)
+) = segment(toTrackLayoutPoints(points.asList()), start, source, sourceId)
 
 fun segment(
     points: List<LayoutPoint>,
-    startLength: Double = 0.0,
+    start: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
+    sourceStart: Double? = null,
+    resolution: Int = 1,
+    switchId: IntId<TrackLayoutSwitch>? = null,
+    startJointNumber: JointNumber? = null,
+    endJointNumber: JointNumber? = null,
 ) = LayoutSegment(
-    points = points,
+    geometry = SegmentGeometry(
+        points = points,
+        resolution = resolution,
+    ),
     sourceId = sourceId,
-    sourceStart = null,
-    resolution = 1,
-    start = startLength,
-    switchId = null,
-    startJointNumber = null,
-    endJointNumber = null,
+    sourceStart = sourceStart,
+    start = start,
+    switchId = switchId,
+    startJointNumber = startJointNumber,
+    endJointNumber = endJointNumber,
     source = source,
 )
 
@@ -528,7 +506,7 @@ fun splitSegment(segment: LayoutSegment, numberOfParts: Int): List<LayoutSegment
             )
             segment(
                 points = points.map { Point(it) }.toTypedArray(),
-                startLength = points.first().m
+                start = points.first().m
             )
         }
 }
@@ -585,20 +563,11 @@ fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
 
 fun someSegment() = segment(3, 10.0, 20.0, 10.0, 20.0)
 
-fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) = LayoutSegment(
-    points = points(points, minX, maxX, minY, maxY),
-    sourceId = null,
-    sourceStart = null,
-    resolution = 1,
-    start = 0.0,
-    switchId = null,
-    startJointNumber = null,
-    endJointNumber = null,
-    source = PLAN,
-)
+fun segment(points: Int, minX: Double, maxX: Double, minY: Double, maxY: Double) =
+    segment(points = points(points, minX, maxX, minY, maxY))
 
 fun segment(from: IPoint, to: IPoint): LayoutSegment {
-    val middlePoints = (1..lineLength(from, to).toInt() - 1)
+    val middlePoints = (1 until lineLength(from, to).toInt())
         .map { i -> (from + (to - from).normalized() * i.toDouble()) }
     return segment(toTrackLayoutPoints(to3DMPoints((listOf(from) + middlePoints + listOf(to)).distinct())))
 }
@@ -623,7 +592,7 @@ fun segments(vararg endPoints: IPoint): List<LayoutSegment> {
     var startLength = 0.0
     return endPoints.distinct().dropLast(1).mapIndexed { index, start ->
         val end = endPoints[index + 1]
-        val segment = segment(start, end, startLength = startLength)
+        val segment = segment(start, end, start = startLength)
         startLength += lineLength(start, end)
         segment
     }
@@ -696,7 +665,7 @@ fun offsetAlignment(alignment: LayoutAlignment, amount: Point) =
 
 fun offsetSegment(segment: LayoutSegment, amount: Point): LayoutSegment {
     val newPoints = toTrackLayoutPoints(*(segment.points.map { p -> p + amount }.toTypedArray()))
-    return segment.copy(points = newPoints)
+    return segment.withPoints(points = newPoints)
 }
 
 fun externalIdForLocationTrack(): Oid<LocationTrack> {

@@ -173,7 +173,7 @@ private fun toMapSegments(
             }
 
             MapSegment(
-                id = StringId(),
+                id = deriveFromSourceId("AS", element.id),
                 points = segmentPoints,
                 sourceId = element.id,
                 sourceStart = 0.0,
