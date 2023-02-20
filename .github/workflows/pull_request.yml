@@ -27,7 +27,9 @@ jobs:
       uses: gradle/gradle-build-action@v2
 
     - name: Execute Gradle build
-      run: ./gradlew build
+      run: |
+        cd infra
+        ./gradlew build
 
     - name: run example unit test in infra (backend)
       run: |
