@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import java.time.Instant
 import kotlin.reflect.KClass
@@ -35,7 +35,7 @@ class ChangeContext(
         geocodingKeysAfter[id]?.let(geocodingService::getGeocodingContext)
 }
 
-inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, versions: List<PublicationVersion<T>>) =
+inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, versions: List<ValidationVersion<T>>) =
     createTypedContext(
         dao,
         { id -> dao.fetchVersion(id, OFFICIAL) },

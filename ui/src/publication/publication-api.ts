@@ -16,7 +16,6 @@ import {
     PublishRequest,
     PublishRequestIds,
     PublishResult,
-    ValidatedAssets,
     ValidatedPublishCandidates,
 } from 'publication/publication-model';
 import {
@@ -90,12 +89,6 @@ export const getPublicationsCsvUri = (
 
     return `${PUBLICATION_URL}/csv${params}`;
 };
-
-export const getOfficialValidation = (request: PublishRequestIds) =>
-    postIgnoreError<PublishRequestIds, ValidatedAssets>(
-        `${PUBLICATION_URL}/validate-official`,
-        request,
-    );
 
 export const getCalculatedChanges = (request: PublishRequestIds) =>
     postIgnoreError<PublishRequestIds, CalculatedChanges>(

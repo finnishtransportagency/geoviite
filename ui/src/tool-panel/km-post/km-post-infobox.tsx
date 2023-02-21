@@ -117,7 +117,12 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {kmPost.draftType !== 'NEW_DRAFT' && (
-                <AssetValidationInfoboxContainer id={kmPost.id} type={'KM_POST'} />
+                <AssetValidationInfoboxContainer
+                    id={kmPost.id}
+                    type={'KM_POST'}
+                    publishType={publishType}
+                    changeTime={kmPostChangeTime}
+                />
             )}
             <Infobox title={t('tool-panel.km-post.layout.change-info-heading')}>
                 <InfoboxContent>

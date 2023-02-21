@@ -6,8 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
-import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.FreeText
@@ -23,6 +22,7 @@ import org.springframework.web.bind.annotation.*
 class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val geocodingService: GeocodingService,
+    private val publicationService: PublicationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -95,6 +95,16 @@ class LocationTrackController(
     ): List<LocationTrackEndpoint> {
         logger.apiCall("getLocationTrackAlignmentEndpoints", "bbox" to bbox)
         return locationTrackService.getLocationTrackEndpoints(bbox, publishType)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/{id}/validation")
+    fun validateLocationTrack(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): ValidatedAsset<LocationTrack> {
+        logger.apiCall("validateLocationTrack", "publishType" to publishType, "id" to id)
+        return publicationService.validateLocationTrack(id, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

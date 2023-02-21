@@ -20,6 +20,7 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
+import { ValidatedAsset } from 'publication/publication-model';
 
 const switchCache = asyncCache<string, LayoutSwitch>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
@@ -136,4 +137,11 @@ export async function deleteDraftSwitch(switchId: LayoutSwitchId): Promise<Layou
             return r;
         },
     );
+}
+
+export async function getSwitchValidation(
+    publishType: PublishType,
+    id: LayoutSwitchId,
+): Promise<ValidatedAsset> {
+    return getThrowError<ValidatedAsset>(`${layoutUri('switches', publishType, id)}/validation`);
 }

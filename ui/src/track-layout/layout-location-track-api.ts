@@ -31,6 +31,7 @@ import {
 } from 'common/change-time-api';
 import { MapTile } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
+import { ValidatedAsset } from 'publication/publication-model';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
@@ -144,8 +145,8 @@ export const deleteLocationTrack = async (
 export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
     return ids.length > 0
         ? getThrowError<LayoutLocationTrack[]>(
-            `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
-        )
+              `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
+          )
         : Promise.resolve([]);
 }
 
@@ -182,4 +183,13 @@ export async function getLocationTrackEndpointsByTile(
                     JSON.stringify(locationTrackEndpoint.location),
             })),
         );
+}
+
+export async function getLocationTrackValidation(
+    publishType: PublishType,
+    id: LocationTrackId,
+): Promise<ValidatedAsset> {
+    return getThrowError<ValidatedAsset>(
+        `${layoutUri('location-tracks', publishType, id)}/validation`,
+    );
 }

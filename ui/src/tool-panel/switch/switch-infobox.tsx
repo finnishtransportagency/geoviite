@@ -298,7 +298,12 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 </InfoboxContent>
             </Infobox>
             {layoutSwitch && layoutSwitch.draftType !== 'NEW_DRAFT' && (
-                <AssetValidationInfoboxContainer id={layoutSwitch.id} type={'SWITCH'} />
+                <AssetValidationInfoboxContainer
+                    id={layoutSwitch.id}
+                    type={'SWITCH'}
+                    publishType={publishType}
+                    changeTime={changeTimes.layoutSwitch}
+                />
             )}
             <Infobox
                 title={t('tool-panel.switch.layout.change-info-heading')}

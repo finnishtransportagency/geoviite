@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import org.springframework.stereotype.Service
@@ -88,7 +88,7 @@ class ReferenceLineService(
         else line.alignmentVersion
 
     @Transactional
-    override fun publish(version: PublicationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
+    override fun publish(version: ValidationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
         logger.serviceCall("publish", "version" to version)
         val officialVersion = dao.fetchOfficialVersion(version.officialId)
         val oldDraft = dao.fetch(version.validatedAssetVersion)

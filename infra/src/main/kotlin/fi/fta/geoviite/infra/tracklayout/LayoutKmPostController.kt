@@ -5,7 +5,9 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.linking.PublicationService
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
+import fi.fta.geoviite.infra.linking.ValidatedAsset
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -18,7 +20,10 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/track-layout/km-posts")
-class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
+class LayoutKmPostController(
+    private val kmPostService: LayoutKmPostService,
+    private val publicationService: PublicationService,
+) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -78,6 +83,16 @@ class LayoutKmPostController(private val kmPostService: LayoutKmPostService) {
             "publishType" to publishType, "trackNumberId" to trackNumberId, "kmNumber" to kmNumber
         )
         return toResponse(kmPostService.getByKmNumber(publishType, trackNumberId, kmNumber))
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/{id}/validation")
+    fun validateKmPost(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<TrackLayoutKmPost>,
+    ): ValidatedAsset<TrackLayoutKmPost> {
+        logger.apiCall("validateKmPost", "publishType" to publishType, "id" to id)
+        return publicationService.validateKmPost(id, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

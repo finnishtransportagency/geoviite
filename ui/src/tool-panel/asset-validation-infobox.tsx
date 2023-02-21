@@ -30,8 +30,6 @@ const typePrefix = (type: AssetType) => {
             return 'tool-panel.validation.switch-prefix';
         case 'KM_POST':
             return 'tool-panel.validation.km-post-prefix';
-        default:
-            return '';
     }
 };
 

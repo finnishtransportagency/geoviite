@@ -17,12 +17,6 @@ class PublicationValidationTest {
     private val structure = switchStructureYV60_300_1_9()
 
     @Test
-    fun trackNumberFieldValidationCatchesCatchesPublishingOfficial() {
-        assertFieldError(true, trackNumber().copy(draft = null), "$VALIDATION_TRACK_NUMBER.not-draft")
-        assertFieldError(false, draft(trackNumber()), "$VALIDATION_TRACK_NUMBER.not-draft")
-    }
-
-    @Test
     fun trackNumberFieldValidationCatchesCatchesPublishingPlanned() {
         assertFieldError(
             true,
@@ -131,13 +125,6 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun kmPostFieldValidationCatchesCatchesPublishingOfficial() {
-        val someKmPost = kmPost(IntId(1), KmNumber(1))
-        assertFieldError(true, someKmPost.copy(draft = null), "$VALIDATION_KM_POST.not-draft")
-        assertFieldError(false, draft(someKmPost), "$VALIDATION_KM_POST.not-draft")
-    }
-
-    @Test
     fun kmPostFieldValidationCatchesCatchesPublishingPlanned() {
         val someKmPost = kmPost(IntId(1), KmNumber(1))
         assertFieldError(true, someKmPost.copy(state = PLANNED), "$VALIDATION_KM_POST.state.PLANNED")
@@ -175,12 +162,6 @@ class PublicationValidationTest {
             "$VALIDATION_KM_POST.track-number.not-published",
             includeTrackNumberInPublish = true,
         )
-    }
-
-    @Test
-    fun switchFieldValidationCatchesCatchesPublishingOfficial() {
-        assertFieldError(true, switch().copy(draft = null), "$VALIDATION_SWITCH.not-draft")
-        assertFieldError(false, draft(switch()), "$VALIDATION_SWITCH.not-draft")
     }
 
     @Test
@@ -303,20 +284,6 @@ class PublicationValidationTest {
             switch = switch,
             tracks = broken,
             error = "$VALIDATION_SWITCH.location-track.unlinked",
-        )
-    }
-
-    @Test
-    fun alignmentFieldValidationCatchesPublishingOfficial() {
-        assertFieldError(
-            true,
-            locationTrack(IntId(0)).copy(draft = null),
-            "$VALIDATION_LOCATION_TRACK.not-draft",
-        )
-        assertFieldError(
-            false,
-            draft(locationTrack(IntId(0))),
-            "$VALIDATION_LOCATION_TRACK.not-draft",
         )
     }
 

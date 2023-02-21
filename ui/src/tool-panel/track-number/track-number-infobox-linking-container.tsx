@@ -41,6 +41,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             onEndReferenceLineGeometryChange={delegates.stopLinking}
             showArea={delegates.showArea}
             publishType={publishType}
+            referenceLineChangeTime={referenceLineChangeTime}
             onUnselect={() =>
                 onUnselect({
                     trackNumbers: [trackNumber.id],

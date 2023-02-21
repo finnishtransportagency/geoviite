@@ -270,7 +270,7 @@ class PublicationServiceIT @Autowired constructor(
             .copy(alignmentVersion = alignmentVersion)
 
         val (newDraftId, newDraftVersion) = referenceLineService.saveDraft(referenceLine(track.trackNumberId), referenceAlignment)
-        referenceLineService.publish(PublicationVersion(newDraftId, newDraftVersion))
+        referenceLineService.publish(ValidationVersion(newDraftId, newDraftVersion))
 
         val officialId = locationTrackDao.insert(track).id
 
@@ -623,18 +623,41 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Validating official assets should work`() {
+    fun `Validating official location track should work`() {
         val trackNumber = insertOfficialTrackNumber()
-        val publishRequest = PublishRequestIds(
-            trackNumbers = listOf(trackNumber),
-            referenceLines = listOf(),
-            locationTracks = listOf(),
-            switches = listOf(),
-            kmPosts = listOf()
+        val (locationTrack, alignment) = locationTrackAndAlignment(
+            trackNumber, segment(Point(4.0, 4.0), Point(5.0, 5.0))
         )
-        val validation = publicationService.validateOfficialAssets(publishRequest)
-        assertEquals(validation.trackNumbers.size, 1)
-        assertEquals(validation.trackNumbers.first().errors.size, 1)
+        val locationTrackId = locationTrackDao.insert(locationTrack.copy( alignmentVersion =
+        alignmentDao.insert(alignment)
+        ))
+
+        val validation = publicationService.validateLocationTrack(locationTrackId.id, OFFICIAL)
+        assertEquals(validation.errors.size, 1)
+    }
+
+    @Test
+    fun `Validating official track number should work`() {
+        val trackNumber = insertOfficialTrackNumber()
+
+        val validation = publicationService.validateTrackNumberAndReferenceLine(trackNumber, null, OFFICIAL)
+        assertEquals(validation.errors.size, 1)
+    }
+
+    @Test
+    fun `Validating official switch should work`() {
+        val switchId = switchDao.insert(switch(123)).id
+
+        val validation = publicationService.validateSwitch(switchId, OFFICIAL)
+        assertEquals(validation.errors.size, 2)
+    }
+
+    @Test
+    fun `Validating official km post should work`() {
+        val kmPostId = kmPostDao.insert(kmPost(insertOfficialTrackNumber(), km = KmNumber.ZERO)).id
+
+        val validation = publicationService.validateKmPost(kmPostId, OFFICIAL)
+        assertEquals(validation.errors.size, 1)
     }
 
     fun createOfficialAndDraftSwitch(seed: Int): IntId<TrackLayoutSwitch> {
@@ -646,7 +669,7 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun someTrackNumber() = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
 
-    private fun getCalculatedChangesInRequest(versions: PublicationVersions): CalculatedChanges =
+    private fun getCalculatedChangesInRequest(versions: ValidationVersions): CalculatedChanges =
         calculatedChangesService.getCalculatedChangesInDraft(versions)
 
     private fun publishAndVerify(request: PublishRequestIds): PublishResult {
@@ -676,15 +699,15 @@ class PublicationServiceIT @Autowired constructor(
     }
 }
 
-private fun verifyVersions(publishRequestIds: PublishRequestIds, publicationVersions: PublicationVersions) {
-    verifyVersions(publishRequestIds.trackNumbers, publicationVersions.trackNumbers)
-    verifyVersions(publishRequestIds.referenceLines, publicationVersions.referenceLines)
-    verifyVersions(publishRequestIds.kmPosts, publicationVersions.kmPosts)
-    verifyVersions(publishRequestIds.locationTracks, publicationVersions.locationTracks)
-    verifyVersions(publishRequestIds.switches, publicationVersions.switches)
+private fun verifyVersions(publishRequestIds: PublishRequestIds, validationVersions: ValidationVersions) {
+    verifyVersions(publishRequestIds.trackNumbers, validationVersions.trackNumbers)
+    verifyVersions(publishRequestIds.referenceLines, validationVersions.referenceLines)
+    verifyVersions(publishRequestIds.kmPosts, validationVersions.kmPosts)
+    verifyVersions(publishRequestIds.locationTracks, validationVersions.locationTracks)
+    verifyVersions(publishRequestIds.switches, validationVersions.switches)
 }
 
-private fun <T : Draftable<T>> verifyVersions(ids: List<IntId<T>>, versions: List<PublicationVersion<T>>) {
+private fun <T : Draftable<T>> verifyVersions(ids: List<IntId<T>>, versions: List<ValidationVersion<T>>) {
     assertEquals(ids.size, versions.size)
     ids.forEach { id -> assertTrue(versions.any { v -> v.officialId == id }) }
 }
@@ -728,7 +751,7 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
     assertNotNull(draft.draft)
     assertEquals(DataType.STORED, draft.dataType)
 
-    val (publishedId, publishedVersion) = service.publish(PublicationVersion(id, rowVersion))
+    val (publishedId, publishedVersion) = service.publish(ValidationVersion(id, rowVersion))
     assertEquals(id, publishedId)
     assertEquals(publishedVersion, dao.fetchOfficialVersionOrThrow(id))
     assertEquals(publishedVersion, dao.fetchDraftVersion(id))
@@ -742,19 +765,19 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
 }
 
 fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
-    publicationVersions: List<PublicationVersion<T>>,
+    validationVersions: List<ValidationVersion<T>>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
-) = publicationVersions.forEach { v -> verifyPublished(v, dao, checkMatch) }
+) = validationVersions.forEach { v -> verifyPublished(v, dao, checkMatch) }
 
 fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
-    publicationVersion: PublicationVersion<T>,
+    validationVersion: ValidationVersion<T>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
 ) {
-    val currentOfficialVersion = dao.fetchOfficialVersionOrThrow(publicationVersion.officialId)
-    val currentDraftVersion = dao.fetchDraftVersionOrThrow(publicationVersion.officialId)
+    val currentOfficialVersion = dao.fetchOfficialVersionOrThrow(validationVersion.officialId)
+    val currentDraftVersion = dao.fetchDraftVersionOrThrow(validationVersion.officialId)
     assertEquals(currentDraftVersion.id, currentOfficialVersion.id)
     assertEquals(currentOfficialVersion, currentDraftVersion)
-    checkMatch(dao.fetch(publicationVersion.validatedAssetVersion), dao.fetch(currentOfficialVersion))
+    checkMatch(dao.fetch(validationVersion.validatedAssetVersion), dao.fetch(currentOfficialVersion))
 }

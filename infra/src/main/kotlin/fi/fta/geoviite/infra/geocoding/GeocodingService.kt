@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.linking.PublicationVersions
+import fi.fta.geoviite.infra.linking.ValidationVersions
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
@@ -135,7 +135,7 @@ class GeocodingService(
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationVersions: PublicationVersions,
+        publicationVersions: ValidationVersions,
     ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, publicationVersions)
 
     fun getGeocodingContextCacheKey(

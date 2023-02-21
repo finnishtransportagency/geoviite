@@ -156,14 +156,6 @@ export type ValidatedAsset = {
     errors: PublishValidationError[];
 };
 
-export type ValidatedAssets = {
-    trackNumbers: ValidatedAsset[];
-    locationTracks: ValidatedAsset[];
-    referenceLines: ValidatedAsset[];
-    switches: ValidatedAsset[];
-    kmPosts: ValidatedAsset[];
-};
-
 export type PublishRequest = {
     content: PublishRequestIds;
     message: string;

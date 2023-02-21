@@ -350,7 +350,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 </Infobox>
             )}
             {locationTrack.draftType !== 'NEW_DRAFT' && (
-                <AssetValidationInfoboxContainer id={locationTrack.id} type={'LOCATION_TRACK'} />
+                <AssetValidationInfoboxContainer
+                    id={locationTrack.id}
+                    type={'LOCATION_TRACK'}
+                    publishType={publishType}
+                    changeTime={locationTrackChangeTime}
+                />
             )}
             {changeTimes && (
                 <Infobox

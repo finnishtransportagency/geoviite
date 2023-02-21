@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.linking.PublicationDao
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -41,7 +41,7 @@ class RatkoServiceIT @Autowired constructor(
             orig.copy(name = AlignmentName("${orig.name}-draft"))
         }
         val draftVersion = locationTrackService.saveDraft(draft, alignmentDao.fetch(alignmentVersion)).rowVersion
-        val publishedVersion = locationTrackService.publish(PublicationVersion(officialVersion.id, draftVersion)).rowVersion
+        val publishedVersion = locationTrackService.publish(ValidationVersion(officialVersion.id, draftVersion)).rowVersion
         publicationDao.createPublication(listOf(), listOf(), listOf(publishedVersion), listOf(), listOf(), "")
 
         ratkoService.pushChangesToRatko(getCurrentUserName())

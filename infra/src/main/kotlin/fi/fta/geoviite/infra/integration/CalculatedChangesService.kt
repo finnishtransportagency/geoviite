@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.PublicationVersions
+import fi.fta.geoviite.infra.linking.ValidationVersions
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -90,7 +90,7 @@ class CalculatedChangesService(
         endMoment: Instant,
     ) = getCalculatedChanges(createChangeContext(startMoment, endMoment), trackNumberIds, locationTrackIds, switchIds)
 
-    fun getCalculatedChangesInDraft(versions: PublicationVersions): CalculatedChanges {
+    fun getCalculatedChangesInDraft(versions: ValidationVersions): CalculatedChanges {
         val changeContext = createChangeContext(versions)
         // KM-Post & reference line changes are seen as changes to a single whole
         val trackNumberIds = (
@@ -355,7 +355,7 @@ class CalculatedChangesService(
         return switchChanges to locationTrackGeometryChanges
     }
 
-    fun createChangeContext(publicationVersions: PublicationVersions) = ChangeContext(
+    fun createChangeContext(publicationVersions: ValidationVersions) = ChangeContext(
         geocodingService = geocodingService,
         trackNumbers = createTypedContext(trackNumberDao, publicationVersions.trackNumbers),
         referenceLines = createTypedContext(referenceLineDao, publicationVersions.referenceLines),
