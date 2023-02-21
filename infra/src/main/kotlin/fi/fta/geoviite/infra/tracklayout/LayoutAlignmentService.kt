@@ -27,10 +27,9 @@ class LayoutAlignmentService(
     fun duplicate(alignmentVersion: RowVersion<LayoutAlignment>): RowVersion<LayoutAlignment> =
         save(asNew(dao.fetch(alignmentVersion)))
 
-    fun save(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
-        return if (alignment.dataType == DataType.STORED) dao.update(alignment)
+    fun save(alignment: LayoutAlignment): RowVersion<LayoutAlignment> =
+        if (alignment.dataType == DataType.STORED) dao.update(alignment)
         else dao.insert(alignment)
-    }
 
     fun newEmpty(): Pair<LayoutAlignment, RowVersion<LayoutAlignment>> {
         val alignment = emptyAlignment()

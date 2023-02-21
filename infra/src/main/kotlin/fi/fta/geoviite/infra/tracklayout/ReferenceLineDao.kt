@@ -185,6 +185,7 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         }
     }
 
+    // TODO: No IT test runs this
     fun fetchVersionsNear(
         publicationState: PublishType,
         bbox: BoundingBox,
@@ -195,9 +196,10 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               rl.row_version
               from layout.reference_line_publication_view rl
                 inner join layout.segment s on rl.alignment_id = s.alignment_id
+                inner join layout.segment_geometry sg on s.geometry_id = sg.id
                   and postgis.st_intersects(
                     postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                    s.bounding_box
+                    sg.bounding_box
                   )
                 left join layout.track_number_publication_view tn
                   on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)

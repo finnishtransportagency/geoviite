@@ -275,17 +275,11 @@ data class LayoutSegment(
         if (fromIndex >= toIndex) null
         else withPoints(points.slice(fromIndex..toIndex), newStart)
 
-    fun withPoints(points: List<LayoutPoint>, newStart: Double = start): LayoutSegment {
-        val mOffset = points.first().m
-        val newPoints =
-            if (mOffset == 0.0) points
-            else points.map { p -> p.copy(m = max(0.0, p.m - mOffset)) }
-        return copy(
-            geometry = geometry.withPoints(newPoints),
-            sourceStart = sourceStart?.plus(mOffset),
-            start = newStart,
-        )
-    }
+    fun withPoints(points: List<LayoutPoint>, newStart: Double = start): LayoutSegment = copy(
+        geometry = geometry.withPoints(points),
+        sourceStart = sourceStart?.plus(points.first().m),
+        start = newStart,
+    )
 
     fun splitAtM(m: Double, tolerance: Double): Pair<LayoutSegment, LayoutSegment?> =
         if (m <= points.first().m || m >= points.last().m) this to null
@@ -349,9 +343,7 @@ data class LayoutSegment(
                 // Found target between the points
                 interpolatedM to WITHIN
             }.also { (length, _) ->
-                require(length.isFinite()) {
-                    "Invalid length value: length=$length target=$target"
-                }
+                require(length.isFinite()) { "Invalid length value: length=$length target=$target" }
             }
         }
     }

@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.measureAndCollect
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -97,16 +98,18 @@ class LinkingService @Autowired constructor(
                     "referenceLineId=$referenceLineId"
         )
 
-        val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
+        val (referenceLine, layoutAlignment) = measureAndCollect("fetch-current") {
+            referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
+        }
 
-        val segments = createLinkedSegments(
+        val segments = measureAndCollect("create-segments") { createLinkedSegments(
             linkingParameters.geometryPlanId,
             linkingParameters.geometryInterval,
             layoutAlignment,
             linkingParameters.layoutInterval,
-        )
-        val alignment = tryCreateLinkedAlignment(layoutAlignment, segments)
-        return referenceLineService.saveDraft(referenceLine, alignment).id
+        ) }
+        val alignment = measureAndCollect("create-alignment") { tryCreateLinkedAlignment(layoutAlignment, segments) }
+        return measureAndCollect("save-draft") { referenceLineService.saveDraft(referenceLine, alignment).id }
     }
 
     @Transactional

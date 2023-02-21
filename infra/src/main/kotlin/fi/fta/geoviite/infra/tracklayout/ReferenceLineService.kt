@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.util.measureAndCollect
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -73,15 +74,17 @@ class ReferenceLineService(
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
             if (draft.dataType == TEMP || draft.draft == null) {
-                alignmentService.saveAsNew(alignment)
+                measureAndCollect("save-duplicate-alignment") { alignmentService.saveAsNew(alignment) }
             }
             // Ensure that we update the correct one.
             else if (draft.getAlignmentVersionOrThrow().id != alignment.id) {
-                alignmentService.save(alignment.copy(id = draft.getAlignmentVersionOrThrow().id, dataType = STORED))
+                measureAndCollect("save-update-draft-alignment") {
+                    alignmentService.save(alignment.copy(id = draft.getAlignmentVersionOrThrow().id, dataType = STORED))
+                }
             } else {
-                alignmentService.save(alignment)
+                measureAndCollect("save-as-new-alignment") { alignmentService.save(alignment) }
             }
-        return saveDraftInternal(draft.copy(alignmentVersion = alignmentVersion))
+        return measureAndCollect("save-reference-line-draft") { saveDraftInternal(draft.copy(alignmentVersion = alignmentVersion)) }
     }
 
     private fun updatedAlignmentVersion(line: ReferenceLine) =
