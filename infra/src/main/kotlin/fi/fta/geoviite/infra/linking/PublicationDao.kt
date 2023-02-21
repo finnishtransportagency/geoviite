@@ -704,19 +704,23 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               ps.switch_id as id,
               ps.switch_version as version,
               switch.name,
-              layout.infer_operation_from_state_category_transition(switch.old_state_category, switch.state_category) as operation
+              layout.infer_operation_from_state_category_transition(switch.old_state_category, switch.state_category) as operation,
+              array_remove(array_agg(distinct lt.track_number_id), null) as track_number_ids
             from publication.switch ps
               inner join publication.publication on publication.id = ps.publication_id
               inner join layout.switch_change_view switch
                 on switch.id = ps.switch_id and switch.version = ps.switch_version
-            where publication_id = :publication_id
+              left join publication.switch_location_tracks slt on slt.switch_id = ps.switch_id and slt.publication_id = ps.publication_id
+              left join layout.location_track_version lt on lt.id = slt.location_track_id and lt.version = slt.location_track_version
+            where ps.publication_id = :publication_id
+            group by ps.switch_id, ps.switch_version, switch.name, operation
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             PublishedSwitch(
                 version = rs.getRowVersion("id", "version"),
                 name = SwitchName(rs.getString("name")),
-                trackNumberIds = emptySet(),
+                trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = rs.getEnum("operation"),
             )
         }.also { switches -> logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version }) }
@@ -772,28 +776,29 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             select
               switch.id,
               switch.version,
-              switch.name
+              switch.name,
+              array_remove(array_agg(lt.track_number_id), null) as track_number_ids
             from publication.calculated_change_to_switch ccs
               inner join publication.publication on publication.id = ccs.publication_id
-              inner join layout.switch_version switch
-                on switch.id = ccs.switch_id 
-                  and switch.version = (
-                    select version 
-                    from layout.switch_version 
-                    where change_time <= publication.publication_time and ccs.switch_id = id
-                    order by change_time desc 
-                    limit 1)
+              inner join layout.switch_version switch 
+                on switch.id = ccs.switch_id and switch.version = ccs.switch_version
+              left join publication.switch_location_tracks slt 
+                on slt.publication_id = ccs.publication_id and slt.switch_id = ccs.switch_id
+              left join layout.location_track_version lt 
+                on lt.id = slt.location_track_id and lt.version = slt.location_track_version
               left join publication.switch pswitch
-                on pswitch.switch_id = switch.id and pswitch.switch_version = switch.version 
+                on pswitch.switch_id = switch.id 
+                  and pswitch.switch_version = switch.version 
                   and pswitch.publication_id = ccs.publication_id
             where ccs.publication_id = :publication_id and pswitch.switch_id is null
+            group by switch.id, switch.version, switch.name
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             PublishedSwitch(
                 version = rs.getRowVersion("id", "version"),
                 name = SwitchName(rs.getString("name")),
-                trackNumberIds = emptySet(),
+                trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = Operation.MODIFY,
             )
         }

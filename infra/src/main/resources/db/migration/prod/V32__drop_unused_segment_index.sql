@@ -1,0 +1,1 @@
+drop index layout.segment_version_alignment_switch_index;
