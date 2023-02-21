@@ -120,14 +120,6 @@ data class ValidatedAsset<T>(
     val id: IntId<T>
 )
 
-data class ValidatedAssets(
-    val locationTracks: List<ValidatedAsset<LocationTrack>>,
-    val trackNumbers: List<ValidatedAsset<TrackLayoutTrackNumber>>,
-    val referenceLines: List<ValidatedAsset<ReferenceLine>>,
-    val switches: List<ValidatedAsset<TrackLayoutSwitch>>,
-    val kmPosts: List<ValidatedAsset<TrackLayoutKmPost>>
-)
-
 data class PublishCandidates(
     val trackNumbers: List<TrackNumberPublishCandidate>,
     val locationTracks: List<LocationTrackPublishCandidate>,
