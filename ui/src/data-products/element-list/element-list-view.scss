@@ -38,6 +38,10 @@
             min-width: 100px;
         }
     }
+
+    &__column--number {
+        text-align: right;
+    }
 }
 
 .element-list__geometry-search {
