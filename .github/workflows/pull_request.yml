@@ -29,7 +29,7 @@ jobs:
     - name: Execute Gradle build
       run: |
         cd infra
-        ./gradlew build
+        ./gradlew build -x test 
 
     - name: run example unit test in infra (backend)
       run: |
