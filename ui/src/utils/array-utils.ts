@@ -180,3 +180,7 @@ export function removeIfExists<T>(originalCollection: T[], valueToRemove: T | un
 export function addIfExists<T>(originalCollection: T[], newValue: T | undefined): T[] {
     return newValue ? [...originalCollection, newValue] : [...originalCollection];
 }
+
+export function indexIntoMap<Id, Obj extends { id: Id }>(objs: Obj[]): Map<Id, Obj> {
+    return objs.reduce((map, obj) => map.set(obj.id, obj), new Map());
+}
