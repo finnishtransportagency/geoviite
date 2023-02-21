@@ -47,7 +47,7 @@ const ElementListView = () => {
                     <div>
                         <span className={styles['element-list-view__radio-layout']}>
                             <Radio onChange={handleRadioClick} checked={continuousGeometrySelected}>
-                                {t('data-products.element-list.continuous-geometry')}
+                                {t('data-products.element-list.location-track-geometry')}
                             </Radio>
                             <Radio
                                 onChange={handleRadioClick}

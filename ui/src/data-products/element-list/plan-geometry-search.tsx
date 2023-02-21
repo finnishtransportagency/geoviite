@@ -85,8 +85,8 @@ const PlanGeometrySearch = ({
     function getVisibleErrorsByProp(prop: keyof PlanGeometrySearchState) {
         return state.committedFields.includes(prop)
             ? state.validationErrors
-                .filter((error) => error.field == prop)
-                .map((error) => t(`data-products.element-list.search.${error.reason}`))
+                  .filter((error) => error.field == prop)
+                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
             : [];
     }
 
@@ -104,6 +104,9 @@ const PlanGeometrySearch = ({
 
     return (
         <React.Fragment>
+            <p className={styles['element-list__geometry-search-legend']}>
+                {t('data-products.element-list.plan-legend')}
+            </p>
             <div className={styles['element-list__geometry-search']}>
                 <div className={styles['element-list__plan-search-dropdown']}>
                     <FieldLayout
