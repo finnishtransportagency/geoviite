@@ -542,9 +542,33 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveSwitchChangesInPublish(publicationId: IntId<Publication>, switchChanges: List<SwitchChange>) {
         jdbcTemplate.batchUpdate(
-            """insert into publication.calculated_change_to_switch
-               values (:publication_id, :switch_id)
+            """
+                insert into publication.calculated_change_to_switch
+                select :publication_id, id, version
+                from layout.switch
+                where id = :switch_id
             """.trimMargin(),
+            switchChanges.map { s ->
+                mapOf(
+                    "publication_id" to publicationId.intValue,
+                    "switch_id" to s.switchId.intValue
+                )
+            }.toTypedArray()
+        )
+
+        jdbcTemplate.batchUpdate(
+            """
+                insert into publication.switch_location_tracks (publication_id, switch_id, location_track_id, location_track_version, is_topology_switch)
+                select distinct :publication_id, :switch_id, location_track.id, location_track.version, false
+                from layout.location_track
+                 inner join layout.segment on segment.alignment_id = location_track.alignment_id
+                   and location_track.alignment_version = segment.alignment_version
+                where segment.switch_id = :switch_id and not draft
+                union all
+                select distinct :publication_id, :switch_id, id, version, true
+                from layout.location_track
+                where not draft and (location_track.topology_start_switch_id = :switch_id or location_track.topology_end_switch_id = :switch_id)
+            """.trimIndent(),
             switchChanges.map { s ->
                 mapOf(
                     "publication_id" to publicationId.intValue,
