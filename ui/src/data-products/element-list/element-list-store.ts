@@ -7,7 +7,7 @@ import {
     ValidationErrorType,
 } from 'utils/validation-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { ElementItem, GeometryPlanHeader, GeometryType } from 'geometry/geometry-model';
+import { ElementItem, GeometryPlanHeader, GeometryType, PlanSource } from 'geometry/geometry-model';
 import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 
@@ -19,6 +19,7 @@ type SearchGeometries = {
 };
 
 export type PlanGeometrySearchState = {
+    source: PlanSource;
     plan: GeometryPlanHeader | undefined;
     searchGeometries: SearchGeometries;
 
@@ -34,6 +35,7 @@ enum MissingSection {
 export type GeometryTypeIncludingMissing = GeometryType | MissingSection;
 
 export const initialPlanGeometrySearchState: PlanGeometrySearchState = {
+    source: 'GEOMETRIAPALVELU',
     plan: undefined,
     searchGeometries: {
         searchLines: true,

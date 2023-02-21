@@ -16,10 +16,12 @@ import {
     getGeometryPlanElementsCsv,
     getGeometryPlanHeaders,
 } from 'geometry/geometry-api';
-import { ElementItem, GeometryPlanHeader } from 'geometry/geometry-model';
+import { ElementItem, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { useLoader } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
+import { planSources } from 'utils/enum-localization-utils';
+import { Radio } from 'vayla-design-lib/radio/radio';
 
 type ContinuousGeometrySearchProps = {
     state: PlanGeometrySearchState;
@@ -29,19 +31,17 @@ type ContinuousGeometrySearchProps = {
     setElements: (elements: ElementItem[]) => void;
 };
 
-function searchGeometryPlanHeaders(searchTerm: string): Promise<GeometryPlanHeader[]> {
+function searchGeometryPlanHeaders(
+    source: PlanSource,
+    searchTerm: string,
+): Promise<GeometryPlanHeader[]> {
     if (isNullOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 
-    return getGeometryPlanHeaders(
-        10,
-        undefined,
-        undefined,
-        ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
-        [],
-        searchTerm,
-    ).then((t) => t.items);
+    return getGeometryPlanHeaders(10, undefined, undefined, [source], [], searchTerm).then(
+        (t) => t.items,
+    );
 }
 
 function getGeometryPlanOptions(
@@ -65,10 +65,10 @@ const PlanGeometrySearch = ({
     // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
         (searchTerm) =>
-            debouncedGetGeometryPlanHeaders(searchTerm).then((planHeaders) =>
+            debouncedGetGeometryPlanHeaders(state.source, searchTerm).then((planHeaders) =>
                 getGeometryPlanOptions(planHeaders, state.plan),
             ),
-        [state.plan],
+        [state.source, state.plan],
     );
 
     function updateProp<TKey extends keyof PlanGeometrySearchState>(
@@ -85,8 +85,8 @@ const PlanGeometrySearch = ({
     function getVisibleErrorsByProp(prop: keyof PlanGeometrySearchState) {
         return state.committedFields.includes(prop)
             ? state.validationErrors
-                .filter((error) => error.field == prop)
-                .map((error) => t(`data-products.element-list.search.${error.reason}`))
+                  .filter((error) => error.field == prop)
+                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
             : [];
     }
 
@@ -100,11 +100,33 @@ const PlanGeometrySearch = ({
             : debouncedGetPlanElements(state.plan.id, selectedElementTypes(state.searchGeometries));
     }, [state.plan, state.searchGeometries]);
 
+    const setSource = (source: PlanSource) => {
+        updateProp('source', source);
+        updateProp('plan', undefined);
+    };
+
     React.useEffect(() => setElements(elementList ?? []), [elementList]);
 
     return (
         <React.Fragment>
             <div className={styles['element-list__geometry-search']}>
+                <div>
+                    <FieldLayout
+                        label={t(`data-products.element-list.search.source`)}
+                        value={
+                            <div>
+                                {planSources.map((source) => (
+                                    <Radio
+                                        key={source.value}
+                                        checked={state.source === source.value}
+                                        onChange={() => setSource(source.value)}>
+                                        {t(source.name)}
+                                    </Radio>
+                                ))}
+                            </div>
+                        }
+                    />
+                </div>
                 <div className={styles['element-list__plan-search-dropdown']}>
                     <FieldLayout
                         label={t(`data-products.element-list.search.plan`)}
