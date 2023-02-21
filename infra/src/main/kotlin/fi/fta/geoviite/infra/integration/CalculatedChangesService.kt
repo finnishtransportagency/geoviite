@@ -79,7 +79,6 @@ class CalculatedChangesService(
     val referenceLineDao: ReferenceLineDao,
     val referenceLineService: ReferenceLineService,
     val kmPostDao: LayoutKmPostDao,
-    val kmPostService: LayoutKmPostService,
     val geocodingService: GeocodingService,
     val alignmentDao: LayoutAlignmentDao,
 ) {
@@ -96,8 +95,8 @@ class CalculatedChangesService(
         // KM-Post & reference line changes are seen as changes to a single whole
         val trackNumberIds = (
                 versions.trackNumbers.map { v -> v.officialId }
-                        + versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.draftVersion).trackNumberId }
-                        + versions.referenceLines.map { v -> referenceLineDao.fetch(v.draftVersion).trackNumberId }
+                        + versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.validatedAssetVersion).trackNumberId }
+                        + versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId }
                 ).distinct()
         val locationTrackIds = versions.locationTracks.map { v -> v.officialId }
         val switchIds = versions.switches.map { v -> v.officialId }

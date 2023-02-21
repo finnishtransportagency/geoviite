@@ -133,7 +133,7 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
     @Transactional
     open fun publish(version: PublicationVersion<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("Publish", "version" to version)
-        return publishInternal(VersionPair(dao.fetchOfficialVersion(version.officialId), version.draftVersion))
+        return publishInternal(VersionPair(dao.fetchOfficialVersion(version.officialId), version.validatedAssetVersion))
     }
 
     protected fun publishInternal(versions: VersionPair<ObjectType>): DaoResponse<ObjectType> {

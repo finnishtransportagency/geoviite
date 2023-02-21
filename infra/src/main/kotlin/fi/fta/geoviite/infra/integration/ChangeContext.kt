@@ -39,7 +39,7 @@ inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>
     createTypedContext(
         dao,
         { id -> dao.fetchVersion(id, OFFICIAL) },
-        { id -> versions.find { v -> v.officialId == id }?.draftVersion ?: dao.fetchVersion(id, OFFICIAL) },
+        { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(id, OFFICIAL) },
     )
 
 inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, before: Instant, after: Instant) =

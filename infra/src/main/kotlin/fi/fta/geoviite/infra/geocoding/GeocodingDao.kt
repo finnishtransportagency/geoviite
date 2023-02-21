@@ -161,18 +161,18 @@ class GeocodingDao(
         versions: PublicationVersions,
     ): GeocodingContextCacheKey? {
         val official = getGeocodingContextCacheKey(OFFICIAL, trackNumberId)
-        val trackNumberVersion = versions.findTrackNumber(trackNumberId)?.draftVersion ?: official?.trackNumberVersion
+        val trackNumberVersion = versions.findTrackNumber(trackNumberId)?.validatedAssetVersion ?: official?.trackNumberVersion
         // We have to fetch the actual objects (reference line & km-post) here to check references
         // However, when this is done, the objects are needed elsewhere as well -> they should always be in cache
         val referenceLineVersion = versions.referenceLines
-            .find { v -> referenceLineDao.fetch(v.draftVersion).trackNumberId == trackNumberId }?.draftVersion
+            .find { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId == trackNumberId }?.validatedAssetVersion
             ?: official?.referenceLineVersion
         return if (trackNumberVersion != null && referenceLineVersion != null) {
             val officialKmPosts = official?.kmPostVersions?.filter { v -> !versions.containsKmPost(v.id) } ?: listOf()
             val draftKmPosts = versions.kmPosts.filter { draftPost ->
-                val draft = kmPostDao.fetch(draftPost.draftVersion)
+                val draft = kmPostDao.fetch(draftPost.validatedAssetVersion)
                 draft.trackNumberId == trackNumberId && draft.state == LayoutState.IN_USE
-            }.map { v -> v.draftVersion }
+            }.map { v -> v.validatedAssetVersion }
             val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.id.intValue }
             GeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)
         } else null
