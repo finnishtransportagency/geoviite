@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
-//testing
+//testing...
 class SuggestedSwitchTest {
     val switchStructure = switchStructureYV60_300_1_9()
     val switchAlignment_1_5_2 =
