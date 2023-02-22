@@ -2,7 +2,6 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './element-list-view.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
-import { EnvRestricted } from 'environment/env-restricted';
 import ContinuousGeometrySearch from 'data-products/element-list/continuous-geometry-search';
 import {
     continuousGeometryReducer,
@@ -40,47 +39,43 @@ const ElementListView = () => {
     const planSearchStateActions = createDelegates(planSearchStateDispatcher, planSearchActions);
 
     return (
-        <EnvRestricted restrictTo={'dev'}>
-            <div className={styles['element-list-view']}>
-                <div className={styles['element-list-view__header-container']}>
-                    <h2>{t('data-products.element-list.element-list-title')}</h2>
-                    <div>
-                        <span className={styles['element-list-view__radio-layout']}>
-                            <Radio onChange={handleRadioClick} checked={continuousGeometrySelected}>
-                                {t('data-products.element-list.location-track-geometry')}
-                            </Radio>
-                            <Radio
-                                onChange={handleRadioClick}
-                                checked={!continuousGeometrySelected}>
-                                {t('data-products.element-list.plan-geometry')}
-                            </Radio>
-                        </span>
-                    </div>
-                    {continuousGeometrySelected ? (
-                        <ContinuousGeometrySearch
-                            state={continuousSearchState}
-                            onUpdateProp={continuousSearchStateActions.onUpdateProp}
-                            onCommitField={continuousSearchStateActions.onCommitField}
-                            setElements={continuousSearchStateActions.onSetElements}
-                        />
-                    ) : (
-                        <PlanGeometrySearch
-                            state={planSearchState}
-                            onUpdateProp={planSearchStateActions.onUpdateProp}
-                            setElements={planSearchStateActions.onSetElements}
-                        />
-                    )}
+        <div className={styles['element-list-view']}>
+            <div className={styles['element-list-view__header-container']}>
+                <h2>{t('data-products.element-list.element-list-title')}</h2>
+                <div>
+                    <span className={styles['element-list-view__radio-layout']}>
+                        <Radio onChange={handleRadioClick} checked={continuousGeometrySelected}>
+                            {t('data-products.element-list.location-track-geometry')}
+                        </Radio>
+                        <Radio onChange={handleRadioClick} checked={!continuousGeometrySelected}>
+                            {t('data-products.element-list.plan-geometry')}
+                        </Radio>
+                    </span>
                 </div>
-                <ElementTable
-                    elements={
-                        continuousGeometrySelected
-                            ? continuousSearchState.elements
-                            : planSearchState.elements
-                    }
-                    showLocationTrackName={continuousGeometrySelected}
-                />
+                {continuousGeometrySelected ? (
+                    <ContinuousGeometrySearch
+                        state={continuousSearchState}
+                        onUpdateProp={continuousSearchStateActions.onUpdateProp}
+                        onCommitField={continuousSearchStateActions.onCommitField}
+                        setElements={continuousSearchStateActions.onSetElements}
+                    />
+                ) : (
+                    <PlanGeometrySearch
+                        state={planSearchState}
+                        onUpdateProp={planSearchStateActions.onUpdateProp}
+                        setElements={planSearchStateActions.onSetElements}
+                    />
+                )}
             </div>
-        </EnvRestricted>
+            <ElementTable
+                elements={
+                    continuousGeometrySelected
+                        ? continuousSearchState.elements
+                        : planSearchState.elements
+                }
+                showLocationTrackName={continuousGeometrySelected}
+            />
+        </div>
     );
 };
 
