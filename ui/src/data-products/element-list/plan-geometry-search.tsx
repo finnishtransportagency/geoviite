@@ -110,23 +110,21 @@ const PlanGeometrySearch = ({
     return (
         <React.Fragment>
             <div className={styles['element-list__geometry-search']}>
-                <div>
-                    <FieldLayout
-                        label={t(`data-products.element-list.search.source`)}
-                        value={
-                            <div>
-                                {planSources.map((source) => (
-                                    <Radio
-                                        key={source.value}
-                                        checked={state.source === source.value}
-                                        onChange={() => setSource(source.value)}>
-                                        {t(source.name)}
-                                    </Radio>
-                                ))}
-                            </div>
-                        }
-                    />
-                </div>
+                <FieldLayout
+                    label={t(`data-products.element-list.search.source`)}
+                    value={
+                        <>
+                            {planSources.map((source) => (
+                                <Radio
+                                    key={source.value}
+                                    checked={state.source === source.value}
+                                    onChange={() => setSource(source.value)}>
+                                    {t(source.name)}
+                                </Radio>
+                            ))}
+                        </>
+                    }
+                />
                 <div className={styles['element-list__plan-search-dropdown']}>
                     <FieldLayout
                         label={t(`data-products.element-list.search.plan`)}
