@@ -39,8 +39,9 @@ const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>(
 export type AlignmentSectionByPlan = {
     planName: string | undefined;
     planId: GeometryPlanId | undefined;
-    startAddress: TrackMeter;
-    endAddress: TrackMeter;
+    startAddress: TrackMeter | undefined;
+    endAddress: TrackMeter | undefined;
+    id: string;
 };
 
 export async function getLocationTrack(

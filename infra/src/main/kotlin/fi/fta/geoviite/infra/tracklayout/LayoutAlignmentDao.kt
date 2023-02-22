@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.geometry.createPostgis3DMLineString
 import fi.fta.geoviite.infra.geometry.parse3DMLineString
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import net.postgis.jdbc.PGgeometry
@@ -188,9 +189,54 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
-    fun fetchSegmentGeometriesAndPlanMetadata(alignmentId: IntId<LayoutAlignment>): List<SegmentGeometryAndMetadata> {
+    fun fetchSegmentGeometriesAndPlanMetadata(
+        alignmentId: IntId<LayoutAlignment>,
+        boundingBox: BoundingBox?
+    ): List<SegmentGeometryAndMetadata> {
         val sql = """
-            select plan.id as plan_id, plan_file.name as filename, layout.initial_import_metadata.plan_file_name, segment.source, postgis.st_astext(segment.geometry) as geometry_wkt,
+            with first as (
+              select segment_index
+              from layout.segment
+              where (
+                :use_bounding_box = false
+                  or postgis.st_intersects(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                  segment.geometry
+                )
+              ) and segment.alignment_id = :id
+              order by segment_index
+              limit 1
+            ),
+              last as (
+                select segment_index
+                  from layout.segment
+                  where (
+                        :use_bounding_box = false
+                      or postgis.st_intersects(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                                               segment.geometry
+                          )
+                    ) and segment.alignment_id = :id
+                  order by segment_index desc
+                  limit 1
+              ),
+              segment_points as (
+                select        case
+                                when :use_bounding_box = true 
+                                    and (layout.segment.segment_index = first.segment_index
+                                    or layout.segment.segment_index = last.segment_index)
+                                  then postgis.st_intersection(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid), segment.geometry)
+                                else segment.geometry
+                              end as geometry, layout.segment.segment_index
+                from layout.segment
+                  full outer join first on true
+                  full outer join last on true
+                where segment.alignment_id = :id
+              )
+            select layout.segment.segment_index,
+                   plan.id as plan_id,
+                   plan_file.name as filename,
+                   layout.initial_import_metadata.plan_file_name,
+                   segment.source,
+                   layout.segment.alignment_id,
               case
                 when segment.height_values is null then null
                 else array_to_string(segment.height_values, ',', 'null')
@@ -198,26 +244,45 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               case
                 when segment.cant_values is null then null
                 else array_to_string(segment.cant_values, ',', 'null')
-              end as cant_values
-            from layout.alignment
-              left join layout.segment on alignment.id = segment.alignment_id
-              left join geometry.alignment on segment.geometry_alignment_id = geometry.alignment.id
-              left join geometry.plan on geometry.alignment.plan_id = plan.id
-              left join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
-              left join layout.initial_segment_metadata on layout.segment.alignment_id = initial_segment_metadata.alignment_id
-                                                              and layout.segment.segment_index = initial_segment_metadata.segment_index
-              left join layout.initial_import_metadata on initial_segment_metadata.metadata_id = initial_import_metadata.id
-            where layout.alignment.id = :id
+              end as cant_values,
+              postgis.st_x(postgis.st_startpoint(segment_points.geometry)) as start_x,
+              postgis.st_y(postgis.st_startpoint(segment_points.geometry)) as start_y,
+              postgis.st_x(postgis.st_endpoint(segment_points.geometry)) as end_x,
+              postgis.st_y(postgis.st_endpoint(segment_points.geometry)) as end_y
+              from layout.alignment
+                left join layout.segment on alignment.id = segment.alignment_id
+                left join geometry.alignment on segment.geometry_alignment_id = geometry.alignment.id
+                left join geometry.plan on geometry.alignment.plan_id = plan.id
+                left join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
+                left join layout.initial_segment_metadata on layout.segment.alignment_id = initial_segment_metadata.alignment_id
+                  and layout.segment.segment_index = initial_segment_metadata.segment_index
+                left join layout.initial_import_metadata on initial_segment_metadata.metadata_id = initial_import_metadata.id
+                full outer join first on true
+                full outer join last on true
+                inner join segment_points on layout.segment.segment_index = segment_points.segment_index
+              where layout.alignment.id = :id
+                and layout.segment.segment_index >= first.segment_index
+                and layout.segment.segment_index <= last.segment_index
               order by segment.segment_index
         """.trimIndent()
-        val params = mapOf("id" to alignmentId.intValue)
+        val params = mapOf(
+            "id" to alignmentId.intValue,
+            "use_bounding_box" to (boundingBox != null),
+            "x_min" to boundingBox?.min?.x,
+            "y_min" to boundingBox?.min?.y,
+            "x_max" to boundingBox?.max?.x,
+            "y_max" to boundingBox?.max?.y,
+            "layout_srid" to LAYOUT_SRID.code,
+        )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             SegmentGeometryAndMetadata(
                 planId = rs.getIntIdOrNull("plan_id"),
                 planFileName = rs.getFileNameOrNull("filename"),
-                points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
+                startPoint = rs.getPointOrNull("start_x", "start_y"),
+                endPoint = rs.getPointOrNull("end_x", "end_y"),
                 source = rs.getEnumOrNull<GeometrySource>("source"),
-                metadataFileName = rs.getFileNameOrNull("plan_file_name")
+                metadataFileName = rs.getFileNameOrNull("plan_file_name"),
+                segmentId = rs.getIndexedId<LayoutSegment>("alignment_id","segment_index")
             )
         }
     }

@@ -25,6 +25,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
 }) => {
     const { t } = useTranslation();
     const [useBoungingBox, setUseBoundingBox] = React.useState(true);
+    const viewportDep = useBoungingBox && viewport;
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
             getLocationTrackSectionsByPlan(
@@ -32,7 +33,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                 locationTrackId,
                 useBoungingBox ? viewport.area : undefined,
             ),
-        [locationTrackId, useBoungingBox, viewport.area],
+        [locationTrackId, viewportDep],
     );
 
     return (

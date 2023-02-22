@@ -38,13 +38,8 @@ class LayoutAlignmentService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         boundingBox: BoundingBox?
     ): List<SegmentGeometryAndMetadata> {
-        val segmentGeometriesAndMetadatas = dao.fetchSegmentGeometriesAndPlanMetadata(id)
-
-        val filtered = if (boundingBox != null) filterAndClipSegmentsToBoundingBox(
-            segmentGeometriesAndMetadatas,
-            boundingBox
-        ) else segmentGeometriesAndMetadatas
-        return foldSegmentsByPlan(filtered)
+        val segmentGeometriesAndMetadatas = dao.fetchSegmentGeometriesAndPlanMetadata(id, boundingBox)
+        return foldSegmentsByPlan(segmentGeometriesAndMetadatas)
     }
 }
 
@@ -54,29 +49,9 @@ private fun foldSegmentsByPlan(segments: List<SegmentGeometryAndMetadata>) =
         if (last == null || last.planId != element.planId || last.source != element.source) acc.add(
             element
         )
-        else acc.set(acc.lastIndex, last.copy(points = last.points + element.points))
+        else acc.set(acc.lastIndex, last.copy(endPoint = element.endPoint))
         acc
     }
-
-private fun clipSegmentPointsToBoundingBox(segment: SegmentGeometryAndMetadata, boundingBox: BoundingBox) =
-    segment.copy(points = segment.points.filter { boundingBox.contains(it) })
-
-private fun filterAndClipSegmentsToBoundingBox(
-    segments: List<SegmentGeometryAndMetadata>,
-    boundingBox: BoundingBox
-): List<SegmentGeometryAndMetadata> {
-    val firstIndex =
-        segments.indexOfFirst { segment -> segment.points.any{ boundingBox.contains(it) } }
-    val lastIndex =
-        segments.indexOfLast { segment -> segment.points.any{ boundingBox.contains(it) } }
-
-    if (firstIndex < 0 && lastIndex < 0) return emptyList()
-    if (firstIndex == lastIndex) return listOf(clipSegmentPointsToBoundingBox(segments[firstIndex], boundingBox))
-
-    val firstSegmentClipped = clipSegmentPointsToBoundingBox(segments[firstIndex], boundingBox)
-    val lastSegmentClipped = clipSegmentPointsToBoundingBox(segments[lastIndex], boundingBox)
-    return listOf(firstSegmentClipped) + segments.subList(firstIndex + 1, lastIndex) + listOf(lastSegmentClipped)
-}
 
 private fun asNew(alignment: LayoutAlignment) =
     if (alignment.dataType == TEMP) alignment

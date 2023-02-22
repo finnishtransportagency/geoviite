@@ -25,6 +25,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
 }) => {
     const { t } = useTranslation();
     const [useBoungingBox, setUseBoundingBox] = React.useState(true);
+    const viewportDep = useBoungingBox && viewport;
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
             getReferenceLineSectionsByPlan(
@@ -32,7 +33,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                 referenceLineId,
                 useBoungingBox ? viewport.area : undefined,
             ),
-        [referenceLineId, useBoungingBox, viewport.area],
+        [referenceLineId, viewportDep],
     );
 
     return (

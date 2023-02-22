@@ -245,7 +245,8 @@
             "reference-line-geometries": "Pituusmittauslinjan geometriat",
             "location-track-geometries": "Raiteen geometriat",
             "bounding-box-geometries": "Vain kartalle osuvat geometriat",
-            "no-plan": "Ei suunnitelmaa"
+            "no-plan": "Ei suunnitelmaa",
+            "geocoding-failed": "Osoitetta ei saatu laskettua"
         }
     }
 }

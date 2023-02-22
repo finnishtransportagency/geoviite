@@ -227,15 +227,16 @@ class LocationTrackService(
             boundingBox
         )
         return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
-            alignmentSegmentGeometryByPlan.mapNotNull {
-                val startAddress = context.getAddress(it.points.first())?.first
-                val endAddress = context.getAddress(it.points.last())?.first
+            alignmentSegmentGeometryByPlan.mapNotNull {section ->
+                val startAddress = if (section.startPoint != null) context.getAddress(section.startPoint)?.first else null
+                val endAddress = if (section.endPoint != null) context.getAddress(section.endPoint)?.first else null
 
                 if (startAddress != null && endAddress != null) AlignmentPlanSection(
-                    planId = it.planId,
-                    planName = it.planFileName ?: it.metadataFileName,
+                    planId = section.planId,
+                    planName = section.planFileName ?: section.metadataFileName,
                     startAddress = startAddress,
-                    endAddress = endAddress
+                    endAddress = endAddress,
+                    id = section.segmentId
                 ) else null
             }
         } ?: emptyList()

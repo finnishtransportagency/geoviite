@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -161,36 +162,24 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     @Test
     fun `alignment segment plan metadata search works`() {
-        val points = listOf(
-            LayoutPoint(
+        val points = arrayOf(
+            Point(
                 x = 10.0,
                 y = 20.0,
-                z = 1.0,
-                cant = 0.1,
-                m = 0.0,
             ),
-            LayoutPoint(
+            Point(
                 x = 10.0,
                 y = 21.0,
-                z = null,
-                cant = null,
-                m = 1.0,
             ),
         )
-        val points2 = listOf(
-            LayoutPoint(
+        val points2 = arrayOf(
+            Point(
                 x = 10.0,
                 y = 21.0,
-                z = 1.0,
-                cant = null,
-                m = 0.0,
             ),
-            LayoutPoint(
+            Point(
                 x = 11.0,
                 y = 21.0,
-                z = null,
-                cant = 0.3,
-                m = 1.0,
             ),
         )
         val alignment = alignment(
@@ -199,13 +188,13 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         )
         val alignmentId = alignmentDao.insert(alignment)
 
-        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentId.id)
+        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentId.id, null)
         assertEquals(segmentGeometriesAndPlanMetadatas.size, 2)
-        assertEquals(segmentGeometriesAndPlanMetadatas.first().points.first(), points.first())
-        assertEquals(segmentGeometriesAndPlanMetadatas.first().points.last(), points.last())
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().startPoint, points.first())
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().endPoint, points.last())
         assertEquals(segmentGeometriesAndPlanMetadatas.first().source, GeometrySource.PLAN)
-        assertEquals(segmentGeometriesAndPlanMetadatas.last().points.first(), points2.first())
-        assertEquals(segmentGeometriesAndPlanMetadatas.last().points.last(), points2.last())
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().startPoint, points2.first())
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().endPoint, points2.last())
         assertEquals(segmentGeometriesAndPlanMetadatas.last().source, GeometrySource.GENERATED)
     }
 

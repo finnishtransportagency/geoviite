@@ -24,16 +24,19 @@ fun emptyAlignment() = LayoutAlignment(segments = listOf(), sourceId = null)
 data class SegmentGeometryAndMetadata(
     val planId: IntId<GeometryPlan>?,
     val planFileName: FileName?,
-    val points: List<LayoutPoint>,
+    val startPoint: IPoint?,
+    val endPoint: IPoint?,
     val source: GeometrySource?,
-    val metadataFileName: FileName?
+    val metadataFileName: FileName?,
+    val segmentId: IndexedId<LayoutSegment>
 )
 
 data class AlignmentPlanSection(
     val planId: IntId<GeometryPlan>?,
     val planName: FileName?,
     val startAddress: TrackMeter?,
-    val endAddress: TrackMeter?
+    val endAddress: TrackMeter?,
+    val id: IndexedId<LayoutSegment>
 )
 
 data class LayoutAlignment(
