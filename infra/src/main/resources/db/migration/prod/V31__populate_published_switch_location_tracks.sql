@@ -11,7 +11,7 @@ select distinct
     inner join lateral (
     select location_track.id, location_track.version, draft, false as is_topology
       from layout.location_track_at(publication.publication_time) location_track
-        inner join layout.segment_version segment
+        inner join layout.segment_at(publication.publication_time) segment
                    on segment.alignment_id = location_track.alignment_id
                      and segment.alignment_version = location_track.alignment_version
       where segment.switch_id = switch.switch_id
