@@ -3,6 +3,9 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { CoordinateSystem, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
+import { useAppNavigate } from 'common/navigate';
+import { Link } from 'vayla-design-lib/link/link';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 export type ElementTableItemProps = {
     id: string;
@@ -26,7 +29,7 @@ export type ElementTableItemProps = {
     plan: string;
     source: string;
     coordinateSystem: CoordinateSystem | undefined;
-
+    planId: GeometryPlanId;
     showLocationTrackName: boolean;
 };
 
@@ -51,8 +54,11 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     plan,
     source,
     coordinateSystem,
+    planId,
     showLocationTrackName,
 }) => {
+    const navigate = useAppNavigate();
+
     return (
         <React.Fragment>
             <tr>
@@ -76,7 +82,9 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{cantEnd && roundToPrecision(cantEnd, Precision.cantMillimeters)}</td>
                 <td>{angleStart}</td>
                 <td>{angleEnd}</td>
-                <td>{plan}</td>
+                <td>
+                    <Link onClick={() => navigate('inframodel-edit', planId)}>{plan}</Link>
+                </td>
                 <td>{source}</td>
             </tr>
         </React.Fragment>
