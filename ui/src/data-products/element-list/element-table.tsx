@@ -95,6 +95,7 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                                     angleEnd={item.end.directionGrads}
                                     plan={item.fileName}
                                     source={item.planSource}
+                                    planId={item.planId}
                                     showLocationTrackName={showLocationTrackName}
                                 />
                             </React.Fragment>

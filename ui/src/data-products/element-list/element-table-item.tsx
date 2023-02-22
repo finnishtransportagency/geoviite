@@ -3,6 +3,9 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { CoordinateSystem, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
+import { useAppNavigate } from 'common/navigate';
+import { Link } from 'vayla-design-lib/link/link';
+import { GeometryPlanId } from 'geometry/geometry-model';
 import styles from './element-list-view.scss';
 
 export type ElementTableItemProps = {
@@ -27,7 +30,7 @@ export type ElementTableItemProps = {
     plan: string;
     source: string;
     coordinateSystem: CoordinateSystem | undefined;
-
+    planId: GeometryPlanId;
     showLocationTrackName: boolean;
 };
 
@@ -52,8 +55,11 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     plan,
     source,
     coordinateSystem,
+    planId,
     showLocationTrackName,
 }) => {
+    const navigate = useAppNavigate();
+
     return (
         <React.Fragment>
             <tr>
@@ -61,12 +67,8 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 {showLocationTrackName && <td>{locationTrackName}</td>}
                 <td>{geometryAlignmentName}</td>
                 <td>{type}</td>
-                <td className={styles['element-list-view__column--number']}>
-                    {trackAddressStart && formatTrackMeter(trackAddressStart)}
-                </td>
-                <td className={styles['element-list-view__column--number']}>
-                    {trackAddressEnd && formatTrackMeter(trackAddressEnd)}
-                </td>
+                <td>{trackAddressStart && formatTrackMeter(trackAddressStart)}</td>
+                <td>{trackAddressEnd && formatTrackMeter(trackAddressEnd)}</td>
                 <td>
                     <CoordinateSystemView coordinateSystem={coordinateSystem} />
                 </td>
@@ -105,7 +107,9 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td className={styles['element-list-view__column--number']}>
                     {roundToPrecision(angleEnd, Precision.angle6Decimals)}
                 </td>
-                <td>{plan}</td>
+                <td>
+                    <Link onClick={() => navigate('inframodel-edit', planId)}>{plan}</Link>
+                </td>
                 <td>{source}</td>
             </tr>
         </React.Fragment>
