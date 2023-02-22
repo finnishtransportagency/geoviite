@@ -1,7 +1,6 @@
 import React from 'react';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { Link } from 'vayla-design-lib/link/link';
-import { useAppNavigate } from 'common/navigate';
+import { NavLink } from 'react-router-dom';
 
 export type GeometryPlanNameLinkProps = {
     planId: GeometryPlanId;
@@ -11,6 +10,5 @@ export type GeometryPlanNameLinkProps = {
 export const GeometryPlanNameLink: React.FC<GeometryPlanNameLinkProps> = (
     props: GeometryPlanNameLinkProps,
 ) => {
-    const navigate = useAppNavigate();
-    return <Link onClick={() => navigate('inframodel-edit', props.planId)}>{props.planName}</Link>;
+    return <NavLink to={`/infra-model/edit/${props.planId}`}>{props.planName}</NavLink>;
 };
