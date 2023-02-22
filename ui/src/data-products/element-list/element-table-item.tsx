@@ -3,8 +3,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { CoordinateSystem, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
-import { useAppNavigate } from 'common/navigate';
-import { Link } from 'vayla-design-lib/link/link';
+import { GeometryPlanNameLink } from 'data-products/element-list/geometry-plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import styles from './element-list-view.scss';
 
@@ -58,8 +57,6 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     planId,
     showLocationTrackName,
 }) => {
-    const navigate = useAppNavigate();
-
     return (
         <React.Fragment>
             <tr>
@@ -108,7 +105,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                     {roundToPrecision(angleEnd, Precision.angle6Decimals)}
                 </td>
                 <td>
-                    <Link onClick={() => navigate('inframodel-edit', planId)}>{plan}</Link>
+                    <GeometryPlanNameLink planId={planId} planName={plan} />
                 </td>
                 <td>{source}</td>
             </tr>
