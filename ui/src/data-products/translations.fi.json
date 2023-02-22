@@ -9,6 +9,7 @@
                 "line": "Suora",
                 "curve": "Kaari",
                 "clothoid": "Siirtymäkaari",
+                "source": "Suunnitelman lähde",
                 "missing-section": "Puuttuva osuus",
                 "no-types-selected": "Valitse vähintään yksi elementin tyyppi",
                 "invalid-track-meter": "Tarkista osoitteen muoto",
