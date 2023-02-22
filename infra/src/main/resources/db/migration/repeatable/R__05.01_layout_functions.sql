@@ -33,9 +33,9 @@ select distinct track_number_id
   from (
     (
       select track_number_id
-        from layout.segment
-          join layout.location_track_publication_view location_track using (alignment_id)
-        where switch_id_in = segment.switch_id and publication_state = any(location_track.publication_states)
+        from layout.segment_version
+          inner join layout.location_track_publication_view location_track using (alignment_id, alignment_version)
+        where switch_id_in = segment_version.switch_id and publication_state = any(location_track.publication_states)
     )
     union all
     (

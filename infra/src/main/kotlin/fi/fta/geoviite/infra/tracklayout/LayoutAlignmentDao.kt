@@ -159,14 +159,11 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               switch_id,
               switch_start_joint_number,
               switch_end_joint_number,
-              start,
-              length,
               source,
               geometry_id
             from layout.segment_version 
             where alignment_id = :alignment_id
               and alignment_version = :alignment_version
-              and deleted = false
             order by alignment_id, segment_index
         """.trimIndent()
         val params = mapOf(
@@ -181,26 +178,28 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             switchId = rs.getIntIdOrNull("switch_id"),
             startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
             endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-            start = rs.getDouble("start"),
             source = rs.getEnum("source"),
         ) to rs.getIntId<SegmentGeometry>("geometry_id") }
 
         val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
+        var start = 0.0
         return segmentResults.map { (data, geometryId) ->
-            LayoutSegment(
+            val segment = LayoutSegment(
                 id = data.id,
                 sourceId = data.sourceId,
                 sourceStart = data.sourceStart,
                 switchId = data.switchId,
                 startJointNumber = data.startJointNumber,
                 endJointNumber = data.endJointNumber,
-                start = data.start,
+                start = start,
                 source = data.source,
                 geometry = requireNotNull(geometries[geometryId]) {
                     "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
                 },
             )
+            start += segment.length
+            segment
         }
     }
 
@@ -346,86 +345,41 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
             val geometryIds = measureAndCollect("save-segment-geometries") { saveSegmentGeometries(segments) }
-            val sql = """
-              insert into layout.segment(
-                alignment_id,
-                alignment_version,
-                segment_index,
-                geometry_alignment_id,
-                geometry_element_index,
-                switch_id,
-                switch_start_joint_number,
-                switch_end_joint_number,
-                start,
-                length,
-                source_start,
-                source,
-                geometry_id
-              )
-              values(
-                :alignment_id,
-                :alignment_version,
-                :segment_index,
-                :geometry_alignment_id,
-                :geometry_element_index,
-                :switch_id,
-                :switch_start_joint_number,
-                :switch_end_joint_number,
-                :start,
-                :length,
-                :source_start,
-                :source::layout.geometry_source,
-                :geometry_id
-              )
-              on conflict (alignment_id, segment_index) do update
-              set
-                alignment_version = excluded.alignment_version,
-                geometry_alignment_id = excluded.geometry_alignment_id,
-                geometry_element_index = excluded.geometry_element_index,
-                switch_id = excluded.switch_id,
-                switch_start_joint_number = excluded.switch_start_joint_number,
-                switch_end_joint_number = excluded.switch_end_joint_number,
-                start = excluded.start,
-                length = excluded.length,
-                source_start = excluded.source_start,
-                source = excluded.source,
-                geometry_id = excluded.geometry_id
+            //language=SQL
+            val sqlIndexed = """
+                insert into layout.segment_version(
+                  alignment_id,
+                  alignment_version,
+                  segment_index,
+                  geometry_alignment_id,
+                  geometry_element_index,
+                  switch_id,
+                  switch_start_joint_number,
+                  switch_end_joint_number,
+                  source_start,
+                  source,
+                  geometry_id
+                )
+                values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
               """.trimIndent()
-            val params = segments.mapIndexed { i, s ->
-                mapOf(
-                    "alignment_id" to alignmentId.id.intValue,
-                    "alignment_version" to alignmentId.version,
-                    "segment_index" to i,
-                    "geometry_alignment_id" to if (s.sourceId is IndexedId) s.sourceId.parentId else null,
-                    "geometry_element_index" to if (s.sourceId is IndexedId) s.sourceId.index else null,
-                    "switch_id" to if (s.switchId is IntId) s.switchId.intValue else null,
-                    "switch_start_joint_number" to s.startJointNumber?.intValue,
-                    "switch_end_joint_number" to s.endJointNumber?.intValue,
-                    "start" to s.start,
-                    "length" to s.length,
-                    "source_start" to s.sourceStart,
-                    "source" to s.source.name,
-                    "geometry_id" to (
+            measureAndCollect("batch-update-segments") {
+                jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, s) ->
+                    ps.setInt(1, alignmentId.id.intValue)
+                    ps.setInt(2, alignmentId.version)
+                    ps.setInt(3, index)
+                    ps.setNullableInt(4) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
+                    ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.index else null }
+                    ps.setNullableInt(6) { if (s.switchId is IntId) s.switchId.intValue else null }
+                    ps.setNullableInt(7, s.startJointNumber?.intValue)
+                    ps.setNullableInt(8, s.endJointNumber?.intValue)
+                    ps.setNullableDouble(9, s.sourceStart)
+                    ps.setString(10, s.source.name)
+                    val geometryId =
                         if (s.geometry.id is IntId) s.geometry.id
                         else requireNotNull(geometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
-                    ).intValue,
-                )
-            }.toTypedArray()
-            measureAndCollect("batch-update-segments") { jdbcTemplate.batchUpdate(sql, params) }
-        }
-
-        if (alignmentId.version > 1) {
-            val sqlDelete = """ 
-              delete from layout.segment 
-              where alignment_id = :alignment_id 
-                and segment.alignment_version < :alignment_version  
-            """.trimIndent()
-
-            val paramsDelete = mapOf(
-                "alignment_id" to alignmentId.id.intValue,
-                "alignment_version" to alignmentId.version,
-            )
-            measureAndCollect("delete-redundant-segments") { jdbcTemplate.update(sqlDelete, paramsDelete) }
+                    ps.setInt(11, geometryId.intValue)
+                }
+            }
         }
     }
 
@@ -435,40 +389,6 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         val unsaved = segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null }
         logger.warn("Storing segment geometries: segments=${segments.size} unsavedGeoms=${unsaved.size}")
         return measureAndCollect("save-alignment-insert-geom") { insertSegmentGeometries(unsaved) }
-//        val newGeometries: MutableMap<IntId<SegmentGeometry>, SegmentGeometry> =
-//            measureAndCollect("save-alignment-fetch-geoms") {
-//            segmentGeometryCache.getAll(insertedIds.values) { dbIds ->
-//                require(dbIds.all { insertedIds.containsValue(it) }) {
-//                    "Insert cache population tried to fetch extra ids: inserted=$insertedIds requested=$dbIds"
-//                }
-//                val inserted = insertedIds.entries.mapNotNull { (tempId, dbId) ->
-//                    if (dbIds.contains(dbId)) {
-//                        val savedObject = unsaved.find { geometry -> geometry.id == tempId }
-//                            ?: throw IllegalStateException("Insert result incorrect: tempId=$tempId dbId=$dbId")
-//                        logger.debug("Mapped temp geometry to DB: temp=$tempId db=$dbId")
-//                        dbId to savedObject.copy(id = dbId)
-//                    } else null
-//                }.associate { it }
-//                val directFromDb = fetchSegmentGeometriesInternal(dbIds)
-//                require(inserted.mapValues { v -> v. } == directFromDb) {
-//                    "Mismatch: generated=$inserted fromDb=$directFromDb"
-//                }
-//
-//                inserted
-//            }
-//        }
-//        unsaved.forEach { unsavedGeom ->
-//            val savedGeom = requireNotNull(newGeometries[insertedIds[unsavedGeom.id]])
-//            require(savedGeom.points == unsavedGeom.points)
-//            require(savedGeom.resolution == unsavedGeom.resolution)
-//            require(savedGeom.boundingBox == unsavedGeom.boundingBox)
-//            require(savedGeom.length == unsavedGeom.length)
-//        }
-//        return segments.associate { s -> s.id to when (s.geometry.id) {
-//            is IntId -> s.geometry.id
-//            is StringId -> requireNotNull(insertedIds[s.geometry.id]) { "Saving new geometry failed: segment=${s.id}" }
-//            else -> throw IllegalStateException("Segment geometry with invalid ID: ${s.geometry.id}")
-//        } }
     }
 
     // TODO: GVT-1691 batching this is a little tricky due to difficulty in mapping generated ids:
@@ -476,39 +396,39 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     //  If we could calculate the hash prior to saving we could use that to identify the mapping
     private fun insertSegmentGeometries(
         geometries: List<SegmentGeometry>,
-    ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> = geometries.associate { geometry ->
-        jdbcTemplate.query(segmentGeometryInsertSql, segmentGeometryParams(geometry)) { rs, _ ->
-            geometry.id as StringId to rs.getIntId<SegmentGeometry>("id")
-        }.first()
+    ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
+        //language=SQL
+        val sql = """
+          insert into layout.segment_geometry(
+            resolution,
+            geometry,
+            height_values,
+            cant_values
+          )
+          values(
+            :resolution,
+            postgis.st_setsrid(:line_string::postgis.geometry, :srid),
+            string_to_array(:height_values, ',', 'null')::decimal[],
+            string_to_array(:cant_values, ',', 'null')::decimal[]
+          )
+          on conflict (hash) do update
+          set resolution = segment_geometry.resolution -- no-op update so that returns clause works on conflict as well
+          returning id
+        """.trimIndent()
+        return geometries.associate { geometry ->
+            val params = mapOf(
+                "resolution" to geometry.resolution,
+                // "line_string" to create3DMLineString(s.points),
+                "line_string" to PGgeometry(createPostgis3DMLineString(geometry.points)),
+                "srid" to LAYOUT_SRID.code,
+                "height_values" to createListString(geometry.points) { p -> p.z },
+                "cant_values" to createListString(geometry.points) { p -> p.cant },
+            )
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                geometry.id as StringId to rs.getIntId<SegmentGeometry>("id")
+            }.first()
+        }
     }
-
-    //language=SQL
-    private val segmentGeometryInsertSql = """
-      insert into layout.segment_geometry(
-        resolution,
-        geometry,
-        height_values,
-        cant_values
-      )
-      values(
-        :resolution,
-        postgis.st_setsrid(:line_string::postgis.geometry, :srid),
-        string_to_array(:height_values, ',', 'null')::decimal[],
-        string_to_array(:cant_values, ',', 'null')::decimal[]
-      )
-      on conflict (hash) do update
-      set resolution = segment_geometry.resolution -- no-op update so that returns clause works on conflict as well
-      returning id, hash
-    """.trimIndent()
-
-    private fun segmentGeometryParams(geometry: SegmentGeometry) = mapOf(
-        "resolution" to geometry.resolution,
-//                "line_string" to create3DMLineString(s.points),
-        "line_string" to PGgeometry(createPostgis3DMLineString(geometry.points)),
-        "srid" to LAYOUT_SRID.code,
-        "height_values" to createListString(geometry.points) { p -> p.z },
-        "cant_values" to createListString(geometry.points) { p -> p.cant },
-    )
 
     private fun fetchSegmentGeometries(
         ids: List<IntId<SegmentGeometry>>,
@@ -578,6 +498,5 @@ private data class SegmentData(
     val switchId: DomainId<TrackLayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
-    val start: Double,
     val source: GeometrySource,
 )

@@ -24,7 +24,18 @@ create table layout.segment_geometry
     ) stored
 );
 
-alter table layout.segment_version add column geometry_id int null;
+-- Update segment table structure
+drop table layout.segment;
+delete from layout.segment_version where deleted = true;
+alter table layout.segment_version
+  drop column change_time, -- Metadata is on alignment, which changes as a whole -> this is duplicate info
+  drop column change_user, -- Metadata is on alignment, which changes as a whole -> this is duplicate info
+  drop column version, -- Alignment versioning is sufficient as segments don't change independently
+  drop column deleted, -- Deleted rows: the new alignment version just doesn't have a segment for the index
+  drop column length, -- This is currently the m-value of the last point -> no separate column needed
+  drop column start, -- This is the sum of lengths by-index -> no separate column needed
+  add column geometry_id int null -- Reference to the new geometry table
+;
 
 -- Copy all known geometries to the new table, preserving the the ids
 insert into layout.segment_geometry(resolution, geometry, height_values, cant_values)
@@ -43,7 +54,7 @@ where segment_geometry.hash = layout.calculate_geometry_hash(
   sv.cant_values
   );
 
--- Update segment_version to use new table's data instead of own
+-- Remove the transferred from the segment table
 alter table layout.segment_version
   drop column resolution,
   drop column geometry,
@@ -52,34 +63,15 @@ alter table layout.segment_version
   drop column bounding_box,
   alter column geometry_id set not null;
 
--- Disable versioning triggers on the main table so the following edits don't create version rows
-alter table layout.segment disable trigger version_row_trigger;
-alter table layout.segment disable trigger version_update_trigger;
-
--- Remove indexes relying on old columns (new indices will be added in a repeatable migration)
-drop index if exists layout.layout_segment_bounding_box_index;
-
--- Swap geometry data for geometry table id in the main table (null for now)
-alter table layout.segment
-  drop column resolution,
-  drop column geometry,
-  drop column height_values,
-  drop column cant_values,
-  add column geometry_id int null;
-
--- Collect all geometry table references from the current version rows
-update layout.segment
-set geometry_id = sv.geometry_id
-  from layout.segment_version sv
-  where sv.alignment_id = segment.alignment_id
-    and sv.segment_index = segment.segment_index
-    and sv.version = segment.version;
-
--- Set geometry id as mandatory + add foreign key reference
-alter table layout.segment
-  alter column geometry_id set not null,
-  add constraint segment_segment_geometry_id_fkey foreign key (geometry_id) references layout.segment_geometry (id);
-
--- Re-enable versioning triggers
-alter table layout.segment enable trigger version_update_trigger;
-alter table layout.segment enable trigger version_row_trigger;
+-- Add foreign key references for version table, as there is no separate main table any more
+alter table layout.segment_version
+  add constraint segment_segment_geometry_fkey
+    foreign key (geometry_id) references layout.segment_geometry (id),
+  add constraint segment_version_alignment_version_fkey
+    foreign key(alignment_id, alignment_version) references layout.alignment_version(id, version),
+--   add constraint segment_version_switch_version_fkey
+--     foreign key (switch_id, switch_version) references layout.switch_version (id, version),
+  add constraint segment_version_geometry_alignment_fkey
+    foreign key (geometry_alignment_id) references geometry.alignment (id),
+  add constraint segment_version_geometry_element_fkey
+    foreign key (geometry_alignment_id, geometry_element_index) references geometry.element (alignment_id, element_index);
