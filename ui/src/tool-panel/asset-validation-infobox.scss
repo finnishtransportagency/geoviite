@@ -1,7 +1,7 @@
 @import '../vayla-design-lib/colors';
 
 $color-error: $color-red-dark;
-$color-warning: #9f6700;
+$color-warning: $color-lemon-dark;
 
 .asset-validation__error-status {
     color: $color-error;

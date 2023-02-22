@@ -72,9 +72,20 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun validateTrackNumberAndReferenceLine(trackNumberId: IntId<TrackLayoutTrackNumber>, referenceLineId: IntId<ReferenceLine>?, publishType: PublishType): ValidatedAsset<TrackLayoutTrackNumber> {
+    fun validateTrackNumberAndReferenceLine(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        referenceLineId: IntId<ReferenceLine>?,
+        publishType: PublishType
+    ): ValidatedAsset<TrackLayoutTrackNumber> {
+        logger.serviceCall(
+            "validateTrackNumberAndReferenceLine",
+            "trackNumberId" to trackNumberId,
+            "referenceLineId" to referenceLineId,
+            "publishType" to publishType
+        )
         val locationTrack = trackNumberService.getOrThrow(publishType, trackNumberId)
-        val referenceLine = if (referenceLineId != null) referenceLineService.getOrThrow(publishType, referenceLineId) else null
+        val referenceLine =
+            if (referenceLineId != null) referenceLineService.getOrThrow(publishType, referenceLineId) else null
 
         require(locationTrack.version != null) { "Asset validation requires version" }
         val includingDeps = getRevertRequestDependencies(
@@ -106,6 +117,11 @@ class PublicationService @Autowired constructor(
     }
 
     fun validateLocationTrack(id: IntId<LocationTrack>, publishType: PublishType): ValidatedAsset<LocationTrack> {
+        logger.serviceCall(
+            "validateLocationTrack",
+            "id" to id,
+            "publishType" to publishType
+        )
         val locationTrack = locationTrackService.getOrThrow(publishType, id)
         require(locationTrack.version != null) { "Asset validation requires version" }
         val includingDeps = getRevertRequestDependencies(
@@ -129,6 +145,11 @@ class PublicationService @Autowired constructor(
     }
 
     fun validateSwitch(id: IntId<TrackLayoutSwitch>, publishType: PublishType): ValidatedAsset<TrackLayoutSwitch> {
+        logger.serviceCall(
+            "validateSwitch",
+            "id" to id,
+            "publishType" to publishType
+        )
         val layoutSwitch = switchService.getOrThrow(publishType, id)
         require(layoutSwitch.version != null) { "Asset validation requires version" }
         val includingDeps = getRevertRequestDependencies(
@@ -150,6 +171,11 @@ class PublicationService @Autowired constructor(
     }
 
     fun validateKmPost(id: IntId<TrackLayoutKmPost>, publishType: PublishType): ValidatedAsset<TrackLayoutKmPost> {
+        logger.serviceCall(
+            "validateKmPost",
+            "id" to id,
+            "publishType" to publishType
+        )
         val kmPost = kmPostService.getOrThrow(publishType, id)
         require(kmPost.version != null) { "Asset validation requires version" }
         val includingDeps = getRevertRequestDependencies(

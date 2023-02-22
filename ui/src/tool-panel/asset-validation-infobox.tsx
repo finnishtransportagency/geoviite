@@ -60,7 +60,7 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
                         <p className={'infobox__text'}>{t('tool-panel.validation.all-ok')}</p>
                     ) : (
                         <React.Fragment>
-                            {errors.length > 0 ? (
+                            {errors.length > 0 && (
                                 <React.Fragment>
                                     <p className={errorClassName}>
                                         <Icons.StatusError
@@ -75,10 +75,8 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
                                         </p>
                                     ))}
                                 </React.Fragment>
-                            ) : (
-                                <></>
                             )}
-                            {warnings.length > 0 ? (
+                            {warnings.length > 0 && (
                                 <React.Fragment>
                                     <p className={warningClassName}>
                                         {t('tool-panel.validation.warnings')}
@@ -89,8 +87,6 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
                                         </p>
                                     ))}
                                 </React.Fragment>
-                            ) : (
-                                <></>
                             )}
                         </React.Fragment>
                     )

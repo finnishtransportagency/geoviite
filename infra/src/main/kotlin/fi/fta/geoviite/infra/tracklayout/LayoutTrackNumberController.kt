@@ -51,7 +51,7 @@ class LayoutTrackNumberController(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ValidatedAsset<TrackLayoutTrackNumber> {
-        logger.apiCall("validateLocationTrack", "publishType" to publishType, "id" to id)
+        logger.apiCall("validateTrackNumberAndReferenceLine", "publishType" to publishType, "id" to id)
         val referenceLine = referenceLineService.getByTrackNumber(publishType, id)
         return publicationService.validateTrackNumberAndReferenceLine(
             id,
