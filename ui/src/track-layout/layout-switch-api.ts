@@ -20,9 +20,12 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
+import { indexIntoMap } from 'utils/array-utils';
 
 const switchCache = asyncCache<string, LayoutSwitch>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
+
+const cacheKey = (id: LayoutSwitchId, publishType: PublishType) => `${id}_${publishType}`;
 
 export async function getSwitchesByBoundingBox(
     bbox: BoundingBox,
@@ -71,21 +74,32 @@ export async function getSwitch(
     switchId: LayoutSwitchId,
     publishType: PublishType,
 ): Promise<LayoutSwitch> {
-    const cacheKey = `${switchId}_${publishType}`;
-    return switchCache.get(getChangeTimes().layoutSwitch, cacheKey, () =>
+    return switchCache.get(getChangeTimes().layoutSwitch, cacheKey(switchId, publishType), () =>
         getThrowError<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
     );
 }
 
-// NOTE: There's no front-end caching for mass fetches yet, so it's preferable to use separate single fetches if you
-// know that the data is most likely in cache. Caching will be implemented in GVT-1428
 export async function getSwitches(
     switchIds: LayoutSwitchId[],
     publishType: PublishType,
 ): Promise<LayoutSwitch[]> {
-    return switchIds.length > 0
-        ? getThrowError<LayoutSwitch[]>(`${layoutUri('switches', publishType)}?ids=${switchIds}`)
-        : Promise.resolve([]);
+    return switchCache.getMany(
+        switchIds,
+        (id) => cacheKey(id, publishType),
+        (fetchIds) =>
+            getThrowError<LayoutSwitch[]>(
+                `${layoutUri('switches', publishType)}?ids=${fetchIds}`,
+            ).then((switches) => {
+                const switchMap = indexIntoMap<LayoutSwitchId, LayoutSwitch>(switches);
+                return (id) => {
+                    const sw = switchMap.get(id);
+                    if (sw == undefined) {
+                        throw Error(`Couldn't find switch ${id}`);
+                    }
+                    return sw;
+                };
+            }),
+    );
 }
 
 export async function getSwitchJointConnections(

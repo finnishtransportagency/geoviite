@@ -31,19 +31,21 @@ import {
 } from 'common/change-time-api';
 import { MapTile } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
+
+const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${publishType}`;
 
 export async function getLocationTrack(
     id: LocationTrackId,
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): Promise<LayoutLocationTrack | null> {
-    const cacheKey = `${id}_${publishType}`;
     return locationTrackCache.get(
         changeTime || getChangeTimes().layoutLocationTrack,
-        cacheKey,
+        cacheKey(id, publishType),
         () => getIgnoreError<LayoutLocationTrack>(layoutUri('location-tracks', publishType, id)),
     );
 }
@@ -139,14 +141,23 @@ export const deleteLocationTrack = async (
     }));
 };
 
-// There's no front-end caching for mass fetches yet, so it's preferable to use separate single fetches if you
-// know that the data is most likely in cache. Caching will be implemented in GVT-1428
-export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
-    return ids.length > 0
-        ? getThrowError<LayoutLocationTrack[]>(
-            `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
+export async function getLocationTracks(
+    ids: LocationTrackId[],
+    publishType: PublishType,
+): Promise<LayoutLocationTrack[]> {
+    return locationTrackCache
+        .getMany(
+            ids,
+            (id) => cacheKey(id, publishType),
+            (fetchIds) =>
+                getThrowError<LayoutLocationTrack[]>(
+                    `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
+                ).then((tracks) => {
+                    const trackMap = indexIntoMap(tracks);
+                    return (id) => trackMap.get(id) ?? null;
+                }),
         )
-        : Promise.resolve([]);
+        .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
 export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[]> {
