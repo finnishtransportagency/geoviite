@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN_LAYOUT
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -19,6 +20,7 @@ import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.time.Instant
 
@@ -36,13 +38,85 @@ data class TransformationError(
 }
 
 @Service
-class GeometryService @Autowired constructor(
+class PlanLayoutCache(
     private val geometryDao: GeometryDao,
     private val heightTriangleDao: HeightTriangleDao,
+    private val coordinateTransformationService: CoordinateTransformationService,
+) {
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    @Cacheable(CACHE_GEOMETRY_PLAN_LAYOUT, sync = true)
+    fun getPlanLayout(
+        planVersion: RowVersion<GeometryPlan>,
+        includeGeometryData: Boolean = true,
+    ): Pair<GeometryPlanLayout?, TransformationError?> {
+        logger.serviceCall(
+            "getPlanLayout",
+            "rowVersion" to planVersion,
+            "includeGeometryData" to includeGeometryData,
+        )
+        return transformToLayoutPlan(geometryDao.fetchPlan(planVersion), includeGeometryData)
+    }
+
+    fun transformToLayoutPlan(
+        geometryPlan: GeometryPlan,
+        includeGeometryData: Boolean = true,
+        pointListStepLength: Int = 1,
+    ): Pair<GeometryPlanLayout?, TransformationError?> {
+        logger.serviceCall(
+            "getTrackLayoutPlan",
+            "geometryPlanId" to geometryPlan.id,
+            "includeGeometryData" to includeGeometryData,
+        )
+        val srid = geometryPlan.units.coordinateSystemSrid
+        val planToLayoutTransformation = if (srid != null) coordinateTransformationService.getTransformation(srid, LAYOUT_SRID) else null
+        if (planToLayoutTransformation == null) {
+            logger.warn("Not converting plan to layout as there is no SRID: id=${geometryPlan.id} file=${geometryPlan.fileName}")
+            return null to TransformationError("srid-missing", geometryPlan.units)
+        }
+
+        val polygon = getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, planToLayoutTransformation)
+
+        return if (polygon.isEmpty()) {
+            logger.warn("Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}")
+            null to TransformationError("bounds-resolution-failed", geometryPlan.units)
+        } else if (!polygon.all { point -> FINNISH_BORDERS.contains(point) }) {
+            logger.warn("Not converting plan to layout as bounds are outside Finnish borders: id=${geometryPlan.id} file=${geometryPlan.fileName}")
+            null to TransformationError("bounds-outside-finland", geometryPlan.units)
+        } else try {
+            toTrackLayout(
+                geometryPlan = geometryPlan,
+                heightTriangles = heightTriangleDao.fetchTriangles(polygon),
+                planToLayout = planToLayoutTransformation,
+                includeGeometryData = includeGeometryData,
+                pointListStepLength = pointListStepLength,
+            ) to null
+        } catch (e: CoordinateTransformationException) {
+            logger.warn("Could not convert plan coordinates: " +
+                    "id=${geometryPlan.id} " +
+                    "srid=${geometryPlan.units.coordinateSystemSrid} " +
+                    "file=${geometryPlan.fileName}",
+                e)
+            null to TransformationError("coordinate-transformation-failed", geometryPlan.units)
+        } catch (e: Exception) {
+            logger.warn("Failed to convert plan to layout form: " +
+                    "id=${geometryPlan.id} " +
+                    "srid=${geometryPlan.units.coordinateSystemSrid} " +
+                    "file=${geometryPlan.fileName}",
+                e)
+            null to TransformationError("plan-transformation-failed", geometryPlan.units)
+        }
+    }
+}
+
+@Service
+class GeometryService @Autowired constructor(
+    private val geometryDao: GeometryDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val coordinateTransformationService: CoordinateTransformationService,
     private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
+    private val planLayoutCache: PlanLayoutCache,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -77,67 +151,16 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchManyPlanVersions(planIds).map(geometryDao::fetchPlanHeader)
     }
 
-    fun getTrackLayoutPlan(
+    fun getLayoutPlan(
         geometryPlanId: IntId<GeometryPlan>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
     ): Pair<GeometryPlanLayout?, TransformationError?> {
-        return getTrackLayoutPlan(
-            geometryPlan = getGeometryPlan(geometryPlanId),
-            includeGeometryData = includeGeometryData,
-            pointListStepLength = pointListStepLength,
-        )
-    }
-
-    fun getTrackLayoutPlan(
-        geometryPlan: GeometryPlan,
-        includeGeometryData: Boolean = true,
-        pointListStepLength: Int = 1,
-    ): Pair<GeometryPlanLayout?, TransformationError?> {
-        logger.serviceCall(
-            "getTrackLayoutPlan",
-            "geometryPlanId" to geometryPlan.id,
-            "includeGeometryData" to includeGeometryData,
-            "pointListStepLength" to pointListStepLength,
-        )
-        val srid = geometryPlan.units.coordinateSystemSrid
-        val planToLayoutTransformation = if (srid != null) coordinateTransformationService.getTransformation(srid, LAYOUT_SRID) else null
-        if (planToLayoutTransformation == null) {
-            logger.warn("Not converting plan to layout as there is no SRID: id=${geometryPlan.id} file=${geometryPlan.fileName}")
-            return null to TransformationError("srid-missing", geometryPlan.units)
-        }
-
-        val polygon = getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, planToLayoutTransformation)
-
-        return if (polygon.isEmpty()) {
-            logger.warn("Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}")
-            null to TransformationError("bounds-resolution-failed", geometryPlan.units)
-        } else if (!polygon.all { point -> FINNISH_BORDERS.contains(point) }) {
-            logger.warn("Not converting plan to layout as bounds are outside Finnish borders: id=${geometryPlan.id} file=${geometryPlan.fileName}")
-            null to TransformationError("bounds-outside-finland", geometryPlan.units)
-        } else try {
-            toTrackLayout(
-                geometryPlan = geometryPlan,
-                heightTriangles = heightTriangleDao.fetchTriangles(polygon),
-                planToLayout = planToLayoutTransformation,
-                pointListStepLength = pointListStepLength,
-                includeGeometryData = includeGeometryData,
-            ) to null
-        } catch (e: CoordinateTransformationException) {
-            logger.warn("Could not convert plan coordinates: " +
-                    "id=${geometryPlan.id} " +
-                    "srid=${geometryPlan.units.coordinateSystemSrid} " +
-                    "file=${geometryPlan.fileName}",
-                e)
-            null to TransformationError("coordinate-transformation-failed", geometryPlan.units)
-        } catch (e: Exception) {
-            logger.warn("Failed to convert plan to layout form: " +
-                    "id=${geometryPlan.id} " +
-                    "srid=${geometryPlan.units.coordinateSystemSrid} " +
-                    "file=${geometryPlan.fileName}",
-                e)
-            null to TransformationError("plan-transformation-failed", geometryPlan.units)
-        }
+        val planVersion = geometryDao.fetchPlanVersion(geometryPlanId)
+        val (layout, error) = planLayoutCache.getPlanLayout(planVersion, includeGeometryData)
+        return if (layout != null && includeGeometryData && pointListStepLength > 1) {
+            simplifyPlanLayout(layout, pointListStepLength) to error
+        } else layout to error
     }
 
     fun getGeometryElement(geometryElementId: IndexedId<GeometryElement>): GeometryElement {

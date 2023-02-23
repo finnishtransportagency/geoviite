@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -76,7 +75,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
             "getTackLayoutPlan",
             "planId" to geometryPlanId, "includeGeometryData" to includeGeometryData
         )
-        return geometryService.getTrackLayoutPlan(geometryPlanId, includeGeometryData).first
+        return geometryService.getLayoutPlan(geometryPlanId, includeGeometryData).first
     }
 
     @PreAuthorize(AUTH_ALL_READ)

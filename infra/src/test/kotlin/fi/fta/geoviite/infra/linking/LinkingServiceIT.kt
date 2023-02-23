@@ -51,7 +51,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
-        val (geometryLayoutPlan, transformationError) = geometryService.getTrackLayoutPlan(geometryPlanId.id)
+        val (geometryLayoutPlan, transformationError) = geometryService.getLayoutPlan(geometryPlanId.id)
         assertNull(transformationError)
         assertNotNull(geometryLayoutPlan)
 

@@ -5,14 +5,11 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
-import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
@@ -46,16 +43,6 @@ enum class TopologicalConnectivityType {
     END,
     START_AND_END;
 }
-
-data class GeometryPlanLayout(
-    val fileName: FileName,
-    val alignments: List<MapAlignment<GeometryAlignment>>,
-    val switches: List<TrackLayoutSwitch>,
-    val kmPosts: List<TrackLayoutKmPost>,
-    val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox }),
-    val planId: DomainId<GeometryPlan>,
-    val planDataType: DataType,
-)
 
 data class LocationTrackDuplicate(
     val id: IntId<LocationTrack>,

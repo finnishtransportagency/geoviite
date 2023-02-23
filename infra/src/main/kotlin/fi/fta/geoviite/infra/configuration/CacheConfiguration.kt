@@ -18,6 +18,7 @@ import java.time.Duration
 const val CACHE_GEOMETRY_PLAN = "geometry-plan"
 const val CACHE_GEOMETRY_PLAN_HEADER = "geometry-plan-header"
 const val CACHE_GEOMETRY_SWITCH = "geometry-switch"
+const val CACHE_GEOMETRY_PLAN_LAYOUT = "geometry-plan-layout"
 
 const val CACHE_LAYOUT_TRACK_NUMBER = "layout-track-number"
 const val CACHE_LAYOUT_ALIGNMENT = "layout-alignment"
@@ -68,6 +69,7 @@ class CacheConfiguration @Autowired constructor(
             manager.registerCustomCache(CACHE_GEOCODING_CONTEXTS, cache(500, layoutCacheDuration))
 
             manager.registerCustomCache(CACHE_GEOMETRY_PLAN, cache(100, planCacheDuration))
+            manager.registerCustomCache(CACHE_GEOMETRY_PLAN_LAYOUT, cache(100, planCacheDuration))
             manager.registerCustomCache(CACHE_GEOMETRY_PLAN_HEADER, cache(10000, planCacheDuration))
             manager.registerCustomCache(CACHE_GEOMETRY_SWITCH, cache(10000, planCacheDuration))
 

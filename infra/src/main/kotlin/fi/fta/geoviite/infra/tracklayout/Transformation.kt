@@ -6,7 +6,10 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import kotlin.math.max
 
@@ -22,7 +25,7 @@ fun toTrackLayout(
 ): GeometryPlanLayout {
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
-    val alignments: List<MapAlignment<GeometryAlignment>> = toTrackLayoutAlignments(
+    val alignments: List<MapAlignment<GeometryAlignment>> = toMapAlignments(
         geometryPlan.alignments,
         planToLayout,
         pointListStepLength,
@@ -90,7 +93,7 @@ fun toTrackLayoutSwitches(
         .mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }
         .associate { it }
 
-fun toTrackLayoutAlignments(
+fun toMapAlignments(
     geometryAlignments: List<GeometryAlignment>,
     planToLayout: Transformation,
     pointListStepLength: Int,
@@ -170,15 +173,15 @@ private fun toMapSegments(
 
             MapSegment(
                 id = deriveFromSourceId("AS", element.id),
-                points = segmentPoints,
+                geometry = SegmentGeometry(
+                    resolution = pointListStepLength,
+                    points = segmentPoints,
+                ),
                 sourceId = element.id,
                 sourceStart = 0.0,
-                resolution = pointListStepLength,
                 start = segmentStartLength,
                 source = GeometrySource.PLAN,
-                length = segmentPoints.last().m,
                 pointCount = segmentPoints.size,
-                boundingBox = boundingBoxAroundPointsOrNull(segmentPoints),
             )
         }
 

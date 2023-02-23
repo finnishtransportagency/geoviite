@@ -19,7 +19,6 @@ import {
     TrackMeter,
     TrackNumber,
 } from 'common/common-model';
-import { filterNotEmpty } from 'utils/array-utils';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
@@ -40,8 +39,6 @@ export type MapSegment = {
     pointCount: number;
     points: LayoutPoint[];
     sourceId: GeometryElementId | null;
-    sourceStart: number | null;
-    boundingBox: BoundingBox | null;
     resolution: number;
     start: number;
     length: number;
@@ -55,17 +52,12 @@ export function simplifySegments(
 ): MapSegment {
     const lengths = segments.map((s) => s.length);
     return {
-        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${
-            segments.length
-        }_${resolution}`,
+        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${segments.length
+            }_${resolution}`,
         resolution: Math.ceil(Math.max(...lengths)),
         pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
         points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
-        boundingBox: combineBoundingBoxes(
-            segments.map((s) => s.boundingBox).filter(filterNotEmpty),
-        ),
         sourceId: null,
-        sourceStart: null,
         start: segments[0].start,
         length: lengths.reduce((prev, current) => prev + current, 0),
     };

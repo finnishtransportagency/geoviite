@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
@@ -44,17 +45,15 @@ data class MapAlignment<T>(
 )
 
 data class MapSegment(
+    @JsonIgnore
+    override val geometry: SegmentGeometry,
     val pointCount: Int,
-    val points: List<LayoutPoint>,
-    val sourceId: DomainId<GeometryElement>?,
-    val sourceStart: Double?,
-    val boundingBox: BoundingBox?,
-    val resolution: Int,
-    val start: Double,
-    val length: Double,
-    val source: GeometrySource,
-    val id: DomainId<LayoutSegment>,
-)
+    override val sourceId: DomainId<GeometryElement>?,
+    override val sourceStart: Double?,
+    override val start: Double,
+    override val source: GeometrySource,
+    override val id: DomainId<LayoutSegment>,
+): ISegment, ISegmentGeometry by geometry
 
 fun toMapAlignment(
     trackNumber: TrackLayoutTrackNumber,
@@ -102,20 +101,17 @@ fun toMapAlignment(
 )
 
 fun toMapSegment(
-    segment: LayoutSegment,
-    resolution: Int = segment.resolution,
-    points: List<LayoutPoint> = segment.points,
+    segmentFields: ISegmentFields,
+    newGeometry: SegmentGeometry,
+    originalPointCount: Int,
 ) = MapSegment(
-    pointCount = segment.points.size,
-    points = points,
-    sourceId = segment.sourceId,
-    sourceStart = segment.sourceStart,
-    boundingBox = segment.boundingBox,
-    resolution = resolution,
-    start = segment.start,
-    length = segment.length,
-    id = segment.id,
-    source = segment.source,
+    geometry = newGeometry,
+    pointCount = originalPointCount,
+    sourceId = segmentFields.sourceId,
+    sourceStart = segmentFields.sourceStart,
+    start = segmentFields.start,
+    id = segmentFields.id,
+    source = segmentFields.source,
 )
 
 fun simplify(
@@ -144,40 +140,54 @@ fun simplify(
     bbox: BoundingBox,
 ) = toMapAlignment(locationTrack, alignment, segmentSimplification(bbox, resolution))
 
-private fun segmentSimplification(bbox: BoundingBox, maxResolution: Int) = {
-        alignment: LayoutAlignment -> simplifyAll(maxResolution, filterSegments(alignment, bbox))
+fun <T> simplify(
+    alignment: MapAlignment<T>,
+    resolution: Int,
+) = alignment.copy(segments = simplifyAll(resolution, alignment.segments))
+
+private fun segmentSimplification(bbox: BoundingBox, maxResolution: Int) = { alignment: LayoutAlignment ->
+    simplifyAll(maxResolution, filterSegments(alignment, bbox))
 }
+
 private fun segmentSimplification() = { alignment: LayoutAlignment ->
     simplifyToSegmentEnds(alignment.segments)
 }
 
 fun filterSegments(alignment: LayoutAlignment, bbox: BoundingBox) =
-    if (bbox.intersects(alignment.boundingBox)) alignment.segments.filter { s -> bbox.intersects(s.boundingBox) }
+    if (bbox.intersects(alignment.boundingBox)) filterSegments(alignment.segments, bbox)
     else listOf()
 
-fun simplifyToSegmentEnds(segments: List<LayoutSegment>) = segments.map { segment ->
-    toMapSegment(segment, Int.MAX_VALUE, listOf(segment.points.first(), segment.points.last()))
-}
+fun filterSegments(segments: List<ISegment>, bbox: BoundingBox) =
+    segments.filter { s -> bbox.intersects(s.boundingBox) }
+
+fun simplifyToSegmentEnds(segments: List<ISegment>) = segments.map { segment -> toMapSegment(
+    segmentFields = segment,
+    newGeometry = SegmentGeometry(Int.MAX_VALUE, listOf(segment.points.first(), segment.points.last())),
+    originalPointCount = segment.points.size,
+) }
 
 /**
  * Reduces ${TrackLayoutAlignment} geometry to given resolution.
  * Resolution 0 means dropping the geometry entirely.
  */
-fun simplifyAll(resolution: Int, segments: List<LayoutSegment>) =
+fun simplifyAll(resolution: Int, segments: List<ISegment>) =
     when {
         resolution < 0 -> throw IllegalArgumentException("Resolution should be 0 or higher")
         resolution == 0 || segments.isEmpty() -> listOf()
-        resolution == 1 || segments.any { s -> s.resolution >= resolution } -> segments.map(::toMapSegment)
+        resolution == 1 || segments.all { s -> s.resolution >= resolution } -> segments.map { segment ->
+            if (segment is MapSegment) segment
+            else toMapSegment(segment, segment.geometry, segment.points.size)
+        }
         else -> simplify(resolution, segments)
     }
 
 
-fun simplify(maxResolution: Int, segments: List<LayoutSegment>): List<MapSegment> {
+fun simplify(maxResolution: Int, segments: List<ISegment>): List<MapSegment> {
     return segments.map { segment ->
         val divisor: Int = if (maxResolution < segment.resolution) 1 else maxResolution / segment.resolution
         val points = segment.points.filterIndexed { index, _ ->
             index == segment.points.lastIndex || index % divisor == 0
         }
-        toMapSegment(segment, segment.resolution * divisor, points)
+        toMapSegment(segment, SegmentGeometry(segment.resolution * divisor, points), segment.points.size)
     }
 }
