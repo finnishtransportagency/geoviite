@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { TrackMeter } from 'common/common-model';
+import { CoordinateSystem, TrackMeter } from 'common/common-model';
+import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
+import { GeometryPlanNameLink } from 'data-products/element-list/geometry-plan-name-link';
+import { GeometryPlanId } from 'geometry/geometry-model';
+import styles from './element-list-view.scss';
 
 export type ElementTableItemProps = {
     id: string;
@@ -24,8 +28,8 @@ export type ElementTableItemProps = {
     angleEnd: number;
     plan: string;
     source: string;
-    coordinateSystem: string;
-
+    coordinateSystem: CoordinateSystem | undefined;
+    planId: GeometryPlanId;
     showLocationTrackName: boolean;
 };
 
@@ -50,6 +54,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     plan,
     source,
     coordinateSystem,
+    planId,
     showLocationTrackName,
 }) => {
     return (
@@ -61,19 +66,47 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{type}</td>
                 <td>{trackAddressStart && formatTrackMeter(trackAddressStart)}</td>
                 <td>{trackAddressEnd && formatTrackMeter(trackAddressEnd)}</td>
-                <td>{coordinateSystem}</td>
-                <td>{roundToPrecision(locationStartE, Precision.TM35FIN)}</td>
-                <td>{roundToPrecision(locationStartN, Precision.TM35FIN)}</td>
-                <td>{roundToPrecision(locationEndE, Precision.TM35FIN)}</td>
-                <td>{roundToPrecision(locationEndN, Precision.TM35FIN)}</td>
-                <td>{roundToPrecision(length, Precision.measurementMeterDistance)}</td>
-                <td>{curveRadiusStart}</td>
-                <td>{curveRadiusEnd}</td>
-                <td>{cantStart && roundToPrecision(cantStart, Precision.cantMillimeters)}</td>
-                <td>{cantEnd && roundToPrecision(cantEnd, Precision.cantMillimeters)}</td>
-                <td>{angleStart}</td>
-                <td>{angleEnd}</td>
-                <td>{plan}</td>
+                <td>
+                    <CoordinateSystemView coordinateSystem={coordinateSystem} />
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {roundToPrecision(locationStartE, Precision.TM35FIN)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {roundToPrecision(locationStartN, Precision.TM35FIN)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {roundToPrecision(locationEndE, Precision.TM35FIN)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {roundToPrecision(locationEndN, Precision.TM35FIN)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {roundToPrecision(length, Precision.measurementMeterDistance)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {curveRadiusStart != undefined &&
+                        roundToPrecision(curveRadiusStart, Precision.radiusMeters)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {curveRadiusEnd != undefined &&
+                        roundToPrecision(curveRadiusEnd, Precision.radiusMeters)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {cantStart != null && roundToPrecision(cantStart, Precision.cantMillimeters)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {cantEnd != null && roundToPrecision(cantEnd, Precision.cantMillimeters)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {roundToPrecision(angleStart, Precision.angle6Decimals)}
+                </td>
+                <td className={styles['element-list-view__column--number']}>
+                    {roundToPrecision(angleEnd, Precision.angle6Decimals)}
+                </td>
+                <td>
+                    <GeometryPlanNameLink planId={planId} planName={plan} />
+                </td>
                 <td>{source}</td>
             </tr>
         </React.Fragment>

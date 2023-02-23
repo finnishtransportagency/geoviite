@@ -100,6 +100,9 @@ const ContinuousGeometrySearch = ({
 
     return (
         <React.Fragment>
+            <p className={styles['element-list__geometry-search-legend']}>
+                {t('data-products.element-list.location-track-legend')}
+            </p>
             <div className={styles['element-list__geometry-search']}>
                 <FieldLayout
                     label={t('data-products.element-list.search.location-track')}

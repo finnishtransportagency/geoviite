@@ -46,6 +46,7 @@ import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/l
 import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
+import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -359,6 +360,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     viewport={viewport}
                 />
             }
+            {locationTrack.draftType !== 'NEW_DRAFT' && (
+                <AssetValidationInfoboxContainer
+                    id={locationTrack.id}
+                    type={'LOCATION_TRACK'}
+                    publishType={publishType}
+                    changeTime={locationTrackChangeTime}
+                />
+            )}
             {changeTimes && (
                 <Infobox
                     title={t('tool-panel.location-track.change-info-heading')}

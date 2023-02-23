@@ -35,7 +35,7 @@ import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infr
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import { ChangeTimes } from 'track-layout/track-layout-store';
-import CoordinateSystem from 'geoviite-design-lib/coordinate-system/coordinate-system';
+import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { filterNotEmpty } from 'utils/array-utils';
 import { InfraModelTextField } from 'infra-model/view/form/infra-model-form-text-field';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
@@ -113,6 +113,17 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
+
+    const planSourceOptions = [
+        {
+            name: t('enum.plan-source.GEOMETRIAPALVELU'),
+            value: 'GEOMETRIAPALVELU' as PlanSource,
+        },
+        {
+            name: t('enum.plan-source.PAIKANNUSPALVELU'),
+            value: 'PAIKANNUSPALVELU' as PlanSource,
+        },
+    ];
 
     function changeInExtraParametersField<
         TKey extends keyof ExtraInfraModelParameters,
@@ -409,7 +420,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         onClose={() => setFieldInEdit(undefined)}>
                         {fieldInEdit !== 'coordinateSystem' ? (
                             coordinateSystem ? (
-                                <CoordinateSystem coordinateSystem={coordinateSystem} />
+                                <CoordinateSystemView coordinateSystem={coordinateSystem} />
                             ) : (
                                 t('im-form.information-missing')
                             )
@@ -495,20 +506,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         placeholder={t('im-form.coordinate-system-dropdown')}
                                         value={planSource}
-                                        options={[
-                                            {
-                                                name: 'Geometriapalvelu',
-                                                value: 'GEOMETRIAPALVELU' as PlanSource,
-                                            },
-                                            {
-                                                name: 'Paikannuspalvelu',
-                                                value: 'PAIKANNUSPALVELU' as PlanSource,
-                                            },
-                                        ]}
-                                        onChange={(srid) => {
-                                            setPlanSource(srid);
+                                        options={planSourceOptions}
+                                        onChange={(planSource) => {
+                                            setPlanSource(planSource);
                                             changeInOverrideParametersField(
-                                                srid as PlanSource,
+                                                planSource as PlanSource,
                                                 'source',
                                             );
                                         }}

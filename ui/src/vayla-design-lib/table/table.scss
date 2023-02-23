@@ -42,7 +42,6 @@ $table-cell-padding: 10px 16px;
             @include typography-body;
             padding: $table-cell-padding;
             background: $color-white-default;
-            text-align: left;
             vertical-align: top;
             border-bottom: 1px solid $color-white-dark;
 

@@ -19,7 +19,7 @@ import {
     useReferenceLineStartAndEnd,
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
-import { PublishType } from 'common/common-model';
+import { PublishType, TimeStamp } from 'common/common-model';
 import {
     LinkingAlignment,
     LinkingState,
@@ -39,6 +39,7 @@ import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/
 import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
+import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -50,6 +51,7 @@ type TrackNumberInfoboxProps = {
     onStartReferenceLineGeometryChange: (alignment: MapAlignment) => void;
     onEndReferenceLineGeometryChange: () => void;
     viewport: MapViewport;
+    referenceLineChangeTime: TimeStamp;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -61,6 +63,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onStartReferenceLineGeometryChange,
     onEndReferenceLineGeometryChange,
     viewport,
+    referenceLineChangeTime,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
@@ -249,6 +252,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     referenceLineId={referenceLine.id}
                     publishType={publishType}
                     viewport={viewport}
+                />
+            )}
+            {trackNumber.draftType !== 'NEW_DRAFT' && (
+                <AssetValidationInfoboxContainer
+                    id={trackNumber.id}
+                    type={'TRACK_NUMBER'}
+                    publishType={publishType}
+                    changeTime={referenceLineChangeTime}
                 />
             )}
             {changeTimes && (

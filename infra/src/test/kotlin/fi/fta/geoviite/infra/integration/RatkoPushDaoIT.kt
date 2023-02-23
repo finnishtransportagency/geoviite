@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.linking.PublicationDao
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
@@ -187,7 +187,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     fun insertAndPublishLocationTrack() = locationTrackAndAlignment(trackNumberId).let { (track, alignment) ->
         val draftVersion = locationTrackService.saveDraft(track, alignment)
-        locationTrackService.publish(PublicationVersion(draftVersion.id, draftVersion.rowVersion))
+        locationTrackService.publish(ValidationVersion(draftVersion.id, draftVersion.rowVersion))
     }
 
     fun createPublication(

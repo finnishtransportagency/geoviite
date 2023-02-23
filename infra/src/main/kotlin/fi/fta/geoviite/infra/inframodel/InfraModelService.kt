@@ -21,7 +21,6 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 
-
 @Service
 class InfraModelService @Autowired constructor(
     private val geometryService: GeometryService,
@@ -39,11 +38,14 @@ class InfraModelService @Autowired constructor(
         overrideParameters: OverrideParameters?,
         extraInfoParameters: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
-        logger.serviceCall("saveInfraModel", "file.originalFilename" to file.originalFilename)
+        logger.serviceCall(
+            "saveInfraModel",
+            "file.originalFilename" to file.originalFilename,
+            "overrideParameters" to overrideParameters,
+            "extraInfoParameters" to extraInfoParameters,
+        )
 
-        val (parsedGeometryPlan, imFile) = parseInfraModel(file, overrideParameters?.encoding)
-        val geometryPlan =
-        overrideGeometryPlanWithParameters(parsedGeometryPlan, overrideParameters, extraInfoParameters)
+        val (geometryPlan, imFile) = parseInfraModel(file, overrideParameters, extraInfoParameters)
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
@@ -60,37 +62,41 @@ class InfraModelService @Autowired constructor(
         return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
 
-    fun parseInfraModel(file: MultipartFile, encodingOverride: String? = null): Pair<GeometryPlan, InfraModelFile> {
+    fun parseInfraModel(
+        file: MultipartFile,
+        overrideParameters: OverrideParameters? = null,
+        extraInfoParameters: ExtraInfoParameters? = null,
+    ): Pair<GeometryPlan, InfraModelFile> {
         logger.serviceCall(
-            "validateInputFileAndParseGeometryPlan",
-            "file.originalFilename" to file.originalFilename
+            "parseInfraModel",
+            "file.originalFilename" to file.originalFilename,
+            "overrideParameters" to overrideParameters,
+            "extraInfoParameters" to extraInfoParameters,
         )
         checkForEmptyFileAndIncorrectFileType(file, MediaType.APPLICATION_XML, MediaType.TEXT_XML)
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
         val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
 
-        return parseGeometryPlan(
+        val (parsed, imFile) = parseGeometryPlan(
             PlanSource.GEOMETRIAPALVELU,
             file,
-            encodingOverride?.let(::findXmlCharset),
+            overrideParameters?.encoding?.charset,
             geographyService.getCoordinateSystemNameToSridMapping(),
             switchStructuresByType,
             switchLibraryService.getInframodelAliases(),
             trackNumberIdsByNumber,
         )
+        return overrideGeometryPlanWithParameters(parsed, overrideParameters, extraInfoParameters) to imFile
     }
 
     fun validateInfraModelFile(
         file: MultipartFile,
         overrideParameters: OverrideParameters?
     ): ValidationResponse {
-        logger.serviceCall(
-            "validateInfraModelFile",
-            "overrideParameters" to overrideParameters,
-        )
+        logger.serviceCall("validateInfraModelFile", "overrideParameters" to overrideParameters)
 
-        val parsedGeometryPlan = try {
-            parseInfraModel(file, overrideParameters?.encoding).first
+        val geometryPlan = try {
+            parseInfraModel(file, overrideParameters).first
         } catch (e: Exception) {
             logger.warn("Failed to parse InfraModel", e)
             return ValidationResponse(
@@ -104,7 +110,7 @@ class InfraModelService @Autowired constructor(
             )
         }
 
-        return mapToTrackLayoutPlan(parsedGeometryPlan, overrideParameters)
+        return validateAndTransformToLayoutPlan(geometryPlan)
     }
 
     fun validateGeometryPlan(
@@ -118,22 +124,18 @@ class InfraModelService @Autowired constructor(
         )
 
         val geometryPlan = geometryService.getGeometryPlan(planId)
-
-        return mapToTrackLayoutPlan(geometryPlan, overrideParameters)
+        val planWithParameters = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters)
+        return validateAndTransformToLayoutPlan(planWithParameters)
     }
 
-    private fun mapToTrackLayoutPlan(
-        plan: GeometryPlan,
-        overrideParameters: OverrideParameters?,
-    ): ValidationResponse {
-        val planWithParameters = overrideGeometryPlanWithParameters(plan, overrideParameters, null)
+    private fun validateAndTransformToLayoutPlan(plan: GeometryPlan): ValidationResponse {
         val (planLayout: GeometryPlanLayout?, layoutCreationError: TransformationError?) = geometryService.getTrackLayoutPlan(
-            geometryPlan = planWithParameters,
+            geometryPlan = plan,
             includeGeometryData = true,
             pointListStepLength = 10,
         )
-        val validationErrors = validateGeometryPlanContent(planWithParameters) + listOfNotNull(layoutCreationError)
-        return ValidationResponse(validationErrors, planWithParameters, planLayout, plan.source)
+        val validationErrors = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
+        return ValidationResponse(validationErrors, plan, planLayout, plan.source)
     }
 
     fun updateInfraModel(
@@ -144,7 +146,7 @@ class InfraModelService @Autowired constructor(
         logger.serviceCall(
             "updateInfraModel",
             "overrideParameters" to overrideParameters,
-            "extraInfoParameters" to extraInfoParameters
+            "extraInfoParameters" to extraInfoParameters,
         )
 
         val geometryPlan = geometryService.getGeometryPlan(planId)
@@ -155,8 +157,8 @@ class InfraModelService @Autowired constructor(
 
     private fun overrideGeometryPlanWithParameters(
         plan: GeometryPlan,
-        overrideParameters: OverrideParameters?,
-        extraInfoParameters: ExtraInfoParameters?,
+        overrideParameters: OverrideParameters? = null,
+        extraInfoParameters: ExtraInfoParameters? = null,
     ): GeometryPlan {
         val planProject =
             if (overrideParameters?.projectId is IntId<Project>) geometryDao.getProject(overrideParameters.projectId)

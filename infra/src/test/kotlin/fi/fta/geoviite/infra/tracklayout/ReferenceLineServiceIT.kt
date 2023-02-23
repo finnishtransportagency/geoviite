@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.*
@@ -214,7 +214,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     private fun createAndPublishTrackNumber() = createTrackNumber().let { id ->
         val version = trackNumberDao.fetchVersionOrThrow(id, DRAFT)
-        trackNumberService.publish(PublicationVersion(id, version)).id
+        trackNumberService.publish(ValidationVersion(id, version)).id
     }
 
     private fun createTrackNumber() = trackNumberService.insert(

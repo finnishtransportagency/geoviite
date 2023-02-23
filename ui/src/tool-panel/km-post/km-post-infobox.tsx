@@ -14,6 +14,7 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getKmPost } from 'track-layout/layout-km-post-api';
 import { useLoader } from 'utils/react-utils';
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
+import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 
 type KmPostInfoboxProps = {
     publishType: PublishType;
@@ -115,6 +116,14 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
+            {kmPost.draftType !== 'NEW_DRAFT' && (
+                <AssetValidationInfoboxContainer
+                    id={kmPost.id}
+                    type={'KM_POST'}
+                    publishType={publishType}
+                    changeTime={kmPostChangeTime}
+                />
+            )}
             <Infobox title={t('tool-panel.km-post.layout.change-info-heading')}>
                 <InfoboxContent>
                     {kmPost?.draftType === 'NEW_DRAFT' && (

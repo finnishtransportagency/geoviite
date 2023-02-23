@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import java.time.Instant
@@ -18,7 +18,7 @@ fun moveLocationTrackGeometryPointsAndUpdate(
         locationTrack,
         moveAlignmentPoints(alignment, moveFunc)
     )
-    locationTrackService.publish(PublicationVersion(id, version))
+    locationTrackService.publish(ValidationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
 
@@ -38,7 +38,7 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
         ),
         alignment
     )
-    locationTrackService.publish(PublicationVersion(id, version))
+    locationTrackService.publish(ValidationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
 
@@ -54,7 +54,7 @@ fun removeTopologySwitchesFromLocationTrackAndUpdate(
         ),
         alignment
     )
-    locationTrackService.publish(PublicationVersion(id, version))
+    locationTrackService.publish(ValidationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
 
@@ -74,7 +74,7 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
         ),
         alignment
     )
-    locationTrackService.publish(PublicationVersion(id, version))
+    locationTrackService.publish(ValidationVersion(id, version))
     return locationTrackService.getChangeTime()
 }
 
@@ -89,7 +89,7 @@ fun moveReferenceLineGeometryPointsAndUpdate(
         referenceLine,
         moveAlignmentPoints(alignment, moveFunc)
     )
-    referenceLineService.publish(PublicationVersion(id, version))
+    referenceLineService.publish(ValidationVersion(id, version))
     return referenceLineService.getChangeTime()
 }
 
@@ -119,7 +119,7 @@ fun moveSwitchPoints(
     switchService: LayoutSwitchService,
 ): Pair<TrackLayoutSwitch, Instant> {
     val (id, draftVersion) = switchService.saveDraft(moveSwitchPoints(switch, moveFunc))
-    switchService.publish(PublicationVersion(id, draftVersion))
+    switchService.publish(ValidationVersion(id, draftVersion))
     val updatedSwitch = switchService.getOrThrow(PublishType.OFFICIAL, id)
     return updatedSwitch to switchService.getChangeTime()
 }

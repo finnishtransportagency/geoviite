@@ -4,7 +4,9 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.linking.PublicationService
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.ValidatedAsset
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/track-layout/switches")
 class LayoutSwitchController(
     private val switchService: LayoutSwitchService,
+    private val publicationService: PublicationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -85,6 +88,16 @@ class LayoutSwitchController(
     ): List<TrackLayoutSwitchJointConnection> {
         logger.apiCall("getSwitchJointConnections", "switchId" to id, "publishType" to publishType)
         return switchService.getSwitchJointConnections(publishType, id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/{id}/validation")
+    fun validateSwitch(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<TrackLayoutSwitch>,
+    ): ValidatedAsset<TrackLayoutSwitch> {
+        logger.apiCall("validateSwitch", "publishType" to publishType, "id" to id)
+        return publicationService.validateSwitch(id, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

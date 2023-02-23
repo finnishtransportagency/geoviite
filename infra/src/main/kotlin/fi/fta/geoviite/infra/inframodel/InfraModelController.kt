@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.XmlCharset
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -47,7 +48,7 @@ data class OverrideParameters(
     val authorId: IntId<Author>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val createdDate: Instant?,
-    val encoding: String?,
+    val encoding: XmlCharset?,
     val source: PlanSource?,
 )
 
@@ -61,7 +62,7 @@ class InfraModelController @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_ALL_WRITE)
-    @PostMapping()
+    @PostMapping
     fun saveInfraModel(
         @RequestPart(value = "file") file: MultipartFile,
         @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
@@ -71,7 +72,7 @@ class InfraModelController @Autowired constructor(
             "saveInfraModel",
             "file.originalFilename" to file.originalFilename,
             "overrideParameters" to overrideParameters,
-            "extraInfoParameters" to extraInfoParameters
+            "extraInfoParameters" to extraInfoParameters,
         )
         return InsertResponse("New plan inserted successfully",
             infraModelService.saveInfraModel(file, overrideParameters, extraInfoParameters).id)
@@ -86,7 +87,7 @@ class InfraModelController @Autowired constructor(
         logger.apiCall(
             "validateFile",
             "file.originalFilename" to file.originalFilename,
-            "overrideParameters" to overrideParameters
+            "overrideParameters" to overrideParameters,
         )
         return infraModelService.validateInfraModelFile(file, overrideParameters)
     }
@@ -100,7 +101,7 @@ class InfraModelController @Autowired constructor(
         logger.apiCall(
             "validateGeometryPlan",
             "planId" to planId,
-            "overrideParameters" to overrideParameters
+            "overrideParameters" to overrideParameters,
         )
 
         return infraModelService.validateGeometryPlan(planId, overrideParameters)
@@ -117,7 +118,8 @@ class InfraModelController @Autowired constructor(
         logger.apiCall(
             "updateInfraModel",
             "overrideParameters" to overrideParameters,
-            "extraInfoParameters" to extraInfoParameters)
+            "extraInfoParameters" to extraInfoParameters,
+        )
 
         return infraModelService.updateInfraModel(planId, overrideParameters, extraInfoParameters)
     }
@@ -129,7 +131,7 @@ class InfraModelController @Autowired constructor(
         val infraModelFileAndSource = geometryService.getPlanFile(id)
         return toFileDownloadResponse(
             fileNameWithSuffix(infraModelFileAndSource.name),
-            infraModelFileAndSource.content.toByteArray()
+            infraModelFileAndSource.content.toByteArray(),
         )
     }
 }

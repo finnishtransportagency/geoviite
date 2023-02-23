@@ -9,6 +9,7 @@ export enum Precision {
     alignmentLengthMeters,
     measurementMeterDistance,
     measurementKmDistance,
+    angle6Decimals,
 }
 
 export function roundToPrecision(n: number, precision: Precision): string {
@@ -33,5 +34,7 @@ export function roundToPrecision(n: number, precision: Precision): string {
             return n.toFixed(1);
         case Precision.measurementMeterDistance:
             return n.toFixed(3);
+        case Precision.angle6Decimals:
+            return n.toFixed(6);
     }
 }

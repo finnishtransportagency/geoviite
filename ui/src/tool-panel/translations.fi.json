@@ -247,6 +247,17 @@
             "bounding-box-geometries": "Vain kartalle osuvat geometriat",
             "no-plan": "Ei suunnitelmaa",
             "geocoding-failed": "Osoitetta ei saatu laskettua"
+        },
+        "validation": {
+            "location-track-prefix": "Raiteen",
+            "track-number-prefix": "Ratanumeron",
+            "reference-line-prefix": "Pituusmittauslinjan",
+            "switch-prefix": "Vaihteen",
+            "km-post-prefix": "Kilometripylvään",
+            "integrity": "eheys",
+            "all-ok": "Kaikki OK",
+            "errors": "Virheet",
+            "warnings": "Varoitukset"
         }
     }
 }

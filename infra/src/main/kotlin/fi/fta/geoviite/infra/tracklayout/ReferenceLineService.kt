@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import org.springframework.stereotype.Service
@@ -90,12 +90,12 @@ class ReferenceLineService(
         else line.alignmentVersion
 
     @Transactional
-    override fun publish(version: PublicationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
+    override fun publish(version: ValidationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
         logger.serviceCall("publish", "version" to version)
         val officialVersion = dao.fetchOfficialVersion(version.officialId)
-        val oldDraft = dao.fetch(version.draftVersion)
+        val oldDraft = dao.fetch(version.validatedAssetVersion)
         val oldOfficial = officialVersion?.let(dao::fetch)
-        val publishedVersion = publishInternal(VersionPair(officialVersion, version.draftVersion))
+        val publishedVersion = publishInternal(VersionPair(officialVersion, version.validatedAssetVersion))
         if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
             // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
             oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)

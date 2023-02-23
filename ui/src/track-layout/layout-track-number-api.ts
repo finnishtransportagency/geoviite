@@ -21,6 +21,7 @@ import {
 } from 'common/change-time-api';
 import { LocationTrackSaveError } from 'linking/linking-model';
 import { Result } from 'neverthrow';
+import { ValidatedAsset } from 'publication/publication-model';
 
 const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
 
@@ -77,4 +78,13 @@ export async function deleteTrackNumber(
         // Here it is possible to return more accurate validation errors
         validationErrors: [],
     }));
+}
+
+export async function getTrackNumberValidation(
+    publishType: PublishType,
+    id: LayoutTrackNumberId,
+): Promise<ValidatedAsset> {
+    return getThrowError<ValidatedAsset>(
+        `${layoutUri('track-numbers', publishType, id)}/validation`,
+    );
 }

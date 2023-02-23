@@ -31,6 +31,8 @@ import {
 } from 'common/change-time-api';
 import { MapTile } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { ValidatedAsset } from 'publication/publication-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
@@ -44,15 +46,16 @@ export type AlignmentSectionByPlan = {
     id: string;
 };
 
+const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${publishType}`;
+
 export async function getLocationTrack(
     id: LocationTrackId,
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): Promise<LayoutLocationTrack | null> {
-    const cacheKey = `${id}_${publishType}`;
     return locationTrackCache.get(
         changeTime || getChangeTimes().layoutLocationTrack,
-        cacheKey,
+        cacheKey(id, publishType),
         () => getIgnoreError<LayoutLocationTrack>(layoutUri('location-tracks', publishType, id)),
     );
 }
@@ -148,14 +151,23 @@ export const deleteLocationTrack = async (
     }));
 };
 
-// There's no front-end caching for mass fetches yet, so it's preferable to use separate single fetches if you
-// know that the data is most likely in cache. Caching will be implemented in GVT-1428
-export async function getLocationTracks(ids: LocationTrackId[], publishType: PublishType) {
-    return ids.length > 0
-        ? getThrowError<LayoutLocationTrack[]>(
-              `${layoutUri('location-tracks', publishType)}?ids=${ids}`,
-          )
-        : Promise.resolve([]);
+export async function getLocationTracks(
+    ids: LocationTrackId[],
+    publishType: PublishType,
+): Promise<LayoutLocationTrack[]> {
+    return locationTrackCache
+        .getMany(
+            ids,
+            (id) => cacheKey(id, publishType),
+            (fetchIds) =>
+                getThrowError<LayoutLocationTrack[]>(
+              `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
+                ).then((tracks) => {
+                    const trackMap = indexIntoMap(tracks);
+                    return (id) => trackMap.get(id) ?? null;
+          }),
+        )
+        .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
 export async function getNonLinkedLocationTracks(): Promise<LayoutLocationTrack[]> {
@@ -203,3 +215,12 @@ export const getLocationTrackSectionsByPlan = async (
         `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
     );
 };
+
+export async function getLocationTrackValidation(
+    publishType: PublishType,
+    id: LocationTrackId,
+): Promise<ValidatedAsset> {
+    return getThrowError<ValidatedAsset>(
+        `${layoutUri('location-tracks', publishType, id)}/validation`,
+    );
+}

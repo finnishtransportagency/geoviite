@@ -98,7 +98,7 @@ module.exports = (env) => {
                 },
                 {
                     test: /logo\.svg$/,
-                    type: 'asset/inline',
+                    type: 'asset/resource',
                 },
                 {
                     test: /\.(sass|scss)$/i,

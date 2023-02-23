@@ -2,10 +2,10 @@ import React from 'react';
 import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
 
 type CoordinateSystemProps = {
-    coordinateSystem: CoordinateSystemModel | null;
+    coordinateSystem: CoordinateSystemModel | undefined;
 };
 
-const CoordinateSystem: React.FC<CoordinateSystemProps> = ({
+const CoordinateSystemView: React.FC<CoordinateSystemProps> = ({
     coordinateSystem,
 }: CoordinateSystemProps) => {
     return (
@@ -15,4 +15,4 @@ const CoordinateSystem: React.FC<CoordinateSystemProps> = ({
     );
 };
 
-export default CoordinateSystem;
+export default CoordinateSystemView;
