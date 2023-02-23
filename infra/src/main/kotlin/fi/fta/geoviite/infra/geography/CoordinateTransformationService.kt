@@ -32,7 +32,7 @@ data class Transformation private constructor(
     }
 
     init {
-        require(triangulationNetwork != null || !isKKJ(sourceSrid) || targetSrid != LAYOUT_SRID) {
+        require((triangulationNetwork != null && !triangulationNetwork.isEmpty) || !isKKJ(sourceSrid) || targetSrid != LAYOUT_SRID) {
             "Trying to convert from KKJx (${sourceSrid}) to ${targetSrid} without triangulation network"
         }
     }
