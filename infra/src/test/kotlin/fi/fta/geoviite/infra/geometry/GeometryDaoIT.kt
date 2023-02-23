@@ -4,8 +4,8 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
-import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment

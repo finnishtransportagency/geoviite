@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
@@ -53,7 +53,7 @@ class PublicationController @Autowired constructor(
     fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
         logger.apiCall("getCalculatedChanges", "request" to request)
         return calculatedChangesService.getCalculatedChangesInDraft(
-            publicationService.getPublicationVersions(request)
+            publicationService.getValidationVersions(request)
         )
     }
 
@@ -82,7 +82,7 @@ class PublicationController @Autowired constructor(
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.updateExternalId(request.content)
-            val versions = publicationService.getPublicationVersions(request.content)
+            val versions = publicationService.getValidationVersions(request.content)
             publicationService.validatePublishRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
             publicationService.publishChanges(versions, calculatedChanges, request.message)

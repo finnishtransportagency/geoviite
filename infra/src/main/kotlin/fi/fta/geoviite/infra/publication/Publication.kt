@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
@@ -135,7 +135,7 @@ data class PublishCandidates(
         kmPosts.map { candidate -> candidate.id },
     )
 
-    fun getPublicationVersions() = ValidationVersions(
+    fun getValidationVersions() = ValidationVersions(
         trackNumbers = trackNumbers.map(TrackNumberPublishCandidate::getPublicationVersion),
         referenceLines = referenceLines.map(ReferenceLinePublishCandidate::getPublicationVersion),
         locationTracks = locationTracks.map(LocationTrackPublishCandidate::getPublicationVersion),

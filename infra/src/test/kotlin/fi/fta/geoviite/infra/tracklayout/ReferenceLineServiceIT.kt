@@ -7,8 +7,8 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

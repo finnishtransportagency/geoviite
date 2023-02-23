@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import publicationVersions
+import validationVersions
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -83,13 +83,13 @@ class GeocodingDaoIT @Autowired constructor(
         // Publishing nothing is the same as regular official
         assertEquals(
             officialKey,
-            geocodingDao.getGeocodingContextCacheKey(tnId, publicationVersions()),
+            geocodingDao.getGeocodingContextCacheKey(tnId, validationVersions()),
         )
 
         // Publishing everything is the same as regular draft
         assertEquals(
             draftKey,
-            geocodingDao.getGeocodingContextCacheKey(tnId, publicationVersions(
+            geocodingDao.getGeocodingContextCacheKey(tnId, validationVersions(
                 trackNumbers = listOf(tnId to tnDraftVersion),
                 referenceLines = listOf(rlOfficialVersion.id to rlDraftVersion),
                 kmPosts = listOf(
@@ -102,19 +102,19 @@ class GeocodingDaoIT @Autowired constructor(
         // Publishing partial combines official with requested draft parts
         assertEquals(
             officialKey.copy(trackNumberVersion = tnDraftVersion),
-            geocodingDao.getGeocodingContextCacheKey(tnId, publicationVersions(
+            geocodingDao.getGeocodingContextCacheKey(tnId, validationVersions(
                 trackNumbers = listOf(tnId to tnDraftVersion),
             )),
         )
         assertEquals(
             officialKey.copy(referenceLineVersion = rlDraftVersion),
-            geocodingDao.getGeocodingContextCacheKey(tnId, publicationVersions(
+            geocodingDao.getGeocodingContextCacheKey(tnId, validationVersions(
                 referenceLines = listOf(rlOfficialVersion.id to rlDraftVersion),
             )),
         )
         assertEquals(
             officialKey.copy(kmPostVersions = listOf(kmPostOneDraftVersion, kmPostTwoOnlyDraftVersion, kmPostThreeOnlyOfficialVersion)),
-            geocodingDao.getGeocodingContextCacheKey(tnId, publicationVersions(
+            geocodingDao.getGeocodingContextCacheKey(tnId, validationVersions(
                 kmPosts = listOf(
                     kmPostOneOfficialVersion.id to kmPostOneDraftVersion,
                     kmPostTwoOnlyDraftVersion.id to kmPostTwoOnlyDraftVersion,
@@ -123,7 +123,7 @@ class GeocodingDaoIT @Autowired constructor(
         )
         assertEquals(
             officialKey.copy(kmPostVersions = listOf(kmPostOneDraftVersion, kmPostThreeOnlyOfficialVersion)),
-            geocodingDao.getGeocodingContextCacheKey(tnId, publicationVersions(
+            geocodingDao.getGeocodingContextCacheKey(tnId, validationVersions(
                 kmPosts = listOf(kmPostOneOfficialVersion.id to kmPostOneDraftVersion),
             )),
         )

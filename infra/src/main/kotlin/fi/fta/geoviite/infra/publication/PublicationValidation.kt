@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -8,13 +8,13 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
-import fi.fta.geoviite.infra.linking.PublishValidationErrorType.ERROR
-import fi.fta.geoviite.infra.linking.PublishValidationErrorType.WARNING
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.PublishValidationErrorType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import kotlin.math.PI

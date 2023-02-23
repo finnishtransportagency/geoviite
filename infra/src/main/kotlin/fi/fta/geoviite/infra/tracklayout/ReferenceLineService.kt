@@ -9,9 +9,9 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

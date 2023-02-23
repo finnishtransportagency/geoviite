@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
@@ -10,11 +10,8 @@ import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -93,7 +90,7 @@ class PublicationServiceIT @Autowired constructor(
             kmPosts.map { it.id }
         )
 
-        val publicationVersions = publicationService.getPublicationVersions(publishRequestIds)
+        val publicationVersions = publicationService.getValidationVersions(publishRequestIds)
         val draftCalculatedChanges = getCalculatedChangesInRequest(publicationVersions)
         val publishResult = publicationService.publishChanges(publicationVersions, draftCalculatedChanges, "Test")
         val afterInsert = getDbTime()
@@ -176,7 +173,7 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(draftId, referenceLineService.getDraft(draftId).id)
 
         val publishRequest = publishRequest(referenceLines = listOf(draftId))
-        val versions = publicationService.getPublicationVersions(publishRequest)
+        val versions = publicationService.getValidationVersions(publishRequest)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
         val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges, "Test")
         assertNotNull(publishResult.publishId)
@@ -600,7 +597,7 @@ class PublicationServiceIT @Autowired constructor(
         val trackNumber1Id = insertDraftTrackNumber()
         val trackNumber2Id = insertDraftTrackNumber()
         val publish1Result = publishRequest(trackNumbers = listOf(trackNumber1Id, trackNumber2Id)).let { r ->
-            val versions = publicationService.getPublicationVersions(r)
+            val versions = publicationService.getValidationVersions(r)
             publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "")
         }
 
@@ -615,7 +612,7 @@ class PublicationServiceIT @Autowired constructor(
 
         trackNumberService.saveDraft(trackNumber1.copy(number = TrackNumber(newTrackNumber1TrackNumber)))
         val publish2Result = publishRequest(trackNumbers = listOf(trackNumber1Id)).let { r ->
-            val versions = publicationService.getPublicationVersions(r)
+            val versions = publicationService.getValidationVersions(r)
             publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "")
         }
 
@@ -673,7 +670,7 @@ class PublicationServiceIT @Autowired constructor(
         calculatedChangesService.getCalculatedChangesInDraft(versions)
 
     private fun publishAndVerify(request: PublishRequestIds): PublishResult {
-        val versions = publicationService.getPublicationVersions(request)
+        val versions = publicationService.getValidationVersions(request)
         verifyVersions(request, versions)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
         val publishResult = publicationService.publishChanges(versions, draftCalculatedChanges, "Test")

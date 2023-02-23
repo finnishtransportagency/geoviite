@@ -8,9 +8,9 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.ValidationVersions
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
@@ -355,18 +355,18 @@ class CalculatedChangesService(
         return switchChanges to locationTrackGeometryChanges
     }
 
-    fun createChangeContext(publicationVersions: ValidationVersions) = ChangeContext(
+    fun createChangeContext(versions: ValidationVersions) = ChangeContext(
         geocodingService = geocodingService,
-        trackNumbers = createTypedContext(trackNumberDao, publicationVersions.trackNumbers),
-        referenceLines = createTypedContext(referenceLineDao, publicationVersions.referenceLines),
-        kmPosts = createTypedContext(kmPostDao, publicationVersions.kmPosts),
-        locationTracks = createTypedContext(locationTrackDao, publicationVersions.locationTracks),
-        switches = createTypedContext(switchDao, publicationVersions.switches),
+        trackNumbers = createTypedContext(trackNumberDao, versions.trackNumbers),
+        referenceLines = createTypedContext(referenceLineDao, versions.referenceLines),
+        kmPosts = createTypedContext(kmPostDao, versions.kmPosts),
+        locationTracks = createTypedContext(locationTrackDao, versions.locationTracks),
+        switches = createTypedContext(switchDao, versions.switches),
         geocodingKeysBefore = LazyMap { id: IntId<TrackLayoutTrackNumber> ->
             geocodingService.getGeocodingContextCacheKey(id, OFFICIAL)
         },
         geocodingKeysAfter = LazyMap { id: IntId<TrackLayoutTrackNumber> ->
-            geocodingService.getGeocodingContextCacheKey(id, publicationVersions)
+            geocodingService.getGeocodingContextCacheKey(id, versions)
         },
         getTrackNumberTracksBefore = { trackNumberId: IntId<TrackLayoutTrackNumber> ->
             locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId)

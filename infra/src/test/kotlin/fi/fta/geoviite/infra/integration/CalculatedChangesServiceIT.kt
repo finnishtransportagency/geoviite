@@ -2,10 +2,14 @@ package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
+import fi.fta.geoviite.infra.linking.SwitchLinkingParameters
+import fi.fta.geoviite.infra.linking.SwitchLinkingSegment
+import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
@@ -77,7 +81,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             trackNumberIds = listOf(),
             locationTrackIds = listOf(locationTrack1.id as IntId, locationTrack2.id as IntId),
             switchIds = listOf(switch.id as IntId),
-            // using latest change time means that address changes
+            // using the latest change time means that address changes
             // should not exist and therefore there should not be additional changes
             startMoment = testData.changeTime,
             endMoment = testData.changeTime,

@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import java.time.Instant
 
 fun moveLocationTrackGeometryPointsAndUpdate(
