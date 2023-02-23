@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -152,9 +151,6 @@ data class PublishCandidates(
     )
 }
 
-private inline fun <reified T, reified S : PublishCandidate<T>> getOrThrow(all: List<S>, id: IntId<T>) =
-    all.find { c -> c.id == id } ?: throw NoSuchEntityException(S::class, id)
-
 data class ValidationVersions(
     val trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>>,
     val locationTracks: List<ValidationVersion<LocationTrack>>,
@@ -162,10 +158,7 @@ data class ValidationVersions(
     val switches: List<ValidationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<ValidationVersion<TrackLayoutKmPost>>,
 ) {
-    fun containsTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.any { it.officialId == id }
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
-    fun containsReferenceLine(id: IntId<ReferenceLine>) = referenceLines.any { it.officialId == id }
-    fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }

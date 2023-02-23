@@ -2,7 +2,10 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.integration.*
+import fi.fta.geoviite.infra.integration.CalculatedChanges
+import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.SwitchChange
+import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -286,7 +289,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             "switch_id" to switchId.intValue,
             "publication_status" to publicationStatus.name,
         )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
+        return jdbcTemplate.query<RowVersion<LocationTrack>>(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
     }
@@ -312,18 +315,6 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                     message = rs.getString("message")
                 )
             }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
-    }
-
-    fun fetchCalculatedChangesInPublish(publicationId: IntId<Publication>): CalculatedChanges {
-        val trackNumberChanges =
-            fetchTrackNumberChangesInPublish(publicationId, fetchTrackNumberKmChangesInPublish(publicationId))
-        val locationTrackChanges =
-            fetchLocationTrackChangesInPublish(publicationId, fetchLocationTrackKmChangesInPublish(publicationId))
-        val switchChanges = fetchSwitchChangesInPublish(publicationId, fetchSwitchJointChangesInPublish(publicationId))
-
-        logger.daoAccess(FETCH, CalculatedChanges::class, publicationId)
-
-        return CalculatedChanges(trackNumberChanges, locationTrackChanges, switchChanges)
     }
 
     @Transactional
@@ -372,107 +363,6 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 "row_version" to rowVersion,
             )
         }.toTypedArray()
-
-    private fun fetchTrackNumberKmChangesInPublish(publicationId: IntId<Publication>) =
-        jdbcTemplate.query(
-            """
-            select track_number_id, km_number
-            from publication.calculated_change_to_track_number_km
-            where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
-        ) { rs, _ -> rs.getIntId<TrackLayoutTrackNumber>("track_number_id") to rs.getKmNumber("km_number") }
-            .groupBy({ (tn, _) -> tn }, { (_, km) -> km })
-
-    private fun fetchTrackNumberChangesInPublish(
-        publicationId: IntId<Publication>,
-        trackNumberKmChanges: Map<IntId<TrackLayoutTrackNumber>, List<KmNumber>>
-    ) =
-        jdbcTemplate.query(
-            """
-            select track_number_id, start_changed, end_changed
-            from publication.calculated_change_to_track_number
-            where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
-        ) { rs, _ ->
-            val id = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
-            TrackNumberChange(
-                id,
-                trackNumberKmChanges[id]?.let(::HashSet) ?: setOf(),
-                rs.getBoolean("start_changed"),
-                rs.getBoolean("end_changed")
-            )
-        }
-
-    private fun fetchLocationTrackKmChangesInPublish(publicationId: IntId<Publication>) =
-        jdbcTemplate.query(
-            """
-            select location_track_id, km_number
-            from publication.calculated_change_to_location_track_km
-            where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
-        ) { rs, _ -> rs.getIntId<LocationTrack>("location_track_id") to rs.getKmNumber("km_number") }
-            .groupBy({ (lt, _) -> lt }, { (_, km) -> km })
-
-    private fun fetchLocationTrackChangesInPublish(
-        publicationId: IntId<Publication>,
-        locationTrackKmChanges: Map<IntId<LocationTrack>, List<KmNumber>>
-    ) =
-        jdbcTemplate.query(
-            """
-            select location_track_id, start_changed, end_changed
-            from publication.calculated_change_to_location_track
-            where publication_id = :publication_id
-        """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
-        ) { rs, _ ->
-            val id = rs.getIntId<LocationTrack>("location_track_id")
-            LocationTrackChange(
-                id,
-                locationTrackKmChanges[id]?.let(::HashSet) ?: setOf(),
-                rs.getBoolean("start_changed"),
-                rs.getBoolean("end_changed")
-            )
-        }
-
-    private fun fetchSwitchJointChangesInPublish(publicationId: IntId<Publication>) =
-        jdbcTemplate.query(
-            """
-            select switch_id, joint_number, removed, address,
-                   postgis.st_x(point) as point_x, postgis.st_y(point) as point_y,
-                   location_track_id, location_track_external_id, track_number_id, track_number_external_id
-            from publication.calculated_change_to_switch_joint
-            where publication_id = :publication_id
-            """.trimIndent(),
-            mapOf("publication_id" to publicationId.intValue)
-        ) { rs, _ ->
-            rs.getIntId<TrackLayoutSwitch>("switch_id") to SwitchJointChange(
-                rs.getJointNumber("joint_number"),
-                rs.getBoolean("removed"),
-                rs.getTrackMeter("address"),
-                rs.getPoint("point_x", "point_y"),
-                rs.getIntId("location_track_id"),
-                rs.getOid("location_track_external_id"),
-                rs.getIntId("track_number_id"),
-                rs.getOid("track_number_external_id")
-            )
-        }.groupBy({ (s, _) -> s }, { (_, js) -> js })
-
-    private fun fetchSwitchChangesInPublish(
-        publicationId: IntId<Publication>,
-        switchJointChanges: Map<IntId<TrackLayoutSwitch>, List<SwitchJointChange>>
-    ) =
-        jdbcTemplate.query(
-            """
-            select switch_id
-            from publication.calculated_change_to_switch
-            where publication_id = :publication_id
-            """.trimIndent(), mapOf("publication_id" to publicationId.intValue)
-        ) { rs, _ ->
-            val id = rs.getIntId<TrackLayoutSwitch>("switch_id")
-            SwitchChange(
-                id,
-                switchJointChanges[id] ?: listOf(),
-            )
-        }
 
     private fun saveTrackNumberChangesInPublish(
         publicationId: IntId<Publication>,
@@ -633,10 +523,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber) ?: emptyList()
             )
         }.also { locationTracks ->
-            logger.daoAccess(
-                FETCH,
-                PublishedLocationTrack::class,
-                locationTracks.map { it.version })
+            logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTracks.map { it.version })
         }
     }
 
@@ -671,10 +558,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber) ?: emptyList()
             )
         }.also { referenceLines ->
-            logger.daoAccess(
-                FETCH,
-                PublishedReferenceLine::class,
-                referenceLines.map { it.version })
+            logger.daoAccess(FETCH, PublishedReferenceLine::class, referenceLines.map { it.version })
         }
     }
 
@@ -726,7 +610,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = rs.getEnum("operation"),
             )
-        }.also { switches -> logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version }) }
+        }.also { switches ->
+            logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version })
+        }
     }
 
     fun fetchPublishedTrackNumbers(publicationId: IntId<Publication>): List<PublishedTrackNumber> {
@@ -752,11 +638,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 operation = rs.getEnum("operation"),
             )
         }.also { trackNumbers ->
-            logger.daoAccess(
-                FETCH,
-                PublishedTrackNumber::class,
-                trackNumbers.map { it.version },
-            )
+            logger.daoAccess(FETCH, PublishedTrackNumber::class, trackNumbers.map { it.version })
         }
     }
 

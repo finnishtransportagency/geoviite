@@ -313,10 +313,13 @@ fun validateSegmentSwitchReferences(
     }
 }
 
-fun jointSequence(joints: List<JointNumber>) =
+private fun jointSequence(joints: List<JointNumber>) =
     joints.joinToString("-") { jointNumber -> "${jointNumber.intValue}" }
 
-fun getCauseForRejection(kmPost: TrackLayoutKmPost, geocodingContext: GeocodingContext): PublishValidationError {
+private fun getCauseForRejection(
+    kmPost: TrackLayoutKmPost,
+    geocodingContext: GeocodingContext,
+): PublishValidationError {
 
     val params = listOf(geocodingContext.trackNumber.number.value, kmPost.kmNumber.toString())
 
@@ -370,7 +373,7 @@ fun validateGeocodingContext(context: GeocodingContext): List<PublishValidationE
     return kmPostsRejected + listOfNotNull(kmPostsFarFromLine, kmPostsInWrongOrder)
 }
 
-fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?) =
+private fun isOrderOk(previous: GeocodingReferencePoint?, next: GeocodingReferencePoint?) =
     if (previous == null || next == null) true
     else previous.distance < next.distance
 
@@ -460,10 +463,10 @@ private fun validateAlignment(errorParent: String, alignment: LayoutAlignment) =
     validate(areDirectionsContinuous(alignment.allPoints())) { "$errorParent.points.not-continuous" },
 )
 
-fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
+private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segmentGroup: List<LayoutSegment>): Boolean =
     segmentGroup.all { segment -> segmentAndJointLocationsAgree(switch, segment) }
 
-fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segment: LayoutSegment): Boolean {
+private fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segment: LayoutSegment): Boolean {
     val jointLocations = listOfNotNull(
         segment.startJointNumber?.let { jn -> segment.points.first() to jn },
         segment.endJointNumber?.let { jn -> segment.points.last() to jn },
@@ -474,20 +477,26 @@ fun segmentAndJointLocationsAgree(switch: TrackLayoutSwitch, segment: LayoutSegm
     }
 }
 
-fun topologyLinkAndJointLocationsAgree(switch: TrackLayoutSwitch, endLinks: List<TopologyEndLink>): Boolean {
+private fun topologyLinkAndJointLocationsAgree(switch: TrackLayoutSwitch, endLinks: List<TopologyEndLink>): Boolean {
     return endLinks.all { topologyEndLink ->
         val switchJoint = switch.getJoint(topologyEndLink.topologySwitch.jointNumber)
         switchJoint != null && switchJoint.location.isSame(topologyEndLink.point, JOINT_LOCATION_DELTA)
     }
 }
 
-fun alignmentJointGroupFound(alignmentJoints: List<JointNumber>, structureJointGroups: List<List<JointNumber>>) =
+private fun alignmentJointGroupFound(
+    alignmentJoints: List<JointNumber>,
+    structureJointGroups: List<List<JointNumber>>,
+) =
     structureJointGroups.any { structureJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
 
-fun structureJointGroupFound(structureJoints: List<JointNumber>, alignmentJointGroups: List<List<JointNumber>>) =
+private fun structureJointGroupFound(
+    structureJoints: List<JointNumber>,
+    alignmentJointGroups: List<List<JointNumber>>,
+) =
     alignmentJointGroups.any { alignmentJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
 
-fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
+private fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
     if (!structureJoints.containsAll(alignmentJoints)) false
     else if (alignmentJoints.size <= 1) true
     else {
@@ -496,7 +505,7 @@ fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<
         alignmentStartAndEnd == structureStartAndEnd || alignmentStartAndEnd == structureStartAndEnd.reversed()
     }
 
-fun collectJoints(structure: SwitchStructure) =
+private fun collectJoints(structure: SwitchStructure) =
     structure.alignments.flatMap { alignment ->
         // For RR/KRV/YRV etc. structures partial alignments are also OK (like 1-5 and 5-2)
         val firstJointNumber = alignment.jointNumbers.first()
@@ -516,20 +525,20 @@ fun collectJoints(structure: SwitchStructure) =
         listOf(alignment.jointNumbers) + partialAlignments
     }
 
-fun collectJoints(track: LocationTrack, segments: List<LayoutSegment>): Pair<LocationTrack, List<JointNumber>> =
+private fun collectJoints(track: LocationTrack, segments: List<LayoutSegment>): Pair<LocationTrack, List<JointNumber>> =
     track to collectJoints(segments)
 
-fun collectJoints(segments: List<LayoutSegment>): List<JointNumber> {
+private fun collectJoints(segments: List<LayoutSegment>): List<JointNumber> {
     val allJoints = segments.flatMap { segment -> listOfNotNull(segment.startJointNumber, segment.endJointNumber) }
     return allJoints.filterIndexed { index, jointNumber -> index == 0 || allJoints[index - 1] != jointNumber }
 }
 
-fun areSegmentsContinuous(segments: List<LayoutSegment>): Boolean =
+private fun areSegmentsContinuous(segments: List<LayoutSegment>): Boolean =
     segments.mapIndexed { index, segment ->
         index == 0 || segments[index - 1].points.last().isSame(segment.points.first(), LAYOUT_COORDINATE_DELTA)
     }.all { it }
 
-fun areDirectionsContinuous(points: List<LayoutPoint>): Boolean {
+private fun areDirectionsContinuous(points: List<LayoutPoint>): Boolean {
     var prevDirection: Double? = null
     return points.mapIndexed { index, point ->
         val previous = if (index > 0) points[index - 1] else null
@@ -540,10 +549,10 @@ fun areDirectionsContinuous(points: List<LayoutPoint>): Boolean {
     }.all { it }
 }
 
-fun rangesOfConsecutiveIndicesOf(
+private fun rangesOfConsecutiveIndicesOf(
     value: Boolean,
     ts: List<Boolean>,
-    offsetRangeEndsBy: Int = 0
+    offsetRangeEndsBy: Int = 0,
 ): List<ClosedRange<Int>> =
     sequence { yield(!value); yieldAll(ts.asSequence()); yield(!value) }
         .zipWithNext()
@@ -552,28 +561,28 @@ fun rangesOfConsecutiveIndicesOf(
         .map { c -> c[0]..c[1] + offsetRangeEndsBy }
         .toList()
 
-fun discontinuousDirectionRangeIndices(points: List<LayoutPoint>) =
+private fun discontinuousDirectionRangeIndices(points: List<LayoutPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::directionBetweenPoints).zipWithNext(::isAngleDiffOk), 2)
 
-fun stretchedMeterRangeIndices(points: List<LayoutPoint>) =
+private fun stretchedMeterRangeIndices(points: List<LayoutPoint>) =
     rangesOfConsecutiveIndicesOf(false, points.zipWithNext(::lineLength).map { it <= MAX_LAYOUT_METER_LENGTH }, 1)
 
-fun discontinuousAddressRangeIndices(addresses: List<TrackMeter>): List<ClosedRange<Int>> =
+private fun discontinuousAddressRangeIndices(addresses: List<TrackMeter>): List<ClosedRange<Int>> =
     rangesOfConsecutiveIndicesOf(false, addresses.zipWithNext(::isAddressDiffOk), 1)
 
-fun isAngleDiffOk(direction1: Double?, direction2: Double?) =
+private fun isAngleDiffOk(direction1: Double?, direction2: Double?) =
     direction1 == null || direction2 == null || angleDiffRads(direction1, direction2) <= MAX_LAYOUT_POINT_ANGLE_CHANGE
 
-fun isAddressDiffOk(address1: TrackMeter?, address2: TrackMeter?): Boolean =
+private fun isAddressDiffOk(address1: TrackMeter?, address2: TrackMeter?): Boolean =
     if (address1 == null || address2 == null) true
     else if (address1 > address2) false
     else if (address1.kmNumber != address2.kmNumber) true
     else (address2.meters - address1.meters).toDouble() in 0.0..MAX_LAYOUT_METER_LENGTH
 
-fun validate(valid: Boolean, type: PublishValidationErrorType = ERROR, error: () -> String) =
+private fun validate(valid: Boolean, type: PublishValidationErrorType = ERROR, error: () -> String) =
     validateWithParams(valid, type) { error() to listOf() }
 
-fun validateWithParams(
+private fun validateWithParams(
     valid: Boolean,
     type: PublishValidationErrorType = ERROR,
     error: () -> Pair<String, List<String>>,
@@ -581,7 +590,7 @@ fun validateWithParams(
     if (!valid) error().let { (key, params) -> PublishValidationError(type, key, params) }
     else null
 
-fun <T : Draftable<T>> isPublished(item: T, publishItemIds: List<IntId<T>>) =
+private fun <T : Draftable<T>> isPublished(item: T, publishItemIds: List<IntId<T>>) =
     item.draft == null || publishItemIds.contains(item.id)
 
 data class TopologyEndLink(

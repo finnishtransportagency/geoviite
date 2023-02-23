@@ -278,6 +278,8 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getRevertRequestDependencies(publishRequestIds: PublishRequestIds): PublishRequestIds {
+        logger.serviceCall("getRevertRequestDependencies", "publishRequestIds" to publishRequestIds)
+
         val newTrackNumbers = publishRequestIds.referenceLines
             .mapNotNull { id -> referenceLineService.get(DRAFT, id) }
             .map { rl -> rl.trackNumberId }
@@ -435,7 +437,12 @@ class PublicationService @Autowired constructor(
 
     @Transactional
     fun publishChanges(versions: ValidationVersions, calculatedChanges: CalculatedChanges, message: String): PublishResult {
-        logger.serviceCall("publishChanges", "versions" to versions)
+        logger.serviceCall(
+            "publishChanges",
+            "versions" to versions,
+            "calculatedChanges" to calculatedChanges,
+            "message" to message
+        )
 
         val trackNumbers = versions.trackNumbers.map(trackNumberService::publish).map { r -> r.rowVersion }
         val kmPosts = versions.kmPosts.map(kmPostService::publish).map { r -> r.rowVersion }
@@ -458,7 +465,7 @@ class PublicationService @Autowired constructor(
         )
     }
 
-    fun validateTrackNumber(
+    private fun validateTrackNumber(
         version: ValidationVersion<TrackLayoutTrackNumber>,
         validationVersions: ValidationVersions,
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
@@ -482,7 +489,7 @@ class PublicationService @Autowired constructor(
         return fieldErrors + referenceErrors + geocodingErrors
     }
 
-    fun validateKmPost(
+    private fun validateKmPost(
         version: ValidationVersion<TrackLayoutKmPost>,
         validationVersions: ValidationVersions,
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
@@ -503,7 +510,7 @@ class PublicationService @Autowired constructor(
         return fieldErrors + referenceErrors + geocodingErrors
     }
 
-    fun validateSwitch(
+    private fun validateSwitch(
         version: ValidationVersion<TrackLayoutSwitch>,
         validationVersions: ValidationVersions,
     ): List<PublishValidationError> {
@@ -525,7 +532,7 @@ class PublicationService @Autowired constructor(
         return fieldErrors + referenceErrors + structureErrors + locationTrackErrors
     }
 
-    fun validateReferenceLine(
+    private fun validateReferenceLine(
         version: ValidationVersion<ReferenceLine>,
         validationVersions: ValidationVersions,
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
@@ -552,7 +559,7 @@ class PublicationService @Autowired constructor(
         return referenceErrors + alignmentErrors + geocodingErrors
     }
 
-    fun validateLocationTrack(
+    private fun validateLocationTrack(
         version: ValidationVersion<LocationTrack>,
         validationVersions: ValidationVersions,
         cacheKeys: Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
@@ -755,11 +762,11 @@ class PublicationService @Autowired constructor(
         return asCsvFile(orderedPublishedItems)
     }
 
-    fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
+    private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
         cacheKey?.let(geocodingDao::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
             ?: listOf(noGeocodingContext(localizationKey))
 
-    fun validateAddressPoints(
+    private fun validateAddressPoints(
         trackNumber: TrackLayoutTrackNumber,
         contextKey: GeocodingContextCacheKey,
         track: LocationTrack,
@@ -785,7 +792,7 @@ class PublicationService @Autowired constructor(
         }
     }
 
-    fun collectCacheKeys(versions: ValidationVersions): Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?> {
+    private fun collectCacheKeys(versions: ValidationVersions): Map<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?> {
         val trackNumberIds = (
                 versions.trackNumbers.map { version -> version.officialId } +
                         versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.validatedAssetVersion).trackNumberId } +
@@ -793,37 +800,6 @@ class PublicationService @Autowired constructor(
                         versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId }
                 ).toSet()
         return trackNumberIds.associateWith { tnId -> geocodingService.getGeocodingContextCacheKey(tnId, versions) }
-    }
-
-    private fun getComparator(sortBy: PublicationTableColumn, order: SortOrder? = null) =
-        if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
-
-    //Nulls are "last", e.g., 0, 1, 2, null
-    private fun <T : Comparable<T>> compareNullableValues(a: T?, b: T?) =
-        if (a == null && b == null) 0
-        else if (a == null) 1
-        else if (b == null) -1
-        else a.compareTo(b)
-
-    private fun getComparator(sortBy: PublicationTableColumn): Comparator<PublicationTableItem> {
-        return when (sortBy) {
-            PublicationTableColumn.NAME -> Comparator.comparing { p -> p.name }
-            PublicationTableColumn.TRACK_NUMBERS -> Comparator { a, b ->
-                compareNullableValues(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
-            }
-
-            PublicationTableColumn.CHANGED_KM_NUMBERS -> Comparator { a, b ->
-                compareNullableValues(a.changedKmNumbers?.minOrNull(), b.changedKmNumbers?.minOrNull())
-            }
-
-            PublicationTableColumn.OPERATION -> Comparator.comparing { p -> p.operation.priority }
-            PublicationTableColumn.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
-            PublicationTableColumn.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
-            PublicationTableColumn.MESSAGE -> Comparator.comparing { p -> p.message }
-            PublicationTableColumn.RATKO_PUSH_TIME -> Comparator { a, b ->
-                compareNullableValues(a.ratkoPushTime, b.ratkoPushTime)
-            }
-        }
     }
 
     private fun mapToPublicationTableItems(publication: PublicationDetails): List<PublicationTableItem> {
