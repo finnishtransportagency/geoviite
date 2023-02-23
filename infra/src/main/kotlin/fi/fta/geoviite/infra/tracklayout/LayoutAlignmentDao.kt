@@ -84,7 +84,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         val id: RowVersion<LayoutAlignment> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to generate ID for new Track Layout Alignment")
-        measureAndCollect("save-insert-upsert-segments") { upsertSegments(id, alignment.segments) }
+        upsertSegments(id, alignment.segments)
         logger.daoAccess(AccessType.INSERT, LayoutAlignment::class, id)
         return id
     }
@@ -115,7 +115,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             rs.getRowVersion("id", "version")
         } ?: throw IllegalStateException("Failed to get new version for Track Layout Alignment")
         logger.daoAccess(AccessType.UPDATE, LayoutAlignment::class, result.id)
-        measureAndCollect("save-update-upsert-segments") { upsertSegments(result, alignment.segments) }
+        upsertSegments(result, alignment.segments)
         return result
     }
 
@@ -344,7 +344,9 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
-            val geometryIds = measureAndCollect("save-segment-geometries") { saveSegmentGeometries(segments) }
+            val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->
+                if (s.geometry.id is StringId) s.geometry else null
+            })
             //language=SQL
             val sqlIndexed = """
                 insert into layout.segment_version(
@@ -362,33 +364,23 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 )
                 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
               """.trimIndent()
-            measureAndCollect("batch-update-segments") {
-                jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, s) ->
-                    ps.setInt(1, alignmentId.id.intValue)
-                    ps.setInt(2, alignmentId.version)
-                    ps.setInt(3, index)
-                    ps.setNullableInt(4) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
-                    ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.index else null }
-                    ps.setNullableInt(6) { if (s.switchId is IntId) s.switchId.intValue else null }
-                    ps.setNullableInt(7, s.startJointNumber?.intValue)
-                    ps.setNullableInt(8, s.endJointNumber?.intValue)
-                    ps.setNullableDouble(9, s.sourceStart)
-                    ps.setString(10, s.source.name)
-                    val geometryId =
-                        if (s.geometry.id is IntId) s.geometry.id
-                        else requireNotNull(geometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
-                    ps.setInt(11, geometryId.intValue)
-                }
+            jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, s) ->
+                ps.setInt(1, alignmentId.id.intValue)
+                ps.setInt(2, alignmentId.version)
+                ps.setInt(3, index)
+                ps.setNullableInt(4) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
+                ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.index else null }
+                ps.setNullableInt(6) { if (s.switchId is IntId) s.switchId.intValue else null }
+                ps.setNullableInt(7, s.startJointNumber?.intValue)
+                ps.setNullableInt(8, s.endJointNumber?.intValue)
+                ps.setNullableDouble(9, s.sourceStart)
+                ps.setString(10, s.source.name)
+                val geometryId =
+                    if (s.geometry.id is IntId) s.geometry.id
+                    else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
+                ps.setInt(11, geometryId.intValue)
             }
         }
-    }
-
-    private fun saveSegmentGeometries(
-        segments: List<LayoutSegment>
-    ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
-        val unsaved = segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null }
-        logger.warn("Storing segment geometries: segments=${segments.size} unsavedGeoms=${unsaved.size}")
-        return measureAndCollect("save-alignment-insert-geom") { insertSegmentGeometries(unsaved) }
     }
 
     // TODO: GVT-1691 batching this is a little tricky due to difficulty in mapping generated ids:
