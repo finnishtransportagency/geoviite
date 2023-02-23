@@ -2,7 +2,10 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -10,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutAlignmentService(
     private val dao: LayoutAlignmentDao,
 ) {
+    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
     fun saveAsNew(alignment: LayoutAlignment): RowVersion<LayoutAlignment> = save(asNew(alignment))
@@ -38,6 +43,13 @@ class LayoutAlignmentService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         boundingBox: BoundingBox?
     ): List<SegmentGeometryAndMetadata> {
+        logger.serviceCall(
+            "getGeometrySectionsByPlan",
+            "publishType" to publishType,
+            "id" to id,
+            "trackNumberId" to trackNumberId,
+            "boundingBox" to boundingBox
+        )
         val segmentGeometriesAndMetadatas = dao.fetchSegmentGeometriesAndPlanMetadata(id, boundingBox)
         return foldSegmentsByPlan(segmentGeometriesAndMetadatas)
     }

@@ -184,6 +184,12 @@ class ReferenceLineService(
         publishType: PublishType,
         boundingBox: BoundingBox?
     ): List<AlignmentPlanSection> {
+        logger.serviceCall(
+            "getSectionsByPlan",
+            "referenceLineId" to referenceLineId,
+            "publishType" to publishType,
+            "boundingBox" to boundingBox
+        )
         val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, referenceLineId)
         val alignmentSegmentGeometryByPlan = alignmentService.getGeometrySectionsByPlan(
             publishType,
@@ -198,7 +204,7 @@ class ReferenceLineService(
 
                 if (startAddress != null && endAddress != null) AlignmentPlanSection(
                     planId = section.planId,
-                    planName = section.planFileName ?: section.metadataFileName,
+                    planName = section.fileName,
                     startAddress = startAddress,
                     endAddress = endAddress,
                     id = section.segmentId

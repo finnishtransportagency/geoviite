@@ -20,6 +20,6 @@ export function formatTrackMeter(address: TrackMeter): string {
 export function formatTrackMeterWithoutMeters(address: TrackMeter): string {
     return `${address.kmNumber}+${roundToPrecision(
         Math.floor(address.meters),
-        Precision.distanceKilometers,
+        Precision.distanceEvenMeters,
     ).padStart(4, '0')}`;
 }

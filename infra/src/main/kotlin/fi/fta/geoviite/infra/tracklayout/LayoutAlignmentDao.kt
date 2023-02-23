@@ -274,17 +274,18 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             "y_max" to boundingBox?.max?.y,
             "layout_srid" to LAYOUT_SRID.code,
         )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
+        val result = jdbcTemplate.query(sql, params) { rs, _ ->
             SegmentGeometryAndMetadata(
                 planId = rs.getIntIdOrNull("plan_id"),
-                planFileName = rs.getFileNameOrNull("filename"),
+                fileName = rs.getFileNameOrNull("filename") ?: rs.getFileNameOrNull("plan_file_name"),
                 startPoint = rs.getPointOrNull("start_x", "start_y"),
                 endPoint = rs.getPointOrNull("end_x", "end_y"),
                 source = rs.getEnumOrNull<GeometrySource>("source"),
-                metadataFileName = rs.getFileNameOrNull("plan_file_name"),
                 segmentId = rs.getIndexedId<LayoutSegment>("alignment_id","segment_index")
             )
         }
+        logger.daoAccess(AccessType.UPDATE, SegmentGeometryAndMetadata::class, alignmentId)
+        return result
     }
 
     fun fetchMetadata(alignmentId: IntId<LayoutAlignment>): List<LayoutSegmentMetadata> {

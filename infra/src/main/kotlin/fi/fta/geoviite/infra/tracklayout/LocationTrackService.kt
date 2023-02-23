@@ -219,6 +219,12 @@ class LocationTrackService(
         publishType: PublishType,
         boundingBox: BoundingBox?
     ): List<AlignmentPlanSection> {
+        logger.serviceCall(
+            "getSectionsByPlan",
+            "locationTrackId" to locationTrackId,
+            "publishType" to publishType,
+            "boundingBox" to boundingBox
+        )
         val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, locationTrackId)
         val alignmentSegmentGeometryByPlan = alignmentService.getGeometrySectionsByPlan(
             publishType,
@@ -227,13 +233,13 @@ class LocationTrackService(
             boundingBox
         )
         return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
-            alignmentSegmentGeometryByPlan.mapNotNull {section ->
+            alignmentSegmentGeometryByPlan.mapNotNull { section ->
                 val startAddress = if (section.startPoint != null) context.getAddress(section.startPoint)?.first else null
                 val endAddress = if (section.endPoint != null) context.getAddress(section.endPoint)?.first else null
 
                 if (startAddress != null && endAddress != null) AlignmentPlanSection(
                     planId = section.planId,
-                    planName = section.planFileName ?: section.metadataFileName,
+                    planName = section.fileName,
                     startAddress = startAddress,
                     endAddress = endAddress,
                     id = section.segmentId
