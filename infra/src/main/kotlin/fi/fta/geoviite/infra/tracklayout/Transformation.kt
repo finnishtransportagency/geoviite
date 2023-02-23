@@ -24,7 +24,6 @@ fun toTrackLayout(
 
     val alignments: List<MapAlignment<GeometryAlignment>> = toTrackLayoutAlignments(
         geometryPlan.alignments,
-//        switches.mapValues { s -> s.value.id },
         planToLayout,
         pointListStepLength,
         heightTriangles,
@@ -93,7 +92,6 @@ fun toTrackLayoutSwitches(
 
 fun toTrackLayoutAlignments(
     geometryAlignments: List<GeometryAlignment>,
-//    switchIds: Map<DomainId<GeometrySwitch>, DomainId<TrackLayoutSwitch>>,
     planToLayout: Transformation,
     pointListStepLength: Int,
     heightTriangles: List<HeightTriangle>,
@@ -104,7 +102,6 @@ fun toTrackLayoutAlignments(
         .map { alignment ->
             val mapSegments = toMapSegments(
                 alignment = alignment,
-//                switchIds = switchIds,
                 planToLayoutTransformation = planToLayout,
                 pointListStepLength = pointListStepLength,
                 heightTriangles = heightTriangles,
@@ -140,7 +137,6 @@ fun toTrackLayoutAlignments(
 
 private fun toMapSegments(
     alignment: GeometryAlignment,
-//    switchIds: Map<DomainId<GeometrySwitch>, DomainId<TrackLayoutSwitch>>,
     planToLayoutTransformation: Transformation,
     pointListStepLength: Int,
     heightTriangles: List<HeightTriangle>,
@@ -178,9 +174,6 @@ private fun toMapSegments(
                 sourceId = element.id,
                 sourceStart = 0.0,
                 resolution = pointListStepLength,
-//                switchId = switchIds[element.switchId],
-//                startJointNumber = element.startJointNumber,
-//                endJointNumber = element.endJointNumber,
                 start = segmentStartLength,
                 source = GeometrySource.PLAN,
                 length = segmentPoints.last().m,
