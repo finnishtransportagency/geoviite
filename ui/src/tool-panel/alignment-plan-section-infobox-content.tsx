@@ -55,7 +55,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                         </span>
                     }
                     value={
-                        <div>
+                        <div className={styles['alignment-plan-section-infobox__meters']}>
                             <span>
                                 {section.startAddress
                                     ? formatTrackMeterWithoutMeters(section.startAddress)
