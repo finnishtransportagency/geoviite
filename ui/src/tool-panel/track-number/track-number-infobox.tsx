@@ -19,7 +19,7 @@ import {
     useReferenceLineStartAndEnd,
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
-import { PublishType } from 'common/common-model';
+import { PublishType, TimeStamp } from 'common/common-model';
 import {
     LinkingAlignment,
     LinkingState,
@@ -37,6 +37,7 @@ import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialo
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
+import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -47,6 +48,7 @@ type TrackNumberInfoboxProps = {
     onUnselect: () => void;
     onStartReferenceLineGeometryChange: (alignment: MapAlignment) => void;
     onEndReferenceLineGeometryChange: () => void;
+    referenceLineChangeTime: TimeStamp;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -57,6 +59,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     showArea,
     onStartReferenceLineGeometryChange,
     onEndReferenceLineGeometryChange,
+    referenceLineChangeTime,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
@@ -239,6 +242,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                         </InfoboxButtons>
                     </InfoboxContent>
                 </Infobox>
+            )}
+            {trackNumber.draftType !== 'NEW_DRAFT' && (
+                <AssetValidationInfoboxContainer
+                    id={trackNumber.id}
+                    type={'TRACK_NUMBER'}
+                    publishType={publishType}
+                    changeTime={referenceLineChangeTime}
+                />
             )}
             {changeTimes && (
                 <Infobox

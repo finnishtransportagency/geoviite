@@ -44,6 +44,7 @@ import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/locat
 import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
 import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
+import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -347,6 +348,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         />
                     </InfoboxContent>
                 </Infobox>
+            )}
+            {locationTrack.draftType !== 'NEW_DRAFT' && (
+                <AssetValidationInfoboxContainer
+                    id={locationTrack.id}
+                    type={'LOCATION_TRACK'}
+                    publishType={publishType}
+                    changeTime={locationTrackChangeTime}
+                />
             )}
             {changeTimes && (
                 <Infobox

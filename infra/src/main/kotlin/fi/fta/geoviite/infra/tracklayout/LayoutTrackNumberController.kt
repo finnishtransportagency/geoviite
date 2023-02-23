@@ -4,7 +4,9 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.linking.PublicationService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.linking.ValidatedAsset
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
@@ -15,7 +17,11 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/track-layout/track-numbers")
-class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNumberService) {
+class LayoutTrackNumberController(
+    private val trackNumberService: LayoutTrackNumberService,
+    private val publicationService: PublicationService,
+    private val referenceLineService: ReferenceLineService,
+) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -37,6 +43,21 @@ class LayoutTrackNumberController(private val trackNumberService: LayoutTrackNum
     ): ResponseEntity<TrackLayoutTrackNumber> {
         logger.apiCall("getTrackNumber", "publishType" to publishType, "id" to id)
         return toResponse(trackNumberService.get(publishType, id))
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/{id}/validation")
+    fun validateTrackNumberAndReferenceLine(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+    ): ValidatedAsset<TrackLayoutTrackNumber> {
+        logger.apiCall("validateTrackNumberAndReferenceLine", "publishType" to publishType, "id" to id)
+        val referenceLine = referenceLineService.getByTrackNumber(publishType, id)
+        return publicationService.validateTrackNumberAndReferenceLine(
+            id,
+            referenceLine?.id as IntId<ReferenceLine>,
+            publishType
+        )
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

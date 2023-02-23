@@ -32,6 +32,7 @@ import {
 import { MapTile } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { ValidatedAsset } from 'publication/publication-model';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
@@ -193,4 +194,13 @@ export async function getLocationTrackEndpointsByTile(
                     JSON.stringify(locationTrackEndpoint.location),
             })),
         );
+}
+
+export async function getLocationTrackValidation(
+    publishType: PublishType,
+    id: LocationTrackId,
+): Promise<ValidatedAsset> {
+    return getThrowError<ValidatedAsset>(
+        `${layoutUri('location-tracks', publishType, id)}/validation`,
+    );
 }

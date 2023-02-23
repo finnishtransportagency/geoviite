@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -43,7 +43,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchAllVersions(): List<RowVersion<T>>
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
 
-    fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>>
+    fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>>
 
     fun draftExists(id: IntId<T>): Boolean
     fun officialExists(id: IntId<T>): Boolean
@@ -76,7 +76,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     private val table: DbTable,
 ): DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
 
-    override fun fetchPublicationVersions(ids: List<IntId<T>>): List<PublicationVersion<T>> {
+    override fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
         if (ids.isEmpty()) return listOf()
         val sql = """
@@ -91,7 +91,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         val params = mapOf(
             "ids" to ids.map { id -> id.intValue },
         )
-        return jdbcTemplate.query<PublicationVersion<T>>(sql, params) { rs, _ -> PublicationVersion(
+        return jdbcTemplate.query<ValidationVersion<T>>(sql, params) { rs, _ -> ValidationVersion(
             rs.getIntId("official_id"),
             rs.getRowVersion("row_id", "row_version"),
         ) }.also { found -> ids.forEach { id ->

@@ -891,7 +891,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(id)
             val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
             if (edited.draft != null) {
-                val publishResponse = locationTrackService.publish(PublicationVersion(id, rowVersion))
+                val publishResponse = locationTrackService.publish(ValidationVersion(id, rowVersion))
                 locationTrackService.getWithAlignment(publishResponse.rowVersion)
             } else edited to editedAlignment
         }
@@ -900,7 +900,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             val rowVersion = switchDao.fetchDraftVersionOrThrow(id)
             val edited = switchDao.fetch(rowVersion)
             if (edited.draft != null) {
-                val publishResponse = switchService.publish(PublicationVersion(id, rowVersion))
+                val publishResponse = switchService.publish(ValidationVersion(id, rowVersion))
                 switchDao.fetch(publishResponse.rowVersion)
             }
             else edited

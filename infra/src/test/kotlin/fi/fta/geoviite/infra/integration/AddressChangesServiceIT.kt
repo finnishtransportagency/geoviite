@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.*
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
@@ -687,7 +687,7 @@ class AddressChangesServiceIT @Autowired constructor(
 
     fun updateAndPublish(locationTrack: LocationTrack, alignment: LayoutAlignment) {
         val version = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(PublicationVersion(version.id, version.rowVersion))
+        locationTrackService.publish(ValidationVersion(version.id, version.rowVersion))
     }
 
 
@@ -712,7 +712,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 }
             )
         )
-        locationTrackService.publish(PublicationVersion(version.id, version.rowVersion))
+        locationTrackService.publish(ValidationVersion(version.id, version.rowVersion))
     }
 
     fun moveReferenceLineGeometryPointsAndUpdate(
@@ -738,7 +738,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 } )
             )
         )
-        referenceLineService.publish(PublicationVersion(version.id, version.rowVersion))
+        referenceLineService.publish(ValidationVersion(version.id, version.rowVersion))
     }
 
     fun moveKmPostAndUpdate(

@@ -23,12 +23,12 @@ fun publicationVersions(
     kmPosts: List<Pair<IntId<TrackLayoutKmPost>, RowVersion<TrackLayoutKmPost>>> = listOf(),
     locationTracks: List<Pair<IntId<LocationTrack>, RowVersion<LocationTrack>>> = listOf(),
     switches: List<Pair<IntId<TrackLayoutSwitch>, RowVersion<TrackLayoutSwitch>>> = listOf(),
-) = PublicationVersions(
-    trackNumbers = trackNumbers.map { (id,version) -> PublicationVersion(id, version) },
-    referenceLines = referenceLines.map { (id,version) -> PublicationVersion(id, version) },
-    kmPosts = kmPosts.map { (id,version) -> PublicationVersion(id, version) },
-    locationTracks = locationTracks.map { (id,version) -> PublicationVersion(id, version) },
-    switches = switches.map { (id,version) -> PublicationVersion(id, version) },
+) = ValidationVersions(
+    trackNumbers = trackNumbers.map { (id,version) -> ValidationVersion(id, version) },
+    referenceLines = referenceLines.map { (id,version) -> ValidationVersion(id, version) },
+    kmPosts = kmPosts.map { (id,version) -> ValidationVersion(id, version) },
+    locationTracks = locationTracks.map { (id,version) -> ValidationVersion(id, version) },
+    switches = switches.map { (id,version) -> ValidationVersion(id, version) },
 )
 
 fun publish(

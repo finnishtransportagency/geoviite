@@ -4,7 +4,7 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
@@ -13,12 +13,10 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import java.lang.IllegalArgumentException
 import kotlin.test.assertContains
 import kotlin.test.assertNotNull
 
@@ -205,7 +203,7 @@ class GeometryDaoIT @Autowired constructor(
             segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id)
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
-        locationTrackService.publish(PublicationVersion(trackVersion.id, trackVersion.rowVersion))
+        locationTrackService.publish(ValidationVersion(trackVersion.id, trackVersion.rowVersion))
         val trackChangeTime = locationTrackService.getChangeTimes(trackVersion.id).officialChanged!!
 
         val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, "TEST_USER")

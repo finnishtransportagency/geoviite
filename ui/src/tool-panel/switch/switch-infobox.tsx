@@ -38,6 +38,7 @@ import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getTrackMeter } from 'track-layout/layout-map-api';
 import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
 import { asyncCache } from 'cache/cache';
+import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 
 const switchJointTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
@@ -296,6 +297,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
+            {layoutSwitch && layoutSwitch.draftType !== 'NEW_DRAFT' && (
+                <AssetValidationInfoboxContainer
+                    id={layoutSwitch.id}
+                    type={'SWITCH'}
+                    publishType={publishType}
+                    changeTime={changeTimes.layoutSwitch}
+                />
+            )}
             <Infobox
                 title={t('tool-panel.switch.layout.change-info-heading')}
                 qa-id="switch-heading-infobox">

@@ -115,6 +115,11 @@ data class ValidatedPublishCandidates(
     val allChangesValidated: PublishCandidates,
 )
 
+data class ValidatedAsset<T>(
+    val errors: List<PublishValidationError>,
+    val id: IntId<T>
+)
+
 data class PublishCandidates(
     val trackNumbers: List<TrackNumberPublishCandidate>,
     val locationTracks: List<LocationTrackPublishCandidate>,
@@ -122,14 +127,6 @@ data class PublishCandidates(
     val switches: List<SwitchPublishCandidate>,
     val kmPosts: List<KmPostPublishCandidate>,
 ) {
-    fun candidatesInRequest(versions: PublicationVersions) = PublishCandidates(
-        trackNumbers.filter { candidate -> versions.containsTrackNumber(candidate.id) },
-        locationTracks.filter { candidate -> versions.containsLocationTrack(candidate.id) },
-        referenceLines.filter { candidate -> versions.containsReferenceLine(candidate.id) },
-        switches.filter { candidate -> versions.containsSwitch(candidate.id) },
-        kmPosts.filter { candidate -> versions.containsKmPost(candidate.id) },
-    )
-
     fun ids(): PublishRequestIds = PublishRequestIds(
         trackNumbers.map { candidate -> candidate.id },
         locationTracks.map { candidate -> candidate.id },
@@ -138,13 +135,7 @@ data class PublishCandidates(
         kmPosts.map { candidate -> candidate.id },
     )
 
-    fun getTrackNumber(id: IntId<TrackLayoutTrackNumber>): TrackNumberPublishCandidate = getOrThrow(trackNumbers, id)
-    fun getLocationTrack(id: IntId<LocationTrack>): LocationTrackPublishCandidate = getOrThrow(locationTracks, id)
-    fun getReferenceLine(id: IntId<ReferenceLine>): ReferenceLinePublishCandidate = getOrThrow(referenceLines, id)
-    fun getKmPost(id: IntId<TrackLayoutKmPost>): KmPostPublishCandidate = getOrThrow(kmPosts, id)
-    fun getSwitch(id: IntId<TrackLayoutSwitch>): SwitchPublishCandidate = getOrThrow(switches, id)
-
-    fun getPublicationVersions() = PublicationVersions(
+    fun getPublicationVersions() = ValidationVersions(
         trackNumbers = trackNumbers.map(TrackNumberPublishCandidate::getPublicationVersion),
         referenceLines = referenceLines.map(ReferenceLinePublishCandidate::getPublicationVersion),
         locationTracks = locationTracks.map(LocationTrackPublishCandidate::getPublicationVersion),
@@ -164,12 +155,12 @@ data class PublishCandidates(
 private inline fun <reified T, reified S : PublishCandidate<T>> getOrThrow(all: List<S>, id: IntId<T>) =
     all.find { c -> c.id == id } ?: throw NoSuchEntityException(S::class, id)
 
-data class PublicationVersions(
-    val trackNumbers: List<PublicationVersion<TrackLayoutTrackNumber>>,
-    val locationTracks: List<PublicationVersion<LocationTrack>>,
-    val referenceLines: List<PublicationVersion<ReferenceLine>>,
-    val switches: List<PublicationVersion<TrackLayoutSwitch>>,
-    val kmPosts: List<PublicationVersion<TrackLayoutKmPost>>,
+data class ValidationVersions(
+    val trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>>,
+    val locationTracks: List<ValidationVersion<LocationTrack>>,
+    val referenceLines: List<ValidationVersion<ReferenceLine>>,
+    val switches: List<ValidationVersion<TrackLayoutSwitch>>,
+    val kmPosts: List<ValidationVersion<TrackLayoutKmPost>>,
 ) {
     fun containsTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.any { it.officialId == id }
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
@@ -181,7 +172,7 @@ data class PublicationVersions(
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
 }
 
-data class PublicationVersion<T>(val officialId: IntId<T>, val draftVersion: RowVersion<T>)
+data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
 
 data class PublishRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
@@ -235,7 +226,7 @@ interface PublishCandidate<T> {
     val errors: List<PublishValidationError>
     val operation: Operation?
 
-    fun getPublicationVersion() = PublicationVersion(id, rowVersion)
+    fun getPublicationVersion() = ValidationVersion(id, rowVersion)
 }
 
 data class TrackNumberPublishCandidate(

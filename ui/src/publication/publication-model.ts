@@ -1,4 +1,5 @@
 import {
+    AssetId,
     JointNumber,
     KmNumber,
     Oid,
@@ -148,6 +149,11 @@ export type PublishRequestIds = {
     locationTracks: LocationTrackId[];
     switches: LayoutSwitchId[];
     kmPosts: LayoutKmPostId[];
+};
+
+export type ValidatedAsset = {
+    id: AssetId;
+    errors: PublishValidationError[];
 };
 
 export type PublishRequest = {

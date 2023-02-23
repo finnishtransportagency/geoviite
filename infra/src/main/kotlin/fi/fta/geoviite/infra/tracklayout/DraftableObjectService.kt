@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.linking.PublicationVersion
+import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -131,9 +131,9 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
     }
 
     @Transactional
-    open fun publish(version: PublicationVersion<ObjectType>): DaoResponse<ObjectType> {
+    open fun publish(version: ValidationVersion<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("Publish", "version" to version)
-        return publishInternal(VersionPair(dao.fetchOfficialVersion(version.officialId), version.draftVersion))
+        return publishInternal(VersionPair(dao.fetchOfficialVersion(version.officialId), version.validatedAssetVersion))
     }
 
     protected fun publishInternal(versions: VersionPair<ObjectType>): DaoResponse<ObjectType> {
