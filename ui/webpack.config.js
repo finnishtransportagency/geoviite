@@ -131,6 +131,7 @@ module.exports = (env) => {
         plugins: [
             new HtmlWebpackPlugin({
                 template: './src/index.html',
+                favicon: './src/geoviite-design-lib/geoviite-logo.svg',
             }),
             new MiniCssExtractPlugin({ insert: ':last-child(meta)' }),
             // NOTE: According to this post this plugin is bad and headers should be used instead
