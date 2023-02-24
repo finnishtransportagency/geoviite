@@ -20,13 +20,14 @@ import org.springframework.test.context.ActiveProfiles
 class RatkoClientIT @Autowired constructor(
     private val ratkoClient: RatkoClient,
     private val switchLibraryService: SwitchLibraryService,
+    private val fakeRatkoService: FakeRatkoService,
 ) : ITTestBase() {
 
     lateinit var fakeRatko: FakeRatko
 
     @BeforeEach
     fun startServer() {
-        fakeRatko = FakeRatko()
+        fakeRatko = fakeRatkoService.start()
     }
 
     @AfterEach

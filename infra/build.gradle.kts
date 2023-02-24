@@ -117,8 +117,6 @@ tasks.withType<Test> {
     useJUnitPlatform()
     systemProperty("browser.name", System.getProperty("browser.name"))
     systemProperty("browser.headless", System.getProperty("browser.headless"))
-    systemProperty("geoviite.ratko.enabled", "true")
-    systemProperty("geoviite.ratko.url", "http://localhost:12345")
     testLogging.exceptionFormat = FULL
     //testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)

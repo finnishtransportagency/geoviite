@@ -31,6 +31,7 @@ class RatkoServiceIT @Autowired constructor(
     val publicationService: PublicationService,
     val switchService: LayoutSwitchService,
     val kmPostService: LayoutKmPostService,
+    val fakeRatkoService: FakeRatkoService,
 
     ) : ITTestBase() {
     @BeforeEach
@@ -47,7 +48,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @BeforeEach
     fun startServer() {
-        fakeRatko = FakeRatko()
+        fakeRatko = fakeRatkoService.start()
         fakeRatko.isOnline()
     }
 

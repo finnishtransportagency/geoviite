@@ -17,11 +17,20 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.stereotype.Service
+import org.springframework.test.context.ActiveProfiles
 
-const val TEST_RATKO_PORT: Int = 12345
+@ConditionalOnProperty("geoviite.ratko.test-port")
+@Service
+class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-port:}") private val testRatkoPort: Int) {
+    fun start(): FakeRatko = FakeRatko(testRatkoPort)
+}
 
-class FakeRatko {
-    private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(TEST_RATKO_PORT)
+class FakeRatko (port: Int) {
+    private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
     private val jsonMapper =
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
