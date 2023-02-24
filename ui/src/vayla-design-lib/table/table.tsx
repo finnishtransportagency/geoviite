@@ -59,6 +59,8 @@ export const Th: React.FC<ThProps> = ({ narrow, icon, ...props }: ThProps) => {
         styles.table__th,
         narrow && styles['table__td--narrow'],
         props.onClick && styles['table__th--clickable'],
+        styles['table__th--align-left'],
+        props.className,
     );
     return (
         <th {...props} className={className}>
