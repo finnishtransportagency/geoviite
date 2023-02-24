@@ -31,7 +31,8 @@ jobs:
         cd infra
         ./gradlew build -x test 
 
-    - name: run example unit test in infra (backend)
+    #https://github.com/finnishtransportagency/geoviite/blob/main/infra/test.sh
+    - name: run unit tests in infra (backend)
       run: |
         cd infra 
-        gradle test --tests "fi.fta.geoviite.infra.linking.SuggestedSwitchTest"
+        ./gradlew cleanTest test --tests "*Test"
