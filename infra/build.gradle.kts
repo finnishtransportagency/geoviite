@@ -88,6 +88,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.7.20")
     testImplementation("org.seleniumhq.selenium:selenium-java:4.6.0")
     testImplementation("io.github.bonigarcia:webdrivermanager:5.3.1")
+    testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
 }
 
 licenseReport {
