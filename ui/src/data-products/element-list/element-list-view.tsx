@@ -3,40 +3,24 @@ import { useTranslation } from 'react-i18next';
 import styles from './element-list-view.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import ContinuousGeometrySearch from 'data-products/element-list/continuous-geometry-search';
-import {
-    continuousGeometryReducer,
-    continuousGeometryActions,
-    initialContinuousSearchState,
-    initialPlanGeometrySearchState,
-    planSearchReducer,
-    planSearchActions,
-} from 'data-products/element-list/element-list-store';
+import { dataProductsActions } from 'data-products/element-list/element-list-store';
 import { createDelegates } from 'store/store-utils';
 import PlanGeometrySearch from 'data-products/element-list/plan-geometry-search';
 import { ElementTable } from 'data-products/element-list/element-table';
+import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
 
 const ElementListView = () => {
+    const rootDispatch = useDataProductsAppDispatch();
+    const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
+    const state = useDataProductsAppSelector((state) => state.dataProducts.elementList);
     const { t } = useTranslation();
-    const [continuousGeometrySelected, setContinuousGeometrySelected] = React.useState(true);
+    const continuousGeometrySelected = state.selectedSearch === 'LOCATION_TRACK';
 
     const handleRadioClick = () => {
-        setContinuousGeometrySelected(!continuousGeometrySelected);
+        dataProductsDelegates.setSelectedSearch(
+            continuousGeometrySelected ? 'PLAN' : 'LOCATION_TRACK',
+        );
     };
-
-    const [continuousSearchState, continuousStateSearchDispatcher] = React.useReducer(
-        continuousGeometryReducer,
-        initialContinuousSearchState,
-    );
-    const continuousSearchStateActions = createDelegates(
-        continuousStateSearchDispatcher,
-        continuousGeometryActions,
-    );
-
-    const [planSearchState, planSearchStateDispatcher] = React.useReducer(
-        planSearchReducer,
-        initialPlanGeometrySearchState,
-    );
-    const planSearchStateActions = createDelegates(planSearchStateDispatcher, planSearchActions);
 
     return (
         <div className={styles['element-list-view']}>
@@ -54,24 +38,24 @@ const ElementListView = () => {
                 </div>
                 {continuousGeometrySelected ? (
                     <ContinuousGeometrySearch
-                        state={continuousSearchState}
-                        onUpdateProp={continuousSearchStateActions.onUpdateProp}
-                        onCommitField={continuousSearchStateActions.onCommitField}
-                        setElements={continuousSearchStateActions.onSetElements}
+                        state={state.locationTrackSearch}
+                        onUpdateProp={dataProductsDelegates.onUpdateLocationTrackSearchProp}
+                        onCommitField={dataProductsDelegates.onCommitLocationTrackSearchField}
+                        setElements={dataProductsDelegates.onSetLocationTrackElements}
                     />
                 ) : (
                     <PlanGeometrySearch
-                        state={planSearchState}
-                        onUpdateProp={planSearchStateActions.onUpdateProp}
-                        setElements={planSearchStateActions.onSetElements}
+                        state={state.planSearch}
+                        onUpdateProp={dataProductsDelegates.onUpdatePlanSearchProp}
+                        setElements={dataProductsDelegates.onSetPlanElements}
                     />
                 )}
             </div>
             <ElementTable
                 elements={
                     continuousGeometrySelected
-                        ? continuousSearchState.elements
-                        : planSearchState.elements
+                        ? state.locationTrackSearch.elements
+                        : state.planSearch.elements
                 }
                 showLocationTrackName={continuousGeometrySelected}
             />

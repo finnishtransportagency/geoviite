@@ -10,6 +10,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { ElementItem, GeometryPlanHeader, GeometryType, PlanSource } from 'geometry/geometry-model';
 import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
+import { wrapReducers } from 'store/store-utils';
 
 type SearchGeometries = {
     searchLines: boolean;
@@ -161,11 +162,11 @@ const validateContinuousGeometry = (
         ),
     ].filter(filterNotEmpty);
 
-const continuousGeometrySearchSlice = createSlice({
+export const continuousGeometrySearchSlice = createSlice({
     name: 'continousGeometrySearch',
     initialState: initialContinuousSearchState,
     reducers: {
-        onUpdateProp: function <TKey extends keyof ContinuousSearchParameters>(
+        onUpdateLocationTrackSearchProp: function <TKey extends keyof ContinuousSearchParameters>(
             state: ElementListContinuousGeometrySearchState,
             { payload: propEdit }: PayloadAction<PropEdit<ContinuousSearchParameters, TKey>>,
         ) {
@@ -187,13 +188,13 @@ const continuousGeometrySearchSlice = createSlice({
                 state.searchParameters[propEdit.key] = propEdit.value;
             }
         },
-        onCommitField: function <TKey extends keyof ContinuousSearchParameters>(
+        onCommitLocationTrackSearchField: function <TKey extends keyof ContinuousSearchParameters>(
             state: ElementListContinuousGeometrySearchState,
             { payload: key }: PayloadAction<TKey>,
         ) {
             state.committedFields = [...state.committedFields, key];
         },
-        onSetElements: function (
+        onSetLocationTrackElements: function (
             state: ElementListContinuousGeometrySearchState,
             { payload: elements }: PayloadAction<ElementItem[]>,
         ) {
@@ -202,11 +203,11 @@ const continuousGeometrySearchSlice = createSlice({
     },
 });
 
-const planSearchSlice = createSlice({
+export const planSearchSlice = createSlice({
     name: 'elementList',
     initialState: initialPlanGeometrySearchState,
     reducers: {
-        onUpdateProp: function <TKey extends keyof PlanGeometrySearchState>(
+        onUpdatePlanSearchProp: function <TKey extends keyof PlanGeometrySearchState>(
             state: PlanGeometrySearchState,
             { payload: propEdit }: PayloadAction<PropEdit<PlanGeometrySearchState, TKey>>,
         ) {
@@ -223,7 +224,7 @@ const planSearchSlice = createSlice({
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
         },
-        onSetElements: function (
+        onSetPlanElements: function (
             state: PlanGeometrySearchState,
             { payload: elements }: PayloadAction<ElementItem[]>,
         ) {
@@ -232,8 +233,44 @@ const planSearchSlice = createSlice({
     },
 });
 
-export const continuousGeometryReducer = continuousGeometrySearchSlice.reducer;
-export const continuousGeometryActions = continuousGeometrySearchSlice.actions;
+type SelectedSearch = 'PLAN' | 'LOCATION_TRACK';
 
-export const planSearchReducer = planSearchSlice.reducer;
-export const planSearchActions = planSearchSlice.actions;
+type DataProductsState = {
+    elementList: {
+        selectedSearch: SelectedSearch;
+        planSearch: PlanGeometrySearchState;
+        locationTrackSearch: ElementListContinuousGeometrySearchState;
+    };
+};
+
+const initialDataProductsState: DataProductsState = {
+    elementList: {
+        selectedSearch: 'LOCATION_TRACK',
+        planSearch: initialPlanGeometrySearchState,
+        locationTrackSearch: initialContinuousSearchState,
+    },
+};
+
+const dataProductsSlice = createSlice({
+    name: 'dataProducts',
+    initialState: initialDataProductsState,
+    reducers: {
+        setSelectedSearch: function (
+            state: DataProductsState,
+            { payload: search }: PayloadAction<SelectedSearch>,
+        ) {
+            state.elementList.selectedSearch = search;
+        },
+        ...wrapReducers(
+            (state: DataProductsState) => state.elementList.locationTrackSearch,
+            continuousGeometrySearchSlice.caseReducers,
+        ),
+        ...wrapReducers(
+            (state: DataProductsState) => state.elementList.planSearch,
+            planSearchSlice.caseReducers,
+        ),
+    },
+});
+
+export const dataProductsReducer = dataProductsSlice.reducer;
+export const dataProductsActions = dataProductsSlice.actions;

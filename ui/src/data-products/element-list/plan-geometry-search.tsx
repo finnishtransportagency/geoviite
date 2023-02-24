@@ -118,12 +118,15 @@ const PlanGeometrySearch = ({
                     value={
                         <>
                             {planSources.map((source) => (
-                                <Radio
+                                <span
                                     key={source.value}
-                                    checked={state.source === source.value}
-                                    onChange={() => setSource(source.value)}>
-                                    {t(source.name)}
-                                </Radio>
+                                    className={styles['element-list-view__radio-layout']}>
+                                    <Radio
+                                        checked={state.source === source.value}
+                                        onChange={() => setSource(source.value)}>
+                                        {t(source.name)}
+                                    </Radio>
+                                </span>
                             ))}
                         </>
                     }
