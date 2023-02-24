@@ -6,7 +6,7 @@ import { ExtraInfraModelParameters } from 'infra-model/infra-model-store';
 import { EditablePlanField } from 'infra-model/view/form/infra-model-form';
 import { useTranslation } from 'react-i18next';
 import { planDecisionPhases } from 'utils/enum-localization-utils';
-import DecisionPhase from 'geoviite-design-lib/plan-decision/plan-decision-phase';
+import DecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
 
 export type InfraModelDecisionPhaseFieldProps = {
     fieldInEdit: EditablePlanField;
