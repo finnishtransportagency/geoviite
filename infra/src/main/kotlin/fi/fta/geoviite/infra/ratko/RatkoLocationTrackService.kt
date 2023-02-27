@@ -133,7 +133,7 @@ class RatkoLocationTrackService @Autowired constructor(
         }
         requireNotNull(layoutLocationTrack.alignmentVersion)
 
-        layoutAlignmentDao.fetchMetadata(layoutLocationTrack.alignmentVersion.id)
+        layoutAlignmentDao.fetchMetadata(layoutLocationTrack.alignmentVersion)
             .fold(mutableListOf<LayoutSegmentMetadata>()) { acc, metadata ->
                 val previousMetadata = acc.lastOrNull()
 

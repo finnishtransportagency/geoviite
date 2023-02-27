@@ -208,76 +208,51 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         boundingBox: BoundingBox?
     ): List<SegmentGeometryAndMetadata> {
         val sql = """
-            with first as (
-              select segment_index
-              from layout.segment
-              where (
-                :use_bounding_box = false
-                  or postgis.st_intersects(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                  segment.geometry
-                )
-              ) and segment.alignment_id = :id
-              order by segment_index
-              limit 1
-            ),
-              last as (
-                select segment_index
-                  from layout.segment
-                  where (
-                        :use_bounding_box = false
-                      or postgis.st_intersects(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                                               segment.geometry
-                          )
-                    ) and segment.alignment_id = :id
-                  order by segment_index desc
-                  limit 1
-              ),
-              segment_points as (
-                select        case
-                                when :use_bounding_box = true 
-                                    and (layout.segment.segment_index = first.segment_index
-                                    or layout.segment.segment_index = last.segment_index)
-                                  then postgis.st_intersection(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid), segment.geometry)
-                                else segment.geometry
-                              end as geometry, layout.segment.segment_index
-                from layout.segment
-                  full outer join first on true
-                  full outer join last on true
-                where segment.alignment_id = :id
+            with 
+              segment_range as (
+                select
+                  alignment.id,
+                  alignment.version,
+                  min(segment_index) min_index,
+                  max(segment_index) max_index
+                from layout.alignment
+                  inner join layout.segment_version on alignment.id = segment_version.alignment_id
+                    and alignment.version = segment_version.alignment_version
+                  inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
+                where alignment.id = :id
+                  and (
+                    :use_bounding_box = false or postgis.st_intersects(
+                      postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                      segment_geometry.geometry
+                    )
+                  ) 
+                group by alignment.id
               )
-            select layout.segment.segment_index,
-                   plan.id as plan_id,
-                   plan_file.name as filename,
-                   layout.initial_import_metadata.plan_file_name,
-                   segment.source,
-                   layout.segment.alignment_id,
-              case
-                when segment.height_values is null then null
-                else array_to_string(segment.height_values, ',', 'null')
-              end as height_values,
-              case
-                when segment.cant_values is null then null
-                else array_to_string(segment.cant_values, ',', 'null')
-              end as cant_values,
-              postgis.st_x(postgis.st_startpoint(segment_points.geometry)) as start_x,
-              postgis.st_y(postgis.st_startpoint(segment_points.geometry)) as start_y,
-              postgis.st_x(postgis.st_endpoint(segment_points.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(segment_points.geometry)) as end_y
-              from layout.alignment
-                left join layout.segment on alignment.id = segment.alignment_id
-                left join geometry.alignment on segment.geometry_alignment_id = geometry.alignment.id
+            select 
+              segment_version.alignment_id,
+              segment_version.segment_index,
+              plan.id as plan_id,
+              plan_file.name as filename,
+              layout.initial_import_metadata.plan_file_name,
+              segment_version.source,
+              postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_x,
+              postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_y,
+              postgis.st_x(postgis.st_endpoint(segment_geometry.geometry)) as end_x,
+              postgis.st_y(postgis.st_endpoint(segment_geometry.geometry)) as end_y
+              from segment_range
+                inner join layout.segment_version on segment_range.id = segment_version.alignment_id
+                  and segment_range.version = segment_version.alignment_version
+                  and segment_version.segment_index between segment_range.min_index and segment_range.max_index
+                inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
+                left join geometry.alignment on segment_version.geometry_alignment_id = geometry.alignment.id
                 left join geometry.plan on geometry.alignment.plan_id = plan.id
                 left join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
-                left join layout.initial_segment_metadata on layout.segment.alignment_id = initial_segment_metadata.alignment_id
-                  and layout.segment.segment_index = initial_segment_metadata.segment_index
-                left join layout.initial_import_metadata on initial_segment_metadata.metadata_id = initial_import_metadata.id
-                full outer join first on true
-                full outer join last on true
-                inner join segment_points on layout.segment.segment_index = segment_points.segment_index
-              where layout.alignment.id = :id
-                and layout.segment.segment_index >= first.segment_index
-                and layout.segment.segment_index <= last.segment_index
-              order by segment.segment_index
+                left join layout.initial_segment_metadata 
+                  on segment_version.alignment_id = initial_segment_metadata.alignment_id
+                    and segment_version.segment_index = initial_segment_metadata.segment_index
+                left join layout.initial_import_metadata 
+                  on initial_segment_metadata.metadata_id = initial_import_metadata.id
+              order by segment_version.segment_index
         """.trimIndent()
         val params = mapOf(
             "id" to alignmentId.intValue,
@@ -295,15 +270,14 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 startPoint = rs.getPointOrNull("start_x", "start_y"),
                 endPoint = rs.getPointOrNull("end_x", "end_y"),
                 source = rs.getEnumOrNull<GeometrySource>("source"),
-                segmentId = rs.getIndexedId<LayoutSegment>("alignment_id","segment_index")
+                segmentId = rs.getIndexedId("alignment_id","segment_index")
             )
         }
         logger.daoAccess(AccessType.UPDATE, SegmentGeometryAndMetadata::class, alignmentId)
         return result
     }
 
-    // TODO: No IT Test runs this
-    fun fetchMetadata(alignmentId: IntId<LayoutAlignment>): List<LayoutSegmentMetadata> {
+    fun fetchMetadata(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegmentMetadata> {
         //language=SQL
         val sql = """
             select
@@ -316,19 +290,19 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               plan.measurement_method,
               plan.srid,
               plan_file.name as file_name
-            from layout.alignment -- start join from alignment main table so we don't look at old segment versions
-              inner join layout.segment_version on alignment.id = segment_version.alignment_id
-                and alignment.version = segment_version.alignment_version
+            from layout.segment_version
               inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
               left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
               left join geometry.plan on alignment.plan_id = plan.id
               left join geometry.plan_file on plan_file.plan_id = plan.id
-            where alignment.id = :alignment_id
+            where segment_version.alignment_id = :alignment_id 
+              and segment_version.alignment_version = :alignment_version
             order by alignment.id, segment_version.segment_index
         """.trimIndent()
 
         val params = mapOf(
-            "alignment_id" to alignmentId.intValue,
+            "alignment_id" to alignmentVersion.id.intValue,
+            "alignment_version" to alignmentVersion.version,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
