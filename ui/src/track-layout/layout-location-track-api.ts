@@ -4,7 +4,7 @@ import {
     LayoutLocationTrackDuplicate,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { ChangeTimes, PublishType, TimeStamp } from 'common/common-model';
+import { ChangeTimes, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import {
     deleteAdt,
     getIgnoreError,
@@ -33,9 +33,18 @@ import { MapTile } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
+
+export type AlignmentSectionByPlan = {
+    planName: string | undefined;
+    planId: GeometryPlanId | undefined;
+    startAddress: TrackMeter | undefined;
+    endAddress: TrackMeter | undefined;
+    id: string;
+};
 
 const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${publishType}`;
 
@@ -152,11 +161,11 @@ export async function getLocationTracks(
             (id) => cacheKey(id, publishType),
             (fetchIds) =>
                 getThrowError<LayoutLocationTrack[]>(
-                    `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
+              `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
                     return (id) => trackMap.get(id) ?? null;
-                }),
+          }),
         )
         .then((tracks) => tracks.filter(filterNotEmpty));
 }
@@ -195,6 +204,17 @@ export async function getLocationTrackEndpointsByTile(
             })),
         );
 }
+
+export const getLocationTrackSectionsByPlan = async (
+    publishType: PublishType,
+    id: LocationTrackId,
+    bbox: BoundingBox | undefined = undefined,
+) => {
+    const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
+    return getIgnoreError<AlignmentSectionByPlan[]>(
+        `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
+    );
+};
 
 export async function getLocationTrackValidation(
     publishType: PublishType,

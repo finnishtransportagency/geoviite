@@ -15,3 +15,11 @@ export function formatTrackMeter(address: TrackMeter): string {
         Precision.distanceMeters,
     ).padStart(8, '0')}`;
 }
+
+// End result is something like "0185+0667"
+export function formatTrackMeterWithoutMeters(address: TrackMeter): string {
+    return `${address.kmNumber}+${roundToPrecision(
+        Math.floor(address.meters),
+        Precision.distanceEvenMeters,
+    ).padStart(4, '0')}`;
+}

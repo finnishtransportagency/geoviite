@@ -62,7 +62,15 @@ class ReferenceLineController(
         @PathVariable("id") id: IntId<ReferenceLine>,
     ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getReferenceLineStartAndEnd", "publishType" to publishType, "id" to id)
-        return toResponse(geocodingService.getReferenceLineStartAndEnd(publishType, id))
+        return toResponse(
+            referenceLineService.getWithAlignment(publishType, id)
+                ?.let { (referenceLine, alignment) ->
+                    geocodingService.getReferenceLineStartAndEnd(
+                        publishType,
+                        referenceLine,
+                        alignment
+                    )
+                })
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -77,5 +85,17 @@ class ReferenceLineController(
     fun getReferenceLineChangeInfo(@PathVariable("id") id: IntId<ReferenceLine>): ChangeTimes {
         logger.apiCall("getReferenceLineChangeInfo", "id" to id)
         return referenceLineService.getChangeTimes(id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/plan-geometry")
+    fun getTrackSectionsByPlan(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<ReferenceLine>,
+        @RequestParam("bbox") boundingBox: BoundingBox? = null,
+    ): List<AlignmentPlanSection> {
+        logger.apiCall("getTrackSectionsByPlan",
+            "publishType" to publishType, "id" to id, "bbox" to boundingBox)
+        return referenceLineService.getSectionsByPlan(id, publishType, boundingBox)
     }
 }

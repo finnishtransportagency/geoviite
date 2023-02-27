@@ -1,0 +1,18 @@
+@import '../../vayla-design-lib/colors';
+
+.alignment-plan-section-infobox__plan-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.alignment-plan-section-infobox__no-plan-icon {
+    fill: $color-red-dark;
+}
+
+.alignment-plan-section-infobox__meters {
+    display: inline-grid;
+    grid-template-columns: repeat(2, 50%);
+    grid-column-gap: 6px;
+    width: 100%;
+}

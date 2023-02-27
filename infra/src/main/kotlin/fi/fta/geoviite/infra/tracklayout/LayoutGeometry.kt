@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
+import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
@@ -19,6 +20,23 @@ enum class GeometrySource {
 }
 
 fun emptyAlignment() = LayoutAlignment(segments = listOf(), sourceId = null)
+
+data class SegmentGeometryAndMetadata(
+    val planId: IntId<GeometryPlan>?,
+    val fileName: FileName?,
+    val startPoint: IPoint?,
+    val endPoint: IPoint?,
+    val source: GeometrySource?,
+    val segmentId: IndexedId<LayoutSegment>
+)
+
+data class AlignmentPlanSection(
+    val planId: IntId<GeometryPlan>?,
+    val planName: FileName?,
+    val startAddress: TrackMeter?,
+    val endAddress: TrackMeter?,
+    val id: IndexedId<LayoutSegment>
+)
 
 data class LayoutAlignment(
     val segments: List<LayoutSegment>,

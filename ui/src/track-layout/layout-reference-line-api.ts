@@ -11,6 +11,7 @@ import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
 import { asyncCache } from 'cache/cache';
 import { getChangeTimes } from 'common/change-time-api';
+import { AlignmentSectionByPlan } from 'track-layout/layout-location-track-api';
 
 const referenceLineCache = asyncCache<string, LayoutReferenceLine | null>();
 
@@ -71,4 +72,15 @@ export async function getNonLinkedReferenceLines(): Promise<LayoutReferenceLine[
 
 export const getReferenceLineChangeTimes = (id: ReferenceLineId): Promise<ChangeTimes | null> => {
     return getIgnoreError<ChangeTimes>(changeTimeUri('reference-lines', id));
+};
+
+export const getReferenceLineSectionsByPlan = async (
+    publishType: PublishType,
+    id: ReferenceLineId,
+    bbox: BoundingBox | undefined = undefined,
+) => {
+    const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
+    return getIgnoreError<AlignmentSectionByPlan[]>(
+        `${layoutUri('reference-lines', publishType, id)}/plan-geometry/${params}`,
+    );
 };

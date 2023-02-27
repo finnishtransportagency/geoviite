@@ -16,8 +16,6 @@ import java.time.Instant
 class GeocodingService(
     private val addressPointsCache: AddressPointsCache,
     private val geocodingDao: GeocodingDao,
-    private val locationTrackService: LocationTrackService,
-    private val referenceLineService: ReferenceLineService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -40,11 +38,6 @@ class GeocodingService(
             "alignmentVersion" to alignmentVersion, "contextKey" to contextKey
         )
         return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
-    }
-
-    fun getReferenceLineAddressPoints(contextKey: GeocodingContextCacheKey): AlignmentAddresses? {
-        logger.serviceCall("getReferenceLineAddressPoints", "contextKey" to contextKey)
-        return geocodingDao.getGeocodingContext(contextKey)?.referenceLineAddresses
     }
 
     fun getAddress(
@@ -74,39 +67,34 @@ class GeocodingService(
 
     fun getLocationTrackStartAndEnd(
         publicationState: PublishType,
-        locationTrackId: IntId<LocationTrack>,
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
     ): AlignmentStartAndEnd? {
         logger.serviceCall(
             "getLocationTrackStartAndEnd",
-            "publicationState" to publicationState, "locationTrackId" to locationTrackId)
-        return locationTrackService.getWithAlignment(publicationState, locationTrackId)?.let { (track, alignment) ->
-            val geocodingContext = getGeocodingContext(publicationState, track.trackNumberId)
-            geocodingContext?.getStartAndEnd(alignment)
-        }
+            "publicationState" to publicationState, "locationTrack" to locationTrack, "alignment" to alignment)
+            return getGeocodingContext(publicationState, locationTrack.trackNumberId)?.getStartAndEnd(alignment)
     }
 
     fun getReferenceLineStartAndEnd(
         publicationState: PublishType,
-        referenceLineId: IntId<ReferenceLine>,
+        referenceLine: ReferenceLine,
+        alignment: LayoutAlignment,
     ): AlignmentStartAndEnd? {
         logger.serviceCall("getReferenceLineStartAndEnd",
-            "publicationState" to publicationState, "referenceLineId" to referenceLineId)
-        return referenceLineService.getWithAlignment(publicationState, referenceLineId)?.let { (line, alignment) ->
-            val geocodingContext = getGeocodingContext(publicationState, line.trackNumberId)
-            geocodingContext?.getStartAndEnd(alignment)
-        }
+            "publicationState" to publicationState, "referenceLine" to referenceLine, "alignment" to alignment)
+        return getGeocodingContext(publicationState, referenceLine.trackNumberId)?.getStartAndEnd(alignment)
     }
 
     fun getTrackLocation(
-        locationTrackId: IntId<LocationTrack>,
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
         address: TrackMeter,
         publicationState: PublishType,
     ): AddressPoint? {
         logger.serviceCall("getTrackLocation",
-            "locationTrackId" to locationTrackId, "address" to address, "publicationState" to publicationState)
-        return locationTrackService.getWithAlignment(publicationState, locationTrackId)?.let { (track, alignment) ->
-            getGeocodingContext(publicationState, track.trackNumberId)?.getTrackLocation(alignment, address)
-        }
+            "locationTrack" to locationTrack, "address" to address, "publicationState" to publicationState)
+        return getGeocodingContext(publicationState, locationTrack.trackNumberId)?.getTrackLocation(alignment, address)
     }
 
     fun getGeocodingContext(

@@ -7,6 +7,7 @@ import { createDelegates } from 'store/store-utils';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLocationTrack } from 'track-layout/track-layout-react-utils';
+import { MapViewport } from 'map/map-model';
 
 type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackId: LocationTrackId;
@@ -15,6 +16,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackChangeTime: TimeStamp;
     onUnselect: (track: LayoutLocationTrack) => void;
     onDataChange: () => void;
+    viewport: MapViewport;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
@@ -24,6 +26,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     locationTrackChangeTime,
     onUnselect,
     onDataChange,
+    viewport,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
@@ -43,6 +46,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 locationTrackChangeTime={locationTrackChangeTime}
                 onUnselect={onUnselect}
                 onSelect={delegates.onSelect}
+                viewport={viewport}
             />
         );
 };

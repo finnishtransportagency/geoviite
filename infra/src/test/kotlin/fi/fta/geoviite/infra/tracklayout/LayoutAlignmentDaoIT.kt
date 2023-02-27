@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -157,6 +158,44 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
         assertEquals(1, updatedFromDb.segments.size)
         assertEquals(points2, updatedFromDb.segments[0].points)
+    }
+
+    @Test
+    fun `alignment segment plan metadata search works`() {
+        val points = arrayOf(
+            Point(
+                x = 10.0,
+                y = 20.0,
+            ),
+            Point(
+                x = 10.0,
+                y = 21.0,
+            ),
+        )
+        val points2 = arrayOf(
+            Point(
+                x = 10.0,
+                y = 21.0,
+            ),
+            Point(
+                x = 11.0,
+                y = 21.0,
+            ),
+        )
+        val alignment = alignment(
+            segment(points = points, source = GeometrySource.PLAN),
+            segment(points = points2, source = GeometrySource.GENERATED)
+        )
+        val alignmentId = alignmentDao.insert(alignment)
+
+        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentId.id, null)
+        assertEquals(segmentGeometriesAndPlanMetadatas.size, 2)
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().startPoint, points.first())
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().endPoint, points.last())
+        assertEquals(segmentGeometriesAndPlanMetadatas.first().source, GeometrySource.PLAN)
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().startPoint, points2.first())
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().endPoint, points2.last())
+        assertEquals(segmentGeometriesAndPlanMetadatas.last().source, GeometrySource.GENERATED)
     }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =

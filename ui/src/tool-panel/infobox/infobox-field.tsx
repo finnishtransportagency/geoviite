@@ -5,7 +5,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { useTranslation } from 'react-i18next';
 
 type InfoboxFieldProps = {
-    label: string;
+    label: React.ReactNode;
     value?: React.ReactNode;
     children?: React.ReactNode;
     inEditMode?: boolean;

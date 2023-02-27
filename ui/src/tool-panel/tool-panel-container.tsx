@@ -27,7 +27,7 @@ const ToolPanelContainer: React.FC = () => {
         [store.selection.selectedItems.switches],
     );
 
-    const startSwitchLinking = React.useCallback(function(
+    const startSwitchLinking = React.useCallback(function (
         suggestedSwitch: SuggestedSwitch,
         layoutSwitch: LayoutSwitch,
     ) {
@@ -39,9 +39,9 @@ const ToolPanelContainer: React.FC = () => {
             switches: [layoutSwitch],
         });
     },
-        []);
+    []);
 
-    const startSwitchPlacing = React.useCallback(function(layoutSwitch: LayoutSwitch) {
+    const startSwitchPlacing = React.useCallback(function (layoutSwitch: LayoutSwitch) {
         delegates.startSwitchPlacing(layoutSwitch);
     }, []);
 
@@ -81,6 +81,7 @@ const ToolPanelContainer: React.FC = () => {
             setSelectedTabId={delegates.setToolPanelTab}
             selectedTabId={store.selectedToolPanelTabId}
             startSwitchPlacing={startSwitchPlacing}
+            viewport={store.map.viewport}
         />
     );
 };
