@@ -90,6 +90,7 @@ data class SuggestedSwitchJointMatch(
     @JsonIgnore val switchJoint: SwitchJoint,
     @JsonIgnore val matchType: SuggestedSwitchJointMatchType,
     @JsonIgnore val distance: Double,
+    @JsonIgnore val distanceToAlignment: Double,
     @JsonIgnore val alignmentId: IntId<LayoutAlignment>?,
 ) {
     fun segmentId(): IndexedId<LayoutSegment>? = alignmentId?.let { aid -> IndexedId(aid.intValue, segmentIndex) }
