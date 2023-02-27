@@ -39,7 +39,7 @@ dependencies {
     }
     // For spring-boot-starter-actuator & aws-java-sdk-cloudfront
     implementation("org.yaml", "snakeyaml").version {
-        strictly("[1.3.3,)")
+        strictly("[1.33,2.0)")
     }
 
     // Actual deps
