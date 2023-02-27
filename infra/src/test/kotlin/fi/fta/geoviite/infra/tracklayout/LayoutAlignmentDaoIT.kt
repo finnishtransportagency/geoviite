@@ -251,7 +251,12 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     fun getDbSegmentCount(alignmentId: IntId<LayoutAlignment>): Int =
         jdbc.queryForObject(
-            "select count(*) from layout.segment where alignment_id = :id",
+            """
+                select count(*) 
+                from layout.alignment inner join layout.segment_version 
+                  on alignment.id = segment_version.alignment_id and alignment.version = segment_version.alignment_version
+                where alignment_id = :id
+                """,
             mapOf("id" to alignmentId.intValue),
         ) { rs, _ -> rs.getInt("count") } ?: 0
 }

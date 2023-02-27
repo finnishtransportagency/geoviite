@@ -66,24 +66,24 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             element.alignment_id,
             element.element_index,
             bool_or(case 
-                when segment.geometry_alignment_id is not null and (
-                  location_track.row_id is not null or reference_track_number.row_id is not null
-                ) then true 
-                else false 
-              end) as is_linked,
+              when location_track.row_id is not null or reference_track_number.row_id is not null then true 
+              else false 
+            end) as is_linked,
             array_agg(distinct location_track.official_id) filter ( where location_track.official_id is not null ) as location_track_ids,
             array_agg(distinct reference_line.official_id) filter ( where reference_line.official_id is not null ) as reference_line_ids  
           from geometry.alignment geometry_alignment
             join geometry.element on geometry_alignment.id = element.alignment_id
-            left join layout.segment
-              on element.alignment_id = segment.geometry_alignment_id
-                and element.element_index = segment.geometry_element_index
+            left join layout.segment_version
+              on element.alignment_id = segment_version.geometry_alignment_id
+                and element.element_index = segment_version.geometry_element_index
             left join layout.location_track_publication_view location_track
-              on location_track.alignment_id = segment.alignment_id
+              on location_track.alignment_id = segment_version.alignment_id
+                and location_track.alignment_version = segment_version.alignment_version
                 and location_track.state != 'DELETED'
                 and :publication_state = any(location_track.publication_states)
             left join layout.reference_line_publication_view reference_line
-              on reference_line.alignment_id = segment.alignment_id
+              on reference_line.alignment_id = segment_version.alignment_id
+                and reference_line.alignment_version = segment_version.alignment_version
                 and :publication_state = any(reference_line.publication_states)
             left join layout.track_number_publication_view reference_track_number
               on reference_line.track_number_id = reference_track_number.row_id
@@ -146,7 +146,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         select
             switch.id,
             bool_or(case 
-              when segment.switch_id is not null 
+              when segment_version.switch_id is not null 
                and layout_switch.row_id is not null 
                and location_track.row_id is not null
               then true 
@@ -155,15 +155,16 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
           from geometry.switch
             left join geometry.element
                       on switch.id = element.switch_id
-            left join layout.segment
-                      on segment.geometry_element_index = element.element_index
-                        and segment.geometry_alignment_id = element.alignment_id
+            left join layout.segment_version
+                      on segment_version.geometry_element_index = element.element_index
+                        and segment_version.geometry_alignment_id = element.alignment_id
             left join layout.location_track_publication_view location_track
-                      on location_track.alignment_id = segment.alignment_id
+                      on location_track.alignment_id = segment_version.alignment_id
+                        and location_track.alignment_version = segment_version.alignment_version
                         and location_track.state != 'DELETED'
                         and :publication_state = any(location_track.publication_states)
             left join layout.switch_publication_view layout_switch
-                      on layout_switch.official_id = segment.switch_id
+                      on layout_switch.official_id = segment_version.switch_id
                         and layout_switch.state_category != 'NOT_EXISTING'
                         and :publication_state = any(layout_switch.publication_states)
           where switch.plan_id = :plan_id
@@ -197,14 +198,15 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               gswitch.id as geometry_switch_id,
               plan.srid,
               plan.id as plan_id
-            from layout.segment
+            from layout.segment_version
             inner join layout.location_track_publication_view location_track
-              on location_track.alignment_id = segment.alignment_id
-              and location_track.state != 'DELETED'
-              and 'DRAFT' = any(location_track.publication_states)
+              on location_track.alignment_id = segment_version.alignment_id
+                and location_track.alignment_version = segment_version.alignment_version
+                and location_track.state != 'DELETED'
+                and 'DRAFT' = any(location_track.publication_states)
             inner join geometry.element
-              on element.alignment_id = segment.geometry_alignment_id 
-              and element.element_index = segment.geometry_element_index
+              on element.alignment_id = segment_version.geometry_alignment_id 
+              and element.element_index = segment_version.geometry_element_index
             inner join geometry.switch gswitch
               on gswitch.id = element.switch_id
             inner join geometry.plan plan
@@ -221,7 +223,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               and element.switch_id in (
                   select
                     distinct e.switch_id
-                  from layout.segment s
+                  from layout.alignment
+                    inner join layout.segment_version s on alignment.id = s.alignment_id 
+                      and alignment.version = s.alignment_version
                     inner join layout.segment_geometry sg on s.geometry_id = sg.id
                     inner join geometry.element e
                       on e.alignment_id = s.geometry_alignment_id 
@@ -274,28 +278,30 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         val sql = """ 
             select 
                case 
-                 when segment.switch_id = :switch_id and segment.switch_start_joint_number is not null then 1
-                 when location_track.topology_start_switch_id = :switch_id and segment.segment_index = 0 then 1
+                 when segment_version.switch_id = :switch_id and segment_version.switch_start_joint_number is not null then 1
+                 when location_track.topology_start_switch_id = :switch_id and segment_version.segment_index = 0 then 1
                  else 0
                end as start_is_joint,
                case 
-                 when segment.switch_id = :switch_id and segment.switch_end_joint_number is not null then 1
-                 when location_track.topology_end_switch_id = :switch_id and segment.segment_index = alignment.segment_count-1 then 1
+                 when segment_version.switch_id = :switch_id and segment_version.switch_end_joint_number is not null then 1
+                 when location_track.topology_end_switch_id = :switch_id and segment_version.segment_index = alignment.segment_count-1 then 1
                  else 0
                end as end_is_joint,
                postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_x,
                postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_y,
                postgis.st_x(postgis.st_endpoint(segment_geometry.geometry)) as end_x,
                postgis.st_y(postgis.st_endpoint(segment_geometry.geometry)) as end_y
-            from layout.segment
-              inner join layout.segment_geometry on segment.geometry_id = segment_geometry.id
-              inner join layout.alignment on segment.alignment_id = alignment.id
-              inner join layout.location_track_publication_view location_track on location_track.alignment_id = alignment.id
+            from layout.alignment
+              inner join layout.segment_version on alignment.id = segment_version.alignment_id
+                and alignment.version = segment_version.alignment_version
+              inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+              inner join layout.location_track_publication_view location_track 
+                on location_track.alignment_id = alignment.id and location_track.alignment_version = alignment.version
             where :publication_state = any(publication_states)
               and (
-                segment.switch_id = :switch_id
-                or (segment.segment_index = 0 and location_track.topology_start_switch_id = :switch_id)
-                or (segment.segment_index = alignment.segment_count-1 and location_track.topology_end_switch_id = :switch_id)
+                segment_version.switch_id = :switch_id
+                or (segment_version.segment_index = 0 and location_track.topology_start_switch_id = :switch_id)
+                or (segment_version.segment_index = alignment.segment_count-1 and location_track.topology_end_switch_id = :switch_id)
               )
         """.trimIndent()
         val params = mapOf(

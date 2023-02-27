@@ -266,13 +266,14 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               location_track.alignment_id,
               location_track.alignment_version 
             from layout.location_track_publication_view location_track
-              left join layout.segment on segment.alignment_id = location_track.alignment_id
+              left join layout.segment_version on segment_version.alignment_id = location_track.alignment_id
+                and segment_version.alignment_version = location_track.alignment_version
             where :publication_status = any(location_track.publication_states)
               and location_track.state != 'DELETED'
               and (
                 location_track.topology_start_switch_id = :switch_id or
                 location_track.topology_end_switch_id = :switch_id or
-                segment.switch_id = :switch_id 
+                segment_version.switch_id = :switch_id 
               )
             group by 
               location_track.official_id,

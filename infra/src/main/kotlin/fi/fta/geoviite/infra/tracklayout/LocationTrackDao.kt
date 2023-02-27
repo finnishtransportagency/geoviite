@@ -294,7 +294,8 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
             select
               distinct lt.row_id, lt.row_version
             from layout.location_track_publication_view lt
-            inner join layout.segment s on lt.alignment_id = s.alignment_id
+            inner join layout.segment_version s on lt.alignment_id = s.alignment_id 
+              and lt.alignment_version = s.alignment_version
             inner join layout.segment_geometry sg on s.geometry_id = sg.id
               and postgis.st_intersects(
                 postgis.st_makeenvelope (

@@ -28,13 +28,15 @@ create table layout.segment_geometry
 drop table layout.segment;
 delete from layout.segment_version where deleted = true;
 alter table layout.segment_version
+  drop constraint segment_version_pkey, -- Remove old primary key
   drop column change_time, -- Metadata is on alignment, which changes as a whole -> this is duplicate info
   drop column change_user, -- Metadata is on alignment, which changes as a whole -> this is duplicate info
   drop column version, -- Alignment versioning is sufficient as segments don't change independently
   drop column deleted, -- Deleted rows: the new alignment version just doesn't have a segment for the index
   drop column length, -- This is currently the m-value of the last point -> no separate column needed
   drop column start, -- This is the sum of lengths by-index -> no separate column needed
-  add column geometry_id int null -- Reference to the new geometry table
+  add column geometry_id int null, -- Reference to the new geometry table
+  add primary key (alignment_id, alignment_version, segment_index) -- Add new primary key
 ;
 
 -- Copy all known geometries to the new table, preserving the the ids

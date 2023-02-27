@@ -316,13 +316,15 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               plan.measurement_method,
               plan.srid,
               plan_file.name as file_name
-            from layout.segment
-              inner join layout.segment_geometry on segment.geometry_id = segment_geometry.id
-              left join geometry.alignment on alignment.id = segment.geometry_alignment_id
+            from layout.alignment -- start join from alignment main table so we don't look at old segment versions
+              inner join layout.segment_version on alignment.id = segment_version.alignment_id
+                and alignment.version = segment_version.alignment_version
+              inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+              left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
               left join geometry.plan on alignment.plan_id = plan.id
               left join geometry.plan_file on plan_file.plan_id = plan.id
-            where segment.alignment_id = :alignment_id
-            order by segment.alignment_id, segment.segment_index
+            where alignment.id = :alignment_id
+            order by alignment.id, segment_version.segment_index
         """.trimIndent()
 
         val params = mapOf(
@@ -364,6 +366,8 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 )
                 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
               """.trimIndent()
+            // This uses indexed parameters (rather than named ones),
+            // since named parameter template's batch-method is considerably slower
             jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, s) ->
                 ps.setInt(1, alignmentId.id.intValue)
                 ps.setInt(2, alignmentId.version)

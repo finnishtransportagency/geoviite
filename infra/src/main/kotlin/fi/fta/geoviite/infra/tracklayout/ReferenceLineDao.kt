@@ -195,7 +195,8 @@ class ReferenceLineDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
               rl.row_id, 
               rl.row_version
               from layout.reference_line_publication_view rl
-                inner join layout.segment s on rl.alignment_id = s.alignment_id
+                inner join layout.segment_version s on rl.alignment_id = s.alignment_id 
+                  and rl.alignment_version = s.alignment_version
                 inner join layout.segment_geometry sg on s.geometry_id = sg.id
                   and postgis.st_intersects(
                     postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
