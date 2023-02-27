@@ -3,7 +3,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { CoordinateSystem, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
-import { GeometryPlanNameLink } from 'data-products/element-list/geometry-plan-name-link';
+import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import styles from './element-list-view.scss';
 
@@ -105,7 +105,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                     {roundToPrecision(angleEnd, Precision.angle6Decimals)}
                 </td>
                 <td>
-                    <GeometryPlanNameLink planId={planId} planName={plan} />
+                    <PlanNameLink planId={planId} planName={plan} />
                 </td>
                 <td>{source}</td>
             </tr>

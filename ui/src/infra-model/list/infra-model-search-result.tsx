@@ -14,8 +14,8 @@ import {
 } from 'geometry/geometry-model';
 import { IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Table, Th } from 'vayla-design-lib/table/table';
-import DecisionPhase from 'geoviite-design-lib/plan-decision/plan-decision-phase';
-import PlanPhase from 'geoviite-design-lib/plan-phase/plan-phase';
+import DecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
+import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { inframodelDownloadUri } from 'infra-model/infra-model-api';
