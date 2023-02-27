@@ -63,7 +63,7 @@ class RatkoServiceIT @Autowired constructor(
     }
 
     @Test
-    fun changeSetTest() {
+    fun testChangeSet() {
         val referenceLineAlignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val locationTrackAlignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val trackNumber = trackNumber(getUnusedTrackNumber())
