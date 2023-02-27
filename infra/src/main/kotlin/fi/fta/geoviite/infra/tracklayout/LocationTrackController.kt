@@ -64,7 +64,7 @@ class LocationTrackController(
         @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
     ): List<LocationTrack> {
         logger.apiCall("getLocationTracks", "publishType" to publishType, "ids" to ids)
-        return ids.mapNotNull { id -> locationTrackService.get(publishType, id) }
+        return locationTrackService.getMany(publishType, ids)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
