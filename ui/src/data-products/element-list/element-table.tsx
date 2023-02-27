@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { ElementTableItem } from 'data-products/element-list/element-table-item';
-import { Table } from 'vayla-design-lib/table/table';
+import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from './element-list-view.scss';
 import { ElementItem } from 'geometry/geometry-model';
@@ -14,34 +14,51 @@ type ElementTableProps = {
     showLocationTrackName: boolean;
 };
 
+type ElementHeading = {
+    name: string;
+    numeric: boolean;
+};
+
+const numericHeading = (name: string) => ({
+    name,
+    numeric: true,
+});
+
+const nonNumericHeading = (name: string) => ({
+    name,
+    numeric: false,
+});
+
 export const ElementTable = ({ elements, showLocationTrackName }: ElementTableProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
-    const commonTableHeadings = [
-        'alignment',
-        'element-type',
-        'track-address-start',
-        'track-address-end',
-        'coordinate-system',
-        'location-start-e',
-        'location-start-n',
-        'location-end-e',
-        'location-end-n',
-        'length',
-        'curve-radius-start',
-        'curve-radius-end',
-        'cant-start',
-        'cant-end',
-        'angle-start',
-        'angle-end',
-        'plan',
-        'source',
+    const commonTableHeadings: ElementHeading[] = [
+        nonNumericHeading('alignment'),
+        nonNumericHeading('element-type'),
+        numericHeading('track-address-start'),
+        numericHeading('track-address-end'),
+        nonNumericHeading('coordinate-system'),
+        numericHeading('location-start-e'),
+        numericHeading('location-start-n'),
+        numericHeading('location-end-e'),
+        numericHeading('location-end-n'),
+        numericHeading('length'),
+        numericHeading('curve-radius-start'),
+        numericHeading('curve-radius-end'),
+        numericHeading('cant-start'),
+        numericHeading('cant-end'),
+        numericHeading('angle-start'),
+        numericHeading('angle-end'),
+        nonNumericHeading('plan'),
+        nonNumericHeading('source'),
     ];
 
     const tableHeadingsToShowInUI = showLocationTrackName
-        ? ['track-number', 'location-track'].concat(commonTableHeadings)
-        : ['track-number'].concat(commonTableHeadings);
+        ? [nonNumericHeading('track-number'), nonNumericHeading('location-track')].concat(
+              commonTableHeadings,
+          )
+        : [nonNumericHeading('track-number')].concat(commonTableHeadings);
 
     const coordinateSystems = useLoader(getSridList, []);
     const findCoordinateSystem = (srid: Srid) =>
@@ -57,9 +74,17 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                     <thead className={styles['element-list-view__table-heading']}>
                         <tr>
                             {tableHeadingsToShowInUI.map((heading) => (
-                                <th key={heading}>
-                                    {t(`data-products.element-list.element-list-table.${heading}`)}
-                                </th>
+                                <Th
+                                    key={heading.name}
+                                    className={
+                                        heading.numeric
+                                            ? styles['element-list-view__column--number']
+                                            : ''
+                                    }>
+                                    {t(
+                                        `data-products.element-list.element-list-table.${heading.name}`,
+                                    )}
+                                </Th>
                             ))}
                         </tr>
                     </thead>

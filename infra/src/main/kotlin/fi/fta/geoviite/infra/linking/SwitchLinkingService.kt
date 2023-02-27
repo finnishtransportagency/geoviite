@@ -62,8 +62,9 @@ fun findSuggestedSwitchJointMatches(
         (closestSegmentIndex + 1).coerceAtMost(alignment.segments.lastIndex)
     )
 
-    val jointDistanceToAlignment = alignment.segments
-        .slice(possibleSegmentIndices)
+    val possibleSegments = alignment.segments.slice(possibleSegmentIndices)
+
+    val jointDistanceToAlignment = possibleSegments
         .flatMap { segment -> segment.points.mapIndexedNotNull { pIdx, point ->
             segment.points.getOrNull(pIdx - 1)?.let { previousPoint ->
                 val closestSegmentPoint = closestPointOnLine(previousPoint, point, jointLocation)
@@ -71,8 +72,7 @@ fun findSuggestedSwitchJointMatches(
                 jointDistanceToSegment
             }}}.min()
 
-    return alignment.segments
-        .slice(possibleSegmentIndices)
+    return possibleSegments
         .flatMapIndexed { index, segment ->
             val segmentIndex = possibleSegmentIndices.first + index
 

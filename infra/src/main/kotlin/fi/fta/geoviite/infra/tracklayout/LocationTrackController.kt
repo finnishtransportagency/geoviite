@@ -84,7 +84,8 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentStartAndEnd> {
         logger.apiCall("getLocationTrackStartAndEnd", "publishType" to publishType, "id" to id)
-        return toResponse(geocodingService.getLocationTrackStartAndEnd(publishType, id))
+        val locationTrackAndAlignment = locationTrackService.getWithAlignment(publishType, id)
+        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) -> geocodingService.getLocationTrackStartAndEnd(publishType, locationTrack, alignment) })
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -143,5 +144,17 @@ class LocationTrackController(
     fun getLocationTrackChangeInfo(@PathVariable("id") id: IntId<LocationTrack>): ChangeTimes {
         logger.apiCall("getLocationTrackChangeInfo", "id" to id)
         return locationTrackService.getChangeTimes(id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/plan-geometry")
+    fun getTrackSectionsByPlan(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @RequestParam("bbox") boundingBox: BoundingBox? = null,
+    ): List<AlignmentPlanSection> {
+        logger.apiCall("getTrackSectionsByPlan",
+            "publishType" to publishType, "id" to id, "bbox" to boundingBox)
+        return locationTrackService.getSectionsByPlan(id, publishType, boundingBox)
     }
 }

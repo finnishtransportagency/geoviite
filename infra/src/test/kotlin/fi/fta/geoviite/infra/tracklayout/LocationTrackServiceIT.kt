@@ -111,8 +111,6 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(changeTimeAfterUpdate, trackChangeTimes.draftChanged)
     }
 
-
-
     @Test
     fun savingCreatesDraft() {
         val (publishResponse, published) = createPublishedLocationTrack(1)

@@ -4,16 +4,14 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
-import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +22,7 @@ class LocationTrackService(
     dao: LocationTrackDao,
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
+    private val geocodingService: GeocodingService,
 ) : DraftableObjectService<LocationTrack, LocationTrackDao>(dao) {
 
     @Transactional
@@ -215,11 +214,42 @@ class LocationTrackService(
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
     }
 
+    fun getSectionsByPlan(
+        locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType,
+        boundingBox: BoundingBox?
+    ): List<AlignmentPlanSection> {
+        logger.serviceCall(
+            "getSectionsByPlan",
+            "locationTrackId" to locationTrackId,
+            "publishType" to publishType,
+            "boundingBox" to boundingBox
+        )
+        val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, locationTrackId)
+        val alignmentSegmentGeometryByPlan = alignmentService.getGeometrySectionsByPlan(
+            publishType,
+            alignment.id as IntId<LayoutAlignment>,
+            locationTrack.trackNumberId,
+            boundingBox
+        )
+        return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
+            alignmentSegmentGeometryByPlan.mapNotNull { section ->
+                val startAddress = if (section.startPoint != null) context.getAddress(section.startPoint)?.first else null
+                val endAddress = if (section.endPoint != null) context.getAddress(section.endPoint)?.first else null
+
+                if (startAddress != null && endAddress != null) AlignmentPlanSection(
+                    planId = section.planId,
+                    planName = section.fileName,
+                    startAddress = startAddress,
+                    endAddress = endAddress,
+                    id = section.segmentId
+                ) else null
+            }
+        } ?: emptyList()
+    }
+
     private fun getWithAlignmentInternalOrThrow(publishType: PublishType, id: IntId<LocationTrack>) =
         getWithAlignmentInternal(dao.fetchVersionOrThrow(id, publishType))
-
-    private fun getWithAlignmentInternal(publishType: PublishType, id: IntId<LocationTrack>) =
-        dao.fetchVersion(id, publishType)?.let { v -> getWithAlignmentInternal(v) }
 
     private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
         locationTrackWithAlignment(dao, alignmentDao, version)

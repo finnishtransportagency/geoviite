@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/geocoding")
 class GeocodingController(
     private val geocodingService: GeocodingService,
+    private val locationTrackService: LocationTrackService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -41,7 +43,8 @@ class GeocodingController(
         @RequestParam("address") address: TrackMeter,
     ): ResponseEntity<AddressPoint> {
         logger.apiCall("getTrackPoint", "locationTrackId" to locationTrackId, "address" to address)
-        return toResponse(geocodingService.getTrackLocation(locationTrackId, address, OFFICIAL))
+        val locationTrackAndAlignment = locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
+        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) -> geocodingService.getTrackLocation(locationTrack, alignment, address, OFFICIAL) })
     }
 
     @PreAuthorize(AUTH_ALL_READ)

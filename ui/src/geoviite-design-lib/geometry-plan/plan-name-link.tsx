@@ -8,7 +8,7 @@ export type GeometryPlanNameLinkProps = {
     planName: string;
 };
 
-export const GeometryPlanNameLink: React.FC<GeometryPlanNameLinkProps> = (
+export const PlanNameLink: React.FC<GeometryPlanNameLinkProps> = (
     props: GeometryPlanNameLinkProps,
 ) => {
     return (

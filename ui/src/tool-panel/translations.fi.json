@@ -241,6 +241,13 @@
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
         },
+        "alignment-plan-sections": {
+            "reference-line-geometries": "Pituusmittauslinjan geometriat",
+            "location-track-geometries": "Raiteen geometriat",
+            "bounding-box-geometries": "Vain kartalle osuvat geometriat",
+            "no-plan": "Ei suunnitelmaa",
+            "geocoding-failed": "Osoitetta ei saatu laskettua"
+        },
         "validation": {
             "location-track-prefix": "Raiteen",
             "track-number-prefix": "Ratanumeron",
