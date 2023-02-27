@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
 import { DataProductsMainContainerWithProvider } from 'data-products/data-products-container-with-provider';
+import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -56,6 +57,10 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                     <Route
                         path="/data-products/element-list"
                         element={<DataProductsMainContainerWithProvider />}
+                    />
+                    <Route
+                        path="/data-products/vertical-geometry"
+                        element={<VerticalGeometryView />}
                     />
                     <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>
