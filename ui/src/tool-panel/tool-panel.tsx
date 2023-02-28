@@ -37,9 +37,10 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getSwitch } from 'track-layout/layout-switch-api';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
+import { getGeometryPlanHeader } from 'geometry/geometry-api';
 
 type ToolPanelProps = {
-    planHeaders: GeometryPlanHeader[];
+    planIds: GeometryPlanId[];
     trackNumberIds: LayoutTrackNumberId[];
     kmPostIds: LayoutKmPostId[];
     geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
@@ -67,8 +68,12 @@ type ToolPanelTab = {
     element: React.ReactElement;
 };
 
+export function toolPanelPlanTabId(planId: GeometryPlanId): string {
+    return 'plan-header_' + planId;
+}
+
 const ToolPanel: React.FC<ToolPanelProps> = ({
-    planHeaders,
+    planIds,
     trackNumberIds,
     kmPostIds,
     geometryKmPosts,
@@ -105,7 +110,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         onUnselect({ switches: [switchId] });
     }, []);
 
-    const tracksSwitchesKmPosts = useLoader(() => {
+    const tracksSwitchesKmPostsPlans = useLoader(() => {
         const trackNumbersPromise = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
         // Data accessed ToolPanel is most likely cached and mass fetches don't have caching implemented yet.
         // These should be switched to using mass fetches once GVT-1428 is done
@@ -123,11 +128,14 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             ),
         );
 
+        const plansPromise = Promise.all(planIds.map(getGeometryPlanHeader));
+
         return Promise.all([
             locationTracksPromise.then((l) => l.filter(filterNotEmpty)),
             switchesPromise.then((l) => l.filter(filterNotEmpty)),
             kmPostsPromise.then((l) => l.filter(filterNotEmpty)),
             trackNumbersPromise.then((l) => l.filter(filterNotEmpty)),
+            plansPromise.then((l) => l.filter(filterNotEmpty)),
         ]);
     }, [
         locationTrackIds,
@@ -138,24 +146,26 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         kmPostIds,
         changeTimes.layoutKmPost,
         changeTimes.layoutTrackNumber,
+        planIds,
     ]);
 
-    const locationTracks = (tracksSwitchesKmPosts && tracksSwitchesKmPosts[0]) || [];
-    const switches = (tracksSwitchesKmPosts && tracksSwitchesKmPosts[1]) || [];
-    const kmPosts = (tracksSwitchesKmPosts && tracksSwitchesKmPosts[2]) || [];
-    const trackNumbers = (tracksSwitchesKmPosts && tracksSwitchesKmPosts[3]) || [];
+    const locationTracks = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[0]) || [];
+    const switches = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[1]) || [];
+    const kmPosts = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[2]) || [];
+    const trackNumbers = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[3]) || [];
+    const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
     const visibleByTypeAndPublishType = ({ draftType }: { draftType: DraftType }) =>
         publishType === 'DRAFT' || draftType !== 'NEW_DRAFT';
 
     React.useEffect(() => {
-        if (tracksSwitchesKmPosts === undefined) {
+        if (tracksSwitchesKmPostsPlans === undefined) {
             return;
         }
         const planTabs = planHeaders.map((p: GeometryPlanHeader) => {
             return {
-                id: 'plan-header_' + p.id,
+                id: toolPanelPlanTabId(p.id),
                 title: p.fileName,
                 element: <GeometryPlanInfobox planHeader={p} />,
             };
@@ -380,6 +390,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         setSelectedTabId(lockToTabId ? lockToTabId : tabId);
     }
 
+    console.log(tabs.map((t) => t.id));
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (

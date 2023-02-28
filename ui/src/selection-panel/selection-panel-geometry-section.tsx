@@ -170,7 +170,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 onPlanHeaderSelection={(header) =>
                                     onSelect({
                                         ...createEmptyItemCollections(),
-                                        geometryPlans: [header],
+                                        geometryPlans: [header.id],
                                         isToggle: true,
                                     })
                                 }

@@ -11,7 +11,7 @@ import {
     MapSegment,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { GeometryPlanHeader, GeometryPlanId, GeometryPlanLayoutId } from 'geometry/geometry-model';
+import { GeometryPlanId, GeometryPlanLayoutId } from 'geometry/geometry-model';
 import {
     ClusterPoint,
     LinkPoint,
@@ -41,7 +41,7 @@ export type ItemCollections = {
     clusterPoints: ClusterPoint[];
     suggestedSwitches: SuggestedSwitch[];
     locationTrackEndPoints: LocationTrackEndpoint[];
-    geometryPlans: GeometryPlanHeader[];
+    geometryPlans: GeometryPlanId[];
 };
 
 export type UnselectableItemCollections = {
