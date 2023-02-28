@@ -227,32 +227,54 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                     )
                   ) 
                 group by alignment.id
-              )
-            select 
-              segment_version.alignment_id,
-              segment_version.segment_index,
-              plan.id as plan_id,
-              plan_file.name as filename,
-              layout.initial_import_metadata.plan_file_name,
-              segment_version.source,
-              postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_x,
-              postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_y,
-              postgis.st_x(postgis.st_endpoint(segment_geometry.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(segment_geometry.geometry)) as end_y
+              ),
+              segment_points as (
+                select
+                  segment_version.alignment_id,
+                  segment_version.segment_index,
+                  segment_version.source,
+                  segment_version.geometry_alignment_id,
+                  postgis.st_startpoint(
+                    case 
+                      when :use_bounding_box = true and segment_version.segment_index = min_index
+                        then postgis.st_intersection(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), segment_geometry.geometry)
+                      else segment_geometry.geometry
+                    end
+                  ) as start,
+                  postgis.st_endpoint(
+                    case 
+                      when :use_bounding_box = true and segment_index = max_index
+                        then postgis.st_intersection(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), segment_geometry.geometry)
+                      else segment_geometry.geometry
+                    end
+                  ) as end
               from segment_range
                 inner join layout.segment_version on segment_range.id = segment_version.alignment_id
                   and segment_range.version = segment_version.alignment_version
                   and segment_version.segment_index between segment_range.min_index and segment_range.max_index
                 inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
-                left join geometry.alignment on segment_version.geometry_alignment_id = geometry.alignment.id
+              )
+            select 
+              segment_points.alignment_id,
+              segment_points.segment_index,
+              plan.id as plan_id,
+              plan_file.name as filename,
+              layout.initial_import_metadata.plan_file_name,
+              segment_points.source,
+              postgis.st_x(segment_points.start) as start_x,
+              postgis.st_y(segment_points.start) as start_y,
+              postgis.st_x(segment_points.end) as end_x,
+              postgis.st_y(segment_points.end) as end_y
+              from segment_points
+                left join geometry.alignment on segment_points.geometry_alignment_id = geometry.alignment.id
                 left join geometry.plan on geometry.alignment.plan_id = plan.id
                 left join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
                 left join layout.initial_segment_metadata 
-                  on segment_version.alignment_id = initial_segment_metadata.alignment_id
-                    and segment_version.segment_index = initial_segment_metadata.segment_index
+                  on segment_points.alignment_id = initial_segment_metadata.alignment_id
+                    and segment_points.segment_index = initial_segment_metadata.segment_index
                 left join layout.initial_import_metadata 
                   on initial_segment_metadata.metadata_id = initial_import_metadata.id
-              order by segment_version.segment_index
+              order by segment_points.segment_index
         """.trimIndent()
         val params = mapOf(
             "id" to alignmentId.intValue,
