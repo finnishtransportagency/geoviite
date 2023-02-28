@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.dataImport
 
+import com.github.davidmoten.rtree2.RTree
+import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -118,7 +120,7 @@ fun createReferenceLinesFromCsv(
     file: CsvFile<ReferenceLineColumns>,
     metadataMap: Map<Oid<ReferenceLine>, List<AlignmentCsvMetaData<ReferenceLine>>>,
     trackNumbers: Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>,
-    kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>
+    kkjToEtrsTriangulationTriangles: RTree<KKJtoETRSTriangle, Rectangle>,
 ): Sequence<CsvReferenceLine> {
     return file.parseLinesStreaming { line ->
         val resolution = line.getInt(ReferenceLineColumns.RESOLUTION)
@@ -229,7 +231,7 @@ fun createLocationTracksFromCsv(
     metadataMap: Map<Oid<LocationTrack>, List<AlignmentCsvMetaData<LocationTrack>>>,
     switchLinksMap: Map<Oid<LocationTrack>, List<AlignmentSwitchLink>>,
     trackNumbers: Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>,
-    kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>
+    kkjToEtrsTriangulationTriangles: RTree<KKJtoETRSTriangle, Rectangle>
 ): Sequence<CsvLocationTrack> {
     return alignmentsFile.parseLinesStreaming { line ->
         val resolution = line.getInt(LocationTrackColumns.RESOLUTION)
@@ -666,7 +668,7 @@ fun <T> combineMetadataToSegments(
     switchLinks: List<AlignmentSwitchLink> = listOf(),
     alignmentMetadata: List<AlignmentCsvMetaData<T>> = listOf(),
     points: List<AddressPoint>,
-    kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>,
+    kkjToEtrsTriangulationTriangles: RTree<KKJtoETRSTriangle, Rectangle>,
 ): List<SegmentCsvMetaDataRange<T>> {
     val adjustedAlignmentMetadata = validateAndAdjustAlignmentCsvMetaData(
         points.first().trackMeter,
@@ -1000,7 +1002,7 @@ fun <T> noElementsCsvMetadata(alignmentMetaData: AlignmentCsvMetaData<T>) = Elem
 fun <T> getGeometryElementRanges(
     allPoints: List<AddressPoint>,
     alignment: AlignmentCsvMetaData<T>,
-    kkjToEtrsTriangulationTriangles: List<KKJtoETRSTriangle>
+    kkjToEtrsTriangulationTriangles: RTree<KKJtoETRSTriangle, Rectangle>,
 ): List<ElementCsvMetadata<T>> {
     val planSrid = alignment.geometry?.coordinateSystemSrid
     val elements = alignment.geometry?.elements ?: return listOf(noElementsCsvMetadata(alignment))

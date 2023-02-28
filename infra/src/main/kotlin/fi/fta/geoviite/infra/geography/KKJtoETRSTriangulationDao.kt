@@ -1,8 +1,12 @@
 package fi.fta.geoviite.infra.geography
 
+import com.github.davidmoten.rtree2.RTree
+import com.github.davidmoten.rtree2.geometry.Geometries
+import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.configuration.CACHE_KKJ_ETRS_TRIANGULATION_NETWORK
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getPoint
 import org.springframework.cache.annotation.Cacheable
@@ -12,7 +16,7 @@ import org.springframework.stereotype.Component
 @Component
 class KKJtoETRSTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Cacheable(CACHE_KKJ_ETRS_TRIANGULATION_NETWORK, sync = true)
-    fun fetchTriangulationNetwork(): List<KKJtoETRSTriangle> {
+    fun fetchTriangulationNetwork(): RTree<KKJtoETRSTriangle, Rectangle> {
         val sql = """
           select
             postgis.st_x(t1.coord_kkj) as x1,
@@ -27,7 +31,7 @@ class KKJtoETRSTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) 
             inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
         """.trimIndent()
         logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
-        return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, i ->
+        val triangles = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, i ->
             val heightTriangle = KKJtoETRSTriangle(
                 corner1 = rs.getPoint("x1", "y1"),
                 corner2 = rs.getPoint("x2", "y2"),
@@ -41,5 +45,20 @@ class KKJtoETRSTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) 
             )
             heightTriangle
         }
+        return triangulationNetworkToRTree(triangles)
     }
+
+    private fun triangulationNetworkToRTree(triangulationNetwork: List<KKJtoETRSTriangle>) =
+        triangulationNetwork.fold(RTree.star().create<KKJtoETRSTriangle, Rectangle>()) { tree, triangle ->
+            val bbox = boundingBoxAroundPoints(triangle.corner1, triangle.corner2, triangle.corner3)
+            tree.add(
+                triangle,
+                Geometries.rectangle(
+                    bbox.min.y,
+                    bbox.min.x,
+                    bbox.max.y,
+                    bbox.max.x
+                )
+            )
+        }
 }

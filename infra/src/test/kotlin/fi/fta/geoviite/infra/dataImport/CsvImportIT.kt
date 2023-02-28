@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.dataImport
 
+import com.github.davidmoten.rtree2.RTree
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -67,7 +68,7 @@ class CsvImportIT @Autowired constructor(
                 mapOf(),
                 mapOf(),
                 trackIdMap,
-                emptyList()
+                RTree.create()
             ).toList()
 
             assertEquals(15, locationTracks.size)
