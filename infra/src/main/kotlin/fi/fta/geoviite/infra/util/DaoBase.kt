@@ -50,6 +50,16 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
         return queryRowVersion("select id, version from ${table.fullName} where id = :id", id)
     }
 
+    protected fun <T> fetchManyRowVersions(ids: List<IntId<T>>, table: DbTable): List<RowVersion<T>> {
+        logger.daoAccess(VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
+        return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
+                "select id, version from ${table.fullName} where id in (:ids)",
+                mapOf("ids" to ids.map { it.intValue })
+            ) { rs, _ ->
+                rs.getRowVersion("id", "version")
+            }
+    }
+
 
     protected fun <T> fetchRowVersions(table: DbTable): List<RowVersion<T>> {
         logger.daoAccess(VERSION_FETCH, "fetchRowVersions", "table" to table.fullName)

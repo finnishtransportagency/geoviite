@@ -34,10 +34,10 @@ import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-nu
 import { useLoader } from 'utils/react-utils';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { getSwitch } from 'track-layout/layout-switch-api';
-import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getSwitches } from 'track-layout/layout-switch-api';
+import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
-import { getGeometryPlanHeader } from 'geometry/geometry-api';
+import { getGeometryPlanHeaders } from 'geometry/geometry-api';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -114,13 +114,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const trackNumbersPromise = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
         // Data accessed ToolPanel is most likely cached and mass fetches don't have caching implemented yet.
         // These should be switched to using mass fetches once GVT-1428 is done
-        const locationTracksPromise = Promise.all(
-            locationTrackIds.map((id) =>
-                getLocationTrack(id, publishType, changeTimes.layoutLocationTrack),
-            ),
-        );
+        const locationTracksPromise = getLocationTracks(locationTrackIds, publishType);
 
-        const switchesPromise = Promise.all(switchIds?.map((swId) => getSwitch(swId, publishType)));
+        const switchesPromise = getSwitches(switchIds, publishType);
 
         const kmPostsPromise = Promise.all(
             kmPostIds?.map((kmPostId) =>
@@ -128,7 +124,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             ),
         );
 
-        const plansPromise = Promise.all(planIds.map(getGeometryPlanHeader));
+        const plansPromise = getGeometryPlanHeaders(planIds);
 
         return Promise.all([
             locationTracksPromise.then((l) => l.filter(filterNotEmpty)),
@@ -390,7 +386,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         setSelectedTabId(lockToTabId ? lockToTabId : tabId);
     }
 
-    console.log(tabs.map((t) => t.id));
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (

@@ -60,7 +60,7 @@ async function getPlanAreas(bbox: BoundingBox): Promise<PlanArea[]> {
     return (await getIgnoreError<PlanArea[]>(path)) || [];
 }
 
-export async function getGeometryPlanHeaders(
+export async function getGeometryPlanHeadersBySearchTerms(
     limit: number,
     offset?: number,
     bbox?: BoundingBox,
@@ -93,6 +93,12 @@ export async function getGeometryPlanHeaders(
 
 export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<GeometryPlanHeader> {
     return getThrowError<GeometryPlanHeader>(`${GEOMETRY_URI}/plan-headers/${planId}`);
+}
+
+export async function getGeometryPlanHeaders(
+    planIds: GeometryPlanId[],
+): Promise<GeometryPlanHeader[]> {
+    return getThrowError<GeometryPlanHeader[]>(`${GEOMETRY_URI}/plan-headers?planIds=${planIds}`);
 }
 
 export async function getGeometryPlanElements(

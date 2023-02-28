@@ -72,6 +72,11 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchPlanVersion(planId).let(geometryDao::fetchPlanHeader)
     }
 
+    fun getManyPlanHeaders(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanHeader> {
+        logger.serviceCall("getManyPlanHeaders", "planIds" to planIds)
+        return geometryDao.fetchManyPlanVersions(planIds).map(geometryDao::fetchPlanHeader)
+    }
+
     fun getTrackLayoutPlan(
         geometryPlanId: IntId<GeometryPlan>,
         includeGeometryData: Boolean = true,

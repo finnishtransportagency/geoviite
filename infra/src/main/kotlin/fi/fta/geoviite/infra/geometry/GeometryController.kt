@@ -53,6 +53,13 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plan-headers", params = ["planIds"])
+    fun getPlanHeaders(@RequestParam("planIds", required = true) planIds: List<IntId<GeometryPlan>>): List<GeometryPlanHeader> {
+        log.apiCall("getPlanHeaders", "planIds" to planIds)
+        return geometryService.getManyPlanHeaders(planIds)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/plans/areas")
     fun getGeometryPlanAreas(@RequestParam("bbox") bbox: BoundingBox): List<GeometryPlanArea> {
         log.apiCall("getGeometryPlanAreas", "bbox" to bbox)
