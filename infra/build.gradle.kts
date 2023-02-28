@@ -80,7 +80,7 @@ dependencies {
     implementation("net.postgis:postgis-jdbc:2021.1.0")
     implementation("jakarta.activation:jakarta.activation-api:2.1.0")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
-    implementation("org.apache.commons:commons-csv:1.9.0")
+    implementation("com.github.davidmoten:rtree2:0.9.3")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.sun.xml.bind:jaxb-impl:4.0.1")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")

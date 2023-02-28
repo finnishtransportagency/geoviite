@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.ui.testdata
 
+import com.github.davidmoten.rtree2.RTree
+import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.KKJtoETRSTriangle
 import fi.fta.geoviite.infra.geography.Transformation
@@ -187,7 +189,7 @@ fun pointsFromIncrementList(basePoint: Point, incrementPoints: List<Point>) =
 fun locationTrackAndAlignmentForGeometryAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     geometryAlignment: GeometryAlignment,
-    triangulationNetwork: List<KKJtoETRSTriangle>,
+    triangulationNetwork: RTree<KKJtoETRSTriangle, Rectangle>,
     planSrid: Srid = LAYOUT_SRID,
 ): Pair<LocationTrack, LayoutAlignment> {
     val transformation = Transformation.possiblyKKJToETRSTransform(planSrid, LAYOUT_SRID, triangulationNetwork)

@@ -1,5 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
+import com.github.davidmoten.rtree2.RTree
+import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.dataImport.RATKO_SRID
@@ -15,19 +17,7 @@ import org.junit.jupiter.api.assertThrows
 import java.lang.IllegalArgumentException
 import kotlin.test.assertEquals
 
-val DummyTriangulationNetwork = listOf(
-    KKJtoETRSTriangle(
-        Point(0.0, 0.0),
-        Point(1.0, 1.0),
-        Point(0.0, 1.0),
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0
-    )
-)
+val DummyTriangulationNetwork = RTree.create<KKJtoETRSTriangle, Rectangle>()
 
 class TransformationTest {
 
@@ -79,13 +69,6 @@ class TransformationTest {
             ),
             toPointList(curve, 1),
         )
-    }
-
-    @Test
-    fun `Creating KKJ to TM35 transformation with empty triangulation network throws`() {
-        assertThrows<IllegalArgumentException> {
-            Transformation.possiblyKKJToETRSTransform(KKJ2, LAYOUT_SRID, emptyList())
-        }
     }
 
     @Test
