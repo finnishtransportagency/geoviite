@@ -2,6 +2,7 @@
     &__table-container {
         overflow: auto;
         padding-left: 32px;
+        flex-grow: 1;
     }
 
     &__element-count {
