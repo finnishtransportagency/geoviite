@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from 'data-products/element-list/element-list-view.scss';
+import styles from 'data-products/data-product-view.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -100,7 +100,7 @@ const ContinuousGeometrySearch = ({
 
     return (
         <React.Fragment>
-            <p className={styles['element-list__geometry-search-legend']}>
+            <p className={styles['data-product__search-legend']}>
                 {t('data-products.element-list.location-track-legend')}
             </p>
             <div className={styles['element-list__geometry-search']}>

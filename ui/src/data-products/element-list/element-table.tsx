@@ -2,7 +2,7 @@ import * as React from 'react';
 import { ElementTableItem } from 'data-products/element-list/element-table-item';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
-import styles from './element-list-view.scss';
+import styles from './element-table.scss';
 import { ElementItem } from 'geometry/geometry-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { useLoader } from 'utils/react-utils';
@@ -66,19 +66,19 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
 
     return (
         <React.Fragment>
-            <p className={styles['element-list-view__element-count']}>
+            <p className={styles['element-table__element-count']}>
                 {t(`data-products.element-list.geometry-elements`, { amount })}
             </p>
-            <div className={styles['element-list-view__table-container']}>
+            <div className={styles['element-table__table-container']}>
                 <Table wide>
-                    <thead className={styles['element-list-view__table-heading']}>
+                    <thead className={styles['element-table__table-heading']}>
                         <tr>
                             {tableHeadingsToShowInUI.map((heading) => (
                                 <Th
                                     key={heading.name}
                                     className={
                                         heading.numeric
-                                            ? styles['element-list-view__column--number']
+                                            ? styles['element-table__column--number']
                                             : ''
                                     }>
                                     {t(
