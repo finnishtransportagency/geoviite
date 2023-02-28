@@ -1,6 +1,4 @@
-@import '../../vayla-design-lib/radio/radio';
-
-.element-list-view {
+.data-product-view {
     width: 100%;
     display: flex;
     flex-direction: column;
@@ -12,51 +10,22 @@
         margin-bottom: 20px;
     }
 
-    &__table-layout {
-        margin-top: 100px;
-        position: absolute;
-    }
-
-    &__table-container {
-        overflow: auto;
-        padding-left: 32px;
-    }
-
-    &__element-count {
-        padding-left: 32px;
-    }
-
     &__header-container {
         padding-left: 32px;
     }
-
-    &__table-heading {
-        position: sticky;
-        top: 0;
-
-        th {
-            min-width: 100px;
-        }
-    }
-
-    &__column--number {
-        text-align: right;
-    }
 }
 
-.element-list__geometry-search-legend {
+.data-product__search-legend {
     max-width: 800px;
 }
 
+//Rename accordingly if some of the styles below can also be used for vertical geometry
 .element-list__geometry-search {
     display: flex;
 
     > :not(:last-child) {
         margin-right: 16px;
     }
-}
-.element-list__plan-search-dropdown {
-    width: 360px;
 }
 
 .element-list__geometry-checkboxes {
@@ -71,4 +40,8 @@
     align-self: center;
     margin-left: auto;
     margin-right: 24px;
+}
+
+.element-list__plan-search-dropdown {
+    width: 360px;
 }

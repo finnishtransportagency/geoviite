@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Radio } from 'vayla-design-lib/radio/radio';
-import styles from 'data-products/vertical-geometry/vertical-geometry-view.scss';
+import styles from 'data-products/data-product-view.scss';
 import PlanVerticalGeometrySearch from 'data-products/vertical-geometry/plan-vertical-geometry-search';
 import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry/location-track-vertical-geometry-search';
 
@@ -14,11 +14,11 @@ const VerticalGeometryView = () => {
     };
 
     return (
-        <div className={styles['vertical-geometry-view']}>
-            <div className={styles['vertical-geometry-view__header-container']}>
+        <div className={styles['data-product-view']}>
+            <div className={styles['data-product-view__header-container']}>
                 <h2>{t('data-products.vertical-geometry.vertical-geometry-title')}</h2>
                 <div>
-                    <span className={styles['vertical-geometry-view__radio-layout']}>
+                    <span className={styles['data-product-view__radio-layout']}>
                         <Radio onChange={handleRadioClick} checked={locationTrackSelected}>
                             {t('data-products.vertical-geometry.location-track-vertical-geometry')}
                         </Radio>
