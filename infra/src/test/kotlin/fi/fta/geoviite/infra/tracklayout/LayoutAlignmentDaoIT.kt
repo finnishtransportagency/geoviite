@@ -211,14 +211,14 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         fixStartDistances((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
 
     private fun segmentWithoutZAndCant(segmentSeed: Int) =
-        segment(segmentSeed, points(
+        createSegment(segmentSeed, points(
             count = 10,
             x = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
             y = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
         ))
 
     private fun segmentWithZAndCant(segmentSeed: Int) =
-        segment(segmentSeed, points(
+        createSegment(segmentSeed, points(
             count = 20,
             x = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
             y = (segmentSeed*10).toDouble()..(segmentSeed*10 + 10.0),
@@ -226,15 +226,9 @@ class LayoutAlignmentDaoIT @Autowired constructor(
             cant = segmentSeed.toDouble()..segmentSeed + 20.0,
         ))
 
-    private fun segment(segmentSeed: Int, points: List<LayoutPoint>) = LayoutSegment(
+    private fun createSegment(segmentSeed: Int, points: List<LayoutPoint>) = segment(
         points = points,
-        sourceId = null,
-        sourceStart = null,
-        resolution = 1,
         start = segmentSeed * 0.1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
         source = GeometrySource.PLAN,
     )
 
@@ -257,7 +251,12 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     fun getDbSegmentCount(alignmentId: IntId<LayoutAlignment>): Int =
         jdbc.queryForObject(
-            "select count(*) from layout.segment where alignment_id = :id",
+            """
+                select count(*) 
+                from layout.alignment inner join layout.segment_version 
+                  on alignment.id = segment_version.alignment_id and alignment.version = segment_version.alignment_version
+                where alignment_id = :id
+                """,
             mapOf("id" to alignmentId.intValue),
         ) { rs, _ -> rs.getInt("count") } ?: 0
 }

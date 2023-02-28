@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DZ
@@ -16,7 +14,6 @@ class LinkingTest {
 
     @Test
     fun shouldReverseTrackPointUpdateType(){
-
         val reversedEndPoint = getReversedTrackPointUpdateType(LocationTrackPointUpdateType.END_POINT)
         val reversedStartPoint = getReversedTrackPointUpdateType(LocationTrackPointUpdateType.START_POINT)
         assertEquals(reversedEndPoint, LocationTrackPointUpdateType.START_POINT)
@@ -25,16 +22,16 @@ class LinkingTest {
 
     @Test
     fun shouldUpdateLocationTrackEndPoint(){
-        val switchId = DomainId.create<TrackLayoutSwitch>("INT_1711")
-        val segments = getAlignmentEndPointSegmentsData()
+        val switchId = IntId<TrackLayoutSwitch>(1711)
+        val segments = getAlignmentEndPointSegmentsData(switchId)
         val actualSegments = removeLinkingToSwitchFromSegments(switchId, segments)
         assertEquals(null, actualSegments.last().switchId)
     }
 
     @Test
     fun shouldGetLastSegmentSwitchId(){
-        val expectedSwitchId = DomainId.create<TrackLayoutSwitch>("INT_1711")
-        val segments = getAlignmentEndPointSegmentsData()
+        val expectedSwitchId = IntId<TrackLayoutSwitch>(1711)
+        val segments = getAlignmentEndPointSegmentsData(expectedSwitchId)
         assertEquals(expectedSwitchId, getSwitchId(segments, LocationTrackPointUpdateType.END_POINT))
     }
 
@@ -45,7 +42,7 @@ class LinkingTest {
         val point3 = LayoutPoint(2.0, 0.0, null, 2.0, null)
 
         val segmentPoints = listOf(point1, point2, point3)
-        val segment = createTestSegment(segmentPoints)
+        val segment = segment(segmentPoints)
         val point1Index = segment.getPointIndex(point1)
         val point2Index = segment.getPointIndex(point2)
         val point3Index = segment.getPointIndex(point3)
@@ -63,7 +60,7 @@ class LinkingTest {
         val segments = createSegments()
         val startLayoutIndex = 1
         val segmentsBeforeStart = getSegmentsBeforeNewGeometry(segments, startLayoutIndex)
-        assertEquals("IDX_2101_0", segmentsBeforeStart[0].id.toString())
+        assertEquals(segments[0].id, segmentsBeforeStart[0].id)
     }
 
     @Test
@@ -71,7 +68,7 @@ class LinkingTest {
         val segments = createSegments()
         val endLayoutIndex = 1
         val segmentsAfterGeometry = getSegmentsAfterNewGeometry(segments, endLayoutIndex, 1.0)
-        assertEquals("IDX_2101_2", segmentsAfterGeometry[0].id.toString())
+        assertEquals(segments[2].id, segmentsAfterGeometry[0].id)
         assertEquals(1.0, segmentsAfterGeometry[0].start)
     }
 
@@ -116,7 +113,7 @@ class LinkingTest {
         val startLayoutIndex = 1
         val endLayoutIndex = 1
 
-        val expectedId: DomainId<LayoutSegment> = DomainId.create("IDX_2101_1")
+        val expectedId: DomainId<LayoutSegment> = segments[1].id
         val list = getSegmentsInRange(
             segments,
             startLayoutIndex,
@@ -138,8 +135,7 @@ class LinkingTest {
             endIndex = endLayoutIndex,
             10.0,
         )
-        val expectedIdList: List<DomainId<LayoutSegment>> =
-            listOf(DomainId.create("IDX_2101_1"), DomainId.create("IDX_2101_2"))
+        val expectedIdList: List<DomainId<LayoutSegment>> = listOf(segments[1].id, segments[2].id)
         val actualIdList = list.map { segment -> segment.id }
         assertEquals(expectedIdList, actualIdList)
         val expectedStarts = listOf(10.0, 10.0 + segments[1].length)
@@ -148,31 +144,19 @@ class LinkingTest {
     }
 
     @Test
-    fun shouldCalculateLengthFromListOfPoints() {
-        val segments = createSegments()
-        val segment = segments[0]
-        val expectedLength = segment.length
-        val actualLength = segment.getSourceLengthAt(segment.points.lastIndex)
-        assertEquals(expectedLength, actualLength, "${segment.points}")
+    fun shouldCalculateSourceLengthFromStartAndListOfPoints() {
+        val segment = segment(
+            points = toTrackLayoutPoints(Point(0.0, 10.0), Point(0.0, 15.0), Point(0.0, 25.0)),
+            sourceStart = 6.5,
+        )
+        val expectedSourceLength = 6.5 + 5.0
+        val actualSourceLength = segment.getSourceLengthAt(1)
+        assertEquals(expectedSourceLength, actualSourceLength)
     }
 }
 
-fun createTestSegment(points: List<LayoutPoint>): LayoutSegment {
-    return LayoutSegment(
-        points = points,
-        sourceId = null,
-        sourceStart = null,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
-        start = 0.0,
-        source = GeometrySource.PLAN,
-    )
-}
-
 fun createGeometrySegments(): List<LayoutSegment> {
-    val segment0 = LayoutSegment(
+    val segment0 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776456.1595348255, y = 8437996.456411341, z = 3.48),
             Point3DZ(x = 2776455.1985910204, y = 8438014.50907601, z = 3.48),
@@ -195,17 +179,12 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776408.4269490824, y = 8438893.125244746, z = 3.48),
             Point3DZ(x = 2776407.5813992294, y = 8438909.008119363, z = 3.48),
         ),
-        sourceId = DomainId.create("IDX_1_0"),
+        sourceId = IndexedId(1,0),
         sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
         start = 0.000,
-        id = DomainId.create("STR_L_IDX_1_0"),
         source = GeometrySource.PLAN,
     )
-    val segment1 = LayoutSegment(
+    val segment1 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776407.5813997965, y = 8438909.008120276, z = 3.48),
             Point3DZ(x = 2776407.472933042, y = 8438911.014126683, z = 3.48),
@@ -217,17 +196,12 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776385.315009858, y = 8439084.225281067, z = 3.48),
             Point3DZ(x = 2776385.148949401, y = 8439085.044622159, z = 3.48),
         ),
-        sourceId = DomainId.create("IDX_1_1"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceId = IndexedId(1,1),
+        sourceStart = 454.917,
         start = 454.917,
-        id = DomainId.create("STR_L_IDX_1_1"),
         source = GeometrySource.PLAN,
     )
-    val segment2 = LayoutSegment(
+    val segment2 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776385.1489478312, y = 8439085.044622496, z = 3.48),
             Point3DZ(x = 2776384.749231924, y = 8439087.013315797, z = 3.48),
@@ -256,16 +230,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776371.768086158, y = 8439150.948162042, z = 3.48),
         ),
         sourceId = DomainId.create("IDX_1_2"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 543.333,
         start = 543.333,
-        id = DomainId.create("STR_L_IDX_1_2"),
         source = GeometrySource.PLAN,
     )
-    val segment3 = LayoutSegment(
+    val segment3 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776371.7680860236, y = 8439150.948162692, z = 3.48),
             Point3DZ(x = 2776371.3683628887, y = 8439152.916872809, z = 3.48),
@@ -284,16 +253,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776364.8836245984, y = 8439184.855327273, z = 3.480174852258642),
         ),
         sourceId = DomainId.create("IDX_1_3"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 576.809,
         start = 576.809,
-        id = DomainId.create("STR_L_IDX_1_3"),
         source = GeometrySource.PLAN,
     )
-    val segment4 = LayoutSegment(
+    val segment4 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776364.8836245756, y = 8439184.8553274, z = 3.480174852265918),
             Point3DZ(x = 2776364.483897758, y = 8439186.824046168, z = 3.480268482941028),
@@ -313,16 +277,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776358.8876998574, y = 8439214.386161828, z = 3.483679312565073),
         ),
         sourceId = DomainId.create("IDX_1_4"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 594.032,
         start = 594.032,
-        id = DomainId.create("STR_L_IDX_1_4"),
         source = GeometrySource.PLAN,
     )
-    val segment5 = LayoutSegment(
+    val segment5 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776357.999099694, y = 8439218.762641229, z = 3.4845815409571514),
             Point3DZ(x = 2776357.599369296, y = 8439220.731368687, z = 3.4850196316765505),
@@ -336,16 +295,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776354.505848507, y = 8439235.967367468, z = 3.489086327223049),
         ),
         sourceId = DomainId.create("IDX_1_5"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 611.255,
         start = 611.255,
-        id = DomainId.create("STR_L_IDX_1_5"),
         source = GeometrySource.PLAN,
     )
-    val segment6 = LayoutSegment(
+    val segment6 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776354.505848357, y = 8439235.967368213, z = 3.4890863274558797),
             Point3DZ(x = 2776354.1061159866, y = 8439237.936100043, z = 3.489699198260496),
@@ -362,16 +316,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776349.7090457925, y = 8439259.592183335, z = 3.497760778023803),
         ),
         sourceId = DomainId.create("IDX_1_6"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 619.994,
         start = 619.994,
-        id = DomainId.create("STR_L_IDX_1_6"),
         source = GeometrySource.PLAN,
     )
-    val segment7 = LayoutSegment(
+    val segment7 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776347.6212278306, y = 8439269.874906845, z = 3.5024358908485738),
             Point3DZ(x = 2776347.221491889, y = 8439271.843647357, z = 3.5033932219812414),
@@ -387,16 +336,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776340.73654587, y = 8439303.78259461, z = 3.5217180967738386),
         ),
         sourceId = DomainId.create("IDX_1_7"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 637.217,
         start = 637.217,
-        id = DomainId.create("STR_L_IDX_1_7"),
         source = GeometrySource.PLAN,
     )
-    val segment8 = LayoutSegment(
+    val segment8 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776340.73654587, y = 8439303.78259461, z = 3.5217180967738386),
             Point3DZ(x = 2776340.3368062144, y = 8439305.751343763, z = 3.5230198885692516),
@@ -410,16 +354,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776337.229622805, y = 8439321.054446895, z = 3.533820642376668),
         ),
         sourceId = DomainId.create("IDX_1_8"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 654.440,
         start = 654.440,
-        id = DomainId.create("STR_L_IDX_1_8"),
         source = GeometrySource.PLAN,
     )
-    val segment9 = LayoutSegment(
+    val segment9 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776337.229622805, y = 8439321.054446895, z = 3.533820642376668),
             Point3DZ(x = 2776336.8298811913, y = 8439323.02320045, z = 3.5352978946684743),
@@ -436,16 +375,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776330.3448430994, y = 8439354.962359631, z = 3.562057456372713),
         ),
         sourceId = DomainId.create("IDX_1_9"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 663.213,
         start = 663.213,
-        id = DomainId.create("STR_L_IDX_1_9"),
         source = GeometrySource.PLAN,
     )
-    val segment10 = LayoutSegment(
+    val segment10 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776330.344843077, y = 8439354.962359756, z = 3.5620574564818526),
             Point3DZ(x = 2776329.9450977785, y = 8439356.931121973, z = 3.563879170178552),
@@ -464,16 +398,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776323.4599999157, y = 8439388.870421618, z = 3.5962269344599918),
         ),
         sourceId = DomainId.create("IDX_1_10"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 680.436,
         start = 680.436,
-        id = DomainId.create("STR_L_IDX_1_10"),
         source = GeometrySource.PLAN,
     )
-    val segment11 = LayoutSegment(
+    val segment11 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776323.459999893, y = 8439388.870421745, z = 3.596226934598235),
             Point3DZ(x = 2776323.060250948, y = 8439390.839192625, z = 3.598393110354664),
@@ -489,16 +418,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776135.814854398, y = 8440312.965667846, z = 6.198048188585655),
         ),
         sourceId = DomainId.create("IDX_1_11"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 697.659,
         start = 697.659,
-        id = DomainId.create("STR_L_IDX_1_11"),
         source = GeometrySource.PLAN,
     )
-    val segment12 = LayoutSegment(
+    val segment12 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776135.8148539574, y = 8440312.96566776, z = 6.198048188585655),
             Point3DZ(x = 2776135.415727328, y = 8440314.934821706, z = 6.208148186489619),
@@ -512,17 +436,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776129.133076116, y = 8440346.971781135, z = 6.372261739431404),
         ),
         sourceId = DomainId.create("IDX_1_12"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 1167.008,
         start = 1167.008,
-        id = DomainId.create("STR_L_IDX_1_12"),
         source = GeometrySource.PLAN,
     )
-    val segment13 = LayoutSegment(
-
+    val segment13 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776129.13307681, y = 8440346.971782582, z = 6.372261745583425),
             Point3DZ(x = 2776128.7569852434, y = 8440348.945489986, z = 6.382361743487389),
@@ -533,16 +451,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776116.6585831176, y = 8440406.62303036, z = 6.678624487104474),
         ),
         sourceId = DomainId.create("IDX_1_13"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 1184.257,
         start = 1184.257,
-        id = DomainId.create("STR_L_IDX_1_13"),
         source = GeometrySource.PLAN,
     )
-    val segment14 = LayoutSegment(
+    val segment14 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776116.6585825584, y = 8440406.623029826, z = 6.678624491232095),
             Point3DZ(x = 2776116.2110613515, y = 8440408.581743697, z = 6.688724489136059),
@@ -551,16 +464,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776115.047505227, y = 8440413.67440147, z = 6.714984480665829),
         ),
         sourceId = DomainId.create("IDX_1_14"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 1214.590,
         start = 1214.590,
-        id = DomainId.create("STR_L_IDX_1_14"),
         source = GeometrySource.PLAN,
     )
-    val segment15 = LayoutSegment(
+    val segment15 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776115.047505227, y = 8440413.67440147, z = 6.714984480665829),
             Point3DZ(x = 2776114.599983201, y = 8440415.633117111, z = 6.725084478569793),
@@ -583,16 +491,11 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776107.3398000845, y = 8440447.409429785, z = 6.888936744565805),
         ),
         sourceId = DomainId.create("IDX_1_15"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 1218.190,
         start = 1218.190,
-        id = DomainId.create("STR_L_IDX_1_15"),
         source = GeometrySource.PLAN,
     )
-    val segment16 = LayoutSegment(
+    val segment16 = segment(
         points = toTrackLayoutPoints(
             Point3DZ(x = 2776107.3398000547, y = 8440447.40942991, z = 6.888936745187633),
             Point3DZ(x = 2776106.892274038, y = 8440449.36815405, z = 6.899036743091597),
@@ -615,13 +518,8 @@ fun createGeometrySegments(): List<LayoutSegment> {
             Point3DZ(x = 2776099.6320262174, y = 8440481.144604262, z = 7.062889),
         ),
         sourceId = DomainId.create("IDX_1_16"),
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
+        sourceStart = 1235.413,
         start = 1235.413,
-        id = DomainId.create("STR_L_IDX_1_16"),
         source = GeometrySource.PLAN,
     )
     return listOf(segment0, segment1, segment2,
@@ -633,27 +531,20 @@ fun createGeometrySegments(): List<LayoutSegment> {
             LayoutPoint(transformedPoint.x, transformedPoint.y, p.z, p.m, p.cant)
         }
 
-        segment.copy(points = newPoints)
+        segment.withPoints(points = newPoints)
     }
 }
 
 fun createSegments(): List<LayoutSegment> {
-    val segment1 = LayoutSegment(
+    val segment1 = segment(
         points = toTrackLayoutPoints(
             Point(x = 2776446.184403898, y = 8437995.942963839),
             Point(x = 2776446.156804578, y = 8437996.46145657),
         ),
-        sourceId = null,
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
         start = 0.258,
-        id = DomainId.create("IDX_2101_0"),
         source = GeometrySource.PLAN,
     )
-    val segment2 = LayoutSegment(
+    val segment2 = segment(
         points = toTrackLayoutPoints(
             Point(x = 2776446.156804578, y = 8437996.46145657),
             Point(x = 2776446.078529614, y = 8437995.773646561),
@@ -669,116 +560,59 @@ fun createSegments(): List<LayoutSegment> {
             Point(x = 2776304.1633397467, y = 8439435.393078482),
             Point(x = 2776303.7635831507, y = 8439437.3618607),
         ),
-        sourceId = null,
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
         start = 723.213,
-        id = DomainId.create("IDX_2101_1"),
         source = GeometrySource.PLAN,
     )
-    val segment3 = LayoutSegment(
+    val segment3 = segment(
         points = toTrackLayoutPoints(
             Point(x = 2776303.7635831507, y = 8439437.3618607),
             Point(x = 2776303.621062641, y = 8439438.063767185),
         ),
-        sourceId = null,
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
         start = 723.569,
-        id = DomainId.create("IDX_2101_2"),
         source = GeometrySource.PLAN,
     )
 
-    val segment4 = LayoutSegment(
+    val segment4 = segment(
         points = toTrackLayoutPoints(
             Point(x = 2776303.7635831507, y = 8439437.3618607),
             Point(x = 2776303.621062641, y = 8439438.063767185),
         ),
-        sourceId = null,
-        sourceStart = 0.0,
-        resolution = 1,
-        switchId = null,
-        startJointNumber = null,
-        endJointNumber = null,
         start = 723.569,
-        id = DomainId.create("IDX_2101_3"),
         source = GeometrySource.PLAN,
     )
     return listOf(segment1, segment2, segment3, segment4)
 }
 
-private fun getAlignmentEndPointSegmentsData(): List<LayoutSegment> {
+private fun getAlignmentEndPointSegmentsData(switchId: IntId<TrackLayoutSwitch>): List<LayoutSegment> {
     return listOf(
-        LayoutSegment(
-            points =
-            listOf(
-                LayoutPoint(x = 495978.63098445226, y = 6719338.7833989635, z = null, m = 0.0, cant = null),
-                LayoutPoint(
-                    x = 496682.8319693883,
-                    y = 6718628.209313194,
-                    z = null,
-                    m = 1000.8073537037599,
-                    cant = null
-                )
+        segment(
+            points = toTrackLayoutPoints(
+                Point(x = 495978.63098445226, y = 6719338.7833989635),
+                Point(x = 496682.8319693883, y = 6718628.209313194),
             ),
-            sourceId = null, sourceStart = null,
-            resolution = 100, switchId = null, startJointNumber = null, endJointNumber = null, start = 32392.19111,
-            id = DomainId.create("IDX_261_34"),
+            resolution = 100,
+            start = 32392.19111,
             source = GeometrySource.PLAN,
         ),
-        LayoutSegment(
-            points =
-            listOf(
-                LayoutPoint(x = 496682.8319693883, y = 6718628.209313194, z = null, m = 0.0, cant = null),
-                LayoutPoint(
-                    x = 496893.92104687955,
-                    y = 6718415.210125355,
-                    z = null,
-                    m = 299.9986914612325,
-                    cant = null
-                )
+        segment(
+            points = toTrackLayoutPoints(
+                Point(x = 496682.8319693883, y = 6718628.209313194),
+                Point(x = 496893.92104687955, y = 6718415.210125355),
             ),
-            sourceId = null,
-            sourceStart = null,
             resolution = 100,
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null,
             start = 33392.998464,
-            id = DomainId.create("IDX_261_35"),
             source = GeometrySource.PLAN,
         ),
-        LayoutSegment(
-            points = listOf(
-                LayoutPoint(
-                    x = 496893.92104687955,
-                    y = 6718415.210125355,
-                    z = null,
-                    m = 0.0,
-                    cant = null
-                ),
-                LayoutPoint(
-                    x = 496918.22153316956,
-                    y = 6718390.689744501,
-                    z = null,
-                    m = 34.53572662981761,
-                    cant = null
-                )
+        segment(
+            points = toTrackLayoutPoints(
+                Point(x = 496893.92104687955, y = 6718415.210125355),
+                Point(x = 496918.22153316956, y = 6718390.689744501),
             ),
-            sourceId = null,
-            sourceStart = null,
             resolution = 100,
-            switchId = DomainId.create("INT_1711"),
+            switchId = switchId,
             startJointNumber = JointNumber(2),
             endJointNumber = null,
             start = 33692.997156,
-            id = DomainId.create("IDX_261_36"),
             source = GeometrySource.PLAN,
         )
     )

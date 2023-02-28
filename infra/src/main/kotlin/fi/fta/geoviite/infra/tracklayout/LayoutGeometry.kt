@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
@@ -150,8 +151,8 @@ data class LayoutAlignment(
         val segment = segments[segmentIndex]
         val start = segment.points[0]
         val end = segment.points[segment.points.lastIndex]
-        val prevDir = segments.getOrNull(segmentIndex - 1)?.endDirection()
-        val nextDir = segments.getOrNull(segmentIndex + 1)?.startDirection()
+        val prevDir = segments.getOrNull(segmentIndex - 1)?.endDirection
+        val nextDir = segments.getOrNull(segmentIndex + 1)?.startDirection
         val fakeDir =
             if (prevDir != null && nextDir != null) angleAvgRads(prevDir, nextDir)
             else prevDir ?: nextDir
@@ -199,57 +200,86 @@ data class LayoutSegmentMetadata(
             && originalSrid == other.originalSrid
 }
 
+interface ISegmentGeometry {
+    val resolution: Int
+    val points: List<LayoutPoint>
+    val boundingBox: BoundingBox?
+    val length: Double
+    @get:JsonIgnore
+    val startDirection: Double
+    @get:JsonIgnore
+    val endDirection: Double
+}
+
+data class SegmentGeometry(
+    override val resolution: Int,
+    override val points: List<LayoutPoint>,
+    val id: DomainId<SegmentGeometry> = StringId(),
+): ISegmentGeometry {
+    override val boundingBox: BoundingBox? by lazy { boundingBoxAroundPointsOrNull(points) }
+    override val length: Double by lazy { points.last().m }
+
+    override val startDirection: Double by lazy {
+        directionBetweenPoints(points[0], points[1])
+    }
+    override val endDirection: Double by lazy {
+        directionBetweenPoints(points[points.lastIndex - 1], points[points.lastIndex])
+    }
+
+    init {
+        require(resolution > 0) { "Invalid segment geometry resolution: $resolution" }
+        require(points.size >= 2) { "Segment geometry must have at least 2 points: points=${points.size}" }
+        require(points.first().m == 0.0) { "M-values should be from segment geometry start" }
+        points.forEachIndexed { index, point ->
+            require(index == 0 || point.x != points[index - 1].x || point.y != points[index - 1].y) {
+                "There should be no duplicate points in segment geometry:" +
+                        " id=$id ${index - 1}=${points[index - 1]} ${index}=${points[index]}"
+            }
+            require(index == 0 || point.m > points[index - 1].m) {
+                "Segment geometry m-values should be increasing:" +
+                        " id=$id ${index - 1}=${points[index - 1].m} $index=${point.m}"
+            }
+        }
+    }
+
+    fun withPoints(points: List<LayoutPoint>): SegmentGeometry {
+        val mOffset = points.first().m
+        val newPoints =
+            if (mOffset == 0.0) points
+            else points.map { p -> p.copy(m = max(0.0, p.m - mOffset)) }
+        return copy(points = newPoints, id = StringId())
+    }
+}
+
 data class LayoutSegment(
-    val points: List<LayoutPoint>,
+    @JsonIgnore
+    val geometry: SegmentGeometry,
     val sourceId: DomainId<GeometryElement>?,
     val sourceStart: Double?,
-    val resolution: Int,
     val switchId: DomainId<TrackLayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
     val start: Double,
     val source: GeometrySource,
     val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
-) {
-    val boundingBox: BoundingBox? = boundingBoxAroundPointsOrNull(points.map { sp -> Point(sp.x, sp.y) })
-    val length: Double = points.last().m
-
-    fun startDirection() = directionBetweenPoints(points[0], points[1])
-    fun endDirection() = directionBetweenPoints(points[points.lastIndex - 1], points[points.lastIndex])
+): ISegmentGeometry by geometry {
 
     init {
-        require(points.size >= 2) { "Segment must have at least 2 points (start & end): points=${points.size}" }
         require(source != GENERATED || points.size == 2) { "Generated segment can't have more than 2 points" }
-        require(resolution > 0) { "Invalid segment resolution: $resolution" }
         require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
         require(start.isFinite()) { "Invalid start length: $start" }
         require(length.isFinite() && length >= 0.0) { "Invalid length: $length" }
-        require(points.first().m == 0.0) { "M-values should be from segment start" }
-        points.forEachIndexed { index, point ->
-            require(index == 0 || point.x != points[index - 1].x || point.y != points[index - 1].y) {
-                "There should be no duplicate points: id=$id ${index - 1}=${points[index - 1]} ${index}=${points[index]}"
-            }
-            require(index == 0 || point.m > points[index - 1].m) {
-                "Segment m-values should be increasing: id=$id ${index - 1}=${points[index - 1].m} $index=${point.m}"
-            }
-        }
     }
 
     fun slice(fromIndex: Int, toIndex: Int, newStart: Double): LayoutSegment? =
         if (fromIndex >= toIndex) null
         else withPoints(points.slice(fromIndex..toIndex), newStart)
 
-    fun withPoints(points: List<LayoutPoint>, newStart: Double): LayoutSegment {
-        val mOffset = points.first().m
-        val newPoints =
-            if (mOffset == 0.0) points
-            else points.map { p -> p.copy(m = max(0.0, p.m - mOffset)) }
-        return copy(
-            points = newPoints,
-            sourceStart = sourceStart?.plus(mOffset),
-            start = newStart,
-        )
-    }
+    fun withPoints(points: List<LayoutPoint>, newStart: Double = start): LayoutSegment = copy(
+        geometry = geometry.withPoints(points),
+        sourceStart = sourceStart?.plus(points.first().m),
+        start = newStart,
+    )
 
     fun splitAtM(m: Double, tolerance: Double): Pair<LayoutSegment, LayoutSegment?> =
         if (m <= points.first().m || m >= points.last().m) this to null
@@ -313,9 +343,7 @@ data class LayoutSegment(
                 // Found target between the points
                 interpolatedM to WITHIN
             }.also { (length, _) ->
-                require(length.isFinite()) {
-                    "Invalid length value: length=$length target=$target"
-                }
+                require(length.isFinite()) { "Invalid length value: length=$length target=$target" }
             }
         }
     }

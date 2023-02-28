@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.util
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 
@@ -29,3 +30,15 @@ fun NamedParameterJdbcTemplate.setUser(userName: UserName) {
     // set doesn't work with parameters, but it's validated in UserName constructor
     update("set local geoviite.edit_user = '$userName';", mapOf<String, Any>())
 }
+
+fun <T> NamedParameterJdbcTemplate.batchUpdateIndexed(
+    sql: String,
+    items: List<T>,
+    paramSetter: ParameterizedPreparedStatementSetter<Pair<Int, T>>,
+) = batchUpdate(sql, items.mapIndexed { index, item -> index to item }, paramSetter)
+
+fun <T> NamedParameterJdbcTemplate.batchUpdate(
+    sql: String,
+    items: List<T>,
+    paramSetter: ParameterizedPreparedStatementSetter<T>,
+) = jdbcTemplate.batchUpdate(sql, items, items.size, paramSetter)

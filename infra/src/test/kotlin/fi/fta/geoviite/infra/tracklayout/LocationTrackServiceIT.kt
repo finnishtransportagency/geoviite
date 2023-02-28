@@ -65,7 +65,7 @@ class LocationTrackServiceIT @Autowired constructor(
             segment(
                 Point(x = 0.0, y = 0.0),
                 Point(x = 5.0, y = 0.0),
-                startLength = 5.0,
+                start = 5.0,
             )
         )
         val (trackOutside, alignmentOutside) = locationTrackAndAlignment(
@@ -73,7 +73,7 @@ class LocationTrackServiceIT @Autowired constructor(
             segment(
                 Point(x = 20.0, y = 20.0),
                 Point(x = 30.0, y = 20.0),
-                startLength = 10.0,
+                start = 10.0,
             )
         )
 

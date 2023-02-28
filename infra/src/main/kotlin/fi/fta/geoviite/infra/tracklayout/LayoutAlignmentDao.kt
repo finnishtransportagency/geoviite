@@ -1,7 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
+import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.createPostgis3DMLineString
 import fi.fta.geoviite.infra.geometry.parse3DMLineString
@@ -17,9 +20,15 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
+const val GEOMETRY_CACHE_SIZE = 500000L
+
 @Transactional(readOnly = true)
 @Component
 class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+
+    private val segmentGeometryCache: Cache<IntId<SegmentGeometry>, SegmentGeometry> = Caffeine.newBuilder()
+        .maximumSize(GEOMETRY_CACHE_SIZE)
+        .build()
 
     fun fetchVersions() = fetchRowVersions<LayoutAlignment>(LAYOUT_ALIGNMENT)
 
@@ -147,45 +156,50 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               geometry_alignment_id,
               geometry_element_index,
               source_start,
-              postgis.st_astext(geometry) as geometry_wkt,
-              resolution,
-              case 
-                when height_values is null then null 
-                else array_to_string(height_values, ',', 'null') 
-              end as height_values,
-              case 
-                when cant_values is null then null 
-                else array_to_string(cant_values, ',', 'null') 
-              end as cant_values,
               switch_id,
               switch_start_joint_number,
               switch_end_joint_number,
-              start,
-              length,
-              source
+              source,
+              geometry_id
             from layout.segment_version 
             where alignment_id = :alignment_id
               and alignment_version = :alignment_version
-              and deleted = false
             order by alignment_id, segment_index
         """.trimIndent()
         val params = mapOf(
             "alignment_id" to alignmentVersion.id.intValue,
             "alignment_version" to alignmentVersion.version,
         )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            LayoutSegment(
-                id = rs.getIndexedId("alignment_id", "segment_index"),
-                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                sourceStart = rs.getDoubleOrNull("source_start"),
-                points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
-                resolution = rs.getInt("resolution"),
-                switchId = rs.getIntIdOrNull("switch_id"),
-                startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-                endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-                start = rs.getDouble("start"),
-                source = rs.getEnum("source"),
+
+        val segmentResults = jdbcTemplate.query(sql, params) { rs, _ -> SegmentData(
+            id = rs.getIndexedId("alignment_id", "segment_index"),
+            sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+            sourceStart = rs.getDoubleOrNull("source_start"),
+            switchId = rs.getIntIdOrNull("switch_id"),
+            startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+            endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+            source = rs.getEnum("source"),
+        ) to rs.getIntId<SegmentGeometry>("geometry_id") }
+
+        val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
+
+        var start = 0.0
+        return segmentResults.map { (data, geometryId) ->
+            val segment = LayoutSegment(
+                id = data.id,
+                sourceId = data.sourceId,
+                sourceStart = data.sourceStart,
+                switchId = data.switchId,
+                startJointNumber = data.startJointNumber,
+                endJointNumber = data.endJointNumber,
+                start = start,
+                source = data.source,
+                geometry = requireNotNull(geometries[geometryId]) {
+                    "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
+                },
             )
+            start += segment.length
+            segment
         }
     }
 
@@ -194,76 +208,73 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         boundingBox: BoundingBox?
     ): List<SegmentGeometryAndMetadata> {
         val sql = """
-            with first as (
-              select segment_index
-              from layout.segment
-              where (
-                :use_bounding_box = false
-                  or postgis.st_intersects(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                  segment.geometry
-                )
-              ) and segment.alignment_id = :id
-              order by segment_index
-              limit 1
-            ),
-              last as (
-                select segment_index
-                  from layout.segment
-                  where (
-                        :use_bounding_box = false
-                      or postgis.st_intersects(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                                               segment.geometry
-                          )
-                    ) and segment.alignment_id = :id
-                  order by segment_index desc
-                  limit 1
+            with 
+              segment_range as (
+                select
+                  alignment.id,
+                  alignment.version,
+                  min(segment_index) min_index,
+                  max(segment_index) max_index
+                from layout.alignment
+                  inner join layout.segment_version on alignment.id = segment_version.alignment_id
+                    and alignment.version = segment_version.alignment_version
+                  inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
+                where alignment.id = :id
+                  and (
+                    :use_bounding_box = false or postgis.st_intersects(
+                      postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                      segment_geometry.geometry
+                    )
+                  ) 
+                group by alignment.id
               ),
               segment_points as (
-                select        case
-                                when :use_bounding_box = true 
-                                    and (layout.segment.segment_index = first.segment_index
-                                    or layout.segment.segment_index = last.segment_index)
-                                  then postgis.st_intersection(postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid), segment.geometry)
-                                else segment.geometry
-                              end as geometry, layout.segment.segment_index
-                from layout.segment
-                  full outer join first on true
-                  full outer join last on true
-                where segment.alignment_id = :id
+                select
+                  segment_version.alignment_id,
+                  segment_version.segment_index,
+                  segment_version.source,
+                  segment_version.geometry_alignment_id,
+                  postgis.st_startpoint(
+                    case 
+                      when :use_bounding_box = true and segment_version.segment_index = min_index
+                        then postgis.st_intersection(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), segment_geometry.geometry)
+                      else segment_geometry.geometry
+                    end
+                  ) as start,
+                  postgis.st_endpoint(
+                    case 
+                      when :use_bounding_box = true and segment_index = max_index
+                        then postgis.st_intersection(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid), segment_geometry.geometry)
+                      else segment_geometry.geometry
+                    end
+                  ) as end
+              from segment_range
+                inner join layout.segment_version on segment_range.id = segment_version.alignment_id
+                  and segment_range.version = segment_version.alignment_version
+                  and segment_version.segment_index between segment_range.min_index and segment_range.max_index
+                inner join layout.segment_geometry on segment_geometry.id = segment_version.geometry_id
               )
-            select layout.segment.segment_index,
-                   plan.id as plan_id,
-                   plan_file.name as filename,
-                   layout.initial_import_metadata.plan_file_name,
-                   segment.source,
-                   layout.segment.alignment_id,
-              case
-                when segment.height_values is null then null
-                else array_to_string(segment.height_values, ',', 'null')
-              end as height_values,
-              case
-                when segment.cant_values is null then null
-                else array_to_string(segment.cant_values, ',', 'null')
-              end as cant_values,
-              postgis.st_x(postgis.st_startpoint(segment_points.geometry)) as start_x,
-              postgis.st_y(postgis.st_startpoint(segment_points.geometry)) as start_y,
-              postgis.st_x(postgis.st_endpoint(segment_points.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(segment_points.geometry)) as end_y
-              from layout.alignment
-                left join layout.segment on alignment.id = segment.alignment_id
-                left join geometry.alignment on segment.geometry_alignment_id = geometry.alignment.id
+            select 
+              segment_points.alignment_id,
+              segment_points.segment_index,
+              plan.id as plan_id,
+              plan_file.name as filename,
+              layout.initial_import_metadata.plan_file_name,
+              segment_points.source,
+              postgis.st_x(segment_points.start) as start_x,
+              postgis.st_y(segment_points.start) as start_y,
+              postgis.st_x(segment_points.end) as end_x,
+              postgis.st_y(segment_points.end) as end_y
+              from segment_points
+                left join geometry.alignment on segment_points.geometry_alignment_id = geometry.alignment.id
                 left join geometry.plan on geometry.alignment.plan_id = plan.id
                 left join geometry.plan_file on geometry.plan.id = geometry.plan_file.plan_id
-                left join layout.initial_segment_metadata on layout.segment.alignment_id = initial_segment_metadata.alignment_id
-                  and layout.segment.segment_index = initial_segment_metadata.segment_index
-                left join layout.initial_import_metadata on initial_segment_metadata.metadata_id = initial_import_metadata.id
-                full outer join first on true
-                full outer join last on true
-                inner join segment_points on layout.segment.segment_index = segment_points.segment_index
-              where layout.alignment.id = :id
-                and layout.segment.segment_index >= first.segment_index
-                and layout.segment.segment_index <= last.segment_index
-              order by segment.segment_index
+                left join layout.initial_segment_metadata 
+                  on segment_points.alignment_id = initial_segment_metadata.alignment_id
+                    and segment_points.segment_index = initial_segment_metadata.segment_index
+                left join layout.initial_import_metadata 
+                  on initial_segment_metadata.metadata_id = initial_import_metadata.id
+              order by segment_points.segment_index
         """.trimIndent()
         val params = mapOf(
             "id" to alignmentId.intValue,
@@ -281,36 +292,39 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 startPoint = rs.getPointOrNull("start_x", "start_y"),
                 endPoint = rs.getPointOrNull("end_x", "end_y"),
                 source = rs.getEnumOrNull<GeometrySource>("source"),
-                segmentId = rs.getIndexedId<LayoutSegment>("alignment_id","segment_index")
+                segmentId = rs.getIndexedId("alignment_id","segment_index")
             )
         }
         logger.daoAccess(AccessType.UPDATE, SegmentGeometryAndMetadata::class, alignmentId)
         return result
     }
 
-    fun fetchMetadata(alignmentId: IntId<LayoutAlignment>): List<LayoutSegmentMetadata> {
+    fun fetchMetadata(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegmentMetadata> {
         //language=SQL
         val sql = """
             select
-              postgis.st_x(postgis.st_startpoint(segment.geometry)) as start_point_x,
-              postgis.st_y(postgis.st_startpoint(segment.geometry)) as start_point_y,
-              postgis.st_x(postgis.st_endpoint(segment.geometry)) as end_point_x,
-              postgis.st_y(postgis.st_endpoint(segment.geometry)) as end_point_y,
+              postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_point_x,
+              postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_point_y,
+              postgis.st_x(postgis.st_endpoint(segment_geometry.geometry)) as end_point_x,
+              postgis.st_y(postgis.st_endpoint(segment_geometry.geometry)) as end_point_y,
               alignment.name as alignment_name,
               plan.plan_time,
               plan.measurement_method,
               plan.srid,
               plan_file.name as file_name
-            from layout.segment
-              left join geometry.alignment on alignment.id = segment.geometry_alignment_id
+            from layout.segment_version
+              inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+              left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
               left join geometry.plan on alignment.plan_id = plan.id
               left join geometry.plan_file on plan_file.plan_id = plan.id
-            where segment.alignment_id = :alignment_id
-            order by segment.alignment_id, segment.segment_index
+            where segment_version.alignment_id = :alignment_id 
+              and segment_version.alignment_version = :alignment_version
+            order by alignment.id, segment_version.segment_index
         """.trimIndent()
 
         val params = mapOf(
-            "alignment_id" to alignmentId.intValue,
+            "alignment_id" to alignmentVersion.id.intValue,
+            "alignment_version" to alignmentVersion.version,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -328,98 +342,122 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
-            val sql = """
-              insert into layout.segment(
-                alignment_id,
-                alignment_version,
-                segment_index,
-                geometry_alignment_id,
-                geometry_element_index,
-                resolution,
-                geometry,
-                height_values,
-                cant_values,
-                switch_id,
-                switch_start_joint_number,
-                switch_end_joint_number,
-                start,
-                length,
-                source_start,
-                source
-              )
-              values(
-                :alignment_id,
-                :alignment_version,
-                :segment_index,
-                :geometry_alignment_id,
-                :geometry_element_index,
-                :resolution,
-                postgis.st_setsrid(:line_string::postgis.geometry, :srid),
-                string_to_array(:height_values, ',', 'null')::decimal[],
-                string_to_array(:cant_values, ',', 'null')::decimal[],
-                :switch_id,
-                :switch_start_joint_number,
-                :switch_end_joint_number,
-                :start,
-                :length,
-                :source_start,
-                :source::layout.geometry_source
-              )
-              on conflict (alignment_id, segment_index) do update
-              set
-                alignment_version = excluded.alignment_version,
-                geometry_alignment_id = excluded.geometry_alignment_id,
-                geometry_element_index = excluded.geometry_element_index,
-                resolution = excluded.resolution,
-                geometry = excluded.geometry,
-                height_values = excluded.height_values,
-                cant_values = excluded.cant_values,
-                switch_id = excluded.switch_id,
-                switch_start_joint_number = excluded.switch_start_joint_number,
-                switch_end_joint_number = excluded.switch_end_joint_number,
-                start = excluded.start,
-                length = excluded.length,
-                source_start = excluded.source_start,
-                source = excluded.source
-              """.trimIndent()
-            val params = segments.mapIndexed { i, s ->
-                mapOf(
-                    "alignment_id" to alignmentId.id.intValue,
-                    "alignment_version" to alignmentId.version,
-                    "segment_index" to i,
-                    "geometry_alignment_id" to if (s.sourceId is IndexedId) s.sourceId.parentId else null,
-                    "geometry_element_index" to if (s.sourceId is IndexedId) s.sourceId.index else null,
-                    "resolution" to s.resolution,
-//                "line_string" to create3DMLineString(s.points),
-                    "line_string" to PGgeometry(createPostgis3DMLineString(s.points)),
-                    "srid" to LAYOUT_SRID.code,
-                    "height_values" to createListString(s.points) { p -> p.z },
-                    "cant_values" to createListString(s.points) { p -> p.cant },
-                    "switch_id" to if (s.switchId is IntId) s.switchId.intValue else null,
-                    "switch_start_joint_number" to s.startJointNumber?.intValue,
-                    "switch_end_joint_number" to s.endJointNumber?.intValue,
-                    "start" to s.start,
-                    "length" to s.length,
-                    "source_start" to s.sourceStart,
-                    "source" to s.source.name,
+            val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->
+                if (s.geometry.id is StringId) s.geometry else null
+            })
+            //language=SQL
+            val sqlIndexed = """
+                insert into layout.segment_version(
+                  alignment_id,
+                  alignment_version,
+                  segment_index,
+                  geometry_alignment_id,
+                  geometry_element_index,
+                  switch_id,
+                  switch_start_joint_number,
+                  switch_end_joint_number,
+                  source_start,
+                  source,
+                  geometry_id
                 )
-            }.toTypedArray()
-            jdbcTemplate.batchUpdate(sql, params)
+                values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
+              """.trimIndent()
+            // This uses indexed parameters (rather than named ones),
+            // since named parameter template's batch-method is considerably slower
+            jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, s) ->
+                ps.setInt(1, alignmentId.id.intValue)
+                ps.setInt(2, alignmentId.version)
+                ps.setInt(3, index)
+                ps.setNullableInt(4) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
+                ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.index else null }
+                ps.setNullableInt(6) { if (s.switchId is IntId) s.switchId.intValue else null }
+                ps.setNullableInt(7, s.startJointNumber?.intValue)
+                ps.setNullableInt(8, s.endJointNumber?.intValue)
+                ps.setNullableDouble(9, s.sourceStart)
+                ps.setString(10, s.source.name)
+                val geometryId =
+                    if (s.geometry.id is IntId) s.geometry.id
+                    else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
+                ps.setInt(11, geometryId.intValue)
+            }
         }
+    }
 
-        if (alignmentId.version > 1) {
-            val sqlDelete = """ 
-              delete from layout.segment 
-              where alignment_id = :alignment_id 
-                and segment.alignment_version < :alignment_version  
-            """.trimIndent()
-
-            val paramsDelete = mapOf(
-                "alignment_id" to alignmentId.id.intValue,
-                "alignment_version" to alignmentId.version,
+    // TODO: GVT-1691 batching this is a little tricky due to difficulty in mapping generated ids:
+    //  There is no guarantee of result set order (though it's usually the insert order)
+    //  If we could calculate the hash prior to saving we could use that to identify the mapping
+    private fun insertSegmentGeometries(
+        geometries: List<SegmentGeometry>,
+    ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
+        //language=SQL
+        val sql = """
+          insert into layout.segment_geometry(
+            resolution,
+            geometry,
+            height_values,
+            cant_values
+          )
+          values(
+            :resolution,
+            postgis.st_setsrid(:line_string::postgis.geometry, :srid),
+            string_to_array(:height_values, ',', 'null')::decimal[],
+            string_to_array(:cant_values, ',', 'null')::decimal[]
+          )
+          on conflict (hash) do update
+          set resolution = segment_geometry.resolution -- no-op update so that returns clause works on conflict as well
+          returning id
+        """.trimIndent()
+        return geometries.associate { geometry ->
+            val params = mapOf(
+                "resolution" to geometry.resolution,
+                // "line_string" to create3DMLineString(s.points),
+                "line_string" to PGgeometry(createPostgis3DMLineString(geometry.points)),
+                "srid" to LAYOUT_SRID.code,
+                "height_values" to createListString(geometry.points) { p -> p.z },
+                "cant_values" to createListString(geometry.points) { p -> p.cant },
             )
-            jdbcTemplate.update(sqlDelete, paramsDelete)
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                geometry.id as StringId to rs.getIntId<SegmentGeometry>("id")
+            }.first()
         }
+    }
+
+    private fun fetchSegmentGeometries(
+        ids: List<IntId<SegmentGeometry>>,
+    ): Map<IntId<SegmentGeometry>, SegmentGeometry> {
+        return segmentGeometryCache.getAll(ids) { fetchIds -> fetchSegmentGeometriesInternal(fetchIds) }
+    }
+
+    private fun fetchSegmentGeometriesInternal(
+        ids: Set<IntId<SegmentGeometry>>,
+    ): Map<IntId<SegmentGeometry>, SegmentGeometry> {
+        return if (ids.isNotEmpty()) {
+            val sql = """
+                  select 
+                    id,
+                    postgis.st_astext(geometry) as geometry_wkt,
+                    resolution,
+                    case 
+                      when height_values is null then null 
+                      else array_to_string(height_values, ',', 'null') 
+                    end as height_values,
+                    case 
+                      when cant_values is null then null 
+                      else array_to_string(cant_values, ',', 'null') 
+                    end as cant_values
+                  from layout.segment_geometry
+                  where id in (:ids)
+                """.trimIndent()
+            val params = mapOf("ids" to ids.map(IntId<SegmentGeometry>::intValue))
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                val id = rs.getIntId<SegmentGeometry>("id")
+                id to SegmentGeometry(
+                    id = id,
+                    points = getSegmentPoints(rs, "geometry_wkt", "height_values", "cant_values"),
+                    resolution = rs.getInt("resolution"),
+                )
+            }.associate { it }
+        } else mapOf()
     }
 }
 
@@ -444,3 +482,13 @@ fun getSegmentPoints(
         )
     }
 }
+
+private data class SegmentData(
+    val id: IndexedId<LayoutSegment>,
+    val sourceId: DomainId<GeometryElement>?,
+    val sourceStart: Double?,
+    val switchId: DomainId<TrackLayoutSwitch>?,
+    val startJointNumber: JointNumber?,
+    val endJointNumber: JointNumber?,
+    val source: GeometrySource,
+)

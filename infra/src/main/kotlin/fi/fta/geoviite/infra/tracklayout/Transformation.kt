@@ -6,10 +6,7 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.Point3DM
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import kotlin.math.max
 
@@ -27,7 +24,6 @@ fun toTrackLayout(
 
     val alignments: List<MapAlignment<GeometryAlignment>> = toTrackLayoutAlignments(
         geometryPlan.alignments,
-        switches.mapValues { s -> s.value.id },
         planToLayout,
         pointListStepLength,
         heightTriangles,
@@ -96,7 +92,6 @@ fun toTrackLayoutSwitches(
 
 fun toTrackLayoutAlignments(
     geometryAlignments: List<GeometryAlignment>,
-    switchIds: Map<DomainId<GeometrySwitch>, DomainId<TrackLayoutSwitch>>,
     planToLayout: Transformation,
     pointListStepLength: Int,
     heightTriangles: List<HeightTriangle>,
@@ -105,9 +100,8 @@ fun toTrackLayoutAlignments(
 ): List<MapAlignment<GeometryAlignment>> {
     return geometryAlignments
         .map { alignment ->
-            val layoutSegments = toLayoutSegments(
+            val mapSegments = toMapSegments(
                 alignment = alignment,
-                switchIds = switchIds,
                 planToLayoutTransformation = planToLayout,
                 pointListStepLength = pointListStepLength,
                 heightTriangles = heightTriangles,
@@ -128,7 +122,7 @@ fun toTrackLayoutAlignments(
                 alignmentType = getAlignmentType(alignment.featureTypeCode),
                 type = null,
                 state = state,
-                segments = layoutSegments.map(::toMapSegment),
+                segments = mapSegments,
                 trackNumberId = alignment.trackNumberId,
                 sourceId = alignment.id,
                 id = alignment.id,
@@ -141,15 +135,14 @@ fun toTrackLayoutAlignments(
         }
 }
 
-fun toLayoutSegments(
+private fun toMapSegments(
     alignment: GeometryAlignment,
-    switchIds: Map<DomainId<GeometrySwitch>, DomainId<TrackLayoutSwitch>>,
     planToLayoutTransformation: Transformation,
     pointListStepLength: Int,
     heightTriangles: List<HeightTriangle>,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
     includeGeometryData: Boolean = true,
-): List<LayoutSegment> {
+): List<MapSegment> {
     val alignmentStationStart = alignment.staStart.toDouble()
     var segmentStartLength = 0.0
     val elements = alignment.elements
@@ -162,7 +155,6 @@ fun toLayoutSegments(
     val segments =
         if (!includeGeometryData) listOf()
         else elements.map { (element, segmentStartLength) ->
-
             val segmentPoints = toPointList(element, pointListStepLength).map { p ->
                 toTrackLayoutPoint(
                     planToLayoutTransformation.transform(p),
@@ -176,16 +168,17 @@ fun toLayoutSegments(
                 )
             }
 
-            LayoutSegment(
+            MapSegment(
+                id = deriveFromSourceId("AS", element.id),
                 points = segmentPoints,
                 sourceId = element.id,
                 sourceStart = 0.0,
                 resolution = pointListStepLength,
-                switchId = switchIds[element.switchId],
-                startJointNumber = element.startJointNumber,
-                endJointNumber = element.endJointNumber,
                 start = segmentStartLength,
                 source = GeometrySource.PLAN,
+                length = segmentPoints.last().m,
+                pointCount = segmentPoints.size,
+                boundingBox = boundingBoxAroundPointsOrNull(segmentPoints),
             )
         }
 

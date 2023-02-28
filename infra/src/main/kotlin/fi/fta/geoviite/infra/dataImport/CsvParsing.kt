@@ -817,10 +817,12 @@ fun <T> createLayoutSegment(
         null
     }
     return LayoutSegment(
-        points = toLayoutPoints(segmentPoints),
+        geometry = SegmentGeometry(
+            resolution = resolution,
+            points = toLayoutPoints(segmentPoints),
+        ),
         sourceId = metadata.metadata?.geometryElement?.id,
         sourceStart = sourceStart,
-        resolution = resolution,
         switchId = metadata.switchLink?.switchId,
         startJointNumber = metadata.switchLink?.getJointNumber(metadata.meters.start),
         endJointNumber = metadata.switchLink?.getJointNumber(metadata.meters.endInclusive),

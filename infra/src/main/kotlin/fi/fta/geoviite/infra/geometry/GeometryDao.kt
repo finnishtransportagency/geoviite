@@ -1564,31 +1564,33 @@ class GeometryDao @Autowired constructor(
               min(change_time) as linked_at,
               string_agg(distinct change_user, ', ' order by change_user) as linked_by_users
               from (
-                select plan_id, segment.*
+                select plan_id, segment.change_user, segment.change_time
                   from geometry.alignment
                     join lateral
                     (select track_object.change_time, track_object.change_user
-                       from layout.segment_version
+                       from layout.alignment_version 
+                       inner join layout.segment_version on alignment_version.id = segment_version.alignment_id
+                           and alignment_version.version = segment_version.alignment_version
                        join lateral (
                          select change_time, change_user
                          from layout.location_track_version
-                         where location_track_version.alignment_id = segment_version.alignment_id
-                           and location_track_version.alignment_version = segment_version.alignment_version
+                         where location_track_version.alignment_id = alignment_version.id
+                           and location_track_version.alignment_version = alignment_version.version
                            and not draft
                          union all
                          select change_time, change_user
                          from layout.reference_line_version
-                         where reference_line_version.alignment_id = segment_version.alignment_id
-                           and reference_line_version.alignment_version = segment_version.alignment_version
+                         where reference_line_version.alignment_id = alignment_version.id
+                           and reference_line_version.alignment_version = alignment_version.version
                            and not draft
                        ) track_object on (true)
                        where segment_version.geometry_alignment_id = alignment.id
-                       order by version asc
+                       order by alignment_version asc
                        limit 1
                     ) segment on (true)
                 union all
                 (
-                  select geometry_switch.plan_id, layout_switch.*
+                  select geometry_switch.plan_id, layout_switch.change_user, layout_switch.change_time
                     from geometry.switch geometry_switch
                       join lateral
                       (select change_time, change_user
@@ -1600,7 +1602,7 @@ class GeometryDao @Autowired constructor(
                 )
                 union all
                 (
-                  select geometry_km_post.plan_id, layout_km_post.*
+                  select geometry_km_post.plan_id, layout_km_post.change_user, layout_km_post.change_time
                     from geometry.km_post geometry_km_post
                       join lateral
                       (select change_time, change_user

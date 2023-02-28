@@ -1,41 +1,23 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 
 fun getUpdateLayoutAlignment(): Pair<LocationTrack, LayoutAlignment> {
-    val alignment = LayoutAlignment(
+    val alignment = alignment(
         listOf(
-            LayoutSegment(
-                points = listOf(
-                    LayoutPoint(
-                        x = 288037.36665503116,
-                        y = 7067239.269061557,
-                        z = null,
-                        m = 0.0,
-                        cant = null
-                    ),
-                    LayoutPoint(
-                        x = 288052.17096940894,
-                        y = 7067276.688420034,
-                        z = null,
-                        m = 40.23542958800948,
-                        cant = null
-                    )
+            segment(
+                points = toTrackLayoutPoints(
+                    Point3DM(x = 288037.36665503116, y = 7067239.269061557, m = 0.0),
+                    Point3DM(x = 288052.17096940894, y = 7067276.688420034, m = 40.23542958800948),
                 ),
-                sourceId = null,
-                sourceStart = null,
                 resolution = 100,
-                switchId = null,
-                startJointNumber = null,
-                endJointNumber = null,
                 start = 0.0,
-                id = IndexedId(257, 0),
                 source = GeometrySource.PLAN,
-            ),
+            ).copy(id = IndexedId(257, 0)),
         ),
-        sourceId = null,
     )
     return LocationTrack(
         name = AlignmentName("PTS 102"),

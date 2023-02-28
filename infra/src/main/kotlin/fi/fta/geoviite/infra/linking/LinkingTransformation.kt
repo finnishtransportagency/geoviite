@@ -48,7 +48,7 @@ fun <T> replaceTrackLayoutGeometry(
     val geometrySegments = getSegmentsBetweenPoints(
         geometryIndexRange.start,
         geometryIndexRange.endInclusive,
-        getSegmentsWithoutSwitchInformation(geometryAlignment.segments),
+        transformGeometryToLayoutSegments(geometryAlignment.segments),
         fromGeometryPoint,
         toGeometryPoint,
         endLength(startLayoutSegments),
@@ -85,7 +85,7 @@ fun extendAlignmentWithGeometry(
         val geometrySegments = getSegmentsBetweenPoints(
             geometryIndexRange.start,
             geometryIndexRange.endInclusive,
-            getSegmentsWithoutSwitchInformation(geometryAlignment.segments),
+            transformGeometryToLayoutSegments(geometryAlignment.segments),
             fromGeometryPoint,
             toGeometryPoint,
             0.0,
@@ -107,7 +107,7 @@ fun extendAlignmentWithGeometry(
         val geometrySegments = getSegmentsBetweenPoints(
             geometryIndexRange.start,
             geometryIndexRange.endInclusive,
-            getSegmentsWithoutSwitchInformation(geometryAlignment.segments),
+            transformGeometryToLayoutSegments(geometryAlignment.segments),
             fromGeometryPoint,
             toGeometryPoint,
             endLength(listOfNotNull(gapSegment))
@@ -236,13 +236,15 @@ fun cutSegmentBetweenStartAndEndPoints(
 fun createGapConnectionSegment(start: Point, end: Point, startLength: Double): LayoutSegment? {
     val length = calculateDistance(LAYOUT_SRID, start, end)
     return if (length > 0) LayoutSegment(
-        points = listOf(
-            LayoutPoint(start.x, start.y, null, 0.0, null),
-            LayoutPoint(end.x, end.y, null, length, null)
+        geometry = SegmentGeometry(
+            resolution = max(length.toInt(), 1),
+            points = listOf(
+                LayoutPoint(start.x, start.y, null, 0.0, null),
+                LayoutPoint(end.x, end.y, null, length, null)
+            ),
         ),
         sourceId = null,
         sourceStart = null,
-        resolution = max(length.toInt(), 1),
         switchId = null,
         startJointNumber = null,
         endJointNumber = null,
@@ -289,13 +291,15 @@ fun getSegmentsInRange(
     }
 }
 
-fun getSegmentsWithoutSwitchInformation(segments: List<MapSegment>): List<LayoutSegment> {
+fun transformGeometryToLayoutSegments(segments: List<MapSegment>): List<LayoutSegment> {
     return segments.map { segment ->
         LayoutSegment(
-            points = segment.points,
+            geometry = SegmentGeometry(
+                resolution = segment.resolution,
+                points = segment.points,
+            ),
             sourceId = segment.sourceId,
             sourceStart = segment.sourceStart,
-            resolution = segment.resolution,
             switchId = null,
             startJointNumber = null,
             endJointNumber = null,

@@ -106,7 +106,7 @@ fun boundingBoxAroundPoints(point1: Point, vararg rest: Point): BoundingBox =
 fun boundingBoxAroundPoints(points: List<Point>, buffer: Double = DEFAULT_BUFFER) =
     boundingBoxAroundPointsOrNull(points, buffer) ?: throw IllegalStateException("Failed to create bounding box")
 
-fun boundingBoxAroundPointsOrNull(points: List<Point>, buffer: Double = DEFAULT_BUFFER) =
+fun <T : IPoint> boundingBoxAroundPointsOrNull(points: List<T>, buffer: Double = DEFAULT_BUFFER) =
     if (points.isEmpty()) null
     else BoundingBox(minPoint(points) - Point(buffer, buffer), maxPoint(points) + Point(buffer, buffer))
 

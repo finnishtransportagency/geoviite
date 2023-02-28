@@ -143,8 +143,8 @@ class AddressChangesServiceIT @Autowired constructor(
         // Move start-point a bit
         updateAndPublish(initialLocationTrack, setupData.locationTrackGeometry.copy(
             segments = setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
-                if (index == 0) segment.copy(
-                    points = listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1)
+                if (index == 0) segment.withPoints(
+                    points = listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1),
                 ) else segment
             }
         ))
@@ -690,31 +690,6 @@ class AddressChangesServiceIT @Autowired constructor(
         locationTrackService.publish(ValidationVersion(version.id, version.rowVersion))
     }
 
-
-    fun moveLocationTrackGeometryPointsAndUpdate(
-        locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
-        moveFunc: (point: IPoint) -> IPoint,
-    ) {
-        val version = locationTrackService.saveDraft(
-            locationTrack,
-            alignment.copy(
-                segments = alignment.segments.map { segment ->
-                    segment.copy(
-                        points = segment.points.map { point ->
-                            val newPoint = moveFunc(point)
-                            point.copy(
-                                x = newPoint.x,
-                                y = newPoint.y
-                            )
-                        }
-                    )
-                }
-            )
-        )
-        locationTrackService.publish(ValidationVersion(version.id, version.rowVersion))
-    }
-
     fun moveReferenceLineGeometryPointsAndUpdate(
         referenceLine: ReferenceLine,
         alignment: LayoutAlignment,
@@ -725,7 +700,7 @@ class AddressChangesServiceIT @Autowired constructor(
             referenceLine,
             alignment.copy(
                 segments = fixSegmentStarts(alignment.segments.map { segment ->
-                    segment.copy(
+                    segment.withPoints(
                         points = fixMValues(segment.points.mapIndexed { inSegmentIndex, point ->
                             val newPoint = moveFunc(index, point)
                             if (inSegmentIndex < segment.points.lastIndex) index++
@@ -733,7 +708,7 @@ class AddressChangesServiceIT @Autowired constructor(
                                 x = newPoint.x,
                                 y = newPoint.y
                             )
-                        } )
+                        } ),
                     )
                 } )
             )
