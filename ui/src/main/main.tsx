@@ -20,7 +20,8 @@ import { useTranslation } from 'react-i18next';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
-import { DataProductsMainContainerWithProvider } from 'data-products/data-products-container-with-provider';
+import { ElementListContainerWithProvider } from 'data-products/element-list/element-list-container-with-provider';
+import { VerticalGeometryContainerWithProvider } from 'data-products/vertical-geometry/vertical-geometry-container-with-provider';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -55,19 +56,11 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                     <Route path="/localization-demo" element={<I18nDemo />} />
                     <Route
                         path="/data-products/element-list"
-                        element={
-                            <DataProductsMainContainerWithProvider
-                                selectedDataProduct={'ELEMENT_LIST'}
-                            />
-                        }
+                        element={<ElementListContainerWithProvider />}
                     />
                     <Route
                         path="/data-products/vertical-geometry"
-                        element={
-                            <DataProductsMainContainerWithProvider
-                                selectedDataProduct={'VERTICAL_GEOMETRY'}
-                            />
-                        }
+                        element={<VerticalGeometryContainerWithProvider />}
                     />
                     <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>
