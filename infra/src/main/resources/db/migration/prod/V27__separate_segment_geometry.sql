@@ -23,6 +23,7 @@ create table layout.segment_geometry
       layout.calculate_geometry_hash(resolution, geometry, height_values, cant_values)
     ) stored
 );
+comment on table layout.segment_geometry is 'Layout segment geometry: a polyline with height and cant values.';
 
 -- Update segment table structure
 drop table layout.segment;
@@ -41,8 +42,7 @@ alter table layout.segment_version
 
 -- Copy all known geometries to the new table, preserving the the ids
 insert into layout.segment_geometry(resolution, geometry, height_values, cant_values)
-select resolution, geometry, height_values, cant_values
-  from layout.segment_version
+select resolution, geometry, height_values, cant_values from layout.segment_version
 on conflict(hash) do nothing;
 
 -- Update new geometry ids to version table
@@ -55,6 +55,7 @@ where segment_geometry.hash = layout.calculate_geometry_hash(
   sv.height_values,
   sv.cant_values
   );
+comment on table layout.segment_version is 'Layout segment version: segment metadata, versioned by alignment version.';
 
 -- Remove the transferred from the segment table
 alter table layout.segment_version
@@ -71,8 +72,6 @@ alter table layout.segment_version
     foreign key (geometry_id) references layout.segment_geometry (id),
   add constraint segment_version_alignment_version_fkey
     foreign key(alignment_id, alignment_version) references layout.alignment_version(id, version),
---   add constraint segment_version_switch_version_fkey
---     foreign key (switch_id, switch_version) references layout.switch_version (id, version),
   add constraint segment_version_geometry_alignment_fkey
     foreign key (geometry_alignment_id) references geometry.alignment (id),
   add constraint segment_version_geometry_element_fkey
