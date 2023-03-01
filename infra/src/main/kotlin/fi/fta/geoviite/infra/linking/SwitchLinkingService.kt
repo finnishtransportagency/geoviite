@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.math.abs
 import kotlin.math.max
-import kotlin.math.min
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 private const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -63,8 +62,17 @@ fun findSuggestedSwitchJointMatches(
         (closestSegmentIndex + 1).coerceAtMost(alignment.segments.lastIndex)
     )
 
-    return alignment.segments
-        .slice(possibleSegmentIndices)
+    val possibleSegments = alignment.segments.slice(possibleSegmentIndices)
+
+    val jointDistanceToAlignment = possibleSegments
+        .flatMap { segment -> segment.points.mapIndexedNotNull { pIdx, point ->
+            segment.points.getOrNull(pIdx - 1)?.let { previousPoint ->
+                val closestSegmentPoint = closestPointOnLine(previousPoint, point, jointLocation)
+                val jointDistanceToSegment = lineLength(closestSegmentPoint, jointLocation)
+                jointDistanceToSegment
+            }}}.min()
+
+    return possibleSegments
         .flatMapIndexed { index, segment ->
             val segmentIndex = possibleSegmentIndices.first + index
 
@@ -85,6 +93,7 @@ fun findSuggestedSwitchJointMatches(
                         matchType = SuggestedSwitchJointMatchType.START,
                         switchJoint = joint,
                         distance = lineLength(startPoint, jointLocation),
+                        distanceToAlignment = jointDistanceToAlignment,
                         alignmentId = locationTrack.alignmentVersion?.id,
                     )
                 } else null,
@@ -99,15 +108,16 @@ fun findSuggestedSwitchJointMatches(
                         matchType = SuggestedSwitchJointMatchType.END,
                         switchJoint = joint,
                         distance = lineLength(endPoint, jointLocation),
+                        distanceToAlignment = jointDistanceToAlignment,
                         alignmentId = locationTrack.alignmentVersion?.id,
                     )
                 } else null
             ) + segment.points.mapIndexedNotNull { pIdx, point ->
                 segment.points.getOrNull(pIdx - 1)?.let { previousPoint ->
                     val closestAlignmentPoint = closestPointOnLine(previousPoint, point, jointLocation)
-                    val jointDistanceToAlignment = lineLength(closestAlignmentPoint, jointLocation)
+                    val jointDistanceToSegment = lineLength(closestAlignmentPoint, jointLocation)
 
-                    if (jointDistanceToAlignment < tolerance) {
+                    if (jointDistanceToSegment < tolerance) {
                         SuggestedSwitchJointMatch(
                             locationTrackId = locationTrack.id,
                             segmentIndex = segmentIndex,
@@ -115,7 +125,8 @@ fun findSuggestedSwitchJointMatches(
                             segmentM = segment.getLengthUntil(closestAlignmentPoint).first,
                             matchType = SuggestedSwitchJointMatchType.LINE,
                             switchJoint = joint,
-                            distance = jointDistanceToAlignment,
+                            distance = jointDistanceToSegment,
+                            distanceToAlignment = jointDistanceToAlignment,
                             alignmentId = locationTrack.alignmentVersion?.id,
                         )
                     } else null
@@ -750,13 +761,21 @@ fun findClosestIntersections(
                     desiredLocation = desiredLocation
                 )
             } else {
-                val distance1 = pointDistanceToLine(line1.start, line1.end, line2.start)
-                val distance2 = pointDistanceToLine(line1.start, line1.end, line2.end)
-                val minDistance = min(distance1, distance2)
-                if (minDistance <= MAX_LINE_INTERSECTION_DISTANCE) {
+                val linePointDistanceCheckPairs = listOf(
+                    line1 to line2.start,
+                    line1 to line2.end,
+                    line2 to line1.start,
+                    line2 to line1.end
+                )
+                val minDistanceAndPoint = linePointDistanceCheckPairs
+                    .map { (line, point) ->
+                        pointDistanceToLine(line.start, line.end, point) to point
+                    }
+                    .minBy { (distance, _) -> distance }
+                if (minDistanceAndPoint.first <= MAX_LINE_INTERSECTION_DISTANCE) {
                     TrackIntersection(
-                        point = if (minDistance == distance1) line2.start else line2.end,
-                        distance = minDistance,
+                        point = minDistanceAndPoint.second,
+                        distance = minDistanceAndPoint.first,
                         track1 = track1,
                         track2 = track2,
                         desiredLocation = desiredLocation
@@ -972,10 +991,8 @@ fun getSuggestedSwitchScore(
         // Select best of each joint
         (joint.matches.maxOfOrNull { match ->
             // Smaller the match distance, better the score
-            max(1.0 - match.distance, 0.0)
+            max(1.0 - match.distanceToAlignment, 0.0)
         } ?: 0.0) +
-
-
                 if (joint.number == farthestJoint.number && maxFarthestJointDistance > 0) {
                     val distanceToFarthestJoint = lineLength(desiredLocation, joint.location)
                     val maxExtraScore = 0.5
