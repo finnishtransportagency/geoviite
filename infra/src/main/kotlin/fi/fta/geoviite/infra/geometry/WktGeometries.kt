@@ -4,8 +4,6 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
-import net.postgis.jdbc.geometry.LineString
-
 
 private const val POINT_SEPARATOR = ","
 private const val COORDINATE_SEPARATOR = " "
@@ -41,14 +39,6 @@ fun create2DLineString(coordinates: List<IPoint>): String {
 fun create3DMLineString(coordinates: List<IPoint3DM>): String {
     val content = coordinates.joinToString(POINT_SEPARATOR) { c -> point3DMToString(c) }
     return "$LINESTRING_TYPE_3DM${addParenthesis(content)}"
-}
-
-fun createPostgis3DMLineString(coordinates: List<IPoint3DM>): LineString {
-    return LineString(coordinates.map { c ->
-        val point = net.postgis.jdbc.geometry.Point(c.x, c.y)
-        point.setM(c.m)
-        point
-    }.toTypedArray())
 }
 
 fun create2DPolygonString(coordinates: List<IPoint>): String {

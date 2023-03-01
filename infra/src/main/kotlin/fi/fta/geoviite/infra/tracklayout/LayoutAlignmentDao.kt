@@ -4,16 +4,12 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
-import fi.fta.geoviite.infra.geometry.GeometryElement
-import fi.fta.geoviite.infra.geometry.create2DPolygonString
-import fi.fta.geoviite.infra.geometry.createPostgis3DMLineString
-import fi.fta.geoviite.infra.geometry.parse3DMLineString
+import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
-import net.postgis.jdbc.PGgeometry
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -410,8 +406,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         return geometries.associate { geometry ->
             val params = mapOf(
                 "resolution" to geometry.resolution,
-                // "line_string" to create3DMLineString(s.points),
-                "line_string" to PGgeometry(createPostgis3DMLineString(geometry.points)),
+                "line_string" to create3DMLineString(geometry.points),
                 "srid" to LAYOUT_SRID.code,
                 "height_values" to createListString(geometry.points) { p -> p.z },
                 "cant_values" to createListString(geometry.points) { p -> p.cant },

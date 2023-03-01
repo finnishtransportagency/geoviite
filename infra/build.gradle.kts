@@ -77,7 +77,6 @@ dependencies {
     implementation("com.auth0:java-jwt:4.3.0")
     implementation("io.netty:netty-resolver-dns-native-macos:4.1.89.Final:osx-aarch_64")
     implementation("org.postgresql:postgresql:42.5.4")
-    implementation("net.postgis:postgis-jdbc:2021.1.0")
     implementation("jakarta.activation:jakarta.activation-api:2.1.1")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
     implementation("com.github.davidmoten:rtree2:0.9.3")
