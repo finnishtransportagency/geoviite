@@ -17,7 +17,7 @@ enum class FetchType {
     MULTI
 }
 
-fun idsSqlFragment(fetchType: FetchType) =
+fun idOrIdsEqualSqlFragment(fetchType: FetchType) =
     when (fetchType) {
         FetchType.MULTI -> "in (:ids)"
         FetchType.SINGLE -> "= :id"
@@ -58,13 +58,13 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 
     protected fun <T> fetchRowVersion(id: IntId<T>, table: DbTable): RowVersion<T> {
         logger.daoAccess(VERSION_FETCH, "fetchRowVersion", "id" to id, "table" to table.fullName)
-        return queryRowVersion("select id, version from ${table.fullName} where id ${idsSqlFragment(FetchType.SINGLE)}", id)
+        return queryRowVersion("select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.SINGLE)}", id)
     }
 
     protected fun <T> fetchManyRowVersions(ids: List<IntId<T>>, table: DbTable): List<RowVersion<T>> {
         logger.daoAccess(VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
         return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
-                "select id, version from ${table.fullName} where id ${idsSqlFragment(FetchType.MULTI)}",
+                "select id, version from ${table.fullName} where id ${idOrIdsEqualSqlFragment(FetchType.MULTI)}",
                 mapOf("ids" to ids.map { it.intValue })
             ) { rs, _ ->
                 rs.getRowVersion("id", "version")

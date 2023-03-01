@@ -273,14 +273,14 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     private fun officialFetchSql(table: DbTable, fetchType: FetchType) = """
             select o.id, o.version
             from ${table.fullName} o left join ${table.fullName} d on d.${table.draftLink} = o.id
-            where (o.id = :id or d.id ${idsSqlFragment(fetchType)}) and o.draft = false
+            where (o.id ${idOrIdsEqualSqlFragment(fetchType)} or d.id ${idOrIdsEqualSqlFragment(fetchType)}) and o.draft = false
         """
 
     private fun draftFetchSql(table: DbTable, fetchType: FetchType) = """
             select o.id, o.version 
             from ${table.fullName} o
-            where o.${table.draftLink} ${idsSqlFragment(fetchType)} 
-               or (o.id ${idsSqlFragment(fetchType)} 
+            where o.${table.draftLink} ${idOrIdsEqualSqlFragment(fetchType)} 
+               or (o.id ${idOrIdsEqualSqlFragment(fetchType)} 
                   and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id))
         """
 
