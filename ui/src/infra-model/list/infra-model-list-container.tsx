@@ -2,7 +2,7 @@ import * as React from 'react';
 import { InfraModelListView } from 'infra-model/list/infra-model-list-view';
 
 import { createDelegates } from 'store/store-utils';
-import { getGeometryPlanHeaders } from 'geometry/geometry-api';
+import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { actionCreators } from 'infra-model/infra-model-store';
 import { useInframodelAppDispatch, useInframodelAppSelector } from 'store/hooks';
@@ -29,7 +29,7 @@ export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = (
     React.useEffect(() => {
         if (state.searchState == 'start') {
             infraModelListDelegates.onPlanFetchStart();
-            getGeometryPlanHeaders(
+            getGeometryPlanHeadersBySearchTerms(
                 state.pageSize,
                 state.page * state.pageSize,
                 undefined,

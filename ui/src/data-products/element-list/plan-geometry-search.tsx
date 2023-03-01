@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from 'data-products/element-list/element-list-view.scss';
+import styles from 'data-products/data-product-view.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
@@ -14,7 +14,7 @@ import { PropEdit } from 'utils/validation-utils';
 import {
     getGeometryPlanElements,
     getGeometryPlanElementsCsv,
-    getGeometryPlanHeaders,
+    getGeometryPlanHeadersBySearchTerms,
 } from 'geometry/geometry-api';
 import { ElementItem, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { useLoader } from 'utils/react-utils';
@@ -39,9 +39,14 @@ function searchGeometryPlanHeaders(
         return Promise.resolve([]);
     }
 
-    return getGeometryPlanHeaders(10, undefined, undefined, [source], [], searchTerm).then(
-        (t) => t.items,
-    );
+    return getGeometryPlanHeadersBySearchTerms(
+        10,
+        undefined,
+        undefined,
+        [source],
+        [],
+        searchTerm,
+    ).then((t) => t.items);
 }
 
 function getGeometryPlanOptions(
@@ -109,7 +114,7 @@ const PlanGeometrySearch = ({
 
     return (
         <React.Fragment>
-            <p className={styles['element-list__geometry-search-legend']}>
+            <p className={styles['data-product__search-legend']}>
                 {t('data-products.element-list.plan-legend')}
             </p>
             <div className={styles['element-list__geometry-search']}>
@@ -120,7 +125,7 @@ const PlanGeometrySearch = ({
                             {planSources.map((source) => (
                                 <span
                                     key={source.value}
-                                    className={styles['element-list-view__radio-layout']}>
+                                    className={styles['data-product-view__radio-layout']}>
                                     <Radio
                                         checked={state.source === source.value}
                                         onChange={() => setSource(source.value)}>

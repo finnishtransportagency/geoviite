@@ -1,0 +1,24 @@
+.element-table {
+    &__table-container {
+        overflow: auto;
+        padding-left: 32px;
+        flex-grow: 1;
+    }
+
+    &__element-count {
+        padding-left: 32px;
+    }
+
+    &__table-heading {
+        position: sticky;
+        top: 0;
+
+        th {
+            min-width: 100px;
+        }
+    }
+
+    &__column--number {
+        text-align: right;
+    }
+}

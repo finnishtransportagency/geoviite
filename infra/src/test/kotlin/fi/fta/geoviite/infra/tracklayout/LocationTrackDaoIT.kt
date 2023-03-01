@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
+import java.lang.IllegalArgumentException
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -242,6 +243,54 @@ class LocationTrackDaoIT @Autowired constructor(
             listOf(firstVersion, secondVersion).toSet(),
             locationTrackDao.fetchOfficialVersionsAtMoment(tnId, secondVersionTime).toSet(),
         )
+    }
+
+    @Test
+    fun `Fetching official location tracks with empty id list works`() {
+        val expected = locationTrackDao.fetchOfficialVersionsOrThrow(emptyList())
+        assertEquals(expected.size, 0)
+    }
+
+    @Test
+    fun `Fetching multiple official location tracks works`() {
+        val tnId = insertOfficialTrackNumber()
+        val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
+        val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
+
+        val expected = locationTrackDao.fetchOfficialVersionsOrThrow(listOf(locationTrack1.id, locationTrack2.id))
+        assertEquals(expected.size, 2)
+        assertContains(expected, locationTrack1)
+        assertContains(expected, locationTrack2)
+    }
+
+    @Test
+    fun `Fetching draft location tracks with empty id list works`() {
+        val expected = locationTrackDao.fetchDraftVersionsOrThrow(emptyList())
+        assertEquals(expected.size, 0)
+    }
+
+    @Test
+    fun `Fetching multiple draft location tracks works`() {
+        val tnId = insertOfficialTrackNumber()
+        val locationTrack1 = insertDraftLocationTrack(tnId).rowVersion
+        val locationTrack2 = insertDraftLocationTrack(tnId).rowVersion
+
+        val expected = locationTrackDao.fetchDraftVersionsOrThrow(listOf(locationTrack1.id, locationTrack2.id))
+        assertEquals(expected.size, 2)
+        assertContains(expected, locationTrack1)
+        assertContains(expected, locationTrack2)
+    }
+
+    @Test
+    fun `Fetching missing location tracks throws`() {
+        val tnId = insertOfficialTrackNumber()
+        val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
+        val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
+        val locationTrack3 = insertDraftLocationTrack(tnId).rowVersion
+
+        assertThrows<IllegalArgumentException> {
+            locationTrackDao.fetchOfficialVersionsOrThrow(listOf(locationTrack1.id, locationTrack2.id, locationTrack3.id))
+        }
     }
 
     private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): DaoResponse<LocationTrack> {

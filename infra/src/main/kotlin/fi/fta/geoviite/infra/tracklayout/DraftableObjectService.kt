@@ -38,6 +38,14 @@ abstract class DraftableObjectService<ObjectType: Draftable<ObjectType>, DaoType
         return getInternal(publishType, id)
     }
 
+    fun getMany(publishType: PublishType, ids: List<IntId<ObjectType>>): List<ObjectType> {
+        logger.serviceCall("getMany", "publishType" to publishType, "ids" to ids)
+        return when (publishType) {
+            DRAFT -> dao.fetchDraftVersionsOrThrow(ids)
+            OFFICIAL -> dao.fetchOfficialVersionsOrThrow(ids)
+        }.map(dao::fetch)
+    }
+
     fun get(rowVersion: RowVersion<ObjectType>): ObjectType {
         logger.serviceCall("get", "rowVersion" to rowVersion)
         return dao.fetch(rowVersion)

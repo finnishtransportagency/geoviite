@@ -50,9 +50,11 @@ interface IDraftableObjectReader<T : Draftable<T>> {
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
+    fun fetchDraftVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>>
     fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T>
     fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>?
     fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T>
+    fun fetchOfficialVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>>
     fun fetchVersion(id: IntId<T>, publishType: PublishType): RowVersion<T>? =
         when (publishType) {
             OFFICIAL -> fetchOfficialVersion(id)
@@ -156,22 +158,44 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     override fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
-        return queryRowVersion(officialFetchSql(table), id)
+        return queryRowVersion(officialFetchSql(table, FetchType.SINGLE), id)
     }
 
     override fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T> {
         logger.daoAccess(AccessType.VERSION_FETCH,  table.name, id)
-        return queryRowVersion(draftFetchSql(table), id)
+        return queryRowVersion(draftFetchSql(table, FetchType.SINGLE), id)
     }
 
     private fun <T> fetchOfficialRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
-        return queryRowVersionOrNull(officialFetchSql(table), id)
+        return queryRowVersionOrNull(officialFetchSql(table, FetchType.SINGLE), id)
+    }
+
+    override fun fetchOfficialVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
+        logger.daoAccess(AccessType.VERSION_FETCH, table.versionTable, ids)
+        val versions: List<RowVersion<T>> =
+            if (ids.isEmpty()) emptyList()
+            else jdbcTemplate.query(officialFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
+                rs.getRowVersion("id", "version")
+            }
+        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        return versions
     }
 
     private fun <T> fetchDraftRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
-        return queryRowVersionOrNull(draftFetchSql(table), id)
+        return queryRowVersionOrNull(draftFetchSql(table, FetchType.SINGLE), id)
+    }
+
+    override fun fetchDraftVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
+        logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
+        val versions: List<RowVersion<T>> =
+            if (ids.isEmpty()) emptyList()
+            else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
+                rs.getRowVersion("id", "version")
+            }
+        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        return versions
     }
 
     override fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T> =
@@ -246,17 +270,18 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
     }
 
-    private fun officialFetchSql(table: DbTable) = """
+    private fun officialFetchSql(table: DbTable, fetchType: FetchType) = """
             select o.id, o.version
             from ${table.fullName} o left join ${table.fullName} d on d.${table.draftLink} = o.id
-            where (o.id = :id or d.id = :id) and o.draft = false
+            where (o.id ${idOrIdsEqualSqlFragment(fetchType)} or d.id ${idOrIdsEqualSqlFragment(fetchType)}) and o.draft = false
         """
 
-    private fun draftFetchSql(table: DbTable) = """
+    private fun draftFetchSql(table: DbTable, fetchType: FetchType) = """
             select o.id, o.version 
             from ${table.fullName} o
-            where o.${table.draftLink} = :id 
-               or (o.id = :id and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = :id))
+            where o.${table.draftLink} ${idOrIdsEqualSqlFragment(fetchType)} 
+               or (o.id ${idOrIdsEqualSqlFragment(fetchType)} 
+                  and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id))
         """
 
 }

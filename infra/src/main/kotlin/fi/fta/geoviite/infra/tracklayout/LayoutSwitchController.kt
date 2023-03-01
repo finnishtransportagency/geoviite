@@ -77,7 +77,7 @@ class LayoutSwitchController(
         @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutSwitch>>,
     ): List<TrackLayoutSwitch> {
         logger.apiCall("getTrackLayoutSwitches", "ids" to ids, "publishType" to publishType)
-        return ids.mapNotNull { id -> switchService.get(publishType, id) }
+        return switchService.getMany(publishType, ids)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

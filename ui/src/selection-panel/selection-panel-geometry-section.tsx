@@ -19,7 +19,7 @@ import {
 } from 'geometry/geometry-model';
 import { useTranslation } from 'react-i18next';
 import { useMapState, useSetState } from 'utils/react-utils';
-import { getGeometryPlanHeaders, getTrackLayoutPlan } from 'geometry/geometry-api';
+import { getGeometryPlanHeadersBySearchTerms, getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryPlanLayout, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
@@ -82,7 +82,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     const [plansBeingLoaded, startLoadingPlan, finishLoadingPlan] = useSetState<GeometryPlanId>();
 
     React.useEffect(() => {
-        getGeometryPlanHeaders(
+        getGeometryPlanHeadersBySearchTerms(
             MAX_PLAN_HEADERS,
             0,
             viewport.area,
@@ -170,7 +170,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 onPlanHeaderSelection={(header) =>
                                     onSelect({
                                         ...createEmptyItemCollections(),
-                                        geometryPlans: [header],
+                                        geometryPlans: [header.id],
                                         isToggle: true,
                                     })
                                 }

@@ -208,7 +208,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 onVisibilityToggle={onPlanVisibilityToggle}
                 visibility={visibilities.planHeader}
                 onHeaderClick={() => onPlanHeaderSelection(planHeader)}
-                headerSelected={selectedItems?.geometryPlans?.some((p) => p.id === planHeader.id)}
+                headerSelected={selectedItems?.geometryPlans?.some((id) => id === planHeader.id)}
                 fetchingContent={openingAccordion || planBeingLoaded}>
                 {planLayout && (
                     <div className={styles['geometry-plan-panel__alignments']}>
