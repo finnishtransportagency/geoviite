@@ -384,20 +384,16 @@ class PublicationValidationTest {
         )
         assertSegmentSwitchError(
             true,
-            editSegment(segmentSwitch) { segment ->
-                segment.copy(
-                    points = toTrackLayoutPoints(segment.points.first(), segment.points.last() + Point(0.0, 1.0))
-                )
-            },
+            editSegment(segmentSwitch) { segment -> segment.withPoints(
+                points = toTrackLayoutPoints(segment.points.first(), segment.points.last() + Point(0.0, 1.0)),
+            ) },
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
         )
         assertSegmentSwitchError(
             true,
-            editSegment(segmentSwitch) { segment ->
-                segment.copy(
-                    points = toTrackLayoutPoints(segment.points.first() + Point(0.0, 1.0), segment.points.last())
-                )
-            },
+            editSegment(segmentSwitch) { segment -> segment.withPoints(
+                points = toTrackLayoutPoints(segment.points.first() + Point(0.0, 1.0), segment.points.last()),
+            ) },
             "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch",
         )
     }

@@ -199,11 +199,13 @@ fun locationTrackAndAlignmentForGeometryAlignment(
             val start = transformation.transform(element.start)
             val end = transformation.transform(element.end)
             LayoutSegment(
-                points = listOf(
-                    LayoutPoint(start.x, start.y, 0.0, 0.0, 0.0),
-                    LayoutPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0)
+                geometry = SegmentGeometry(
+                    points = listOf(
+                        LayoutPoint(start.x, start.y, 0.0, 0.0, 0.0),
+                        LayoutPoint(end.x, end.y, 0.0, element.calculatedLength, 0.0)
+                    ),
+                    resolution = 100,
                 ),
-                resolution = 100,
                 startJointNumber = element.startJointNumber,
                 endJointNumber = element.endJointNumber,
                 start = 0.0,

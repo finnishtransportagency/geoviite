@@ -51,15 +51,16 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               select
                 location_track.official_id,
                 location_track.alignment_id,
-                segment.segment_index,
-                segment.switch_id,
-                segment.geometry,
-                segment.switch_start_joint_number,
-                segment.switch_end_joint_number
-              from layout.segment
-                inner join layout.alignment on alignment.id = segment.alignment_id
+                segment_version.segment_index,
+                segment_version.switch_id,
+                segment_geometry.geometry,
+                segment_version.switch_start_joint_number,
+                segment_version.switch_end_joint_number
+              from layout.segment_version
+                inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
                 inner join layout.location_track_publication_view location_track
-                  on location_track.alignment_id = alignment.id
+                  on location_track.alignment_id = segment_version.alignment_id
+                    and location_track.alignment_version = segment_version.alignment_version
                     and location_track.state != 'DELETED'
                     and :publication_state = any (location_track.publication_states)
             )
@@ -399,12 +400,13 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               location_track.row_id,
               location_track.row_version,
               location_track.external_id
-            from layout.segment
+            from layout.segment_version
             inner join layout.location_track_publication_view location_track 
-                         on location_track.alignment_id = segment.alignment_id
+              on location_track.alignment_id = segment_version.alignment_id
+                and location_track.alignment_version = segment_version.alignment_version
             where :publication_state = any(publication_states)
              and (
-               segment.switch_id = :switch_id
+               segment_version.switch_id = :switch_id
                  or (
                   location_track.topology_start_switch_id = :switch_id 
                   and (

@@ -189,8 +189,8 @@ class LocationTrackDaoIT @Autowired constructor(
             locationTrackDao.fetchVersions(OFFICIAL, false, tnId).toSet(),
         )
         assertEquals(
-            listOf(officialTrackVersion1, officialTrackVersion2, draftTrackVersion),
-            locationTrackDao.fetchVersions(DRAFT, false, tnId),
+            listOf(officialTrackVersion1, officialTrackVersion2, draftTrackVersion).toSet(),
+            locationTrackDao.fetchVersions(DRAFT, false, tnId).toSet(),
         )
     }
 

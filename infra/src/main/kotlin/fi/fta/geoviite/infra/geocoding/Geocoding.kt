@@ -430,8 +430,8 @@ fun getIntersection(projection: Line, edges: List<PolyLineEdge>): Pair<PolyLineE
 private fun getPolyLineEdges(alignment: LayoutAlignment): List<PolyLineEdge> {
     return alignment.segments.flatMapIndexed { index: Int, segment: LayoutSegment -> getPolyLineEdges(
         segment,
-        alignment.segments.getOrNull(index-1)?.endDirection(),
-        alignment.segments.getOrNull(index+1)?.startDirection(),
+        alignment.segments.getOrNull(index-1)?.endDirection,
+        alignment.segments.getOrNull(index+1)?.startDirection,
     ) }
 }
 
