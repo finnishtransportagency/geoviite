@@ -8,9 +8,9 @@ import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
+import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
@@ -48,11 +48,14 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                         />
                     }
                 />
-                {elementFetchStatus === LoaderStatus.Ready ? (
-                    <AlignmentPlanSectionInfoboxContent sections={sections || []} />
-                ) : (
-                    <Spinner />
-                )}
+                <ProgressIndicatorWrapper indicator={ProgressIndicatorType.Area} inProgress={elementFetchStatus !== LoaderStatus.Ready}>
+                    {sections && sections.length==0 ?
+                        <p className={'infobox__text'}>
+                            {t('tool-panel.alignment-plan-sections.no-geometries-for-location-track')}
+                        </p>:
+                        <AlignmentPlanSectionInfoboxContent sections={sections || []} />
+                    }
+                </ProgressIndicatorWrapper>
             </InfoboxContent>
         </Infobox>
     );

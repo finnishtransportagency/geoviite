@@ -13,7 +13,7 @@
 
 .track-layout__map {
     position: relative;
-    width: 100%;
+    flex: 1;
 }
 
 .track-layout__main-view {
@@ -30,10 +30,9 @@
 
 .track-layout__tool-panel {
     @include shadow-8dp;
+    width: 380px;
 
     .infobox {
-        min-width: 336px;
-
         &:last-of-type {
             margin-bottom: 64px;
         }
