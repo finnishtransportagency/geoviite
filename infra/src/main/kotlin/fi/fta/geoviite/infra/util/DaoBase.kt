@@ -12,6 +12,17 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
 
+enum class FetchType {
+    SINGLE,
+    MULTI
+}
+
+fun idsSqlFragment(fetchType: FetchType) =
+    when (fetchType) {
+        FetchType.MULTI -> "in (:ids)"
+        FetchType.SINGLE -> "= :id"
+    }
+
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
 
     LAYOUT_ALIGNMENT("layout", "alignment"),
@@ -47,13 +58,13 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 
     protected fun <T> fetchRowVersion(id: IntId<T>, table: DbTable): RowVersion<T> {
         logger.daoAccess(VERSION_FETCH, "fetchRowVersion", "id" to id, "table" to table.fullName)
-        return queryRowVersion("select id, version from ${table.fullName} where id = :id", id)
+        return queryRowVersion("select id, version from ${table.fullName} where id ${idsSqlFragment(FetchType.SINGLE)}", id)
     }
 
     protected fun <T> fetchManyRowVersions(ids: List<IntId<T>>, table: DbTable): List<RowVersion<T>> {
         logger.daoAccess(VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
         return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
-                "select id, version from ${table.fullName} where id in (:ids)",
+                "select id, version from ${table.fullName} where id ${idsSqlFragment(FetchType.MULTI)}",
                 mapOf("ids" to ids.map { it.intValue })
             ) { rs, _ ->
                 rs.getRowVersion("id", "version")
