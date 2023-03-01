@@ -294,7 +294,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             from ${table.fullName} o
             where o.${table.draftLink} in (:ids) 
                or (o.id in (:ids) 
-                  and not exists(select 1 from layout.location_track d where d.draft_of_location_track_id = o.id))
+                  and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id))
         """
 
 }
