@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from './element-list-view.scss';
+import styles from 'data-products/data-product-view.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import ContinuousGeometrySearch from 'data-products/element-list/continuous-geometry-search';
 import { dataProductsActions } from 'data-products/element-list/element-list-store';
@@ -23,11 +23,11 @@ const ElementListView = () => {
     };
 
     return (
-        <div className={styles['element-list-view']}>
-            <div className={styles['element-list-view__header-container']}>
+        <div className={styles['data-product-view']}>
+            <div className={styles['data-product-view__header-container']}>
                 <h2>{t('data-products.element-list.element-list-title')}</h2>
                 <div>
-                    <span className={styles['element-list-view__radio-layout']}>
+                    <span className={styles['data-product-view__radio-layout']}>
                         <Radio onChange={handleRadioClick} checked={continuousGeometrySelected}>
                             {t('data-products.element-list.location-track-geometry')}
                         </Radio>

@@ -9,7 +9,7 @@ const persistorDp = persistStore(dataProductsStore);
 
 const DataProductsMainContainer = connect()(ElementListView);
 
-export const DataProductsMainContainerWithProvider: React.FC = () => {
+export const ElementListContainerWithProvider: React.FC = () => {
     return (
         <Provider store={dataProductsStore}>
             <PersistGate loading={null} persistor={persistorDp}>

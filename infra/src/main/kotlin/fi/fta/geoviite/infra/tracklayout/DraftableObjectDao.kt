@@ -50,9 +50,11 @@ interface IDraftableObjectReader<T : Draftable<T>> {
 
     fun fetchVersionPair(id: IntId<T>): VersionPair<T>
     fun fetchDraftVersion(id: IntId<T>): RowVersion<T>?
+    fun fetchDraftVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>>
     fun fetchDraftVersionOrThrow(id: IntId<T>): RowVersion<T>
     fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>?
     fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T>
+    fun fetchOfficialVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>>
     fun fetchVersion(id: IntId<T>, publishType: PublishType): RowVersion<T>? =
         when (publishType) {
             OFFICIAL -> fetchOfficialVersion(id)
@@ -169,9 +171,31 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         return queryRowVersionOrNull(officialFetchSql(table), id)
     }
 
+    override fun fetchOfficialVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
+        logger.daoAccess(AccessType.VERSION_FETCH, table.versionTable, ids)
+        val versions: List<RowVersion<T>> =
+            if (ids.isEmpty()) emptyList()
+            else jdbcTemplate.query(manyOfficialsFetchSql(table), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
+                rs.getRowVersion("id", "version")
+            }
+        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        return versions
+    }
+
     private fun <T> fetchDraftRowVersion(id: IntId<T>, table: DbTable): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return queryRowVersionOrNull(draftFetchSql(table), id)
+    }
+
+    override fun fetchDraftVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
+        logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
+        val versions: List<RowVersion<T>> =
+            if (ids.isEmpty()) emptyList()
+            else jdbcTemplate.query(manyDraftsFetchSql(table), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
+                rs.getRowVersion("id", "version")
+            }
+        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        return versions
     }
 
     override fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T> =
@@ -252,11 +276,25 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             where (o.id = :id or d.id = :id) and o.draft = false
         """
 
+    private fun manyOfficialsFetchSql(table: DbTable) = """
+            select o.id, o.version
+            from ${table.fullName} o left join ${table.fullName} d on d.${table.draftLink} = o.id
+            where (o.id in (:ids) or d.id in (:ids)) and o.draft = false
+        """
+
     private fun draftFetchSql(table: DbTable) = """
             select o.id, o.version 
             from ${table.fullName} o
             where o.${table.draftLink} = :id 
                or (o.id = :id and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = :id))
+        """
+
+    private fun manyDraftsFetchSql(table: DbTable) = """
+            select o.id, o.version 
+            from ${table.fullName} o
+            where o.${table.draftLink} in (:ids) 
+               or (o.id in (:ids) 
+                  and not exists(select 1 from layout.location_track d where d.draft_of_location_track_id = o.id))
         """
 
 }
