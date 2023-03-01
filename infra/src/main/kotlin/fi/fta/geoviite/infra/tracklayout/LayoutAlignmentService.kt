@@ -55,10 +55,10 @@ class LayoutAlignmentService(
     }
 }
 
-private fun foldSegmentsByPlan(segments: List<SegmentGeometryAndMetadata>) =
+fun foldSegmentsByPlan(segments: List<SegmentGeometryAndMetadata>) =
     segments.fold(mutableListOf<SegmentGeometryAndMetadata>()) { acc, element ->
         val last = acc.lastOrNull()
-        if (last == null || last.planId != element.planId || last.source != element.source) acc.add(
+        if (last == null || last.planId != element.planId || last.fileName != element.fileName || last.source != element.source) acc.add(
             element
         )
         else acc.set(acc.lastIndex, last.copy(endPoint = element.endPoint))
