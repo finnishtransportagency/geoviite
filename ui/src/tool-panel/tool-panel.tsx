@@ -29,7 +29,7 @@ import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import GeometryKmPostInfoboxContainer from 'tool-panel/km-post/geometry-km-post-infobox-container';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
-import { getKmPost } from 'track-layout/layout-km-post-api';
+import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
 import { useLoader } from 'utils/react-utils';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
@@ -112,18 +112,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
     const tracksSwitchesKmPostsPlans = useLoader(() => {
         const trackNumbersPromise = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
-        // Data accessed ToolPanel is most likely cached and mass fetches don't have caching implemented yet.
-        // These should be switched to using mass fetches once GVT-1428 is done
         const locationTracksPromise = getLocationTracks(locationTrackIds, publishType);
-
         const switchesPromise = getSwitches(switchIds, publishType);
-
-        const kmPostsPromise = Promise.all(
-            kmPostIds?.map((kmPostId) =>
-                getKmPost(kmPostId, publishType, changeTimes.layoutKmPost),
-            ),
-        );
-
+        const kmPostsPromise = getKmPosts(kmPostIds, publishType);
         const plansPromise = getGeometryPlanHeaders(planIds);
 
         return Promise.all([

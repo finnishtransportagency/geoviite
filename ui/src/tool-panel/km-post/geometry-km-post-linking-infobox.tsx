@@ -5,7 +5,7 @@ import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
-import { useDebouncedState, useLoader } from 'utils/react-utils';
+import { useLoader } from 'utils/react-utils';
 import { getPlanLinkStatus, linkKmPost } from 'linking/linking-api';
 import { GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType, TimeStamp } from 'common/common-model';
@@ -17,7 +17,7 @@ import styles from 'tool-panel/km-post/geometry-km-post-linking-infobox.scss';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
-import { getKmPost, getKmPostForLinking } from 'track-layout/layout-km-post-api';
+import { getKmPost, getKmPostForLinking, getKmPosts } from 'track-layout/layout-km-post-api';
 import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-field';
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { updateKmPostChangeTime } from 'common/change-time-api';
@@ -49,7 +49,6 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = React.useState('');
     const [showAddDialog, setShowAddDialog] = React.useState(false);
-    const _debouncedSearchTerm = useDebouncedState(searchTerm, 200);
 
     const planStatus = useLoader(
         () => (planId ? getPlanLinkStatus(planId, publishType) : undefined),
@@ -61,8 +60,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         const kmPostIds = planStatus.kmPosts
             .filter((linkStatus) => linkStatus.id == geometryKmPost.sourceId)
             .flatMap((linkStatus) => linkStatus.linkedKmPosts);
-        const kmPostPromises = kmPostIds.map((kmPostId) => getKmPost(kmPostId, publishType));
-        return Promise.all(kmPostPromises).then((posts) => posts.filter(filterNotEmpty));
+        return getKmPosts(kmPostIds, publishType).then((posts) => posts.filter(filterNotEmpty));
     }, [planStatus, geometryKmPost.sourceId]);
 
     const kmPosts =

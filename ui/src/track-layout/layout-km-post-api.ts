@@ -1,5 +1,10 @@
 import { asyncCache } from 'cache/cache';
-import { LayoutKmPost, LayoutKmPostId, LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import {
+    LayoutKmPost,
+    LayoutKmPostId,
+    LayoutTrackNumberId,
+    LocationTrackId,
+} from 'track-layout/track-layout-model';
 import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import {
     deleteAdt,
@@ -16,20 +21,41 @@ import { bboxString, pointString } from 'common/common-api';
 import { KmPostSaveError, KmPostSaveRequest } from 'linking/linking-model';
 import { Result } from 'neverthrow';
 import { ValidatedAsset } from 'publication/publication-model';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostCache = asyncCache<string, LayoutKmPost | null>();
+
+const cacheKey = (id: LayoutKmPostId, publishType: PublishType) => `${id}_${publishType}`;
 
 export async function getKmPost(
     id: LayoutKmPostId,
     publishType: PublishType,
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
 ): Promise<LayoutKmPost | null> {
-    const cacheKey = `${id}_${publishType}`;
-    return kmPostCache.get(changeTime, cacheKey, () =>
+    return kmPostCache.get(changeTime, cacheKey(id, publishType), () =>
         getIgnoreError<LayoutKmPost>(layoutUri('km-posts', publishType, id)),
     );
+}
+
+export async function getKmPosts(
+    ids: LocationTrackId[],
+    publishType: PublishType,
+): Promise<LayoutKmPost[]> {
+    return kmPostCache
+        .getMany(
+            ids,
+            (id) => cacheKey(id, publishType),
+            (fetchIds) =>
+                getThrowError<LayoutKmPost[]>(
+                    `${layoutUri('km-posts', publishType)}?ids=${fetchIds}`,
+                ).then((tracks) => {
+                    const kmPostMap = indexIntoMap(tracks);
+                    return (id) => kmPostMap.get(id) ?? null;
+                }),
+        )
+        .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
 export async function getKmPostByNumber(
