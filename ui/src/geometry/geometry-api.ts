@@ -98,7 +98,9 @@ export async function getGeometryPlanHeader(planId: GeometryPlanId): Promise<Geo
 export async function getGeometryPlanHeaders(
     planIds: GeometryPlanId[],
 ): Promise<GeometryPlanHeader[]> {
-    return getThrowError<GeometryPlanHeader[]>(`${GEOMETRY_URI}/plan-headers?planIds=${planIds}`);
+    return planIds.length > 0
+        ? getThrowError<GeometryPlanHeader[]>(`${GEOMETRY_URI}/plan-headers?planIds=${planIds}`)
+        : Promise.resolve([]);
 }
 
 export async function getGeometryPlanElements(
