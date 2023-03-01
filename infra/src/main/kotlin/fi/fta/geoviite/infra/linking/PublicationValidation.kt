@@ -301,6 +301,11 @@ fun validateSegmentSwitchReferences(
                         jointSequence(segmentJoints),
                     )
                 },
+                validateWithParams(segmentJoints.isNotEmpty()) {
+                    "$VALIDATION_LOCATION_TRACK.switch.wrong-links" to listOf(
+                        switch.name.toString(),
+                    )
+                },
             )
         } else listOf()
 
@@ -484,7 +489,7 @@ fun structureJointGroupFound(structureJoints: List<JointNumber>, alignmentJointG
 
 fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
     if (!structureJoints.containsAll(alignmentJoints)) false
-    else if (alignmentJoints.size == 1) true
+    else if (alignmentJoints.size <= 1) true
     else {
         val alignmentStartAndEnd = listOf(alignmentJoints.first(), alignmentJoints.last())
         val structureStartAndEnd = listOf(structureJoints.first(), structureJoints.last())

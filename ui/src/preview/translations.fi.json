@@ -167,7 +167,8 @@
                     },
                     "alignment-not-continuous": "Sijaintiraide on kytketty vaihteelle {{0}} useammasta kuin yhdestä kohtaa",
                     "joint-location-mismatch": "Sijaintiraiteen ja vaihteen {{0}} vaihdepisteiden sijainnit eivät vastaa toisiaan",
-                    "wrong-joint-sequence": "Sijaintiraiteen vaihdepisteet ({{2}}) vaihteella {{0}} ({{1}}) eivät vastaa vaihderakenteen linjoja"
+                    "wrong-joint-sequence": "Sijaintiraiteen vaihdepisteet ({{2}}) vaihteella {{0}} ({{1}}) eivät vastaa vaihderakenteen linjoja",
+                    "wrong-links": "Vaihteen {{0}} linkitys on vajavainen ja se täytyy linkittää uudelleen"
                 }
             },
             "switch": {
