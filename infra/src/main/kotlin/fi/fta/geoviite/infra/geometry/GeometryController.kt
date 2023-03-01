@@ -117,6 +117,13 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         return geometryService.getProjects()
     }
 
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/projects/{id}")
+    fun getProject(@PathVariable("id") projectId: IntId<Project>): Project {
+        log.apiCall("getProject")
+        return geometryService.getProject(projectId)
+    }
+
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/projects")
     fun createProject(@RequestBody project: Project): Project {

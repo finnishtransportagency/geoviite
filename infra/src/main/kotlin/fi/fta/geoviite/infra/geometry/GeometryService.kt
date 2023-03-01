@@ -160,6 +160,11 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchProjects()
     }
 
+    fun getProject(id: IntId<Project>): Project {
+        logger.serviceCall("getProject", "id" to id)
+        return geometryDao.getProject(id)
+    }
+
     fun createProject(project: Project): Project {
         logger.serviceCall("createProject", "project" to project)
         val projectId = geometryDao.insertProject(project)
