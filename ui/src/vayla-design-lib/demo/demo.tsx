@@ -13,6 +13,9 @@ import { DropdownExamples } from 'vayla-design-lib/demo/examples/dropdown-exampl
 import { MenuExample } from 'vayla-design-lib/demo/examples/menu-example';
 import { SpinnerExamples } from 'vayla-design-lib/demo/examples/spinner-examples';
 import { DatepickerExamples } from 'vayla-design-lib/demo/examples/datepicker-examples';
+import { ProgressIndicatorWrapperExamples } from 'vayla-design-lib/demo/examples/progress-indicator-wrapper-examples';
+
+export const LOREMIPSUM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean id nibh in elit sodales congue. Mauris sapien ex, mattis ut consectetur eu, imperdiet sit amet neque. Sed id facilisis nibh. Morbi tristique ante id magna molestie, vitae tempus leo lacinia. Sed tincidunt, ligula ut luctus pellentesque, augue lorem finibus nibh, in ultricies erat nisl quis magna. Curabitur at scelerisque libero. Fusce sit amet porta leo. Aliquam mauris lectus, varius vitae tortor non, blandit commodo libero. Morbi tellus velit, eleifend vitae fermentum quis, facilisis non neque. Suspendisse quis posuere nibh. Quisque a consequat felis.";
 
 export const DesignLibDemo: React.FC = () => {
     return (
@@ -31,6 +34,7 @@ export const DesignLibDemo: React.FC = () => {
             <DropdownExamples />
             <MenuExample />
             <SpinnerExamples />
+            <ProgressIndicatorWrapperExamples/>
         </div>
     );
 };
