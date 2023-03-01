@@ -14,6 +14,7 @@ import {
     Project,
     SortByValue,
     SortOrderValue,
+    ProjectId,
 } from 'geometry/geometry-model';
 import {
     GeometryPlanLayout,
@@ -214,6 +215,10 @@ export async function getGeometryAlignmentLayout(
 
 export async function fetchProjects(): Promise<Project[]> {
     return await getThrowError<Project[]>(`${GEOMETRY_URI}/projects`);
+}
+
+export async function getProject(id: ProjectId): Promise<Project> {
+    return await getThrowError<Project>(`${GEOMETRY_URI}/projects/${id}`);
 }
 
 export async function createProject(project: Project): Promise<Project | null> {

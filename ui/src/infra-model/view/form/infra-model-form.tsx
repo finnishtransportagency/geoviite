@@ -23,7 +23,7 @@ import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
 import { useTranslation } from 'react-i18next';
-import { fetchAuthors, fetchProjects } from 'geometry/geometry-api';
+import { fetchAuthors, getProject } from 'geometry/geometry-api';
 import { InfraModelPhaseField } from 'infra-model/view/form/fields/infra-model-phase-field';
 import { InfraModelDecisionPhaseField } from 'infra-model/view/form/fields/infra-model-decision-phase-field';
 import { InfraModelMeasurementMethodField } from 'infra-model/view/form/fields/infra-model-measurement-method-field';
@@ -42,6 +42,7 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'common/change-time-api';
 import { OnSelectFunction } from 'selection/selection-model';
+import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -107,12 +108,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [planSource, setPlanSource] = React.useState<PlanSource | undefined>(geometryPlan.source);
     const [sridList, setSridList] = React.useState<CoordinateSystemModel[] | null>();
     const [fieldInEdit, setFieldInEdit] = React.useState<EditablePlanField | undefined>();
-    const [projects, setProjects] = React.useState<Project[]>();
     const [authors, setAuthors] = React.useState<Author[]>();
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
+    const [project, setProject] = React.useState<Project>();
 
     const planSourceOptions = [
         {
@@ -179,10 +180,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     }, [changeTimes]);
 
     React.useEffect(() => {
-        fetchProjects().then((projects) => {
-            const projectInList = projects.find((p) => p.id === geometryPlan.project.id);
-            setProjects([...projects, ...(projectInList ? [] : [geometryPlan.project])]);
-        });
+        getProject(overrideInfraModelParameters.projectId || geometryPlan.project.id).then(
+            setProject,
+        );
         fetchAuthors().then((authors) => {
             const authorInList = authors.find((p) => p.id === geometryPlan.author?.id);
             setAuthors([
@@ -263,34 +263,14 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         onEdit={() => setFieldInEdit('planName')}
                         onClose={() => setFieldInEdit(undefined)}>
                         {fieldInEdit !== 'planName' ? (
-                            geometryPlan.project.name
+                            project?.name
                         ) : (
-                            <FieldLayout
-                                value={
-                                    <Dropdown
-                                        wide
-                                        wideList
-                                        value={geometryPlan.project.id}
-                                        options={
-                                            projects
-                                                ? projects.map((project) => ({
-                                                      name: project.name,
-                                                      value: project.id,
-                                                  }))
-                                                : []
-                                        }
-                                        onChange={(projectId) => {
-                                            projectId &&
-                                                projectId != geometryPlan.project.id &&
-                                                changeInOverrideParametersField(
-                                                    projectId,
-                                                    'projectId',
-                                                );
-                                        }}
-                                        onAddClick={() => setShowNewProjectDialog(true)}
-                                    />
+                            <ProjectDropdown
+                                id={geometryPlan.project.id}
+                                setProject={(projectId) =>
+                                    changeInOverrideParametersField(projectId, 'projectId')
                                 }
-                                help={t('im-form.name-help')}
+                                onAddProject={() => setShowNewProjectDialog(true)}
                             />
                         )}
                     </FormgroupField>
@@ -560,7 +540,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
             {showNewProjectDialog && (
                 <NewProjectDialog
-                    projects={projects}
                     onClose={() => setShowNewProjectDialog(false)}
                     onSave={(project) => {
                         setShowNewProjectDialog(false);

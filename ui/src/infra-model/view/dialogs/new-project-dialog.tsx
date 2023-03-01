@@ -9,26 +9,23 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { useTranslation } from 'react-i18next';
 import { Project } from 'geometry/geometry-model';
 import { debounce } from 'ts-debounce';
-import { createProject } from 'geometry/geometry-api';
+import { createProject, fetchProjects } from 'geometry/geometry-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { isEqualWithoutWhitespace } from 'utils/string-utils';
+import { useLoader } from 'utils/react-utils';
 
 type NewProjectDialogProps = {
-    projects?: Project[];
     onClose: () => void;
     onSave: (project: Project) => void;
 };
 
-export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
-    projects,
-    onClose,
-    onSave,
-}) => {
+export const NewProjectDialog: React.FC<NewProjectDialogProps> = ({ onClose, onSave }) => {
     const { t } = useTranslation();
     const [projectName, setProjectName] = React.useState<string>('');
     const [canSave, setCanSave] = React.useState<boolean>(false);
     const [duplicateName, setDuplicateName] = React.useState<boolean>(false);
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
+    const projects = useLoader(fetchProjects, []);
 
     const debouncer = React.useCallback(
         debounce((newName: string) => {
