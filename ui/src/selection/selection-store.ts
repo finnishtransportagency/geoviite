@@ -220,7 +220,7 @@ function updateItemCollectionsByOptions(
         options['locationTrackEndPoints'],
         flags,
     );
-    itemCollections['geometryPlans'] = getNewItemCollection(
+    itemCollections['geometryPlans'] = getNewIdCollection(
         itemCollections['geometryPlans'],
         options['geometryPlans'],
         flags,
@@ -283,7 +283,7 @@ function updateItemCollectionsByUnselecting(
         itemCollections['locationTrackEndPoints'],
         unselectItemCollections['locationTrackEndPoints'],
     );
-    itemCollections['geometryPlans'] = filterItemCollection(
+    itemCollections['geometryPlans'] = filterIdCollection(
         itemCollections['geometryPlans'],
         unselectItemCollections['geometryPlans'],
     );

@@ -212,4 +212,36 @@ class GeometryDaoIT @Autowired constructor(
         assertEquals(mapOf(planVersion.id to expectedSummary), summaries)
         assertContains(allSummaries.values, expectedSummary)
     }
+
+    @Test
+    fun `Geometry plan header mass fetch works`() {
+        val file1 = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem_1.xml")
+        val file2 = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem_2.xml")
+        val trackNumberId = insertOfficialTrackNumber()
+        val plan1 = plan(
+            trackNumberId = trackNumberId,
+            fileName = file1.name,
+            alignments = listOf(geometryAlignment(
+                elements = listOf(
+                    minimalLine(),
+                ),
+            )),
+        )
+        val plan2 = plan(
+            trackNumberId = trackNumberId,
+            fileName = file1.name,
+            alignments = listOf(geometryAlignment(
+                elements = listOf(
+                    minimalCurve(),
+                ),
+            )),
+        )
+        val plan1Version = geometryDao.insertPlan(plan1, file1, null)
+        val plan2Version = geometryDao.insertPlan(plan2, file2, null)
+
+        val expected = geometryDao.fetchManyPlanVersions(listOf(plan1Version.id, plan2Version.id))
+        assertEquals(expected.size, 2)
+        assertContains(expected, plan1Version)
+        assertContains(expected, plan2Version)
+    }
 }

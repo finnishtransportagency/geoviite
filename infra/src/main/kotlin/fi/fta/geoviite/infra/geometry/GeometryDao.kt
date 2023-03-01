@@ -665,6 +665,8 @@ class GeometryDao @Autowired constructor(
 
     fun fetchPlanVersion(id: IntId<GeometryPlan>) = fetchRowVersion(id, GEOMETRY_PLAN)
 
+    fun fetchManyPlanVersions(ids: List<IntId<GeometryPlan>>) = fetchManyRowVersions(ids, GEOMETRY_PLAN)
+
     fun fetchAlignmentPlanVersion(alignmentId: IntId<GeometryAlignment>): RowVersion<GeometryPlan> {
         //language=SQL
         val sql = """

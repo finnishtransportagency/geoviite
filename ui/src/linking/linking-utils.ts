@@ -6,7 +6,7 @@ import {
     LayoutSwitchJointConnection,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getLocationTracks } from 'track-layout/layout-location-track-api';
 
 export enum SwitchTypeMatch {
     Exact,
@@ -80,8 +80,8 @@ export function getLocationTracksForJointConnections(
         .filter(filterUnique);
 
     // This currently flickers when using mass fetch. This can be moved to mass fetch after GVT-1428 is done
-    return Promise.all(locationTrackIds.map((id) => getLocationTrack(id, publishType))).then(
-        (tracks) => tracks.filter(filterNotEmpty),
+    return getLocationTracks(locationTrackIds, publishType).then((tracks) =>
+        tracks.filter(filterNotEmpty),
     );
 }
 

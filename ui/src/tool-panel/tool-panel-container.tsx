@@ -62,7 +62,7 @@ const ToolPanelContainer: React.FC = () => {
 
     return (
         <ToolPanel
-            planHeaders={store.selection.selectedItems.geometryPlans}
+            planIds={store.selection.selectedItems.geometryPlans}
             trackNumberIds={store.selection.selectedItems.trackNumbers}
             kmPostIds={kmPostIds}
             geometryKmPosts={store.selection.selectedItems.geometryKmPosts}

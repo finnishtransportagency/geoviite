@@ -14,7 +14,7 @@ import { PropEdit } from 'utils/validation-utils';
 import {
     getGeometryPlanElements,
     getGeometryPlanElementsCsv,
-    getGeometryPlanHeaders,
+    getGeometryPlanHeadersBySearchTerms,
 } from 'geometry/geometry-api';
 import { ElementItem, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { useLoader } from 'utils/react-utils';
@@ -39,9 +39,14 @@ function searchGeometryPlanHeaders(
         return Promise.resolve([]);
     }
 
-    return getGeometryPlanHeaders(10, undefined, undefined, [source], [], searchTerm).then(
-        (t) => t.items,
-    );
+    return getGeometryPlanHeadersBySearchTerms(
+        10,
+        undefined,
+        undefined,
+        [source],
+        [],
+        searchTerm,
+    ).then((t) => t.items);
 }
 
 function getGeometryPlanOptions(

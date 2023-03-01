@@ -3,11 +3,13 @@ import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
 import { Link } from 'vayla-design-lib/link/link';
-import { GeometryPlanId } from 'geometry/geometry-model';
 import { AlignmentSectionByPlan } from 'track-layout/layout-location-track-api';
-import { useAppNavigate } from 'common/navigate';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { createDelegates } from 'store/store-utils';
+import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import { useTrackLayoutAppDispatch } from 'store/hooks';
+import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 
 type AlignmentPlanSectionInfoboxContentProps = {
     sections: AlignmentSectionByPlan[];
@@ -17,8 +19,9 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
 > = ({ sections }) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
-    const onSelectPlan = (planId: GeometryPlanId) => navigate('inframodel-edit', planId);
+
+    const dispatch = useTrackLayoutAppDispatch();
+    const delegates = createDelegates(dispatch, TrackLayoutActions);
 
     const errorFragment = (errorMessage = '') => (
         <span
@@ -38,9 +41,16 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             {section.planName ? (
                                 section.planId ? (
                                     <Link
-                                        onClick={() =>
-                                            section.planId && onSelectPlan(section.planId)
-                                        }
+                                        onClick={() => {
+                                            if (section.planId) {
+                                                delegates.setToolPanelTab(
+                                                    toolPanelPlanTabId(section.planId),
+                                                );
+                                                delegates.onSelect({
+                                                    geometryPlans: [section.planId],
+                                                });
+                                            }
+                                        }}
                                         title={section.planName}>
                                         {section.planName}
                                     </Link>
