@@ -6,7 +6,7 @@ import {
     GeometrySwitchId,
     GeometryTrackNumberId,
 } from 'geometry/geometry-model';
-import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import {
     DataType,
     JointNumber,
@@ -52,8 +52,9 @@ export function simplifySegments(
 ): MapSegment {
     const lengths = segments.map((s) => s.length);
     return {
-        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${segments.length
-            }_${resolution}`,
+        id: `${idBase}_${segments[0].id}_${segments[segments.length - 1].id}_${
+            segments.length
+        }_${resolution}`,
         resolution: Math.ceil(Math.max(...lengths)),
         pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
         points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
@@ -261,14 +262,6 @@ export type AddressPoint = {
 export type AlignmentStartAndEnd = {
     start: AddressPoint | null;
     end: AddressPoint | null;
-};
-
-export type TrafficOperatingPointId = string;
-
-export type TrafficOperatingPoint = {
-    id: TrafficOperatingPointId;
-    name: string;
-    abbreviation: string;
 };
 
 export function toReferenceLine({
