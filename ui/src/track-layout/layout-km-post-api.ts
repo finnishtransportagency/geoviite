@@ -42,9 +42,11 @@ export async function getKmPost(
 export async function getKmPosts(
     ids: LocationTrackId[],
     publishType: PublishType,
+    changeTime: TimeStamp = getChangeTimes().layoutKmPost,
 ): Promise<LayoutKmPost[]> {
     return kmPostCache
         .getMany(
+            changeTime,
             ids,
             (id) => cacheKey(id, publishType),
             (fetchIds) =>

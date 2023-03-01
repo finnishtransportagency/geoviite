@@ -61,14 +61,14 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                         locationTracks: [locationTrackId],
                     })
                 }
-                onSelectSwitch={(s) =>
+                onSelectSwitch={(switchId) =>
                     props.onSelect({
-                        switches: [s],
+                        switches: [switchId],
                     })
                 }
-                onSelectKmPost={(kmPost) =>
+                onSelectKmPost={(kmPostId) =>
                     props.onSelect({
-                        kmPosts: [kmPost],
+                        kmPosts: [kmPostId],
                     })
                 }
                 onPublishTypeChange={(publishType: PublishType) => {

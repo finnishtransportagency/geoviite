@@ -1,10 +1,10 @@
 import { asyncCache } from 'cache/cache';
 import {
     Author,
+    ElementItem,
     GeometryAlignmentId,
     GeometryElement,
     GeometryElementId,
-    ElementItem,
     GeometryPlan,
     GeometryPlanHeader,
     GeometryPlanId,
@@ -201,13 +201,9 @@ export async function getGeometryAlignmentLayout(
     planId: GeometryPlanId,
     geometryAlignmentId: GeometryAlignmentId,
     includeGeometryData = true,
-    changeTime?: TimeStamp,
+    changeTime: TimeStamp = getChangeTimes().geometryPlan,
 ): Promise<MapAlignment | undefined> {
-    return getTrackLayoutPlan(
-        planId,
-        changeTime || getChangeTimes().geometryPlan,
-        includeGeometryData,
-    ).then((plan) => {
+    return getTrackLayoutPlan(planId, changeTime, includeGeometryData).then((plan) => {
         return plan?.alignments.find((alignment) => alignment.id === geometryAlignmentId);
     });
 }

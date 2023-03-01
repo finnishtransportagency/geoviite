@@ -29,9 +29,9 @@ export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trac
 export type ItemCollections = {
     segments: MapSegment[];
     locationTracks: LocationTrackId[];
-    kmPosts: LayoutKmPost[];
+    kmPosts: LayoutKmPostId[];
     geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
-    switches: LayoutSwitch[];
+    switches: LayoutSwitchId[];
     geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
     trackNumbers: LayoutTrackNumberId[];
     geometryAlignments: SelectedGeometryItem<MapAlignment>[];

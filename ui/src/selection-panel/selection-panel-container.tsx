@@ -4,7 +4,12 @@ import { createDelegates } from 'store/store-utils';
 import * as React from 'react';
 import { MapContext } from 'map/map-store';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
-import { useLocationTracks, useReferenceLines } from 'track-layout/track-layout-react-utils';
+import {
+    useKmPosts,
+    useLocationTracks,
+    useReferenceLines,
+    useSwitches,
+} from 'track-layout/track-layout-react-utils';
 
 export const SelectionPanelContainer: React.FC = () => {
     const dispatch = useTrackLayoutAppDispatch();
@@ -28,6 +33,16 @@ export const SelectionPanelContainer: React.FC = () => {
         store.publishType,
         store.changeTimes.layoutReferenceLine,
     );
+    const switches = useSwitches(
+        store.map.shownItems.switches,
+        store.publishType,
+        store.changeTimes.layoutSwitch,
+    );
+    const kmPosts = useKmPosts(
+        store.map.shownItems.kmPosts,
+        store.publishType,
+        store.changeTimes.layoutKmPost,
+    );
     return (
         <SelectionPanel
             onSelect={delegates.onSelect}
@@ -39,10 +54,10 @@ export const SelectionPanelContainer: React.FC = () => {
             publishType={store.publishType}
             selectedItems={store.selection.selectedItems}
             selectedPlanLayouts={store.selection.planLayouts}
-            kmPosts={store.map.shownItems.kmPosts}
+            kmPosts={kmPosts}
             referenceLines={referenceLines}
             locationTracks={locationTracks}
-            switches={store.map.shownItems.switches}
+            switches={switches}
             viewport={store.map.viewport}
             selectableItemTypes={selectableItemTypes}
             togglePlanOpen={delegates.togglePlanOpen}

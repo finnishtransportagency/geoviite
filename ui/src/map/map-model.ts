@@ -1,8 +1,8 @@
 import { BoundingBox, CoordinateSystem, Point } from 'model/geometry';
 import {
     GeometryPlanLayout,
-    LayoutKmPost,
-    LayoutSwitch,
+    LayoutKmPostId,
+    LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
     ReferenceLineId,
@@ -118,15 +118,15 @@ export type OptionalShownItems = {
     trackNumbers?: LayoutTrackNumberId[];
     referenceLines?: ReferenceLineId[];
     locationTracks?: LocationTrackId[];
-    kmPosts?: LayoutKmPost[];
-    switches?: LayoutSwitch[];
+    kmPosts?: LayoutKmPostId[];
+    switches?: LayoutSwitchId[];
 };
 export type ShownItems = {
     trackNumbers: LayoutTrackNumberId[];
     referenceLines: ReferenceLineId[];
     locationTracks: LocationTrackId[];
-    kmPosts: LayoutKmPost[];
-    switches: LayoutSwitch[];
+    kmPosts: LayoutKmPostId[];
+    switches: LayoutSwitchId[];
 };
 
 export type Map = {

@@ -139,7 +139,7 @@ adapterInfoRegister.add('kmPosts', {
                     strategy: 'nearest',
                     limit: options.limit,
                 },
-            ).map((d) => d.kmPost);
+            ).map((d) => d.kmPost.id);
 
             return {
                 kmPosts: kmPosts,
@@ -173,7 +173,7 @@ adapterInfoRegister.add('kmPosts', {
         } else {
             // Fetch every nth
             const isSelected = (kmPost: LayoutKmPost) => {
-                return selection.selectedItems.kmPosts.some((k) => k.id === kmPost.id);
+                return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
             };
             const updateFeaturesPromise = getKmPostFromApi(step).then((kmPosts) => {
                 // Handle latest fetch only

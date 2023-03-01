@@ -1,5 +1,7 @@
 import {
     AlignmentStartAndEnd,
+    LayoutKmPost,
+    LayoutKmPostId,
     LayoutLocationTrack,
     LayoutLocationTrackDuplicate,
     LayoutReferenceLine,
@@ -37,8 +39,9 @@ import {
     getLocationTracks,
     getLocationTrackStartAndEnd,
 } from 'track-layout/layout-location-track-api';
-import { getSwitch } from 'track-layout/layout-switch-api';
+import { getSwitch, getSwitches } from 'track-layout/layout-switch-api';
 import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
+import { getKmPost, getKmPosts } from 'track-layout/layout-km-post-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -112,8 +115,25 @@ export function useLocationTracks(
 export function useSwitch(
     id: LayoutSwitchId | undefined,
     publishType: PublishType,
+    changeTime?: TimeStamp,
 ): LayoutSwitch | undefined {
-    return useLoader(() => (id ? getSwitch(id, publishType) : undefined), [id, publishType]);
+    return useLoader(
+        () => (id ? getSwitch(id, publishType, changeTime) : undefined),
+        [id, publishType],
+    );
+}
+
+export function useSwitches(
+    ids: LayoutSwitchId[] | undefined,
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): LayoutSwitch[] {
+    return (
+        useLoader(
+            () => (ids ? getSwitches(ids, publishType, changeTime) : undefined),
+            [ids, publishType],
+        ) || []
+    );
 }
 
 export function useSwitchStructure(id: SwitchStructureId | undefined): SwitchStructure | undefined {
@@ -188,4 +208,28 @@ export function useLocationTrackChangeTimes(
 
 export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {
     return useLoader(() => getCoordinateSystem(srid), [srid]);
+}
+
+export function useKmPost(
+    id: LayoutKmPostId | undefined,
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): LayoutKmPost | undefined {
+    return useNullableLoader(
+        () => (id ? getKmPost(id, publishType, changeTime) : undefined),
+        [id, publishType],
+    );
+}
+
+export function useKmPosts(
+    ids: LayoutKmPostId[] | undefined,
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): LayoutKmPost[] {
+    return (
+        useLoader(
+            () => (ids ? getKmPosts(ids, publishType, changeTime) : undefined),
+            [ids, publishType],
+        ) || []
+    );
 }

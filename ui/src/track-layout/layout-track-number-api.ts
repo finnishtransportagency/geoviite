@@ -37,11 +37,11 @@ export async function getTrackNumberById(
 
 export async function getTrackNumbers(
     publishType: PublishType,
-    changeTime?: TimeStamp,
+    changeTime: TimeStamp = getChangeTimes().layoutTrackNumber,
     includeDeleted = false,
 ): Promise<LayoutTrackNumber[]> {
     const cacheKey = `${includeDeleted}_${publishType}`;
-    return trackNumbersCache.get(changeTime || getChangeTimes().layoutTrackNumber, cacheKey, () =>
+    return trackNumbersCache.get(changeTime, cacheKey, () =>
         getThrowError<LayoutTrackNumber[]>(
             layoutUri('track-numbers', publishType) + queryParams({ includeDeleted }),
         ),

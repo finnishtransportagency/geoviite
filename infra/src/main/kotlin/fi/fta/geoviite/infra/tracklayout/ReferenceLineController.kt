@@ -39,7 +39,7 @@ class ReferenceLineController(
         @RequestParam("ids", required = true) ids: List<IntId<ReferenceLine>>,
     ): List<ReferenceLine> {
         logger.apiCall("getReferenceLines", "publishType" to publishType, "ids" to ids)
-        return ids.mapNotNull { id -> referenceLineService.get(publishType, id) }
+        return referenceLineService.getMany(publishType, ids)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

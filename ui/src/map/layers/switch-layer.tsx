@@ -216,7 +216,7 @@ adapterInfoRegister.add('switches', {
                     strategy: options.limit == 1 ? 'nearest' : 'limit',
                     limit: options.limit,
                 },
-            ).map((d) => d.switch);
+            ).map((d) => d.switch.id);
             return {
                 switches: switches,
             };
@@ -246,13 +246,11 @@ adapterInfoRegister.add('switches', {
                     const largeSymbols: boolean = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
                     const labels: boolean = resolution <= Limits.SWITCH_LABELS;
                     const isSelected = (switchItem: LayoutSwitch) => {
-                        return selection.selectedItems.switches.some((s) => s.id === switchItem.id);
+                        return selection.selectedItems.switches.some((s) => s === switchItem.id);
                     };
 
                     const isHighlighted = (switchItem: LayoutSwitch) => {
-                        return selection.highlightedItems.switches.some(
-                            (s) => s.id === switchItem.id,
-                        );
+                        return selection.highlightedItems.switches.some((s) => s === switchItem.id);
                     };
 
                     vectorSource.clear();
