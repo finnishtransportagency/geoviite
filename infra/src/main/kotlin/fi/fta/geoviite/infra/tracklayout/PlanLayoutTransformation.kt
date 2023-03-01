@@ -6,15 +6,27 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.Point3DM
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
+import fi.fta.geoviite.infra.util.FileName
 import kotlin.math.max
 
 val REFERENCE_LINE_TYPE_CODE = FeatureTypeCode("111")
 const val MIN_POINT_DISTANCE = 0.01
+
+data class GeometryPlanLayout(
+    val fileName: FileName,
+    val alignments: List<MapAlignment<GeometryAlignment>>,
+    val switches: List<TrackLayoutSwitch>,
+    val kmPosts: List<TrackLayoutKmPost>,
+    val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox }),
+    val planId: DomainId<GeometryPlan>,
+    val planDataType: DataType,
+)
+
+fun simplifyPlanLayout(layout: GeometryPlanLayout, resolution: Int) = layout.copy(
+    alignments = layout.alignments.map { mapAlignment -> simplify(mapAlignment, resolution) }
+)
 
 fun toTrackLayout(
     geometryPlan: GeometryPlan,

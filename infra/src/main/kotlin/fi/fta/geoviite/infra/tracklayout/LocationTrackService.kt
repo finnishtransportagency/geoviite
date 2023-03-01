@@ -11,7 +11,10 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

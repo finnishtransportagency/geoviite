@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber

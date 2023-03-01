@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.util.LocalizationKey

@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
