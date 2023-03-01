@@ -153,7 +153,6 @@ export type MapAlignment = {
     id: AlignmentId;
     boundingBox: BoundingBox | null;
     length: number;
-    dataType: DataType;
     segmentCount: number;
     version: string;
     draftType: DraftType;
@@ -263,75 +262,6 @@ export type AlignmentStartAndEnd = {
     start: AddressPoint | null;
     end: AddressPoint | null;
 };
-
-export function toReferenceLine({
-    id,
-    alignmentType,
-    trackNumberId,
-    boundingBox,
-    length,
-    sourceId,
-    segmentCount,
-    version,
-    draftType,
-}: MapAlignment): LayoutReferenceLine | undefined {
-    if (alignmentType === 'REFERENCE_LINE' && trackNumberId != null)
-        return {
-            id,
-            trackNumberId,
-            boundingBox,
-            // TODO: We could add the actual address to LayoutAlignment, but these methods are backwards anyhow. We should just remove them entirely
-            startAddress: {
-                kmNumber: '0000',
-                meters: 0.0,
-            },
-            length,
-            sourceId,
-            segmentCount,
-            version,
-            draftType,
-        };
-    else return undefined;
-}
-
-export function toLocationTrack({
-    id,
-    name,
-    description,
-    type,
-    alignmentType,
-    state,
-    dataType,
-    trackNumberId,
-    boundingBox,
-    length,
-    sourceId,
-    segmentCount,
-    version,
-    draftType,
-    topologicalConnectivity,
-}: MapAlignment): LayoutLocationTrack | undefined {
-    if (alignmentType === 'LOCATION_TRACK' && trackNumberId)
-        return {
-            id,
-            name,
-            description,
-            type,
-            state,
-            externalId: null,
-            dataType,
-            trackNumberId,
-            boundingBox,
-            length,
-            sourceId,
-            segmentCount,
-            version,
-            draftType,
-            duplicateOf: null,
-            topologicalConnectivity: topologicalConnectivity,
-        };
-    else return undefined;
-}
 
 export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,

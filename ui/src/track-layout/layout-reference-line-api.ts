@@ -12,20 +12,44 @@ import { bboxString } from 'common/common-api';
 import { asyncCache } from 'cache/cache';
 import { getChangeTimes } from 'common/change-time-api';
 import { AlignmentSectionByPlan } from 'track-layout/layout-location-track-api';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
 const referenceLineCache = asyncCache<string, LayoutReferenceLine | null>();
 
+export function cacheKey(id: ReferenceLineId, publishType: PublishType) {
+    return `${id}_${publishType}`;
+}
 export async function getReferenceLine(
     id: ReferenceLineId,
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): Promise<LayoutReferenceLine | null> {
-    const cacheKey = `${id}_${publishType}`;
     return referenceLineCache.get(
         changeTime || getChangeTimes().layoutReferenceLine,
-        cacheKey,
+        cacheKey(id, publishType),
         () => getIgnoreError<LayoutReferenceLine>(layoutUri('reference-lines', publishType, id)),
     );
+}
+
+export async function getReferenceLines(
+    ids: ReferenceLineId[],
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): Promise<LayoutReferenceLine[]> {
+    return referenceLineCache
+        .getMany(
+            changeTime || getChangeTimes().layoutReferenceLine,
+            ids,
+            (id) => cacheKey(id, publishType),
+            (fetchIds) =>
+                getThrowError<LayoutReferenceLine[]>(
+                    `${layoutUri('reference-lines', publishType)}?ids=${fetchIds}`,
+                ).then((tracks) => {
+                    const trackMap = indexIntoMap(tracks);
+                    return (id) => trackMap.get(id) ?? null;
+                }),
+        )
+        .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
 export async function getTrackNumberReferenceLine(

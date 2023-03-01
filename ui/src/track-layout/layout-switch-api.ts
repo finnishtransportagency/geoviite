@@ -83,8 +83,10 @@ export async function getSwitch(
 export async function getSwitches(
     switchIds: LayoutSwitchId[],
     publishType: PublishType,
+    changeTime?: TimeStamp,
 ): Promise<LayoutSwitch[]> {
     return switchCache.getMany(
+        changeTime || getChangeTimes().layoutSwitch,
         switchIds,
         (id) => cacheKey(id, publishType),
         (fetchIds) =>

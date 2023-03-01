@@ -4,6 +4,7 @@ import { createDelegates } from 'store/store-utils';
 import * as React from 'react';
 import { MapContext } from 'map/map-store';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useLocationTracks, useReferenceLines } from 'track-layout/track-layout-react-utils';
 
 export const SelectionPanelContainer: React.FC = () => {
     const dispatch = useTrackLayoutAppDispatch();
@@ -17,6 +18,16 @@ export const SelectionPanelContainer: React.FC = () => {
         return getSelectableItemTypes(store.linkingState);
     }, [store.linkingState]);
 
+    const locationTracks = useLocationTracks(
+        store.map.shownItems.locationTracks,
+        store.publishType,
+        store.changeTimes.layoutLocationTrack,
+    );
+    const referenceLines = useReferenceLines(
+        store.map.shownItems.referenceLines,
+        store.publishType,
+        store.changeTimes.layoutReferenceLine,
+    );
     return (
         <SelectionPanel
             onSelect={delegates.onSelect}
@@ -29,8 +40,8 @@ export const SelectionPanelContainer: React.FC = () => {
             selectedItems={store.selection.selectedItems}
             selectedPlanLayouts={store.selection.planLayouts}
             kmPosts={store.map.shownItems.kmPosts}
-            referenceLines={store.map.shownItems.referenceLines}
-            locationTracks={store.map.shownItems.locationTracks}
+            referenceLines={referenceLines}
+            locationTracks={locationTracks}
             switches={store.map.shownItems.switches}
             viewport={store.map.viewport}
             selectableItemTypes={selectableItemTypes}

@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -33,16 +32,15 @@ data class MapAlignment<T>(
     val alignmentType: MapAlignmentType,
     val type: LocationTrackType?,
     val state: LayoutState,
-    val segments: List<MapSegment>,
+    override val segments: List<MapSegment>,
     val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val sourceId: DomainId<GeometryAlignment>?,
-    val id: DomainId<T>,
+    override val id: DomainId<T>,
     val boundingBox: BoundingBox?,
     val length: Double,
-    val dataType: DataType,
     val segmentCount: Int,
     val version: RowVersion<T>?,
-)
+): IAlignment
 
 data class MapSegment(
     @JsonIgnore
@@ -73,7 +71,6 @@ fun toMapAlignment(
     id = referenceLine.id,
     boundingBox = alignment?.boundingBox,
     length = alignment?.length ?: 0.0,
-    dataType = referenceLine.dataType,
     segmentCount = alignment?.segments?.size ?: 0,
     version = referenceLine.version,
 )
@@ -95,7 +92,6 @@ fun toMapAlignment(
     id = locationTrack.id,
     boundingBox = alignment?.boundingBox,
     length = alignment?.length ?: 0.0,
-    dataType = locationTrack.dataType,
     segmentCount = alignment?.segments?.size ?: 0,
     version = locationTrack.version,
 )

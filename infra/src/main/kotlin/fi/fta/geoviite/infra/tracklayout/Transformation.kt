@@ -131,7 +131,6 @@ fun toMapAlignments(
                 id = alignment.id,
                 boundingBox = boundingBoxInLayoutSpace,
                 length = alignment.elements.sumOf(GeometryElement::calculatedLength),
-                dataType = DataType.TEMP,
                 segmentCount = alignment.elements.size,
                 version = null,
             )

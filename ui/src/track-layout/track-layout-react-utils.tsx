@@ -26,6 +26,7 @@ import { getGeometryPlanHeader } from 'geometry/geometry-api';
 import {
     getReferenceLine,
     getReferenceLineChangeTimes,
+    getReferenceLines,
     getReferenceLineStartAndEnd,
     getTrackNumberReferenceLine,
 } from 'track-layout/layout-reference-line-api';
@@ -33,6 +34,7 @@ import {
     getLocationTrack,
     getLocationTrackChangeTimes,
     getLocationTrackDuplicates,
+    getLocationTracks,
     getLocationTrackStartAndEnd,
 } from 'track-layout/layout-location-track-api';
 import { getSwitch } from 'track-layout/layout-switch-api';
@@ -63,6 +65,19 @@ export function useReferenceLine(
     );
 }
 
+export function useReferenceLines(
+    ids: ReferenceLineId[],
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): LayoutReferenceLine[] {
+    return (
+        useLoader(
+            () => (ids ? getReferenceLines(ids, publishType, changeTime) : undefined),
+            [ids, publishType],
+        ) || []
+    );
+}
+
 export function useLocationTrackDuplicates(
     id: LocationTrackId | undefined,
     publishType: PublishType,
@@ -81,6 +96,19 @@ export function useLocationTrack(
     );
 }
 
+export function useLocationTracks(
+    ids: LocationTrackId[],
+    publishType: PublishType,
+    changeTime?: TimeStamp,
+): LayoutLocationTrack[] {
+    return (
+        useLoader(
+            () => (ids ? getLocationTracks(ids, publishType, changeTime) : undefined),
+            [ids, publishType],
+        ) || []
+    );
+}
+
 export function useSwitch(
     id: LayoutSwitchId | undefined,
     publishType: PublishType,
@@ -88,12 +116,9 @@ export function useSwitch(
     return useLoader(() => (id ? getSwitch(id, publishType) : undefined), [id, publishType]);
 }
 
-export function useSwitchStructure(
-    id: SwitchStructureId | undefined
-): SwitchStructure | undefined {
+export function useSwitchStructure(id: SwitchStructureId | undefined): SwitchStructure | undefined {
     return useLoader(() => (id ? getSwitchStructure(id) : undefined), [id]);
 }
-
 
 export function useTrackNumber(
     publishType: PublishType,

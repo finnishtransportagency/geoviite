@@ -154,18 +154,20 @@ export const deleteLocationTrack = async (
 export async function getLocationTracks(
     ids: LocationTrackId[],
     publishType: PublishType,
+    changeTime?: TimeStamp,
 ): Promise<LayoutLocationTrack[]> {
     return locationTrackCache
         .getMany(
+            changeTime || getChangeTimes().layoutLocationTrack,
             ids,
             (id) => cacheKey(id, publishType),
             (fetchIds) =>
                 getThrowError<LayoutLocationTrack[]>(
-              `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
+                    `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
                     return (id) => trackMap.get(id) ?? null;
-          }),
+                }),
         )
         .then((tracks) => tracks.filter(filterNotEmpty));
 }

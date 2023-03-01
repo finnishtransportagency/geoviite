@@ -13,6 +13,7 @@ export type AsyncCache<TKey, TVal> = {
     getImmutable(key: TKey, getter: () => Promise<TVal>): Promise<TVal>;
     get(changeTime: TimeStamp, key: TKey, getter: () => Promise<TVal>): Promise<TVal>;
     getMany<TId>(
+        changeTime: TimeStamp,
         ids: TId[],
         cacheKey: (id: TId) => TKey,
         getter: (ids: TId[]) => Promise<(id: TId) => TVal>,
@@ -40,21 +41,16 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         return promise;
     };
     const getCached = (changeTime: TimeStamp | null, key: TKey, getter: () => Promise<TVal>) => {
-        if (changeTime != null) {
-            const newChangeTime = toDate(changeTime);
-            if (newChangeTime > ownChangeTime) {
-                ownChangeTime = newChangeTime;
-                cache.clear();
-            }
-        }
+        setChangeTime(changeTime);
         return cache.get(key) ?? put(key, getter());
     };
-
     function getMany<TId>(
+        changeTime: TimeStamp | null,
         ids: TId[],
         cacheKey: (id: TId) => TKey,
         getter: (ids: TId[]) => Promise<(id: TId) => TVal>,
     ): Promise<TVal[]> {
+        setChangeTime(changeTime);
         const toFetch = ids.filter((id) => cache.get(cacheKey(id)) === null);
         if (toFetch.length > 0) {
             const getting = getter(ids);
@@ -67,6 +63,16 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         }
         // type coercion safety: we called put for every missing cache key
         return Promise.all(ids.map((id) => cache.get(cacheKey(id))) as TVal[]);
+    }
+
+    function setChangeTime(changeTime: TimeStamp | null) {
+        if (changeTime != null) {
+            const newChangeTime = toDate(changeTime);
+            if (newChangeTime > ownChangeTime) {
+                ownChangeTime = newChangeTime;
+                cache.clear();
+            }
+        }
     }
 
     return {

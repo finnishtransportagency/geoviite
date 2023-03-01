@@ -40,12 +40,13 @@ data class AlignmentPlanSection(
 )
 
 interface IAlignment {
-
+    val segments: List<ISegment>
+    val id: DomainId<*>
 }
 data class LayoutAlignment(
-    val segments: List<LayoutSegment>,
+    override val segments: List<LayoutSegment>,
     val sourceId: DomainId<GeometryAlignment>?,
-    val id: DomainId<LayoutAlignment> = deriveFromSourceId("A", sourceId),
+    override val id: DomainId<LayoutAlignment> = deriveFromSourceId("A", sourceId),
     val dataType: DataType = DataType.TEMP,
 ): IAlignment {
     val length: Double = segments.lastOrNull()?.let { s -> s.start + s.length } ?: 0.0

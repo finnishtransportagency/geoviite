@@ -18,8 +18,6 @@ import {
     MapSegment,
     ReferenceLineId,
     simplifySegments,
-    toLocationTrack,
-    toReferenceLine,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getAlignmentsByTiles } from 'track-layout/layout-map-api';
@@ -474,8 +472,12 @@ adapterInfoRegister.add('alignment', {
             const alignments = holders
                 .map(({ alignment }) => alignment)
                 .filter(filterUniqueById((a) => `${a.alignmentType}_${a.id}`));
-            const locationTracks = alignments.map(toLocationTrack).filter(filterNotEmpty);
-            const referenceLines = alignments.map(toReferenceLine).filter(filterNotEmpty);
+            const locationTracks = alignments
+                .map((a) => (a.alignmentType === 'LOCATION_TRACK' ? a.id : null))
+                .filter(filterNotEmpty);
+            const referenceLines = alignments
+                .map((a) => (a.alignmentType === 'REFERENCE_LINE' ? a.id : null))
+                .filter(filterNotEmpty);
             return {
                 trackNumbers: trackNumberIds.slice(0, options.limit),
                 locationTracks: locationTracks.slice(0, options.limit),
@@ -486,8 +488,8 @@ adapterInfoRegister.add('alignment', {
         const selectionSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
             const found = shownItemsSearchFunction(hitArea, options);
             return {
-                locationTracks: found.locationTracks.map((t) => t.id),
-                trackNumbers: found.referenceLines.map((l) => l.trackNumberId),
+                locationTracks: found.locationTracks,
+                trackNumbers: found.referenceLines,
             };
         };
 

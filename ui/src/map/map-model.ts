@@ -2,10 +2,10 @@ import { BoundingBox, CoordinateSystem, Point } from 'model/geometry';
 import {
     GeometryPlanLayout,
     LayoutKmPost,
-    LayoutLocationTrack,
-    LayoutReferenceLine,
     LayoutSwitch,
     LayoutTrackNumberId,
+    LocationTrackId,
+    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { DebugLayerData } from 'map/layers/debug-layer';
@@ -116,15 +116,15 @@ export type MapViewport = {
 
 export type OptionalShownItems = {
     trackNumbers?: LayoutTrackNumberId[];
-    referenceLines?: LayoutReferenceLine[];
-    locationTracks?: LayoutLocationTrack[];
+    referenceLines?: ReferenceLineId[];
+    locationTracks?: LocationTrackId[];
     kmPosts?: LayoutKmPost[];
     switches?: LayoutSwitch[];
 };
 export type ShownItems = {
     trackNumbers: LayoutTrackNumberId[];
-    referenceLines: LayoutReferenceLine[];
-    locationTracks: LayoutLocationTrack[];
+    referenceLines: ReferenceLineId[];
+    locationTracks: LocationTrackId[];
     kmPosts: LayoutKmPost[];
     switches: LayoutSwitch[];
 };

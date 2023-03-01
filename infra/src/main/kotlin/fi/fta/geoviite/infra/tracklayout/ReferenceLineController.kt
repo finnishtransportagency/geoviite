@@ -33,6 +33,16 @@ class ReferenceLineController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}", params = ["ids"])
+    fun getReferenceLines(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("ids", required = true) ids: List<IntId<ReferenceLine>>,
+    ): List<ReferenceLine> {
+        logger.apiCall("getReferenceLines", "publishType" to publishType, "ids" to ids)
+        return ids.mapNotNull { id -> referenceLineService.get(publishType, id) }
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/by-track-number/{trackNumberId}")
     fun getTrackNumberReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
