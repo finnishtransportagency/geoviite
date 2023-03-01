@@ -55,11 +55,13 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
             title={`${t(typePrefix(type))} ${t('tool-panel.validation.integrity')}`}
             qa-id="location-track-log-infobox">
             <InfoboxContent>
+                <ProgressIndicatorWrapper
+                    indicator={ProgressIndicatorType.Area}
+                    inProgress={validationLoaderStatus!==LoaderStatus.Ready}>
+
                 {errors.length === 0 && warnings.length === 0 ? (
                         <p className={'infobox__text'}>
-                            <ProgressIndicatorWrapper indicator={ProgressIndicatorType.Subtle} inProgress={validationLoaderStatus==LoaderStatus.Loading}>
-                                    {t('tool-panel.validation.all-ok')}
-                            </ProgressIndicatorWrapper>
+                           {t('tool-panel.validation.all-ok')}
                         </p>
                     ) : (
                         <React.Fragment>
@@ -94,6 +96,8 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
                         </React.Fragment>
                     )
                 }
+                </ProgressIndicatorWrapper>
+
             </InfoboxContent>
         </Infobox>
     );

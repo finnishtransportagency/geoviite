@@ -48,7 +48,9 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                         />
                     }
                 />
-                <ProgressIndicatorWrapper indicator={ProgressIndicatorType.Area} inProgress={elementFetchStatus !== LoaderStatus.Ready}>
+                <ProgressIndicatorWrapper
+                    indicator={ProgressIndicatorType.Area} 
+                    inProgress={elementFetchStatus !== LoaderStatus.Ready}>
                     {sections && sections.length==0 ?
                         <p className={'infobox__text'}>
                             {t('tool-panel.alignment-plan-sections.no-geometries-for-location-track')}
