@@ -3,75 +3,82 @@
 @import '../../vayla-design-lib/shadows';
 
 .infobox {
-  display: flex;
-  flex-direction: column;
-
-  &__title {
-    @include typography-sub-heading;
-    color: $color-black-default;
-    background-color: $color-white-dark;
-    box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
-    margin-bottom: 8px;
-    padding: 12px 0 8px 20px;
-  }
-
-  &__content {
-    margin-bottom: 8px;
-    padding: 0 16px 0 20px;
-  }
-
-  &__content-spread {
-    margin: 0 -16px 0 -20px;
-  }
-
-  &__field {
     display: flex;
-    padding: 5px 0;
-    min-height: 20px;
-  }
+    flex-direction: column;
 
-  &__field-label {
-    @include typography-caption;
-    color: $color-black-light;
-    display: flex;
-    align-items: start;
-    width: 50%;
-    max-width: 120px;
-  }
-
-  &__field-value {
-    @include typography-caption-strong;
-    display: flex;
-    align-items: start;
-    margin-left: 24px;
-    flex-grow: 1;
-  }
-
-  &__edit-icon {
-    padding: 0 5px;
-    cursor: pointer;
-  }
-
-  &__text {
-    @include typography-caption;
-
-    color: $color-black-light;
-  }
-
-  &__buttons {
-    padding: 8px 0;
-
-    .button {
-      margin-right: 12px;
+    &__title {
+        @include typography-sub-heading;
+        color: $color-black-default;
+        background-color: $color-white-dark;
+        box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
+        margin-bottom: 8px;
+        padding: 12px 0 8px 20px;
     }
-  }
+
+    &__content {
+        margin-bottom: 8px;
+        padding: 0 16px 0 20px;
+    }
+
+    &__content-spread {
+        margin: 0 -16px 0 -20px;
+    }
+
+    &__field {
+        display: flex;
+        padding: 5px 0;
+        min-height: 20px;
+    }
+
+    &__field-label {
+        @include typography-caption;
+        color: $color-black-light;
+        display: flex;
+        align-items: start;
+        width: 50%;
+        max-width: 120px;
+    }
+
+    &__field-value {
+        @include typography-caption-strong;
+        display: flex;
+        align-items: start;
+        margin-left: 24px;
+        flex-grow: 1;
+    }
+
+    &__edit-icon {
+        padding: 0 5px;
+        cursor: pointer;
+    }
+
+    &__text {
+        @include typography-caption;
+
+        color: $color-black-light;
+    }
+
+    &__buttons {
+        padding: 8px 0;
+
+        .button {
+            margin-right: 12px;
+        }
+    }
 }
 
 .infobox--blue {
-  border-left: 2px solid $color-blue-light;
-  padding-left: 20px;
+    border-left: 2px solid $color-blue-light;
+    padding-left: 20px;
 
-  .infobox__title {
-    color: $color-blue-light;
-  }
+    .infobox__title {
+        color: $color-blue-light;
+    }
+}
+
+.infobox-tabs {
+    position: sticky;
+    top: 0;
+    background: $color-white-default;
+    z-index: 1;
 }

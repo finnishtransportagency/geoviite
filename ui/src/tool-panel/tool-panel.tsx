@@ -380,7 +380,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     return (
         <div className="tool-panel">
             {tabs.length > 1 && (
-                <div qa-id="tool-panel-tabs">
+                <div className="infobox-tabs" qa-id="tool-panel-tabs">
                     {tabs.map((t) => {
                         return (
                             <Button
