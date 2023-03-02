@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.util
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geometry.parse2DPolygon
+import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints

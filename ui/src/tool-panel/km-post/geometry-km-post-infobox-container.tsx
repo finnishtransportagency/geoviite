@@ -8,6 +8,7 @@ import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { SelectedGeometryItem } from 'selection/selection-model';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { useKmPost } from 'track-layout/track-layout-react-utils';
 
 type GeometryKmPostInfoboxContainerProps = {
     geometryKmPost: SelectedGeometryItem<LayoutKmPost>;
@@ -21,8 +22,12 @@ const GeometryKmPostInfoboxContainer: React.FC<GeometryKmPostInfoboxContainerPro
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
     const state = useTrackLayoutAppSelector((state) => state.trackLayout);
-    const selectedLayoutKmPost = state.selection.selectedItems.kmPosts[0];
     const kmPostChangeTime = state.changeTimes.layoutKmPost;
+    const selectedLayoutKmPost = useKmPost(
+        state.selection.selectedItems.kmPosts[0],
+        state.publishType,
+        kmPostChangeTime,
+    );
 
     return (
         <GeometryKmPostInfoboxView
@@ -37,7 +42,7 @@ const GeometryKmPostInfoboxContainer: React.FC<GeometryKmPostInfoboxContainerPro
             }
             startLinking={delegates.startKmPostLinking}
             stopLinking={delegates.stopLinking}
-            onKmPostSelect={(kmPost: LayoutKmPost) => delegates.onSelect({ kmPosts: [kmPost] })}
+            onKmPostSelect={(kmPost: LayoutKmPost) => delegates.onSelect({ kmPosts: [kmPost.id] })}
             publishType={state.publishType}
             onShowOnMap={() =>
                 geometryKmPost.geometryItem.location &&

@@ -76,7 +76,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
             "getTackLayoutPlan",
             "planId" to geometryPlanId, "includeGeometryData" to includeGeometryData
         )
-        return geometryService.getTrackLayoutPlan(geometryPlanId, includeGeometryData).first
+        return geometryService.getLayoutPlan(geometryPlanId, includeGeometryData).first
     }
 
     @PreAuthorize(AUTH_ALL_READ)

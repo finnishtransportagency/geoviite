@@ -253,7 +253,7 @@ class LinkingService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         alignmentId: IntId<GeometryAlignment>,
     ): MapAlignment<GeometryAlignment> {
-        val (geometryPlan, transformationError) = geometryService.getTrackLayoutPlan(planId)
+        val (geometryPlan, transformationError) = geometryService.getLayoutPlan(planId)
         if (geometryPlan == null) {
             throw LinkingFailureException("Could not create plan layout: plan=$planId error=$transformationError")
         }

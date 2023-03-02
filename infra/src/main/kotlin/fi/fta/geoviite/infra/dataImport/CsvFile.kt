@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.dataImport
 
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.geometry.parse2DLineString
-import fi.fta.geoviite.infra.geometry.parse2DPoint
+import fi.fta.geoviite.infra.geography.parse2DLineString
+import fi.fta.geoviite.infra.geography.parse2DPoint
 import fi.fta.geoviite.infra.math.Point
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser

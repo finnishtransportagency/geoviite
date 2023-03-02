@@ -17,15 +17,8 @@ const ToolPanelContainer: React.FC = () => {
         return createDelegates(dispatch, TrackLayoutActions);
     }, []);
     const typeChange = React.useCallback(() => delegates.onPublishTypeChange('DRAFT'), [delegates]);
-    // TODO Remove these memoizations when selection only has ids for switches and km posts as well
-    const kmPostIds = React.useMemo(
-        () => store.selection.selectedItems.kmPosts.map((kmPost) => kmPost.id),
-        [store.selection.selectedItems.kmPosts],
-    );
-    const switchIds = React.useMemo(
-        () => store.selection.selectedItems.switches.map((sw) => sw.id),
-        [store.selection.selectedItems.switches],
-    );
+    const kmPostIds = store.selection.selectedItems.kmPosts;
+    const switchIds = store.selection.selectedItems.switches;
 
     const startSwitchLinking = React.useCallback(function (
         suggestedSwitch: SuggestedSwitch,
@@ -36,7 +29,7 @@ const ToolPanelContainer: React.FC = () => {
         });
         delegates.startSwitchLinking(suggestedSwitch);
         delegates.onSelect({
-            switches: [layoutSwitch],
+            switches: [layoutSwitch.id],
         });
     },
     []);

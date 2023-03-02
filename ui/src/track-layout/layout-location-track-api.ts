@@ -51,12 +51,10 @@ const cacheKey = (id: LocationTrackId, publishType: PublishType) => `${id}_${pub
 export async function getLocationTrack(
     id: LocationTrackId,
     publishType: PublishType,
-    changeTime?: TimeStamp,
+    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
 ): Promise<LayoutLocationTrack | null> {
-    return locationTrackCache.get(
-        changeTime || getChangeTimes().layoutLocationTrack,
-        cacheKey(id, publishType),
-        () => getIgnoreError<LayoutLocationTrack>(layoutUri('location-tracks', publishType, id)),
+    return locationTrackCache.get(changeTime, cacheKey(id, publishType), () =>
+        getIgnoreError<LayoutLocationTrack>(layoutUri('location-tracks', publishType, id)),
     );
 }
 
@@ -154,18 +152,20 @@ export const deleteLocationTrack = async (
 export async function getLocationTracks(
     ids: LocationTrackId[],
     publishType: PublishType,
+    changeTime: TimeStamp = getChangeTimes().layoutLocationTrack,
 ): Promise<LayoutLocationTrack[]> {
     return locationTrackCache
         .getMany(
+            changeTime,
             ids,
             (id) => cacheKey(id, publishType),
             (fetchIds) =>
                 getThrowError<LayoutLocationTrack[]>(
-              `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
+                    `${layoutUri('location-tracks', publishType)}?ids=${fetchIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
                     return (id) => trackMap.get(id) ?? null;
-          }),
+                }),
         )
         .then((tracks) => tracks.filter(filterNotEmpty));
 }

@@ -6,7 +6,7 @@ import {
     GeometrySwitchId,
     GeometryTrackNumberId,
 } from 'geometry/geometry-model';
-import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import {
     DataType,
     JointNumber,
@@ -19,7 +19,6 @@ import {
     TrackMeter,
     TrackNumber,
 } from 'common/common-model';
-import { filterNotEmpty } from 'utils/array-utils';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
@@ -40,8 +39,6 @@ export type MapSegment = {
     pointCount: number;
     points: LayoutPoint[];
     sourceId: GeometryElementId | null;
-    sourceStart: number | null;
-    boundingBox: BoundingBox | null;
     resolution: number;
     start: number;
     length: number;
@@ -61,11 +58,7 @@ export function simplifySegments(
         resolution: Math.ceil(Math.max(...lengths)),
         pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
         points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
-        boundingBox: combineBoundingBoxes(
-            segments.map((s) => s.boundingBox).filter(filterNotEmpty),
-        ),
         sourceId: null,
-        sourceStart: null,
         start: segments[0].start,
         length: lengths.reduce((prev, current) => prev + current, 0),
     };
@@ -160,7 +153,6 @@ export type MapAlignment = {
     id: AlignmentId;
     boundingBox: BoundingBox | null;
     length: number;
-    dataType: DataType;
     segmentCount: number;
     version: string;
     draftType: DraftType;
@@ -270,83 +262,6 @@ export type AlignmentStartAndEnd = {
     start: AddressPoint | null;
     end: AddressPoint | null;
 };
-
-export type TrafficOperatingPointId = string;
-
-export type TrafficOperatingPoint = {
-    id: TrafficOperatingPointId;
-    name: string;
-    abbreviation: string;
-};
-
-export function toReferenceLine({
-    id,
-    alignmentType,
-    trackNumberId,
-    boundingBox,
-    length,
-    sourceId,
-    segmentCount,
-    version,
-    draftType,
-}: MapAlignment): LayoutReferenceLine | undefined {
-    if (alignmentType === 'REFERENCE_LINE' && trackNumberId != null)
-        return {
-            id,
-            trackNumberId,
-            boundingBox,
-            // TODO: We could add the actual address to LayoutAlignment, but these methods are backwards anyhow. We should just remove them entirely
-            startAddress: {
-                kmNumber: '0000',
-                meters: 0.0,
-            },
-            length,
-            sourceId,
-            segmentCount,
-            version,
-            draftType,
-        };
-    else return undefined;
-}
-
-export function toLocationTrack({
-    id,
-    name,
-    description,
-    type,
-    alignmentType,
-    state,
-    dataType,
-    trackNumberId,
-    boundingBox,
-    length,
-    sourceId,
-    segmentCount,
-    version,
-    draftType,
-    topologicalConnectivity,
-}: MapAlignment): LayoutLocationTrack | undefined {
-    if (alignmentType === 'LOCATION_TRACK' && trackNumberId)
-        return {
-            id,
-            name,
-            description,
-            type,
-            state,
-            externalId: null,
-            dataType,
-            trackNumberId,
-            boundingBox,
-            length,
-            sourceId,
-            segmentCount,
-            version,
-            draftType,
-            duplicateOf: null,
-            topologicalConnectivity: topologicalConnectivity,
-        };
-    else return undefined;
-}
 
 export function getSwitchPresentationJoint(
     layoutSwitch: LayoutSwitch,

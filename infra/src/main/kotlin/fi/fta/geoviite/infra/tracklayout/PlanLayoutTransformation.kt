@@ -8,10 +8,25 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
+import fi.fta.geoviite.infra.util.FileName
 import kotlin.math.max
 
 val REFERENCE_LINE_TYPE_CODE = FeatureTypeCode("111")
 const val MIN_POINT_DISTANCE = 0.01
+
+data class GeometryPlanLayout(
+    val fileName: FileName,
+    val alignments: List<MapAlignment<GeometryAlignment>>,
+    val switches: List<TrackLayoutSwitch>,
+    val kmPosts: List<TrackLayoutKmPost>,
+    val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox }),
+    val planId: DomainId<GeometryPlan>,
+    val planDataType: DataType,
+)
+
+fun simplifyPlanLayout(layout: GeometryPlanLayout, resolution: Int) = layout.copy(
+    alignments = layout.alignments.map { mapAlignment -> simplify(mapAlignment, resolution) }
+)
 
 fun toTrackLayout(
     geometryPlan: GeometryPlan,
@@ -22,7 +37,7 @@ fun toTrackLayout(
 ): GeometryPlanLayout {
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
-    val alignments: List<MapAlignment<GeometryAlignment>> = toTrackLayoutAlignments(
+    val alignments: List<MapAlignment<GeometryAlignment>> = toMapAlignments(
         geometryPlan.alignments,
         planToLayout,
         pointListStepLength,
@@ -90,7 +105,7 @@ fun toTrackLayoutSwitches(
         .mapNotNull { s -> toTrackLayoutSwitch(s, planToLayout)?.let { s.id to it } }
         .associate { it }
 
-fun toTrackLayoutAlignments(
+fun toMapAlignments(
     geometryAlignments: List<GeometryAlignment>,
     planToLayout: Transformation,
     pointListStepLength: Int,
@@ -128,7 +143,6 @@ fun toTrackLayoutAlignments(
                 id = alignment.id,
                 boundingBox = boundingBoxInLayoutSpace,
                 length = alignment.elements.sumOf(GeometryElement::calculatedLength),
-                dataType = DataType.TEMP,
                 segmentCount = alignment.elements.size,
                 version = null,
             )
@@ -170,15 +184,15 @@ private fun toMapSegments(
 
             MapSegment(
                 id = deriveFromSourceId("AS", element.id),
-                points = segmentPoints,
+                geometry = SegmentGeometry(
+                    resolution = pointListStepLength,
+                    points = segmentPoints,
+                ),
                 sourceId = element.id,
                 sourceStart = 0.0,
-                resolution = pointListStepLength,
                 start = segmentStartLength,
                 source = GeometrySource.PLAN,
-                length = segmentPoints.last().m,
                 pointCount = segmentPoints.size,
-                boundingBox = boundingBoxAroundPointsOrNull(segmentPoints),
             )
         }
 

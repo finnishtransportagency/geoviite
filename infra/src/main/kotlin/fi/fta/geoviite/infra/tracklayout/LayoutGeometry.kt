@@ -39,12 +39,16 @@ data class AlignmentPlanSection(
     val id: IndexedId<LayoutSegment>
 )
 
+interface IAlignment {
+    val segments: List<ISegment>
+    val id: DomainId<*>
+}
 data class LayoutAlignment(
-    val segments: List<LayoutSegment>,
+    override val segments: List<LayoutSegment>,
     val sourceId: DomainId<GeometryAlignment>?,
-    val id: DomainId<LayoutAlignment> = deriveFromSourceId("A", sourceId),
+    override val id: DomainId<LayoutAlignment> = deriveFromSourceId("A", sourceId),
     val dataType: DataType = DataType.TEMP,
-) {
+): IAlignment {
     val length: Double = segments.lastOrNull()?.let { s -> s.start + s.length } ?: 0.0
     val boundingBox: BoundingBox? = boundingBoxCombining(segments.mapNotNull { s -> s.boundingBox })
 
@@ -203,12 +207,13 @@ data class LayoutSegmentMetadata(
 interface ISegmentGeometry {
     val resolution: Int
     val points: List<LayoutPoint>
-    val boundingBox: BoundingBox?
     val length: Double
     @get:JsonIgnore
     val startDirection: Double
     @get:JsonIgnore
     val endDirection: Double
+    @get:JsonIgnore
+    val boundingBox: BoundingBox?
 }
 
 data class SegmentGeometry(
@@ -216,8 +221,9 @@ data class SegmentGeometry(
     override val points: List<LayoutPoint>,
     val id: DomainId<SegmentGeometry> = StringId(),
 ): ISegmentGeometry {
-    override val boundingBox: BoundingBox? by lazy { boundingBoxAroundPointsOrNull(points) }
     override val length: Double by lazy { points.last().m }
+
+    override val boundingBox: BoundingBox? by lazy { boundingBoxAroundPointsOrNull(points) }
 
     override val startDirection: Double by lazy {
         directionBetweenPoints(points[0], points[1])
@@ -251,18 +257,33 @@ data class SegmentGeometry(
     }
 }
 
+
+interface ISegmentFields {
+    val sourceId: DomainId<GeometryElement>?
+    val sourceStart: Double?
+    val start: Double
+    val length: Double
+    val source: GeometrySource
+    val id: DomainId<LayoutSegment>
+}
+
+interface ISegment: ISegmentGeometry, ISegmentFields {
+    @get:JsonIgnore
+    val geometry: SegmentGeometry
+}
+
 data class LayoutSegment(
     @JsonIgnore
-    val geometry: SegmentGeometry,
-    val sourceId: DomainId<GeometryElement>?,
-    val sourceStart: Double?,
+    override val geometry: SegmentGeometry,
+    override val sourceId: DomainId<GeometryElement>?,
+    override val sourceStart: Double?,
     val switchId: DomainId<TrackLayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
-    val start: Double,
-    val source: GeometrySource,
-    val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
-): ISegmentGeometry by geometry {
+    override val start: Double,
+    override val source: GeometrySource,
+    override val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
+): ISegmentGeometry by geometry, ISegment {
 
     init {
         require(source != GENERATED || points.size == 2) { "Generated segment can't have more than 2 points" }

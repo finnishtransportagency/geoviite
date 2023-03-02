@@ -74,8 +74,9 @@ export async function getSwitchesByTile(
 export async function getSwitch(
     switchId: LayoutSwitchId,
     publishType: PublishType,
+    changeTime: TimeStamp = getChangeTimes().layoutSwitch,
 ): Promise<LayoutSwitch> {
-    return switchCache.get(getChangeTimes().layoutSwitch, cacheKey(switchId, publishType), () =>
+    return switchCache.get(changeTime, cacheKey(switchId, publishType), () =>
         getThrowError<LayoutSwitch>(layoutUri('switches', publishType, switchId)),
     );
 }
@@ -83,8 +84,10 @@ export async function getSwitch(
 export async function getSwitches(
     switchIds: LayoutSwitchId[],
     publishType: PublishType,
+    changeTime: TimeStamp = getChangeTimes().layoutSwitch,
 ): Promise<LayoutSwitch[]> {
     return switchCache.getMany(
+        changeTime,
         switchIds,
         (id) => cacheKey(id, publishType),
         (fetchIds) =>

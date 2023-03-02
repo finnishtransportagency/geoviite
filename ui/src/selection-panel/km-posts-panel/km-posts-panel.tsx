@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LayoutKmPost } from 'track-layout/track-layout-model';
+import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import styles from './km-posts-panel.scss';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 type KmPostsPanelProps = {
     kmPosts: LayoutKmPost[];
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
-    selectedKmPosts?: LayoutKmPost[];
+    selectedKmPosts?: LayoutKmPostId[];
     max?: number;
 };
 
@@ -40,7 +40,7 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
             <ol className={styles['km-posts-panel__km-posts']}>
                 {visibleKmPosts.map((kmPost) => {
                     const isSelected = selectedKmPosts?.some(
-                        (selectedPost) => selectedPost.id == kmPost.id,
+                        (selectedPost) => selectedPost == kmPost.id,
                     );
                     return (
                         <li key={kmPost.id}>

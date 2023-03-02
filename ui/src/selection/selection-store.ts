@@ -160,7 +160,7 @@ function updateItemCollectionsByOptions(
         options['locationTracks'],
         flags,
     );
-    itemCollections['kmPosts'] = getNewItemCollection(
+    itemCollections['kmPosts'] = getNewIdCollection(
         itemCollections['kmPosts'],
         options['kmPosts'],
         flags,
@@ -170,7 +170,7 @@ function updateItemCollectionsByOptions(
         options['geometryKmPosts'],
         flags,
     );
-    itemCollections['switches'] = getNewItemCollection(
+    itemCollections['switches'] = getNewIdCollection(
         itemCollections['switches'],
         options['switches'],
         flags,
@@ -239,7 +239,7 @@ function updateItemCollectionsByUnselecting(
         itemCollections['locationTracks'],
         unselectItemCollections['locationTracks'],
     );
-    itemCollections['kmPosts'] = filterItemCollection(
+    itemCollections['kmPosts'] = filterIdCollection(
         itemCollections['kmPosts'],
         unselectItemCollections['kmPosts'],
     );
@@ -247,7 +247,7 @@ function updateItemCollectionsByUnselecting(
         itemCollections['geometryKmPosts'],
         unselectItemCollections['geometryKmPosts'],
     );
-    itemCollections['switches'] = filterItemCollection(
+    itemCollections['switches'] = filterIdCollection(
         itemCollections['switches'],
         unselectItemCollections['switches'],
     );

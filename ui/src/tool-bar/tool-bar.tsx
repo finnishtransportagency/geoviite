@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { ItemCollections, Selection } from 'selection/selection-model';
+import { Selection } from 'selection/selection-model';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
 import { getKmPost } from 'track-layout/layout-km-post-api';
@@ -10,7 +10,6 @@ import {
     getLocationTracksBySearchTerm,
 } from 'track-layout/layout-location-track-api';
 import {
-    LayoutKmPost,
     LayoutKmPostId,
     LayoutLocationTrack,
     LayoutSwitch,
@@ -46,8 +45,8 @@ export type ToolbarParams = {
     selection: Selection;
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
-    onSelectSwitch: (s: LayoutSwitch) => void;
-    onSelectKmPost: (kmPost: LayoutKmPost) => void;
+    onSelectSwitch: (switchId: LayoutSwitchId) => void;
+    onSelectKmPost: (kmPostId: LayoutKmPostId) => void;
     onMapSettingsVisibilityChange: (visible: boolean) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
@@ -112,8 +111,6 @@ function getOptions(
 
 export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     const { t } = useTranslation();
-    const selectedItems = props.selection.selectedItems;
-    const _hasActiveElement = hasActiveMapElement(selectedItems); // Will be used later
     const [showAddMenu, setShowAddMenu] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
@@ -160,7 +157,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
                 props.showArea(bbox);
             }
-            props.onSelectSwitch(item.layoutSwitch);
+            props.onSelectSwitch(item.layoutSwitch.id);
         }
     }
 
@@ -200,7 +197,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
 
     function handleSwitchInsert(switchId: LayoutSwitchId) {
         getSwitch(switchId, 'DRAFT').then((s) => {
-            props.onSelectSwitch(s);
+            props.onSelectSwitch(s.id);
         });
 
         setShowAddSwitchDialog(false);
@@ -209,7 +206,7 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     function handleKmPostInsert(id: LayoutKmPostId) {
         updateKmPostChangeTime().then((kp) => {
             getKmPost(id, 'DRAFT', kp).then((kmPost) => {
-                if (kmPost) props.onSelectKmPost(kmPost);
+                if (kmPost) props.onSelectKmPost(kmPost.id);
             });
             setShowAddKmPostDialog(false);
         });
@@ -323,7 +320,3 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
         </div>
     );
 };
-
-function hasActiveMapElement(selectedItems: ItemCollections): boolean {
-    return Object.values(selectedItems).some((items) => items.length > 0);
-}

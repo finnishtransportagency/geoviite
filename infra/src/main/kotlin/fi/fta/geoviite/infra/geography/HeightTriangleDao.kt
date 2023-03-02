@@ -1,12 +1,14 @@
 package fi.fta.geoviite.infra.geography
 
-import fi.fta.geoviite.infra.geometry.create2DPolygonString
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.queryOne
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -56,5 +58,17 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
         }
         logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
         return triangles
+    }
+
+    fun fetchTriangulationNetworkBounds(): BoundingBox {
+        logger.daoAccess(AccessType.FETCH, BoundingBox::class)
+        //language=SQL
+        val sql = """
+            select postgis.st_astext(postgis.st_extent(polygon_transformed)) bounds
+            from common.n60_n2000_triangulation_network
+        """.trimIndent()
+        return jdbcTemplate.queryOne(sql, mapOf<String,Any>()) { rs, _ ->
+            boundingBoxAroundPoints(parse2DPolygon(rs.getString("bounds")))
+        }
     }
 }

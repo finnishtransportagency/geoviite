@@ -99,7 +99,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         (layoutSwitch: LayoutSwitch) =>
             onSelect({
                 ...createEmptyItemCollections(),
-                switches: [layoutSwitch],
+                switches: [layoutSwitch.id],
                 isToggle: true,
             }),
         [],
@@ -200,7 +200,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                         onToggleKmPostSelection={(kmPost) =>
                             onSelect({
                                 ...createEmptyItemCollections(),
-                                kmPosts: [kmPost],
+                                kmPosts: [kmPost.id],
                                 isToggle: true,
                             })
                         }
