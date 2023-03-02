@@ -414,7 +414,7 @@ class GeocodingTest {
             kmPosts = listOf(),
         )
 
-        val result = testContext.getAddressPoints(alignment(
+        val result = testContext.getSwitchPoints(alignment(
             segment(start + Point(0.0, 1.0), start + Point(0.0, 5.5)),
 
             segment(start + Point(0.0, 5.5), start + Point(0.0, 15.5))
@@ -436,7 +436,7 @@ class GeocodingTest {
                 .copy(switchId = IntId(2), startJointNumber = null, endJointNumber = JointNumber(2)),
 
             segment(start + Point(0.0, 85.5), start + Point(0.0, 95.5)),
-        ))!!
+        ))
 
         assertEquals(listOf(
             start + Point(0.0, 5.5), // switch 1, joint 1
@@ -445,13 +445,13 @@ class GeocodingTest {
             start + Point(0.0, 55.5), // switch 2, joint 1
             start + Point(0.0, 65.5), // switch 2, joint 5
             start + Point(0.0, 85.5), // switch 2, joint 2
-        ), result.switchJointPoints.map { p -> p.point.toPoint() })
+        ), result.map { p -> p.point.toPoint() })
 
-        result.switchJointPoints.forEachIndexed { index, jointPoint ->
+        result.forEachIndexed { index, jointPoint ->
             assertEquals(3, jointPoint.address.decimalCount())
             if (index > 0) {
-                assertTrue(jointPoint.address > result.switchJointPoints[index-1].address)
-                assertTrue(jointPoint.distance > result.switchJointPoints[index-1].distance)
+                assertTrue(jointPoint.address > result[index-1].address)
+                assertTrue(jointPoint.distance > result[index-1].distance)
             }
         }
     }

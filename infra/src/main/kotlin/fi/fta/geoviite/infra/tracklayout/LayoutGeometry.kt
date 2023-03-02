@@ -42,20 +42,23 @@ data class AlignmentPlanSection(
 interface IAlignment {
     val segments: List<ISegment>
     val id: DomainId<*>
+    val length: Double
+
+    val start: LayoutPoint?
+    val end: LayoutPoint?
 
     fun getLengthUntil(target: IPoint): Pair<Double, IntersectType>?
     fun getPointAtLength(distance: Double, snapDistance: Double = 0.0): LayoutPoint?
 }
 
 abstract class AbstractAlignment : IAlignment {
-    abstract val length: Double
     abstract val boundingBox: BoundingBox?
 
-    val start by lazy {
+    override val start by lazy {
         segments.firstOrNull()?.points?.first()
     }
 
-    val end by lazy {
+    override val end by lazy {
         segments.lastOrNull()?.points?.last()
     }
 

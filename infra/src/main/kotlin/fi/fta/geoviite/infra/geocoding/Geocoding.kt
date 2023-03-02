@@ -23,7 +23,6 @@ data class AlignmentAddresses(
     val startIntersect: IntersectType,
     val endIntersect: IntersectType,
     val midPoints: List<AddressPoint>,
-    val switchJointPoints: List<AddressPoint>,
 ) {
     @get:JsonIgnore
     val allPoints: List<AddressPoint> by lazy {
@@ -72,7 +71,7 @@ private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.jav
 data class GeocodingContext(
     val trackNumber: TrackLayoutTrackNumber,
     val referenceLine: ReferenceLine,
-    val referenceLineGeometry: LayoutAlignment,
+    val referenceLineGeometry: IAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
     val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
@@ -106,7 +105,7 @@ data class GeocodingContext(
         fun create(
             trackNumber: TrackLayoutTrackNumber,
             referenceLine: ReferenceLine,
-            referenceLineGeometry: IAlignment,
+            referenceLineGeometry: LayoutAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContext {
             val referencePoints = createReferencePoints(referenceLine.startAddress, kmPosts, referenceLineGeometry)
@@ -174,7 +173,7 @@ data class GeocodingContext(
             AddressPoint(point, getAddress(distance, decimals), distance) to intersectType
         }
 
-    fun getAddressPoints(alignment: LayoutAlignment): AlignmentAddresses? {
+    fun getAddressPoints(alignment: IAlignment): AlignmentAddresses? {
         val startPoint = alignment.start?.let(::toAddressPoint)
         val endPoint = alignment.end?.let(::toAddressPoint)
         return if (startPoint != null && endPoint != null) {
@@ -182,7 +181,6 @@ data class GeocodingContext(
                 alignment,
                 (startPoint.first.address + MIN_METER_LENGTH)..(endPoint.first.address - MIN_METER_LENGTH)
             )
-            val switchPoints = getSwitchPoints(alignment)
 
             AlignmentAddresses(
                 startPoint = startPoint.first,
@@ -190,7 +188,6 @@ data class GeocodingContext(
                 startIntersect = startPoint.second,
                 endIntersect = endPoint.second,
                 midPoints = midPoints,
-                switchJointPoints = switchPoints,
             )
         } else null
     }
@@ -211,12 +208,12 @@ data class GeocodingContext(
         return AlignmentStartAndEnd(startAddress?.first, endAddress?.first)
     }
 
-    private fun getMidPoints(alignment: LayoutAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {
+    private fun getMidPoints(alignment: IAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {
         val projectionLines = getSublistForRangeInOrderedList(projectionLines, range) { p, e -> p.address.compareTo(e) }
         return getProjectedAddressPoints(projectionLines, alignment)
     }
 
-    private fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
+    fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
         val locations = alignment.segments.flatMap { segment -> listOfNotNull(
             segment.startJointNumber?.let { segment.points.first() },
             segment.endJointNumber?.let { segment.points.last() },
@@ -310,7 +307,7 @@ fun getProjectedAddressPoint(
 
 fun getProjectedAddressPoints(
     projectionLines: List<ProjectionLine>,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
 ): List<AddressPoint> {
 
     val alignmentEdges = getPolyLineEdges(alignment)
@@ -427,15 +424,15 @@ fun getIntersection(projection: Line, edges: List<PolyLineEdge>): Pair<PolyLineE
     }
 }
 
-private fun getPolyLineEdges(alignment: LayoutAlignment): List<PolyLineEdge> {
-    return alignment.segments.flatMapIndexed { index: Int, segment: LayoutSegment -> getPolyLineEdges(
+private fun getPolyLineEdges(alignment: IAlignment): List<PolyLineEdge> {
+    return alignment.segments.flatMapIndexed { index: Int, segment: ISegment -> getPolyLineEdges(
         segment,
         alignment.segments.getOrNull(index-1)?.endDirection,
         alignment.segments.getOrNull(index+1)?.startDirection,
     ) }
 }
 
-private fun getPolyLineEdges(segment: LayoutSegment, prevDir: Double?, nextDir: Double?): List<PolyLineEdge> {
+private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Double?): List<PolyLineEdge> {
     return segment.points.mapIndexedNotNull { pointIndex: Int, point: LayoutPoint ->
         if (pointIndex == 0) null
         else {
