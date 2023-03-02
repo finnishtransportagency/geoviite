@@ -64,15 +64,16 @@ function createFeatures(
             });
 
             // Create a feature to act as a clickable area
-            const width = 60 * resolution;
-            const height = 25 * resolution;
+            const width = 35 * resolution;
+            const height = 15 * resolution;
+            const clickableX = location.x - 5 * resolution; // offset x a bit
             const polygon = new Polygon([
                 [
-                    [location.x, location.y - height / 2],
-                    [location.x + width, location.y - height / 2],
-                    [location.x + width, location.y + height / 2],
-                    [location.x, location.y + height / 2],
-                    [location.x, location.y - height / 2],
+                    [clickableX, location.y - height / 2],
+                    [clickableX + width, location.y - height / 2],
+                    [clickableX + width, location.y + height / 2],
+                    [clickableX, location.y + height / 2],
+                    [clickableX, location.y - height / 2],
                 ],
             ]);
             const hitAreaFeature = new Feature<Polygon>({
