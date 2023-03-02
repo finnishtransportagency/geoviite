@@ -499,7 +499,15 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             directSwitchChanges.any { directChange -> directChange.switchId == indirectChange.switchId }
         }
 
-        val directChanges = mergeSwitchChanges(indirectInDirectChanges, directSwitchChanges)
+        val directChanges = (indirectInDirectChanges + directSwitchChanges)
+            .groupBy { it.switchId }
+            .map { (switchId, changes) ->
+                val mergedJoints = changes.flatMap(SwitchChange::changedJoints).distinct()
+                SwitchChange(
+                    switchId = switchId,
+                    changedJoints = mergedJoints
+                )
+            }
 
         jdbcTemplate.batchUpdate(
             """
@@ -619,7 +627,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
                 operation = rs.getEnum("operation"),
-                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber) ?: emptyList()
+                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet()
             )
         }.also { locationTracks ->
             logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTracks.map { it.version })
@@ -654,7 +662,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 version = rs.getRowVersion("id", "version"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
-                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber) ?: emptyList()
+                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet()
             )
         }.also { referenceLines ->
             logger.daoAccess(FETCH, PublishedReferenceLine::class, referenceLines.map { it.version })
@@ -708,6 +716,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 name = SwitchName(rs.getString("name")),
                 trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = rs.getEnum("operation"),
+                changedJoints = emptyList()
             )
         }.also { switches ->
             logger.daoAccess(FETCH, PublishedSwitch::class, switches.map { it.version })
@@ -735,20 +744,21 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 version = rs.getRowVersion("id", "version"),
                 number = rs.getTrackNumber("number"),
                 operation = rs.getEnum("operation"),
+                changedKmNumbers = emptySet()
             )
         }.also { trackNumbers ->
             logger.daoAccess(FETCH, PublishedTrackNumber::class, trackNumbers.map { it.version })
         }
     }
 
-    fun fetchCalculatedChanges(publicationId: IntId<Publication>): PublishedCalculatedChanges {
+    fun fetchCalculatedChanges(publicationId: IntId<Publication>): PublishedIndirectChanges {
         val calculatedSwitches = fetchCalculatedSwitchChanges(publicationId)
         val calculatedTrackNumbers = emptyList<PublishedTrackNumber>()
         val calculatedLocationTracks = fetchCalculatedLocationTrackChanges(publicationId)
 
-        logger.daoAccess(FETCH, PublishedCalculatedChanges::class, publicationId)
+        logger.daoAccess(FETCH, PublishedIndirectChanges::class, publicationId)
 
-        return PublishedCalculatedChanges(
+        return PublishedIndirectChanges(
             switches = calculatedSwitches,
             trackNumbers = calculatedTrackNumbers,
             locationTracks = calculatedLocationTracks,
@@ -784,6 +794,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 name = SwitchName(rs.getString("name")),
                 trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = Operation.MODIFY,
+                changedJoints = emptyList()
             )
         }
     }
@@ -820,7 +831,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
                 operation = Operation.MODIFY,
-                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber) ?: emptyList(),
+                changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet(),
             )
         }
     }

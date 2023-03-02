@@ -1,11 +1,13 @@
 package fi.fta.geoviite.infra.publication
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
+import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
@@ -25,7 +27,7 @@ enum class PublicationTableColumn {
 data class PublicationTableItem(
     val name: String,
     val trackNumbers: List<TrackNumber>,
-    val changedKmNumbers: List<KmNumber>? = null,
+    val changedKmNumbers: Set<KmNumber>? = null,
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
@@ -46,13 +48,14 @@ data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val operation: Operation,
+    @JsonIgnore val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedReferenceLine(
     val version: RowVersion<ReferenceLine>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
-    val changedKmNumbers: List<KmNumber>,
+    val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedLocationTrack(
@@ -60,7 +63,7 @@ data class PublishedLocationTrack(
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
-    val changedKmNumbers: List<KmNumber>,
+    val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedSwitch(
@@ -68,6 +71,7 @@ data class PublishedSwitch(
     val trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
     val name: SwitchName,
     val operation: Operation,
+    @JsonIgnore val changedJoints: List<SwitchJointChange>,
 )
 
 data class PublishedKmPost(
@@ -77,7 +81,7 @@ data class PublishedKmPost(
     val operation: Operation,
 )
 
-data class PublishedCalculatedChanges(
+data class PublishedIndirectChanges(
     val trackNumbers: List<PublishedTrackNumber>,
     val locationTracks: List<PublishedLocationTrack>,
     val switches: List<PublishedSwitch>,
@@ -95,8 +99,12 @@ data class PublicationDetails(
     val kmPosts: List<PublishedKmPost>,
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
-    val calculatedChanges: PublishedCalculatedChanges,
-) : Publication(id, publicationTime, publicationUser, message)
+    val indirectChanges: PublishedIndirectChanges,
+) : Publication(id, publicationTime, publicationUser, message) {
+    val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
+    val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
+    val allPublishedSwitches = switches + indirectChanges.switches
+}
 
 enum class DraftChangeType {
     TRACK_NUMBER, LOCATION_TRACK, REFERENCE_LINE, SWITCH, KM_POST,

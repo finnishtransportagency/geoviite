@@ -693,7 +693,7 @@ class PublicationService @Autowired constructor(
             kmPosts = kmPosts,
             ratkoPushStatus = ratkoStatus?.status,
             ratkoPushTime = ratkoStatus?.endTime,
-            calculatedChanges = calculatedChanges
+            indirectChanges = calculatedChanges
         )
     }
 
@@ -850,7 +850,7 @@ class PublicationService @Autowired constructor(
             )
         }
 
-        val calculatedTrackNumbers = publication.calculatedChanges.trackNumbers.map { tn ->
+        val calculatedTrackNumbers = publication.indirectChanges.trackNumbers.map { tn ->
             mapToPublicationTableItem(
                 name = "${getTranslation("track-number")} ${tn.number}",
                 trackNumberIds = setOf(tn.version.id),
@@ -860,7 +860,7 @@ class PublicationService @Autowired constructor(
             )
         }
 
-        val calculatedLocationTracks = publication.calculatedChanges.locationTracks.map { lt ->
+        val calculatedLocationTracks = publication.indirectChanges.locationTracks.map { lt ->
             mapToPublicationTableItem(
                 name = "${getTranslation("location-track")} ${lt.name}",
                 trackNumberIds = setOf(lt.trackNumberId),
@@ -871,7 +871,7 @@ class PublicationService @Autowired constructor(
             )
         }
 
-        val calculatedSwitches = publication.calculatedChanges.switches.map { s ->
+        val calculatedSwitches = publication.indirectChanges.switches.map { s ->
             mapToPublicationTableItem(
                 name = "${getTranslation("switch")} ${s.name}",
                 trackNumberIds = s.trackNumberIds,
@@ -896,7 +896,7 @@ class PublicationService @Autowired constructor(
         trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
         operation: Operation,
         publication: PublicationDetails,
-        changedKmNumbers: List<KmNumber>? = null,
+        changedKmNumbers: Set<KmNumber>? = null,
         isCalculatedChange: Boolean = false,
     ) = PublicationTableItem(
         name = name,

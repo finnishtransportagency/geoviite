@@ -148,11 +148,10 @@ class CalculatedChangesService(
         )
     }
 
-    fun getAllSwitchChangesByLocationTrackChange(
-        locationTrackChanges: List<LocationTrackChange>,
+    fun getAllSwitchChangesByLocationTrack(
+        locationTrackId: IntId<LocationTrack>,
         moment: Instant,
-    ) = locationTrackChanges.flatMap { locationTrackChange ->
-        val locationTrackId = locationTrackChange.locationTrackId
+    ): List<SwitchChange> {
         val (locationTrack, alignment) = locationTrackService.getOfficialWithAlignmentAtMoment(locationTrackId, moment)
             ?: throw NoSuchEntityException(LocationTrack::class, locationTrackId)
 
@@ -160,7 +159,7 @@ class CalculatedChangesService(
         val trackNumber = trackNumberService.getOfficialAtMoment(trackNumberId, moment)
             ?: throw NoSuchEntityException(TrackLayoutTrackNumber::class, trackNumberId)
 
-        val currentGeocodingContext = geocodingService.getGeocodingContextAtMoment(locationTrack.trackNumberId, moment)
+        val currentGeocodingContext = geocodingService.getGeocodingContextAtMoment(trackNumberId, moment)
 
         val switches = currentGeocodingContext?.let { context ->
             getSwitchJointChanges(
@@ -172,20 +171,16 @@ class CalculatedChangesService(
             )
         } ?: emptyList()
 
-        switches
-            .map { (switchId, switchData) ->
-                switchId to switchData.filter { locationTrackChange.changedKmNumbers.contains(it.address.kmNumber) }
-            }
-            .filter { it.second.isNotEmpty() }
-            .map { switch ->
+        return switches
+            .map { (switch, changeData) ->
                 SwitchChange(
-                    switchId = switch.first,
-                    changedJoints = switch.second.map { changeData ->
+                    switchId = switch,
+                    changedJoints = changeData.map { change ->
                         SwitchJointChange(
-                            number = changeData.joint.number,
+                            number = change.joint.number,
                             isRemoved = false,
-                            address = changeData.address,
-                            point = changeData.point.toPoint(),
+                            address = change.address,
+                            point = change.point.toPoint(),
                             locationTrackId = locationTrackId,
                             locationTrackExternalId = locationTrack.externalId,
                             trackNumberId = trackNumberId,
@@ -479,21 +474,6 @@ fun mergeLocationTrackChanges(
                 changedKmNumbers = mergedKmMs,
                 isStartChanged = changes.any { it.isStartChanged },
                 isEndChanged = changes.any { it.isEndChanged }
-            )
-        }
-}
-
-fun mergeSwitchChanges(
-    vararg changeLists: List<SwitchChange>,
-): List<SwitchChange> {
-    return changeLists
-        .flatMap { it }
-        .groupBy { it.switchId }
-        .map { (switchId, changes) ->
-            val mergedJoints = changes.flatMap(SwitchChange::changedJoints).distinct()
-            SwitchChange(
-                switchId = switchId,
-                changedJoints = mergedJoints
             )
         }
 }

@@ -49,7 +49,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId = ZoneId.of("U
             it.trackNumbers.sorted().joinToString(", ")
         },
         PublicationTableColumn.CHANGED_KM_NUMBERS to {
-            it.changedKmNumbers?.let(::formatChangedKmNumbers)
+            it.changedKmNumbers?.sorted()?.let(::formatChangedKmNumbers)
         },
         PublicationTableColumn.OPERATION to { formatOperation(it.operation) },
         PublicationTableColumn.PUBLICATION_TIME to { formatInstant(it.publicationTime, timeZone) },

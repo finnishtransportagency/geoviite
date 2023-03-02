@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -25,32 +25,37 @@ class RatkoLocationTrackService @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushLocationTrackChangesToRatko(locationTrackChanges: List<LocationTrackChange>): List<Oid<LocationTrack>> {
-        return locationTrackChanges
-            .map { change -> change to locationTrackService.getOrThrow(PublishType.OFFICIAL, change.locationTrackId) }
+    fun pushLocationTrackChangesToRatko(publishedLocationTracks: List<PublishedLocationTrack>): List<Oid<LocationTrack>> {
+        return publishedLocationTracks
+            .groupBy { it.version.id }
+            .map { (locationTrackId, locationTracks) ->
+                locationTrackService.getOrThrow(
+                    PublishType.OFFICIAL, locationTrackId
+                ) to locationTracks.flatMap { it.changedKmNumbers }.toSet()
+            }
             .sortedWith(
                 compareBy(
-                    { sortByNullDuplicateOfFirst(it.second.duplicateOf) },
-                    { sortByDeletedStateFirst(it.second.state) }
+                    { sortByNullDuplicateOfFirst(it.first.duplicateOf) },
+                    { sortByDeletedStateFirst(it.first.state) }
                 )
             )
-            .mapNotNull { (locationTrackChange, locationTrack) ->
-                locationTrack.externalId?.also { externalId ->
+            .mapNotNull { (layoutLocationTrack, changedKmNumbers) ->
+                layoutLocationTrack.externalId?.also { externalId ->
                     try {
                         ratkoClient.getLocationTrack(RatkoOid(externalId))
                             ?.let { existingLocationTrack ->
-                                if (locationTrack.state == LayoutState.DELETED) {
-                                    deleteLocationTrack(locationTrack, existingLocationTrack)
+                                if (layoutLocationTrack.state == LayoutState.DELETED) {
+                                    deleteLocationTrack(layoutLocationTrack, existingLocationTrack)
                                 } else {
                                     updateLocationTrack(
-                                        layoutLocationTrack = locationTrack,
+                                        layoutLocationTrack = layoutLocationTrack,
                                         existingRatkoLocationTrack = existingLocationTrack,
-                                        locationTrackChange = locationTrackChange
+                                        changedKmNumbers = changedKmNumbers
                                     )
                                 }
-                            } ?: createLocationTrack(locationTrack)
+                            } ?: createLocationTrack(layoutLocationTrack)
                     } catch (ex: RatkoPushException) {
-                        throw RatkoLocationTrackPushException(ex, locationTrack)
+                        throw RatkoLocationTrackPushException(ex, layoutLocationTrack)
                     }
                 }
             }
@@ -206,13 +211,13 @@ class RatkoLocationTrackService @Autowired constructor(
     private fun updateLocationTrack(
         layoutLocationTrack: LocationTrack,
         existingRatkoLocationTrack: RatkoLocationTrack,
-        locationTrackChange: LocationTrackChange
+        changedKmNumbers: Set<KmNumber>,
     ) {
         logger.serviceCall(
             "updateRatkoLocationTrack",
             "layoutLocationTrack" to layoutLocationTrack,
             "existingRatkoLocationTrack" to existingRatkoLocationTrack,
-            "locationTrackChange" to locationTrackChange,
+            "changedKmNumbers" to changedKmNumbers,
         )
 
         requireNotNull(layoutLocationTrack.externalId) { "Cannot update location track without oid $layoutLocationTrack" }
@@ -228,7 +233,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
         val updatedEndPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            changedKmNumbers = locationTrackChange.changedKmNumbers,
+            changedKmNumbers = changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )
@@ -236,15 +241,16 @@ class RatkoLocationTrackService @Autowired constructor(
         //Update location track end points before deleting anything, otherwise old end points will stay in use
         updateLocationTrackProperties(layoutLocationTrack, updatedEndPointNodeCollection)
 
-        deleteLocationTrackPoints(locationTrackChange.changedKmNumbers, locationTrackOid)
+        deleteLocationTrackPoints(changedKmNumbers, locationTrackOid)
 
         val switchPoints = addresses.switchJointPoints.filterNot { sp ->
             sp.address == addresses.startPoint.address || sp.address == addresses.endPoint.address
         }
 
         val changedMidPoints = (addresses.midPoints + switchPoints)
-            .filter { p -> locationTrackChange.changedKmNumbers.contains(p.address.kmNumber) }
+            .filter { p -> changedKmNumbers.contains(p.address.kmNumber) }
             .sortedBy { p -> p.address }
+
         updateLocationTrackGeometry(
             locationTrackOid = locationTrackOid,
             newPoints = changedMidPoints,
@@ -256,7 +262,7 @@ class RatkoLocationTrackService @Autowired constructor(
             layoutLocationTrack,
             listOf(addresses.startPoint) + changedMidPoints + listOf(addresses.endPoint),
             trackNumberOid,
-            locationTrackChange.changedKmNumbers,
+            changedKmNumbers,
         )
     }
 
