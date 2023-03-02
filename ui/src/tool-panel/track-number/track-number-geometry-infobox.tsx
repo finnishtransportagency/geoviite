@@ -10,7 +10,10 @@ import { MapViewport } from 'map/map-model';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
 import { getReferenceLineSectionsByPlan } from 'track-layout/layout-reference-line-api';
 import { useTranslation } from 'react-i18next';
-import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
@@ -49,14 +52,17 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                     }
                 />
                 <ProgressIndicatorWrapper
-                    indicator={ProgressIndicatorType.Area} 
+                    indicator={ProgressIndicatorType.Area}
                     inProgress={elementFetchStatus !== LoaderStatus.Ready}>
-                    {sections && sections.length==0 ?
+                    {sections && sections.length == 0 ? (
                         <p className={'infobox__text'}>
-                            {t('tool-panel.alignment-plan-sections.no-geometries-for-reference-line')}
-                        </p> :
+                            {t(
+                                'tool-panel.alignment-plan-sections.no-geometries-for-reference-line',
+                            )}
+                        </p>
+                    ) : (
                         <AlignmentPlanSectionInfoboxContent sections={sections || []} />
-                    }
+                    )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>
         </Infobox>

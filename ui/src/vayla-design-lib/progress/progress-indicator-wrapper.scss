@@ -1,79 +1,82 @@
 @import '../animation';
-@import "../colors";
+@import '../colors';
 
 .progress-indicator-wrapper {
-  display: inline-block;
-  position: relative;
+    display: inline-block;
+    position: relative;
 }
 
 .progress-indicator-wrapper__content {
-  transition: all 0.5s;
-  opacity: 1;
+    transition: all 0.5s;
+    opacity: 1;
 }
 
 .progress-indicator-wrapper--in-progress .progress-indicator-wrapper__content {
-  opacity: 0;
+    opacity: 0;
 }
 
-.progress-indicator-wrapper--in-progress.progress-indicator-wrapper--enable-translucent-glass .progress-indicator-wrapper__content {
-  opacity: 0.2;
+.progress-indicator-wrapper--in-progress.progress-indicator-wrapper--enable-translucent-glass
+    .progress-indicator-wrapper__content {
+    opacity: 0.2;
 }
 
 .progress-indicator-wrapper__indicator {
-  display: none;
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  transition: all 0.5s;
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    transition: all 0.5s;
 }
 
 /* Default indicator */
 
 .progress-indicator-wrapper--default-indicator .progress-indicator-wrapper__indicator {
-  display: block;
-
-  &::after {
     display: block;
-    @include spinner-animation;
-    box-sizing: border-box;
-    width: 20px;
-    height: 20px;
-    color: $color-black-light;
-    content: "";
-  }
+
+    &::after {
+        display: block;
+        @include spinner-animation;
+        box-sizing: border-box;
+        width: 20px;
+        height: 20px;
+        color: $color-black-light;
+        content: '';
+    }
 }
-.progress-indicator-wrapper--default-indicator.progress-indicator-wrapper--in-progress .progress-indicator-wrapper__indicator {
-  opacity: 1;
+.progress-indicator-wrapper--default-indicator.progress-indicator-wrapper--in-progress
+    .progress-indicator-wrapper__indicator {
+    opacity: 1;
 }
 
 /* Subtle indicator */
 
 .progress-indicator-wrapper--subtle-indicator .progress-indicator-wrapper__indicator {
-  display: block;
+    display: block;
 
-  &::after {
-    content: "";
-    animation: ellipses-animation 2s infinite linear;
-    color: $color-black-light;
-  }
+    &::after {
+        content: '';
+        animation: ellipses-animation 2s infinite linear;
+        color: $color-black-light;
+    }
 }
-.progress-indicator-wrapper--subtle-indicator.progress-indicator-wrapper--in-progress .progress-indicator-wrapper__indicator {
-  opacity: 1;
+.progress-indicator-wrapper--subtle-indicator.progress-indicator-wrapper--in-progress
+    .progress-indicator-wrapper__indicator {
+    opacity: 1;
 }
 
 /* Area indicator */
 
 .progress-indicator-wrapper--area-indicator .progress-indicator-wrapper__indicator {
-  display: block;
-  bottom: 0;
-  right: 0;
+    display: block;
+    bottom: 0;
+    right: 0;
 }
-.progress-indicator-wrapper--area-indicator.progress-indicator-wrapper--in-progress  {
-  .progress-indicator-wrapper__content {
-    opacity: 0.2;
-  }
-  .progress-indicator-wrapper__indicator {
-    opacity: 1;
-  }
+.progress-indicator-wrapper--area-indicator.progress-indicator-wrapper--in-progress {
+    .progress-indicator-wrapper__content {
+        opacity: 0.2;
+    }
+    .progress-indicator-wrapper__indicator {
+        opacity: 1;
+    }
 }

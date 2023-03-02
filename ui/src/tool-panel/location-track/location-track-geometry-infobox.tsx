@@ -10,7 +10,10 @@ import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
-import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
@@ -49,14 +52,17 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                     }
                 />
                 <ProgressIndicatorWrapper
-                    indicator={ProgressIndicatorType.Area} 
+                    indicator={ProgressIndicatorType.Area}
                     inProgress={elementFetchStatus !== LoaderStatus.Ready}>
-                    {sections && sections.length==0 ?
+                    {sections && sections.length == 0 ? (
                         <p className={'infobox__text'}>
-                            {t('tool-panel.alignment-plan-sections.no-geometries-for-location-track')}
-                        </p>:
+                            {t(
+                                'tool-panel.alignment-plan-sections.no-geometries-for-location-track',
+                            )}
+                        </p>
+                    ) : (
                         <AlignmentPlanSectionInfoboxContent sections={sections || []} />
-                    }
+                    )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>
         </Infobox>

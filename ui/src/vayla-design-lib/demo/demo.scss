@@ -5,12 +5,13 @@ $design-lib-table-border-color: $color-white-darker;
 .design-demo {
     margin-bottom: 10em;
 
-    h1, h2 {
+    h1,
+    h2 {
         margin-top: 3em;
         margin-bottom: 1em;
     }
 
-    &> * > p {
+    & > * > p {
         width: 40em;
     }
 
