@@ -36,11 +36,11 @@ data class MapAlignment<T>(
     val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val sourceId: DomainId<GeometryAlignment>?,
     override val id: DomainId<T>,
-    val boundingBox: BoundingBox?,
-    val length: Double,
+    override val boundingBox: BoundingBox?,
+    override val length: Double,
     val segmentCount: Int,
     val version: RowVersion<T>?,
-): IAlignment
+): IAlignment, AbstractAlignment()
 
 data class MapSegment(
     @JsonIgnore

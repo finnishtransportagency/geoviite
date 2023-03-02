@@ -106,7 +106,7 @@ data class GeocodingContext(
         fun create(
             trackNumber: TrackLayoutTrackNumber,
             referenceLine: ReferenceLine,
-            referenceLineGeometry: LayoutAlignment,
+            referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContext {
             val referencePoints = createReferencePoints(referenceLine.startAddress, kmPosts, referenceLineGeometry)
@@ -126,7 +126,7 @@ data class GeocodingContext(
         private fun createReferencePoints(
             startAddress: TrackMeter,
             kmPosts: List<TrackLayoutKmPost>,
-            referenceLineGeometry: LayoutAlignment,
+            referenceLineGeometry: IAlignment,
         ) = listOf(GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)) +
                 kmPosts.mapNotNull { post ->
                     if (post.location != null && TrackMeter(post.kmNumber,0) > startAddress) {
@@ -134,7 +134,7 @@ data class GeocodingContext(
                     } else null
                 }
 
-        private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: LayoutAlignment) =
+        private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: IAlignment) =
             referenceLineGeometry.getLengthUntil(location)
                 ?.let { (distance, intersectType) ->
                     if (distance > 0.0 && intersectType == WITHIN) {
