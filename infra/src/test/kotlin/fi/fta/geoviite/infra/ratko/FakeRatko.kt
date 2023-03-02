@@ -116,6 +116,21 @@ class FakeRatko (port: Int) {
 
     fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "PATCH")
 
+    fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch = jsonMapper.readValue(
+        mockServer.retrieveRecordedRequests(
+            request().withPath("/api/assets/v1.2/")
+                .withMethod("POST")
+                .withBody(JsonBody.json(mapOf("type" to "turnout", "id" to oid)))
+        ).last().bodyAsString
+    )
+
+    fun getLastPushedLocationTrack(oid: String): InterfaceRatkoLocationTrack = jsonMapper.readValue(
+        mockServer.retrieveRecordedRequests(
+            request("/api/infra/v1.0/locationtracks").withMethod("POST")
+                .withBody(JsonBody.json(mapOf("id" to oid), MatchType.ONLY_MATCHING_FIELDS))
+        ).last().bodyAsString
+    )
+
     fun getPushedSwitchLocations(oid: String): List<List<RatkoAssetLocation>> =
         mockServer.retrieveRecordedRequests(
             request().withPath("/api/assets/v1.2/${oid}/locations").withMethod("PUT")
