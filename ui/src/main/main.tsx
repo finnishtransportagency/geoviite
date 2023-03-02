@@ -11,7 +11,7 @@ import { HttpStatusCodeGenerator } from 'monitoring/http-status-code-generator';
 import { InfraModelMainContainerWithProvider } from 'infra-model/infra-model-main-container';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
-import { useTrackLayoutAppSelector } from 'store/hooks';
+import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { LayoutMode } from 'common/common-model';
 import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
@@ -22,9 +22,13 @@ import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
 import { ElementListContainerWithProvider } from 'data-products/element-list/element-list-container-with-provider';
 import { VerticalGeometryContainerWithProvider } from 'data-products/vertical-geometry/vertical-geometry-container-with-provider';
+import { getEnvironmentInfo } from 'environment/environment-info';
+import { createDelegates } from 'store/store-utils';
+import { actionCreators } from 'track-layout/track-layout-store';
 
 type MainProps = {
     layoutMode: LayoutMode;
+    version: string | undefined;
 };
 
 const Main: React.VFC<MainProps> = (props: MainProps) => {
@@ -74,16 +78,35 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                 pauseOnFocusLoss={false}
                 limit={3}
             />
-            <VersionHolderView />
+            {props.version && <VersionHolderView version={props.version} />}
         </div>
     );
 };
 
 export const MainContainer: React.FC = () => {
+    const { t } = useTranslation();
+
     const layoutMode = useTrackLayoutAppSelector((state) => state.trackLayout.layoutMode);
+    const versionInStore = useTrackLayoutAppSelector((state) => state.trackLayout.version);
+    const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
+    const dispatch = useTrackLayoutAppDispatch();
+    const delegates = createDelegates(dispatch, actionCreators);
+    const storageResetRequired =
+        !!versionFromBackend && !!versionInStore && versionInStore !== versionFromBackend;
+
+    React.useEffect(() => {
+        versionFromBackend && delegates.setVersion(versionFromBackend || '');
+
+        if (storageResetRequired) {
+            alert(t('version.geoviite-updated'));
+            localStorage.clear();
+            location.reload();
+        }
+    }, [versionFromBackend]);
 
     const props = {
         layoutMode: layoutMode,
+        version: versionFromBackend,
     };
 
     return <Main {...props} />;
