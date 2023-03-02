@@ -183,5 +183,8 @@
     },
     "environment": {
         "test": "Testiympäristö"
+    },
+    "version": {
+        "geoviite-updated": "Geoviitteen versio on päivittynyt. Välimuisti tyhjennetään."
     }
 }
