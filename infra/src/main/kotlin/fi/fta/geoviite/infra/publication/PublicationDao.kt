@@ -2,10 +2,7 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.integration.CalculatedChanges
-import fi.fta.geoviite.infra.integration.LocationTrackChange
-import fi.fta.geoviite.infra.integration.SwitchChange
-import fi.fta.geoviite.infra.integration.TrackNumberChange
+import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -205,54 +202,18 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     }
 
     @Transactional
-    fun createPublication(
-        trackNumbers: List<RowVersion<TrackLayoutTrackNumber>>,
-        referenceLines: List<RowVersion<ReferenceLine>>,
-        locationTracks: List<RowVersion<LocationTrack>>,
-        switches: List<RowVersion<TrackLayoutSwitch>>,
-        kmPosts: List<RowVersion<TrackLayoutKmPost>>,
-        message: String,
-    ): IntId<Publication> {
+    fun createPublication(message: String): IntId<Publication> {
         jdbcTemplate.setUser()
         val sql = """
             insert into publication.publication(publication_user, publication_time, message)
             values (current_setting('geoviite.edit_user'), now(), :message)
             returning id
         """.trimIndent()
-        val publicationId: IntId<Publication> = jdbcTemplate.queryForObject(sql, mapOf<String, Any>("message" to message)) { rs, _ ->
-            rs.getIntId("id")
-        } ?: throw IllegalStateException("Failed to generate ID for new publish row")
+        val publicationId: IntId<Publication> =
+            jdbcTemplate.queryForObject(sql, mapOf<String, Any>("message" to message)) { rs, _ ->
+                rs.getIntId("id")
+            } ?: throw IllegalStateException("Failed to generate ID for new publish row")
 
-        jdbcTemplate.batchUpdate(
-            """insert into publication.track_number(publication_id, track_number_id, track_number_version) 
-               values (:publication_id, :row_id, :row_version)
-            """.trimIndent(),
-            publishedRowParams(publicationId, trackNumbers),
-        )
-        jdbcTemplate.batchUpdate(
-            """insert into publication.reference_line(publication_id, reference_line_id, reference_line_version) 
-               values (:publication_id, :row_id, :row_version)
-            """.trimIndent(),
-            publishedRowParams(publicationId, referenceLines),
-        )
-        jdbcTemplate.batchUpdate(
-            """insert into publication.location_track(publication_id, location_track_id, location_track_version) 
-               values (:publication_id, :row_id, :row_version)
-            """.trimIndent(),
-            publishedRowParams(publicationId, locationTracks),
-        )
-        jdbcTemplate.batchUpdate(
-            """insert into publication.switch(publication_id, switch_id, switch_version) 
-               values (:publication_id, :row_id, :row_version)
-            """.trimIndent(),
-            publishedRowParams(publicationId, switches),
-        )
-        jdbcTemplate.batchUpdate(
-            """insert into publication.km_post(publication_id, km_post_id, km_post_version) 
-               values (:publication_id, :row_id, :row_version)
-            """.trimIndent(),
-            publishedRowParams(publicationId, kmPosts),
-        )
         logger.daoAccess(INSERT, Publication::class, publicationId)
         return publicationId
     }
@@ -319,9 +280,33 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     @Transactional
     fun savePublishCalculatedChanges(publicationId: IntId<Publication>, changes: CalculatedChanges) {
-        saveTrackNumberChangesInPublish(publicationId, changes.trackNumberChanges)
-        saveLocationTrackChangesInPublish(publicationId, changes.locationTracksChanges)
-        saveSwitchChangesInPublish(publicationId, changes.switchChanges)
+        saveTrackNumberChangesInPublish(
+            publicationId,
+            changes.directChanges.trackNumberChanges,
+            changes.indirectChanges.trackNumberChanges
+        )
+
+        saveKmPostChangesInPublish(
+            publicationId,
+            changes.directChanges.kmPostChanges
+        )
+
+        saveReferenceLineChangesInPublish(
+            publicationId,
+            changes.directChanges.referenceLineChanges
+        )
+
+        saveLocationTrackChangesInPublish(
+            publicationId,
+            changes.directChanges.locationTrackChanges,
+            changes.indirectChanges.locationTrackChanges
+        )
+
+        saveSwitchChangesInPublish(
+            publicationId,
+            changes.directChanges.switchChanges,
+            changes.indirectChanges.switchChanges
+        )
 
         logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
     }
@@ -355,38 +340,50 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             .first() ?: Instant.ofEpochSecond(0)
     }
 
-    private fun <T> publishedRowParams(publicationId: IntId<Publication>, rows: List<RowVersion<T>>) =
-        rows.map { (rowId, rowVersion) ->
-            mapOf(
-                "publication_id" to publicationId.intValue,
-                "row_id" to rowId.intValue,
-                "row_version" to rowVersion,
-            )
-        }.toTypedArray()
-
     private fun saveTrackNumberChangesInPublish(
         publicationId: IntId<Publication>,
-        trackNumberChanges: List<TrackNumberChange>
+        directTrackNumberChanges: List<TrackNumberChange>,
+        indirectTrackNumberChanges: List<TrackNumberChange>,
     ) {
+        val (indirectInDirectChanges, indirectChanges) = indirectTrackNumberChanges.partition { indirectChange ->
+            directTrackNumberChanges.any { directChange -> directChange.trackNumberId == indirectChange.trackNumberId }
+        }
+
+        val directChanges = mergeTrackNumberChanges(indirectInDirectChanges, directTrackNumberChanges)
+
         jdbcTemplate.batchUpdate(
-            """insert into publication.calculated_change_to_track_number
-               values (:publication_id, :track_number_id, :start_changed, :end_changed)
+            """
+                insert into publication.track_number (
+                  publication_id,
+                  track_number_id,
+                  start_changed,
+                  end_changed,
+                  track_number_version,
+                  direct_change
+                ) 
+                select :publication_id, :track_number_id, :start_changed, :end_changed, version, :direct_change
+                from layout.track_number
+                where id = :track_number_id
             """.trimMargin(),
-            trackNumberChanges.map { tnc ->
-                mapOf(
-                    "publication_id" to publicationId.intValue,
-                    "track_number_id" to tnc.trackNumberId.intValue,
-                    "start_changed" to tnc.isStartChanged,
-                    "end_changed" to tnc.isEndChanged
-                )
-            }.toTypedArray()
+            mapOf(true to directChanges, false to indirectChanges)
+                .flatMap { (directChange, changes) ->
+                    changes.map { change ->
+                        mapOf(
+                            "publication_id" to publicationId.intValue,
+                            "track_number_id" to change.trackNumberId.intValue,
+                            "start_changed" to change.isStartChanged,
+                            "end_changed" to change.isEndChanged,
+                            "direct_change" to directChange
+                        )
+                    }
+                }.toTypedArray()
         )
 
         jdbcTemplate.batchUpdate(
-            """insert into publication.calculated_change_to_track_number_km
+            """insert into publication.track_number_km (publication_id, track_number_id, km_number)
                values (:publication_id, :track_number_id, :km_number)
             """.trimMargin(),
-            trackNumberChanges.flatMap { tnc ->
+            (directChanges + indirectChanges).flatMap { tnc ->
                 tnc.changedKmNumbers.map { km ->
                     mapOf(
                         "publication_id" to publicationId.intValue,
@@ -398,28 +395,90 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
-    private fun saveLocationTrackChangesInPublish(
+    private fun saveKmPostChangesInPublish(
         publicationId: IntId<Publication>,
-        locationTrackChanges: List<LocationTrackChange>
+        kmPostIds: List<IntId<TrackLayoutKmPost>>,
     ) {
         jdbcTemplate.batchUpdate(
-            """insert into publication.calculated_change_to_location_track
-               values (:publication_id, :location_track_id, :start_changed, :end_changed)
+            """
+                insert into publication.km_post (publication_id, km_post_id, km_post_version)
+                select :publication_id, :km_post_id, version
+                from layout.km_post
+                where id = :km_post_id
             """.trimMargin(),
-            locationTrackChanges.map { ltc ->
+            kmPostIds.map { id ->
                 mapOf(
                     "publication_id" to publicationId.intValue,
-                    "location_track_id" to ltc.locationTrackId.intValue,
-                    "start_changed" to ltc.isStartChanged,
-                    "end_changed" to ltc.isEndChanged
+                    "km_post_id" to id.intValue,
                 )
             }.toTypedArray()
         )
+    }
+
+    private fun saveReferenceLineChangesInPublish(
+        publicationId: IntId<Publication>,
+        referenceLineIds: List<IntId<ReferenceLine>>,
+    ) {
         jdbcTemplate.batchUpdate(
-            """insert into publication.calculated_change_to_location_track_km
+            """
+                insert into publication.reference_line (publication_id, reference_line_id, reference_line_version)
+                select :publication_id, :reference_line_id, version
+                from layout.reference_line
+                where id = :reference_line_id
+            """.trimMargin(),
+            referenceLineIds.map { id ->
+                mapOf(
+                    "publication_id" to publicationId.intValue,
+                    "reference_line_id" to id.intValue,
+                )
+            }.toTypedArray()
+        )
+    }
+
+    private fun saveLocationTrackChangesInPublish(
+        publicationId: IntId<Publication>,
+        directLocationTrackChanges: List<LocationTrackChange>,
+        indirectLocationTrackChanges: List<LocationTrackChange>,
+    ) {
+        val (indirectInDirectChanges, indirectChanges) = indirectLocationTrackChanges.partition { indirectChange ->
+            directLocationTrackChanges.any { directChange -> directChange.locationTrackId == indirectChange.locationTrackId }
+        }
+
+        val directChanges = mergeLocationTrackChanges(indirectInDirectChanges, directLocationTrackChanges)
+
+        jdbcTemplate.batchUpdate(
+            """
+                insert into publication.location_track (
+                  publication_id,
+                  location_track_id,
+                  start_changed,
+                  end_changed,
+                  location_track_version,
+                  direct_change
+                )
+                select :publication_id, :location_track_id, :start_changed, :end_changed, version, :direct_change
+                from layout.location_track
+                where id = :location_track_id
+            """.trimMargin(),
+            mapOf(true to directChanges, false to indirectChanges)
+                .flatMap { (directChange, changes) ->
+                    changes.map { change ->
+                        mapOf(
+                            "publication_id" to publicationId.intValue,
+                            "location_track_id" to change.locationTrackId.intValue,
+                            "start_changed" to change.isStartChanged,
+                            "end_changed" to change.isEndChanged,
+                            "direct_change" to directChange
+                        )
+                    }
+                }.toTypedArray()
+        )
+
+        jdbcTemplate.batchUpdate(
+            """insert into publication.location_track_km (publication_id, location_track_id, km_number)
                values (:publication_id, :location_track_id, :km_number)
             """.trimMargin(),
-            locationTrackChanges.flatMap { ltc ->
+            (directChanges + indirectChanges).flatMap { ltc ->
                 ltc.changedKmNumbers.map { km ->
                     mapOf(
                         "publication_id" to publicationId.intValue,
@@ -431,25 +490,45 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
-    private fun saveSwitchChangesInPublish(publicationId: IntId<Publication>, switchChanges: List<SwitchChange>) {
+    private fun saveSwitchChangesInPublish(
+        publicationId: IntId<Publication>,
+        directSwitchChanges: List<SwitchChange>,
+        indirectSwitchChanges: List<SwitchChange>,
+    ) {
+        val (indirectInDirectChanges, indirectChanges) = indirectSwitchChanges.partition { indirectChange ->
+            directSwitchChanges.any { directChange -> directChange.switchId == indirectChange.switchId }
+        }
+
+        val directChanges = mergeSwitchChanges(indirectInDirectChanges, directSwitchChanges)
+
         jdbcTemplate.batchUpdate(
             """
-                insert into publication.calculated_change_to_switch
-                select :publication_id, id, version
+                insert into publication.switch (publication_id, switch_id, switch_version, direct_change) 
+                select :publication_id, :switch_id, version, :direct_change
                 from layout.switch
                 where id = :switch_id
             """.trimMargin(),
-            switchChanges.map { s ->
-                mapOf(
-                    "publication_id" to publicationId.intValue,
-                    "switch_id" to s.switchId.intValue
-                )
-            }.toTypedArray()
+            mapOf(true to directChanges, false to indirectChanges)
+                .flatMap { (directChange, changes) ->
+                    changes.map { change ->
+                        mapOf(
+                            "publication_id" to publicationId.intValue,
+                            "switch_id" to change.switchId.intValue,
+                            "direct_change" to directChange
+                        )
+                    }
+                }.toTypedArray()
         )
 
         jdbcTemplate.batchUpdate(
             """
-                insert into publication.switch_location_tracks (publication_id, switch_id, location_track_id, location_track_version, is_topology_switch)
+                insert into publication.switch_location_tracks (
+                  publication_id,
+                  switch_id,
+                  location_track_id,
+                  location_track_version,
+                  is_topology_switch
+                )
                 select distinct :publication_id, :switch_id, location_track.id, location_track.version, false
                 from layout.location_track
                  inner join layout.segment_version on segment_version.alignment_id = location_track.alignment_id
@@ -462,7 +541,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 where not location_track.draft 
                   and (location_track.topology_start_switch_id = :switch_id or location_track.topology_end_switch_id = :switch_id)
             """.trimIndent(),
-            switchChanges.map { s ->
+            (directChanges + indirectChanges).map { s ->
                 mapOf(
                     "publication_id" to publicationId.intValue,
                     "switch_id" to s.switchId.intValue
@@ -471,12 +550,32 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
 
         jdbcTemplate.batchUpdate(
-            """insert into publication.calculated_change_to_switch_joint
-               values (:publication_id, :switch_id, :joint_number, :removed, :address,
-                      postgis.st_point(:point_x, :point_y),
-                      :location_track_id, :location_track_external_id, :track_number_id, :track_number_external_id)
+            """
+                insert into publication.switch_joint(
+                  publication_id,
+                  switch_id,
+                  joint_number,
+                  removed,
+                  address,
+                  point,
+                  location_track_id,
+                  location_track_external_id, 
+                  track_number_id,
+                  track_number_external_id)
+                values (
+                  :publication_id,
+                  :switch_id,
+                  :joint_number,
+                  :removed,
+                  :address,
+                  postgis.st_point(:point_x, :point_y),
+                  :location_track_id,
+                  :location_track_external_id,
+                  :track_number_id,
+                  :track_number_external_id
+                )
             """.trimMargin(),
-            switchChanges.flatMap { s ->
+            (directChanges + indirectChanges).flatMap { s ->
                 s.changedJoints.map { cj ->
                     mapOf(
                         "publication_id" to publicationId.intValue,
@@ -644,7 +743,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchCalculatedChanges(publicationId: IntId<Publication>): PublishedCalculatedChanges {
         val calculatedSwitches = fetchCalculatedSwitchChanges(publicationId)
-        val calculatedTrackNumbers = fetchCalculatedTrackNumberChanges(publicationId)
+        val calculatedTrackNumbers = emptyList<PublishedTrackNumber>()
         val calculatedLocationTracks = fetchCalculatedLocationTrackChanges(publicationId)
 
         logger.daoAccess(FETCH, PublishedCalculatedChanges::class, publicationId)
@@ -684,50 +783,6 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 version = rs.getRowVersion("id", "version"),
                 name = SwitchName(rs.getString("name")),
                 trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
-                operation = Operation.MODIFY,
-            )
-        }
-    }
-
-    private fun fetchCalculatedTrackNumberChanges(publicationId: IntId<Publication>): List<PublishedTrackNumber> {
-        val sql = """
-            select
-              track_number.id,
-              track_number.version,
-              track_number.number
-            from publication.calculated_change_to_track_number cctn
-              inner join publication.publication on publication.id = cctn.publication_id
-              inner join layout.track_number_version track_number
-                on track_number.id = cctn.track_number_id
-                  and track_number.version = (
-                    select version
-                    from layout.track_number_version
-                    where change_time <= publication.publication_time and id = cctn.track_number_id
-                    order by change_time desc
-                    limit 1
-                  )
-            where cctn.publication_id = :publication_id 
-              and track_number.id not in (
-                select track_number_id
-                from publication.km_post kp
-                  inner join layout.km_post_version kpv on kpv.id = kp.km_post_id and kpv.version = kp.km_post_version
-                where kp.publication_id = cctn.publication_id
-                union all
-                select track_number_id
-                from publication.reference_line rl
-                  inner join layout.reference_line_version rlv on rlv.id = rl.reference_line_id and rlv.version = rl.reference_line_version
-                where rl.publication_id = cctn.publication_id
-                union all
-                select track_number_id
-                from publication.track_number tn
-                where tn.publication_id = cctn.publication_id
-            )
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            PublishedTrackNumber(
-                version = rs.getRowVersion("id", "version"),
-                number = rs.getTrackNumber("number"),
                 operation = Operation.MODIFY,
             )
         }
