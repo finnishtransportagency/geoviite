@@ -63,7 +63,7 @@ export const initialChangeTimes: ChangeTimes = {
 };
 
 export type TrackLayoutState = {
-    version: string;
+    version: string | undefined;
     publishType: PublishType;
     layoutMode: LayoutMode;
     map: Map;
@@ -77,7 +77,7 @@ export type TrackLayoutState = {
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
-    version: '',
+    version: undefined,
     publishType: 'OFFICIAL',
     layoutMode: 'DEFAULT',
     map: initialMapState,
