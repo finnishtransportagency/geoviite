@@ -15,11 +15,6 @@
     opacity: 0;
 }
 
-.progress-indicator-wrapper--in-progress.progress-indicator-wrapper--enable-translucent-glass
-    .progress-indicator-wrapper__content {
-    opacity: 0.2;
-}
-
 .progress-indicator-wrapper__indicator {
     display: none;
     position: absolute;
@@ -27,6 +22,13 @@
     top: 0;
     opacity: 0;
     transition: all 0.5s;
+    // when not in progress, ignore pointer events on indicator
+    pointer-events: none;
+}
+
+.progress-indicator-wrapper--in-progress .progress-indicator-wrapper__indicator {
+    // when in progress, capture all pointer events on indicator
+    pointer-events: all;
 }
 
 /* Default indicator */
