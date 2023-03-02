@@ -3,6 +3,18 @@
 $design-lib-table-border-color: $color-white-darker;
 
 .design-demo {
+    margin-bottom: 10em;
+
+    h1,
+    h2 {
+        margin-top: 3em;
+        margin-bottom: 1em;
+    }
+
+    & > * > p {
+        width: 40em;
+    }
+
     table:not(.table) {
         border-spacing: 0;
         border-collapse: collapse;

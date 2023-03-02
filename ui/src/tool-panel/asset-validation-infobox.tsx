@@ -5,9 +5,12 @@ import { PublishValidationError } from 'publication/publication-model';
 import { LoaderStatus } from 'utils/react-utils';
 import { useTranslation } from 'react-i18next';
 import styles from './asset-validation-infobox.scss';
-import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type AssetType = 'TRACK_NUMBER' | 'REFERENCE_LINE' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
 
@@ -55,8 +58,10 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
             title={`${t(typePrefix(type))} ${t('tool-panel.validation.integrity')}`}
             qa-id="location-track-log-infobox">
             <InfoboxContent>
-                {validationLoaderStatus === LoaderStatus.Ready ? (
-                    errors.length === 0 && warnings.length === 0 ? (
+                <ProgressIndicatorWrapper
+                    indicator={ProgressIndicatorType.Area}
+                    inProgress={validationLoaderStatus !== LoaderStatus.Ready}>
+                    {errors.length === 0 && warnings.length === 0 ? (
                         <p className={'infobox__text'}>{t('tool-panel.validation.all-ok')}</p>
                     ) : (
                         <React.Fragment>
@@ -89,10 +94,8 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
                                 </React.Fragment>
                             )}
                         </React.Fragment>
-                    )
-                ) : (
-                    <Spinner />
-                )}
+                    )}
+                </ProgressIndicatorWrapper>
             </InfoboxContent>
         </Infobox>
     );

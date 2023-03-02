@@ -246,7 +246,9 @@
             "location-track-geometries": "Raiteen geometriat",
             "bounding-box-geometries": "Vain kartalle osuvat geometriat",
             "no-plan": "Ei suunnitelmaa",
-            "geocoding-failed": "Osoitetta ei saatu laskettua"
+            "geocoding-failed": "Osoitetta ei saatu laskettua",
+            "no-geometries-for-location-track": "Raiteelle ei löytynyt geometriatietoja",
+            "no-geometries-for-reference-line": "Pituusmittauslinjalle ei löytynyt geometriatietoja"
         },
         "validation": {
             "location-track-prefix": "Raiteen",

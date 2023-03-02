@@ -1,15 +1,38 @@
 @mixin spinner-animation {
-  border: 2px dotted;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: animation-rotate-360 1.0s infinite;
+    border: 2px dotted;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: animation-rotate-360 1s infinite;
 }
 
 @keyframes animation-rotate-360 {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes ellipses-animation {
+    0% {
+        content: '';
+        opacity: 0;
+    }
+    25% {
+        content: '.';
+    }
+    30% {
+        opacity: 1;
+    }
+    50% {
+        content: '..';
+    }
+    75% {
+        content: '...';
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
 }
