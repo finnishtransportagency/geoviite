@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.geometry
+package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM

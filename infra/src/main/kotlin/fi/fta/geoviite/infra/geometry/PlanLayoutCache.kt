@@ -6,8 +6,6 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.toTrackLayout
@@ -16,12 +14,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
-
-
-private val maxTriangulationArea = BoundingBox(
-    x = Range(70265.0, 732722.0),
-    y = Range(6610378.0, 7780971.0),
-)
 
 const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformation"
 
@@ -42,6 +34,12 @@ class PlanLayoutCache(
     private val coordinateTransformationService: CoordinateTransformationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    private val validHeightTriangulationArea by lazy {
+        heightTriangleDao.fetchTriangulationNetworkBounds().also { bbox ->
+            logger.info("Plan layout transformation height triangulation area: $bbox")
+        }
+    }
 
     @Cacheable(CACHE_GEOMETRY_PLAN_LAYOUT, sync = true)
     fun getPlanLayout(
@@ -80,8 +78,8 @@ class PlanLayoutCache(
         return if (polygon.isEmpty()) {
             logger.warn("Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}")
             null to TransformationError("bounds-resolution-failed", geometryPlan.units)
-        } else if (!polygon.all { point -> maxTriangulationArea.contains(point) }) {
-            logger.warn("Not converting plan to layout as bounds are outside Finnish borders: id=${geometryPlan.id} file=${geometryPlan.fileName}")
+        } else if (!polygon.all { point -> validHeightTriangulationArea.contains(point) }) {
+            logger.warn("Not converting plan to layout as bounds are outside height triangulation network: id=${geometryPlan.id} file=${geometryPlan.fileName}")
             null to TransformationError("bounds-outside-finland", geometryPlan.units)
         } else try {
             toTrackLayout(

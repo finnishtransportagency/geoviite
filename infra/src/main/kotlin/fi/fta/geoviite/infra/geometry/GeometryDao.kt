@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN_HEADER
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_SWITCH
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
+import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.InfraModelFileWithSource
