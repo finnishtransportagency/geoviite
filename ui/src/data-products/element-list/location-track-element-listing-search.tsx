@@ -110,7 +110,6 @@ const LocationTrackElementListingSearch = ({
                             searchable
                             onChange={(e) => updateProp('locationTrack', e)}
                             onBlur={() => onCommitField('locationTrack')}
-                            canUnselect={true}
                             unselectText={t('data-products.search.not-selected')}
                             wideList
                             wide
