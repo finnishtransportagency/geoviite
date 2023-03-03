@@ -69,7 +69,7 @@ export const Dropdown = function <TItemValue>({
     const [options, setOptions] = React.useState<Item<TItemValue>[] | undefined>(
         props.options && isOptionsArray(props.options) ? props.options : undefined,
     );
-    const [lastSearch] = React.useState<{ searchId: number }>({searchId: searchSequence});
+    const [lastSearch] = React.useState<{ searchId: number }>({ searchId: searchSequence });
     const [isLoading, setIsLoading] = React.useState(false);
     const [open, setOpen] = React.useState(false);
     const [hasFocus, _setHasFocus] = React.useState(false);
@@ -94,8 +94,8 @@ export const Dropdown = function <TItemValue>({
     );
     const selectedName = props.value
         ? (props.getName && props.getName(props.value)) ||
-        options?.find((item) => item.value == props.value)?.name ||
-        ''
+          options?.find((item) => item.value == props.value)?.name ||
+          ''
         : props.placeholder;
 
     function setHasFocus(value: boolean) {
@@ -195,7 +195,7 @@ export const Dropdown = function <TItemValue>({
             setOptionFocusIndex(
                 (Math.max(optionFocusIndex + optionCount + extraOptionCount + value, 0) %
                     optionCount) -
-                extraOptionCount,
+                    extraOptionCount,
             );
         }
     }
@@ -319,9 +319,9 @@ export const Dropdown = function <TItemValue>({
         setOptionFocusIndex(
             options
                 ? Math.max(
-                0,
-                options.findIndex((option) => option.value == props.value),
-                )
+                      0,
+                      options.findIndex((option) => option.value == props.value),
+                  )
                 : 0,
         );
     }, [options]);
@@ -361,10 +361,17 @@ export const Dropdown = function <TItemValue>({
                     )}
                 </div>
                 <div className={styles['dropdown__icon']}>
-                    <Icons.Down
-                        size={IconSize.SMALL}
-                        color={props.disabled ? IconColor.INHERIT : undefined}
-                    />
+                    {searchable && optionsIsFunc ? (
+                        <Icons.Search
+                            size={IconSize.SMALL}
+                            color={props.disabled ? IconColor.INHERIT : undefined}
+                        />
+                    ) : (
+                        <Icons.Down
+                            size={IconSize.SMALL}
+                            color={props.disabled ? IconColor.INHERIT : undefined}
+                        />
+                    )}
                 </div>
             </div>
             {open && (
@@ -377,7 +384,7 @@ export const Dropdown = function <TItemValue>({
                                 title={props.unselectText || 'Ei valittu'}
                                 ref={optionFocusIndex == -1 ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>
-                                    <Icons.Selected size={IconSize.SMALL}/>
+                                    <Icons.Selected size={IconSize.SMALL} />
                                 </span>
                                 <span className={styles['dropdown__list-item-text']}>
                                     {props.unselectText || 'Ei valittu'}
@@ -393,7 +400,7 @@ export const Dropdown = function <TItemValue>({
                                 aria-disabled={!!item.disabled}
                                 ref={optionFocusIndex == index ? focusedOptionRef : undefined}>
                                 <span className={styles['dropdown__list-item-icon']}>
-                                    <Icons.Selected size={IconSize.SMALL}/>
+                                    <Icons.Selected size={IconSize.SMALL} />
                                 </span>
                                 <span className={styles['dropdown__list-item-text']}>
                                     {item.name}
@@ -418,7 +425,7 @@ export const Dropdown = function <TItemValue>({
                                     styles['dropdown__list-item--loading'],
                                 )}>
                                 Ladataan
-                                <span className={styles['dropdown__loading-indicator']}/>
+                                <span className={styles['dropdown__loading-indicator']} />
                             </li>
                         )}
                     </ul>
