@@ -6,7 +6,7 @@ import PlanVerticalGeometrySearch from 'data-products/vertical-geometry/plan-ver
 import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry/location-track-vertical-geometry-search';
 import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { dataProductsActions } from 'data-products/element-list/element-list-store';
+import { dataProductsActions } from 'data-products/data-products-store';
 
 const VerticalGeometryView = () => {
     const rootDispatch = useDataProductsAppDispatch();

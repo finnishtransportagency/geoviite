@@ -10,11 +10,17 @@ import {
     LocationTrackVerticalGeometrySearchParameters,
     LocationTrackVerticalGeometrySearchState,
     validTrackMeterOrUndefined,
-} from 'data-products/element-list/element-list-store';
+} from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
-import { getLocationTrackVerticalGeometry } from 'geometry/geometry-api';
+import {
+    getLocationTrackVerticalGeometry,
+    getLocationTrackVerticalGeometryCsv,
+} from 'geometry/geometry-api';
 import { useLoader } from 'utils/react-utils';
+import { Button } from 'vayla-design-lib/button/button';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -62,17 +68,8 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         });
     }
 
-    function getVisibleErrorsByProp(prop: keyof LocationTrackVerticalGeometrySearchParameters) {
-        return state.committedFields.includes(prop)
-            ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
-            : [];
-    }
-
-    function hasErrors(prop: keyof LocationTrackVerticalGeometrySearchParameters) {
-        return getVisibleErrorsByProp(prop).length > 0;
-    }
+    const hasErrors = (prop: keyof LocationTrackVerticalGeometrySearchParameters) =>
+        getVisibleErrorsByProp(state.committedFields, state.validationErrors, prop).length > 0;
 
     const verticalGeometries = useLoader(() => {
         return !state.searchParameters.locationTrack ||
@@ -94,7 +91,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
             </p>
             <div className={styles['data-products__search']}>
                 <FieldLayout
-                    label={t('data-products.element-list.search.location-track')}
+                    label={t('data-products.search.location-track')}
                     value={
                         <Dropdown
                             value={state.searchParameters.locationTrack}
@@ -105,14 +102,14 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             onChange={(e) => updateProp('locationTrack', e)}
                             onBlur={() => onCommitField('locationTrack')}
                             canUnselect={true}
-                            unselectText={t('data-products.element-list.search.not-selected')}
+                            unselectText={t('data-products.search.not-selected')}
                             wideList
                             wide
                         />
                     }
                 />
                 <FieldLayout
-                    label={t('data-products.element-list.search.track-address-start')}
+                    label={t('data-products.search.track-address-start')}
                     value={
                         <TextField
                             value={state.searchFields.startTrackMeter}
@@ -122,10 +119,14 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             wide
                         />
                     }
-                    errors={getVisibleErrorsByProp('startTrackMeter')}
+                    errors={getVisibleErrorsByProp(
+                        state.committedFields,
+                        state.validationErrors,
+                        'startTrackMeter',
+                    ).map((error) => t(`data-products.search.${error}`))}
                 />
                 <FieldLayout
-                    label={t('data-products.element-list.search.track-address-end')}
+                    label={t('data-products.search.track-address-end')}
                     value={
                         <TextField
                             value={state.searchFields.endTrackMeter}
@@ -135,8 +136,27 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             wide
                         />
                     }
-                    errors={getVisibleErrorsByProp('endTrackMeter')}
+                    errors={getVisibleErrorsByProp(
+                        state.committedFields,
+                        state.validationErrors,
+                        'endTrackMeter',
+                    ).map((error) => t(`data-products.search.${error}`))}
                 />
+                <Button
+                    className={styles['element-list__download-button']}
+                    disabled={!state.verticalGeometry || state.verticalGeometry.length === 0}
+                    onClick={() => {
+                        if (state.searchParameters.locationTrack) {
+                            location.href = getLocationTrackVerticalGeometryCsv(
+                                state.searchParameters.locationTrack?.id,
+                                validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+                                validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+                            );
+                        }
+                    }}
+                    icon={Icons.Download}>
+                    {t(`data-products.search.download-csv`)}
+                </Button>
             </div>
         </React.Fragment>
     );

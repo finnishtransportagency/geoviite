@@ -15,7 +15,7 @@ import {
     TimeStamp,
     VerticalCoordinateSystem,
 } from 'common/common-model';
-import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
+import { GeometryTypeIncludingMissing } from 'data-products/data-products-store';
 
 export type GeometryPlanLayoutId = string;
 export type GeometryPlanId = string;

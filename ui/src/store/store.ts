@@ -5,7 +5,7 @@ import storage from 'redux-persist/lib/storage';
 import { combineReducers } from 'redux';
 import { persistReducer } from 'redux-persist';
 import thunk from 'redux-thunk';
-import { dataProductsReducer } from 'data-products/element-list/element-list-store';
+import { dataProductsReducer } from 'data-products/data-products-store';
 
 export const RESET_STORE_ACTION = {
     type: 'RESET_STORE',

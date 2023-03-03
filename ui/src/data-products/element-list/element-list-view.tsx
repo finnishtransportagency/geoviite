@@ -2,10 +2,10 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from 'data-products/data-product-view.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
-import ContinuousGeometrySearch from 'data-products/element-list/continuous-geometry-search';
-import { dataProductsActions } from 'data-products/element-list/element-list-store';
+import LocationTrackElementListingSearch from 'data-products/element-list/location-track-element-listing-search';
+import { dataProductsActions } from 'data-products/data-products-store';
 import { createDelegates } from 'store/store-utils';
-import PlanGeometrySearch from 'data-products/element-list/plan-geometry-search';
+import PlanGeometryElementListingSearch from 'data-products/element-list/plan-geometry-element-listing-search';
 import { ElementTable } from 'data-products/element-list/element-table';
 import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
 
@@ -37,14 +37,14 @@ const ElementListView = () => {
                     </span>
                 </div>
                 {continuousGeometrySelected ? (
-                    <ContinuousGeometrySearch
+                    <LocationTrackElementListingSearch
                         state={state.locationTrackSearch}
                         onUpdateProp={dataProductsDelegates.onUpdateLocationTrackSearchProp}
                         onCommitField={dataProductsDelegates.onCommitLocationTrackSearchField}
                         setElements={dataProductsDelegates.onSetLocationTrackElements}
                     />
                 ) : (
-                    <PlanGeometrySearch
+                    <PlanGeometryElementListingSearch
                         state={state.planSearch}
                         onUpdateProp={dataProductsDelegates.onUpdatePlanSearchProp}
                         setElements={dataProductsDelegates.onSetPlanElements}

@@ -10,7 +10,7 @@ import {
     ElementListContinuousGeometrySearchState,
     selectedElementTypes,
     validTrackMeterOrUndefined,
-} from 'data-products/element-list/element-list-store';
+} from 'data-products/data-products-store';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import { debounceAsync } from 'utils/async-utils';
@@ -20,8 +20,9 @@ import { getLocationTrackElements, getLocationTrackElementsCsv } from 'geometry/
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { ElementItem } from 'geometry/geometry-model';
+import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 
-type ContinuousGeometrySearchProps = {
+type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
     setElements: (elements: ElementItem[]) => void;
     onUpdateProp: <TKey extends keyof ContinuousSearchParameters>(
@@ -42,12 +43,12 @@ function getLocationTrackOptions(
 const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackElements, 250);
 
-const ContinuousGeometrySearch = ({
+const LocationTrackElementListingSearch = ({
     state,
     onUpdateProp,
     onCommitField,
     setElements,
-}: ContinuousGeometrySearchProps) => {
+}: LocationTrackElementListingSearchProps) => {
     const { t } = useTranslation();
 
     // Use memoized function to make debouncing functionality work when re-rendering
@@ -70,16 +71,10 @@ const ContinuousGeometrySearch = ({
         });
     }
 
-    function getVisibleErrorsByProp(prop: keyof ContinuousSearchParameters) {
-        return state.committedFields.includes(prop)
-            ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
-            : [];
-    }
-
     function hasErrors(prop: keyof ContinuousSearchParameters) {
-        return getVisibleErrorsByProp(prop).length > 0;
+        return (
+            getVisibleErrorsByProp(state.committedFields, state.validationErrors, prop).length > 0
+        );
     }
 
     const elementList = useLoader(() => {
@@ -105,7 +100,7 @@ const ContinuousGeometrySearch = ({
             </p>
             <div className={styles['data-products__search']}>
                 <FieldLayout
-                    label={t('data-products.element-list.search.location-track')}
+                    label={t('data-products.search.location-track')}
                     value={
                         <Dropdown
                             value={state.searchParameters.locationTrack}
@@ -116,14 +111,14 @@ const ContinuousGeometrySearch = ({
                             onChange={(e) => updateProp('locationTrack', e)}
                             onBlur={() => onCommitField('locationTrack')}
                             canUnselect={true}
-                            unselectText={t('data-products.element-list.search.not-selected')}
+                            unselectText={t('data-products.search.not-selected')}
                             wideList
                             wide
                         />
                     }
                 />
                 <FieldLayout
-                    label={t('data-products.element-list.search.track-address-start')}
+                    label={t('data-products.search.track-address-start')}
                     value={
                         <TextField
                             value={state.searchFields.startTrackMeter}
@@ -133,10 +128,14 @@ const ContinuousGeometrySearch = ({
                             wide
                         />
                     }
-                    errors={getVisibleErrorsByProp('startTrackMeter')}
+                    errors={getVisibleErrorsByProp(
+                        state.committedFields,
+                        state.validationErrors,
+                        'startTrackMeter',
+                    ).map((error) => t(`data-products.search.${error}`))}
                 />
                 <FieldLayout
-                    label={t('data-products.element-list.search.track-address-end')}
+                    label={t('data-products.search.track-address-end')}
                     value={
                         <TextField
                             value={state.searchFields.endTrackMeter}
@@ -146,7 +145,11 @@ const ContinuousGeometrySearch = ({
                             wide
                         />
                     }
-                    errors={getVisibleErrorsByProp('endTrackMeter')}
+                    errors={getVisibleErrorsByProp(
+                        state.committedFields,
+                        state.validationErrors,
+                        'endTrackMeter',
+                    ).map((error) => t(`data-products.search.${error}`))}
                 />
                 <div className={styles['element-list__geometry-checkboxes']}>
                     <FieldLayout
@@ -161,7 +164,7 @@ const ContinuousGeometrySearch = ({
                                             searchLines: e.target.checked,
                                         })
                                     }>
-                                    {t('data-products.element-list.search.line')}
+                                    {t('data-products.search.line')}
                                 </Checkbox>
                                 <Checkbox
                                     checked={state.searchFields.searchGeometries.searchCurves}
@@ -171,7 +174,7 @@ const ContinuousGeometrySearch = ({
                                             searchCurves: e.target.checked,
                                         })
                                     }>
-                                    {t('data-products.element-list.search.curve')}
+                                    {t('data-products.search.curve')}
                                 </Checkbox>
                                 <Checkbox
                                     checked={state.searchFields.searchGeometries.searchClothoids}
@@ -181,7 +184,7 @@ const ContinuousGeometrySearch = ({
                                             searchClothoids: e.target.checked,
                                         })
                                     }>
-                                    {t('data-products.element-list.search.clothoid')}
+                                    {t('data-products.search.clothoid')}
                                 </Checkbox>
                                 <Checkbox
                                     checked={
@@ -193,11 +196,15 @@ const ContinuousGeometrySearch = ({
                                             searchMissingGeometry: e.target.checked,
                                         })
                                     }>
-                                    {t('data-products.element-list.search.missing-section')}
+                                    {t('data-products.search.missing-section')}
                                 </Checkbox>
                             </div>
                         }
-                        errors={getVisibleErrorsByProp('searchGeometries')}
+                        errors={getVisibleErrorsByProp(
+                            state.committedFields,
+                            state.validationErrors,
+                            'searchGeometries',
+                        ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
                 <Button
@@ -214,11 +221,11 @@ const ContinuousGeometrySearch = ({
                         }
                     }}
                     icon={Icons.Download}>
-                    {t(`data-products.element-list.search.download-csv`)}
+                    {t(`data-products.search.download-csv`)}
                 </Button>
             </div>
         </React.Fragment>
     );
 };
 
-export default ContinuousGeometrySearch;
+export default LocationTrackElementListingSearch;

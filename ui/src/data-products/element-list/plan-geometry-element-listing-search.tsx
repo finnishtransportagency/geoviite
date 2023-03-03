@@ -4,26 +4,23 @@ import styles from 'data-products/data-product-view.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import {
-    PlanGeometrySearchState,
-    selectedElementTypes,
-} from 'data-products/element-list/element-list-store';
-import { isNullOrBlank } from 'utils/string-utils';
+import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-store';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
-import {
-    getGeometryPlanElements,
-    getGeometryPlanElementsCsv,
-    getGeometryPlanHeadersBySearchTerms,
-} from 'geometry/geometry-api';
+import { getGeometryPlanElements, getGeometryPlanElementsCsv } from 'geometry/geometry-api';
 import { ElementItem, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { useLoader } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { planSources } from 'utils/enum-localization-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
+import {
+    debouncedGetGeometryPlanHeaders,
+    getGeometryPlanOptions,
+    getVisibleErrorsByProp,
+} from 'data-products/data-products-utils';
 
-type ContinuousGeometrySearchProps = {
+type PlanGeometryElementListingSearchProps = {
     state: PlanGeometrySearchState;
     onUpdateProp: <TKey extends keyof PlanGeometrySearchState>(
         propEdit: PropEdit<PlanGeometrySearchState, TKey>,
@@ -31,41 +28,13 @@ type ContinuousGeometrySearchProps = {
     setElements: (elements: ElementItem[]) => void;
 };
 
-function searchGeometryPlanHeaders(
-    source: PlanSource,
-    searchTerm: string,
-): Promise<GeometryPlanHeader[]> {
-    if (isNullOrBlank(searchTerm)) {
-        return Promise.resolve([]);
-    }
-
-    return getGeometryPlanHeadersBySearchTerms(
-        10,
-        undefined,
-        undefined,
-        [source],
-        [],
-        searchTerm,
-    ).then((t) => t.items);
-}
-
-function getGeometryPlanOptions(
-    headers: GeometryPlanHeader[],
-    selectedHeader: GeometryPlanHeader | undefined,
-) {
-    return headers
-        .filter((plan) => !selectedHeader || plan.id !== selectedHeader.id)
-        .map((plan) => ({ name: plan.fileName, value: plan }));
-}
-
-const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanHeaders, 250);
 const debouncedGetPlanElements = debounceAsync(getGeometryPlanElements, 250);
 
-const PlanGeometrySearch = ({
+const PlanGeometryElementListingSearch = ({
     state,
     onUpdateProp,
     setElements,
-}: ContinuousGeometrySearchProps) => {
+}: PlanGeometryElementListingSearchProps) => {
     const { t } = useTranslation();
     // Use memoized function to make debouncing functionality work when re-rendering
     const geometryPlanHeaders = React.useCallback(
@@ -87,16 +56,10 @@ const PlanGeometrySearch = ({
         });
     }
 
-    function getVisibleErrorsByProp(prop: keyof PlanGeometrySearchState) {
-        return state.committedFields.includes(prop)
-            ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`data-products.element-list.search.${error.reason}`))
-            : [];
-    }
-
     function hasErrors(prop: keyof PlanGeometrySearchState) {
-        return getVisibleErrorsByProp(prop).length > 0;
+        return (
+            getVisibleErrorsByProp(state.committedFields, state.validationErrors, prop).length > 0
+        );
     }
 
     const elementList = useLoader(() => {
@@ -119,7 +82,7 @@ const PlanGeometrySearch = ({
             </p>
             <div className={styles['data-products__search']}>
                 <FieldLayout
-                    label={t(`data-products.element-list.search.source`)}
+                    label={t(`data-products.search.source`)}
                     value={
                         <>
                             {planSources.map((source) => (
@@ -138,7 +101,7 @@ const PlanGeometrySearch = ({
                 />
                 <div className={styles['element-list__plan-search-dropdown']}>
                     <FieldLayout
-                        label={t(`data-products.element-list.search.plan`)}
+                        label={t(`data-products.search.plan`)}
                         value={
                             <Dropdown
                                 value={state.plan}
@@ -148,7 +111,7 @@ const PlanGeometrySearch = ({
                                 searchable
                                 onChange={(e) => updateProp('plan', e)}
                                 canUnselect={true}
-                                unselectText={t('data-products.element-list.search.not-selected')}
+                                unselectText={t('data-products.search.not-selected')}
                                 wideList
                                 wide
                             />
@@ -167,7 +130,7 @@ const PlanGeometrySearch = ({
                                             searchLines: e.target.checked,
                                         })
                                     }>
-                                    {t(`data-products.element-list.search.line`)}
+                                    {t(`data-products.search.line`)}
                                 </Checkbox>
                                 <Checkbox
                                     checked={state.searchGeometries.searchCurves}
@@ -177,7 +140,7 @@ const PlanGeometrySearch = ({
                                             searchCurves: e.target.checked,
                                         })
                                     }>
-                                    {t(`data-products.element-list.search.curve`)}
+                                    {t(`data-products.search.curve`)}
                                 </Checkbox>
                                 <Checkbox
                                     checked={state.searchGeometries.searchClothoids}
@@ -187,11 +150,15 @@ const PlanGeometrySearch = ({
                                             searchClothoids: e.target.checked,
                                         })
                                     }>
-                                    {t(`data-products.element-list.search.clothoid`)}
+                                    {t(`data-products.search.clothoid`)}
                                 </Checkbox>
                             </div>
                         }
-                        errors={getVisibleErrorsByProp('searchGeometries')}
+                        errors={getVisibleErrorsByProp(
+                            state.committedFields,
+                            state.validationErrors,
+                            'searchGeometries',
+                        ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
                 <Button
@@ -206,11 +173,11 @@ const PlanGeometrySearch = ({
                         }
                     }}
                     icon={Icons.Download}>
-                    {t(`data-products.element-list.search.download-csv`)}
+                    {t(`data-products.search.download-csv`)}
                 </Button>
             </div>
         </React.Fragment>
     );
 };
 
-export default PlanGeometrySearch;
+export default PlanGeometryElementListingSearch;
