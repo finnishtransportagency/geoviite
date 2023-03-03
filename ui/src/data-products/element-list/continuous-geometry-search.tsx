@@ -103,7 +103,7 @@ const ContinuousGeometrySearch = ({
             <p className={styles['data-product__search-legend']}>
                 {t('data-products.element-list.location-track-legend')}
             </p>
-            <div className={styles['element-list__geometry-search']}>
+            <div className={styles['data-products__search']}>
                 <FieldLayout
                     label={t('data-products.element-list.search.location-track')}
                     value={

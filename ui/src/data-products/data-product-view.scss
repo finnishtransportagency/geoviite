@@ -19,8 +19,7 @@
     max-width: 800px;
 }
 
-//Rename accordingly if some of the styles below can also be used for vertical geometry
-.element-list__geometry-search {
+.data-products__search {
     display: flex;
 
     > :not(:last-child) {

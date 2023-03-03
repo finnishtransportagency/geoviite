@@ -117,7 +117,7 @@ const PlanGeometrySearch = ({
             <p className={styles['data-product__search-legend']}>
                 {t('data-products.element-list.plan-legend')}
             </p>
-            <div className={styles['element-list__geometry-search']}>
+            <div className={styles['data-products__search']}>
                 <FieldLayout
                     label={t(`data-products.element-list.search.source`)}
                     value={

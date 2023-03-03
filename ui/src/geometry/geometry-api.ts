@@ -133,6 +133,26 @@ export async function getLocationTrackElements(
     return getIgnoreError(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
 }
 
+export async function getLocationTrackVerticalGeometry(
+    id: LocationTrackId,
+    startAddress: string | undefined,
+    endAddress: string | undefined,
+): Promise<never[] | null> {
+    const params = queryParams({
+        startAddress: startAddress,
+        endAddress: endAddress,
+    });
+    return getIgnoreError(
+        `${GEOMETRY_URI}/layout/location-tracks/${id}/vertical-geometry${params}`,
+    );
+}
+
+export async function getGeometryPlanVerticalGeometry(
+    planId: GeometryPlanId,
+): Promise<never[] | null> {
+    return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+}
+
 export const getLocationTrackElementsCsv = (
     locationTrackId: LocationTrackId,
     elementTypes: GeometryTypeIncludingMissing[],

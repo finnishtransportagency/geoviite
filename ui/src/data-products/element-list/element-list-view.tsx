@@ -17,7 +17,7 @@ const ElementListView = () => {
     const continuousGeometrySelected = state.selectedSearch === 'LOCATION_TRACK';
 
     const handleRadioClick = () => {
-        dataProductsDelegates.setSelectedSearch(
+        dataProductsDelegates.setSelectedElementListSearch(
             continuousGeometrySelected ? 'PLAN' : 'LOCATION_TRACK',
         );
     };
