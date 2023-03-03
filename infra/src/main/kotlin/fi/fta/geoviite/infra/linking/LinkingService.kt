@@ -7,10 +7,7 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
-import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
-import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
@@ -68,6 +65,7 @@ fun getSwitchId(
 @Service
 class LinkingService @Autowired constructor(
     private val geometryService: GeometryService,
+    private val geometryPlanLayoutTransformationService: GeometryPlanLayoutTransformationService,
     private val referenceLineService: ReferenceLineService,
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
@@ -253,7 +251,7 @@ class LinkingService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         alignmentId: IntId<GeometryAlignment>,
     ): MapAlignment<GeometryAlignment> {
-        val (geometryPlan, transformationError) = geometryService.getLayoutPlan(planId)
+        val (geometryPlan, transformationError) = geometryPlanLayoutTransformationService.getLayoutPlan(planId)
         if (geometryPlan == null) {
             throw LinkingFailureException("Could not create plan layout: plan=$planId error=$transformationError")
         }

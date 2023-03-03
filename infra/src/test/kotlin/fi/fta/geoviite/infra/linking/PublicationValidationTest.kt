@@ -843,7 +843,7 @@ class PublicationValidationTest {
         return GeocodingContext.create(
             // Start the geocoding from 0+0m
             trackNumber(TrackNumber("0000")),
-            referenceLine,
+            referenceLine.startAddress,
             alignment,
             kmPosts,
         )

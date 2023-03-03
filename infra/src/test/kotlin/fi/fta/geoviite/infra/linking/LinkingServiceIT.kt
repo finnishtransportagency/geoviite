@@ -22,6 +22,7 @@ import kotlin.test.assertNull
 @SpringBootTest
 class LinkingServiceIT @Autowired constructor(
     private val geometryService: GeometryService,
+    private val geometryPlanLayoutTransformationService: GeometryPlanLayoutTransformationService,
     private val geometryDao: GeometryDao,
     private val linkingService: LinkingService,
     private val locationTrackService: LocationTrackService,
@@ -51,7 +52,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
-        val (geometryLayoutPlan, transformationError) = geometryService.getLayoutPlan(geometryPlanId.id)
+        val (geometryLayoutPlan, transformationError) = geometryPlanLayoutTransformationService.getLayoutPlan(geometryPlanId.id)
         assertNull(transformationError)
         assertNotNull(geometryLayoutPlan)
 

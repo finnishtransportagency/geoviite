@@ -75,7 +75,7 @@ val addressPoints = listOf(
 val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"))
 val context = GeocodingContext(
     trackNumber,
-    referenceLine,
+    referenceLine.startAddress,
     alignment,
     addressPoints,
     // test-data is inaccurate so allow more delta in validation
@@ -234,7 +234,7 @@ class GeocodingTest {
         val startAddress = TrackMeter(KmNumber(2), 100)
         val ctx = GeocodingContext.create(
             trackNumber = trackNumber(TrackNumber("T001")),
-            referenceLine = referenceLine(IntId(1), alignment, startAddress),
+            startAddress = startAddress,
             referenceLineGeometry = alignment(startSegment, connectSegment, endSegment),
             kmPosts = listOf(),
         )
@@ -328,7 +328,7 @@ class GeocodingTest {
         val referenceLine = referenceLine(trackNumberId = IntId(1), alignment = alignment, startAddress = startAddress)
         val projectionContext = GeocodingContext(
             trackNumber = trackNumber,
-            referenceLine = referenceLine,
+            startAddress = startAddress,
             referenceLineGeometry = alignment,
             listOf(
                 GeocodingReferencePoint(KmNumber(2), BigDecimal("100.0"), 0.0, 0.0, WITHIN),
@@ -359,8 +359,7 @@ class GeocodingTest {
             Point3DM(start.x + 0.0, start.y + 3 * n.toDouble(), 3 * n.toDouble())
         })
         val verticalAlignment = alignment(segment(verticalPoints))
-        val verticalReference = referenceLine(trackNumberId = IntId(1), alignment = verticalAlignment, startAddress = startAddress)
-        val verticalContext = GeocodingContext(trackNumber, verticalReference, verticalAlignment, listOf(
+        val verticalContext = GeocodingContext(trackNumber, startAddress, verticalAlignment, listOf(
             GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
         ))
         val diagonalLine = alignment(segment(
@@ -409,7 +408,7 @@ class GeocodingTest {
         )
         val testContext = GeocodingContext.create(
             trackNumber = trackNumber,
-            referenceLine = referenceLine,
+            startAddress = referenceLine.startAddress,
             referenceLineGeometry = referenceLineAlignment,
             kmPosts = listOf(),
         )

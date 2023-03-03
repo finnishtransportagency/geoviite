@@ -52,7 +52,7 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesAreEmptyIfNothingIsChanged() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = setupData.locationTrack,
             afterTrack = setupData.locationTrack,
@@ -65,7 +65,7 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesContainAllAddressesIfThereIsNoBeforeVersion() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = null,
             afterTrack = setupData.locationTrack,
@@ -86,7 +86,7 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesContainAllAddressesIfTrackIsBeingRestoredFromBeingDeleted() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = setupData.locationTrack.copy(state = LayoutState.DELETED),
             afterTrack = setupData.locationTrack,
@@ -110,7 +110,7 @@ class AddressChangesServiceIT @Autowired constructor(
         val initialLocationTrack = setupData.locationTrack
         val locationTrackId = initialLocationTrack.id as IntId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
 
         removeLocationTrackGeometryAndUpdate(initialLocationTrack, setupData.locationTrackGeometry)
         val updateMoment = locationTrackDao.fetchChangeTime()
@@ -190,7 +190,7 @@ class AddressChangesServiceIT @Autowired constructor(
         assertTrue(changes.startPointChanged, "Start should change: changes=$changes")
         assertTrue(changes.endPointChanged, "End should change: changes=$changes")
         val allKms = getAllKms(
-            geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!,
+            geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!,
             setupData.locationTrackGeometry.start!!,
             setupData.locationTrackGeometry.end!!,
         )
@@ -806,7 +806,7 @@ class AddressChangesServiceIT @Autowired constructor(
     )
 
     fun getAllKms(geocodingContextCacheKey: GeocodingContextCacheKey, start: IPoint, end: IPoint): Set<KmNumber> {
-        val context = geocodingDao.getGeocodingContext(geocodingContextCacheKey)!!
+        val context = geocodingService.getGeocodingContext(geocodingContextCacheKey)!!
         val startKm = context.getAddress(start)!!.first.kmNumber
         val endKm = context.getAddress(end)!!.first.kmNumber
         return context.referencePoints.map { r -> r.kmNumber }.filter { km -> km in startKm..endKm }.toSet()

@@ -1037,7 +1037,7 @@ class GeometryDao @Autowired constructor(
 
     fun getKmPost(id: IntId<GeometryKmPost>) = getOne(id, fetchKmPosts(planId = null, kmPostId = id))
 
-    private fun fetchKmPosts(
+    fun fetchKmPosts(
         planId: IntId<GeometryPlan>? = null,
         kmPostId: IntId<GeometryKmPost>? = null,
     ): List<GeometryKmPost> {

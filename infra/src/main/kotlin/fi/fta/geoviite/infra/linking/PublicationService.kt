@@ -31,7 +31,6 @@ import java.util.*
 class PublicationService @Autowired constructor(
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
-    private val geocodingDao: GeocodingDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val switchService: LayoutSwitchService,
     private val kmPostService: LayoutKmPostService,
@@ -752,7 +751,7 @@ class PublicationService @Autowired constructor(
     }
 
     fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
-        cacheKey?.let(geocodingDao::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
+        cacheKey?.let(geocodingService::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
             ?: listOf(noGeocodingContext(localizationKey))
 
     fun validateAddressPoints(

@@ -70,7 +70,7 @@ private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.jav
 
 data class GeocodingContext(
     val trackNumber: TrackLayoutTrackNumber,
-    val referenceLine: ReferenceLine,
+    val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
     val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
@@ -82,7 +82,6 @@ data class GeocodingContext(
         require(isSame(edges.last().endDistance, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
             "Polyline edges should cover the whole reference line geometry: " +
                     "trackNumber=${trackNumber.number} " +
-                    "referenceLine=${referenceLine.id} " +
                     "alignment=${referenceLineGeometry.id}"
         }
         createProjectionLines(referencePoints, edges).also { lines ->
@@ -104,14 +103,14 @@ data class GeocodingContext(
     companion object {
         fun create(
             trackNumber: TrackLayoutTrackNumber,
-            referenceLine: ReferenceLine,
-            referenceLineGeometry: LayoutAlignment,
+            startAddress: TrackMeter,
+            referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContext {
-            val referencePoints = createReferencePoints(referenceLine.startAddress, kmPosts, referenceLineGeometry)
+            val referencePoints = createReferencePoints(startAddress, kmPosts, referenceLineGeometry)
             return GeocodingContext(
                 trackNumber = trackNumber,
-                referenceLine = referenceLine,
+                startAddress = startAddress,
                 referenceLineGeometry = referenceLineGeometry,
                 referencePoints = referencePoints,
                 rejectedKmPosts = kmPosts.filterNot { post ->
@@ -168,7 +167,7 @@ data class GeocodingContext(
             ?: throw IllegalStateException("Can't resolve reference line addresses")
     }
 
-    fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
+    private fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
         getDistance(point)?.let { (distance, intersectType) ->
             AddressPoint(point, getAddress(distance, decimals), distance) to intersectType
         }
