@@ -5,14 +5,12 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { debounceAsync } from 'utils/async-utils';
-import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import {
     LocationTrackVerticalGeometrySearchParameters,
     LocationTrackVerticalGeometrySearchState,
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
-import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import {
     getLocationTrackVerticalGeometry,
     getLocationTrackVerticalGeometryCsv,
@@ -20,7 +18,12 @@ import {
 import { useLoader } from 'utils/react-utils';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
+import {
+    debouncedSearchTracks,
+    getLocationTrackOptions,
+    getVisibleErrorsByProp,
+    hasErrors,
+} from 'data-products/data-products-utils';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -33,17 +36,7 @@ type LocationTrackVerticalGeometrySearchProps = {
     setVerticalGeometry: (verticalGeometry: never[]) => void;
 };
 
-const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackVerticalGeometry, 250);
-
-function getLocationTrackOptions(
-    tracks: LayoutLocationTrack[],
-    selectedTrack: LayoutLocationTrack | undefined,
-) {
-    return tracks
-        .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
-        .map((lt) => ({ name: `${lt.name}, ${lt.description}`, value: lt }));
-}
 
 export const LocationTrackVerticalGeometrySearch: React.FC<
     LocationTrackVerticalGeometrySearchProps
@@ -68,13 +61,10 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         });
     }
 
-    const hasErrors = (prop: keyof LocationTrackVerticalGeometrySearchParameters) =>
-        getVisibleErrorsByProp(state.committedFields, state.validationErrors, prop).length > 0;
-
     const verticalGeometries = useLoader(() => {
         return !state.searchParameters.locationTrack ||
-            hasErrors('startTrackMeter') ||
-            hasErrors('endTrackMeter')
+            hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
+            hasErrors(state.committedFields, state.validationErrors, 'endTrackMeter')
             ? Promise.resolve(state.verticalGeometry)
             : debouncedTrackElementsFetch(
                   state.searchParameters.locationTrack.id,
@@ -115,7 +105,11 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             value={state.searchFields.startTrackMeter}
                             onChange={(e) => updateProp('startTrackMeter', e.target.value)}
                             onBlur={() => onCommitField('startTrackMeter')}
-                            hasError={hasErrors('startTrackMeter')}
+                            hasError={hasErrors(
+                                state.committedFields,
+                                state.validationErrors,
+                                'startTrackMeter',
+                            )}
                             wide
                         />
                     }
@@ -132,7 +126,11 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             value={state.searchFields.endTrackMeter}
                             onChange={(e) => updateProp('endTrackMeter', e.target.value)}
                             onBlur={() => onCommitField('endTrackMeter')}
-                            hasError={hasErrors('endTrackMeter')}
+                            hasError={hasErrors(
+                                state.committedFields,
+                                state.validationErrors,
+                                'endTrackMeter',
+                            )}
                             wide
                         />
                     }

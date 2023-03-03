@@ -11,8 +11,6 @@ import {
     selectedElementTypes,
     validTrackMeterOrUndefined,
 } from 'data-products/data-products-store';
-import { LayoutLocationTrack } from 'track-layout/track-layout-model';
-import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import { useLoader } from 'utils/react-utils';
@@ -20,7 +18,12 @@ import { getLocationTrackElements, getLocationTrackElementsCsv } from 'geometry/
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { ElementItem } from 'geometry/geometry-model';
-import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
+import {
+    debouncedSearchTracks,
+    getLocationTrackOptions,
+    getVisibleErrorsByProp,
+    hasErrors,
+} from 'data-products/data-products-utils';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -31,16 +34,6 @@ type LocationTrackElementListingSearchProps = {
     onCommitField: <TKey extends keyof ContinuousSearchParameters>(key: TKey) => void;
 };
 
-function getLocationTrackOptions(
-    tracks: LayoutLocationTrack[],
-    selectedTrack: LayoutLocationTrack | undefined,
-) {
-    return tracks
-        .filter((lt) => !selectedTrack || lt.id !== selectedTrack.id)
-        .map((lt) => ({ name: `${lt.name}, ${lt.description}`, value: lt }));
-}
-
-const debouncedSearchTracks = debounceAsync(getLocationTracksBySearchTerm, 250);
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackElements, 250);
 
 const LocationTrackElementListingSearch = ({
@@ -71,17 +64,11 @@ const LocationTrackElementListingSearch = ({
         });
     }
 
-    function hasErrors(prop: keyof ContinuousSearchParameters) {
-        return (
-            getVisibleErrorsByProp(state.committedFields, state.validationErrors, prop).length > 0
-        );
-    }
-
     const elementList = useLoader(() => {
         return !state.searchParameters.locationTrack ||
-            hasErrors('searchGeometries') ||
-            hasErrors('startTrackMeter') ||
-            hasErrors('endTrackMeter')
+            hasErrors(state.committedFields, state.validationErrors, 'searchGeometries') ||
+            hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
+            hasErrors(state.committedFields, state.validationErrors, 'endTrackMeter')
             ? Promise.resolve(state.elements)
             : debouncedTrackElementsFetch(
                   state.searchParameters.locationTrack.id,
@@ -123,7 +110,11 @@ const LocationTrackElementListingSearch = ({
                             value={state.searchFields.startTrackMeter}
                             onChange={(e) => updateProp('startTrackMeter', e.target.value)}
                             onBlur={() => onCommitField('startTrackMeter')}
-                            hasError={hasErrors('startTrackMeter')}
+                            hasError={hasErrors(
+                                state.committedFields,
+                                state.validationErrors,
+                                'startTrackMeter',
+                            )}
                             wide
                         />
                     }
@@ -140,7 +131,11 @@ const LocationTrackElementListingSearch = ({
                             value={state.searchFields.endTrackMeter}
                             onChange={(e) => updateProp('endTrackMeter', e.target.value)}
                             onBlur={() => onCommitField('endTrackMeter')}
-                            hasError={hasErrors('endTrackMeter')}
+                            hasError={hasErrors(
+                                state.committedFields,
+                                state.validationErrors,
+                                'endTrackMeter',
+                            )}
                             wide
                         />
                     }
