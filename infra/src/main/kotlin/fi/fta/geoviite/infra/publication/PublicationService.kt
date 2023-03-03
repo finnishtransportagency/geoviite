@@ -673,27 +673,29 @@ class PublicationService @Autowired constructor(
         val publication = publicationDao.getPublication(id)
         val ratkoStatus = ratkoPushDao.getRatkoStatus(id).sortedByDescending { it.endTime }.firstOrNull()
 
-        val locationTracks = publicationDao.fetchPublishedLocationTracks(id)
-        val referenceLines = publicationDao.fetchPublishedReferenceLines(id)
-        val kmPosts = publicationDao.fetchPublishedKmPosts(id)
-        val switches = publicationDao.fetchPublishedSwitches(id)
-        val trackNumbers = publicationDao.fetchPublishedTrackNumbers(id)
-
-        val calculatedChanges = publicationDao.fetchCalculatedChanges(id)
+        val publishedReferenceLines = publicationDao.fetchPublishedReferenceLines(id)
+        val publishedKmPosts = publicationDao.fetchPublishedKmPosts(id)
+        val (publishedDirectTrackNumbers, publishedIndirectTrackNumbers) = publicationDao.fetchPublishedTrackNumbers(id)
+        val (publishedDirectTracks, publishedIndirectTracks) = publicationDao.fetchPublishedLocationTracks(id)
+        val (publishedDirectSwitches, publishedIndirectSwitches) = publicationDao.fetchPublishedSwitches(id)
 
         return PublicationDetails(
             id = publication.id,
             publicationTime = publication.publicationTime,
             publicationUser = publication.publicationUser,
             message = publication.message,
-            trackNumbers = trackNumbers,
-            referenceLines = referenceLines,
-            locationTracks = locationTracks,
-            switches = switches,
-            kmPosts = kmPosts,
+            trackNumbers = publishedDirectTrackNumbers,
+            referenceLines = publishedReferenceLines,
+            locationTracks = publishedDirectTracks,
+            switches = publishedDirectSwitches,
+            kmPosts = publishedKmPosts,
             ratkoPushStatus = ratkoStatus?.status,
             ratkoPushTime = ratkoStatus?.endTime,
-            indirectChanges = calculatedChanges
+            indirectChanges = PublishedIndirectChanges(
+                trackNumbers = publishedIndirectTrackNumbers,
+                locationTracks = publishedIndirectTracks,
+                switches = publishedIndirectSwitches
+            )
         )
     }
 
@@ -805,6 +807,7 @@ class PublicationService @Autowired constructor(
             mapToPublicationTableItem(
                 name = "${getTranslation("track-number")} ${tn.number}",
                 trackNumberIds = setOf(tn.version.id),
+                changedKmNumbers = tn.changedKmNumbers,
                 operation = tn.operation,
                 publication = publication,
             )
@@ -850,16 +853,6 @@ class PublicationService @Autowired constructor(
             )
         }
 
-        val calculatedTrackNumbers = publication.indirectChanges.trackNumbers.map { tn ->
-            mapToPublicationTableItem(
-                name = "${getTranslation("track-number")} ${tn.number}",
-                trackNumberIds = setOf(tn.version.id),
-                operation = tn.operation,
-                publication = publication,
-                isCalculatedChange = true
-            )
-        }
-
         val calculatedLocationTracks = publication.indirectChanges.locationTracks.map { lt ->
             mapToPublicationTableItem(
                 name = "${getTranslation("location-track")} ${lt.name}",
@@ -886,7 +879,6 @@ class PublicationService @Autowired constructor(
                 + locationTracks
                 + switches
                 + kmPosts
-                + calculatedTrackNumbers
                 + calculatedLocationTracks
                 + calculatedSwitches)
     }

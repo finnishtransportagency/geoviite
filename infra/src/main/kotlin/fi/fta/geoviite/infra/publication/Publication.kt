@@ -82,7 +82,8 @@ data class PublishedKmPost(
 )
 
 data class PublishedIndirectChanges(
-    val trackNumbers: List<PublishedTrackNumber>,
+    //Currently only used by Ratko integration
+    @JsonIgnore val trackNumbers: List<PublishedTrackNumber>,
     val locationTracks: List<PublishedLocationTrack>,
     val switches: List<PublishedSwitch>,
 )
