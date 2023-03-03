@@ -453,7 +453,18 @@ fun segment(
     start: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
-) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), start, source, sourceId)
+    switchId: IntId<TrackLayoutSwitch>? = null,
+    startJointNumber: JointNumber? = null,
+    endJointNumber: JointNumber? = null,
+) = segment(
+    toTrackLayoutPoints(to3DMPoints(points.asList())),
+    start = start,
+    source = source,
+    sourceId = sourceId,
+    switchId = switchId,
+    startJointNumber = startJointNumber,
+    endJointNumber = endJointNumber
+)
 
 fun segment(
     vararg points: Point3DZ,
