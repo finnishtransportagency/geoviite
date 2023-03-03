@@ -147,7 +147,6 @@ const PlanGeometrySearch = ({
                                 options={geometryPlanHeaders}
                                 searchable
                                 onChange={(e) => updateProp('plan', e)}
-                                canUnselect={true}
                                 unselectText={t('data-products.element-list.search.not-selected')}
                                 wideList
                                 wide

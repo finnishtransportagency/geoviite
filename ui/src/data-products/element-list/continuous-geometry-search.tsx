@@ -115,7 +115,6 @@ const ContinuousGeometrySearch = ({
                             searchable
                             onChange={(e) => updateProp('locationTrack', e)}
                             onBlur={() => onCommitField('locationTrack')}
-                            canUnselect={true}
                             unselectText={t('data-products.element-list.search.not-selected')}
                             wideList
                             wide
