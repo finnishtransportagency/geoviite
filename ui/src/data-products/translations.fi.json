@@ -57,7 +57,27 @@
             "location-track-vertical-geometry": "Raiteen pystygeometria",
             "plan-vertical-geometry": "Suunnitelman pystygeometria",
             "location-track-search-legend": "Raiteen pystygeometria näyttää luettelossa paikannuspohjan raiteeseen liityvät taitepisteet. Paikannuspohjan raide voi olla koostettu useasta suunnitelmasta, eikä täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
-            "plan-search-legend": "Suunnitelman pystygeometria näyttää luettelossa suunnitelman sisältämät taitepisteet. Rataosoiteet on laskettu paikannuspohjan pituusmittauksen mukaan, joten rataosoitteiden tarkkuutta on syytä pitää epäluotettavana. Myös  paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona."
+            "plan-search-legend": "Suunnitelman pystygeometria näyttää luettelossa suunnitelman sisältämät taitepisteet. Rataosoiteet on laskettu paikannuspohjan pituusmittauksen mukaan, joten rataosoitteiden tarkkuutta on syytä pitää epäluotettavana. Myös  paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
+            "table": {
+                "plan": "Suunnitelma",
+                "alignment": "Suunnitelman raide",
+                "track-address": "Rataosoite",
+                "height": "Korkeus",
+                "length": "Pituus",
+                "angle": "Kaltevuus",
+                "radius": "Pyöristyssäde",
+                "tangent": "Tangentti",
+                "linear-section": "Suora osa",
+                "station-start": "Alku",
+                "station-vertical-intersection": "Taite",
+                "station-end": "End",
+                "station": "Paaluluku",
+                "linear-section-forward": "Kaltevuusjakso eteenpäin",
+                "linear-section-backward": "Kaltevuusjakso taaksepäin",
+                "curve-start": "Pyöristyksen alku",
+                "curve-end": "Pyöristyksen loppu",
+                "point-of-vertical-intersection": "Taite"
+            }
         }
     }
 }

@@ -59,3 +59,23 @@ export const hasErrors = <T>(
     validationErrors: ValidationError<T>[],
     prop: keyof T,
 ) => getVisibleErrorsByProp(committedFields, validationErrors, prop).length > 0;
+
+export type ElementHeading = {
+    name: string;
+    numeric: boolean;
+    hasSeparator: boolean;
+};
+
+export const numericHeading = (name: string) => ({
+    name,
+    numeric: true,
+    hasSeparator: false,
+});
+
+export const nonNumericHeading = (name: string) => ({
+    name,
+    numeric: false,
+    hasSeparator: false,
+});
+
+export const withSeparator = (heading: ElementHeading) => ({ ...heading, hasSeparator: true });

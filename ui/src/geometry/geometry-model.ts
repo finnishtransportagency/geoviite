@@ -13,6 +13,7 @@ import {
     Srid,
     SwitchStructureId,
     TimeStamp,
+    TrackMeter,
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-store';
@@ -275,4 +276,37 @@ export type ElementItem = {
     trackNumberId: LayoutTrackNumberId;
     trackNumberDescription: string;
     coordinateSystemName: string;
+};
+
+type CircularCurve = {
+    address: TrackMeter;
+    height: number;
+    angle: number;
+};
+
+type LinearSection = {
+    length: number;
+    linearSection: number;
+};
+
+type Station = {
+    start: number;
+    pvi: number;
+    end: number;
+};
+
+export type VerticalGeometry = {
+    id: string;
+    planId: GeometryPlanId;
+    planFileName: string;
+    locationTrack: string;
+    curveStart: CircularCurve;
+    pviAddress: TrackMeter;
+    pviHeight: number;
+    curveEnd: CircularCurve;
+    radius: number;
+    tangent: number;
+    linearSectionBackwards: LinearSection;
+    linearSectionForwards: LinearSection;
+    station: Station;
 };
