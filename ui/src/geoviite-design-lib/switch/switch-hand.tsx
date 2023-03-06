@@ -10,10 +10,9 @@ function getTranslationKey(switchHand: SwitchHandModel | null) {
     switch (switchHand) {
         case 'LEFT':
         case 'RIGHT':
-        case 'NONE':
             return switchHand;
         default:
-            return 'UNKNOWN';
+            return 'NONE';
     }
 }
 

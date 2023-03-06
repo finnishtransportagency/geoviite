@@ -123,8 +123,7 @@
         "switch-hand": {
             "LEFT": "Vasen",
             "RIGHT": "Oikea",
-            "NONE": "Ei käsisyyttä",
-            "UNKNOWN": "Kätisyyttä ei löydy"
+            "NONE": "Ei kätisyyttä"
         },
         "location-track-type": {
             "MAIN": "Pääraide",
