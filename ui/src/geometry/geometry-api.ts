@@ -40,7 +40,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import { TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
-import { GeometryTypeIncludingMissing } from 'data-products/element-list/element-list-store';
+import { GeometryTypeIncludingMissing } from 'data-products/data-products-store';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
@@ -132,6 +132,40 @@ export async function getLocationTrackElements(
     });
     return getIgnoreError(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
 }
+
+export async function getLocationTrackVerticalGeometry(
+    id: LocationTrackId,
+    startAddress: string | undefined,
+    endAddress: string | undefined,
+): Promise<never[] | null> {
+    const params = queryParams({
+        startAddress: startAddress,
+        endAddress: endAddress,
+    });
+    return getIgnoreError(
+        `${GEOMETRY_URI}/layout/location-tracks/${id}/vertical-geometry${params}`,
+    );
+}
+
+export async function getGeometryPlanVerticalGeometry(
+    planId: GeometryPlanId,
+): Promise<never[] | null> {
+    return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+}
+export const getLocationTrackVerticalGeometryCsv = (
+    planId: GeometryPlanId,
+    startAddress: string | undefined,
+    endAddress: string | undefined,
+) => {
+    const params = queryParams({
+        startAddress: startAddress,
+        endAddress: endAddress,
+    });
+    return `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file${params}`;
+};
+
+export const getGeometryPlanVerticalGeometryCsv = (planId: GeometryPlanId) =>
+    `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file`;
 
 export const getLocationTrackElementsCsv = (
     locationTrackId: LocationTrackId,

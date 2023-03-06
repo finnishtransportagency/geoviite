@@ -4,13 +4,22 @@ import { Radio } from 'vayla-design-lib/radio/radio';
 import styles from 'data-products/data-product-view.scss';
 import PlanVerticalGeometrySearch from 'data-products/vertical-geometry/plan-vertical-geometry-search';
 import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry/location-track-vertical-geometry-search';
+import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
+import { createDelegates } from 'store/store-utils';
+import { dataProductsActions } from 'data-products/data-products-store';
 
 const VerticalGeometryView = () => {
+    const rootDispatch = useDataProductsAppDispatch();
+    const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
+    const state = useDataProductsAppSelector((state) => state.dataProducts.verticalGeometry);
+
     const { t } = useTranslation();
-    const [locationTrackSelected, setLocationTrackSelected] = React.useState(true);
+    const locationTrackSelected = state.selectedSearch === 'LOCATION_TRACK';
 
     const handleRadioClick = () => {
-        setLocationTrackSelected(!locationTrackSelected);
+        dataProductsDelegates.setSelectedVerticalGeometrySearch(
+            locationTrackSelected ? 'PLAN' : 'LOCATION_TRACK',
+        );
     };
 
     return (
@@ -28,9 +37,24 @@ const VerticalGeometryView = () => {
                     </span>
                 </div>
                 {locationTrackSelected ? (
-                    <LocationTrackVerticalGeometrySearch />
+                    <LocationTrackVerticalGeometrySearch
+                        state={state.locationTrackSearch}
+                        onUpdateProp={
+                            dataProductsDelegates.onUpdateVerticalGeometryLocationTrackSearchProp
+                        }
+                        onCommitField={
+                            dataProductsDelegates.onCommitVerticalGeometryLocationTrackSearchField
+                        }
+                        setVerticalGeometry={
+                            dataProductsDelegates.onSetLocationTrackVerticalGeometry
+                        }
+                    />
                 ) : (
-                    <PlanVerticalGeometrySearch />
+                    <PlanVerticalGeometrySearch
+                        state={state.planSearch}
+                        onUpdateProp={dataProductsDelegates.onUpdatePlanVerticalGeometrySearchProp}
+                        setVerticalGeometry={dataProductsDelegates.onSetPlanVerticalGeometry}
+                    />
                 )}
             </div>
         </div>

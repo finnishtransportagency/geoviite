@@ -1,14 +1,127 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from 'data-products/data-product-view.scss';
+import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
+import { planSources } from 'utils/enum-localization-utils';
+import { Radio } from 'vayla-design-lib/radio/radio';
+import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
+import {
+    getGeometryPlanVerticalGeometry,
+    getGeometryPlanVerticalGeometryCsv,
+} from 'geometry/geometry-api';
+import { PlanVerticalGeometrySearchState } from 'data-products/data-products-store';
+import { PropEdit } from 'utils/validation-utils';
+import { debounceAsync } from 'utils/async-utils';
+import { useLoader } from 'utils/react-utils';
+import {
+    debouncedGetGeometryPlanHeaders,
+    getGeometryPlanOptions,
+} from 'data-products/data-products-utils';
+import { Icons } from 'vayla-design-lib/icon/Icon';
+import { Button } from 'vayla-design-lib/button/button';
 
-export const PlanVerticalGeometrySearch: React.FC = () => {
+type PlanVerticalGeometrySearchProps = {
+    state: PlanVerticalGeometrySearchState;
+    onUpdateProp: <TKey extends keyof PlanVerticalGeometrySearchState>(
+        propEdit: PropEdit<PlanVerticalGeometrySearchState, TKey>,
+    ) => void;
+    setVerticalGeometry: (verticalGeometry: never[]) => void;
+};
+
+const debouncedGetPlanVerticalGeometry = debounceAsync(getGeometryPlanVerticalGeometry, 250);
+
+export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProps> = ({
+    state,
+    onUpdateProp,
+    setVerticalGeometry,
+}) => {
     const { t } = useTranslation();
+    // Use memoized function to make debouncing functionality work when re-rendering
+    const geometryPlanHeaders = React.useCallback(
+        (searchTerm) =>
+            debouncedGetGeometryPlanHeaders(state.source, searchTerm).then((planHeaders) =>
+                getGeometryPlanOptions(planHeaders, state.plan),
+            ),
+        [state.source, state.plan],
+    );
+
+    function updateProp<TKey extends keyof PlanVerticalGeometrySearchState>(
+        key: TKey,
+        value: PlanVerticalGeometrySearchState[TKey],
+    ) {
+        onUpdateProp({
+            key: key,
+            value: value,
+            editingExistingValue: false,
+        });
+    }
+
+    const setSource = (source: PlanSource) => {
+        updateProp('source', source);
+        updateProp('plan', undefined);
+    };
+
+    const verticalGeometries = useLoader(() => {
+        return !state.plan ? Promise.resolve([]) : debouncedGetPlanVerticalGeometry(state.plan.id);
+    }, [state.plan]);
+    React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
+
     return (
         <React.Fragment>
             <p className={styles['data-product__search-legend']}>
                 {t('data-products.vertical-geometry.plan-search-legend')}
             </p>
+            <div className={styles['data-products__search']}>
+                <FieldLayout
+                    label={t(`data-products.search.source`)}
+                    value={
+                        <>
+                            {planSources.map((source) => (
+                                <span
+                                    key={source.value}
+                                    className={styles['data-product-view__radio-layout']}>
+                                    <Radio
+                                        checked={state.source === source.value}
+                                        onChange={() => setSource(source.value)}>
+                                        {t(source.name)}
+                                    </Radio>
+                                </span>
+                            ))}
+                        </>
+                    }
+                />
+                <div className={styles['element-list__plan-search-dropdown']}>
+                    <FieldLayout
+                        label={t(`data-products.search.plan`)}
+                        value={
+                            <Dropdown
+                                value={state.plan}
+                                getName={(item: GeometryPlanHeader) => item.fileName}
+                                placeholder={t('location-track-dialog.search')}
+                                options={geometryPlanHeaders}
+                                searchable
+                                onChange={(e) => updateProp('plan', e)}
+                                canUnselect={true}
+                                unselectText={t('data-products.search.not-selected')}
+                                wideList
+                                wide
+                            />
+                        }
+                    />
+                </div>
+                <Button
+                    className={styles['element-list__download-button']}
+                    disabled={!state.verticalGeometry || state.verticalGeometry.length === 0}
+                    onClick={() => {
+                        if (state.plan) {
+                            location.href = getGeometryPlanVerticalGeometryCsv(state.plan?.id);
+                        }
+                    }}
+                    icon={Icons.Download}>
+                    {t(`data-products.search.download-csv`)}
+                </Button>
+            </div>
         </React.Fragment>
     );
 };

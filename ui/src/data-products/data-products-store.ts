@@ -29,6 +29,30 @@ export type PlanGeometrySearchState = {
     committedFields: (keyof PlanGeometrySearchState)[];
 };
 
+export type LocationTrackVerticalGeometrySearchParameters = {
+    locationTrack: LayoutLocationTrack | undefined;
+    startTrackMeter: string;
+    endTrackMeter: string;
+};
+
+export type LocationTrackVerticalGeometrySearchState = {
+    searchFields: LocationTrackVerticalGeometrySearchParameters;
+    searchParameters: LocationTrackVerticalGeometrySearchParameters;
+
+    validationErrors: ValidationError<LocationTrackVerticalGeometrySearchParameters>[];
+    committedFields: (keyof LocationTrackVerticalGeometrySearchParameters)[];
+    verticalGeometry: never[];
+};
+
+export type PlanVerticalGeometrySearchState = {
+    source: PlanSource;
+    plan: GeometryPlanHeader | undefined;
+
+    validationErrors: ValidationError<PlanVerticalGeometrySearchState>[];
+    committedFields: (keyof PlanVerticalGeometrySearchState)[];
+    verticalGeometry: never[];
+};
+
 enum MissingSection {
     MISSING_SECTION = 'MISSING_SECTION',
 }
@@ -96,6 +120,30 @@ export const initialContinuousSearchState: ElementListContinuousGeometrySearchSt
     committedFields: [],
 };
 
+const initialLocationTrackVerticalGeometrySearchState: LocationTrackVerticalGeometrySearchState = {
+    searchFields: {
+        locationTrack: undefined,
+        startTrackMeter: '',
+        endTrackMeter: '',
+    },
+    searchParameters: {
+        locationTrack: undefined,
+        startTrackMeter: '',
+        endTrackMeter: '',
+    },
+    validationErrors: [],
+    committedFields: [],
+    verticalGeometry: [],
+};
+
+const initialPlanVerticalGeometrySearchState: PlanVerticalGeometrySearchState = {
+    plan: undefined,
+    source: 'GEOMETRIAPALVELU',
+    validationErrors: [],
+    committedFields: [],
+    verticalGeometry: [],
+};
+
 const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
 export const selectedElementTypes = (
     searchGeometry: SearchGeometries,
@@ -156,6 +204,43 @@ const validateContinuousGeometry = (
                 trackMeterIsValid(state.searchFields.endTrackMeter),
             {
                 field: 'endTrackMeter' as keyof ContinuousSearchParameters,
+                reason: 'invalid-track-meter',
+                type: ValidationErrorType.ERROR,
+            },
+        ),
+    ].filter(filterNotEmpty);
+
+const validateLocationTrackVerticalGeometrySearch = (
+    state: LocationTrackVerticalGeometrySearchState,
+): ValidationError<LocationTrackVerticalGeometrySearchParameters>[] =>
+    [
+        validate(
+            state.searchFields.startTrackMeter === '' ||
+                trackMeterIsValid(state.searchFields.startTrackMeter),
+            {
+                field: 'startTrackMeter',
+                reason: 'invalid-track-meter',
+                type: ValidationErrorType.ERROR,
+            },
+        ),
+        validate(
+            !trackMeterIsValid(state.searchFields.endTrackMeter) ||
+                !trackMeterIsValid(state.searchFields.startTrackMeter) ||
+                compareTrackMeterStrings(
+                    state.searchFields.startTrackMeter,
+                    state.searchFields.endTrackMeter,
+                ) <= 0,
+            {
+                field: 'endTrackMeter',
+                reason: 'end-before-start',
+                type: ValidationErrorType.ERROR,
+            },
+        ),
+        validate(
+            state.searchFields.endTrackMeter === '' ||
+                trackMeterIsValid(state.searchFields.endTrackMeter),
+            {
+                field: 'endTrackMeter' as keyof LocationTrackVerticalGeometrySearchParameters,
                 reason: 'invalid-track-meter',
                 type: ValidationErrorType.ERROR,
             },
@@ -233,6 +318,75 @@ export const planSearchSlice = createSlice({
     },
 });
 
+export const locationTrackVerticalGeometrySearchSlice = createSlice({
+    name: 'locationTrackVerticalGeometrySearch',
+    initialState: initialLocationTrackVerticalGeometrySearchState,
+    reducers: {
+        onUpdateVerticalGeometryLocationTrackSearchProp: function <
+            TKey extends keyof LocationTrackVerticalGeometrySearchParameters,
+        >(
+            state: LocationTrackVerticalGeometrySearchState,
+            {
+                payload: propEdit,
+            }: PayloadAction<PropEdit<LocationTrackVerticalGeometrySearchParameters, TKey>>,
+        ) {
+            state.searchFields[propEdit.key] = propEdit.value;
+            if (propEdit.key === 'locationTrack') {
+                state.searchParameters['startTrackMeter'] = '';
+                state.searchParameters['endTrackMeter'] = '';
+                state.searchFields['startTrackMeter'] = '';
+                state.searchFields['endTrackMeter'] = '';
+            }
+
+            state.validationErrors = validateLocationTrackVerticalGeometrySearch(state);
+            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
+                // Valid value entered for a field, mark that field as committed
+                state.committedFields = [...state.committedFields, propEdit.key];
+            }
+
+            if (state.committedFields.includes(propEdit.key)) {
+                state.searchParameters[propEdit.key] = propEdit.value;
+            }
+        },
+        onCommitVerticalGeometryLocationTrackSearchField: function <
+            TKey extends keyof LocationTrackVerticalGeometrySearchParameters,
+        >(state: LocationTrackVerticalGeometrySearchState, { payload: key }: PayloadAction<TKey>) {
+            state.committedFields = [...state.committedFields, key];
+        },
+        onSetLocationTrackVerticalGeometry: function (
+            state: LocationTrackVerticalGeometrySearchState,
+            { payload: verticalGeometry }: PayloadAction<never[]>,
+        ) {
+            state.verticalGeometry = verticalGeometry;
+        },
+    },
+});
+
+export const planVerticalGeometrySearchSlice = createSlice({
+    name: 'planVerticalGeometrySearch',
+    initialState: initialPlanVerticalGeometrySearchState,
+    reducers: {
+        onUpdatePlanVerticalGeometrySearchProp: function <
+            TKey extends keyof PlanVerticalGeometrySearchState,
+        >(
+            state: PlanVerticalGeometrySearchState,
+            { payload: propEdit }: PayloadAction<PropEdit<PlanVerticalGeometrySearchState, TKey>>,
+        ) {
+            state[propEdit.key] = propEdit.value;
+            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
+                // Valid value entered for a field, mark that field as committed
+                state.committedFields = [...state.committedFields, propEdit.key];
+            }
+        },
+        onSetPlanVerticalGeometry: function (
+            state: PlanVerticalGeometrySearchState,
+            { payload: verticalGeometry }: PayloadAction<never[]>,
+        ) {
+            state.verticalGeometry = verticalGeometry;
+        },
+    },
+});
+
 type SelectedSearch = 'PLAN' | 'LOCATION_TRACK';
 
 type DataProductsState = {
@@ -240,6 +394,11 @@ type DataProductsState = {
         selectedSearch: SelectedSearch;
         planSearch: PlanGeometrySearchState;
         locationTrackSearch: ElementListContinuousGeometrySearchState;
+    };
+    verticalGeometry: {
+        selectedSearch: SelectedSearch;
+        planSearch: PlanVerticalGeometrySearchState;
+        locationTrackSearch: LocationTrackVerticalGeometrySearchState;
     };
 };
 
@@ -249,17 +408,28 @@ const initialDataProductsState: DataProductsState = {
         planSearch: initialPlanGeometrySearchState,
         locationTrackSearch: initialContinuousSearchState,
     },
+    verticalGeometry: {
+        selectedSearch: 'LOCATION_TRACK',
+        planSearch: initialPlanVerticalGeometrySearchState,
+        locationTrackSearch: initialLocationTrackVerticalGeometrySearchState,
+    },
 };
 
 const dataProductsSlice = createSlice({
     name: 'dataProducts',
     initialState: initialDataProductsState,
     reducers: {
-        setSelectedSearch: function (
+        setSelectedElementListSearch: function (
             state: DataProductsState,
             { payload: search }: PayloadAction<SelectedSearch>,
         ) {
             state.elementList.selectedSearch = search;
+        },
+        setSelectedVerticalGeometrySearch: function (
+            state: DataProductsState,
+            { payload: search }: PayloadAction<SelectedSearch>,
+        ) {
+            state.verticalGeometry.selectedSearch = search;
         },
         ...wrapReducers(
             (state: DataProductsState) => state.elementList.locationTrackSearch,
@@ -268,6 +438,14 @@ const dataProductsSlice = createSlice({
         ...wrapReducers(
             (state: DataProductsState) => state.elementList.planSearch,
             planSearchSlice.caseReducers,
+        ),
+        ...wrapReducers(
+            (state: DataProductsState) => state.verticalGeometry.locationTrackSearch,
+            locationTrackVerticalGeometrySearchSlice.caseReducers,
+        ),
+        ...wrapReducers(
+            (state: DataProductsState) => state.verticalGeometry.planSearch,
+            planVerticalGeometrySearchSlice.caseReducers,
         ),
     },
 });

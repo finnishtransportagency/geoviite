@@ -1,22 +1,22 @@
 {
     "data-products": {
+        "search": {
+            "location-track": "Sijaintiraide",
+            "track-address-start": "Rataosoitteen alku",
+            "track-address-end": "Rataosoitteen loppu",
+            "plan": "Suunnitelma",
+            "line": "Suora",
+            "curve": "Kaari",
+            "clothoid": "Siirtymäkaari",
+            "source": "Suunnitelman lähde",
+            "missing-section": "Puuttuva osuus",
+            "no-types-selected": "Valitse vähintään yksi elementin tyyppi",
+            "invalid-track-meter": "Tarkista osoitteen muoto",
+            "end-before-start": "Rataosoitteen loppu on ennen alkua",
+            "not-selected": "Ei valittu",
+            "download-csv": "Lataa CSV"
+        },
         "element-list": {
-            "search": {
-                "location-track": "Sijaintiraide",
-                "track-address-start": "Rataosoitteen alku",
-                "track-address-end": "Rataosoitteen loppu",
-                "plan": "Suunnitelma",
-                "line": "Suora",
-                "curve": "Kaari",
-                "clothoid": "Siirtymäkaari",
-                "source": "Suunnitelman lähde",
-                "missing-section": "Puuttuva osuus",
-                "no-types-selected": "Valitse vähintään yksi elementin tyyppi",
-                "invalid-track-meter": "Tarkista osoitteen muoto",
-                "end-before-start": "Rataosoitteen loppu on ennen alkua",
-                "not-selected": "Ei valittu",
-                "download-csv": "Lataa CSV"
-            },
             "element-list-title": "Elementtiluettelo",
             "location-track-geometry": "Raiteen geometria",
             "location-track-legend": "Raiteen geometria näyttää luettelossa paikannuspohjan raiteeseen liityvät geometriaelementit. Tämä elementtiluettelo ei täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää  epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
