@@ -433,7 +433,7 @@ class PublicationService @Autowired constructor(
     }
 
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges =
-        calculatedChangesService.getCalculatedChangesInDraft(versions)
+        calculatedChangesService.getCalculatedChanges(versions)
 
     @Transactional
     fun publishChanges(versions: ValidationVersions, calculatedChanges: CalculatedChanges, message: String): PublishResult {

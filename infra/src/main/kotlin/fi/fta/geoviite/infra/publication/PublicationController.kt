@@ -52,7 +52,7 @@ class PublicationController @Autowired constructor(
     @PostMapping("/calculated-changes")
     fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
         logger.apiCall("getCalculatedChanges", "request" to request)
-        return calculatedChangesService.getCalculatedChangesInDraft(
+        return calculatedChangesService.getCalculatedChanges(
             publicationService.getValidationVersions(request)
         )
     }

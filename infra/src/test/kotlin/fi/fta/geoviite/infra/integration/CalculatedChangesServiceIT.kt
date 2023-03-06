@@ -10,16 +10,15 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.test.assertContains
@@ -55,83 +54,42 @@ class CalculatedChangesServiceIT @Autowired constructor(
     @Test
     fun callingWithoutDataReturnsNoCalculatedChanges() {
         // Insert test data to make sure that there is some data in DB
-        val testData = insertTestData()
+        insertTestData()
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
-            locationTrackIds = listOf(),
-            switchIds = listOf(),
-            startMoment = testData.changeTime.plus(-1, ChronoUnit.DAYS),
-            endMoment = testData.changeTime,
-        )
-        assertTrue(changes.trackNumberChanges.isEmpty())
-        assertTrue(changes.locationTracksChanges.isEmpty())
-        assertTrue(changes.switchChanges.isEmpty())
+        val changes = getCalculatedChanges()
+
+        assertTrue(changes.directChanges.trackNumberChanges.isEmpty())
+        assertTrue(changes.directChanges.locationTrackChanges.isEmpty())
+        assertTrue(changes.directChanges.switchChanges.isEmpty())
+        assertTrue(changes.directChanges.referenceLineChanges.isEmpty())
+        assertTrue(changes.directChanges.kmPostChanges.isEmpty())
+
+        assertTrue(changes.indirectChanges.trackNumberChanges.isEmpty())
+        assertTrue(changes.indirectChanges.locationTrackChanges.isEmpty())
+        assertTrue(changes.indirectChanges.switchChanges.isEmpty())
     }
 
     @Test
-    fun directChangesAreIncludedInCalculatedChanges() {
-        val testData = insertTestData()
-
-        val locationTrack1 = testData.locationTracksAndAlignments[0].first
-        val locationTrack2 = testData.locationTracksAndAlignments[1].first
-
-        val switch = testData.switches.first()
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
-            locationTrackIds = listOf(locationTrack1.id as IntId, locationTrack2.id as IntId),
-            switchIds = listOf(switch.id as IntId),
-            // using the latest change time means that address changes
-            // should not exist and therefore there should not be additional changes
-            startMoment = testData.changeTime,
-            endMoment = testData.changeTime,
-        )
-
-        assertTrue(changes.trackNumberChanges.isEmpty())
-        assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
-                locationTrackId = locationTrack1.id as IntId<LocationTrack>,
-                isStartChanged = false,
-                isEndChanged = false,
-            )
-        )
-        assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
-                locationTrackId = locationTrack2.id as IntId<LocationTrack>,
-                isStartChanged = false,
-                isEndChanged = false,
-            )
-        )
-
-        assertTrue(changes.switchChanges.all { it.switchId == switch.id && it.changedJoints.isEmpty() })
-    }
-
-    @Test
-    fun locationTrackGeometryChangeGeneratesSwitchChanges() {
+    fun locationTrackGeometryChangeGeneratesIndirectlySwitchChanges() {
         val testData = insertTestData()
         val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
 
         // Move alignment
         // - addresses should change
         // - switch change should be calculated
-        val updatedChangeTime = moveLocationTrackGeometryPointsAndUpdate(
+        moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
             { point, _ -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(locationTrack3.id as IntId),
-            switchIds = listOf(),
-            startMoment = testData.changeTime,
-            endMoment = updatedChangeTime,
         )
 
-        assertTrue(changes.trackNumberChanges.isEmpty())
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack3.id as IntId<LocationTrack>,
                 changedKmNumbers = setOf(
                     KmNumber(6),
@@ -144,14 +102,14 @@ class CalculatedChangesServiceIT @Autowired constructor(
         )
 
         assertContainsSwitchJoint152Change(
-            changes.switchChanges,
+            changes.indirectChanges.switchChanges,
             testData.switches.first().id as IntId,
             locationTrack3.id as IntId
         )
     }
 
     @Test
-    fun addingTopologyEndSwitchGeneratesSwitchChanges() {
+    fun addingTopologyEndSwitchGeneratesIndirectlySwitchChanges() {
         val testData = insertTestData(
             kmPostData = listOf(
                 KmNumber(0) to Point(0.0, 0.0),
@@ -176,32 +134,30 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val switch = testData.switches[0]
 
         // Manually remove topology switch as it is automatically added when creating test data
-        val baseStateMoment = removeTopologySwitchesFromLocationTrackAndUpdate(
+        val (updatedLocationTrack, updatedAlignment) = removeTopologySwitchesFromLocationTrackAndUpdate(
             locationTrack1,
             alignment1,
             locationTrackService
-        )
+        ).let { (id, version) ->
+            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            locationTrackService.getWithAlignment(publishedVersion)
+        }
 
         // Set topology switch info
-        val updatedStateMoment = addTopologyEndSwitchIntoLocationTrackAndUpdate(
-            locationTrack1,
-            alignment1,
+        addTopologyEndSwitchIntoLocationTrackAndUpdate(
+            updatedLocationTrack,
+            updatedAlignment,
             switch.id as IntId,
             JointNumber(1),
             locationTrackService = locationTrackService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(locationTrack1.id as IntId),
-            switchIds = listOf(),
-            startMoment = baseStateMoment,
-            endMoment = updatedStateMoment,
         )
 
-        assertTrue(changes.trackNumberChanges.isEmpty())
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack1.id as IntId,
                 changedKmNumbers = setOf(KmNumber(0)),
                 isStartChanged = false,
@@ -209,8 +165,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
 
-        assertEquals(1, changes.switchChanges.size)
-        changes.switchChanges.forEach { switchChange ->
+        assertEquals(1, changes.indirectChanges.switchChanges.size)
+        changes.indirectChanges.switchChanges.forEach { switchChange ->
             assertEquals(switch.id, switchChange.switchId)
             assertEquals(1, switchChange.changedJoints.size)
             switchChange.changedJoints.forEach { joint ->
@@ -257,32 +213,30 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val switch = testData.switches[0]
 
         // Manually remove topology switch as it is automatically added when creating test data
-        val baseStateMoment = removeTopologySwitchesFromLocationTrackAndUpdate(
+        val (updatedLocationTrack, updatedAlignment) = removeTopologySwitchesFromLocationTrackAndUpdate(
             locationTrack1,
             alignment1,
             locationTrackService
-        )
+        ).let { (id, version) ->
+            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            locationTrackService.getWithAlignment(publishedVersion)
+        }
 
         // Set topology switch info
-        val updatedStateMoment = addTopologyStartSwitchIntoLocationTrackAndUpdate(
-            locationTrack1,
-            alignment1,
+        addTopologyStartSwitchIntoLocationTrackAndUpdate(
+            updatedLocationTrack,
+            updatedAlignment,
             switch.id as IntId,
             JointNumber(1),
             locationTrackService = locationTrackService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(locationTrack1.id as IntId),
-            switchIds = listOf(),
-            startMoment = baseStateMoment,
-            endMoment = updatedStateMoment,
         )
 
-        assertTrue(changes.trackNumberChanges.isEmpty())
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack1.id as IntId,
                 changedKmNumbers = setOf(KmNumber(0)),
                 isStartChanged = true,
@@ -290,8 +244,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
 
-        assertEquals(1, changes.switchChanges.size)
-        changes.switchChanges.forEach { switchChange ->
+        assertEquals(1, changes.indirectChanges.switchChanges.size)
+        changes.indirectChanges.switchChanges.forEach { switchChange ->
             assertEquals(switch.id, switchChange.switchId)
             assertEquals(1, switchChange.changedJoints.size)
             switchChange.changedJoints.forEach { joint ->
@@ -337,45 +291,40 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val switch = testData.switches[0]
 
         // Set topology switch info
-        addTopologyStartSwitchIntoLocationTrackAndUpdate(
+        val (updatedLocationTrack, updatedAlignment) = addTopologyStartSwitchIntoLocationTrackAndUpdate(
             locationTrack1,
             alignment1,
             switch.id as IntId,
             JointNumber(5), // Use non-presentation joint number
             locationTrackService = locationTrackService
-        )
-        val lastUpdateTime = addTopologyEndSwitchIntoLocationTrackAndUpdate(
-            locationTrack1,
-            alignment1,
+        ).let { locationTrackService.getWithAlignment(it.rowVersion) }
+
+        addTopologyEndSwitchIntoLocationTrackAndUpdate(
+            updatedLocationTrack,
+            updatedAlignment,
             switch.id as IntId,
             JointNumber(3), // Use non-presentation joint number
             locationTrackService = locationTrackService
         )
 
-
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(locationTrack1.id as IntId),
-            switchIds = listOf(),
-            startMoment = testData.changeTime,
-            endMoment = lastUpdateTime,
         )
 
-        assertTrue(changes.trackNumberChanges.isEmpty())
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack1.id as IntId,
                 changedKmNumbers = setOf(),
                 isStartChanged = false,
                 isEndChanged = false
             )
         )
-        assertTrue(changes.switchChanges.isEmpty())
+        assertTrue(changes.indirectChanges.switchChanges.isEmpty())
     }
 
 
     @Test
-    fun removingTopologyEndSwitchGeneratesSwitchChanges() {
+    fun removingTopologyEndSwitchGeneratesIndirectlySwitchChanges() {
         val testData = insertTestData(
             kmPostData = listOf(
                 KmNumber(0) to Point(0.0, 0.0),
@@ -400,34 +349,29 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val switch = testData.switches[0]
 
         // Add a topology switch to generate base state
-        val baseStateMoment = addTopologyEndSwitchIntoLocationTrackAndUpdate(
+        val (updatedLocationTrack, updatedAlignment) = addTopologyEndSwitchIntoLocationTrackAndUpdate(
             locationTrack1,
             alignment1,
             switch.id as IntId,
             JointNumber(1),
             locationTrackService = locationTrackService
-        )
+        ).let { locationTrackService.getWithAlignment(it.rowVersion) }
 
         // Then remove the topology switch info
-        val updatedStateMoment = removeTopologySwitchesFromLocationTrackAndUpdate(
-            locationTrack1,
-            alignment1,
+        removeTopologySwitchesFromLocationTrackAndUpdate(
+            updatedLocationTrack,
+            updatedAlignment,
             locationTrackService = locationTrackService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(
                 locationTrack1.id as IntId
             ),
-            switchIds = listOf(),
-            startMoment = baseStateMoment,
-            endMoment = updatedStateMoment,
         )
 
-        assertTrue(changes.trackNumberChanges.isEmpty())
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack1.id as IntId,
                 changedKmNumbers = setOf(),
                 isStartChanged = false,
@@ -435,8 +379,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
 
-        assertEquals(1, changes.switchChanges.size)
-        changes.switchChanges.forEach { switchChange ->
+        assertEquals(1, changes.indirectChanges.switchChanges.size)
+        changes.indirectChanges.switchChanges.forEach { switchChange ->
             assertEquals(switch.id, switchChange.switchId)
             assertEquals(1, switchChange.changedJoints.size)
             switchChange.changedJoints.forEach { joint ->
@@ -456,7 +400,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
 
     @Test
-    fun allChangedLocationTracksExistInSwitchChange() {
+    fun allChangedLocationTracksExistInIndirectSwitchChange() {
         val testData = insertTestData()
         val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
         val (locationTrack4, alignment4) = testData.locationTracksAndAlignments[3]
@@ -470,24 +414,19 @@ class CalculatedChangesServiceIT @Autowired constructor(
             { point, _ -> point + 2.0 },
             locationTrackService = locationTrackService
         )
-        val updateMoment = moveLocationTrackGeometryPointsAndUpdate(
+        moveLocationTrackGeometryPointsAndUpdate(
             locationTrack4,
             alignment4,
             { point, _ -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(locationTrack3.id as IntId, locationTrack4.id as IntId),
-            switchIds = listOf(),
-            startMoment = testData.changeTime,
-            endMoment = updateMoment,
         )
 
-        assertTrue(changes.trackNumberChanges.isEmpty())
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack3.id as IntId<LocationTrack>,
                 changedKmNumbers = setOf(
                     KmNumber(6),
@@ -499,7 +438,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack4.id as IntId<LocationTrack>,
                 changedKmNumbers = setOf(
                     KmNumber(7),
@@ -509,80 +448,72 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
         assertContainsSwitchJoint13Change(
-            changes.switchChanges,
+            changes.indirectChanges.switchChanges,
             testData.switches.first().id as IntId,
             locationTrack4.id as IntId
         )
 
         assertContainsSwitchJoint152Change(
-            changes.switchChanges,
+            changes.indirectChanges.switchChanges,
             testData.switches.first().id as IntId,
             locationTrack3.id as IntId
         )
     }
 
     @Test
-    fun shouldNotGenerateSwitchChangesIfGeometryChangeIsNotInAddressRange() {
+    fun shouldNotGenerateIndirectSwitchChangesIfGeometryChangeIsNotInAddressRange() {
         val testData = insertTestData()
         val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
 
         // Move first 200m only (kilometer 0006)
         // - addresses should change
         // - there should be NO calculated switch changes
-        val updateMoment = moveLocationTrackGeometryPointsAndUpdate(
+        moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
             { point, length -> if (length < 200) point + 2.0 else point },
             locationTrackService = locationTrackService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(locationTrack3.id as IntId),
-            switchIds = listOf(),
-            startMoment = testData.changeTime,
-            endMoment = updateMoment,
         )
 
-        assertTrue(changes.trackNumberChanges.isEmpty())
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.directChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack3.id as IntId<LocationTrack>,
                 changedKmNumbers = setOf(KmNumber(6)),
                 isStartChanged = true,
                 isEndChanged = false
             )
         )
-        assertTrue(changes.switchChanges.isEmpty())
+        assertTrue(changes.indirectChanges.switchChanges.isEmpty())
     }
 
 
     @Test
-    @Disabled //Fixing this later
-    fun referenceLineChangeGeneratesLocationTrackChanges() {
+    fun referenceLineChangeGeneratesIndirectLocationTrackChanges() {
         val testData = insertTestData()
         val (locationTrack1, _) = testData.locationTracksAndAlignments[0]
         val (referenceLine, referenceLineAlignment) = testData.referenceLineAndAlignment
 
-        // Move first 900m only (kilometer 5)
+        // Move first kilometer only (kilometer 5)
         // - addresses should change
-        val updateMoment = moveReferenceLineGeometryPointsAndUpdate(
+        moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
-            { point, length -> if (length < 900) point + 2.0 else point },
+            { point, length -> if (length < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(referenceLine.trackNumberId),
-            locationTrackIds = listOf(),
-            switchIds = listOf(),
-            startMoment = testData.changeTime,
-            endMoment = updateMoment,
+        val changes = getCalculatedChanges(
+            referenceLineIds = listOf(referenceLine.id as IntId),
         )
 
+        assertContains(changes.directChanges.referenceLineChanges, referenceLine.id)
+
         assertContains(
-            changes.trackNumberChanges, TrackNumberChange(
+            changes.indirectChanges.trackNumberChanges, TrackNumberChange(
                 trackNumberId = referenceLine.trackNumberId,
                 changedKmNumbers = setOf(KmNumber(5)),
                 isStartChanged = true,
@@ -590,19 +521,18 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.indirectChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack1.id as IntId<LocationTrack>,
                 changedKmNumbers = setOf(KmNumber(5)),
                 isStartChanged = true,
                 isEndChanged = false
             )
         )
-        assertTrue(changes.switchChanges.isEmpty())
     }
 
 
     @Test
-    fun referenceLineChangeGeneratesLocationTrackChangesThatGenerateSwitchChanges() {
+    fun referenceLineChangeGeneratesIndirectlyLocationTrackChangesThatGenerateIndirectlySwitchChanges() {
         val testData = insertTestData()
         val (locationTrack1, _) = testData.locationTracksAndAlignments[0]
         val (locationTrack3, _) = testData.locationTracksAndAlignments[2]
@@ -613,7 +543,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         // - ref line addresses should change
         // - addresses of location tracks 1, 3 and 4 should be changed
         // - switch geom is changed
-        val updateMoment = moveReferenceLineGeometryPointsAndUpdate(
+        moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
             { point, length ->
@@ -626,16 +556,14 @@ class CalculatedChangesServiceIT @Autowired constructor(
             referenceLineService = referenceLineService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(referenceLine.trackNumberId),
-            locationTrackIds = listOf(),
-            switchIds = listOf(),
-            startMoment = testData.changeTime,
-            endMoment = updateMoment,
+        val changes = getCalculatedChanges(
+            referenceLineIds = listOf(referenceLine.id as IntId),
         )
 
+        assertContains(changes.directChanges.referenceLineChanges, referenceLine.id)
+
         assertContains(
-            changes.trackNumberChanges, TrackNumberChange(
+            changes.indirectChanges.trackNumberChanges, TrackNumberChange(
                 trackNumberId = referenceLine.trackNumberId,
                 changedKmNumbers = setOf(
                     KmNumber(6),
@@ -646,7 +574,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.indirectChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack1.id as IntId,
                 changedKmNumbers = setOf(
                     KmNumber(6),
@@ -656,7 +584,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.indirectChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack3.id as IntId<LocationTrack>,
                 changedKmNumbers = setOf(
                     KmNumber(6),
@@ -667,7 +595,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             )
         )
         assertContains(
-            changes.locationTracksChanges, LocationTrackChange(
+            changes.indirectChanges.locationTrackChanges, LocationTrackChange(
                 locationTrackId = locationTrack4.id as IntId<LocationTrack>,
                 changedKmNumbers = setOf(
                     KmNumber(7),
@@ -678,20 +606,20 @@ class CalculatedChangesServiceIT @Autowired constructor(
         )
 
         assertContainsSwitchJoint13Change(
-            changes.switchChanges,
+            changes.indirectChanges.switchChanges,
             testData.switches.first().id as IntId,
             locationTrack4.id as IntId
         )
 
         assertContainsSwitchJoint152Change(
-            changes.switchChanges,
+            changes.indirectChanges.switchChanges,
             testData.switches.first().id as IntId,
             locationTrack3.id as IntId
         )
     }
 
     @Test
-    fun shouldCombineDirectSwitchChangesAndGeometryChanges() {
+    fun shouldCombineSwitchChangesAndGeometryChanges() {
         val testData = insertTestData()
         val switch = testData.switches.first()
         val (locationTrack3, alignment3) = testData.locationTracksAndAlignments[2]
@@ -702,60 +630,55 @@ class CalculatedChangesServiceIT @Autowired constructor(
             switchService,
         )
 
-        val updateMoment = moveLocationTrackGeometryPointsAndUpdate(
+        moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
             { point, _ -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
+        val changes = getCalculatedChanges(
             locationTrackIds = listOf(locationTrack3.id as IntId<LocationTrack>),
-            switchIds = listOf(),
-            startMoment = testData.changeTime,
-            endMoment = updateMoment,
         )
 
-        assertEquals(1, changes.switchChanges.size)
+        assertTrue(changes.directChanges.switchChanges.isEmpty())
+        assertEquals(1, changes.indirectChanges.switchChanges.size)
+
         assertContainsSwitchJoint152Change(
-            changes.switchChanges,
+            changes.indirectChanges.switchChanges,
             testData.switches.first().id as IntId,
             locationTrack3.id as IntId
         )
     }
 
     @Test
-    fun switchLinkingGeneratesSwitchChangesOnly() {
+    fun switchLinkingGeneratesDirectSwitchChangesOnly() {
         val testData = insertTestData()
         val switch = testData.switches.first()
 
-        val (_, updateMoment) = moveSwitchPoints(
+        moveSwitchPoints(
             switch,
             { point -> point + 0.5 },
             switchService,
         )
 
-        val changes = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = listOf(),
-            locationTrackIds = listOf(),
+        val changes = getCalculatedChanges(
             switchIds = listOf(switch.id as IntId),
-            startMoment = testData.changeTime,
-            endMoment = updateMoment,
         )
 
-        assertTrue(changes.switchChanges.all { it.switchId == switch.id && it.changedJoints.isEmpty() })
-        assertTrue(changes.trackNumberChanges.isEmpty())
-        assertTrue(changes.locationTracksChanges.isEmpty())
+        assertTrue(changes.directChanges.switchChanges.all { it.switchId == switch.id && it.changedJoints.isEmpty() })
+        assertTrue(changes.indirectChanges.switchChanges.isEmpty())
+        assertTrue(changes.indirectChanges.locationTrackChanges.isEmpty())
     }
 
 
     data class TestData(
+        val trackNumber: TrackLayoutTrackNumber,
         val locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
         val referenceLineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
         val kmPosts: List<TrackLayoutKmPost>,
         val switches: List<TrackLayoutSwitch>,
-        val changeTime: Instant
+        val changeTime: Instant,
     )
 
     data class SwitchData(
@@ -911,6 +834,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         }
 
         return TestData(
+            trackNumber = trackNumber,
             locationTracksAndAlignments = publishedLocationTracksAndAlignments,
             referenceLineAndAlignment = referenceLine to referenceLineGeometry,
             kmPosts = kmPosts,
@@ -1031,4 +955,21 @@ class CalculatedChangesServiceIT @Autowired constructor(
         }
     }
 
+    private fun getCalculatedChanges(
+        locationTrackIds: List<IntId<LocationTrack>> = emptyList(),
+        kmPostIds: List<IntId<TrackLayoutKmPost>> = emptyList(),
+        referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
+        switchIds: List<IntId<TrackLayoutSwitch>> = emptyList(),
+        trackNumberIds: List<IntId<TrackLayoutTrackNumber>> = emptyList(),
+    ): CalculatedChanges {
+        val publicationVersions = ValidationVersions(
+            locationTracks = locationTrackDao.fetchPublicationVersions(locationTrackIds),
+            kmPosts = layoutKmPostDao.fetchPublicationVersions(kmPostIds),
+            referenceLines = referenceLineDao.fetchPublicationVersions(referenceLineIds),
+            switches = switchDao.fetchPublicationVersions(switchIds),
+            trackNumbers = layoutTrackNumberDao.fetchPublicationVersions(trackNumberIds),
+        )
+
+        return calculatedChangesService.getCalculatedChanges(publicationVersions)
+    }
 }

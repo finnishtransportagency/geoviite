@@ -26,26 +26,41 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun nearbyKmPostsAreReturnedInOrder() {
         val trackNumberId = insertOfficialTrackNumber()
-        val kmPost1 = kmPostService.get(OFFICIAL, kmPostDao.insert(kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(1),
-            location = Point(1.0, 1.0),
-        )).id)
-        val kmPost2 = kmPostService.get(OFFICIAL, kmPostDao.insert(kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(2),
-            location = Point(2.0, 1.0),
-        )).id)
-        val kmPost3 = kmPostService.get(OFFICIAL, kmPostDao.insert(kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(3),
-            location = null,
-        )).id)
-        val kmPostOffTrack = kmPostService.get(OFFICIAL, kmPostDao.insert(kmPost(
-            trackNumberId = insertOfficialTrackNumber(),
-            km = KmNumber(4),
-            location = null,
-        )).id)
+        val kmPost1 = kmPostService.get(
+            OFFICIAL, kmPostDao.insert(
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber(1),
+                    location = Point(1.0, 1.0),
+                )
+            ).id
+        )
+        val kmPost2 = kmPostService.get(
+            OFFICIAL, kmPostDao.insert(
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber(2),
+                    location = Point(2.0, 1.0),
+                )
+            ).id
+        )
+        val kmPost3 = kmPostService.get(
+            OFFICIAL, kmPostDao.insert(
+                kmPost(
+                    trackNumberId = trackNumberId,
+                    km = KmNumber(3),
+                    location = null,
+                )
+            ).id
+        )
+
+        kmPostDao.insert(
+            kmPost(
+                trackNumberId = insertOfficialTrackNumber(),
+                km = KmNumber(4),
+                location = null,
+            )
+        )
 
         val actual = kmPostService.listNearbyOnTrackPaged(
             OFFICIAL, Point(0.0, 0.0), trackNumberId, 0, null
@@ -109,11 +124,11 @@ class LayoutKmPostServiceIT @Autowired constructor(
         val draftId = kmPostService.saveDraft(draft(kmPost)).id
         val draftFromDb = kmPostService.getDraft(draftId)
 
-        assertEquals(1, kmPostService.list(DRAFT, { k -> k == draftFromDb }).size)
+        assertEquals(1, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
 
         kmPostService.deleteUnpublishedDraft(draftId)
 
-        assertEquals(0, kmPostService.list(DRAFT, { k -> k == draftFromDb }).size)
+        assertEquals(0, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
     }
 
     @Test
