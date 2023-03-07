@@ -279,9 +279,10 @@ export type ElementItem = {
 };
 
 type CircularCurve = {
-    address: TrackMeter;
+    address: TrackMeter | undefined;
     height: number;
     angle: number;
+    station: number;
 };
 
 type LinearSection = {
@@ -289,24 +290,22 @@ type LinearSection = {
     linearSection: number;
 };
 
-type Station = {
-    start: number;
-    pvi: number;
-    end: number;
+type PVIPoint = {
+    address: TrackMeter | undefined;
+    height: number;
+    station: number;
 };
 
 export type VerticalGeometry = {
     id: string;
     planId: GeometryPlanId;
-    planFileName: string;
-    locationTrack: string;
-    curveStart: CircularCurve;
-    pviAddress: TrackMeter;
-    pviHeight: number;
-    curveEnd: CircularCurve;
+    fileName: string;
+    alignmentName: string;
+    start: CircularCurve;
+    point: PVIPoint;
+    end: CircularCurve;
     radius: number;
     tangent: number;
-    linearSectionBackwards: LinearSection;
-    linearSectionForwards: LinearSection;
-    station: Station;
+    linearSectionBackward: LinearSection | undefined;
+    linearSectionForward: LinearSection | undefined;
 };

@@ -31,4 +31,18 @@ data class GeometryAlignment(
 ) {
     @get:JsonIgnore
     val bounds by lazy { boundingBoxAroundPointsOrNull(elements.flatMap { e -> e.bounds }) }
+
+    private fun foldElementLengths(elements: List<GeometryElement>) =
+        elements.fold(mutableListOf<Pair<Double, GeometryElement>>()) { acc, element ->
+            if (acc.isEmpty()) acc.add(0.0 to element)
+            else acc.add(acc.last().first + acc.last().second.calculatedLength to element)
+            acc
+        }
+
+    fun getCoordinateAt(distance: Double) =
+        foldElementLengths(elements).findLast { element -> element.first < distance }
+            .let { match -> match?.second?.getCoordinateAt(distance - match.first) }
+
+    fun stationValueNormalized(station: Double) =
+        station - (elements.firstOrNull()?.staStart?.toDouble() ?: 0.0)
 }

@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -220,6 +221,67 @@ class GeometryService @Autowired constructor(
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
         return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
+    }
+
+    fun getGeometryProfile(
+        planId: IntId<GeometryPlan>
+    ): List<ProfileListing> {
+        val planHeader = getPlanHeader(planId)
+        val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
+        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
+
+        return alignments.filter { it.profile != null }.map { alignment ->
+            alignment.profile?.segments?.mapIndexed { index, segment ->
+                if (segment is CurvedProfileSegment) {
+                    val prev = alignment.profile.segments.getOrNull(index - 1)
+                    val centerOfPrev = prev?.let { centerPointOfSegment(prev) }
+                    val next = alignment.profile.segments.getOrNull(index + 1)
+                    val centerOfNext = next?.let { centerPointOfSegment(next) }
+
+                    val pointCoord = alignment.getCoordinateAt(alignment.stationValueNormalized(segment.center.x))
+                    val startCoord = alignment.getCoordinateAt(alignment.stationValueNormalized(segment.start.x))
+                    val endCoord = alignment.getCoordinateAt(alignment.stationValueNormalized(segment.end.x))
+                    val centerPvi = Point(alignment.stationValueNormalized(segment.center.x), segment.center.y - segment.radius)
+                    ProfileListing(
+                        id = StringId("${alignment.id}_${segment.start}"),
+                        planId = planHeader.id,
+                        planSource = planHeader.source,
+                        fileName = planHeader.fileName,
+                        alignmentId = alignment.id,
+                        alignmentName = alignment.name,
+                        null,
+                        start = VIStartOrEnd(
+                            address = if (startCoord != null) geocodingContext?.getAddress(startCoord)?.first else null,
+                            height = segment.start.y,
+                            angle = segment.startAngle,
+                            station = segment.start.x
+                        ),
+                        end = VIStartOrEnd(
+                            address = if (endCoord != null) geocodingContext?.getAddress(endCoord)?.first else null,
+                            height = segment.end.y,
+                            angle = segment.endAngle,
+                            station = segment.end.x
+                        ),
+                        point = VIListingPoint(
+                            address = if (pointCoord != null) geocodingContext?.getAddress(pointCoord)?.first else null,
+                            height = centerPvi.y,
+                            station = centerPvi.x
+                        ),
+                        radius = segment.radius,
+                        tangent = segment.center.x - segment.start.x,
+                        linearSectionBackward = if (prev != null && centerOfPrev != null) LinearSection(
+                            length = centerPvi.x - centerOfPrev.x,
+                            linearSection = segment.start.x - prev.end.x
+                        ) else null,
+                        linearSectionForward = if (next != null && centerOfNext != null) LinearSection(
+                            length = centerPvi.x - centerOfNext.x,
+                            linearSection = next.start.x - segment.end.x
+                        ) else null
+                    )
+                }
+                else null
+            }?.filterNotNull() ?: emptyList()
+        }.flatten()
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
