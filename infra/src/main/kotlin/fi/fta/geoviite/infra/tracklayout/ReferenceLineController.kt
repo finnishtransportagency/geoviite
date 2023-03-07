@@ -96,16 +96,4 @@ class ReferenceLineController(
         logger.apiCall("getReferenceLineChangeInfo", "id" to id)
         return referenceLineService.getChangeTimes(id)
     }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/{id}/plan-geometry")
-    fun getTrackSectionsByPlan(
-        @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") id: IntId<ReferenceLine>,
-        @RequestParam("bbox") boundingBox: BoundingBox? = null,
-    ): List<AlignmentPlanSection> {
-        logger.apiCall("getTrackSectionsByPlan",
-            "publishType" to publishType, "id" to id, "bbox" to boundingBox)
-        return referenceLineService.getSectionsByPlan(id, publishType, boundingBox)
-    }
 }

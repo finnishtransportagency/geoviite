@@ -186,9 +186,9 @@ class LayoutAlignmentDaoIT @Autowired constructor(
             segment(points = points, source = GeometrySource.PLAN),
             segment(points = points2, source = GeometrySource.GENERATED)
         )
-        val alignmentId = alignmentDao.insert(alignment)
+        val version = alignmentDao.insert(alignment)
 
-        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(alignmentId.id, null)
+        val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(version, null, null)
         assertEquals(segmentGeometriesAndPlanMetadatas.size, 2)
         assertEquals(segmentGeometriesAndPlanMetadatas.first().startPoint, points.first())
         assertEquals(segmentGeometriesAndPlanMetadatas.first().endPoint, points.last())
