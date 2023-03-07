@@ -48,7 +48,7 @@ data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val operation: Operation,
-    @JsonIgnore val changedKmNumbers: Set<KmNumber>,
+    val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedReferenceLine(

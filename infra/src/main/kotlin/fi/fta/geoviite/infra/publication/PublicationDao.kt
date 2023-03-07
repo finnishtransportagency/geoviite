@@ -342,15 +342,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveTrackNumberChangesInPublish(
         publicationId: IntId<Publication>,
-        directTrackNumberChanges: List<TrackNumberChange>,
-        indirectTrackNumberChanges: List<TrackNumberChange>,
+        directChanges: List<TrackNumberChange>,
+        indirectChanges: List<TrackNumberChange>,
     ) {
-        val (indirectInDirectChanges, indirectChanges) = indirectTrackNumberChanges.partition { indirectChange ->
-            directTrackNumberChanges.any { directChange -> directChange.trackNumberId == indirectChange.trackNumberId }
-        }
-
-        val directChanges = mergeTrackNumberChanges(indirectInDirectChanges, directTrackNumberChanges)
-
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.track_number (
@@ -437,15 +431,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveLocationTrackChangesInPublish(
         publicationId: IntId<Publication>,
-        directLocationTrackChanges: List<LocationTrackChange>,
-        indirectLocationTrackChanges: List<LocationTrackChange>,
+        directChanges: List<LocationTrackChange>,
+        indirectChanges: List<LocationTrackChange>,
     ) {
-        val (indirectInDirectChanges, indirectChanges) = indirectLocationTrackChanges.partition { indirectChange ->
-            directLocationTrackChanges.any { directChange -> directChange.locationTrackId == indirectChange.locationTrackId }
-        }
-
-        val directChanges = mergeLocationTrackChanges(indirectInDirectChanges, directLocationTrackChanges)
-
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.location_track (
@@ -492,23 +480,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveSwitchChangesInPublish(
         publicationId: IntId<Publication>,
-        directSwitchChanges: List<SwitchChange>,
-        indirectSwitchChanges: List<SwitchChange>,
+        directChanges: List<SwitchChange>,
+        indirectChanges: List<SwitchChange>,
     ) {
-        val (indirectInDirectChanges, indirectChanges) = indirectSwitchChanges.partition { indirectChange ->
-            directSwitchChanges.any { directChange -> directChange.switchId == indirectChange.switchId }
-        }
-
-        val directChanges = (indirectInDirectChanges + directSwitchChanges)
-            .groupBy { it.switchId }
-            .map { (switchId, changes) ->
-                val mergedJoints = changes.flatMap(SwitchChange::changedJoints).distinct()
-                SwitchChange(
-                    switchId = switchId,
-                    changedJoints = mergedJoints
-                )
-            }
-
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.switch (publication_id, switch_id, switch_version, direct_change) 

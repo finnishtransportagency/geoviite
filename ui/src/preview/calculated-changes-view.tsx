@@ -53,18 +53,18 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
         setIsFetching(true);
 
         const trackNumberPromises = Promise.all(
-            calculatedChanges.trackNumberChanges.map((trackNumberChange) => {
+            calculatedChanges.indirectChanges.trackNumberChanges.map((trackNumberChange) => {
                 return getTrackNumberById(trackNumberChange.trackNumberId, 'DRAFT');
             }),
         );
 
         const locationTrackPromises = getLocationTracks(
-            calculatedChanges.locationTracksChanges.map((t) => t.locationTrackId),
+            calculatedChanges.indirectChanges.locationTrackChanges.map((t) => t.locationTrackId),
             'DRAFT',
         );
 
         const layoutSwitchPromises = getSwitches(
-            calculatedChanges.switchChanges.map((t) => t.switchId),
+            calculatedChanges.indirectChanges.switchChanges.map((t) => t.switchId),
             'DRAFT',
         );
 
@@ -76,7 +76,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                     );
                     const switches = changedLayoutSwitches.filter((layoutSwitch) =>
                         locationTracks.some((locationTrack) =>
-                            calculatedChanges.switchChanges
+                            calculatedChanges.indirectChanges.switchChanges
                                 .find((change) => change.switchId == layoutSwitch.id)
                                 ?.changedJoints.some((j) => j.locationTrackId == locationTrack.id),
                         ),
@@ -131,7 +131,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                                                 <li
                                                     className={
                                                         styles[
-                                                        'calculated-changes-view__location_tracks'
+                                                            'calculated-changes-view__location_tracks'
                                                         ]
                                                     }>
                                                     {t('preview-view.location-tracks')}
