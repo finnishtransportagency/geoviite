@@ -3,9 +3,6 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.integration.CalculatedChanges
-import fi.fta.geoviite.infra.integration.DirectChanges
-import fi.fta.geoviite.infra.integration.IndirectChanges
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublishRequestIds
@@ -387,12 +384,10 @@ class RatkoServiceIT @Autowired constructor(
         )
         publicationService.updateExternalId(ids)
         val versions = publicationService.getValidationVersions(ids)
+        val calculatedChanges = publicationService.getCalculatedChanges(versions)
         publicationService.publishChanges(
             versions,
-            CalculatedChanges(
-                directChanges = DirectChanges(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()),
-                indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList())
-            ),
+            calculatedChanges,
             ""
         )
         ratkoService.pushChangesToRatko(getCurrentUserName())
