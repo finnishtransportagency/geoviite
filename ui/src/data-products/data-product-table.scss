@@ -1,4 +1,6 @@
-.element-table {
+@import '../vayla-design-lib/colors';
+
+.data-product-table {
     &__table-container {
         overflow: auto;
         padding-left: 32px;
@@ -15,6 +17,16 @@
 
         th {
             min-width: 100px;
+        }
+
+        &--centered {
+            text-align: center;
+        }
+
+        &--separator {
+            border-left-width: 1px;
+            border-left-style: solid;
+            border-left-color: $color-white-darker;
         }
     }
 

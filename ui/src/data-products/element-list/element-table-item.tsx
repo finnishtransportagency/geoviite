@@ -5,7 +5,7 @@ import { CoordinateSystem, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import styles from './element-table.scss';
+import styles from '../data-product-table.scss';
 
 export type ElementTableItemProps = {
     id: string;
@@ -69,39 +69,39 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>
                     <CoordinateSystemView coordinateSystem={coordinateSystem} />
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(locationStartE, Precision.TM35FIN)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(locationStartN, Precision.TM35FIN)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(locationEndE, Precision.TM35FIN)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(locationEndN, Precision.TM35FIN)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(length, Precision.measurementMeterDistance)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {curveRadiusStart != undefined &&
                         roundToPrecision(curveRadiusStart, Precision.radiusMeters)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {curveRadiusEnd != undefined &&
                         roundToPrecision(curveRadiusEnd, Precision.radiusMeters)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {cantStart != null && roundToPrecision(cantStart, Precision.cantMillimeters)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {cantEnd != null && roundToPrecision(cantEnd, Precision.cantMillimeters)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(angleStart, Precision.angle6Decimals)}
                 </td>
-                <td className={styles['element-table__column--number']}>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(angleEnd, Precision.angle6Decimals)}
                 </td>
                 <td>

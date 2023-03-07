@@ -7,6 +7,8 @@ import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry
 import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { dataProductsActions } from 'data-products/data-products-store';
+import { VerticalGeometryTable } from 'data-products/vertical-geometry/vertical-geometry-table';
+import { VerticalGeometry } from 'geometry/geometry-model';
 
 const VerticalGeometryView = () => {
     const rootDispatch = useDataProductsAppDispatch();
@@ -21,6 +23,52 @@ const VerticalGeometryView = () => {
             locationTrackSelected ? 'PLAN' : 'LOCATION_TRACK',
         );
     };
+
+    // TODO This is for illustrative purposes only. Remove this when backend APIs have been implemented
+    const testData: VerticalGeometry[] = [
+        {
+            id: '2',
+            planId: 'INT_1',
+            planFileName: 'asd.xml',
+            locationTrack: 'asd',
+            curveStart: {
+                address: {
+                    kmNumber: '0001',
+                    meters: 0.0,
+                },
+                height: 64,
+                angle: 0.03,
+            },
+            curveEnd: {
+                address: {
+                    kmNumber: '0001',
+                    meters: 0.0,
+                },
+                height: 64,
+                angle: 0.03,
+            },
+            pviAddress: {
+                kmNumber: '0001',
+                meters: 0.0,
+            },
+            pviHeight: 6.3,
+            radius: 2500,
+            tangent: 3,
+            linearSectionBackwards: {
+                length: 100,
+                linearSection: 99,
+            },
+            linearSectionForwards: {
+                length: 100,
+                linearSection: 99,
+            },
+            station: {
+                start: 100,
+                end: 100,
+                pvi: 100,
+            },
+        },
+    ];
 
     return (
         <div className={styles['data-product-view']}>
@@ -57,6 +105,7 @@ const VerticalGeometryView = () => {
                     />
                 )}
             </div>
+            <VerticalGeometryTable verticalGeometry={testData} />
         </div>
     );
 };
