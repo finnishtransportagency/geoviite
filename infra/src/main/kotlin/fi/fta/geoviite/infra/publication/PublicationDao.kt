@@ -2,12 +2,15 @@ package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_LOCATION_TRACKS
+import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_SWITCHES
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -577,6 +580,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
+    @Cacheable(CACHE_PUBLISHED_LOCATION_TRACKS, sync = true)
     fun fetchPublishedLocationTracks(
         publicationId: IntId<Publication>,
     ): Pair<List<PublishedLocationTrack>, List<PublishedLocationTrack>> {
@@ -676,6 +680,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(CACHE_PUBLISHED_SWITCHES, sync = true)
     fun fetchPublishedSwitches(publicationId: IntId<Publication>): Pair<List<PublishedSwitch>, List<PublishedSwitch>> {
         val sql = """
             select
