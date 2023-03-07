@@ -4,17 +4,16 @@ import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
-import fi.fta.geoviite.infra.dataImport.RATKO_SRID
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.ratko.model.RATKO_SRID
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.lengthPoints
 import fi.fta.geoviite.infra.tracklayout.toPointList
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import java.lang.IllegalArgumentException
 import kotlin.test.assertEquals
 
 val DummyTriangulationNetwork = RTree.create<KKJtoETRSTriangle, Rectangle>()
