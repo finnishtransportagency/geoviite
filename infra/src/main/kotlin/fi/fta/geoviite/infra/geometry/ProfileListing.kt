@@ -20,8 +20,8 @@ data class VIListingPoint(
 )
 
 data class LinearSection(
-    val length: Double,
-    val linearSection: Double,
+    val length: Double?,
+    val linearSection: Double?,
 )
 
 data class ProfileListing(
@@ -39,6 +39,6 @@ data class ProfileListing(
     val point: VIListingPoint,
     val radius: Double,
     val tangent: Double,
-    val linearSectionForward: LinearSection?,
-    val linearSectionBackward: LinearSection?,
+    val linearSectionForward: LinearSection,
+    val linearSectionBackward: LinearSection,
 )

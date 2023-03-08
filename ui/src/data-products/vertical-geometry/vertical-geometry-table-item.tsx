@@ -52,28 +52,28 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
                 {roundToPrecision(verticalGeometry.tangent, Precision.profileTangent)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionBackward &&
+                {verticalGeometry.linearSectionBackward.length &&
                     roundToPrecision(
                         verticalGeometry.linearSectionBackward.length,
                         Precision.measurementMeterDistance,
                     )}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionBackward &&
+                {verticalGeometry.linearSectionBackward.linearSection &&
                     roundToPrecision(
                         verticalGeometry.linearSectionBackward.linearSection,
                         Precision.measurementMeterDistance,
                     )}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionForward &&
+                {verticalGeometry.linearSectionForward.length &&
                     roundToPrecision(
                         verticalGeometry.linearSectionForward.length,
                         Precision.measurementMeterDistance,
                     )}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionForward &&
+                {verticalGeometry.linearSectionForward.linearSection &&
                     roundToPrecision(
                         verticalGeometry.linearSectionForward.linearSection,
                         Precision.measurementMeterDistance,

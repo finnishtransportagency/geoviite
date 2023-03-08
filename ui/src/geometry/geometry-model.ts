@@ -286,8 +286,8 @@ type CircularCurve = {
 };
 
 type LinearSection = {
-    length: number;
-    linearSection: number;
+    length: number | undefined;
+    linearSection: number | undefined;
 };
 
 type PVIPoint = {
@@ -306,6 +306,6 @@ export type VerticalGeometry = {
     end: CircularCurve;
     radius: number;
     tangent: number;
-    linearSectionBackward: LinearSection | undefined;
-    linearSectionForward: LinearSection | undefined;
+    linearSectionBackward: LinearSection;
+    linearSectionForward: LinearSection;
 };
