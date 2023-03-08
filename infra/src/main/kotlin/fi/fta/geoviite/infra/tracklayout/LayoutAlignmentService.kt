@@ -60,23 +60,15 @@ class LayoutAlignmentService(
             if (startAddress != null && endAddress != null) AlignmentPlanSection(
                 planId = section.planId,
                 planName = section.fileName,
+                alignmentName = section.alignmentName,
                 startAddress = startAddress,
                 endAddress = endAddress,
+                isLinked = section.isLinked,
                 id = section.id,
             ) else null
         }
     }
 }
-
-fun foldSegmentsByPlan(segments: List<SegmentGeometryAndMetadata>) =
-    segments.fold(mutableListOf<SegmentGeometryAndMetadata>()) { acc, element ->
-        val last = acc.lastOrNull()
-        if (last == null || last.planId != element.planId || last.fileName != element.fileName || last.source != element.source) acc.add(
-            element
-        )
-        else acc.set(acc.lastIndex, last.copy(endPoint = element.endPoint))
-        acc
-    }
 
 private fun asNew(alignment: LayoutAlignment) =
     if (alignment.dataType == TEMP) alignment

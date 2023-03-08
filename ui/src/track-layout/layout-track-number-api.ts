@@ -23,7 +23,7 @@ import {
 import { LocationTrackSaveError } from 'linking/linking-model';
 import { Result } from 'neverthrow';
 import { ValidatedAsset } from 'publication/publication-model';
-import { AlignmentSectionByPlan } from 'track-layout/layout-location-track-api';
+import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { bboxString } from 'common/common-api';
 import { BoundingBox } from 'model/geometry';
 
@@ -99,7 +99,7 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
     bbox: BoundingBox | undefined = undefined,
 ) => {
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
-    return getIgnoreError<AlignmentSectionByPlan[]>(
+    return getIgnoreError<AlignmentPlanSection[]>(
         `${layoutUri('track-numbers', publishType, id)}/plan-geometry/${params}`,
     );
 };

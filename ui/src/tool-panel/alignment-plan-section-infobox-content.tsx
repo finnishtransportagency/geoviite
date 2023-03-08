@@ -3,7 +3,7 @@ import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
 import { Link } from 'vayla-design-lib/link/link';
-import { AlignmentSectionByPlan } from 'track-layout/layout-location-track-api';
+import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
@@ -12,7 +12,7 @@ import { useTrackLayoutAppDispatch } from 'store/hooks';
 import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 
 type AlignmentPlanSectionInfoboxContentProps = {
-    sections: AlignmentSectionByPlan[];
+    sections: AlignmentPlanSection[];
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
@@ -43,19 +43,20 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                     <Link
                                         onClick={() => {
                                             if (section.planId) {
-                                                delegates.setToolPanelTab(
-                                                    toolPanelPlanTabId(section.planId),
-                                                );
                                                 delegates.onSelect({
                                                     geometryPlans: [section.planId],
                                                 });
+                                                delegates.setToolPanelTab(
+                                                    toolPanelPlanTabId(section.planId),
+                                                );
                                             }
                                         }}
                                         title={section.planName}>
+                                        {!section.isLinked && errorFragment()}
                                         {section.planName}
                                     </Link>
                                 ) : (
-                                    <span>
+                                    <span title={section.planName}>
                                         {errorFragment()} {section.planName}
                                     </span>
                                 )
