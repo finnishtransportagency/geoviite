@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -19,6 +20,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val geometryDao: GeometryDao,
 ): ITTestBase() {
 
     @Test
@@ -162,40 +164,60 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     @Test
     fun `alignment segment plan metadata search works`() {
-        val points = arrayOf(
-            Point(
-                x = 10.0,
-                y = 20.0,
-            ),
-            Point(
-                x = 10.0,
-                y = 21.0,
-            ),
+        val points = arrayOf(Point(10.0, 10.0), Point(10.0, 11.0))
+        val points2 = arrayOf(Point(10.0, 11.0), Point(10.0, 12.0))
+        val points3 = arrayOf(Point(10.0, 12.0), Point(10.0, 13.0))
+        val points4 = arrayOf(Point(10.0, 13.0), Point(10.0, 14.0))
+        val points5 = arrayOf(Point(10.0, 14.0), Point(10.0, 15.0))
+
+        val trackNumberId = getUnusedTrackNumberId()
+        val planVersion = geometryDao.insertPlan(
+            plan = plan(
+                trackNumberId = trackNumberId,
+                alignments = listOf(
+                    geometryAlignment(
+                        name = "test-alignment-name",
+                        elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
+                    )
+                ) ),
+            file = infraModelFile("testfile.xml"),
+            boundingBoxInLayoutCoordinates = null,
         )
-        val points2 = arrayOf(
-            Point(
-                x = 10.0,
-                y = 21.0,
-            ),
-            Point(
-                x = 11.0,
-                y = 21.0,
-            ),
-        )
+        val plan = geometryDao.fetchPlan(planVersion)
+        val geometryAlignment = plan.alignments.first()
+        val geometryElement = geometryAlignment.elements.first()
         val alignment = alignment(
-            segment(points = points, source = GeometrySource.PLAN),
-            segment(points = points2, source = GeometrySource.GENERATED)
+            segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement.id),
+            segment(points = points2, source = GeometrySource.PLAN, sourceId = geometryElement.id),
+            segment(points = points3, source = GeometrySource.GENERATED),
+            segment(points = points4, source = GeometrySource.GENERATED),
+            segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement.id),
         )
         val version = alignmentDao.insert(alignment)
 
         val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(version, null, null)
-        assertEquals(2, segmentGeometriesAndPlanMetadatas.size)
-        assertEquals(points.first(), segmentGeometriesAndPlanMetadatas.first().startPoint)
-        assertEquals(points.last(), segmentGeometriesAndPlanMetadatas.first().endPoint)
-        assertEquals(true, segmentGeometriesAndPlanMetadatas.first().isLinked)
-        assertEquals(points2.first(), segmentGeometriesAndPlanMetadatas.last().startPoint)
-        assertEquals(points2.last(), segmentGeometriesAndPlanMetadatas.last().endPoint)
-        assertEquals(false, segmentGeometriesAndPlanMetadatas.last().isLinked)
+        assertEquals(3, segmentGeometriesAndPlanMetadatas.size)
+
+        assertEquals(points.first(), segmentGeometriesAndPlanMetadatas[0].startPoint)
+        assertEquals(points2.last(), segmentGeometriesAndPlanMetadatas[0].endPoint)
+        assertEquals(true, segmentGeometriesAndPlanMetadatas[0].isLinked)
+        assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[0].planId)
+        assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[0].fileName)
+        assertEquals(geometryAlignment.name, segmentGeometriesAndPlanMetadatas[0].alignmentName)
+
+        assertEquals(points3.first(), segmentGeometriesAndPlanMetadatas[1].startPoint)
+        assertEquals(points4.last(), segmentGeometriesAndPlanMetadatas[1].endPoint)
+        assertEquals(false, segmentGeometriesAndPlanMetadatas[1].isLinked)
+        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].planId)
+        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].fileName)
+        assertEquals(null, segmentGeometriesAndPlanMetadatas[1].alignmentName)
+
+        assertEquals(points5.first(), segmentGeometriesAndPlanMetadatas[2].startPoint)
+        assertEquals(points5.last(), segmentGeometriesAndPlanMetadatas[2].endPoint)
+        assertEquals(true, segmentGeometriesAndPlanMetadatas[2].isLinked)
+        assertEquals(planVersion.id, segmentGeometriesAndPlanMetadatas[2].planId)
+        assertEquals(plan.fileName, segmentGeometriesAndPlanMetadatas[2].fileName)
+        assertEquals(geometryAlignment.name, segmentGeometriesAndPlanMetadatas[2].alignmentName)
     }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
