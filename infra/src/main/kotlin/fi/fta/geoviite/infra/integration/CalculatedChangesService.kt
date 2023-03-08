@@ -143,18 +143,19 @@ class CalculatedChangesService(
     fun getCalculatedChanges(versions: ValidationVersions): CalculatedChanges {
         val changeContext = createChangeContext(versions)
 
-        val (trackNumberChanges, trackNumberLocationTrackChanges) = calculateTrackNumberChanges(
+        val (trackNumberChanges, changedLocationTrackIdsByTrackNumbers) = calculateTrackNumberChanges(
             versions.trackNumbers.map { it.officialId },
             changeContext,
         )
 
-        val (kmPostTrackNumberChanges, kmPostLocationTrackChanges) = calculateTrackNumberChanges(
-            versions.kmPosts.mapNotNull { v -> kmPostDao.fetch(v.validatedAssetVersion).trackNumberId },
-            changeContext,
-        )
+        val kPRLTrackNumberIds = (versions.kmPosts.mapNotNull { v ->
+            kmPostDao.fetch(v.validatedAssetVersion).trackNumberId
+        } + versions.referenceLines.map { v ->
+            referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId
+        }).distinct()
 
-        val (referenceLineTrackNumberChanges, referenceLineLocationTrackChanges) = calculateTrackNumberChanges(
-            versions.referenceLines.map { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId },
+        val (kPRLTrackNumberChanges, changedLocationTrackIdsByKPRL) = calculateTrackNumberChanges(
+            kPRLTrackNumberIds,
             changeContext,
         )
 
@@ -164,7 +165,7 @@ class CalculatedChangesService(
         )
 
         val locationTrackChangesByTrackNumbers = calculateLocationTrackChanges(
-            (trackNumberLocationTrackChanges + kmPostLocationTrackChanges + referenceLineLocationTrackChanges).distinct(),
+            (changedLocationTrackIdsByTrackNumbers + changedLocationTrackIdsByKPRL).distinct(),
             changeContext,
         )
 
@@ -175,21 +176,18 @@ class CalculatedChangesService(
             changeContext,
         )
 
-        val (indirectTrackNumberChangesInDirect, indirectTrackNumberChanges) = mergeTrackNumberChanges(
-            kmPostTrackNumberChanges,
-            referenceLineTrackNumberChanges,
-        ).partition { indirectChange ->
+        val (indirectDirectTrackNumberChanges, indirectTrackNumberChanges) = kPRLTrackNumberChanges.partition { indirectChange ->
             trackNumberChanges.any { indirectChange.trackNumberId == it.trackNumberId }
         }
 
-        val (indirectLocationTrackChangesInDirect, indirectLocationTrackChanges) = mergeLocationTrackChanges(
+        val (indirectDirectLocationTrackChanges, indirectLocationTrackChanges) = mergeLocationTrackChanges(
             locationTrackChangesByTrackNumbers,
             locationTrackChangesBySwitches,
         ).partition { indirectChange ->
             directLocationTrackChanges.any { indirectChange.locationTrackId == it.locationTrackId }
         }
 
-        val (indirectSwitchChangesInDirect, indirectSwitchChanges) = switchChangesByLocationTracks.partition { indirectChange ->
+        val (indirectDirectSwitchChanges, indirectSwitchChanges) = switchChangesByLocationTracks.partition { indirectChange ->
             directSwitchChanges.any { indirectChange.switchId == it.switchId }
         }
 
@@ -197,12 +195,12 @@ class CalculatedChangesService(
             directChanges = DirectChanges(
                 kmPostChanges = versions.kmPosts.map { it.officialId },
                 referenceLineChanges = versions.referenceLines.map { it.officialId },
-                trackNumberChanges = mergeTrackNumberChanges(trackNumberChanges, indirectTrackNumberChangesInDirect),
+                trackNumberChanges = mergeTrackNumberChanges(trackNumberChanges, indirectDirectTrackNumberChanges),
                 locationTrackChanges = mergeLocationTrackChanges(
                     directLocationTrackChanges,
-                    indirectLocationTrackChangesInDirect,
+                    indirectDirectLocationTrackChanges,
                 ),
-                switchChanges = mergeSwitchChanges(directSwitchChanges, indirectSwitchChangesInDirect),
+                switchChanges = mergeSwitchChanges(directSwitchChanges, indirectDirectSwitchChanges),
             ),
             indirectChanges = IndirectChanges(
                 locationTrackChanges = indirectLocationTrackChanges,
@@ -528,7 +526,7 @@ private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, lo
     if (topologySwitch != null && location != null) topologySwitch to location.toPoint()
     else null
 
-fun mergeLocationTrackChanges(
+private fun mergeLocationTrackChanges(
     vararg changeLists: List<LocationTrackChange>,
 ) = changeLists
     .flatMap { it }
@@ -553,7 +551,7 @@ private fun mergeSwitchChanges(
         SwitchChange(switchId = switchId, changedJoints = mergedJoints)
     }
 
-fun mergeTrackNumberChanges(
+private fun mergeTrackNumberChanges(
     vararg changeLists: List<TrackNumberChange>,
 ) = changeLists
     .flatMap { it }

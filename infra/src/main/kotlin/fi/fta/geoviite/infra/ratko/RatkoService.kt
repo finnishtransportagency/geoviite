@@ -112,11 +112,12 @@ class RatkoService @Autowired constructor(
                 }.map { switchChange ->
                     val switch = switchService.getOrThrow(PublishType.OFFICIAL, switchChange.switchId)
 
+                    //Fake PublishedSwitch, Ratko integration is built around published items
                     PublishedSwitch(
                         version = checkNotNull(switch.version) {
                             "Switch version is needed push changes to Ratko, id=${switchChange.switchId}"
                         },
-                        trackNumberIds = emptySet(), //Fake PublishedSwitch, Ratko integration does not need this info
+                        trackNumberIds = emptySet(), //Ratko integration doesn't care about this field
                         name = switch.name,
                         operation = Operation.MODIFY,
                         changedJoints = switchChange.changedJoints
@@ -127,6 +128,8 @@ class RatkoService @Autowired constructor(
                 .map { locationTrackChange ->
                     val locationTrack =
                         locationTrackService.getOrThrow(PublishType.OFFICIAL, locationTrackChange.locationTrackId)
+
+                    //Fake PublishedLocationTrack, Ratko integration is built around published items
                     PublishedLocationTrack(
                         version = checkNotNull(locationTrack.version) {
                             "Location track version is needed push changes to Ratko, id=${locationTrackChange.locationTrackId}"
@@ -254,9 +257,10 @@ class RatkoService @Autowired constructor(
                 )
             }.map { switchChange ->
                 val switch = switchService.getOrThrow(PublishType.OFFICIAL, switchChange.switchId)
+                //Fake PublishedSwitch, Ratko integration is built around published items
                 PublishedSwitch(
                     version = checkNotNull(switch.version) { "Switch version is needed push changes to Ratko, id=${switchChange.switchId}" },
-                    trackNumberIds = emptySet(), //Fake PublishedSwitch, Ratko integration does not need this info
+                    trackNumberIds = emptySet(), //Ratko integration doesn't care about this field
                     name = switch.name,
                     operation = Operation.MODIFY,
                     changedJoints = switchChange.changedJoints

@@ -5,6 +5,16 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 
+fun moveKmPostLocation(
+    kmPost: TrackLayoutKmPost,
+    location: Point,
+    kmPostService: LayoutKmPostService,
+) = kmPostService.saveDraft(
+    kmPost.copy(
+        location = location
+    )
+)
+
 fun moveLocationTrackGeometryPointsAndUpdate(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
