@@ -155,6 +155,6 @@ class LocationTrackController(
     ): List<AlignmentPlanSection> {
         logger.apiCall("getTrackSectionsByPlan",
             "publishType" to publishType, "id" to id, "bbox" to boundingBox)
-        return locationTrackService.getSectionsByPlan(id, publishType, boundingBox)
+        return locationTrackService.getMetadataSections(id, publishType, boundingBox)
     }
 }

@@ -217,7 +217,8 @@ class LocationTrackService(
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
     }
 
-    fun getSectionsByPlan(
+    @Transactional(readOnly = true)
+    fun getMetadataSections(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
         boundingBox: BoundingBox?

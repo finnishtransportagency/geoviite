@@ -212,8 +212,8 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             with
               segment_range as (
                 select
-                  segment_version.alignment_id,
-                  segment_version.alignment_version,
+                  alignment_id,
+                  alignment_version,
                   min(segment_index) min_index,
                   max(segment_index) max_index
                 from layout.segment_version
@@ -223,7 +223,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   and (
                       :use_bounding_box = false or postgis.st_intersects(
                         postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                        segment_geometry.geometry
+                        geometry
                       )
                   )
                 group by alignment_id, alignment_version

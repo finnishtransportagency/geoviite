@@ -189,13 +189,13 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val version = alignmentDao.insert(alignment)
 
         val segmentGeometriesAndPlanMetadatas = alignmentDao.fetchSegmentGeometriesAndPlanMetadata(version, null, null)
-        assertEquals(segmentGeometriesAndPlanMetadatas.size, 2)
-        assertEquals(segmentGeometriesAndPlanMetadatas.first().startPoint, points.first())
-        assertEquals(segmentGeometriesAndPlanMetadatas.first().endPoint, points.last())
-        assertEquals(segmentGeometriesAndPlanMetadatas.first().source, GeometrySource.PLAN)
-        assertEquals(segmentGeometriesAndPlanMetadatas.last().startPoint, points2.first())
-        assertEquals(segmentGeometriesAndPlanMetadatas.last().endPoint, points2.last())
-        assertEquals(segmentGeometriesAndPlanMetadatas.last().source, GeometrySource.GENERATED)
+        assertEquals(2, segmentGeometriesAndPlanMetadatas.size)
+        assertEquals(points.first(), segmentGeometriesAndPlanMetadatas.first().startPoint)
+        assertEquals(points.last(), segmentGeometriesAndPlanMetadatas.first().endPoint)
+        assertEquals(true, segmentGeometriesAndPlanMetadatas.first().isLinked)
+        assertEquals(points2.first(), segmentGeometriesAndPlanMetadatas.last().startPoint)
+        assertEquals(points2.last(), segmentGeometriesAndPlanMetadatas.last().endPoint)
+        assertEquals(false, segmentGeometriesAndPlanMetadatas.last().isLinked)
     }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
