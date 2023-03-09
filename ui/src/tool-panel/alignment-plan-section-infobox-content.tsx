@@ -40,23 +40,25 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                         <span className={styles['alignment-plan-section-infobox__plan-name']}>
                             {section.planName ? (
                                 section.planId ? (
-                                    <Link
-                                        onClick={() => {
-                                            if (section.planId) {
-                                                delegates.onSelect({
-                                                    geometryPlans: [section.planId],
-                                                });
-                                                delegates.setToolPanelTab(
-                                                    toolPanelPlanTabId(section.planId),
-                                                );
-                                            }
-                                        }}
-                                        title={section.planName}>
-                                        {!section.isLinked && errorFragment()}
-                                        {section.planName}
-                                    </Link>
+                                    <React.Fragment>
+                                        {!section.isLinked && errorFragment()}{' '}
+                                        <Link
+                                            onClick={() => {
+                                                if (section.planId) {
+                                                    delegates.onSelect({
+                                                        geometryPlans: [section.planId],
+                                                    });
+                                                    delegates.setToolPanelTab(
+                                                        toolPanelPlanTabId(section.planId),
+                                                    );
+                                                }
+                                            }}
+                                            title={`${section.planName} (${section.alignmentName})`}>
+                                            {section.planName}
+                                        </Link>
+                                    </React.Fragment>
                                 ) : (
-                                    <span title={section.planName}>
+                                    <span title={`${section.planName} (${section.alignmentName})`}>
                                         {errorFragment()} {section.planName}
                                     </span>
                                 )
