@@ -209,7 +209,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     @GetMapping("/plans/{id}/vertical-geometry")
     fun getPlanVerticalGeometryListing(
         @PathVariable("id") id: IntId<GeometryPlan>,
-    ): List<ProfileListing> {
+    ): List<VerticalGeometryListing> {
         log.apiCall("getPlanVerticalGeometryListing", "id" to id)
         return geometryService.getGeometryProfile(id)
     }

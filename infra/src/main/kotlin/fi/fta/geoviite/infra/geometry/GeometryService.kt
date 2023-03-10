@@ -224,7 +224,7 @@ class GeometryService @Autowired constructor(
 
     fun getGeometryProfile(
         planId: IntId<GeometryPlan>
-    ): List<ProfileListing> {
+    ): List<VerticalGeometryListing> {
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
@@ -246,7 +246,7 @@ class GeometryService @Autowired constructor(
                 val nextLinearSegment = alignment.profile?.segments?.getOrNull(indexInAllSegments + 1)
                     ?.let { if (it is LinearProfileSegment) it else null }
 
-                toProfileListing(segment, alignment, coordinateTransform, planHeader, geocodingContext, previousCurvedSegment, previousLinearSegment, nextCurvedSegment, nextLinearSegment)
+                toVerticalGeometryListing(segment, alignment, coordinateTransform, planHeader, geocodingContext, previousCurvedSegment, previousLinearSegment, nextCurvedSegment, nextLinearSegment)
             }
         }.flatten()
     }
