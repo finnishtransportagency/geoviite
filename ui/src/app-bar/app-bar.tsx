@@ -25,6 +25,24 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
+    const dataMenuButtonInActiveStyle = `${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`;
+    const dataMenuButtonActiveStyle = `${styles['app-bar__link']} ${styles['app-bar__data-menu-button--active']}`;
+    const [dataMenuStyle, setDataMenuStyle] = React.useState<string>();
+    const [dataProductSelected, setDataProductSelected] = React.useState<boolean>(false);
+
+    React.useEffect(() => {
+        dataProductSelected
+            ? setDataMenuStyle(dataMenuButtonActiveStyle)
+            : setDataMenuStyle(dataMenuButtonInActiveStyle);
+    }, [dataProductSelected]);
+
+    const handleHeadingSelection = () => {
+        setDataProductSelected(false);
+    };
+
+    const handleDataProductSelection = () => {
+        setDataProductSelected(true);
+    };
 
     return (
         <nav className={styles['app-bar']}>
@@ -40,6 +58,7 @@ export const AppBar: React.FC = () => {
                                 <li>
                                     <NavLink
                                         to={link.link}
+                                        onClick={handleHeadingSelection}
                                         className={({ isActive }) =>
                                             `${styles['app-bar__link']} ${
                                                 isActive ? styles['app-bar__link--active'] : ''
@@ -53,16 +72,15 @@ export const AppBar: React.FC = () => {
                         );
                     })}
                 <li>
-                    <div
-                        className={`${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`}
-                        onClick={() => setDataMenuOpen(!dataMenuOpen)}>
+                    <div className={dataMenuStyle} onClick={() => setDataMenuOpen(!dataMenuOpen)}>
                         <span>{t('app-bar.data-products-title')}</span>
                         {dataMenuOpen && (
                             <div className={styles['app-bar__data-menu']}>
                                 <div>
                                     <NavLink
                                         className={styles['menu__item']}
-                                        to={'data-products/element-list'}>
+                                        to={'data-products/element-list'}
+                                        onClick={handleDataProductSelection}>
                                         {t('app-bar.data-products.element-list')}
                                     </NavLink>
                                 </div>
@@ -70,7 +88,8 @@ export const AppBar: React.FC = () => {
                                     <div>
                                         <NavLink
                                             className={styles['menu__item']}
-                                            to={'data-products/vertical-geometry'}>
+                                            to={'data-products/vertical-geometry'}
+                                            onClick={handleDataProductSelection}>
                                             {t('app-bar.data-products.vertical-geometry')}
                                         </NavLink>
                                     </div>
