@@ -42,7 +42,7 @@ class CachePreloader(
             refreshCache("Alignment", alignmentDao::fetchVersions, alignmentDao::fetch)
             refreshCache("Switch", switchDao::fetchAllVersions, switchDao::fetch)
             refreshCache("KM-Post", layoutKmPostDao::fetchAllVersions, layoutKmPostDao::fetch)
-            refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::fetchPlanHeader)
+            refreshCache("PlanHeader", geometryDao::fetchPlanVersions, geometryDao::getPlanHeader)
         }
     }
 
