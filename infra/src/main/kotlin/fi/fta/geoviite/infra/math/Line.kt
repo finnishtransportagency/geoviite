@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.math
 
 import kotlin.math.abs
 import kotlin.math.hypot
+import kotlin.math.tan
 
 fun polyLineLength(points: List<IPoint>): Double =
     points.foldRightIndexed(0.0) { index, point, acc ->
@@ -109,6 +110,12 @@ fun lineSlope(pointA: Point, pointB: Point): Double {
 
 fun lineConstant(point: Point, slope: Double): Double {
     return (point.x * slope - point.y) * -1
+}
+
+fun lineFromPointAndAngle(point: IPoint, angle: Double, length: Double): Line {
+    val newX = point.x + length
+    val newY = (tan(angle) * length) + point.y
+    return Line(point, Point(newX, newY))
 }
 
 data class Line(val start: IPoint, val end: IPoint) {

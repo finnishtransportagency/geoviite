@@ -230,6 +230,3 @@ fun lengthFromPviToTangent(leftHalfAngle: Double, rightHalfAngle: Double, radius
     }
     return abs(radius) / tan(halfAngleOfAlfa)
 }
-
-fun centerPointOfSegment(segment: ProfileSegment) =
-    if (segment is CurvedProfileSegment) segment.center else segment.start
