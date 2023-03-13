@@ -59,7 +59,8 @@ class LayoutSwitchService @Autowired constructor(
             switchStructureId = switch.switchStructureId,
             stateCategory = switch.stateCategory,
             trapPoint = switch.trapPoint,
-            joints = switchJoints
+            joints = switchJoints,
+            ownerId = switch.ownerId,
         )
         return saveDraftInternal(updatedLayoutSwitch).id
     }
