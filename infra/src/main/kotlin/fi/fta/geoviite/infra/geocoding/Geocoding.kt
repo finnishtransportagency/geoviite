@@ -36,7 +36,7 @@ data class AlignmentStartAndEnd(
     val end: AddressPoint?,
 )
 
-data class ProjectionLine(val address: TrackMeter, val projection: Line)
+data class ProjectionLine(val address: TrackMeter, val projection: Line, val distance: Double)
 
 data class GeocodingReferencePoint(
     val kmNumber: KmNumber,
@@ -78,15 +78,15 @@ data class GeocodingContext(
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
     val projectionLineMaxAngleDelta: Double = PROJECTION_LINE_MAX_ANGLE_DELTA,
 ) {
+    private val polyLineEdges: List<PolyLineEdge> by lazy { getPolyLineEdges(referenceLineGeometry) }
     val projectionLines: List<ProjectionLine> by lazy {
-        val edges = getPolyLineEdges(referenceLineGeometry)
-        require(isSame(edges.last().endDistance, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
+        require(isSame(polyLineEdges.last().endDistance, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
             "Polyline edges should cover the whole reference line geometry: " +
                     "trackNumber=${trackNumber.number} " +
                     "referenceLine=${referenceLine.id} " +
                     "alignment=${referenceLineGeometry.id}"
         }
-        createProjectionLines(referencePoints, edges).also { lines ->
+        createProjectionLines(referencePoints, polyLineEdges).also { lines ->
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
     }
@@ -94,13 +94,34 @@ data class GeocodingContext(
         referencePoints.map(GeocodingReferencePoint::kmNumber).distinct()
     }
 
+    val startProjection: ProjectionLine by lazy {
+        val address = TrackMeter(referencePoints.first().kmNumber, referencePoints.first().meters)
+        val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
+        ProjectionLine(address, projectionLine, 0.0)
+    }
+
+    val endProjection: ProjectionLine by lazy {
+        val meters = referenceLineGeometry.length - referencePoints.last().let { p -> p.distance + p.meters.toDouble() }
+        val address = TrackMeter(referencePoints.last().kmNumber, meters, referencePoints.first().meters.scale())
+        val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
+        ProjectionLine(address, projectionLine, referenceLineGeometry.length)
+    }
+
     fun getProjectionLine(address: TrackMeter): ProjectionLine? =
-        projectionLines.getOrNull(projectionLines.binarySearch { projectionLine ->
-            compareValuesBy(
-                projectionLine.address, address,
-                { a: TrackMeter -> a.kmNumber },
-                { a: TrackMeter -> a.meters.toInt() }) // Drop fractions, as we only have even meters cached
-        })
+        if (projectionLines.isEmpty()) null
+        else if (address <= startProjection.address) startProjection
+        else if (address >= endProjection.address) endProjection
+        else if (address.decimalCount() == 0) findEvenMeterProjectionLine(address)
+        else findEvenMeterProjectionLine(address.floor())?.let { evenLine ->
+            val distance = evenLine.distance + address.meters.toDouble() - evenLine.address.meters.toDouble()
+            findEdge(distance, polyLineEdges)?.let { edge ->
+                ProjectionLine(address, edge.crossSectionAt(distance), distance)
+            }
+        }
+
+    private fun findEvenMeterProjectionLine(address: TrackMeter) = projectionLines.getOrNull(
+        projectionLines.binarySearch { projectionLine -> compareValuesBy(projectionLine.address, address) }
+    )
 
     companion object {
         fun create(
@@ -363,7 +384,7 @@ private fun createProjectionLines(
                         "minMeter=$minMeter maxMeter=$maxMeter maxDistance=$maxDistance" +
                         "edges=${edges.filter { e -> e.startDistance in distance - 10.0..distance + 10.0 }}"
             )
-            ProjectionLine(TrackMeter(point.kmNumber, meter), edge.crossSectionAt(distance))
+            ProjectionLine(TrackMeter(point.kmNumber, meter), edge.crossSectionAt(distance), distance)
         }
     }
 }
