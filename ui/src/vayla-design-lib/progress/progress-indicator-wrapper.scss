@@ -2,8 +2,12 @@
 @import '../colors';
 
 .progress-indicator-wrapper {
-    display: inline-block;
+    display: block;
     position: relative;
+}
+
+.progress-indicator-wrapper--inline {
+    display: inline-block;
 }
 
 .progress-indicator-wrapper__content {
