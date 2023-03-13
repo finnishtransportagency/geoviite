@@ -194,7 +194,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               state_category = :state_category::layout.state_category,
               trap_point = :trap_point,
               draft = :draft,
-              draft_of_switch_id = :draft_of_switch_id
+              draft_of_switch_id = :draft_of_switch_id,
+              owner_id = :owner_id
             where id = :id
             returning 
               coalesce(draft_of_switch_id, id) as official_id,
@@ -211,6 +212,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             "trap_point" to updatedItem.trapPoint,
             "draft" to (updatedItem.draft != null),
             "draft_of_switch_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
