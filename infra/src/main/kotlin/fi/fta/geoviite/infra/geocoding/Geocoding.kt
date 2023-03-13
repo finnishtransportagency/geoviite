@@ -101,27 +101,28 @@ data class GeocodingContext(
     }
 
     val endProjection: ProjectionLine by lazy {
-        val meters = referenceLineGeometry.length - referencePoints.last().let { p -> p.distance + p.meters.toDouble() }
+        val meters = referenceLineGeometry.length - referencePoints.last().let { p -> p.distance - p.meters.toDouble() }
         val address = TrackMeter(referencePoints.last().kmNumber, meters, referencePoints.first().meters.scale())
         val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
         ProjectionLine(address, projectionLine, referenceLineGeometry.length)
     }
 
+    private val addressRange: ClosedRange<TrackMeter> by lazy { startProjection.address..endProjection.address }
+
     fun getProjectionLine(address: TrackMeter): ProjectionLine? =
-        if (projectionLines.isEmpty()) null
-        else if (address <= startProjection.address) startProjection
-        else if (address >= endProjection.address) endProjection
-        else if (address.decimalCount() == 0) findEvenMeterProjectionLine(address)
-        else findEvenMeterProjectionLine(address.floor())?.let { evenLine ->
-            val distance = evenLine.distance + address.meters.toDouble() - evenLine.address.meters.toDouble()
+        if (address.decimalCount() == 0 || address !in addressRange) findCachedProjectionLine(address)
+        else findCachedProjectionLine(address.floor())?.let { previous ->
+            val distance = previous.distance + (address.meters.toDouble() - previous.address.meters.toDouble())
             findEdge(distance, polyLineEdges)?.let { edge ->
                 ProjectionLine(address, edge.crossSectionAt(distance), distance)
             }
         }
 
-    private fun findEvenMeterProjectionLine(address: TrackMeter) = projectionLines.getOrNull(
-        projectionLines.binarySearch { projectionLine -> compareValuesBy(projectionLine.address, address) }
-    )
+    private fun findCachedProjectionLine(address: TrackMeter) =
+        if (address <= startProjection.address) startProjection
+        else if (address >= endProjection.address) endProjection
+        else if (projectionLines.isEmpty()) null
+        else projectionLines.binarySearch { line -> line.address.compareTo(address) }.let(projectionLines::getOrNull)
 
     companion object {
         fun create(

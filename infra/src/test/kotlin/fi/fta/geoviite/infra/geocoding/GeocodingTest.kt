@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.fail
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.test.assertEquals
@@ -65,7 +66,7 @@ val segment3 = segment(
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
 val referenceLine: ReferenceLine = referenceLine(IntId(1), alignment = alignment, startAddress = startAddress)
-val addressPoints = listOf(
+val referencePoints = listOf(
     GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(4), BigDecimal.ZERO, 2 * alignment.length / 5, 0.0, WITHIN),
@@ -77,7 +78,7 @@ val context = GeocodingContext(
     trackNumber,
     referenceLine,
     alignment,
-    addressPoints,
+    referencePoints,
     // test-data is inaccurate so allow more delta in validation
     projectionLineDistanceDeviation = 0.05,
     projectionLineMaxAngleDelta = PI / 16,
@@ -162,14 +163,14 @@ class GeocodingTest {
     fun contextFindsAddressForDistance() {
         assertEquals(startAddress, context.getAddress(0.0, startAddress.decimalCount()))
 
-        val lastPoint = addressPoints.last()
+        val lastPoint = referencePoints.last()
         val endLength: Double = referenceLine.length
         assertEquals(
             TrackMeter(lastPoint.kmNumber, endLength - lastPoint.distance, 3),
             context.getAddress(endLength, 3)
         )
 
-        for (ap in addressPoints) {
+        for (ap in referencePoints) {
             assertEquals(
                 TrackMeter(ap.kmNumber, ap.meters.toDouble() + 0.0, 3),
                 context.getAddress(ap.distance, 3))
@@ -187,7 +188,12 @@ class GeocodingTest {
 
     @Test
     fun projectionLinesAndReverseGeocodingAgree() {
-        context.projectionLines.forEach { proj ->
+        val projections = (listOf(context.startProjection) + context.projectionLines + listOf(context.endProjection))
+        projections.forEachIndexed { index, proj ->
+            if (index > 0) assertTrue(
+                projections[index-1].address <= proj.address,
+                "Projections should be in increasing order: index=$index prev=${projections[index-1].address} next=${proj.address}",
+            )
             val decimals = proj.address.decimalCount()
             assertEquals(proj.address, context.getAddress(proj.projection.start, decimals)!!.first)
             val pointAside = linePointAtDistance(proj.projection, 1.0)
@@ -197,17 +203,16 @@ class GeocodingTest {
 
     @Test
     fun projectionIsFoundForAddress() {
-        var projection = context.getProjectionLine(TrackMeter(KmNumber(5,"A"), 0))
-        assertNotNull(projection)
-        assertEquals(TrackMeter(KmNumber(5,"A"), 0), projection.address)
-
-        projection = context.getProjectionLine(TrackMeter(KmNumber(5,"A"), 10))
-        assertNotNull(projection)
-        assertEquals(TrackMeter(KmNumber(5,"A"), 10), projection.address)
-
-        projection = context.getProjectionLine(TrackMeter(KmNumber(5,"A"), 10.6, 1))
-        assertNotNull(projection)
-        assertEquals(TrackMeter(KmNumber(5,"A"), 10), projection.address)
+        listOf(
+            TrackMeter(KmNumber(5,"A"), 0),
+            TrackMeter(KmNumber(5,"A"), 10),
+            TrackMeter(KmNumber(5,"A"), 10.6, 1),
+            TrackMeter(KmNumber(5,"A"), 10.152, 3),
+        ).forEach { address ->
+            val projection = context.getProjectionLine(address)
+            assertNotNull(projection)
+            assertEquals(address, projection.address)
+        }
     }
 
     @Test
@@ -339,6 +344,7 @@ class GeocodingTest {
         val projectionOffset = Point(-100.0, 0.0)
         fun projectionLine(point: Point): Line = Line(point, point + projectionOffset)
 
+        // Cached projections for 1m lines
         assertProjectionLinesMatch(
             projectionContext.projectionLines,
             TrackMeter(2, 100) to projectionLine(start),
@@ -349,6 +355,24 @@ class GeocodingTest {
             TrackMeter(3, 2) to projectionLine(start + Point(0.0, 5.0)),
             TrackMeter(3, 3) to projectionLine(start + Point(0.0, 6.0)),
         )
+
+        // Dynamically created projections between even meters
+        listOf(
+            TrackMeter(2, 101.000, 3) to start + Point(0.0, 1.0),
+            TrackMeter(2, 101.1, 1) to start + Point(0.0, 1.1),
+            TrackMeter(2, 101.92, 2) to start + Point(0.0, 1.92),
+            TrackMeter(2, 101.456, 3) to start + Point(0.0, 1.456),
+            TrackMeter(3, 0.12, 2) to start + Point(0.0, 3.12),
+        ).forEach{ (address, point) ->
+            val projectionLine = projectionContext.getProjectionLine(address)
+            assertNotNull(projectionLine)
+            assertProjectionLineMatches(projectionLine, address, projectionLine(point))
+        }
+    }
+
+    @Test
+    fun geocodingWorks() {
+        fail("Not tested")
     }
 
     @Test
@@ -372,6 +396,9 @@ class GeocodingTest {
         assertEquals(5.0, verticalContext.getDistance(diagonalCenter)!!.first, 0.000001)
         assertEquals(startAddress + 5.0, verticalContext.getAddress(5.0, startAddress.decimalCount()))
 
+        println(verticalContext.startProjection)
+        println(verticalContext.endProjection)
+        println(verticalContext.projectionLines)
         val projectionLine = verticalContext.getProjectionLine(startAddress + 5.0)
         assertEquals(startAddress + 5.0, projectionLine!!.address)
         assertApproximatelyEquals(start + Point(0.0, 5.0), projectionLine.projection.start, 0.000001)
@@ -460,13 +487,16 @@ class GeocodingTest {
         assertEquals(expected.size, result.size,
             "expectedSize=${expected.size} actualSize=${result.size} expected=$expected actual=$result")
         result.forEachIndexed { index, projectionLine ->
-            val (address, line) = expected[index]
-            assertEquals(address, projectionLine.address)
-            assertEquals(line.start.x, projectionLine.projection.start.x, 2 * DELTA)
-            assertEquals(line.start.y, projectionLine.projection.start.y, 2 * DELTA)
-            assertEquals(line.end.x, projectionLine.projection.end.x, 2 * DELTA)
-            assertEquals(line.end.y, projectionLine.projection.end.y, 2 * DELTA)
+            assertProjectionLineMatches(projectionLine, expected[index].first, expected[index].second)
         }
+    }
+
+    private fun assertProjectionLineMatches(projectionLine: ProjectionLine, address: TrackMeter, line: Line) {
+        assertEquals(address, projectionLine.address)
+        assertEquals(line.start.x, projectionLine.projection.start.x, 2 * DELTA)
+        assertEquals(line.start.y, projectionLine.projection.start.y, 2 * DELTA)
+        assertEquals(line.end.x, projectionLine.projection.end.x, 2 * DELTA)
+        assertEquals(line.end.y, projectionLine.projection.end.y, 2 * DELTA)
     }
 
     private fun toPoint(layoutPoint: LayoutPoint) = Point(layoutPoint.x, layoutPoint.y)
