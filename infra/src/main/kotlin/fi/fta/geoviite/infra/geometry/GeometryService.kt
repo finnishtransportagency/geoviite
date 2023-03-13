@@ -47,18 +47,18 @@ class GeometryService @Autowired constructor(
             "sources" to sources, "bbox" to bbox, "filtered" to (filter != null)
         )
         return geometryDao.fetchPlanVersions(sources = sources, bbox = bbox)
-            .map(geometryDao::fetchPlanHeader)
+            .map(geometryDao::getPlanHeader)
             .let { all -> filter?.let(all::filter) ?: all }
     }
 
     fun getPlanHeader(planId: IntId<GeometryPlan>): GeometryPlanHeader {
         logger.serviceCall("getPlanHeader", "planId" to planId)
-        return geometryDao.fetchPlanVersion(planId).let(geometryDao::fetchPlanHeader)
+        return geometryDao.fetchPlanVersion(planId).let(geometryDao::getPlanHeader)
     }
 
     fun getManyPlanHeaders(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanHeader> {
         logger.serviceCall("getManyPlanHeaders", "planIds" to planIds)
-        return geometryDao.fetchManyPlanVersions(planIds).map(geometryDao::fetchPlanHeader)
+        return geometryDao.fetchManyPlanVersions(planIds).map(geometryDao::getPlanHeader)
     }
 
     fun getLayoutPlan(
@@ -160,9 +160,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanHeader(newFile: InfraModelFile): GeometryPlanHeader? {
-        logger.serviceCall("getDuplicateGeometryPlanHeader", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile)?.let(geometryDao::fetchPlanHeader)
+    fun fetchDuplicateGeometryPlanHeader(newFile: InfraModelFile, source: PlanSource): GeometryPlanHeader? {
+        logger.serviceCall("fetchDuplicateGeometryPlanHeader", "newFile" to newFile, "source" to source)
+        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)
     }
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
@@ -223,7 +223,7 @@ class GeometryService @Autowired constructor(
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
-        val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::fetchPlanHeader)
+        val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::getPlanHeader)
         val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
         return header to geometryAlignment
     }
