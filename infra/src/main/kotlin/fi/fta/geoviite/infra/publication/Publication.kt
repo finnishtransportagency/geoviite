@@ -44,6 +44,11 @@ open class Publication(
     open val message: String?,
 )
 
+data class PublishedItemListing<T>(
+    val directChanges: List<T>,
+    val indirectChanges: List<T>,
+)
+
 data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,

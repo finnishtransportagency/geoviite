@@ -78,48 +78,42 @@ data class CalculatedChanges(
     val indirectChanges: IndirectChanges,
 ) {
     init {
-        check(directChanges.kmPostChanges
-            .groupingBy { it }
-            .eachCount()
-            .all { it.value == 1 }
-        ) {
+        checkDuplicates(
+            directChanges.kmPostChanges,
+            { it },
             "Duplicate km posts in direct changes, directChanges=${directChanges.kmPostChanges}"
-        }
+        )
 
-        check(directChanges.referenceLineChanges
-            .groupingBy { it }
-            .eachCount()
-            .all { it.value == 1 }
-        ) {
+        checkDuplicates(
+            directChanges.referenceLineChanges,
+            { it },
             "Duplicate reference lines in direct changes, directChanges=${directChanges.referenceLineChanges}"
-        }
+        )
 
-        check(
-            (directChanges.trackNumberChanges + indirectChanges.trackNumberChanges)
-                .groupingBy { it.trackNumberId }
-                .eachCount()
-                .all { it.value == 1 }
-        ) {
+        val trackNumberChanges = (directChanges.trackNumberChanges + indirectChanges.trackNumberChanges)
+        checkDuplicates(
+            trackNumberChanges,
+            { it.trackNumberId },
             "Duplicate track numbers in direct and indirect changes, directChanges=${directChanges.trackNumberChanges} indirectChanges=${indirectChanges.trackNumberChanges}"
-        }
+        )
 
-        check(
-            (directChanges.locationTrackChanges + indirectChanges.locationTrackChanges)
-                .groupingBy { it.locationTrackId }
-                .eachCount()
-                .all { it.value == 1 }
-        ) {
+        val locationTrackChanges = (directChanges.locationTrackChanges + indirectChanges.locationTrackChanges)
+        checkDuplicates(
+            locationTrackChanges,
+            { it.locationTrackId },
             "Duplicate location tracks in direct and indirect changes, directChanges=${directChanges.locationTrackChanges} indirectChanges=${indirectChanges.locationTrackChanges}"
-        }
+        )
 
-        check(
-            (directChanges.switchChanges + indirectChanges.switchChanges)
-                .groupingBy { it.switchId }
-                .eachCount()
-                .all { it.value == 1 }
-        ) {
+        val switchChanges = (directChanges.switchChanges + indirectChanges.switchChanges)
+        checkDuplicates(
+            switchChanges,
+            { it.switchId },
             "Duplicate switches in direct and indirect changes, directChanges=${directChanges.switchChanges} indirectChanges=${indirectChanges.switchChanges}"
-        }
+        )
+    }
+
+    private fun <T, R> checkDuplicates(changes: List<T>, groupingBy: (v: T) -> R, message: String) {
+        check(changes.groupingBy(groupingBy).eachCount().all { it.value == 1 }) { message }
     }
 }
 

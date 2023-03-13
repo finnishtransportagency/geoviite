@@ -487,14 +487,12 @@ private fun topologyLinkAndJointLocationsAgree(switch: TrackLayoutSwitch, endLin
 private fun alignmentJointGroupFound(
     alignmentJoints: List<JointNumber>,
     structureJointGroups: List<List<JointNumber>>,
-) =
-    structureJointGroups.any { structureJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
+) = structureJointGroups.any { structureJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
 
 private fun structureJointGroupFound(
     structureJoints: List<JointNumber>,
     alignmentJointGroups: List<List<JointNumber>>,
-) =
-    alignmentJointGroups.any { alignmentJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
+) = alignmentJointGroups.any { alignmentJoints -> jointGroupMatches(alignmentJoints, structureJoints) }
 
 private fun jointGroupMatches(alignmentJoints: List<JointNumber>, structureJoints: List<JointNumber>): Boolean =
     if (!structureJoints.containsAll(alignmentJoints)) false

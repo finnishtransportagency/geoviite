@@ -202,32 +202,38 @@ class PublicationService @Autowired constructor(
     private fun validationVersionsForAsset(
         requestAndDependencies: PublishRequestIds,
         publishType: PublishType,
-    ) =
-        ValidationVersions(
-            trackNumbers = requestAndDependencies.trackNumbers.map {
-                ValidationVersion(
-                    officialId = it,
-                    validatedAssetVersion = trackNumberDao.fetchVersionOrThrow(it, publishType)
-                )
-            },
-            referenceLines = requestAndDependencies.referenceLines.map {
-                ValidationVersion(
-                    officialId = it,
+    ) = ValidationVersions(
+        trackNumbers = requestAndDependencies.trackNumbers.map {
+            ValidationVersion(
+                officialId = it,
+                validatedAssetVersion = trackNumberDao.fetchVersionOrThrow(it, publishType)
+            )
+        },
+        referenceLines = requestAndDependencies.referenceLines.map {
+            ValidationVersion(
+                officialId = it,
                 validatedAssetVersion = referenceLineDao.fetchVersionOrThrow(it, publishType)
-            ) },
-            locationTracks = requestAndDependencies.locationTracks.map { ValidationVersion(
+            )
+        },
+        locationTracks = requestAndDependencies.locationTracks.map {
+            ValidationVersion(
                 officialId = it,
                 validatedAssetVersion = locationTrackDao.fetchVersionOrThrow(it, publishType)
-            ) },
-            switches = requestAndDependencies.switches.map { ValidationVersion(
+            )
+        },
+        switches = requestAndDependencies.switches.map {
+            ValidationVersion(
                 officialId = it,
                 validatedAssetVersion = switchDao.fetchVersionOrThrow(it, publishType)
-            ) },
-            kmPosts = requestAndDependencies.kmPosts.map { ValidationVersion(
+            )
+        },
+        kmPosts = requestAndDependencies.kmPosts.map {
+            ValidationVersion(
                 officialId = it,
                 validatedAssetVersion = kmPostDao.fetchVersionOrThrow(it, publishType)
-            ) }
-        )
+            )
+        }
+    )
 
     fun getChangeTime(): Instant {
         logger.serviceCall("getChangeTime")
