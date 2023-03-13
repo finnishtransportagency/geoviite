@@ -228,25 +228,27 @@ class GeometryService @Autowired constructor(
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
+        val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(coordinateTransformationService::getLayoutTransformation)
 
         return alignments.filter { it.profile != null }.map { alignment ->
-            val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(coordinateTransformationService::getLayoutTransformation)
-            val curvedSegmentsAndIndexes =
-                alignment.profile?.segments
-                    ?.mapIndexed { index, profileSegment -> index to profileSegment }
-                    ?.filter { it.second is CurvedProfileSegment }
-                    ?.map { (index, segment) -> index to segment as CurvedProfileSegment}
-                    ?: emptyList()
-
-            curvedSegmentsAndIndexes.mapIndexed { curvedIndex, (indexInAllSegments, segment) ->
-                val previousCurvedSegment = alignment.profile?.segments?.getOrNull(curvedIndex - 1) as CurvedProfileSegment?
-                val previousLinearSegment = alignment.profile?.segments?.getOrNull(indexInAllSegments - 1)
-                    ?.let { if (it is LinearProfileSegment) it else null }
-                val nextCurvedSegment = alignment.profile?.segments?.getOrNull(curvedIndex + 1) as CurvedProfileSegment?
-                val nextLinearSegment = alignment.profile?.segments?.getOrNull(indexInAllSegments + 1)
-                    ?.let { if (it is LinearProfileSegment) it else null }
-
-                toVerticalGeometryListing(segment, alignment, coordinateTransform, planHeader, geocodingContext, previousCurvedSegment, previousLinearSegment, nextCurvedSegment, nextLinearSegment)
+            val (curvedSegments, linearSegments) =
+                alignment.profile?.segments?.partition { it is CurvedProfileSegment }
+                    ?.let { partitioned ->
+                        partitioned.first.map { it as CurvedProfileSegment } to
+                                partitioned.second.map { it as LinearProfileSegment } }
+                    ?: (emptyList<CurvedProfileSegment>() to emptyList())
+            curvedSegments.map { segment ->
+                    toVerticalGeometryListing(
+                        segment,
+                        alignment,
+                        coordinateTransform,
+                        planHeader.id,
+                        planHeader.source,
+                        planHeader.fileName,
+                        geocodingContext,
+                        curvedSegments,
+                        linearSegments
+                    )
             }
         }.flatten()
     }

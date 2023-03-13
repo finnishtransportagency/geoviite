@@ -24,8 +24,8 @@ data class IntersectionPoint(
 )
 
 data class LinearSection(
-    val length: Double?,
-    val linearSection: Double?,
+    val stationValueDistance: Double?,
+    val linearSegmentLength: Double?,
 )
 
 data class VerticalGeometryListing(
@@ -51,68 +51,98 @@ fun toVerticalGeometryListing(
     segment: CurvedProfileSegment,
     alignment: GeometryAlignment,
     coordinateTransform: Transformation?,
-    planHeader: GeometryPlanHeader,
+    planId: DomainId<GeometryPlan>,
+    planSource: PlanSource,
+    planFileName: FileName,
     geocodingContext: GeocodingContext?,
-    previousCurvedSegment: CurvedProfileSegment?,
-    previousLinearSegment: LinearProfileSegment?,
-    nextCurvedSegment: CurvedProfileSegment?,
-    nextLinearSegment: LinearProfileSegment?
-): VerticalGeometryListing {
+    curvedSegments: List<CurvedProfileSegment>,
+    linearSegments: List<LinearProfileSegment>,
+
+    ): VerticalGeometryListing {
     val stationPoint = circCurveStationPoint(segment)
-    val stationPointCoordinates = stationPoint
-        ?.let { alignment.getCoordinateAt(alignment.stationValueNormalized(stationPoint.x)) }
+    val stationPointCoordinates = alignment.getCoordinateAt(alignment.stationValueNormalized(stationPoint.x))
+        ?.let { coordinateTransform?.transform(it) }
     val startCoordinates = alignment.getCoordinateAt(alignment.stationValueNormalized(segment.start.x))
         ?.let { coordinateTransform?.transform(it) }
     val endCoordinates = alignment.getCoordinateAt(alignment.stationValueNormalized(segment.end.x))
         ?.let { coordinateTransform?.transform(it) }
 
-    val previousStationPoint = previousCurvedSegment?.let(::circCurveStationPoint)
-        ?: previousLinearSegment?.start
-    val nextStationPoint = nextCurvedSegment?.let(::circCurveStationPoint)
-        ?: nextLinearSegment?.start
-
     return VerticalGeometryListing(
         id = StringId("${alignment.id}_${segment.start.x}"),
-        planId = planHeader.id,
-        planSource = planHeader.source,
-        fileName = planHeader.fileName,
+        planId = planId,
+        planSource = planSource,
+        fileName = planFileName,
         alignmentId = alignment.id,
         alignmentName = alignment.name,
         null,
         start = CurvedSectionEndpoint(
             address = startCoordinates?.let { geocodingContext?.getAddress(startCoordinates)?.first },
             height = segment.start.y,
-            angle = stationPoint?.let { angleFractionBetweenPoints(stationPoint, segment.start) },
+            angle = angleFractionBetweenPoints(stationPoint, segment.start),
             station = segment.start.x
         ),
         end = CurvedSectionEndpoint(
             address = endCoordinates?.let { geocodingContext?.getAddress(endCoordinates)?.first },
             height = segment.end.y,
-            angle = stationPoint?.let { angleFractionBetweenPoints(stationPoint, segment.end) },
+            angle = angleFractionBetweenPoints(stationPoint, segment.end),
             station = segment.end.x
         ),
         point = IntersectionPoint(
             address = stationPointCoordinates?.let { geocodingContext?.getAddress(stationPointCoordinates)?.first },
-            height = stationPoint?.y,
-            station = stationPoint?.x
+            height = stationPoint.y,
+            station = stationPoint.x
         ),
         radius = segment.radius,
-        tangent = stationPoint?.let { lineLength(segment.start, stationPoint) },
-        linearSectionBackward = LinearSection(
-            length = if (previousStationPoint != null && stationPoint != null) previousStationPoint.x - stationPoint.x else null,
-            linearSection = previousCurvedSegment?.let { segment.start.x - previousCurvedSegment.end.x }
-        ),
-        linearSectionForward = LinearSection(
-            length = if (nextStationPoint != null && stationPoint != null) stationPoint.x - nextStationPoint.x else null,
-            linearSection = nextCurvedSegment?.let { nextCurvedSegment.start.x - segment.end.x }
-        )
+        tangent = lineLength(segment.start, stationPoint),
+        linearSectionBackward = previousLinearSection(segment, curvedSegments, linearSegments),
+        linearSectionForward = nextLinearSection(segment, curvedSegments, linearSegments),
     )
 }
 
-fun circCurveStationPoint(curve: CurvedProfileSegment): IPoint? {
+fun previousLinearSection(
+    currentSegment: CurvedProfileSegment,
+    curvedSegments: List<CurvedProfileSegment>,
+    linearSegments: List<LinearProfileSegment>,
+): LinearSection {
+    val previousCurvedSegment = curvedSegments.findLast { it.start.x < currentSegment.start.x }
+    val previousLinearSegment =
+        linearSegments.findLast { it.start.x < currentSegment.start.x && (previousCurvedSegment == null || it.start.x > previousCurvedSegment.start.x) }
+    return LinearSection(
+        linearSegmentLength = previousLinearSegment?.let { previousLinearSegment.end.x - previousLinearSegment.start.x },
+        stationValueDistance = previousLinearSegment?.let {
+            val currentStationPoint = circCurveStationPoint(currentSegment)
+            val previousStationPoint = previousCurvedSegment?.let { prev -> circCurveStationPoint(prev) }
+                ?: previousLinearSegment.start
+            currentStationPoint.x - previousStationPoint.x
+        }
+    )
+}
+
+fun nextLinearSection(
+    currentSegment: CurvedProfileSegment,
+    curvedSegments: List<CurvedProfileSegment>,
+    linearSegments: List<LinearProfileSegment>,
+): LinearSection {
+    val nextCurvedSegment = curvedSegments.find { it.start.x > currentSegment.start.x }
+    val nextLinearSegment =
+        linearSegments.find { it.start.x > currentSegment.start.x && (nextCurvedSegment == null || it.start.x < nextCurvedSegment.start.x) }
+    return LinearSection(
+        linearSegmentLength = nextLinearSegment?.let { nextLinearSegment.end.x - nextLinearSegment.start.x },
+        stationValueDistance = nextLinearSegment?.let {
+            val currentStationPoint = circCurveStationPoint(currentSegment)
+            val nextStationPoint = nextCurvedSegment?.let { next -> circCurveStationPoint(next) }
+                ?: nextLinearSegment.end
+            nextStationPoint.x - currentStationPoint.x
+        }
+    )
+}
+
+fun circCurveStationPoint(curve: CurvedProfileSegment): IPoint {
     val line1 = circCurveTangentLine(curve.start, curve.startAngle)
     val line2 = circCurveTangentLine(curve.end, curve.endAngle)
-    return lineIntersection(line1.start, line1.end, line2.start, line2.end)?.point
+    val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
+    require (intersection != null) {"Circular curve must have an intersection point"}
+    return intersection.point
 }
 
 private fun circCurveTangentLine(point: IPoint, angle: Double): Line {

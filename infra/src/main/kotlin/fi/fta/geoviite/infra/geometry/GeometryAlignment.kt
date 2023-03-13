@@ -34,14 +34,21 @@ data class GeometryAlignment(
 
     private fun foldElementLengths(elements: List<GeometryElement>) =
         elements.fold(mutableListOf<Pair<Double, GeometryElement>>()) { acc, element ->
-            if (acc.isEmpty()) acc.add(0.0 to element)
-            else acc.add(acc.last().first + acc.last().second.calculatedLength to element)
+            val prev = acc.lastOrNull()
+            val lengthUntilElementStart = prev?.let { prev.first + prev.second.calculatedLength } ?: 0.0
+            acc.add(lengthUntilElementStart to element)
             acc
         }
 
     fun getCoordinateAt(distance: Double) =
-        foldElementLengths(elements).findLast { element -> element.first < distance }
-            .let { match -> match?.second?.getCoordinateAt(distance - match.first) }
+        foldElementLengths(elements).findLast { element -> element.first <= distance }
+            .let { match ->
+                match?.let {
+                    val distanceLeft = distance - match.first
+                    require(distanceLeft <= match.second.calculatedLength) { "Trying to get coordinates past the end of alignment" }
+                    match.second.getCoordinateAt(distance - match.first)
+                }
+            }
 
     fun stationValueNormalized(station: Double) =
         station - (elements.firstOrNull()?.staStart?.toDouble() ?: 0.0)

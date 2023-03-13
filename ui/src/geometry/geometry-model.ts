@@ -286,8 +286,8 @@ type CircularCurve = {
 };
 
 type LinearSection = {
-    length: number | undefined;
-    linearSection: number | undefined;
+    stationValueDistance: number | undefined;
+    linearSegmentLength: number | undefined;
 };
 
 type PVIPoint = {

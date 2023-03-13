@@ -52,30 +52,30 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
                 {roundToPrecision(verticalGeometry.tangent, Precision.profileTangent)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionBackward.length &&
+                {verticalGeometry.linearSectionBackward.stationValueDistance &&
                     roundToPrecision(
-                        verticalGeometry.linearSectionBackward.length,
+                        verticalGeometry.linearSectionBackward.stationValueDistance,
                         Precision.measurementMeterDistance,
                     )}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionBackward.linearSection &&
+                {verticalGeometry.linearSectionBackward.linearSegmentLength &&
                     roundToPrecision(
-                        verticalGeometry.linearSectionBackward.linearSection,
+                        verticalGeometry.linearSectionBackward.linearSegmentLength,
                         Precision.measurementMeterDistance,
                     )}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionForward.length &&
+                {verticalGeometry.linearSectionForward.stationValueDistance &&
                     roundToPrecision(
-                        verticalGeometry.linearSectionForward.length,
+                        verticalGeometry.linearSectionForward.stationValueDistance,
                         Precision.measurementMeterDistance,
                     )}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {verticalGeometry.linearSectionForward.linearSection &&
+                {verticalGeometry.linearSectionForward.linearSegmentLength &&
                     roundToPrecision(
-                        verticalGeometry.linearSectionForward.linearSection,
+                        verticalGeometry.linearSectionForward.linearSegmentLength,
                         Precision.measurementMeterDistance,
                     )}
             </td>
