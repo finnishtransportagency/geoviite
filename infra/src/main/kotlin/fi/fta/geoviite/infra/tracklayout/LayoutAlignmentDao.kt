@@ -152,6 +152,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             select 
               alignment_id,
               segment_index,
+              start,
               geometry_alignment_id,
               geometry_element_index,
               source_start,
@@ -172,6 +173,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
         val segmentResults = jdbcTemplate.query(sql, params) { rs, _ -> SegmentData(
             id = rs.getIndexedId("alignment_id", "segment_index"),
+            start = rs.getDouble("start"),
             sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
             sourceStart = rs.getDoubleOrNull("source_start"),
             switchId = rs.getIntIdOrNull("switch_id"),
@@ -182,24 +184,19 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
         val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
-        var start = 0.0
-        return segmentResults.map { (data, geometryId) ->
-            val segment = LayoutSegment(
-                id = data.id,
-                sourceId = data.sourceId,
-                sourceStart = data.sourceStart,
-                switchId = data.switchId,
-                startJointNumber = data.startJointNumber,
-                endJointNumber = data.endJointNumber,
-                start = start,
-                source = data.source,
-                geometry = requireNotNull(geometries[geometryId]) {
-                    "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
-                },
-            )
-            start += segment.length
-            segment
-        }
+        return segmentResults.map { (data, geometryId) -> LayoutSegment(
+            id = data.id,
+            start = data.start,
+            sourceId = data.sourceId,
+            sourceStart = data.sourceStart,
+            switchId = data.switchId,
+            startJointNumber = data.startJointNumber,
+            endJointNumber = data.endJointNumber,
+            source = data.source,
+            geometry = requireNotNull(geometries[geometryId]) {
+                "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
+            },
+        ) }
     }
 
     fun fetchSegmentGeometriesAndPlanMetadata(
@@ -413,6 +410,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   alignment_id,
                   alignment_version,
                   segment_index,
+                  start,
                   geometry_alignment_id,
                   geometry_element_index,
                   switch_id,
@@ -422,7 +420,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   source,
                   geometry_id
                 )
-                values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
+                values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
               """.trimIndent()
             // This uses indexed parameters (rather than named ones),
             // since named parameter template's batch-method is considerably slower
@@ -430,17 +428,18 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 ps.setInt(1, alignmentId.id.intValue)
                 ps.setInt(2, alignmentId.version)
                 ps.setInt(3, index)
-                ps.setNullableInt(4) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
-                ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.index else null }
-                ps.setNullableInt(6) { if (s.switchId is IntId) s.switchId.intValue else null }
-                ps.setNullableInt(7, s.startJointNumber?.intValue)
-                ps.setNullableInt(8, s.endJointNumber?.intValue)
-                ps.setNullableDouble(9, s.sourceStart)
-                ps.setString(10, s.source.name)
+                ps.setDouble(4, s.start)
+                ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
+                ps.setNullableInt(6) { if (s.sourceId is IndexedId) s.sourceId.index else null }
+                ps.setNullableInt(7) { if (s.switchId is IntId) s.switchId.intValue else null }
+                ps.setNullableInt(8, s.startJointNumber?.intValue)
+                ps.setNullableInt(9, s.endJointNumber?.intValue)
+                ps.setNullableDouble(10, s.sourceStart)
+                ps.setString(11, s.source.name)
                 val geometryId =
                     if (s.geometry.id is IntId) s.geometry.id
                     else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
-                ps.setInt(11, geometryId.intValue)
+                ps.setInt(12, geometryId.intValue)
             }
         }
     }
@@ -546,6 +545,7 @@ fun getSegmentPoints(
 
 private data class SegmentData(
     val id: IndexedId<LayoutSegment>,
+    val start: Double,
     val sourceId: DomainId<GeometryElement>?,
     val sourceStart: Double?,
     val switchId: DomainId<TrackLayoutSwitch>?,
