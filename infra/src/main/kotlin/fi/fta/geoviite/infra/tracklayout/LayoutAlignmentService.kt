@@ -63,6 +63,8 @@ class LayoutAlignmentService(
                 alignmentName = section.alignmentName,
                 startAddress = startAddress,
                 endAddress = endAddress,
+                startPoint = section.startPoint,
+                endPoint = section.endPoint,
                 isLinked = section.isLinked,
                 id = section.id,
             ) else null

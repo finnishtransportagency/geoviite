@@ -312,8 +312,10 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               segment.*,
               postgis.st_x(postgis.st_startpoint(start_geom.geometry)) as start_x,
               postgis.st_y(postgis.st_startpoint(start_geom.geometry)) as start_y,
+              postgis.st_m(postgis.st_startpoint(start_geom.geometry)) + segment.start as start_m,
               postgis.st_x(postgis.st_endpoint(end_geom.geometry)) as end_x,
-              postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y
+              postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y,
+              postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + segment.start as end_y
             from segment_range range
               inner join metadata_segments segment on
                   range.alignment_id = segment.alignment_id and range.alignment_version = segment.alignment_version
@@ -337,12 +339,20 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         val result = jdbcTemplate.query(sql, params) { rs, _ ->
             val fromSegment = rs.getInt("from_segment")
             val toSegment = rs.getInt("to_segment")
+            val startPoint = rs.getDoubleOrNull("start_m")?.let { m ->
+                rs.getPointOrNull("start_x", "start_y")?.let { point ->
+                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+            }
+            val endPoint = rs.getDoubleOrNull("end_m")?.let { m ->
+                rs.getPointOrNull("end_x", "end_y")?.let { point ->
+                    LayoutPoint(point.x, point.y, 0.0, m, 0.0) }
+            }
             SegmentGeometryAndMetadata(
                 planId = rs.getIntIdOrNull("plan_id"),
                 fileName = rs.getFileNameOrNull("file_name"),
                 alignmentName = rs.getString("alignment_name")?.let(::AlignmentName),
-                startPoint = rs.getPointOrNull("start_x", "start_y"),
-                endPoint = rs.getPointOrNull("end_x", "end_y"),
+                startPoint = startPoint,
+                endPoint = endPoint,
                 isLinked = rs.getBoolean("is_linked"),
                 id = StringId("${alignmentVersion.id.intValue}_${fromSegment}_${toSegment}")
             )
