@@ -112,7 +112,7 @@ data class CalculatedChanges(
         )
     }
 
-    private fun <T, R> checkDuplicates(changes: List<T>, groupingBy: (v: T) -> R, message: String) {
+    private fun <T, R> checkDuplicates(changes: Collection<T>, groupingBy: (v: T) -> R, message: String) {
         check(changes.groupingBy(groupingBy).eachCount().all { it.value == 1 }) { message }
     }
 }

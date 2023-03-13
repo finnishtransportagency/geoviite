@@ -204,7 +204,7 @@ fun convertToRatkoNodeCollection(addresses: AlignmentAddresses) = convertToRatko
     )
 )
 
-fun convertToRatkoNodeCollection(nodes: List<RatkoNode>) = RatkoNodes(nodes, RatkoNodesType.START_AND_END)
+fun convertToRatkoNodeCollection(nodes: Collection<RatkoNode>) = RatkoNodes(nodes, RatkoNodesType.START_AND_END)
 
 fun convertToRatkoNode(
     addressPoint: AddressPoint,
@@ -321,7 +321,7 @@ fun convertToRatkoSwitch(
 )
 
 fun convertToRatkoAssetLocations(
-    jointChanges: Collection<SwitchJointChange>,
+    jointChanges: List<SwitchJointChange>,
     switchType: SwitchBaseType,
 ): List<RatkoAssetLocation> {
     var priority = 0

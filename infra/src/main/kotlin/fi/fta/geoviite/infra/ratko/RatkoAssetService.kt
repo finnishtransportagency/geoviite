@@ -28,7 +28,7 @@ class RatkoAssetService @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushSwitchChangesToRatko(publishedSwitches: List<PublishedSwitch>) {
+    fun pushSwitchChangesToRatko(publishedSwitches: Collection<PublishedSwitch>) {
         publishedSwitches
             .groupBy { it.version.id }
             .map { (_, switches) ->
@@ -63,7 +63,7 @@ class RatkoAssetService @Autowired constructor(
     private fun updateSwitch(
         layoutSwitch: TrackLayoutSwitch,
         existingRatkoSwitch: RatkoSwitchAsset,
-        jointChanges: Collection<SwitchJointChange>,
+        jointChanges: List<SwitchJointChange>,
     ) {
         logger.serviceCall(
             "updateRatkoSwitch",
@@ -163,7 +163,7 @@ class RatkoAssetService @Autowired constructor(
     private fun updateSwitchLocations(
         switchOid: RatkoOid<RatkoSwitchAsset>,
         baseRatkoLocations: List<RatkoAssetLocation>,
-        jointChanges: Collection<SwitchJointChange>,
+        jointChanges: List<SwitchJointChange>,
         switchStructure: SwitchStructure,
     ) {
         if (jointChanges.isNotEmpty()) {
@@ -191,7 +191,7 @@ class RatkoAssetService @Autowired constructor(
         }
     }
 
-    private fun createSwitch(layoutSwitch: TrackLayoutSwitch, jointChanges: Collection<SwitchJointChange>) {
+    private fun createSwitch(layoutSwitch: TrackLayoutSwitch, jointChanges: List<SwitchJointChange>) {
         logger.serviceCall(
             "createRatkoSwitch",
             "layoutSwitch" to layoutSwitch,
@@ -223,7 +223,7 @@ class RatkoAssetService @Autowired constructor(
     }
 
     private fun generateSwitchLocations(
-        jointChanges: Collection<SwitchJointChange>,
+        jointChanges: List<SwitchJointChange>,
         switchStructure: SwitchStructure,
     ): List<RatkoAssetLocation> {
         val changedJointsOnly = jointChanges.filterNot { it.isRemoved }

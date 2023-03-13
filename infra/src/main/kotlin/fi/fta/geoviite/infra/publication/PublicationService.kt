@@ -905,7 +905,7 @@ class PublicationService @Autowired constructor(
         name = name,
         trackNumbers = trackNumberIds.map { id ->
             getTrackNumberAtMomentOrThrow(id, publication.publicationTime).number
-        },
+        }.sorted(),
         changedKmNumbers = changedKmNumbers?.sorted(),
         operation = operation,
         publicationTime = publication.publicationTime,

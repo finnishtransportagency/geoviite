@@ -367,8 +367,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveTrackNumberChanges(
         publicationId: IntId<Publication>,
-        directChanges: List<TrackNumberChange>,
-        indirectChanges: List<TrackNumberChange>,
+        directChanges: Collection<TrackNumberChange>,
+        indirectChanges: Collection<TrackNumberChange>,
     ) {
         jdbcTemplate.batchUpdate(
             """
@@ -380,9 +380,10 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                   track_number_version,
                   direct_change
                 ) 
-                select :publication_id, :track_number_id, :start_changed, :end_changed, version, :direct_change
-                from layout.track_number
-                where id = :track_number_id
+                select publication.id, track_number.id, :start_changed, :end_changed, track_number.version, :direct_change
+                from publication.publication
+                  inner join layout.track_number_at(publication_time) track_number on track_number.id = :track_number_id
+                where publication.id = :publication_id
             """.trimMargin(),
             mapOf(true to directChanges, false to indirectChanges)
                 .flatMap { (directChange, changes) ->
@@ -416,14 +417,15 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveKmPostChanges(
         publicationId: IntId<Publication>,
-        kmPostIds: List<IntId<TrackLayoutKmPost>>,
+        kmPostIds: Collection<IntId<TrackLayoutKmPost>>,
     ) {
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.km_post (publication_id, km_post_id, km_post_version)
-                select :publication_id, :km_post_id, version
-                from layout.km_post
-                where id = :km_post_id
+                select publication.id, km_post.id, km_post.version
+                from publication.publication
+                  inner join layout.km_post_at(publication_time) km_post on km_post.id = :km_post_id
+                where publication.id = :publication_id
             """.trimMargin(),
             kmPostIds.map { id ->
                 mapOf(
@@ -436,14 +438,16 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveReferenceLineChanges(
         publicationId: IntId<Publication>,
-        referenceLineIds: List<IntId<ReferenceLine>>,
+        referenceLineIds: Collection<IntId<ReferenceLine>>,
     ) {
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.reference_line (publication_id, reference_line_id, reference_line_version)
-                select :publication_id, :reference_line_id, version
-                from layout.reference_line
-                where id = :reference_line_id
+                select publication.id, reference_line.id, reference_line.version
+                from publication.publication
+                  inner join layout.reference_line_at(publication_time) reference_line 
+                    on reference_line.id = :reference_line_id 
+                where publication.id = :publication_id
             """.trimMargin(),
             referenceLineIds.map { id ->
                 mapOf(
@@ -456,8 +460,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveLocationTrackChanges(
         publicationId: IntId<Publication>,
-        directChanges: List<LocationTrackChange>,
-        indirectChanges: List<LocationTrackChange>,
+        directChanges: Collection<LocationTrackChange>,
+        indirectChanges: Collection<LocationTrackChange>,
     ) {
         jdbcTemplate.batchUpdate(
             """
@@ -469,9 +473,11 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                   location_track_version,
                   direct_change
                 )
-                select :publication_id, :location_track_id, :start_changed, :end_changed, version, :direct_change
-                from layout.location_track
-                where id = :location_track_id
+                select publication.id, location_track.id, :start_changed, :end_changed, location_track.version, :direct_change
+                from publication.publication
+                  inner join layout.location_track_at(publication_time) location_track 
+                    on location_track.id = :location_track_id
+                where publication.id = :publication_id
             """.trimMargin(),
             mapOf(true to directChanges, false to indirectChanges)
                 .flatMap { (directChange, changes) ->
@@ -505,15 +511,16 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     private fun saveSwitchChanges(
         publicationId: IntId<Publication>,
-        directChanges: List<SwitchChange>,
-        indirectChanges: List<SwitchChange>,
+        directChanges: Collection<SwitchChange>,
+        indirectChanges: Collection<SwitchChange>,
     ) {
         jdbcTemplate.batchUpdate(
             """
                 insert into publication.switch (publication_id, switch_id, switch_version, direct_change) 
-                select :publication_id, :switch_id, version, :direct_change
-                from layout.switch
-                where id = :switch_id
+                select publication.id, switch.id, switch.version, :direct_change
+                from publication.publication
+                  inner join layout.switch_at(publication_time) switch on switch.id = :switch_id
+                where publication.id = :publication_id
             """.trimMargin(),
             mapOf(true to directChanges, false to indirectChanges)
                 .flatMap { (directChange, changes) ->

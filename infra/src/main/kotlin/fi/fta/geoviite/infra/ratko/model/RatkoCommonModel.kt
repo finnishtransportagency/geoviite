@@ -28,7 +28,7 @@ data class RatkoMetadata(
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RatkoNodes(
-    val nodes: List<RatkoNode> = listOf(),
+    val nodes: Collection<RatkoNode> = listOf(),
     val type: RatkoNodesType,
 ) {
     @JsonIgnore
