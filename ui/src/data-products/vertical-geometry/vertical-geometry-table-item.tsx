@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { formatTrackMeter } from 'utils/geography-utils';
-import { VerticalGeometry } from 'geometry/geometry-model';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 import styles from 'data-products/data-product-table.scss';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 
 type VerticalGeometryTableItemProps = {
-    verticalGeometry: VerticalGeometry;
+    verticalGeometry: VerticalGeometryItem;
 };
 
 export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps> = ({

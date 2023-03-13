@@ -5,7 +5,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { planSources } from 'utils/enum-localization-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { GeometryPlanHeader, PlanSource, VerticalGeometry } from 'geometry/geometry-model';
+import { GeometryPlanHeader, PlanSource, VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     getGeometryPlanVerticalGeometry,
     getGeometryPlanVerticalGeometryCsv,
@@ -26,7 +26,7 @@ type PlanVerticalGeometrySearchProps = {
     onUpdateProp: <TKey extends keyof PlanVerticalGeometrySearchState>(
         propEdit: PropEdit<PlanVerticalGeometrySearchState, TKey>,
     ) => void;
-    setVerticalGeometry: (verticalGeometry: VerticalGeometry[]) => void;
+    setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
 };
 
 const debouncedGetPlanVerticalGeometry = debounceAsync(getGeometryPlanVerticalGeometry, 250);

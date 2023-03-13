@@ -278,31 +278,28 @@ export type ElementItem = {
     coordinateSystemName: string;
 };
 
-type CircularCurve = {
-    address: TrackMeter | undefined;
-    height: number;
-    angle: number;
-    station: number;
-};
-
 type LinearSection = {
     stationValueDistance: number | undefined;
     linearSegmentLength: number | undefined;
 };
 
-type PVIPoint = {
+type StationPoint = {
     address: TrackMeter | undefined;
     height: number;
     station: number;
 };
 
-export type VerticalGeometry = {
+type CircularCurve = StationPoint & {
+    angle: number;
+};
+
+export type VerticalGeometryItem = {
     id: string;
     planId: GeometryPlanId;
     fileName: string;
     alignmentName: string;
     start: CircularCurve;
-    point: PVIPoint;
+    point: StationPoint;
     end: CircularCurve;
     radius: number;
     tangent: number;

@@ -9,8 +9,6 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
-import java.lang.IllegalArgumentException
 import java.math.BigDecimal
 import kotlin.math.sqrt
 import kotlin.test.assertNotNull
@@ -182,9 +180,8 @@ class VerticalGeometryListingTest() {
             segment,
             curvedSegment(Point(8.0, 0.0), Point(10.0, 0.0), Point(9.0, -1.0)),
         )
-        val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
 
-        val next = nextLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
+        val next = nextLinearSection(segment, entireProfile, emptyList())
         assertNull(next.linearSegmentLength)
         assertNull(next.stationValueDistance)
     }
@@ -245,9 +242,9 @@ class VerticalGeometryListingTest() {
             GeometryElementType.LINE,
         )
         val element = alignment.elements.get(0)
-        val coordinate = alignment.getCoordinateAt(element.calculatedLength)
-        assertEquals(coordinate!!.x, element.end.x, 0.0001)
-        assertEquals(coordinate!!.y, element.end.y, 0.0001)
+        val coordinate = alignment.getCoordinateAt(element.calculatedLength)!!
+        assertEquals(coordinate.x, element.end.x, 0.0001)
+        assertEquals(coordinate.y, element.end.y, 0.0001)
     }
 
     @Test
@@ -257,9 +254,9 @@ class VerticalGeometryListingTest() {
             GeometryElementType.LINE,
         )
         val element = alignment.elements.get(0)
-        val coordinate = alignment.getCoordinateAt(0.0)
-        assertEquals(coordinate!!.x, element.start.x, 0.0001)
-        assertEquals(coordinate!!.y, element.start.y, 0.0001)
+        val coordinate = alignment.getCoordinateAt(0.0)!!
+        assertEquals(coordinate.x, element.start.x, 0.0001)
+        assertEquals(coordinate.y, element.start.y, 0.0001)
     }
 
     @Test
@@ -270,9 +267,11 @@ class VerticalGeometryListingTest() {
             GeometryElementType.LINE,
         )
         val element = alignment.elements.get(1)
-        val coordinate = alignment.getCoordinateAt(alignment.elements.first().calculatedLength + element.calculatedLength*0.5)
-        assertEquals(coordinate!!.x, 1.5, 0.0001)
-        assertEquals(coordinate!!.y, 1.5, 0.0001)
+        val coordinate = alignment.getCoordinateAt(
+            alignment.elements.first().calculatedLength + element.calculatedLength*0.5
+        )!!
+        assertEquals(coordinate.x, 1.5, 0.0001)
+        assertEquals(coordinate.y, 1.5, 0.0001)
     }
 
     @Test
@@ -281,9 +280,9 @@ class VerticalGeometryListingTest() {
             IntId(1),
             GeometryElementType.LINE,
         )
-        val coordinate = alignment.getCoordinateAt(alignment.elements.first().calculatedLength)
-        assertEquals(coordinate!!.x, 1.0, 0.0001)
-        assertEquals(coordinate!!.y, 1.0, 0.0001)
+        val coordinate = alignment.getCoordinateAt(alignment.elements.first().calculatedLength)!!
+        assertEquals(coordinate.x, 1.0, 0.0001)
+        assertEquals(coordinate.y, 1.0, 0.0001)
     }
 
     @Test
@@ -292,7 +291,7 @@ class VerticalGeometryListingTest() {
             IntId(1),
             GeometryElementType.LINE,
         )
-        assertThrows<IllegalArgumentException> { alignment.getCoordinateAt(alignment.elements.first().calculatedLength + 0.5) }
+        assertNull(alignment.getCoordinateAt(alignment.elements.first().calculatedLength + 0.5))
     }
 
     private fun curvedSegment(start: Point, end: Point, center: Point, radius: Double = start.x - end.x / 2.0) =

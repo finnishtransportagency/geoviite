@@ -45,8 +45,8 @@ data class GeometryAlignment(
             .let { match ->
                 match?.let {
                     val distanceLeft = distance - match.first
-                    require(distanceLeft <= match.second.calculatedLength) { "Trying to get coordinates past the end of alignment" }
-                    match.second.getCoordinateAt(distance - match.first)
+                    if (distanceLeft <= match.second.calculatedLength) match.second.getCoordinateAt(distanceLeft)
+                    else null
                 }
             }
 
