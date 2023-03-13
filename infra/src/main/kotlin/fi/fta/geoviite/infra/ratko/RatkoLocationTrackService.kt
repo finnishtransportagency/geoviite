@@ -214,11 +214,15 @@ class RatkoLocationTrackService @Autowired constructor(
             AddressRounding.DOWN -> points.findLast { p -> p.address <= seek }
         } ?: throw IllegalStateException("No address point found: seek=$seek rounding=$rounding")
 
-    private fun deleteLocationTrack(layoutLocationTrack: LocationTrack, existingRatkoLocationTrack: RatkoLocationTrack) {
+    private fun deleteLocationTrack(
+        layoutLocationTrack: LocationTrack,
+        existingRatkoLocationTrack: RatkoLocationTrack,
+    ) {
         logger.serviceCall("deleteLocationTrack", "layoutLocationTrack" to layoutLocationTrack)
         requireNotNull(layoutLocationTrack.externalId) { "Cannot delete location track without oid, id=${layoutLocationTrack.id}" }
 
-        val deletedEndsPoints = existingRatkoLocationTrack.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
+        val deletedEndsPoints =
+            existingRatkoLocationTrack.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
 
         updateLocationTrackProperties(layoutLocationTrack, deletedEndsPoints)
 

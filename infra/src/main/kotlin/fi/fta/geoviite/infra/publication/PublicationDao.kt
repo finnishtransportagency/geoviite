@@ -283,29 +283,29 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     @Transactional
     fun savePublishCalculatedChanges(publicationId: IntId<Publication>, changes: CalculatedChanges) {
-        saveTrackNumberChangesInPublish(
+        saveTrackNumberChanges(
             publicationId,
             changes.directChanges.trackNumberChanges,
             changes.indirectChanges.trackNumberChanges
         )
 
-        saveKmPostChangesInPublish(
+        saveKmPostChanges(
             publicationId,
             changes.directChanges.kmPostChanges
         )
 
-        saveReferenceLineChangesInPublish(
+        saveReferenceLineChanges(
             publicationId,
             changes.directChanges.referenceLineChanges
         )
 
-        saveLocationTrackChangesInPublish(
+        saveLocationTrackChanges(
             publicationId,
             changes.directChanges.locationTrackChanges,
             changes.indirectChanges.locationTrackChanges
         )
 
-        saveSwitchChangesInPublish(
+        saveSwitchChanges(
             publicationId,
             changes.directChanges.switchChanges,
             changes.indirectChanges.switchChanges
@@ -365,7 +365,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
             .first() ?: Instant.ofEpochSecond(0)
     }
 
-    private fun saveTrackNumberChangesInPublish(
+    private fun saveTrackNumberChanges(
         publicationId: IntId<Publication>,
         directChanges: List<TrackNumberChange>,
         indirectChanges: List<TrackNumberChange>,
@@ -414,7 +414,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
-    private fun saveKmPostChangesInPublish(
+    private fun saveKmPostChanges(
         publicationId: IntId<Publication>,
         kmPostIds: List<IntId<TrackLayoutKmPost>>,
     ) {
@@ -434,7 +434,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
-    private fun saveReferenceLineChangesInPublish(
+    private fun saveReferenceLineChanges(
         publicationId: IntId<Publication>,
         referenceLineIds: List<IntId<ReferenceLine>>,
     ) {
@@ -454,7 +454,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
-    private fun saveLocationTrackChangesInPublish(
+    private fun saveLocationTrackChanges(
         publicationId: IntId<Publication>,
         directChanges: List<LocationTrackChange>,
         indirectChanges: List<LocationTrackChange>,
@@ -503,7 +503,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         )
     }
 
-    private fun saveSwitchChangesInPublish(
+    private fun saveSwitchChanges(
         publicationId: IntId<Publication>,
         directChanges: List<SwitchChange>,
         indirectChanges: List<SwitchChange>,
@@ -605,7 +605,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     @Cacheable(CACHE_PUBLISHED_LOCATION_TRACKS, sync = true)
     fun fetchPublishedLocationTracks(
         publicationId: IntId<Publication>,
-    ): Pair<List<PublishedLocationTrack>, List<PublishedLocationTrack>> {
+    ): PublishedItemListing<PublishedLocationTrack> {
         val sql = """
             select
               plt.location_track_id as id,
@@ -632,14 +632,10 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 operation = rs.getEnum("operation"),
                 changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet()
             )
+        }.let { locationTrackRows ->
+            logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.version })
+            partitionDirectIndirectChanges(locationTrackRows)
         }
-            .also { locationTrackRows ->
-                logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.version })
-            }
-            .partition { it.first }
-            .let { (directChanges, indirectChanges) ->
-                directChanges.map { it.second } to indirectChanges.map { it.second }
-            }
     }
 
     fun fetchPublishedReferenceLines(publicationId: IntId<Publication>): List<PublishedReferenceLine> {
@@ -703,7 +699,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     @Transactional(readOnly = true)
     @Cacheable(CACHE_PUBLISHED_SWITCHES, sync = true)
-    fun fetchPublishedSwitches(publicationId: IntId<Publication>): Pair<List<PublishedSwitch>, List<PublishedSwitch>> {
+    fun fetchPublishedSwitches(publicationId: IntId<Publication>): PublishedItemListing<PublishedSwitch> {
         val sql = """
             select
               ps.switch_id as id,
@@ -735,14 +731,10 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                     .filter { it.first == rs.getIntId<TrackLayoutSwitch>("id") }
                     .flatMap { it.second }
             )
+        }.let { switchRows ->
+            logger.daoAccess(FETCH, PublishedSwitch::class, switchRows.map { it.second.version })
+            partitionDirectIndirectChanges(switchRows)
         }
-            .also { switchRows ->
-                logger.daoAccess(FETCH, PublishedSwitch::class, switchRows.map { it.second.version })
-            }
-            .partition { it.first }
-            .let { (directChanges, indirectChanges) ->
-                directChanges.map { it.second } to indirectChanges.map { it.second }
-            }
     }
 
     private fun publishedSwitchJoints(
@@ -784,7 +776,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     fun fetchPublishedTrackNumbers(
         publicationId: IntId<Publication>,
-    ): Pair<List<PublishedTrackNumber>, List<PublishedTrackNumber>> {
+    ): PublishedItemListing<PublishedTrackNumber> {
         val sql = """
           select
             ptn.track_number_id as id,
@@ -812,13 +804,17 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 operation = rs.getEnum("operation"),
                 changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet()
             )
+        }.let { trackNumberRows ->
+            logger.daoAccess(FETCH, PublishedTrackNumber::class, trackNumberRows.map { it.second.version })
+            partitionDirectIndirectChanges(trackNumberRows)
         }
-            .also { trackNumberRows ->
-                logger.daoAccess(FETCH, PublishedTrackNumber::class, trackNumberRows.map { it.second.version })
-            }
-            .partition { it.first }
-            .let { (directChanges, indirectChanges) ->
-                directChanges.map { it.second } to indirectChanges.map { it.second }
-            }
     }
 }
+
+private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) = rows.partition { it.first }
+    .let { (directChanges, indirectChanges) ->
+        PublishedItemListing(
+            directChanges = directChanges.map { it.second },
+            indirectChanges = indirectChanges.map { it.second }
+        )
+    }
