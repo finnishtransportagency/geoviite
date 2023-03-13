@@ -1,5 +1,4 @@
 import * as React from 'react';
-import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import styles from 'tool-panel/track-number/alignment-plan-section-infobox.scss';
 import { Link } from 'vayla-design-lib/link/link';
@@ -24,7 +23,6 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
 
     const store = useTrackLayoutAppSelector((state) => state.trackLayout);
     const visiblePlans = store.selection.planLayouts;
-
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
 
@@ -48,75 +46,96 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
 
     return (
         <React.Fragment>
-            {sections.map((section) => (
-                <InfoboxField
-                    key={section.id}
-                    label={
-                        <React.Fragment>
-                        <span className={styles['alignment-plan-section-infobox__plan-name']}>
-                            {section.planName ? (
-                                section.planId ? (
-                                    <React.Fragment>
-                                        {!section.isLinked && errorFragment()}{' '}
-                                        <Link
-                                            onClick={() => {
-                                                if (section.planId) {
-                                                    delegates.onSelect({
-                                                        geometryPlans: [section.planId],
-                                                    });
-                                                    delegates.setToolPanelTab(
-                                                        toolPanelPlanTabId(section.planId),
-                                                    );
-                                                }
-                                            }}
-                                            title={`${section.planName} (${section.alignmentName})`}>
+            <div className="infobox__list">
+                {sections.map((section) => (
+                    <div className="infobox__list-row" key={section.id}>
+                        {section.planName && !section.isLinked && (
+                            <div className="infobox__list-cell">{errorFragment()}</div>
+                        )}
+                        <div className="infobox__list-cell infobox__list-cell--stretch infobox__list-cell--label">
+                            <div className={styles['alignment-plan-section-infobox__plan-name']}>
+                                {section.planName ? (
+                                    section.planId ? (
+                                        <React.Fragment>
+                                            <Link
+                                                onClick={() => {
+                                                    if (section.planId) {
+                                                        delegates.onSelect({
+                                                            geometryPlans: [section.planId],
+                                                        });
+                                                        delegates.setToolPanelTab(
+                                                            toolPanelPlanTabId(section.planId),
+                                                        );
+                                                    }
+                                                }}
+                                                title={t(
+                                                    'tool-panel.alignment-plan-sections.plan-tooltip',
+                                                    [section.planName, section.alignmentName],
+                                                )}>
+                                                <span
+                                                    className={
+                                                        styles[
+                                                            'alignment-plan-section-infobox__plan-link-content'
+                                                        ]
+                                                    }>
+                                                    {section.planName}
+                                                </span>
+                                            </Link>
+                                        </React.Fragment>
+                                    ) : (
+                                        <span
+                                            title={t(
+                                                'tool-panel.alignment-plan-sections.plan-tooltip',
+                                                [section.planName, section.alignmentName],
+                                            )}>
                                             {section.planName}
-                                        </Link>
-                                    </React.Fragment>
+                                        </span>
+                                    )
                                 ) : (
-                                    <span title={`${section.planName} (${section.alignmentName})`}>
-                                        {errorFragment()} {section.planName}
-                                    </span>
-                                )
-                            ) : (
-                                t('tool-panel.alignment-plan-sections.no-plan')
-                            )}
-                        </span>
-                            {section.planId && (
-                            <div
-                                onClick={() =>
-                                    section.planId && togglePlanVisibility(section.planId)
-                                }
-                                className="alignment-plan-section-infobox__plan-tools">
-                                {isVisible(section.planId) ? (
-                                    <Icons.Eye />
-                                ) : (
-                                    <Icons.Eye color={IconColor.INHERIT} />
+                                    t('tool-panel.alignment-plan-sections.no-plan')
                                 )}
                             </div>
-                        )}
-                        </React.Fragment>
-                    }
-                    value={
-                        <div className={styles['alignment-plan-section-infobox__meters']}>
-                            <span>
-                                {section.startAddress
-                                    ? formatTrackMeterWithoutMeters(section.startAddress)
-                                    : errorFragment(
-                                          t('tool-panel.alignment-plan-sections.geocoding-failed'),
-                                      )}
-                            </span>{' '}
-                            <span>
-                                {section.endAddress
-                                    ? formatTrackMeterWithoutMeters(section.endAddress)
-                                    : errorFragment(
-                                          t('tool-panel.alignment-plan-sections.geocoding-failed'),
-                                      )}
-                            </span>
                         </div>
-                    }
-                />
-            ))}
+                        <div className="infobox__list-cell">
+                            {section.planId && section.isLinked && (
+                                <div
+                                    onClick={() =>
+                                        section.planId && togglePlanVisibility(section.planId)
+                                    }
+                                    className="alignment-plan-section-infobox__show-plan-icon">
+                                    {isVisible(section.planId) ? (
+                                        <Icons.Eye />
+                                    ) : (
+                                        <Icons.Eye color={IconColor.INHERIT} />
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <div className="infobox__list-cell">
+                            <div className={styles['alignment-plan-section-infobox__meters']}>
+                                <span>
+                                    {section.startAddress
+                                        ? formatTrackMeterWithoutMeters(section.startAddress)
+                                        : errorFragment(
+                                              t(
+                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
+                                              ),
+                                          )}
+                                </span>{' '}
+                                <span>
+                                    {section.endAddress
+                                        ? formatTrackMeterWithoutMeters(section.endAddress)
+                                        : errorFragment(
+                                              t(
+                                                  'tool-panel.alignment-plan-sections.geocoding-failed',
+                                              ),
+                                          )}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </React.Fragment>
     );
 };

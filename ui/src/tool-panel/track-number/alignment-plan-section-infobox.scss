@@ -1,16 +1,27 @@
 @import '../../vayla-design-lib/colors';
 
 .alignment-plan-section-infobox__plan-name {
-    zoom: 1;
-    flex: 1;
-    //position: relative;
-    //overflow: hidden;
-    //white-space: nowrap;
-    //text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.alignment-plan-section-infobox__plan-link-content {
+    display: inline-block;
 }
 
 .alignment-plan-section-infobox__no-plan-icon {
+    display: block;
+    transform: translate(0, 1px);
     fill: $color-red-dark;
+}
+
+.alignment-plan-section-infobox__show-plan-icon {
+    display: block;
+    transform: translate(0, -3px);
+    cursor: pointer;
+    fill: $color-white-darker;
+    padding: 0 2px;
+    line-height: 0;
 }
 
 .alignment-plan-section-infobox__meters {
@@ -18,50 +29,4 @@
     grid-template-columns: repeat(2, 50%);
     grid-column-gap: 6px;
     width: 100%;
-}
-
-.progress-indicator-wrapper__content .infobox__field {
-    position: relative;
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    /* margin-left: 13px; */
-    /* border: 2px solid orange; */
-}
-
-.progress-indicator-wrapper__content .infobox__field-label {
-    /* border: 1px solid green; */
-    flex: 1;
-    width: auto;
-    max-width: none;
-    white-space: normal;
-    word-break: break-word;
-    display: flex;
-    align-items: stretch;
-}
-.progress-indicator-wrapper__content
-    .infobox__field-label:hover
-    .alignment-plan-section-infobox__plan-tools {
-    opacity: 1;
-}
-
-.alignment-plan-section-infobox__plan-tools {
-    //opacity: 0;
-    padding: 0 5px;
-    background: white;
-    cursor: pointer;
-    fill: $color-white-darker;
-}
-
-.progress-indicator-wrapper__content .infobox__field-value {
-    min-width: auto;
-    max-width: none;
-    justify-content: flex-end;
-    flex-direction: row;
-    flex-grow: unset;
-    margin-left: 4px;
-}
-
-.alignment-plan-section-infobox__meters {
-    width: auto;
 }

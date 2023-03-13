@@ -76,6 +76,35 @@
     }
 }
 
+.infobox__list {
+    display: flex;
+    flex-direction: column;
+}
+
+.infobox__list-row {
+    display: flex;
+    flex-direction: row;
+    margin: 6px 0;
+}
+
+.infobox__list-cell {
+    @include typography-caption-strong;
+
+    &:not(:last-child) {
+        margin-right: 8px;
+    }
+}
+
+.infobox__list-cell--label {
+    font-weight: 400;
+    @include typography-caption;
+    color: $color-black-light;
+}
+
+.infobox__list-cell--stretch {
+    flex: 1;
+}
+
 .infobox-tabs {
     position: sticky;
     top: 0;
