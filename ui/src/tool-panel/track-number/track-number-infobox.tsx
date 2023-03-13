@@ -249,7 +249,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             )}
             {referenceLine && (
                 <TrackNumberGeometryInfobox
-                    referenceLineId={referenceLine.id}
+                    trackNumberId={trackNumber.id}
                     publishType={publishType}
                     viewport={viewport}
                 />

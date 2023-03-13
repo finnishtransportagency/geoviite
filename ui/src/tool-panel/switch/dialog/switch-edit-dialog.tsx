@@ -104,11 +104,18 @@ export const SwitchEditDialog = ({
 
     React.useEffect(() => {
         getSwitchOwners().then((owners) => {
-            const vayla = owners.find((o) => o.name === 'Väylävirasto');
-            setSwitchOwnerId(vayla ? vayla.id : owners[0].id);
             setSwitchOwners(owners);
         });
     }, []);
+
+    React.useEffect(() => {
+        if (existingSwitch) {
+            setSwitchOwnerId(existingSwitch.ownerId ?? undefined);
+        } else if (switchOwners.length > 0) {
+            const vayla = switchOwners.find((o) => o.name === 'Väylävirasto');
+            setSwitchOwnerId(vayla ? vayla.id : switchOwners[0].id);
+        }
+    }, [switchOwners, existingSwitch]);
 
     React.useEffect(() => {
         validateLinkingSwitch();

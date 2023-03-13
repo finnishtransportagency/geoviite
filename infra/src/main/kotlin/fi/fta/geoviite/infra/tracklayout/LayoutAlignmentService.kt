@@ -1,7 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import org.slf4j.Logger
@@ -36,33 +40,35 @@ class LayoutAlignmentService(
         return alignment to dao.insert(alignment)
     }
 
-    fun getGeometrySectionsByPlan(
-        publishType: PublishType,
-        id: IntId<LayoutAlignment>,
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        boundingBox: BoundingBox?
-    ): List<SegmentGeometryAndMetadata> {
+    fun getGeometryMetadataSections(
+        alignmentVersion: RowVersion<LayoutAlignment>,
+        externalId: Oid<*>?,
+        boundingBox: BoundingBox?,
+        context: GeocodingContext,
+    ): List<AlignmentPlanSection> {
         logger.serviceCall(
-            "getGeometrySectionsByPlan",
-            "publishType" to publishType,
-            "id" to id,
-            "trackNumberId" to trackNumberId,
+            "getGeometryMetadataSections",
+            "alignmentVersion" to alignmentVersion,
+            "externalId" to externalId,
             "boundingBox" to boundingBox
         )
-        val segmentGeometriesAndMetadatas = dao.fetchSegmentGeometriesAndPlanMetadata(id, boundingBox)
-        return foldSegmentsByPlan(segmentGeometriesAndMetadatas)
+        val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
+        return sections.mapNotNull { section ->
+            val startAddress = if (section.startPoint != null) context.getAddress(section.startPoint)?.first else null
+            val endAddress = if (section.endPoint != null) context.getAddress(section.endPoint)?.first else null
+
+            if (startAddress != null && endAddress != null) AlignmentPlanSection(
+                planId = section.planId,
+                planName = section.fileName,
+                alignmentName = section.alignmentName,
+                startAddress = startAddress,
+                endAddress = endAddress,
+                isLinked = section.isLinked,
+                id = section.id,
+            ) else null
+        }
     }
 }
-
-fun foldSegmentsByPlan(segments: List<SegmentGeometryAndMetadata>) =
-    segments.fold(mutableListOf<SegmentGeometryAndMetadata>()) { acc, element ->
-        val last = acc.lastOrNull()
-        if (last == null || last.planId != element.planId || last.fileName != element.fileName || last.source != element.source) acc.add(
-            element
-        )
-        else acc.set(acc.lastIndex, last.copy(endPoint = element.endPoint))
-        acc
-    }
 
 private fun asNew(alignment: LayoutAlignment) =
     if (alignment.dataType == TEMP) alignment

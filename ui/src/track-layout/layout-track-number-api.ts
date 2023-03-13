@@ -7,6 +7,7 @@ import {
 import { PublishType, TimeStamp } from 'common/common-model';
 import {
     deleteAdt,
+    getIgnoreError,
     getThrowError,
     postIgnoreError,
     putIgnoreError,
@@ -22,6 +23,9 @@ import {
 import { LocationTrackSaveError } from 'linking/linking-model';
 import { Result } from 'neverthrow';
 import { ValidatedAsset } from 'publication/publication-model';
+import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
+import { bboxString } from 'common/common-api';
+import { BoundingBox } from 'model/geometry';
 
 const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
 
@@ -88,3 +92,14 @@ export async function getTrackNumberValidation(
         `${layoutUri('track-numbers', publishType, id)}/validation`,
     );
 }
+
+export const getTrackNumberReferenceLineSectionsByPlan = async (
+    publishType: PublishType,
+    id: LayoutTrackNumberId,
+    bbox: BoundingBox | undefined = undefined,
+) => {
+    const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
+    return getIgnoreError<AlignmentPlanSection[]>(
+        `${layoutUri('track-numbers', publishType, id)}/plan-geometry/${params}`,
+    );
+};

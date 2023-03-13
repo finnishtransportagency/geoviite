@@ -103,6 +103,24 @@ class FrozenMigrationsTest @Autowired constructor(
             val expectedExists = expectedMigrations.any { expected -> expected.fileName == actual.fileName }
             assertTrue(expectedExists, "New migration found in init: new=$actual")
         }
+
+        // Code migrations must also retain their versions, names and checksums
+        val csvMigrations = listOf(
+            V11_01__Csv_import_track_numbers() to "V11_01__Csv_import_track_numbers",
+            V14_01__Csv_import_km_posts() to "V14_01__Csv_import_km_posts",
+            V14_02__Csv_import_switches() to "V14_02__Csv_import_switches",
+            V14_03__Csv_import_reference_lines() to "V14_03__Csv_import_reference_lines",
+            V14_04__Csv_import_location_tracks() to "V14_04__Csv_import_location_tracks",
+
+        )
+        csvMigrations.forEach { (migration, name) ->
+            assertEquals(migration.checksum, 9)
+            assertEquals(name, migration::class.simpleName)
+        }
+        assertEquals(V12_01__InfraModelMigration().checksum, null)
+        assertEquals("V12_01__InfraModelMigration", V12_01__InfraModelMigration::class.simpleName)
+        assertEquals(V10_03_06__SwitchLibraryDataMigration().checksum, 6)
+        assertEquals("V10_03_06__SwitchLibraryDataMigration", V10_03_06__SwitchLibraryDataMigration::class.simpleName)
     }
 
     private fun collectAllMigrations(folder: String): List<MigrationFile> =

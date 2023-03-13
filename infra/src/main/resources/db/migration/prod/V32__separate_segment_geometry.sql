@@ -5,7 +5,7 @@ create or replace function layout.calculate_geometry_hash(
   height_values numeric[],
   cant_values numeric[]
 ) returns uuid language sql as $$
-  select md5(row(resolution, geometry, height_values, cant_values)::text)::uuid
+  select md5(row(resolution, postgis.st_astext(geometry), height_values, cant_values)::text)::uuid
 $$ immutable;
 
 -- Create new un-versioned table for separately stored geometries

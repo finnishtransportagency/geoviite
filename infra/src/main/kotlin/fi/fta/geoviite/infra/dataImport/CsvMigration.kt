@@ -13,7 +13,6 @@ import org.springframework.jdbc.datasource.SingleConnectionDataSource
 abstract class CsvMigration : BaseJavaMigration() {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    val csvFilePath: String by lazy { SpringContextUtility.getProperty("geoviite.data.csv-path") }
 
     open val importEnabled: Boolean by lazy { SpringContextUtility.getProperty("geoviite.data.import") }
 

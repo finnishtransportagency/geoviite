@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_SWITCH
-import fi.fta.geoviite.infra.dataImport.SwitchLinkingInfo
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -195,7 +194,8 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
               state_category = :state_category::layout.state_category,
               trap_point = :trap_point,
               draft = :draft,
-              draft_of_switch_id = :draft_of_switch_id
+              draft_of_switch_id = :draft_of_switch_id,
+              owner_id = :owner_id
             where id = :id
             returning 
               coalesce(draft_of_switch_id, id) as official_id,
@@ -212,6 +212,7 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
             "trap_point" to updatedItem.trapPoint,
             "draft" to (updatedItem.draft != null),
             "draft_of_switch_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -349,37 +350,6 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
                 location = rs.getPoint("location_x", "location_y"),
                 locationAccuracy = rs.getEnumOrNull<LocationAccuracy>("location_accuracy")
             )
-        }
-    }
-
-    data class LinkingInfoAggregation (
-        val switchId: IntId<TrackLayoutSwitch>,
-        val switchStructureId: IntId<SwitchStructure>,
-        val jointLocation: Pair<JointNumber, Point>,
-    )
-    fun getLinkingInfoOfExistingSwitches(): Map<Oid<TrackLayoutSwitch>, SwitchLinkingInfo> {
-        val sql = """
-          select external_id, id, switch_structure_id, switch_joint.number,
-                 postgis.st_x(switch_joint.location) as location_x, postgis.st_y(location) as location_y
-          from layout.switch
-            join layout.switch_joint on switch.id = switch_joint.switch_id
-          where 
-            switch.external_id is not null
-            and state_category = 'EXISTING' 
-        """.trimIndent()
-        val rows = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            rs.getOid<TrackLayoutSwitch>("external_id") to
-                    LinkingInfoAggregation(
-                        rs.getIntId("id"),
-                        rs.getIntId("switch_structure_id"),
-                        rs.getJointNumber("number") to rs.getPoint("location_x", "location_y")
-                    )
-        }
-        return rows.groupBy { it.first }.mapValues { entry ->
-            val switches = entry.value
-            val prototype = switches[0].second
-            SwitchLinkingInfo(prototype.switchId, prototype.switchStructureId,
-                switches.map { s -> s.second.jointLocation }.associate { it })
         }
     }
 

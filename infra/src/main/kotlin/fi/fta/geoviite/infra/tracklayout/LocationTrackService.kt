@@ -217,7 +217,8 @@ class LocationTrackService(
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
     }
 
-    fun getSectionsByPlan(
+    @Transactional(readOnly = true)
+    fun getMetadataSections(
         locationTrackId: IntId<LocationTrack>,
         publishType: PublishType,
         boundingBox: BoundingBox?
@@ -228,27 +229,16 @@ class LocationTrackService(
             "publishType" to publishType,
             "boundingBox" to boundingBox
         )
-        val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, locationTrackId)
-        val alignmentSegmentGeometryByPlan = alignmentService.getGeometrySectionsByPlan(
-            publishType,
-            alignment.id as IntId<LayoutAlignment>,
-            locationTrack.trackNumberId,
-            boundingBox
-        )
-        return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
-            alignmentSegmentGeometryByPlan.mapNotNull { section ->
-                val startAddress = if (section.startPoint != null) context.getAddress(section.startPoint)?.first else null
-                val endAddress = if (section.endPoint != null) context.getAddress(section.endPoint)?.first else null
-
-                if (startAddress != null && endAddress != null) AlignmentPlanSection(
-                    planId = section.planId,
-                    planName = section.fileName,
-                    startAddress = startAddress,
-                    endAddress = endAddress,
-                    id = section.segmentId
-                ) else null
-            }
-        } ?: emptyList()
+        val locationTrack = getOrThrow(publishType, locationTrackId)
+        val geocodingContext = geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)
+        return if (geocodingContext != null && locationTrack.alignmentVersion != null) {
+            alignmentService.getGeometryMetadataSections(
+                locationTrack.alignmentVersion,
+                locationTrack.externalId,
+                boundingBox,
+                geocodingContext,
+            )
+        } else listOf()
     }
 
     private fun getWithAlignmentInternalOrThrow(publishType: PublishType, id: IntId<LocationTrack>) =
