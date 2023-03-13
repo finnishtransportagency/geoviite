@@ -36,7 +36,7 @@ data class RatkoSwitchAsset(
     override val properties: Collection<RatkoAssetProperty>,
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),
     override val locations: List<RatkoAssetLocation>?,
-    val assetGeoms: List<RatkoAssetGeometry>?,
+    val assetGeoms: Collection<RatkoAssetGeometry>?,
 ) : RatkoAsset(
     state = state,
     type = RatkoAssetType.TURNOUT,

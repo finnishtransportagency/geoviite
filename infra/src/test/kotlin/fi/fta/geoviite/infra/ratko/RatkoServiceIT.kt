@@ -172,10 +172,10 @@ class RatkoServiceIT @Autowired constructor(
 
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
         // switch was originally after kmPost2, but it got removed and then we pushed again
-        assertEquals("0002+0001", switchLocations[0][0].nodecollection.nodes[0].point.kmM.toString())
-        assertEquals("0002+0003.5", switchLocations[0][1].nodecollection.nodes[0].point.kmM.toString())
-        assertEquals("0001+0003", switchLocations[1][0].nodecollection.nodes[0].point.kmM.toString())
-        assertEquals("0001+0005.5", switchLocations[1][1].nodecollection.nodes[0].point.kmM.toString())
+        assertEquals("0002+0001", switchLocations[0][0].nodecollection.nodes.first().point.kmM.toString())
+        assertEquals("0002+0003.5", switchLocations[0][1].nodecollection.nodes.first().point.kmM.toString())
+        assertEquals("0001+0003", switchLocations[1][0].nodecollection.nodes.first().point.kmM.toString())
+        assertEquals("0001+0005.5", switchLocations[1][1].nodecollection.nodes.first().point.kmM.toString())
     }
 
     @Test
@@ -203,7 +203,8 @@ class RatkoServiceIT @Autowired constructor(
             switchLocations.map { push -> push.nodecollection.nodes.map { n -> n.point.locationtrack!!.toString() } })
         assertEquals(
             trackNumber.externalId!!.toString(),
-            switchLocations.map { s -> s.nodecollection.nodes[0].point.routenumber!!.toString() }.distinct().single()
+            switchLocations.map { s -> s.nodecollection.nodes.first().point.routenumber!!.toString() }.distinct()
+                .single()
         )
         assertEquals(listOf(1, 2), switchLocations.map { s -> s.priority })
     }

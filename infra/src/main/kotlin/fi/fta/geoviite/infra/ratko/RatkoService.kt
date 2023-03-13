@@ -89,7 +89,7 @@ class RatkoService @Autowired constructor(
         }
     }
 
-    fun pushLocationTracksToRatko(userName: UserName, locationTrackChanges: List<LocationTrackChange>) {
+    fun pushLocationTracksToRatko(userName: UserName, locationTrackChanges: Collection<LocationTrackChange>) {
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
             logger.serviceCall("pushLocationTracksToRatko")
 
@@ -142,7 +142,7 @@ class RatkoService @Autowired constructor(
 
             try {
                 ratkoLocationTrackService.forceRedraw(
-                    pushedLocationTrackOids.filterNotNull().map { RatkoOid<RatkoLocationTrack>(it) }.toSet()
+                    pushedLocationTrackOids.map { RatkoOid<RatkoLocationTrack>(it) }.toSet()
                 )
             } catch (_: Exception) {
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
@@ -174,7 +174,7 @@ class RatkoService @Autowired constructor(
 
             try {
                 ratkoRouteNumberService.forceRedraw(
-                    pushedRouteNumberOids.filterNotNull().map { RatkoOid<RatkoRouteNumber>(it) }.toSet()
+                    pushedRouteNumberOids.map { RatkoOid<RatkoRouteNumber>(it) }.toSet()
                 )
             } catch (_: Exception) {
                 logger.warn("Failed to push M values for route numbers $pushedRouteNumberOids")
@@ -182,7 +182,7 @@ class RatkoService @Autowired constructor(
 
             try {
                 ratkoLocationTrackService.forceRedraw(
-                    pushedLocationTrackOids.filterNotNull().map { RatkoOid<RatkoLocationTrack>(it) }.toSet()
+                    pushedLocationTrackOids.map { RatkoOid<RatkoLocationTrack>(it) }.toSet()
                 )
             } catch (_: Exception) {
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
@@ -240,7 +240,7 @@ class RatkoService @Autowired constructor(
         }
     }
 
-    private fun pushSwitchChanges(publications: List<PublicationDetails>) {
+    private fun pushSwitchChanges(publications: Collection<PublicationDetails>) {
         val publicationMoment = publications.maxOf { it.publicationTime }
 
         //Location track points are always removed per kilometre.

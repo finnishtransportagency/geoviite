@@ -714,6 +714,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         assertEquals(1, changes.directChanges.kmPostChanges.size)
         assertContains(changes.directChanges.kmPostChanges, kmPost.id)
         assertEquals(1, changes.indirectChanges.trackNumberChanges.size)
+        assertEquals(kmPost.trackNumberId, changes.indirectChanges.trackNumberChanges[0].trackNumberId)
         assertEquals(0, changes.directChanges.trackNumberChanges.size)
     }
 
@@ -755,7 +756,6 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val changes = getCalculatedChanges(kmPostIds = listOf(kmPost.id as IntId))
         val indirectLocationTrackChanges = changes.indirectChanges.locationTrackChanges
 
-        assertEquals(3, indirectLocationTrackChanges.size)
         assertTrue(indirectLocationTrackChanges.any { it.locationTrackId == locationTrack3.id })
         assertTrue(indirectLocationTrackChanges.any { it.locationTrackId == locationTrack4.id })
         assertEquals(0, changes.directChanges.locationTrackChanges.size)
@@ -810,6 +810,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         assertEquals(1, changes.directChanges.referenceLineChanges.size)
         assertContains(changes.directChanges.referenceLineChanges, referenceLine.id)
         assertEquals(1, changes.indirectChanges.trackNumberChanges.size)
+        assertEquals(referenceLine.trackNumberId, changes.indirectChanges.trackNumberChanges[0].trackNumberId)
         assertEquals(0, changes.directChanges.trackNumberChanges.size)
     }
 

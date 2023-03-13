@@ -25,20 +25,20 @@ class RatkoLocationTrackService @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushLocationTrackChangesToRatko(publishedLocationTracks: List<PublishedLocationTrack>): List<Oid<LocationTrack>?> {
+    fun pushLocationTrackChangesToRatko(publishedLocationTracks: Collection<PublishedLocationTrack>): List<Oid<LocationTrack>> {
         return publishedLocationTracks
             .groupBy { it.version.id }
             .map { (_, locationTracks) ->
                 val newestVersion = locationTracks.maxBy { it.version.version }.version
                 locationTrackService.get(newestVersion) to locationTracks.flatMap { it.changedKmNumbers }.toSet()
-            }.also { locationTracks ->
+            }.let { locationTracks ->
                 locationTracks
                     .sortedWith(
                         compareBy(
                             { sortByNullDuplicateOfFirst(it.first.duplicateOf) },
                             { sortByDeletedStateFirst(it.first.state) }
                         )
-                    ).forEach { (layoutLocationTrack, changedKmNumbers) ->
+                    ).mapNotNull { (layoutLocationTrack, changedKmNumbers) ->
                         layoutLocationTrack.externalId?.also { externalId ->
                             try {
                                 ratkoClient.getLocationTrack(RatkoOid(externalId))
@@ -58,7 +58,7 @@ class RatkoLocationTrackService @Autowired constructor(
                             }
                         }
                     }
-            }.map { (locationTrack, _) -> locationTrack.externalId }
+            }
     }
 
     private fun getTrackNumberOid(trackNumberId: IntId<TrackLayoutTrackNumber>): Oid<TrackLayoutTrackNumber> {
@@ -124,7 +124,7 @@ class RatkoLocationTrackService @Autowired constructor(
 
     private fun createLocationTrackMetadata(
         layoutLocationTrack: LocationTrack,
-        alignmentPoints: Collection<AddressPoint>,
+        alignmentPoints: List<AddressPoint>,
         trackNumberOid: Oid<TrackLayoutTrackNumber>,
         changedKmNumbers: Set<KmNumber>? = null,
     ) {
@@ -205,7 +205,7 @@ class RatkoLocationTrackService @Autowired constructor(
     private enum class AddressRounding { UP, DOWN }
 
     private fun findAddressPoint(
-        points: Collection<AddressPoint>,
+        points: List<AddressPoint>,
         seek: TrackMeter,
         rounding: AddressRounding,
     ): AddressPoint =

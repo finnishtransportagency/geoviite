@@ -296,7 +296,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .block(defaultBlockTimeout)
     }
 
-    fun <T : RatkoAsset> replaceAssetGeoms(assetOid: RatkoOid<T>, geoms: List<RatkoAssetGeometry>) {
+    fun <T : RatkoAsset> replaceAssetGeoms(assetOid: RatkoOid<T>, geoms: Collection<RatkoAssetGeometry>) {
         logger.integrationCall("replaceAssetGeoms", "assetOid" to assetOid, "geoms" to geoms)
         client
             .put()

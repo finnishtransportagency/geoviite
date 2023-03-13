@@ -25,16 +25,16 @@ class RatkoRouteNumberService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushTrackNumberChangesToRatko(publishedTrackNumbers: List<PublishedTrackNumber>): List<Oid<TrackLayoutTrackNumber>?> {
+    fun pushTrackNumberChangesToRatko(publishedTrackNumbers: Collection<PublishedTrackNumber>): List<Oid<TrackLayoutTrackNumber>> {
         return publishedTrackNumbers
             .groupBy { it.version.id }
             .map { (_, trackNumbers) ->
                 val newestVersion = trackNumbers.maxBy { it.version.version }.version
                 trackNumberDao.fetch(newestVersion) to trackNumbers.flatMap { it.changedKmNumbers }.toSet()
-            }.also { trackNumbers ->
+            }.let { trackNumbers ->
                 trackNumbers
                     .sortedBy { sortByDeletedStateFirst(it.first.state) }
-                    .forEach { (trackNumber, changedKmNumbers) ->
+                    .mapNotNull { (trackNumber, changedKmNumbers) ->
                         trackNumber.externalId?.also { externalId ->
                             try {
                                 ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
@@ -53,7 +53,7 @@ class RatkoRouteNumberService @Autowired constructor(
                             }
                         }
                     }
-            }.map { (trackNumber, _) -> trackNumber.externalId }
+            }
     }
 
     fun forceRedraw(routeNumberOids: Set<RatkoOid<RatkoRouteNumber>>) {
@@ -146,8 +146,8 @@ class RatkoRouteNumberService @Autowired constructor(
 
     private fun createRouteNumberPoints(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
-        addressPoints: Collection<AddressPoint>,
-    ) = toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
+        newPoints: Collection<AddressPoint>,
+    ) = toRatkoPointsGroupedByKm(newPoints).forEach { points ->
         ratkoClient.createRouteNumberPoints(routeNumberOid, points)
     }
 
