@@ -22,10 +22,6 @@ type DebugLayerPoint = {
 export type DebugLayerData = DebugLayerPoint[];
 
 let debugLayerData: DebugLayerData = [];
-/* .map((p: DebugLayerPoint, i: number) => ({
-    ...p,
-    text: `${i}`,
-})); */
 
 declare global {
     function setDebugLayerData(data: DebugLayerData): void;
@@ -63,13 +59,13 @@ function createDebugFeatures(data: DebugLayerData): Feature<DebugLayerFeatureTyp
                         }),
                         text: item.text
                             ? new Text({
-                                text: item.text,
-                                scale: 1.5,
-                                fill: new Fill({
-                                    color: color,
-                                }),
-                                offsetY: -(size + 15),
-                            })
+                                  text: item.text,
+                                  scale: 1.5,
+                                  fill: new Fill({
+                                      color: color,
+                                  }),
+                                  offsetY: -(size + 15),
+                              })
                             : undefined,
                     }),
                 );

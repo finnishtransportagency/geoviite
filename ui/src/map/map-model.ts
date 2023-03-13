@@ -92,6 +92,7 @@ export type MapLayer =
     | ManualSwitchLinkingLayer
     | Debug1mPointsLayer
     | DebugLayer;
+
 export type MapLayerType = MapLayer['type'];
 
 export type MapViewportSource = 'Map';
