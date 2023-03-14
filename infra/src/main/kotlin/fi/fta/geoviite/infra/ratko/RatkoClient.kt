@@ -142,25 +142,23 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             "points" to "${points.first().kmM}..${points.last().kmM}",
         )
 
-        points
-            .sortedBy { it.kmM }
-            .chunked(1000).mapIndexed { index, chunk ->
-                logger.integrationCall(
-                    "updateRouteNumberPoints",
-                    "routeNumberOid" to routeNumberOid,
-                    "chunk" to index,
-                    "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
-                )
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall(
+                "updateRouteNumberPoints",
+                "routeNumberOid" to routeNumberOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
 
-                client
-                    .patch()
-                    .uri("/api/infra/v1.0/routenumber/points/${routeNumberOid}")
-                    .bodyValue(chunk)
-                    .retrieve()
-                    .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
-                    .toBodilessEntity()
-                    .block(defaultBlockTimeout)
-            }
+            client
+                .patch()
+                .uri("/api/infra/v1.0/routenumber/points/${routeNumberOid}")
+                .bodyValue(chunk)
+                .retrieve()
+                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
+                .toBodilessEntity()
+                .block(defaultBlockTimeout)
+        }
     }
 
     fun createRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, points: List<RatkoPoint>) {
@@ -170,25 +168,23 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             "points" to "${points.first().kmM}..${points.last().kmM}"
         )
 
-        points
-            .sortedBy { it.kmM }
-            .chunked(1000).mapIndexed { index, chunk ->
-                logger.integrationCall(
-                    "createRouteNumberPoints",
-                    "routeNumberOid" to routeNumberOid,
-                    "chunk" to index,
-                    "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
-                )
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall(
+                "createRouteNumberPoints",
+                "routeNumberOid" to routeNumberOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
 
-                client
-                    .post()
-                    .uri("/api/infra/v1.0/routenumber/points/${routeNumberOid}")
-                    .bodyValue(chunk)
-                    .retrieve()
-                    .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
-                    .toBodilessEntity()
-                    .block(defaultBlockTimeout)
-            }
+            client
+                .post()
+                .uri("/api/infra/v1.0/routenumber/points/${routeNumberOid}")
+                .bodyValue(chunk)
+                .retrieve()
+                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
+                .toBodilessEntity()
+                .block(defaultBlockTimeout)
+        }
     }
 
     fun updateLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
@@ -198,25 +194,23 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             "points" to "${points.first().kmM}..${points.last().kmM}"
         )
 
-        points
-            .sortedBy { it.kmM }
-            .chunked(1000).mapIndexed { index, chunk ->
-                logger.integrationCall(
-                    "updateLocationTrackPoints",
-                    "locationTrackOid" to locationTrackOid,
-                    "chunk" to index,
-                    "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
-                )
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall(
+                "updateLocationTrackPoints",
+                "locationTrackOid" to locationTrackOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
 
-                client
-                    .patch()
-                    .uri("/api/infra/v1.0/points/${locationTrackOid}")
-                    .bodyValue(chunk)
-                    .retrieve()
-                    .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
-                    .toBodilessEntity()
-                    .block(defaultBlockTimeout)
-            }
+            client
+                .patch()
+                .uri("/api/infra/v1.0/points/${locationTrackOid}")
+                .bodyValue(chunk)
+                .retrieve()
+                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.UPDATE)
+                .toBodilessEntity()
+                .block(defaultBlockTimeout)
+        }
     }
 
     fun createLocationTrackPoints(locationTrackOid: RatkoOid<RatkoLocationTrack>, points: List<RatkoPoint>) {
@@ -226,28 +220,26 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             "points" to "${points.first().kmM}..${points.last().kmM}"
         )
 
-        points
-            .sortedBy { it.kmM }
-            .chunked(1000).mapIndexed { index, chunk ->
-                logger.integrationCall(
-                    "createLocationTrackPoints",
-                    "locationTrackOid" to locationTrackOid,
-                    "chunk" to index,
-                    "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
-                )
+        points.chunked(1000).mapIndexed { index, chunk ->
+            logger.integrationCall(
+                "createLocationTrackPoints",
+                "locationTrackOid" to locationTrackOid,
+                "chunk" to index,
+                "points" to "${chunk.first().kmM}..${chunk.last().kmM}",
+            )
 
-                client
-                    .post()
-                    .uri("/api/infra/v1.0/points/${locationTrackOid}")
-                    .bodyValue(chunk)
-                    .retrieve()
-                    .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
-                    .toBodilessEntity()
-                    .block(defaultBlockTimeout)
-            }
+            client
+                .post()
+                .uri("/api/infra/v1.0/points/${locationTrackOid}")
+                .bodyValue(chunk)
+                .retrieve()
+                .defaultErrorHandler(RatkoPushErrorType.GEOMETRY, RatkoOperation.CREATE)
+                .toBodilessEntity()
+                .block(defaultBlockTimeout)
+        }
     }
 
-    fun forceRatkoToRedrawLocationTrack(locationTrackOids: List<RatkoOid<RatkoLocationTrack>>) {
+    fun forceRatkoToRedrawLocationTrack(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {
         logger.integrationCall(
             "updateLocationTrackGeometryMValues",
             "locationTrackOids" to locationTrackOids
@@ -421,7 +413,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .block(defaultBlockTimeout)
     }
 
-    fun <T : RatkoAsset> updateAssetProperties(assetOid: RatkoOid<T>, properties: List<RatkoAssetProperty>) {
+    fun <T : RatkoAsset> updateAssetProperties(assetOid: RatkoOid<T>, properties: Collection<RatkoAssetProperty>) {
         logger.integrationCall("updateAssetProperties", "assetOid" to assetOid, "properties" to properties)
 
         client
@@ -511,7 +503,7 @@ class RatkoClient @Autowired constructor(private val client: WebClient) {
             .block(defaultBlockTimeout)
     }
 
-    fun forceRatkoToRedrawRouteNumber(routeNumberOids: List<RatkoOid<RatkoRouteNumber>>) {
+    fun forceRatkoToRedrawRouteNumber(routeNumberOids: Set<RatkoOid<RatkoRouteNumber>>) {
         logger.integrationCall("updateRouteNumberGeometryMValues", "routeNumberOids" to routeNumberOids)
 
         client
