@@ -268,6 +268,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   segment.segment_index,
                   segment.geometry_id,
                   segment.source,
+                  segment.start,
                   geom_alignment.id is not null as is_linked,
                   coalesce(plan_file.plan_id, orig_metadata.plan_id) as plan_id,
                   coalesce(plan_file.name, orig_metadata.plan_file_name) as file_name,
@@ -301,7 +302,8 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   is_linked,
                   plan_id,
                   file_name,
-                  alignment_name
+                  alignment_name,
+                  min(start) as start
                 from segments
                 group by alignment_id, alignment_version, is_linked, grp, plan_id, file_name, alignment_name
               )
@@ -312,7 +314,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               postgis.st_m(postgis.st_startpoint(start_geom.geometry)) + segment.start as start_m,
               postgis.st_x(postgis.st_endpoint(end_geom.geometry)) as end_x,
               postgis.st_y(postgis.st_endpoint(end_geom.geometry)) as end_y,
-              postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + segment.start as end_y
+              postgis.st_m(postgis.st_endpoint(end_geom.geometry)) + segment.start as end_m
             from segment_range range
               inner join metadata_segments segment on
                   range.alignment_id = segment.alignment_id and range.alignment_version = segment.alignment_version

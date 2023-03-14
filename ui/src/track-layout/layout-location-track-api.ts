@@ -2,6 +2,7 @@ import {
     AlignmentStartAndEnd,
     LayoutLocationTrack,
     LayoutLocationTrackDuplicate,
+    LayoutPoint,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { ChangeTimes, PublishType, TimeStamp, TrackMeter } from 'common/common-model';
@@ -45,6 +46,8 @@ export type AlignmentPlanSection = {
     isLinked: boolean;
     startAddress: TrackMeter | undefined;
     endAddress: TrackMeter | undefined;
+    startPoint: LayoutPoint | undefined;
+    endPoint: LayoutPoint | undefined;
     id: string;
 };
 

@@ -9,11 +9,9 @@ import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
+import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 
 type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
@@ -39,6 +37,12 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
         [trackNumberId, viewportDep],
     );
 
+    function highlightReferenceLineSection(trackNumberId:LayoutTrackNumberId, section: AlignmentPlanSection) {
+        // TODO
+        console.log('highlight reference line section', trackNumberId, section);
+    }
+
+
     return (
         <Infobox title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}>
             <InfoboxContent>
@@ -61,7 +65,10 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                             )}
                         </p>
                     ) : (
-                        <AlignmentPlanSectionInfoboxContent sections={sections || []} />
+                        <AlignmentPlanSectionInfoboxContent
+                            sections={sections || []}
+                            highlightSection={(section) => highlightReferenceLineSection(trackNumberId, section)}
+                        />
                     )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>

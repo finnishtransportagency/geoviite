@@ -11,14 +11,16 @@ import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hook
 import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
+import { boundingBoxAroundPoints } from 'model/geometry';
 
 type AlignmentPlanSectionInfoboxContentProps = {
     sections: AlignmentPlanSection[];
+    highlightSection: (section: AlignmentPlanSection) => void;
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
-> = ({ sections }) => {
+> = ({ sections, highlightSection }) => {
     const { t } = useTranslation();
 
     const store = useTrackLayoutAppSelector((state) => state.trackLayout);
@@ -34,6 +36,12 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
         getTrackLayoutPlan(planId, store.changeTimes.geometryPlan, false).then((planLayout) => {
             delegates.togglePlanVisibility(planLayout);
         });
+    }
+
+    function locateOnMap(section: AlignmentPlanSection) {
+        if (section.startPoint && section.endPoint) {
+            delegates.showArea(boundingBoxAroundPoints([section.startPoint, section.endPoint]))
+        }
     }
 
     const errorFragment = (errorMessage = '') => (
@@ -112,7 +120,9 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             )}
                         </div>
                         <div className="infobox__list-cell">
-                            <div className={styles['alignment-plan-section-infobox__meters']}>
+                            <div className={styles['alignment-plan-section-infobox__meters']}
+                                 onMouseEnter={() => highlightSection(section)}
+                                onClick={() => locateOnMap(section)}>
                                 <span>
                                     {section.startAddress
                                         ? formatTrackMeterWithoutMeters(section.startAddress)

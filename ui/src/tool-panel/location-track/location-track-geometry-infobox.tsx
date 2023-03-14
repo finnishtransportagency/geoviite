@@ -5,15 +5,12 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
+import { AlignmentPlanSection, getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
-import {
-    ProgressIndicatorType,
-    ProgressIndicatorWrapper,
-} from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
@@ -39,6 +36,11 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
         [locationTrackId, viewportDep],
     );
 
+    function highlightSection(locationTrackId:LocationTrackId, section: AlignmentPlanSection) {
+        // TODO
+        console.log('highlight section', locationTrackId, section);
+    }
+
     return (
         <Infobox title={t('tool-panel.alignment-plan-sections.location-track-geometries')}>
             <InfoboxContent>
@@ -62,7 +64,10 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                             )}
                         </p>
                     ) : (
-                        <AlignmentPlanSectionInfoboxContent sections={sections || []} />
+                        <AlignmentPlanSectionInfoboxContent
+                            sections={sections || []}
+                            highlightSection={(section) => highlightSection(locationTrackId, section)}
+                        />
                     )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>
