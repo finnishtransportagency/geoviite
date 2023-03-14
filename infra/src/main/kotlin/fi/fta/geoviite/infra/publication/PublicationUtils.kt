@@ -94,21 +94,18 @@ fun formatMessage(message: String?, isCalculatedChange: Boolean): String {
 }
 
 private fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
-    kmNumbers
-        .sorted()
-        .fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
-            if (acc.isEmpty()) acc.add(listOf(kmNumber))
-            else {
-                val previousKmNumbers = acc.last()
-                val previousKmNumber = previousKmNumbers.last().number
+    kmNumbers.fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
+        if (acc.isEmpty()) acc.add(listOf(kmNumber))
+        else {
+            val previousKmNumbers = acc.last()
+            val previousKmNumber = previousKmNumbers.last().number
 
-                if (kmNumber.number == previousKmNumber || kmNumber.number == previousKmNumber + 1) {
-                    acc[acc.lastIndex] = listOf(previousKmNumbers.first(), kmNumber)
-                } else acc.add(listOf(kmNumber))
-            }
-
-            acc
-        }.joinToString(", ") { it.joinToString("-") }
+            if (kmNumber.number == previousKmNumber || kmNumber.number == previousKmNumber + 1) {
+                acc[acc.lastIndex] = listOf(previousKmNumbers.first(), kmNumber)
+            } else acc.add(listOf(kmNumber))
+        }
+        acc
+    }.joinToString(", ") { it.joinToString("-") }
 
 fun getComparator(sortBy: PublicationTableColumn, order: SortOrder? = null): Comparator<PublicationTableItem> =
     if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)

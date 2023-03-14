@@ -900,7 +900,7 @@ class PublicationService @Autowired constructor(
         trackNumbers = trackNumberIds.map { id ->
             getTrackNumberAtMomentOrThrow(id, publication.publicationTime).number
         },
-        changedKmNumbers = changedKmNumbers,
+        changedKmNumbers = changedKmNumbers?.sorted(),
         operation = operation,
         publicationTime = publication.publicationTime,
         publicationUser = publication.publicationUser,
