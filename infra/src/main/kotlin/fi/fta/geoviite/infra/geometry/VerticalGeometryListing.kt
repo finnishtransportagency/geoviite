@@ -19,8 +19,8 @@ data class CurvedSectionEndpoint(
 
 data class IntersectionPoint(
     val address: TrackMeter?,
-    val height: Double?,
-    val station: Double?,
+    val height: Double,
+    val station: Double,
 )
 
 data class LinearSection(

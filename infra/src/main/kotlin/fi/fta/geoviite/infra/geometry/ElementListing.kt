@@ -70,18 +70,13 @@ enum class TrackGeometryElementType {
 }
 
 fun toElementListing(
+    linkedElementIds: List<Pair<LayoutSegment, IndexedId<GeometryElement>?>>,
+    headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
-    layoutAlignment: LayoutAlignment,
     elementTypes: List<TrackGeometryElementType>,
-    startAddress: TrackMeter?,
-    endAddress: TrackMeter?,
-    getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
 ): List<ElementListing> {
-    val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
-    val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
-    val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
     return linkedElementIds.mapNotNull { (segment, elementId) ->
         if (elementId == null) {
             if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(context, track.trackNumberId, segment, track)
@@ -318,15 +313,7 @@ private fun getEndLocation(
     cant = getEndCant(alignment, element),
 )
 
-private fun collectLinkedElements(
-    segments: List<LayoutSegment>,
-    context: GeocodingContext?,
-    startAddress: TrackMeter?,
-    endAddress: TrackMeter?,
-) = segments
-    .filter { segment -> overlapsAddressInterval(segment, context, startAddress, endAddress) }
-    .map { s -> if (s.sourceId is IndexedId) s to s.sourceId else s to null }
-    .distinctBy { (segment, elementId) -> elementId ?: segment.id }
+fun getAlignmentId(elementId: IndexedId<GeometryElement>) = IntId<GeometryAlignment>(elementId.parentId)
 
 private fun getAddress(context: GeocodingContext?, transformation: Transformation?, coordinate: Point) =
     if (context == null || transformation == null) null
@@ -358,20 +345,3 @@ private fun getElementStartLength(alignment: GeometryAlignment, elementId: Domai
 private fun getCantAt(alignment: GeometryAlignment, locationDistance: Double) =
     // Cant station values are alignment m-values, calculated from 0 (ignoring alignment station-start)
     alignment.cant?.getCantValue(locationDistance)?.let { v -> round(v, CANT_DECIMALS) }
-
-private fun overlapsAddressInterval(
-    segment: LayoutSegment,
-    context: GeocodingContext?,
-    start: TrackMeter?,
-    end: TrackMeter?,
-): Boolean =
-    (end == null || context != null && getStartAddress(segment, context)?.let { it < end } == true) &&
-    (start == null || context != null && getEndAddress(segment, context)?.let { it > start } == true)
-
-private fun getStartAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.points.first())?.first
-
-private fun getEndAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.points.last())?.first
-
-private fun getAlignmentId(elementId: IndexedId<GeometryElement>) = IntId<GeometryAlignment>(elementId.parentId)
