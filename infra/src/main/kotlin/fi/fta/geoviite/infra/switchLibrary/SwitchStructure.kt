@@ -65,7 +65,7 @@ data class SwitchTypeParts(
     val curveRadius: List<Int>,
     val spread: String?,
     val ratio: String, // has complex formats, like "2x1:9-4.8", use more structured type if needed
-    val hand: SwitchHand?,
+    val hand: SwitchHand,
 )
 
 private fun parseCurveRadius(curveRadiusList: String): List<Int> {
@@ -73,8 +73,9 @@ private fun parseCurveRadius(curveRadiusList: String): List<Int> {
         .split("/").mapNotNull { radius -> radius.toIntOrNull() }
 }
 
-private fun findSwitchTypeHand(abbreviation: String): SwitchHand? {
+private fun findSwitchTypeHand(abbreviation: String): SwitchHand {
     return SwitchHand.values().find { hand -> hand.abbreviation == abbreviation }
+        ?: SwitchHand.NONE
 }
 
 /**
@@ -84,8 +85,8 @@ fun parseSwitchType(typeName: String): SwitchTypeParts? {
     val matchResult = SWITCH_TYPE_REGEX.find(typeName) ?: return null
     val captured = matchResult.destructured.toList()
     val hand =
-        if (captured.count() <= 5 || captured[5] == "") null
-        else findSwitchTypeHand(captured[5]) ?: return null
+        if (captured.count() <= 5 || captured[5] == "") SwitchHand.NONE
+        else findSwitchTypeHand(captured[5])
 
     return SwitchTypeParts(
         baseType = SwitchBaseType.valueOf(captured[0]),
