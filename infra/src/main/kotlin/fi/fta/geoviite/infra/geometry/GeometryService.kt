@@ -270,44 +270,32 @@ class GeometryService @Autowired constructor(
     ): List<VerticalGeometryListing> {
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
-        val linkedElementIds = collectLinkedElements(alignment.segments, geocodingContext, startAddress, endAddress)
-        val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
-        val headersAndAlignments = linkedAlignmentIds.associateWith(::getHeaderAndAlignment)
+        val linkedElementIds = collectLinkedElements(
+            alignment.segments,
+            geocodingContext,
+            startAddress,
+            endAddress
+        ).mapNotNull { it.second }
+        val headersAndAlignments = linkedElementIds
+            .map(::getAlignmentId)
+            .distinct()
+            .associateWith(::getHeaderAndAlignment)
 
-        val segmentsAndContexts = linkedElementIds.mapNotNull { (_, elementId) ->
-            if (elementId != null) {
-                val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
-                val (curvedSegments, linearSegments) =
-                    geometryAlignment.profile?.segments?.partition { it is CurvedProfileSegment }
-                        ?.let { partitioned ->
-                            partitioned.first.map { it as CurvedProfileSegment } to
-                                    partitioned.second.map { it as LinearProfileSegment }
-                        }
-                        ?: (emptyList<CurvedProfileSegment>() to emptyList())
-                val elementRange = elementRange(geometryAlignment, elementId)
-                val segmentsInElement = curvedSegments
-                    .filter { segment ->
-                        geometryAlignment.stationValueNormalized(segment.start.x) <= elementRange.endInclusive &&
-                        geometryAlignment.stationValueNormalized(segment.end.x) >= elementRange.start
-                    }
+        val curvedSegmentsAndGeometryListingContexts = linkedElementIds
+            .map { elementId ->
+                getCurvedProfileSegmentsAndContextsOverlappingElement(headersAndAlignments, elementId)
+            }
+            .flatten()
+            .distinctBy { it.first }
 
-                if (segmentsInElement.isNotEmpty()) segmentsInElement
-                    .map { it to GeometryProfileCalculationContext(
-                        geometryAlignment,
-                        planHeader,
-                        curvedSegments,
-                        linearSegments
-                    ) }
-                else null
-            } else null
-        }.flatten().distinctBy { it.first }
-
-        return segmentsAndContexts.map { (segment, context) ->
+        return curvedSegmentsAndGeometryListingContexts.map { (segment, context) ->
             toVerticalGeometryListing(
                 segment,
                 context.geometryAlignment,
                 context.planHeader.units.coordinateSystemSrid
-                    ?.let { coordinateTransformationService.getLayoutTransformation(context.planHeader.units.coordinateSystemSrid) },
+                    ?.let { coordinateTransformationService
+                        .getLayoutTransformation(context.planHeader.units.coordinateSystemSrid)
+                          },
                 context.planHeader.id,
                 context.planHeader.source,
                 context.planHeader.fileName,
@@ -317,6 +305,38 @@ class GeometryService @Autowired constructor(
             )
         }
     }
+
+    private fun getCurvedProfileSegmentsAndContextsOverlappingElement(
+        headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
+        elementId: IndexedId<GeometryElement>
+    ): List<Pair<CurvedProfileSegment, GeometryProfileCalculationContext>> {
+        val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
+        val (curvedSegments, linearSegments) =
+            geometryAlignment.profile?.segments
+                ?.let(::separateCurvedAndLinearProfileSegments)
+                ?: (emptyList<CurvedProfileSegment>() to emptyList())
+        val elementRange = geometryAlignment.getElementStationRangeWithinAlignment(elementId)
+        val segmentsOverlappingElement = curvedSegments
+            .filter { segment ->
+                geometryAlignment.stationValueNormalized(segment.start.x) <= elementRange.endInclusive &&
+                        geometryAlignment.stationValueNormalized(segment.end.x) >= elementRange.start
+            }
+
+        return segmentsOverlappingElement.map { curve ->
+            curve to GeometryProfileCalculationContext(
+                geometryAlignment,
+                planHeader,
+                curvedSegments,
+                linearSegments
+            )
+        }
+    }
+
+    private fun separateCurvedAndLinearProfileSegments(segments: List<ProfileSegment>) =
+        segments.partition { it is CurvedProfileSegment }
+            .let { partitioned ->
+                partitioned.first.map { it as CurvedProfileSegment } to partitioned.second.map { it as LinearProfileSegment }
+            }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::fetchPlanHeader)

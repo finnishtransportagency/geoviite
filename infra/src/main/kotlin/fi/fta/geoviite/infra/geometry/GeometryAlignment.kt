@@ -47,6 +47,12 @@ data class GeometryAlignment(
 
     fun stationValueNormalized(station: Double) =
         station - (elements.firstOrNull()?.staStart?.toDouble() ?: 0.0)
+
+    fun getElementStationRangeWithinAlignment(elementId: DomainId<GeometryElement>) =
+        foldElementLengths(elements)
+            .find { elementAndLength -> elementAndLength.second.id == elementId }
+            ?.let { match -> match.first..(match.first + match.second.calculatedLength) }
+            ?: throw IllegalArgumentException("Element not found from alignment")
 }
 
 private fun foldElementLengths(elements: List<GeometryElement>) =
@@ -56,9 +62,3 @@ private fun foldElementLengths(elements: List<GeometryElement>) =
         acc.add(lengthUntilElementStart to element)
         acc
     }
-
-fun elementRange(alignment: GeometryAlignment, elementId: DomainId<GeometryElement>) =
-    foldElementLengths(alignment.elements)
-        .find { elementAndLength -> elementAndLength.second.id == elementId }
-        ?.let { match -> match.first..(match.first + match.second.calculatedLength) }
-        ?: throw IllegalArgumentException("Blaa")
