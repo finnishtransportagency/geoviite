@@ -6,6 +6,7 @@ import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 
 type Link = {
     link: string;
@@ -25,24 +26,6 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
-    const dataMenuButtonInActiveStyle = `${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`;
-    const dataMenuButtonActiveStyle = `${styles['app-bar__link']} ${styles['app-bar__data-menu-button--active']}`;
-    const [dataMenuStyle, setDataMenuStyle] = React.useState<string>();
-    const [dataProductSelected, setDataProductSelected] = React.useState<boolean>(false);
-
-    React.useEffect(() => {
-        dataProductSelected
-            ? setDataMenuStyle(dataMenuButtonActiveStyle)
-            : setDataMenuStyle(dataMenuButtonInActiveStyle);
-    }, [dataProductSelected]);
-
-    const handleHeadingSelection = () => {
-        setDataProductSelected(false);
-    };
-
-    const handleDataProductSelection = () => {
-        setDataProductSelected(true);
-    };
 
     return (
         <nav className={styles['app-bar']}>
@@ -58,7 +41,6 @@ export const AppBar: React.FC = () => {
                                 <li>
                                     <NavLink
                                         to={link.link}
-                                        onClick={handleHeadingSelection}
                                         className={({ isActive }) =>
                                             `${styles['app-bar__link']} ${
                                                 isActive ? styles['app-bar__link--active'] : ''
@@ -72,15 +54,20 @@ export const AppBar: React.FC = () => {
                         );
                     })}
                 <li>
-                    <div className={dataMenuStyle} onClick={() => setDataMenuOpen(!dataMenuOpen)}>
+                    <div
+                        className={
+                            useLocation().pathname.includes('data-products')
+                                ? `${styles['app-bar__link']} ${styles['app-bar__data-menu-button--active']}`
+                                : `${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`
+                        }
+                        onClick={() => setDataMenuOpen(!dataMenuOpen)}>
                         <span>{t('app-bar.data-products-title')}</span>
                         {dataMenuOpen && (
                             <div className={styles['app-bar__data-menu']}>
                                 <div>
                                     <NavLink
                                         className={styles['menu__item']}
-                                        to={'data-products/element-list'}
-                                        onClick={handleDataProductSelection}>
+                                        to={'data-products/element-list'}>
                                         {t('app-bar.data-products.element-list')}
                                     </NavLink>
                                 </div>
@@ -88,8 +75,7 @@ export const AppBar: React.FC = () => {
                                     <div>
                                         <NavLink
                                             className={styles['menu__item']}
-                                            to={'data-products/vertical-geometry'}
-                                            onClick={handleDataProductSelection}>
+                                            to={'data-products/vertical-geometry'}>
                                             {t('app-bar.data-products.vertical-geometry')}
                                         </NavLink>
                                     </div>
