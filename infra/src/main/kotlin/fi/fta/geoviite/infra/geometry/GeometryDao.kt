@@ -190,6 +190,7 @@ class GeometryDao @Autowired constructor(
     }
 
     fun fetchDuplicateGeometryPlanVersion(newFile: InfraModelFile): RowVersion<GeometryPlan>? {
+        //language=SQL
         val sql = """
             select
               plan.id, plan.version
