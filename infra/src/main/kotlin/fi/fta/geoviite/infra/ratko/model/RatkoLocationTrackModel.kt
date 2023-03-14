@@ -22,7 +22,7 @@ enum class RatkoLocationTrackType(@get:JsonValue val value: String) {
     SIDE("sivuraide"),
     TRAP("turvaraide"),
     CHORD("kujaraide"),
-    NULL("ei määritelty"),
+    NULL("Ei määritelty"),
 }
 
 enum class RatkoLocationTrackState(@get:JsonValue val value: String) {
