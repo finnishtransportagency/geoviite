@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.fail
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.test.assertEquals
@@ -317,7 +316,6 @@ class GeocodingTest {
         val addressPoint = getProjectedAddressPoint(projection, alignment)
         assertNotNull(addressPoint)
         assertEquals(address, addressPoint.address)
-        assertEquals(2 * referenceLine.length / 5 + 50.0, addressPoint.distance, DELTA)
     }
 
     @Test
@@ -372,8 +370,71 @@ class GeocodingTest {
 
     @Test
     fun geocodingWorks() {
-        fail("Not tested")
+        // Straight horizontal reference line for understandable calc
+        val context = createContext(
+            geometryPoints = listOf(Point(0.0, 0.0), Point(10.0, 0.0)),
+            startAddress = TrackMeter(1, "51.4"),
+            referencePoints = listOf(TrackMeter(2, "0.0") to 5.0),
+        )
+        // Geocode on 45deg diagonal alignment above the reference line
+        val trackAlignment = alignment(segment(Point(1.1, 1.1), Point(8.9,8.9)))
+
+        // Verify basic ends + 1m points
+        val addressPoints = context.getAddressPoints(trackAlignment)
+        assertAddressPoint(addressPoints?.startPoint, TrackMeter(1, "52.500"), trackAlignment.start!!)
+        assertAddressPoint(addressPoints?.endPoint, TrackMeter(2, "3.900"), trackAlignment.end!!)
+        listOf(
+            TrackMeter(1, "53") to Point(1.6, 1.6),
+            TrackMeter(1, "54") to Point(2.6, 2.6),
+            TrackMeter(1, "55") to Point(3.6, 3.6),
+            TrackMeter(1, "56") to Point(4.6, 4.6),
+            TrackMeter(2, "0") to Point(5.0, 5.0),
+            TrackMeter(2, "1") to Point(6.0, 6.0),
+            TrackMeter(2, "2") to Point(7.0, 7.0),
+            TrackMeter(2, "3") to Point(8.0, 8.0),
+        ).forEachIndexed { index, (address, location) ->
+            assertAddressPoint(addressPoints?.midPoints?.getOrNull(index), address, location)
+        }
+
+        // Verify individual, accurately requested points
+        listOf(
+            TrackMeter(1, "52.500") to Point(1.1, 1.1), // start
+            TrackMeter(2, "3.900") to Point(8.9, 8.9), // end
+            TrackMeter(1, "52.501") to Point(1.101, 1.101),
+            TrackMeter(2, "3.899") to Point(8.899, 8.899),
+            TrackMeter(1, "54.132") to Point(2.732, 2.732),
+            TrackMeter(1, "56.1") to Point(4.7, 4.7),
+            TrackMeter(2, "0.1") to Point(5.1, 5.1),
+            TrackMeter(2, "3.12") to Point(8.12, 8.12),
+        ).forEach { (address, location) ->
+            assertAddressPoint(context.getTrackLocation(trackAlignment, address), address, location)
+        }
     }
+
+    private fun assertAddressPoint(point: AddressPoint?, address: TrackMeter, location: IPoint) {
+        assertNotNull(point, "Expected point at: address=$address location=$location")
+        assertEquals(address, point.address)
+        assertApproximatelyEquals(location, point.point, DELTA)
+    }
+
+    private fun createContext(
+        geometryPoints: List<Point>,
+        startAddress: TrackMeter,
+        referencePoints: List<Pair<TrackMeter, Double>>,
+    ): GeocodingContext {
+        val alignment = alignment(segment(*geometryPoints.toTypedArray()))
+        val referenceLine = referenceLine(IntId(1), alignment, startAddress)
+        val startRefPoint = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
+        return GeocodingContext(
+            trackNumber = trackNumber,
+            referenceLine = referenceLine,
+            referenceLineGeometry = alignment,
+            referencePoints = listOf(startRefPoint) + referencePoints.map { (address, distance) ->
+                GeocodingReferencePoint(address.kmNumber, address.meters, distance, 0.0, WITHIN)
+            },
+        )
+    }
+
 
     @Test
     fun projectionsWorkOnVerticalVsDiagonal() {
@@ -478,7 +539,7 @@ class GeocodingTest {
             assertEquals(3, jointPoint.address.decimalCount())
             if (index > 0) {
                 assertTrue(jointPoint.address > result.switchJointPoints[index-1].address)
-                assertTrue(jointPoint.distance > result.switchJointPoints[index-1].distance)
+                assertTrue(jointPoint.point.y > result.switchJointPoints[index-1].point.y)
             }
         }
     }
