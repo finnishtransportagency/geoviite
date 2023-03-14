@@ -18,7 +18,7 @@ class RatkoConversionTest {
         val convertedAlignmentSide = mapToRatkoLocationTrackType(LocationTrackType.SIDE)
         val convertedNull = mapToRatkoLocationTrackType(null)
 
-        assertEquals("ei määritelty", convertedNull.value)
+        assertEquals("Ei määritelty", convertedNull.value)
         assertEquals("turvaraide", convertedAlignmentTrap.value)
         assertEquals("pääraide", convertedAlignmentMain.value)
         assertEquals("kujaraide", convertedAlignmentChord.value)
