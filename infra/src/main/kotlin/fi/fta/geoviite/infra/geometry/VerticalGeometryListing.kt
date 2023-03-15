@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.StringId
-import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.math.*
@@ -156,3 +153,35 @@ fun angleFractionBetweenPoints(point1: IPoint, point2: IPoint) =
     if (point1.x == point2.x) null
     else if (point1.x < point2.x) (point2.y - point1.y) / (point2.x - point1.x)
     else (point1.y - point2.y) / (point1.x - point2.x)
+
+fun getCurvedProfileSegmentsAndContextsOverlappingElement(
+    headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
+    elementId: IndexedId<GeometryElement>
+): List<Pair<CurvedProfileSegment, GeometryService.GeometryProfileCalculationContext>> {
+    val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
+    val (curvedSegments, linearSegments) =
+        geometryAlignment.profile?.segments
+            ?.let(::separateCurvedAndLinearProfileSegments)
+            ?: (emptyList<CurvedProfileSegment>() to emptyList())
+    val elementRange = geometryAlignment.getElementStationRangeWithinAlignment(elementId)
+    val segmentsOverlappingElement = curvedSegments
+        .filter { segment ->
+            geometryAlignment.stationValueNormalized(segment.start.x) <= elementRange.endInclusive &&
+                    geometryAlignment.stationValueNormalized(segment.end.x) >= elementRange.start
+        }
+
+    return segmentsOverlappingElement.map { curve ->
+        curve to GeometryService.GeometryProfileCalculationContext(
+            geometryAlignment,
+            planHeader,
+            curvedSegments,
+            linearSegments
+        )
+    }
+}
+
+private fun separateCurvedAndLinearProfileSegments(segments: List<ProfileSegment>) =
+    segments.partition { it is CurvedProfileSegment }
+        .let { partitioned ->
+            partitioned.first.map { it as CurvedProfileSegment } to partitioned.second.map { it as LinearProfileSegment }
+        }

@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
@@ -195,17 +194,15 @@ class GeometryService @Autowired constructor(
             "startAddress" to startAddress, "endAdress" to endAddress,
         )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
-        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
-        val linkedElementIds = collectLinkedElements(alignment.segments, geocodingContext, startAddress, endAddress)
-        val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
-        val headersAndAlignments = linkedAlignmentIds.associateWith(::getHeaderAndAlignment)
         return toElementListing(
-            linkedElementIds,
-            headersAndAlignments,
-            geocodingContext,
+            geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId),
             coordinateTransformationService::getLayoutTransformation,
             track,
+            alignment,
             elementTypes,
+            startAddress,
+            endAddress,
+            ::getHeaderAndAlignment,
         )
     }
 
@@ -306,38 +303,6 @@ class GeometryService @Autowired constructor(
         }
     }
 
-    private fun getCurvedProfileSegmentsAndContextsOverlappingElement(
-        headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
-        elementId: IndexedId<GeometryElement>
-    ): List<Pair<CurvedProfileSegment, GeometryProfileCalculationContext>> {
-        val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
-        val (curvedSegments, linearSegments) =
-            geometryAlignment.profile?.segments
-                ?.let(::separateCurvedAndLinearProfileSegments)
-                ?: (emptyList<CurvedProfileSegment>() to emptyList())
-        val elementRange = geometryAlignment.getElementStationRangeWithinAlignment(elementId)
-        val segmentsOverlappingElement = curvedSegments
-            .filter { segment ->
-                geometryAlignment.stationValueNormalized(segment.start.x) <= elementRange.endInclusive &&
-                        geometryAlignment.stationValueNormalized(segment.end.x) >= elementRange.start
-            }
-
-        return segmentsOverlappingElement.map { curve ->
-            curve to GeometryProfileCalculationContext(
-                geometryAlignment,
-                planHeader,
-                curvedSegments,
-                linearSegments
-            )
-        }
-    }
-
-    private fun separateCurvedAndLinearProfileSegments(segments: List<ProfileSegment>) =
-        segments.partition { it is CurvedProfileSegment }
-            .let { partitioned ->
-                partitioned.first.map { it as CurvedProfileSegment } to partitioned.second.map { it as LinearProfileSegment }
-            }
-
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::fetchPlanHeader)
         val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
@@ -382,31 +347,6 @@ class GeometryService @Autowired constructor(
         }
     }
 }
-
-private fun collectLinkedElements(
-    segments: List<LayoutSegment>,
-    context: GeocodingContext?,
-    startAddress: TrackMeter?,
-    endAddress: TrackMeter?,
-) = segments
-    .filter { segment -> overlapsAddressInterval(segment, context, startAddress, endAddress) }
-    .map { s -> if (s.sourceId is IndexedId) s to s.sourceId else s to null }
-    .distinctBy { (segment, elementId) -> elementId ?: segment.id }
-
-private fun overlapsAddressInterval(
-    segment: LayoutSegment,
-    context: GeocodingContext?,
-    start: TrackMeter?,
-    end: TrackMeter?,
-): Boolean =
-    (end == null || context != null && getStartAddress(segment, context)?.let { it < end } == true) &&
-            (start == null || context != null && getEndAddress(segment, context)?.let { it > start } == true)
-
-private fun getStartAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.points.first())?.first
-
-private fun getEndAddress(segment: LayoutSegment, context: GeocodingContext) =
-    context.getAddress(segment.points.last())?.first
 
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,

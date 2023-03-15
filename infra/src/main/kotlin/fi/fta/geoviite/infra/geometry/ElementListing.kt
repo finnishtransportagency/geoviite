@@ -70,13 +70,18 @@ enum class TrackGeometryElementType {
 }
 
 fun toElementListing(
-    linkedElementIds: List<Pair<LayoutSegment, IndexedId<GeometryElement>?>>,
-    headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
     context: GeocodingContext?,
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
+    layoutAlignment: LayoutAlignment,
     elementTypes: List<TrackGeometryElementType>,
+    startAddress: TrackMeter?,
+    endAddress: TrackMeter?,
+    getPlanHeaderAndAlignment: (id: IntId<GeometryAlignment>) -> Pair<GeometryPlanHeader, GeometryAlignment>,
 ): List<ElementListing> {
+    val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
+    val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
+    val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
     return linkedElementIds.mapNotNull { (segment, elementId) ->
         if (elementId == null) {
             if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(context, track.trackNumberId, segment, track)
