@@ -299,6 +299,7 @@ export const SwitchEditDialog = ({
                 onClose={onClose}
                 className={dialogStyles['dialog--ultrawide']}
                 footerClassName={'dialog-footer'}
+                scrollable={false}
                 footerContent={
                     <div className={dialogStyles['dialog-footer__content-area']}>
                         {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (

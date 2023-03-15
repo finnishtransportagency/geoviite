@@ -144,6 +144,7 @@ module.exports = (env) => {
                     // Remove explicit style-src and favor nonces when react-select can be made to use non-inline styles
                     'style-src': "'unsafe-inline' http: https:",
                     'default-src': "'self'",
+                    'connect-src': 'http: https: ws:',
                 },
                 {
                     enabled: true,
