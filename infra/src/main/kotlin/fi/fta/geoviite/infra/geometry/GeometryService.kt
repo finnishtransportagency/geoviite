@@ -2,10 +2,8 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
-import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -230,7 +228,6 @@ class GeometryService @Autowired constructor(
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
-        val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(coordinateTransformationService::getLayoutTransformation)
 
         return toVerticalGeometryListing(alignments, coordinateTransformationService::getLayoutTransformation, planHeader, geocodingContext)
     }
@@ -240,8 +237,8 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<VerticalGeometryListing> {
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.OFFICIAL, locationTrackId)
-        val geocodingContext = geocodingService.getGeocodingContext(PublishType.OFFICIAL, track.trackNumberId)
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
         return toVerticalGeometryListing(track, alignment, startAddress, endAddress, geocodingContext, coordinateTransformationService::getLayoutTransformation, ::getHeaderAndAlignment)
     }
 
