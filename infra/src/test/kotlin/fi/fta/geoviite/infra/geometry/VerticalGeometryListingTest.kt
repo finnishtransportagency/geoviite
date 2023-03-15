@@ -211,6 +211,7 @@ class VerticalGeometryListingTest() {
                 trackNumberId = IntId(1)
             ),
             null,
+            null,
             IntId(1),
             PlanSource.GEOMETRIAPALVELU,
             FileName("test"),
@@ -224,10 +225,10 @@ class VerticalGeometryListingTest() {
         assertEquals(verticalGeometryEntry.end.station, 6.0, 0.0001)
         assertEquals(verticalGeometryEntry.end.angle!!, -1.0, 0.0001)
         assertEquals(verticalGeometryEntry.tangent!!, sqrt(2.0), 0.0001)
-        assertEquals(verticalGeometryEntry.point.station!!, 5.0, 0.0001)
+        assertEquals(verticalGeometryEntry.point.station, 5.0, 0.0001)
         assertEquals(verticalGeometryEntry.start.height, 0.0, 0.0001)
         assertEquals(verticalGeometryEntry.end.height, 0.0, 0.0001)
-        assertEquals(verticalGeometryEntry.point.height!!, 1.0, 0.0001)
+        assertEquals(verticalGeometryEntry.point.height, 1.0, 0.0001)
         assertEquals(verticalGeometryEntry.radius, 1.0, 0.0001)
         assertEquals(verticalGeometryEntry.fileName, FileName("test"))
         assertEquals(verticalGeometryEntry.planId, IntId<GeometryPlan>(1))
