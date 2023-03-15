@@ -305,4 +305,5 @@ export type VerticalGeometryItem = {
     tangent: number;
     linearSectionBackward: LinearSection;
     linearSectionForward: LinearSection;
+    locationTrackName: string;
 };

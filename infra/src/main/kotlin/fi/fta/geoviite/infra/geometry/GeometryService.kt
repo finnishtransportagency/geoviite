@@ -241,6 +241,7 @@ class GeometryService @Autowired constructor(
                     toVerticalGeometryListing(
                         segment,
                         alignment,
+                        null,
                         coordinateTransform,
                         planHeader.id,
                         planHeader.source,
@@ -289,6 +290,7 @@ class GeometryService @Autowired constructor(
             toVerticalGeometryListing(
                 segment,
                 context.geometryAlignment,
+                track.name,
                 context.planHeader.units.coordinateSystemSrid
                     ?.let { coordinateTransformationService
                         .getLayoutTransformation(context.planHeader.units.coordinateSystemSrid)

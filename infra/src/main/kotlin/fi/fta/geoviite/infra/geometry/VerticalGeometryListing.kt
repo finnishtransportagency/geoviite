@@ -47,6 +47,7 @@ data class VerticalGeometryListing(
 fun toVerticalGeometryListing(
     segment: CurvedProfileSegment,
     alignment: GeometryAlignment,
+    locationTrackName: AlignmentName?,
     coordinateTransform: Transformation?,
     planId: DomainId<GeometryPlan>,
     planSource: PlanSource,
@@ -54,7 +55,6 @@ fun toVerticalGeometryListing(
     geocodingContext: GeocodingContext?,
     curvedSegments: List<CurvedProfileSegment>,
     linearSegments: List<LinearProfileSegment>,
-
     ): VerticalGeometryListing {
     val stationPoint = circCurveStationPoint(segment)
     val stationPointCoordinates = alignment.getCoordinateAt(alignment.stationValueNormalized(stationPoint.x))
@@ -71,7 +71,7 @@ fun toVerticalGeometryListing(
         fileName = planFileName,
         alignmentId = alignment.id,
         alignmentName = alignment.name,
-        null,
+        locationTrackName,
         start = CurvedSectionEndpoint(
             address = startCoordinates?.let { geocodingContext?.getAddress(startCoordinates)?.first },
             height = segment.start.y,

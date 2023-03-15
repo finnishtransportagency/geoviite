@@ -7,13 +7,16 @@ import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 
 type VerticalGeometryTableItemProps = {
     verticalGeometry: VerticalGeometryItem;
+    showLocationTrack: boolean;
 };
 
 export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps> = ({
     verticalGeometry,
+    showLocationTrack,
 }) => {
     return (
         <tr>
+            {showLocationTrack && <td>{verticalGeometry.locationTrackName}</td>}
             <td>
                 <PlanNameLink
                     planId={verticalGeometry.planId}
