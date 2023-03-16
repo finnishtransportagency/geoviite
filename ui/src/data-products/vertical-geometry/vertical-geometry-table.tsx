@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { VerticalGeometryTableItem } from 'data-products/vertical-geometry/vertical-geometry-table-item';
-import { VerticalGeometry } from 'geometry/geometry-model';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 import styles from 'data-products/data-product-table.scss';
 import {
     nonNumericHeading,
@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { createClassName } from 'vayla-design-lib/utils';
 
 type VerticalGeometryTableProps = {
-    verticalGeometry: VerticalGeometry[];
+    verticalGeometry: VerticalGeometryItem[];
 };
 
 const HEADINGS = [

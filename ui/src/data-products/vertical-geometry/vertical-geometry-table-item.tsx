@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { formatTrackMeter } from 'utils/geography-utils';
-import { VerticalGeometry } from 'geometry/geometry-model';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 import styles from 'data-products/data-product-table.scss';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 
 type VerticalGeometryTableItemProps = {
-    verticalGeometry: VerticalGeometry;
+    verticalGeometry: VerticalGeometryItem;
 };
 
 export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps> = ({
@@ -17,33 +17,33 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
             <td>
                 <PlanNameLink
                     planId={verticalGeometry.planId}
-                    planName={verticalGeometry.planFileName}
+                    planName={verticalGeometry.fileName}
                 />
             </td>
-            <td>{verticalGeometry.locationTrack}</td>
+            <td>{verticalGeometry.alignmentName}</td>
             <td className={styles['data-product-table__column--number']}>
-                {formatTrackMeter(verticalGeometry.curveStart.address)}
+                {verticalGeometry.start.address && formatTrackMeter(verticalGeometry.start.address)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(verticalGeometry.curveStart.height, Precision.profileMeters)}
+                {roundToPrecision(verticalGeometry.start.height, Precision.profileMeters)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(verticalGeometry.curveStart.angle, Precision.angle6Decimals)}
+                {roundToPrecision(verticalGeometry.start.angle, Precision.angle6Decimals)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {formatTrackMeter(verticalGeometry.pviAddress)}
+                {verticalGeometry.point.address && formatTrackMeter(verticalGeometry.point.address)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(verticalGeometry.pviHeight, Precision.profileMeters)}
+                {roundToPrecision(verticalGeometry.point.height, Precision.profileMeters)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {formatTrackMeter(verticalGeometry.curveEnd.address)}
+                {verticalGeometry.end.address && formatTrackMeter(verticalGeometry.end.address)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(verticalGeometry.curveEnd.height, Precision.profileMeters)}
+                {roundToPrecision(verticalGeometry.end.height, Precision.profileMeters)}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(verticalGeometry.curveEnd.angle, Precision.angle6Decimals)}
+                {roundToPrecision(verticalGeometry.end.angle, Precision.angle6Decimals)}
             </td>
             <td className={styles['data-product-table__column--number']}>
                 {roundToPrecision(verticalGeometry.radius, Precision.profileRadiusMeters)}
@@ -52,40 +52,47 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
                 {roundToPrecision(verticalGeometry.tangent, Precision.profileTangent)}
             </td>
             <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.linearSectionBackward.stationValueDistance &&
+                    roundToPrecision(
+                        verticalGeometry.linearSectionBackward.stationValueDistance,
+                        Precision.measurementMeterDistance,
+                    )}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.linearSectionBackward.linearSegmentLength &&
+                    roundToPrecision(
+                        verticalGeometry.linearSectionBackward.linearSegmentLength,
+                        Precision.measurementMeterDistance,
+                    )}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.linearSectionForward.stationValueDistance &&
+                    roundToPrecision(
+                        verticalGeometry.linearSectionForward.stationValueDistance,
+                        Precision.measurementMeterDistance,
+                    )}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.linearSectionForward.linearSegmentLength &&
+                    roundToPrecision(
+                        verticalGeometry.linearSectionForward.linearSegmentLength,
+                        Precision.measurementMeterDistance,
+                    )}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
                 {roundToPrecision(
-                    verticalGeometry.linearSectionBackwards.length,
+                    verticalGeometry.start.station,
                     Precision.measurementMeterDistance,
                 )}
             </td>
             <td className={styles['data-product-table__column--number']}>
                 {roundToPrecision(
-                    verticalGeometry.linearSectionBackwards.linearSection,
+                    verticalGeometry.point.station,
                     Precision.measurementMeterDistance,
                 )}
             </td>
             <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(
-                    verticalGeometry.linearSectionForwards.length,
-                    Precision.measurementMeterDistance,
-                )}
-            </td>
-            <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(
-                    verticalGeometry.linearSectionForwards.linearSection,
-                    Precision.measurementMeterDistance,
-                )}
-            </td>
-            <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(
-                    verticalGeometry.station.start,
-                    Precision.measurementMeterDistance,
-                )}
-            </td>
-            <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(verticalGeometry.station.pvi, Precision.measurementMeterDistance)}
-            </td>
-            <td className={styles['data-product-table__column--number']}>
-                {roundToPrecision(verticalGeometry.station.end, Precision.measurementMeterDistance)}
+                {roundToPrecision(verticalGeometry.end.station, Precision.measurementMeterDistance)}
             </td>
         </tr>
     );

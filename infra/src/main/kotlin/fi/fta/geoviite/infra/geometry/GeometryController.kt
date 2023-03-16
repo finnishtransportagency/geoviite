@@ -204,4 +204,13 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
             .getElementListingCsv(id, elementTypes, startAddress, endAddress)
         return toFileDownloadResponse("${filename}.csv", content)
     }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/{id}/vertical-geometry")
+    fun getPlanVerticalGeometryListing(
+        @PathVariable("id") id: IntId<GeometryPlan>,
+    ): List<VerticalGeometryListing> {
+        log.apiCall("getPlanVerticalGeometryListing", "id" to id)
+        return geometryService.getGeometryProfile(id)
+    }
 }

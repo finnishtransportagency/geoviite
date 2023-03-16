@@ -222,6 +222,37 @@ class GeometryService @Autowired constructor(
         return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
     }
 
+    fun getGeometryProfile(
+        planId: IntId<GeometryPlan>
+    ): List<VerticalGeometryListing> {
+        val planHeader = getPlanHeader(planId)
+        val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
+        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
+        val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(coordinateTransformationService::getLayoutTransformation)
+
+        return alignments.filter { it.profile != null }.map { alignment ->
+            val (curvedSegments, linearSegments) =
+                alignment.profile?.segments?.partition { it is CurvedProfileSegment }
+                    ?.let { partitioned ->
+                        partitioned.first.map { it as CurvedProfileSegment } to
+                                partitioned.second.map { it as LinearProfileSegment } }
+                    ?: (emptyList<CurvedProfileSegment>() to emptyList())
+            curvedSegments.map { segment ->
+                    toVerticalGeometryListing(
+                        segment,
+                        alignment,
+                        coordinateTransform,
+                        planHeader.id,
+                        planHeader.source,
+                        planHeader.fileName,
+                        geocodingContext,
+                        curvedSegments,
+                        linearSegments
+                    )
+            }
+        }.flatten()
+    }
+
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
         val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::getPlanHeader)
         val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
