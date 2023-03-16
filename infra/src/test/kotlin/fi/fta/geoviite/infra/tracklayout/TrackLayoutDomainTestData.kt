@@ -490,6 +490,7 @@ fun segment(
     geometry = SegmentGeometry(
         points = points,
         resolution = resolution,
+        start = start,
     ),
     sourceId = sourceId,
     sourceStart = sourceStart,

@@ -2,7 +2,8 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
@@ -87,9 +88,8 @@ fun findSuggestedSwitchJointMatches(
                 if (startMatches) {
                     SuggestedSwitchJointMatch(
                         locationTrackId = locationTrack.id,
-                        segmentIndex = segmentIndex,
                         layoutSwitchId = segment.switchId,
-                        segmentM = startPoint.m,
+                        m = startPoint.m,
                         matchType = SuggestedSwitchJointMatchType.START,
                         switchJoint = joint,
                         distance = lineLength(startPoint, jointLocation),
@@ -102,9 +102,8 @@ fun findSuggestedSwitchJointMatches(
                 if (endMatches) {
                     SuggestedSwitchJointMatch(
                         locationTrackId = locationTrack.id,
-                        segmentIndex = segmentIndex,
                         layoutSwitchId = segment.switchId,
-                        segmentM = endPoint.m,
+                        m = endPoint.m,
                         matchType = SuggestedSwitchJointMatchType.END,
                         switchJoint = joint,
                         distance = lineLength(endPoint, jointLocation),
@@ -120,9 +119,8 @@ fun findSuggestedSwitchJointMatches(
                     if (jointDistanceToSegment < tolerance) {
                         SuggestedSwitchJointMatch(
                             locationTrackId = locationTrack.id,
-                            segmentIndex = segmentIndex,
                             layoutSwitchId = segment.switchId,
-                            segmentM = segment.getLengthUntil(closestAlignmentPoint).first,
+                            m = segment.start + segment.getLengthUntil(closestAlignmentPoint).first,
                             matchType = SuggestedSwitchJointMatchType.LINE,
                             switchJoint = joint,
                             distance = jointDistanceToSegment,
@@ -241,7 +239,7 @@ private fun getBestMatchesForJoint(
 private fun getEndJoints(matchesByLocationTrack: Map<LocationTrack, List<SuggestedSwitchJointMatch>>) =
     matchesByLocationTrack
         .mapValues { (_, joints) ->
-            val jointsSortedByMatchLength = joints.sortedWith(compareBy({ it.segmentIndex }, { it.segmentM }))
+            val jointsSortedByMatchLength = joints.sortedWith(compareBy(SuggestedSwitchJointMatch::m))
             val min = jointsSortedByMatchLength.first().switchJoint
             val max = jointsSortedByMatchLength.last().switchJoint
             min to max
@@ -464,7 +462,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
                     // getSegmentsByLinkingJoints expects the linking joints to be in track address order, and we
                     // couldn't sort them earlier due to the possibility of duplicate tracks going in the opposite
                     // direction
-                    .sortedWith(compareBy({ it.segments.first().segmentIndex }, { it.segments.first().segmentM }))
+                    .sortedWith(compareBy { linkingJoint -> linkingJoint.segments.first().m })
 
                 if (switchLinkingJoints.isEmpty()) {
                     //Segment that is between two other segments that are linked to the switch joints
@@ -531,12 +529,12 @@ private fun getSegmentsByLinkingJoints(
     .foldIndexed(mutableListOf<LayoutSegment>()) { index, acc, linkingJoint ->
         val jointNumber = linkingJoint.jointNumber
         val previousSegment = acc.lastOrNull()?.also { acc.removeLast() } ?: segment
-        val suggestedPointLength = linkingJoint.segments.first().segmentM
+        val suggestedPointM = linkingJoint.segments.first().m
 
-        if (isSame(segment.points.first().m, suggestedPointLength, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
+        if (isSame(segment.points.first().m, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
             //Check if suggested point is start point
             acc.add(setStartJointNumber(segment, layoutSwitchId, jointNumber))
-        } else if (isSame(segment.points.last().m, suggestedPointLength, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
+        } else if (isSame(segment.points.last().m, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
             //Check if suggested point is end point
             if (linkingJoints.size == 1) {
                 acc.add(setEndJointNumber(previousSegment, layoutSwitchId, jointNumber))
@@ -548,7 +546,7 @@ private fun getSegmentsByLinkingJoints(
             //StartSplitSegment: before M-value
             //EndSplitSegment: after M-value
             val (startSplitSegment, endSplitSegment) = previousSegment.splitAtM(
-                suggestedPointLength,
+                suggestedPointM,
                 TOLERANCE_JOINT_LOCATION_NEW_POINT
             )
 
@@ -671,31 +669,33 @@ fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): LayoutAlignment {
                     val firstMatchingPoint = segment.points[firstMatchingPointIndex]
                     val matchingPoints = segment.points
                         .drop(firstMatchingPointIndex)
-                        .takeWhile { point ->
-                            bbox.contains(point)
-                        }
+                        .takeWhile { point -> bbox.contains(point) }
 
                     // We need at least two points to create a segment
                     if (matchingPoints.size >= 2) {
-                        segment.withPoints(
-                            matchingPoints,
-                            segment.start + firstMatchingPoint.m
-                        )
+                        segment.withPoints(matchingPoints, firstMatchingPoint.m)
                     } else null
                 } else null
             } else null
         }
+    // TODO GVT-553: adjust segment starts like before or make a separate class?
+//    val firstSegmentStart = filteredSegments.firstOrNull()?.start ?: 0.0
+//    val segmentsForAlignments = filteredSegments.map { segment ->
+//        segment.copy(
+//            start = segment.start - firstSegmentStart
+//        )
+//    }
+//
+//    return alignment.copy(
+//        segments = segmentsForAlignments
+//    )
 
-    val firstSegmentStart = filteredSegments.firstOrNull()?.start ?: 0.0
-    val segmentsForAlignments = filteredSegments.map { segment ->
-        segment.copy(
-            start = segment.start - firstSegmentStart
-        )
-    }
+//    private data class CroppedAlignment(
+//        override val segments: List<ISegment>,
+//        override val id: DomainId<*>
+//    ): IAlignment
+    return alignment.copy(segments = filteredSegments)
 
-    return alignment.copy(
-        segments = segmentsForAlignments
-    )
 }
 
 data class TrackIntersection(

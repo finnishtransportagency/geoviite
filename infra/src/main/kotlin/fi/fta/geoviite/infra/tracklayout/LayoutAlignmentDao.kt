@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
+import kotlin.math.abs
 
 const val GEOMETRY_CACHE_SIZE = 500000L
 
@@ -184,19 +185,36 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
         val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
-        return segmentResults.map { (data, geometryId) -> LayoutSegment(
-            id = data.id,
-            start = data.start,
-            sourceId = data.sourceId,
-            sourceStart = data.sourceStart,
-            switchId = data.switchId,
-            startJointNumber = data.startJointNumber,
-            endJointNumber = data.endJointNumber,
-            source = data.source,
-            geometry = requireNotNull(geometries[geometryId]) {
+        var prevIndex = -1
+        var start = 0.0
+        return segmentResults.mapIndexed { index, (data, geometryId) ->
+            require(index == prevIndex+1)
+            if (index == 0) require(data.start == 0.0)
+            else require(abs(data.start - segmentResults[index-1].let { (d,gid) ->
+                d.start + geometries[gid]!!.length
+            }) < 0.001) {
+                "WTF: data.start=${data.start} index=$index prev.start=${segmentResults[index-1].first.start} prev.geomId=${segmentResults[index-1].second}"
+            }
+            require(abs(start - data.start) < LAYOUT_M_DELTA) {
+                "Segment start value does not match the calculated one: stored=${data.start} calc=$start"
+            }
+            val geometry = requireNotNull(geometries[geometryId]) {
                 "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
-            },
-        ) }
+            }.withStartMAt(start)
+            LayoutSegment(
+                id = data.id,
+                sourceId = data.sourceId,
+                sourceStart = data.sourceStart,
+                switchId = data.switchId,
+                startJointNumber = data.startJointNumber,
+                endJointNumber = data.endJointNumber,
+                source = data.source,
+                geometry = geometry,
+            ).also {
+                start += geometry.length
+                prevIndex = index
+            }
+        }
     }
 
     fun fetchSegmentGeometriesAndPlanMetadata(
@@ -511,15 +529,14 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     }
 }
 
-fun getSegmentPoints(
+private fun getSegmentPoints(
     rs: ResultSet,
     geometryColumn: String,
     heightColumn: String,
     cantColumn: String,
 ): List<LayoutPoint> {
-    val rawGeometry = rs.getString(geometryColumn)
-    if (rawGeometry == null) return emptyList()
-    val geometryValues = parse3DMLineString(rs.getString(geometryColumn))
+    val rawGeometry = rs.getString(geometryColumn) ?: return emptyList()
+    val geometryValues = parse3DMLineString(rawGeometry)
     val heightValues = rs.getNullableDoubleListOrNullFromString(heightColumn)
     val cantValues = rs.getNullableDoubleListOrNullFromString(cantColumn)
     return geometryValues.mapIndexed { index, coordinate ->
@@ -528,7 +545,7 @@ fun getSegmentPoints(
             y = coordinate.y,
             z = heightValues?.getOrNull(index),
             m = coordinate.m,
-            cant = cantValues?.getOrNull(index)
+            cant = cantValues?.getOrNull(index),
         )
     }
 }

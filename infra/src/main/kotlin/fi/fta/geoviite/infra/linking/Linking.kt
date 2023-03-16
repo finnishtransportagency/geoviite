@@ -84,16 +84,17 @@ enum class SuggestedSwitchJointMatchType {
 
 data class SuggestedSwitchJointMatch(
     val locationTrackId: DomainId<LocationTrack>,
-    val segmentIndex: Int,
+//    val segmentIndex: Int,
+//    val segmentM: Double,
+    val m: Double,
     val layoutSwitchId: DomainId<TrackLayoutSwitch>?,
-    val segmentM: Double,
     @JsonIgnore val switchJoint: SwitchJoint,
     @JsonIgnore val matchType: SuggestedSwitchJointMatchType,
     @JsonIgnore val distance: Double,
     @JsonIgnore val distanceToAlignment: Double,
     @JsonIgnore val alignmentId: IntId<LayoutAlignment>?,
 ) {
-    fun segmentId(): IndexedId<LayoutSegment>? = alignmentId?.let { aid -> IndexedId(aid.intValue, segmentIndex) }
+//    fun segmentId(): IndexedId<LayoutSegment>? = alignmentId?.let { aid -> IndexedId(aid.intValue, segmentIndex) }
 }
 
 data class SuggestedSwitchJoint(
@@ -114,8 +115,9 @@ data class SuggestedSwitch(
 
 data class SwitchLinkingSegment(
     val locationTrackId: IntId<LocationTrack>,
-    val segmentIndex: Int,
-    val segmentM: Double,
+    val m: Double,
+//    val segmentIndex: Int,
+//    val segmentM: Double,
 )
 
 data class SwitchLinkingJoint(
