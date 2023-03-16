@@ -29,7 +29,7 @@
         "title": "Julkaisut",
         "log-link": "Hae julkaisuja",
         "publish-issues": "Ongelmat Ratko-integraatiossa",
-        "no-success-publications": "Ei julkaisuja viimeisimmän viikon aikana."
+        "no-success-publications": "Ei julkaisuja."
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{0}}). ",

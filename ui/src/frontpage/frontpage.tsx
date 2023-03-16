@@ -8,7 +8,6 @@ import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import PublicationLog from 'publication/log/publication-log';
 import { getPublicationDetails } from 'publication/publication-api';
-import { startOfDay, subDays } from 'date-fns';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { TimeStamp } from 'common/common-model';
 
@@ -29,10 +28,7 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     const publication = publications?.find((p) => p.id == selectedPublication);
     useLoader(
-        () =>
-            getPublicationDetails(startOfDay(subDays(new Date(), 7))).then((result) =>
-                setPublications(result?.items),
-            ),
+        () => getPublicationDetails().then((result) => setPublications(result?.items)),
         [changeTime],
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);
