@@ -1,5 +1,5 @@
 import * as React from 'react';
-import PublicationCard from 'publication/card/publication-card';
+import PublicationCard, { MAX_LISTED_PUBLICATIONS } from 'publication/card/publication-card';
 import styles from './frontpage.scss';
 import PublicationDetailsView from 'publication/publication';
 import { PublicationDetails, PublicationId } from 'publication/publication-model';
@@ -7,7 +7,7 @@ import { useLoader, useLoaderWithTimer } from 'utils/react-utils';
 import { UserCardContainer } from 'user/user-card-container';
 import { getRatkoStatus, RatkoStatus } from 'ratko/ratko-api';
 import PublicationLog from 'publication/log/publication-log';
-import { getPublicationDetails } from 'publication/publication-api';
+import { getLatestPublications } from 'publication/publication-api';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { TimeStamp } from 'common/common-model';
 
@@ -28,7 +28,10 @@ const Frontpage: React.FC<FrontPageProps> = ({
 
     const publication = publications?.find((p) => p.id == selectedPublication);
     useLoader(
-        () => getPublicationDetails().then((result) => setPublications(result?.items)),
+        () =>
+            getLatestPublications(MAX_LISTED_PUBLICATIONS).then((result) =>
+                setPublications(result?.items),
+            ),
         [changeTime],
     );
     useLoaderWithTimer(setRatkoStatus, getRatkoStatus, [], 30000);

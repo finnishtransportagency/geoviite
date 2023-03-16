@@ -695,12 +695,17 @@ class PublicationService @Autowired constructor(
 
     fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
         logger.serviceCall("fetchPublications", "from" to from, "to" to to)
-        return publicationDao.fetchPublications(from, to)
+        return publicationDao.fetchPublicationsBetween(from, to)
     }
 
-    fun fetchPublicationDetails(from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
-        logger.serviceCall("fetchPublicationDetails", "from" to from, "to" to to)
-        return publicationDao.fetchPublications(from, to).map { getPublicationDetails(it.id) }
+    fun fetchPublicationDetailsBetweenInstants(from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
+        logger.serviceCall("fetchPublicationDetailsBetweenInstants", "from" to from, "to" to to)
+        return publicationDao.fetchPublicationsBetween(from, to).map { getPublicationDetails(it.id) }
+    }
+
+    fun fetchLatestPublicationDetails(count: Int): List<PublicationDetails> {
+        logger.serviceCall("fetchLatestPublicationDetails", "count" to count)
+        return publicationDao.fetchLatestPublications(count).map { getPublicationDetails(it.id) }
     }
 
     fun fetchPublicationDetails(
@@ -717,7 +722,7 @@ class PublicationService @Autowired constructor(
             "order" to order,
         )
 
-        return fetchPublicationDetails(from, to)
+        return fetchPublicationDetailsBetweenInstants(from, to)
             .flatMap(this::mapToPublicationTableItems)
             .let { publications ->
                 if (sortBy == null) publications

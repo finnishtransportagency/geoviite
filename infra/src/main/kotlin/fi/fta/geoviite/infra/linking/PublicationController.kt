@@ -94,17 +94,32 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping
-    fun getPublications(
+    fun getPublicationsBetween(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
     ): Page<PublicationDetails> {
-        logger.apiCall("getPublications", "from" to from, "to" to to)
-        val publications = publicationService.fetchPublicationDetails(from, to)
+        logger.apiCall("getPublicationsBetween", "from" to from, "to" to to)
+        val publications = publicationService.fetchPublicationDetailsBetweenInstants(from, to)
 
         return Page(
             totalCount = publications.size,
             start = 0,
             items = publications.take(50) //Prevents frontend from going kaput, todo: replace with proper paging
+        )
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("latest")
+    fun getLatestPublications(
+        @RequestParam("count") count: Int
+    ): Page<PublicationDetails> {
+        logger.apiCall("getLatestPublications", "count" to count)
+        val publications = publicationService.fetchLatestPublicationDetails(count)
+
+        return Page(
+            totalCount = publications.size,
+            start = 0,
+            items = publications
         )
     }
 
