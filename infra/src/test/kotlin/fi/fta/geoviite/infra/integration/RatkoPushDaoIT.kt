@@ -161,9 +161,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
     @Test
     fun `Should return latest publications`() {
         val locationTrack1Response = insertAndPublishLocationTrack()
-        val layoutPublishId1 = createPublication(locationTracks = listOf(locationTrack1Response.rowVersion), message = "Test")
+        val layoutPublishId1 = createPublication(locationTracks = listOf(locationTrack1Response.id), message = "Test")
         val locationTrack2Response = insertAndPublishLocationTrack()
-        val layoutPublishId2 = createPublication(locationTracks = listOf(locationTrack2Response.rowVersion), message = "Test")
+        val layoutPublishId2 = createPublication(locationTracks = listOf(locationTrack2Response.id), message = "Test")
 
         val publications = publicationDao.fetchLatestPublications(2)
 

@@ -278,35 +278,32 @@ export type ElementItem = {
     coordinateSystemName: string;
 };
 
-type CircularCurve = {
-    address: TrackMeter;
+type LinearSection = {
+    stationValueDistance: number | undefined;
+    linearSegmentLength: number | undefined;
+};
+
+type StationPoint = {
+    address: TrackMeter | undefined;
     height: number;
+    station: number;
+};
+
+type CircularCurve = StationPoint & {
     angle: number;
 };
 
-type LinearSection = {
-    length: number;
-    linearSection: number;
-};
-
-type Station = {
-    start: number;
-    pvi: number;
-    end: number;
-};
-
-export type VerticalGeometry = {
+export type VerticalGeometryItem = {
     id: string;
     planId: GeometryPlanId;
-    planFileName: string;
-    locationTrack: string;
-    curveStart: CircularCurve;
-    pviAddress: TrackMeter;
-    pviHeight: number;
-    curveEnd: CircularCurve;
+    fileName: string;
+    alignmentName: string;
+    start: CircularCurve;
+    point: StationPoint;
+    end: CircularCurve;
     radius: number;
     tangent: number;
-    linearSectionBackwards: LinearSection;
-    linearSectionForwards: LinearSection;
-    station: Station;
+    linearSectionBackward: LinearSection;
+    linearSectionForward: LinearSection;
+    locationTrackName: string;
 };
