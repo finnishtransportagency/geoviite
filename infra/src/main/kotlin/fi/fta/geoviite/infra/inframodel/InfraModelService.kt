@@ -51,14 +51,7 @@ class InfraModelService @Autowired constructor(
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
 
-        val duplicatePlan = geometryService.getDuplicateGeometryPlanHeader(imFile)
-        if (duplicatePlan != null) {
-            throw InframodelParsingException(
-                message = "InfraModel file exists already",
-                localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
-                localizedMessageParams = listOf(duplicatePlan.fileName.toString()),
-            )
-        }
+        checkForDuplicateFile(imFile, geometryPlan.source)
 
         return geometryDao.insertPlan(geometryPlan, imFile, transformedBoundingBox)
     }
@@ -153,6 +146,10 @@ class InfraModelService @Autowired constructor(
         val geometryPlan = geometryService.getGeometryPlan(planId)
         val overriddenPlan = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters, extraInfoParameters)
 
+        if (overriddenPlan.source != geometryPlan.source) {
+            checkForDuplicateFile(geometryService.getPlanFile(planId), overriddenPlan.source)
+        }
+
         return geometryDao.updatePlan(planId, overriddenPlan)
     }
 
@@ -201,5 +198,15 @@ class InfraModelService @Autowired constructor(
             codeDictionaryService.getFeatureTypes(),
             switchLibraryService.getSwitchStructuresById(),
         )
+    }
+
+    private fun checkForDuplicateFile(planFile: InfraModelFile, source: PlanSource) {
+        geometryService.fetchDuplicateGeometryPlanHeader(planFile, source)?.also {
+            throw InframodelParsingException(
+                message = "InfraModel file exists already",
+                localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
+                localizedMessageParams = listOf(it.fileName.toString()),
+            )
+        }
     }
 }

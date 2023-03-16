@@ -6,15 +6,20 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DeletingFailureException
+import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.math.BoundingBox
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class LayoutTrackNumberService(
     dao: LayoutTrackNumberDao,
-    private val referenceLineService: ReferenceLineService
+    private val referenceLineService: ReferenceLineService,
+    private val geocodingService: GeocodingService,
+    private val alignmentService: LayoutAlignmentService,
 ) : DraftableObjectService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
@@ -95,5 +100,31 @@ class LayoutTrackNumberService(
     fun find(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> {
         logger.serviceCall("find", "trackNumber" to trackNumber, "publishType" to publishType)
         return dao.fetchVersions(publishType, false, trackNumber).map(dao::fetch)
+    }
+
+    @Transactional(readOnly = true)
+    fun getMetadataSections(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        publishType: PublishType,
+        boundingBox: BoundingBox?,
+    ): List<AlignmentPlanSection> {
+        logger.serviceCall(
+            "getSectionsByPlan",
+            "trackNumberId" to trackNumberId,
+            "publishType" to publishType,
+            "boundingBox" to boundingBox
+        )
+        val trackNumber = getOrThrow(publishType, trackNumberId)
+        val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
+            ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
+        val geocodingContext = geocodingService.getGeocodingContext(publishType, trackNumberId)
+        return if (geocodingContext != null && referenceLine.alignmentVersion != null) {
+            alignmentService.getGeometryMetadataSections(
+                referenceLine.alignmentVersion,
+                trackNumber.externalId,
+                boundingBox,
+                geocodingContext,
+            )
+        } else listOf()
     }
 }

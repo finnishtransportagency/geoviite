@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.toResponse
@@ -83,5 +84,17 @@ class LayoutTrackNumberController(
     fun deleteDraftTrackNumber(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("deleteDraftTrackNumber", "id" to id)
         return trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/plan-geometry")
+    fun getTrackSectionsByPlan(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @RequestParam("bbox") boundingBox: BoundingBox? = null,
+    ): List<AlignmentPlanSection> {
+        logger.apiCall("getTrackSectionsByPlan",
+            "publishType" to publishType, "id" to id, "bbox" to boundingBox)
+        return trackNumberService.getMetadataSections(id, publishType, boundingBox)
     }
 }

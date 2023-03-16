@@ -21,7 +21,6 @@ class ReferenceLineService(
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
-    private val geocodingService: GeocodingService,
 ): DraftableObjectService<ReferenceLine, ReferenceLineDao>(dao) {
 
     @Transactional
@@ -177,40 +176,6 @@ class ReferenceLineService(
     fun listNear(publishType: PublishType, bbox: BoundingBox): List<ReferenceLine> {
         logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
         return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch)
-    }
-
-    fun getSectionsByPlan(
-        referenceLineId: IntId<ReferenceLine>,
-        publishType: PublishType,
-        boundingBox: BoundingBox?
-    ): List<AlignmentPlanSection> {
-        logger.serviceCall(
-            "getSectionsByPlan",
-            "referenceLineId" to referenceLineId,
-            "publishType" to publishType,
-            "boundingBox" to boundingBox
-        )
-        val (locationTrack, alignment) = getWithAlignmentOrThrow(publishType, referenceLineId)
-        val alignmentSegmentGeometryByPlan = alignmentService.getGeometrySectionsByPlan(
-            publishType,
-            alignment.id as IntId<LayoutAlignment>,
-            locationTrack.trackNumberId,
-            boundingBox
-        )
-        return geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)?.let { context ->
-            alignmentSegmentGeometryByPlan.mapNotNull { section ->
-                val startAddress = if (section.startPoint != null) context.getAddress(section.startPoint)?.first else null
-                val endAddress = if (section.endPoint != null) context.getAddress(section.endPoint)?.first else null
-
-                if (startAddress != null && endAddress != null) AlignmentPlanSection(
-                    planId = section.planId,
-                    planName = section.fileName,
-                    startAddress = startAddress,
-                    endAddress = endAddress,
-                    id = section.segmentId
-                ) else null
-            }
-        } ?: emptyList()
     }
 }
 

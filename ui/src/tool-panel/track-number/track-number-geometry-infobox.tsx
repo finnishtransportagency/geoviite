@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Infobox from 'tool-panel/infobox/infobox';
-import { ReferenceLineId } from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -8,22 +8,22 @@ import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
-import { getReferenceLineSectionsByPlan } from 'track-layout/layout-reference-line-api';
 import { useTranslation } from 'react-i18next';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
 
 type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
-    referenceLineId: ReferenceLineId;
+    trackNumberId: LayoutTrackNumberId;
     viewport: MapViewport;
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
     publishType,
-    referenceLineId,
+    trackNumberId,
     viewport,
 }) => {
     const { t } = useTranslation();
@@ -31,12 +31,12 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     const viewportDep = useBoungingBox && viewport;
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
-            getReferenceLineSectionsByPlan(
+            getTrackNumberReferenceLineSectionsByPlan(
                 publishType,
-                referenceLineId,
+                trackNumberId,
                 useBoungingBox ? viewport.area : undefined,
             ),
-        [referenceLineId, viewportDep],
+        [trackNumberId, publishType, viewportDep],
     );
 
     return (

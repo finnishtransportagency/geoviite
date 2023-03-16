@@ -5,7 +5,7 @@ create or replace function layout.calculate_geometry_hash(
   height_values numeric[],
   cant_values numeric[]
 ) returns uuid language sql as $$
-  select md5(row(resolution, geometry, height_values, cant_values)::text)::uuid
+  select md5(row(resolution, postgis.st_astext(geometry, 6), height_values, cant_values)::text)::uuid
 $$ immutable;
 
 -- Create new un-versioned table for separately stored geometries
@@ -35,7 +35,6 @@ alter table layout.segment_version
   drop column version, -- Alignment versioning is sufficient as segments don't change independently
   drop column deleted, -- Deleted rows: the new alignment version just doesn't have a segment for the index
   drop column length, -- This is currently the m-value of the last point -> no separate column needed
-  drop column start, -- This is the sum of lengths by-index -> no separate column needed
   add column geometry_id int null, -- Reference to the new geometry table
   add primary key (alignment_id, alignment_version, segment_index) -- Add new primary key
 ;

@@ -315,7 +315,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     }
 
     //Inclusive from/start time, but exclusive to/end time
-    fun fetchPublications(from: Instant?, to: Instant?): List<Publication> {
+    fun fetchPublicationsBetween(from: Instant?, to: Instant?): List<Publication> {
         val sql = """
             select id, publication_user, publication_time, message
             from publication.publication
@@ -325,6 +325,28 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
         val params = mapOf(
             "from" to from?.let { Timestamp.from(it) },
             "to" to to?.let { Timestamp.from(it) },
+        )
+
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            Publication(
+                id = rs.getIntId("id"),
+                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationTime = rs.getInstant("publication_time"),
+                message = rs.getString("message")
+            )
+        }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
+    }
+
+    //Inclusive from/start time, but exclusive to/end time
+    fun fetchLatestPublications(count: Int): List<Publication> {
+        val sql = """
+            select id, publication_user, publication_time, message
+            from publication.publication
+            order by id desc limit :count
+        """.trimIndent()
+
+        val params = mapOf(
+            "count" to count
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
