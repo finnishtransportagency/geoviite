@@ -202,10 +202,10 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
         }
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.HEIGHT_START)) {
-        it.start.height
+        formatTo3Decimals(it.start.height)
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.ANGLE_START)) {
-        it.start.angle
+        it.start.angle?.let(::formatTo6Decimals)
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_POINT)) {
         it.point.address?.let { address ->
@@ -216,7 +216,7 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
         }
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.HEIGHT_POINT)) {
-        it.point.height
+        formatTo3Decimals(it.point.height)
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_END)) {
         it.end.address?.let { address ->
@@ -227,21 +227,47 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
         }
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.HEIGHT_END)) {
-        it.end.height
+        formatTo3Decimals(it.end.height)
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.ANGLE_END)) {
-        it.end.angle
+        it.end.angle?.let(::formatTo6Decimals)
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.RADIUS)) { it.radius },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TANGENT)) { it.tangent },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_BACKWARD_LENGTH)) { it.linearSectionBackward.stationValueDistance },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_BACKWARD_LINEAR_SECTION)) { it.linearSectionBackward.linearSegmentLength },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LENGTH)) { it.linearSectionForward.stationValueDistance },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LINEAR_SECTION)) { it.linearSectionForward.linearSegmentLength },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_START)) { it.start.station },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_POINT)) { it.point.station },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_END)) { it.end.station },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TANGENT)) {
+        it.tangent?.let(
+            ::formatTo3Decimals
+        )
+    },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_BACKWARD_LENGTH)) {
+        it.linearSectionBackward.stationValueDistance?.let(
+            ::formatTo3Decimals
+        )
+    },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_BACKWARD_LINEAR_SECTION)) {
+        it.linearSectionBackward.linearSegmentLength?.let(
+            ::formatTo3Decimals
+        )
+    },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LENGTH)) {
+        it.linearSectionForward.stationValueDistance?.let(
+            ::formatTo3Decimals
+        )
+    },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LINEAR_SECTION)) {
+        it.linearSectionForward.linearSegmentLength?.let(
+            ::formatTo3Decimals
+        )
+    },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_START)) { formatTo3Decimals(it.start.station) },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_POINT)) { formatTo3Decimals(it.point.station) },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_END)) { formatTo3Decimals(it.end.station) },
 )
+
+private fun formatTo3Decimals(number: Double) =
+    String.format("%.3f", number)
+
+private fun formatTo6Decimals(number: Double) =
+    String.format("%.6f", number)
 
 fun previousLinearSection(
     currentSegment: CurvedProfileSegment,
