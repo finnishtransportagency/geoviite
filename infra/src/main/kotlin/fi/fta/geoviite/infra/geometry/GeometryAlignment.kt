@@ -32,24 +32,33 @@ data class GeometryAlignment(
     @get:JsonIgnore
     val bounds by lazy { boundingBoxAroundPointsOrNull(elements.flatMap { e -> e.bounds }) }
 
-    private fun foldElementLengths(elements: List<GeometryElement>) =
-        elements.fold(mutableListOf<Pair<Double, GeometryElement>>()) { acc, element ->
-            val prev = acc.lastOrNull()
-            val lengthUntilElementStart = prev?.let { prev.first + prev.second.calculatedLength } ?: 0.0
-            acc.add(lengthUntilElementStart to element)
-            acc
-        }
-
-    fun getCoordinateAt(distance: Double) =
+    fun getElementAt(distance: Double) =
         foldElementLengths(elements).findLast { element -> element.first <= distance }
             .let { match ->
                 match?.let {
                     val distanceLeft = distance - match.first
-                    if (distanceLeft <= match.second.calculatedLength) match.second.getCoordinateAt(distanceLeft)
+                    if (distanceLeft <= match.second.calculatedLength) match
                     else null
                 }
             }
 
+    fun getCoordinateAt(distance: Double) =
+        getElementAt(distance)?.let { match -> match.second.getCoordinateAt(distance - match.first) }
+
     fun stationValueNormalized(station: Double) =
         station - (elements.firstOrNull()?.staStart?.toDouble() ?: 0.0)
+
+    fun getElementStationRangeWithinAlignment(elementId: DomainId<GeometryElement>) =
+        foldElementLengths(elements)
+            .find { elementAndLength -> elementAndLength.second.id == elementId }
+            ?.let { match -> match.first..(match.first + match.second.calculatedLength) }
+            ?: throw IllegalArgumentException("Element not found from alignment")
 }
+
+private fun foldElementLengths(elements: List<GeometryElement>) =
+    elements.fold(mutableListOf<Pair<Double, GeometryElement>>()) { acc, element ->
+        val prev = acc.lastOrNull()
+        val lengthUntilElementStart = prev?.let { prev.first + prev.second.calculatedLength } ?: 0.0
+        acc.add(lengthUntilElementStart to element)
+        acc
+    }

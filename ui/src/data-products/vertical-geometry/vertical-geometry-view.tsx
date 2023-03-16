@@ -64,6 +64,7 @@ const VerticalGeometryView = () => {
                         ? state.locationTrackSearch.verticalGeometry
                         : state.planSearch.verticalGeometry
                 }
+                showLocationTrack={state.selectedSearch === 'LOCATION_TRACK'}
             />
         </div>
     );

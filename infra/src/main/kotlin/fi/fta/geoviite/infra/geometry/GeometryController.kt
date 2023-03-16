@@ -211,6 +211,17 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @PathVariable("id") id: IntId<GeometryPlan>,
     ): List<VerticalGeometryListing> {
         log.apiCall("getPlanVerticalGeometryListing", "id" to id)
-        return geometryService.getGeometryProfile(id)
+        return geometryService.getVerticalGeometryListing(id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/layout/location-tracks/{id}/vertical-geometry")
+    fun getTrackVerticalGeometryListing(
+        @PathVariable("id") id: IntId<LocationTrack>,
+        @RequestParam("startAddress") startAddress: TrackMeter? = null,
+        @RequestParam("endAddress") endAddress: TrackMeter? = null,
+    ): List<VerticalGeometryListing> {
+        log.apiCall("getTrackVerticalGeometryListing", "id" to id)
+        return geometryService.getVerticalGeometryListing(id, startAddress, endAddress)
     }
 }

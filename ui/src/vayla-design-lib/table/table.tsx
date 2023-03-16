@@ -45,7 +45,11 @@ export const Td: React.FC<TdProps> = ({ variant, narrow, nowrap, ...props }: TdP
     );
 };
 
-export enum ThVariant {}
+export enum ThVariant {
+    SINGLE_LINE,
+    MULTILINE_TOP,
+    MULTILINE_BOTTOM,
+}
 
 export type ThProps = {
     variant?: ThVariant;
@@ -53,7 +57,12 @@ export type ThProps = {
     icon?: IconComponent;
 } & React.HTMLProps<HTMLTableCellElement>;
 
-export const Th: React.FC<ThProps> = ({ narrow, icon, ...props }: ThProps) => {
+export const Th: React.FC<ThProps> = ({
+    narrow,
+    icon,
+    variant = ThVariant.SINGLE_LINE,
+    ...props
+}: ThProps) => {
     const Icon = icon;
     const className = createClassName(
         styles.table__th,
@@ -61,6 +70,9 @@ export const Th: React.FC<ThProps> = ({ narrow, icon, ...props }: ThProps) => {
         props.onClick && styles['table__th--clickable'],
         styles['table__th--align-left'],
         props.className,
+        variant === ThVariant.SINGLE_LINE && styles['table__th--regular'],
+        variant === ThVariant.MULTILINE_BOTTOM && styles['table__th--multiline-bottom'],
+        variant === ThVariant.MULTILINE_TOP && styles['table__th--multiline-top'],
     );
     return (
         <th {...props} className={className}>
