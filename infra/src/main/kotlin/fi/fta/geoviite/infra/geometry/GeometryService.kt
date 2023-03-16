@@ -232,6 +232,17 @@ class GeometryService @Autowired constructor(
         return toVerticalGeometryListing(alignments, coordinateTransformationService::getLayoutTransformation, planHeader, geocodingContext)
     }
 
+    fun getVerticalGeometryListingCsv(
+        planId: IntId<GeometryPlan>
+    ): Pair<FileName, ByteArray> {
+        logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
+        val plan = getPlanHeader(planId)
+        val verticalGeometryListing = getVerticalGeometryListing(planId)
+
+        val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing)
+        return FileName("${VERTICAL_GEOMETRY} ${plan.fileName}") to csvFileContent.toByteArray()
+    }
+
     fun getVerticalGeometryListing(
         locationTrackId: IntId<LocationTrack>,
         startAddress: TrackMeter?,
@@ -240,6 +251,20 @@ class GeometryService @Autowired constructor(
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
         return toVerticalGeometryListing(track, alignment, startAddress, endAddress, geocodingContext, coordinateTransformationService::getLayoutTransformation, ::getHeaderAndAlignment)
+    }
+
+    fun getVerticalGeometryListingCsv(
+        locationTrackId: IntId<LocationTrack>,
+        startAddress: TrackMeter?,
+        endAddress: TrackMeter?,
+    ): Pair<FileName, ByteArray> {
+        logger.serviceCall("getVerticalGeometryListingCsv",
+            "trackId" to locationTrackId, "startAddress" to startAddress, "endAdress" to endAddress,)
+        val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
+        val verticalGeometryListing = getVerticalGeometryListing(locationTrackId, startAddress, endAddress)
+
+        val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
+        return FileName("${VERTICAL_GEOMETRY} ${locationTrack.name}") to csvFileContent.toByteArray()
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
