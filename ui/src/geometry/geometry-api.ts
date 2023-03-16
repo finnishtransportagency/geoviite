@@ -154,7 +154,7 @@ export async function getGeometryPlanVerticalGeometry(
     return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
 }
 export const getLocationTrackVerticalGeometryCsv = (
-    planId: GeometryPlanId,
+    trackId: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
 ) => {
@@ -162,7 +162,7 @@ export const getLocationTrackVerticalGeometryCsv = (
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    return `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file${params}`;
+    return `${GEOMETRY_URI}/layout/location-tracks/${trackId}/vertical-geometry/file${params}`;
 };
 
 export const getGeometryPlanVerticalGeometryCsv = (planId: GeometryPlanId) =>
