@@ -58,7 +58,7 @@ const parseRatkoStatus = (ratkoStatus: RatkoStatus) => {
     }
 };
 
-const MAX_LISTED_PUBLICATIONS = 8;
+export const MAX_LISTED_PUBLICATIONS = 8;
 
 const PublicationCard: React.FC<PublishListProps> = ({
     publications,
