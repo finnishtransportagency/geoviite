@@ -58,7 +58,7 @@ const parseRatkoStatus = (ratkoStatus: RatkoStatus) => {
     }
 };
 
-const MAX_SUCCESS_PUBLICATIONS = 8;
+const MAX_LISTED_PUBLICATIONS = 8;
 
 const PublicationCard: React.FC<PublishListProps> = ({
     publications,
@@ -71,13 +71,13 @@ const PublicationCard: React.FC<PublishListProps> = ({
         (i1, i2) => -compareTimestamps(i1.publicationTime, i2.publicationTime),
     );
 
-    const failures = allPublications.filter((publication) =>
-        ratkoPushFailed(publication.ratkoPushStatus),
-    );
+    const failures = allPublications
+        .filter((publication) => ratkoPushFailed(publication.ratkoPushStatus))
+        .slice(0, MAX_LISTED_PUBLICATIONS);
 
     const successes = allPublications
         .filter((publication) => !ratkoPushFailed(publication.ratkoPushStatus))
-        .slice(0, MAX_SUCCESS_PUBLICATIONS);
+        .slice(0, MAX_LISTED_PUBLICATIONS);
 
     const ratkoConnectionError = ratkoStatus && ratkoStatus.statusCode >= 300;
 
