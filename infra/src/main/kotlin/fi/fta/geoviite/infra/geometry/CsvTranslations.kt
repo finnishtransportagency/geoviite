@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 const val ELEMENT_LISTING = "Elementtilistaus"
-const val VERTICAL_GEOMETRY = "Pystygeometria "
+const val VERTICAL_GEOMETRY = "Pystygeometria"
 
 enum class ElementListingHeader {
     TRACK_NUMBER,
