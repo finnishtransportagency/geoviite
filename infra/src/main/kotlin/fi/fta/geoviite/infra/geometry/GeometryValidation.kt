@@ -142,6 +142,14 @@ data class KmPostError(
             this(ValidationErrorData(VALIDATION_KM_POST, key, type), kmPostName, value)
 }
 
+data class CollectionError(
+    @JsonIgnore private val data: ValidationErrorData,
+    val value: String?,
+) : ValidationError by data {
+    constructor(key: String, groupingType: String, type: ErrorType, value: String? = null):
+            this(ValidationErrorData(groupingType, key, type), value)
+}
+
 private const val COORDINATE_DELTA = 0.1
 private const val ACCURATE_COORDINATE_DELTA = 0.001
 
@@ -217,7 +225,9 @@ fun validateAlignments(
 
     val alignmentErrors = alignments.flatMap { alignment -> validateAlignment(alignment, featureTypes) }
 
-    return duplicateErrors + alignmentErrors
+    val alignmentCollectionErrors = validateAlignmentCollection(alignments)
+
+    return duplicateErrors + alignmentErrors + alignmentCollectionErrors
 }
 
 fun validateSwitches(
@@ -243,9 +253,28 @@ fun validateSwitches(
     return duplicateErrors + switchErrors
 }
 
-fun validateKmPosts(kmPosts: List<GeometryKmPost>): List<ValidationError> = kmPosts.flatMapIndexed { i, p ->
-    // Don't validate 1st km-post as it's just a 0-point with different data
-    if (i > 0) validateKmPost(p) else listOf()
+fun validateKmPosts(kmPosts: List<GeometryKmPost>): List<ValidationError> {
+    val singularKmPostsValidations =  kmPosts.flatMapIndexed { i, p ->
+        // Don't validate 1st km-post as it's just a 0-point with different data
+        if (i > 0) validateKmPost(p) else listOf()
+    }
+
+    return singularKmPostsValidations + validateKmPostCollection(kmPosts)
+}
+
+private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<CollectionError> {
+    val groupedKmPosts = kmPosts.filter { it.kmNumber != null }.sortedBy { it.kmNumber }
+    val firstKmPost = groupedKmPosts.firstOrNull()
+
+    val generalErrors = listOfNotNull(
+        validate(groupedKmPosts.filter { kmPost -> kmPost.kmNumber == firstKmPost?.kmNumber }.size == 1) {
+            CollectionError("multiple-start-km-posts", VALIDATION_KM_POST, OBSERVATION_MAJOR, firstKmPost?.kmNumber?.toString())
+        },
+        validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {
+            CollectionError("sta-ahead-not-negative", VALIDATION_KM_POST, OBSERVATION_MAJOR, firstKmPost?.staAhead?.toString())
+        }
+    )
+    return generalErrors
 }
 
 fun validateKmPost(post: GeometryKmPost) = listOfNotNull(
@@ -256,6 +285,17 @@ fun validateKmPost(post: GeometryKmPost) = listOfNotNull(
         KmPostError("km-number-incorrect", OBSERVATION_MINOR, post.description)
     },
 )
+
+fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<ValidationError> {
+    val referenceLineAlignments = alignments.filter { alignment -> alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE }
+    return listOfNotNull(
+        validate(referenceLineAlignments.size >= 1) {
+            CollectionError(VALIDATION_ALIGNMENT, "no-reference-lines", OBSERVATION_MAJOR)
+        },
+        validate(referenceLineAlignments.size <= 1) {
+            CollectionError(VALIDATION_ALIGNMENT, "multiple-reference-lines", OBSERVATION_MAJOR)
+        })
+}
 
 fun validateAlignmentGeometry(alignment: GeometryAlignment): List<ValidationError> {
     return validatePieces(alignment.name, alignment.elements, ::validateElement, ::validateElementVsPrevious)
@@ -448,7 +488,7 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
         validate(endRadiusDiff <= ACCURATE_RADIUS_DELTA) {
             val isIncorrect = endRadiusDiff > RADIUS_DELTA
             ElementError(
-                key = if (isIncorrect) "incorrect-curve-radius-no-match-end" else "inaccurate-curve-radius-end",
+                key = if (isIncorrect) "curve-radius-incorrect-end" else "curve-radius-inaccurate-end",
                 type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 alignmentName = alignmentName,
                 element = curve,

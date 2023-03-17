@@ -104,7 +104,9 @@
                 "no-feature-type": "Keskilinjalta {{alignmentName}} puuttuu tyyppikoodi",
                 "unknown-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodi {{value}} ei vastaa raiteilla käytettyjä (111, 281)",
                 "wrong-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodia {{value}} ei pitäisi käyttää raiteilla: keskilinjan koodi on 281",
-                "no-state": "Keskilinjalle {{alignmentName}} ei ole annettu tilatietoa"
+                "no-state": "Keskilinjalle {{alignmentName}} ei ole annettu tilatietoa",
+                "multiple-reference-lines": "Suunnitelmassa on useampi pituusmittauslinja",
+                "no-reference-lines": "Suunnitelmasta ei löydy pituusmittauslinjaa"
             },
             "element": {
                 "field-invalid-length": "Keskilinjan {{alignmentName}} {{elementType}}-elementin {{elementName}} ilmoitettu pituus \"{{value}}\" on negatiivinen",
@@ -156,6 +158,10 @@
                 "no-structure-alignment": "Vaihteen {{switchName}} pääosat ({{jointNumbers}}) raiteella {{alignmentName}} eivät vastaa mitään vaihdetyypin linjaa",
                 "alignment-joint-mismatch": "Vaihteen {{switchName}} pääosat ({{jointNumber}}) raiteella {{alignmentName}} ovat eri sijainnissa kuin muilla raiteilla",
                 "alignment-joint-inaccurate": "Vaihteen {{switchName}} pääosat ({{jointNumber}}) raiteella {{alignmentName}} ovat sijainniltaan epätarkat suhteessa muihin raiteisiin"
+            },
+            "km-post": {
+                "multiple-start-km-posts": "Suunnitelman ensimmäisellä tasakilometripisteellä on useita kilometripylväitä. Tasakilometripiste: {{value}}",
+                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on positiivinen. Arvo: {{value}}"
             }
         }
     }
