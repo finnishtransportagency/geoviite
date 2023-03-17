@@ -265,10 +265,10 @@ private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<Collec
 
     val generalErrors = listOfNotNull(
         validate(groupedKmPosts.filter { kmPost -> kmPost.kmNumber == firstKmPost?.kmNumber }.size == 1) {
-            CollectionError("multiple-start-km-posts", VALIDATION_KM_POST, OBSERVATION_MAJOR, firstKmPost?.kmNumber?.toString())
+            CollectionError("multiple-start-km-posts", VALIDATION_KM_POST, VALIDATION_ERROR, firstKmPost?.kmNumber?.toString())
         },
         validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {
-            CollectionError("sta-ahead-not-negative", VALIDATION_KM_POST, OBSERVATION_MAJOR, firstKmPost?.staAhead?.toString())
+            CollectionError("sta-ahead-not-negative", VALIDATION_KM_POST, VALIDATION_ERROR, firstKmPost?.staAhead?.toString())
         }
     )
     return generalErrors
@@ -290,7 +290,7 @@ fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<Valid
             CollectionError("no-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
         },
         validate(referenceLineAlignments.size <= 1) {
-            CollectionError("multiple-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
+            CollectionError("multiple-reference-lines", VALIDATION_ALIGNMENT, VALIDATION_ERROR)
         })
 }
 
