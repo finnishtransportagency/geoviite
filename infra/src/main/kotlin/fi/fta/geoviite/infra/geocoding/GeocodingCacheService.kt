@@ -49,7 +49,7 @@ class GeocodingCacheService(
     private val kmPostDao: LayoutKmPostDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val geometryDao: GeometryDao,
-    private val geometryPlanLayoutTransformationService: GeometryPlanLayoutTransformationService,
+    private val planLayoutService: PlanLayoutService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -75,7 +75,7 @@ class GeocodingCacheService(
     fun getGeometryGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContext? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
-        val plan = geometryPlanLayoutTransformationService.getLayoutPlan(key.planVersion).first ?: return null
+        val plan = planLayoutService.getLayoutPlan(key.planVersion).first ?: return null
         val referenceLine = getGeometryGeocodingContextReferenceLine(plan) ?: return null
         val startAddress = getGeometryGeocodingContextStartAddress(key.planVersion.id) ?: return null
 

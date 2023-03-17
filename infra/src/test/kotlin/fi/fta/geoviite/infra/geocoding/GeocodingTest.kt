@@ -64,7 +64,6 @@ val segment3 = segment(
 )
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
-val referenceLine: ReferenceLine = referenceLine(IntId(1), alignment = alignment, startAddress = startAddress)
 val addressPoints = listOf(
     GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
@@ -75,7 +74,7 @@ val addressPoints = listOf(
 val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"))
 val context = GeocodingContext(
     trackNumber,
-    referenceLine.startAddress,
+    startAddress,
     alignment,
     addressPoints,
     // test-data is inaccurate so allow more delta in validation
@@ -163,7 +162,7 @@ class GeocodingTest {
         assertEquals(startAddress, context.getAddress(0.0, startAddress.decimalCount()))
 
         val lastPoint = addressPoints.last()
-        val endLength: Double = referenceLine.length
+        val endLength: Double = alignment.length
         assertEquals(
             TrackMeter(lastPoint.kmNumber, endLength - lastPoint.distance, 3),
             context.getAddress(endLength, 3)
@@ -312,7 +311,7 @@ class GeocodingTest {
         val addressPoint = getProjectedAddressPoint(projection, alignment)
         assertNotNull(addressPoint)
         assertEquals(address, addressPoint.address)
-        assertEquals(2 * referenceLine.length / 5 + 50.0, addressPoint.distance, DELTA)
+        assertEquals(2 * alignment.length / 5 + 50.0, addressPoint.distance, DELTA)
     }
 
     @Test

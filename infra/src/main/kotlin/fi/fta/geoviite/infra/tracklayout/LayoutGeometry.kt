@@ -46,6 +46,7 @@ interface IAlignment {
     val segments: List<ISegment>
     val id: DomainId<*>
     val length: Double
+        get() = segments.lastOrNull()?.let { s -> s.start + s.length } ?: 0.0
 
     val boundingBox: BoundingBox?
 
@@ -160,7 +161,6 @@ data class LayoutAlignment(
     override val id: DomainId<LayoutAlignment> = deriveFromSourceId("A", sourceId),
     val dataType: DataType = DataType.TEMP,
 ): IAlignment {
-    override val length: Double = segments.lastOrNull()?.let { s -> s.start + s.length } ?: 0.0
     override val boundingBox: BoundingBox? = boundingBoxCombining(segments.mapNotNull { s -> s.boundingBox })
     init {
         segments.forEachIndexed { index, segment ->

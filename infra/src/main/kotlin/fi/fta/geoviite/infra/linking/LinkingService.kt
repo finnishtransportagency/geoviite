@@ -65,7 +65,7 @@ fun getSwitchId(
 @Service
 class LinkingService @Autowired constructor(
     private val geometryService: GeometryService,
-    private val geometryPlanLayoutTransformationService: GeometryPlanLayoutTransformationService,
+    private val planLayoutService: PlanLayoutService,
     private val referenceLineService: ReferenceLineService,
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
@@ -251,7 +251,7 @@ class LinkingService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         alignmentId: IntId<GeometryAlignment>,
     ): MapAlignment<GeometryAlignment> {
-        val (geometryPlan, transformationError) = geometryPlanLayoutTransformationService.getLayoutPlan(planId)
+        val (geometryPlan, transformationError) = planLayoutService.getLayoutPlan(planId)
         if (geometryPlan == null) {
             throw LinkingFailureException("Could not create plan layout: plan=$planId error=$transformationError")
         }

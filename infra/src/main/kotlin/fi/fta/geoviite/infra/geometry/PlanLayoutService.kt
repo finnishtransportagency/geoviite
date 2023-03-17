@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.tracklayout.simplifyPlanLayout
 import org.springframework.stereotype.Service
 
 @Service
-class GeometryPlanLayoutTransformationService(
+class PlanLayoutService(
     private val planLayoutCache: PlanLayoutCache,
     private val geometryDao: GeometryDao,
 ) {

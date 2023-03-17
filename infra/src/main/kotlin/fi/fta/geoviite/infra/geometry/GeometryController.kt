@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/geometry")
 class GeometryController @Autowired constructor(
     private val geometryService: GeometryService,
-    private val geometryPlanLayoutTransformationService: GeometryPlanLayoutTransformationService,
+    private val planLayoutService: PlanLayoutService,
 ) {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -79,7 +79,7 @@ class GeometryController @Autowired constructor(
             "getTackLayoutPlan",
             "planId" to geometryPlanId, "includeGeometryData" to includeGeometryData
         )
-        return geometryPlanLayoutTransformationService.getLayoutPlan(geometryPlanId, includeGeometryData).first
+        return planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).first
     }
 
     @PreAuthorize(AUTH_ALL_READ)

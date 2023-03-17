@@ -89,7 +89,8 @@ class RatkoLocationTrackService @Autowired constructor(
             "Cannot update location track without alignment $layoutLocationTrack"
         }
 
-        val (geocoding, addresses) = getGeocodingContextAndAlignmentAddresses(layoutLocationTrack)
+        val geocoding = getGeocodingContext(layoutLocationTrack)
+        val addresses = getAlignmentAddresses(layoutLocationTrack)
         val alignment = layoutAlignmentDao.fetch(layoutLocationTrack.alignmentVersion)
 
         val trackNumberOid = getTrackNumberOid(layoutLocationTrack.trackNumberId)
@@ -250,8 +251,8 @@ class RatkoLocationTrackService @Autowired constructor(
         val locationTrackOid = RatkoOid<RatkoLocationTrack>(layoutLocationTrack.externalId)
         val trackNumberOid = getTrackNumberOid(layoutLocationTrack.trackNumberId)
 
-        val (geocoding, addresses) = getGeocodingContextAndAlignmentAddresses(layoutLocationTrack)
-
+        val geocoding = getGeocodingContext(layoutLocationTrack)
+        val addresses = getAlignmentAddresses(layoutLocationTrack)
         val existingStartNode = existingRatkoLocationTrack.nodecollection?.getStartNode()
         val existingEndNode = existingRatkoLocationTrack.nodecollection?.getEndNode()
 
@@ -289,16 +290,20 @@ class RatkoLocationTrackService @Autowired constructor(
         )
     }
 
-    private fun getGeocodingContextAndAlignmentAddresses(layoutLocationTrack: LocationTrack): Pair<GeocodingContext, AlignmentAddresses> {
+    private fun getGeocodingContext(layoutLocationTrack: LocationTrack): GeocodingContext {
         val geocoding = geocodingService.getGeocodingContext(PublishType.OFFICIAL, layoutLocationTrack.trackNumberId)
         checkNotNull(geocoding) {
             "Cannot update location track without geocoding context $layoutLocationTrack"
         }
+        return geocoding
+    }
+
+    private fun getAlignmentAddresses(layoutLocationTrack: LocationTrack): AlignmentAddresses {
         val addresses = geocodingService.getAddressPoints(layoutLocationTrack.id as IntId, PublishType.OFFICIAL)
         checkNotNull(addresses) {
             "Cannot update location track without location track address points $layoutLocationTrack"
         }
-        return Pair(geocoding, addresses)
+        return addresses
     }
 
     private fun deleteLocationTrackPoints(
