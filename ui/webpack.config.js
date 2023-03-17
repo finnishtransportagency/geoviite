@@ -35,6 +35,8 @@ const licenseOverrides = {
     'turf-jsts@1.2.3': 'EPL-1.0',
 };
 
+const glyphLocations = [/geoviite-design-lib\/glyphs/, /vayla-design-lib\/icon/]
+
 module.exports = (env) => {
     return {
         entry: './src/index.tsx',
@@ -91,12 +93,12 @@ module.exports = (env) => {
 
                 {
                     test: /\.svg$/,
-                    include: [/geoviite-design-lib\/glyphs/, /vayla-design-lib\/icon/],
+                    include: glyphLocations,
                     type: 'asset/source',
                 },
                 {
                     test: /\.svg$/,
-                    exclude: [/geoviite-design-lib\/glyphs/, /vayla-design-lib\/icon/],
+                    exclude: glyphLocations,
                     type: 'asset/resource',
                 },
                 {
