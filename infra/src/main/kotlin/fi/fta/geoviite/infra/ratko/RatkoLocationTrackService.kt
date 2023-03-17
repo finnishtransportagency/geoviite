@@ -364,9 +364,12 @@ class RatkoLocationTrackService @Autowired constructor(
             "Location track missing alignment, id=${locationTrack.id}"
         }
 
-        val alignment = alignmentDao.fetch(locationTrack.alignmentVersion)
-        val addresses = geocodingService.getGeocodingContextAtMoment(locationTrack.trackNumberId, moment)
-            ?.getAddressPoints(alignment)
+        val addresses = geocodingService.getGeocodingContextCacheKey(
+            locationTrack.trackNumberId,
+            moment
+        )?.let { context ->
+            geocodingService.getAddressPoints(context, locationTrack.alignmentVersion)
+        }
 
         return checkNotNull(addresses) {
             "Cannot calculate addresses for location track, id=${locationTrack.id}"
