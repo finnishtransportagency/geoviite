@@ -520,13 +520,14 @@ fun geometryAlignment(
     cant: GeometryCant? = null,
     name: String = "001",
     id: DomainId<GeometryAlignment> = StringId(),
+    featureTypeCode: FeatureTypeCode = FeatureTypeCode("111")
 ) = GeometryAlignment(
     id = id,
     name = AlignmentName(name),
     description = FreeText("test-alignment 001"),
     oidPart = null,
     state = PlanState.PROPOSED,
-    featureTypeCode = FeatureTypeCode("111"),
+    featureTypeCode = featureTypeCode,
     staStart = BigDecimal("0.000000"),
     elements = elements,
     profile = profile,
