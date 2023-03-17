@@ -30,7 +30,7 @@ class GeocodingIT @Autowired constructor(
 ) : ITTestBase() {
 
     @Test
-    fun happyPath() {
+    fun `geocoding context can be generated from geometry plan`() {
         val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
         val plan = minimalPlan()
             .copy(
