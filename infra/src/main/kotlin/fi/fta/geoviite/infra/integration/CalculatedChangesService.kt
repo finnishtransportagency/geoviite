@@ -78,48 +78,42 @@ data class CalculatedChanges(
     val indirectChanges: IndirectChanges,
 ) {
     init {
-        check(directChanges.kmPostChanges
-            .groupingBy { it }
-            .eachCount()
-            .all { it.value == 1 }
-        ) {
+        checkDuplicates(
+            directChanges.kmPostChanges,
+            { it },
             "Duplicate km posts in direct changes, directChanges=${directChanges.kmPostChanges}"
-        }
+        )
 
-        check(directChanges.referenceLineChanges
-            .groupingBy { it }
-            .eachCount()
-            .all { it.value == 1 }
-        ) {
+        checkDuplicates(
+            directChanges.referenceLineChanges,
+            { it },
             "Duplicate reference lines in direct changes, directChanges=${directChanges.referenceLineChanges}"
-        }
+        )
 
-        check(
-            (directChanges.trackNumberChanges + indirectChanges.trackNumberChanges)
-                .groupingBy { it.trackNumberId }
-                .eachCount()
-                .all { it.value == 1 }
-        ) {
+        val trackNumberChanges = (directChanges.trackNumberChanges + indirectChanges.trackNumberChanges)
+        checkDuplicates(
+            trackNumberChanges,
+            { it.trackNumberId },
             "Duplicate track numbers in direct and indirect changes, directChanges=${directChanges.trackNumberChanges} indirectChanges=${indirectChanges.trackNumberChanges}"
-        }
+        )
 
-        check(
-            (directChanges.locationTrackChanges + indirectChanges.locationTrackChanges)
-                .groupingBy { it.locationTrackId }
-                .eachCount()
-                .all { it.value == 1 }
-        ) {
+        val locationTrackChanges = (directChanges.locationTrackChanges + indirectChanges.locationTrackChanges)
+        checkDuplicates(
+            locationTrackChanges,
+            { it.locationTrackId },
             "Duplicate location tracks in direct and indirect changes, directChanges=${directChanges.locationTrackChanges} indirectChanges=${indirectChanges.locationTrackChanges}"
-        }
+        )
 
-        check(
-            (directChanges.switchChanges + indirectChanges.switchChanges)
-                .groupingBy { it.switchId }
-                .eachCount()
-                .all { it.value == 1 }
-        ) {
+        val switchChanges = (directChanges.switchChanges + indirectChanges.switchChanges)
+        checkDuplicates(
+            switchChanges,
+            { it.switchId },
             "Duplicate switches in direct and indirect changes, directChanges=${directChanges.switchChanges} indirectChanges=${indirectChanges.switchChanges}"
-        }
+        )
+    }
+
+    private fun <T, R> checkDuplicates(changes: Collection<T>, groupingBy: (v: T) -> R, message: String) {
+        check(changes.groupingBy(groupingBy).eachCount().all { it.value == 1 }) { message }
     }
 }
 
@@ -253,7 +247,7 @@ class CalculatedChangesService(
     }
 
     private fun calculateTrackNumberChanges(
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumberIds: Collection<IntId<TrackLayoutTrackNumber>>,
         changeContext: ChangeContext,
     ): Pair<List<TrackNumberChange>, List<IntId<LocationTrack>>> {
         val (tnChanges, affectedTracks) = trackNumberIds.map { id -> getTrackNumberChange(id, changeContext) }.unzip()
@@ -289,18 +283,20 @@ class CalculatedChangesService(
         return trackNumberChange to affectedTracks
     }
 
-    private fun calculateLocationTrackChanges(trackIds: List<IntId<LocationTrack>>, changeContext: ChangeContext) =
-        trackIds.map { trackId ->
-            val trackBefore = changeContext.locationTracks.getBefore(trackId)
-            val trackAfter = changeContext.locationTracks.getAfter(trackId)
-            val addressChanges = addressChangesService.getAddressChanges(
-                beforeTrack = trackBefore,
-                afterTrack = trackAfter,
-                beforeContextKey = trackBefore?.let { t -> changeContext.geocodingKeysBefore[t.trackNumberId] },
-                afterContextKey = changeContext.geocodingKeysAfter[trackAfter.trackNumberId],
-            )
-            LocationTrackChange.create(trackId, addressChanges)
-        }
+    private fun calculateLocationTrackChanges(
+        trackIds: Collection<IntId<LocationTrack>>,
+        changeContext: ChangeContext,
+    ) = trackIds.map { trackId ->
+        val trackBefore = changeContext.locationTracks.getBefore(trackId)
+        val trackAfter = changeContext.locationTracks.getAfter(trackId)
+        val addressChanges = addressChangesService.getAddressChanges(
+            beforeTrack = trackBefore,
+            afterTrack = trackAfter,
+            beforeContextKey = trackBefore?.let { t -> changeContext.geocodingKeysBefore[t.trackNumberId] },
+            afterContextKey = changeContext.geocodingKeysAfter[trackAfter.trackNumberId],
+        )
+        LocationTrackChange.create(trackId, addressChanges)
+    }
 
     private fun getSwitchChangesByLocationTrack(
         trackId: IntId<LocationTrack>,
@@ -397,11 +393,10 @@ class CalculatedChangesService(
             .groupBy { it.switchId }
             .values
             .flatten()
-            .toList()
     }
 
     private fun getSwitchChangesByGeometryChanges(
-        locationTracksChanges: List<LocationTrackChange>,
+        locationTracksChanges: Collection<LocationTrackChange>,
         changeContext: ChangeContext,
     ): Pair<List<SwitchChange>, List<LocationTrackChange>> {
         val switchChanges = mergeSwitchChanges(
@@ -460,7 +455,7 @@ class CalculatedChangesService(
     )
 }
 
-private fun asDirectSwitchChanges(switchIds: List<IntId<TrackLayoutSwitch>>) =
+private fun asDirectSwitchChanges(switchIds: Collection<IntId<TrackLayoutSwitch>>) =
     switchIds.map { switchId -> SwitchChange(switchId = switchId, changedJoints = emptyList()) }
 
 private fun getSwitchJointChanges(
@@ -527,7 +522,7 @@ private fun switchIdAndLocation(topologySwitch: TopologyLocationTrackSwitch?, lo
     else null
 
 private fun mergeLocationTrackChanges(
-    vararg changeLists: List<LocationTrackChange>,
+    vararg changeLists: Collection<LocationTrackChange>,
 ) = changeLists
     .flatMap { it }
     .groupBy { it.locationTrackId }
@@ -542,7 +537,7 @@ private fun mergeLocationTrackChanges(
     }
 
 private fun mergeSwitchChanges(
-    vararg changeLists: List<SwitchChange>,
+    vararg changeLists: Collection<SwitchChange>,
 ) = changeLists
     .flatMap { it }
     .groupBy { it.switchId }
@@ -552,7 +547,7 @@ private fun mergeSwitchChanges(
     }
 
 private fun mergeTrackNumberChanges(
-    vararg changeLists: List<TrackNumberChange>,
+    vararg changeLists: Collection<TrackNumberChange>,
 ) = changeLists
     .flatMap { it }
     .groupBy { it.trackNumberId }
@@ -581,7 +576,7 @@ private fun alignmentContainsKilometer(
 private fun calculateOverlappingLocationTracks(
     geocodingContext: GeocodingContext,
     kilometers: Set<KmNumber>,
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    locationTracks: Collection<Pair<LocationTrack, LayoutAlignment>>,
 ) = locationTracks
     .filter { (_, alignment) -> alignmentContainsKilometer(geocodingContext, alignment, kilometers) }
     .map { (locationTrack, _) -> locationTrack.id as IntId<LocationTrack> }

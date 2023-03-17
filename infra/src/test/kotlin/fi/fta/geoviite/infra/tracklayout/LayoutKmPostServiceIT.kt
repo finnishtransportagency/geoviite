@@ -27,31 +27,31 @@ class LayoutKmPostServiceIT @Autowired constructor(
     fun nearbyKmPostsAreReturnedInOrder() {
         val trackNumberId = insertOfficialTrackNumber()
         val kmPost1 = kmPostService.get(
-            OFFICIAL, kmPostDao.insert(
+            kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(1),
                     location = Point(1.0, 1.0),
                 )
-            ).id
+            ).rowVersion
         )
         val kmPost2 = kmPostService.get(
-            OFFICIAL, kmPostDao.insert(
+            kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(2),
                     location = Point(2.0, 1.0),
                 )
-            ).id
+            ).rowVersion
         )
         val kmPost3 = kmPostService.get(
-            OFFICIAL, kmPostDao.insert(
+            kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(3),
                     location = null,
                 )
-            ).id
+            ).rowVersion
         )
 
         kmPostDao.insert(
@@ -72,14 +72,14 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun findsKmPostAtKmNumber() {
         val trackNumberId = insertOfficialTrackNumber()
-        val kmPost = kmPostService.getOrThrow(
-            OFFICIAL, kmPostDao.insert(
+        val kmPost = kmPostService.get(
+            kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(1),
                     location = Point(1.0, 1.0),
                 )
-            ).id
+            ).rowVersion
         )
 
         val result = kmPostService.getByKmNumber(OFFICIAL, trackNumberId, kmPost.kmNumber)
@@ -103,14 +103,14 @@ class LayoutKmPostServiceIT @Autowired constructor(
     fun doesntFindKmPostOnWrongTrack() {
         val trackNumber1Id = insertOfficialTrackNumber()
         val trackNumber2Id = insertOfficialTrackNumber()
-        val kmPost = kmPostService.getOrThrow(
-            OFFICIAL, kmPostDao.insert(
+        val kmPost = kmPostService.get(
+            kmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumber1Id,
                     km = KmNumber(1),
                     location = Point(1.0, 1.0),
                 )
-            ).id
+            ).rowVersion
         )
 
         assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumber2Id, kmPost.kmNumber))

@@ -27,7 +27,7 @@ enum class PublicationTableColumn {
 data class PublicationTableItem(
     val name: String,
     val trackNumbers: List<TrackNumber>,
-    val changedKmNumbers: Set<KmNumber>? = null,
+    val changedKmNumbers: List<KmNumber>? = null,
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
@@ -42,6 +42,11 @@ open class Publication(
     open val publicationTime: Instant,
     open val publicationUser: UserName,
     open val message: String?,
+)
+
+data class PublishedItemListing<T>(
+    val directChanges: List<T>,
+    val indirectChanges: List<T>,
 )
 
 data class PublishedTrackNumber(

@@ -197,20 +197,20 @@ class PublicationDaoIT @Autowired constructor(
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
         val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publicationId)
         val publishedSwitches = publicationDao.fetchPublishedSwitches(publicationId)
-        assertTrue(publishedTrackNumbers.first.all { it.version.id == trackNumberId })
+        assertTrue(publishedTrackNumbers.directChanges.all { it.version.id == trackNumberId })
         assertEquals(
             changes.directChanges.trackNumberChanges.flatMap { it.changedKmNumbers }.sorted(),
-            publishedTrackNumbers.first.flatMap { it.changedKmNumbers }.sorted()
+            publishedTrackNumbers.directChanges.flatMap { it.changedKmNumbers }.sorted()
         )
 
-        assertTrue(publishedLocationTracks.first.all { it.version.id == locationTrackId })
+        assertTrue(publishedLocationTracks.directChanges.all { it.version.id == locationTrackId })
         assertEquals(
             changes.directChanges.locationTrackChanges.flatMap { it.changedKmNumbers }.sorted(),
-            publishedLocationTracks.first.flatMap { it.changedKmNumbers }.sorted()
+            publishedLocationTracks.directChanges.flatMap { it.changedKmNumbers }.sorted()
         )
 
-        assertTrue(publishedSwitches.first.all { it.version.id == switchId })
-        assertEquals(listOf(switchJointChange), publishedSwitches.first.flatMap { it.changedJoints })
+        assertTrue(publishedSwitches.directChanges.all { it.version.id == switchId })
+        assertEquals(listOf(switchJointChange), publishedSwitches.directChanges.flatMap { it.changedJoints })
     }
 
     @Test

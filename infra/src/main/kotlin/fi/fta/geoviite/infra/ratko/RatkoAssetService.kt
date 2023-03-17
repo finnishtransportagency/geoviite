@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import org.slf4j.Logger
@@ -23,20 +22,18 @@ import org.springframework.stereotype.Service
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoAssetService @Autowired constructor(
     private val ratkoClient: RatkoClient,
-    private val switchService: LayoutSwitchService,
     private val switchLibraryService: SwitchLibraryService,
     private val switchDao: LayoutSwitchDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushSwitchChangesToRatko(publishedSwitches: List<PublishedSwitch>) {
+    fun pushSwitchChangesToRatko(publishedSwitches: Collection<PublishedSwitch>) {
         publishedSwitches
             .groupBy { it.version.id }
-            .map { (switchId, switches) ->
-                switchService.getOrThrow(
-                    OFFICIAL, switchId
-                ) to switches
+            .map { (_, switches) ->
+                val newestVersion = switches.maxBy { it.version.version }.version
+                switchDao.fetch(newestVersion) to switches
                     .flatMap { it.changedJoints }
                     .reversed()
                     //We assume that publishedSwitches are ordered by publication time
@@ -75,8 +72,8 @@ class RatkoAssetService @Autowired constructor(
             "jointChanges" to jointChanges,
         )
 
-        require(layoutSwitch.id is IntId)
-        requireNotNull(layoutSwitch.externalId) { "Cannot update switch without oid $layoutSwitch" }
+        require(layoutSwitch.id is IntId) { "Cannot push draft switches to Ratko, $layoutSwitch" }
+        requireNotNull(layoutSwitch.externalId) { "Cannot update switch without oid, id=${layoutSwitch.id}" }
         val switchOid = RatkoOid<RatkoSwitchAsset>(layoutSwitch.externalId)
 
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
@@ -115,14 +112,14 @@ class RatkoAssetService @Autowired constructor(
     private fun getBaseRatkoSwitchLocations(
         switchId: IntId<TrackLayoutSwitch>,
         existingRatkoLocations: List<RatkoAssetLocation>,
-        jointChanges: List<SwitchJointChange>,
+        jointChanges: Collection<SwitchJointChange>,
         switchStructure: SwitchStructure,
     ): List<RatkoAssetLocation> {
         return if (existingRatkoLocations.isNotEmpty()) {
             val linkedLocationTracks =
                 switchDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId, switchStructure.presentationJointNumber)
                     .map { ids ->
-                        ids.externalId ?: throw IllegalStateException("Official LocationTrack must have an external ID")
+                        checkNotNull(ids.externalId) { "Official LocationTrack must have an external ID, id=${ids.id}" }
                     }
 
             existingRatkoLocations
@@ -136,9 +133,9 @@ class RatkoAssetService @Autowired constructor(
                                     mapJointNumberToGeometryType(jointChange.number, switchStructure.baseType)
                                 )
 
-                                checkNotNull(jointChange.locationTrackExternalId) {
-                                    "Cannot push switch changes with missing location track oid ${jointChange.locationTrackExternalId}"
-                                }
+                            checkNotNull(jointChange.locationTrackExternalId) {
+                                "Cannot push switch changes with missing location track oid, $jointChange"
+                            }
 
                                 jointChange.locationTrackExternalId.toString() == node.point.locationtrack?.id
                                         && nodeType == node.nodeType
@@ -150,13 +147,12 @@ class RatkoAssetService @Autowired constructor(
                 }
                 .filter { location -> location.nodecollection.nodes.isNotEmpty() }
         } else emptyList()
-
     }
 
     private fun updateSwitchGeoms(
         switchOid: RatkoOid<RatkoSwitchAsset>,
         switchBaseType: SwitchBaseType,
-        joints: List<TrackLayoutSwitchJoint>
+        joints: Collection<TrackLayoutSwitchJoint>,
     ) {
         val switchGeometries = convertToRatkoAssetGeometries(joints, switchBaseType)
         if (switchGeometries.isNotEmpty()) {
@@ -211,7 +207,7 @@ class RatkoAssetService @Autowired constructor(
         )
 
         val switchOid = ratkoClient.newAsset<RatkoSwitchAsset>(ratkoSwitch)
-        checkNotNull(switchOid) { "Did not receive oid from Ratko $ratkoSwitch" }
+        checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
 
         generateSwitchLocations(jointChanges, switchStructure).also { switchLocations ->
             if (switchLocations.isNotEmpty()) {
