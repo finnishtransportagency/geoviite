@@ -4,13 +4,16 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
+import fi.fta.geoviite.infra.configuration.CACHE_PLAN_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 
@@ -52,14 +55,15 @@ class GeocodingCacheService(
     private val planLayoutService: PlanLayoutService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    @Autowired @Lazy lateinit var geocodingCacheService: GeocodingCacheService
 
-    @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
     fun getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext? =
         when (key) {
-            is LayoutGeocodingContextCacheKey -> getLayoutGeocodingContext(key)
-            is GeometryGeocodingContextCacheKey -> getGeometryGeocodingContext(key)
+            is LayoutGeocodingContextCacheKey -> geocodingCacheService.getLayoutGeocodingContext(key)
+            is GeometryGeocodingContextCacheKey -> geocodingCacheService.getGeometryGeocodingContext(key)
         }
 
+    @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
     fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): GeocodingContext? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
@@ -72,6 +76,7 @@ class GeocodingCacheService(
         return GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, kmPosts)
     }
 
+    @Cacheable(CACHE_PLAN_GEOCODING_CONTEXTS, sync = true)
     fun getGeometryGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContext? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)

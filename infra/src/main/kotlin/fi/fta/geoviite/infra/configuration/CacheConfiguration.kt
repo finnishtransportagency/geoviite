@@ -35,6 +35,7 @@ const val CACHE_COMMON_SWITCH_OWNER = "switch-owner"
 const val CACHE_KKJ_ETRS_TRIANGULATION_NETWORK = "kkj-etrs-triangles"
 
 const val CACHE_GEOCODING_CONTEXTS = "geocoding-contexts"
+const val CACHE_PLAN_GEOCODING_CONTEXTS = "plan-geocoding-contexts"
 
 const val CACHE_RATKO_HEALTH_STATUS = "ratko-health-status"
 
@@ -75,6 +76,7 @@ class CacheConfiguration @Autowired constructor(
             manager.registerCustomCache(CACHE_GEOMETRY_PLAN_LAYOUT, cache(100, planCacheDuration))
             manager.registerCustomCache(CACHE_GEOMETRY_PLAN_HEADER, cache(10000, planCacheDuration))
             manager.registerCustomCache(CACHE_GEOMETRY_SWITCH, cache(10000, planCacheDuration))
+            manager.registerCustomCache(CACHE_PLAN_GEOCODING_CONTEXTS, cache(50, planCacheDuration))
 
             manager.registerCustomCache(CACHE_LAYOUT_ALIGNMENT, cache(10000, layoutCacheDuration))
             manager.registerCustomCache(CACHE_LAYOUT_LOCATION_TRACK, cache(10000, layoutCacheDuration))
