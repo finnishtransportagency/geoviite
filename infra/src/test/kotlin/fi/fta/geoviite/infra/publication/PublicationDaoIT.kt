@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.TEST_USER
@@ -166,34 +166,57 @@ class PublicationDaoIT @Autowired constructor(
         )
 
         val changes = CalculatedChanges(
-            listOf(
-                TrackNumberChange(
-                    trackNumberId,
-                    setOf(KmNumber(1234), KmNumber(45, "AB")),
-                    true,
-                    false
+            directChanges = DirectChanges(
+                trackNumberChanges = listOf(
+                    TrackNumberChange(
+                        trackNumberId,
+                        setOf(KmNumber(1234), KmNumber(45, "AB")),
+                        isStartChanged = true,
+                        isEndChanged = false
+                    )
+                ),
+                kmPostChanges = emptyList(),
+                referenceLineChanges = emptyList(),
+                locationTrackChanges = listOf(
+                    LocationTrackChange(
+                        locationTrackId,
+                        setOf(KmNumber(456)),
+                        isStartChanged = false,
+                        isEndChanged = true
+                    )
+                ),
+                switchChanges = listOf(
+                    SwitchChange(switchId, listOf(switchJointChange))
                 )
-            ), listOf(
-                LocationTrackChange(
-                    locationTrackId,
-                    setOf(KmNumber(456)),
-                    false,
-                    true
-                )
-            ), listOf(
-                SwitchChange(switchId, listOf(switchJointChange))
-            )
+            ),
+            indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList())
         )
-        val publishId = publicationDao.createPublication(listOf(), listOf(), listOf(), listOf(), listOf(), "")
-        publicationDao.savePublishCalculatedChanges(publishId, changes)
-        val fetchedChanges = publicationDao.fetchCalculatedChangesInPublish(publishId)
-        assertEquals(changes, fetchedChanges)
+        val publicationId = publicationDao.createPublication("")
+        publicationDao.savePublishCalculatedChanges(publicationId, changes)
+
+        val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
+        val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publicationId)
+        val publishedSwitches = publicationDao.fetchPublishedSwitches(publicationId)
+        assertTrue(publishedTrackNumbers.directChanges.all { it.version.id == trackNumberId })
+        assertEquals(
+            changes.directChanges.trackNumberChanges.flatMap { it.changedKmNumbers }.sorted(),
+            publishedTrackNumbers.directChanges.flatMap { it.changedKmNumbers }.sorted()
+        )
+
+        assertTrue(publishedLocationTracks.directChanges.all { it.version.id == locationTrackId })
+        assertEquals(
+            changes.directChanges.locationTrackChanges.flatMap { it.changedKmNumbers }.sorted(),
+            publishedLocationTracks.directChanges.flatMap { it.changedKmNumbers }.sorted()
+        )
+
+        assertTrue(publishedSwitches.directChanges.all { it.version.id == switchId })
+        assertEquals(listOf(switchJointChange), publishedSwitches.directChanges.flatMap { it.changedJoints })
     }
 
     @Test
     fun `Publication message is stored and fetched correctly`() {
         val message = "Test"
-        val publishId = publicationDao.createPublication(listOf(), listOf(), listOf(), listOf(), listOf(), message)
+        val publishId = publicationDao.createPublication(message)
         assertEquals(message, publicationDao.getPublication(publishId).message)
     }
 

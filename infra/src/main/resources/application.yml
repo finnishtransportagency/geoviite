@@ -42,9 +42,7 @@ geoviite:
   scheduler-lock:
     enabled: true
   data:
-    csv-path: "${DATA_CSV_PATH:}"
-    im-path: "${DATA_IM_PATH:}"
-    import: true
+    import: false
   jwt:
     validation:
       enabled: true

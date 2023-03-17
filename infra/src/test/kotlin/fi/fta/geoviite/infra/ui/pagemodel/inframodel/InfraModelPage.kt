@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import org.openqa.selenium.By
-import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
 import java.time.Duration
@@ -45,7 +44,7 @@ class InfraModelPage: PageModel(By.xpath("//div[@qa-id='main-content-container']
 
     fun search(query: String) {
         logger.info("Search '$query'")
-        val oldSearchResults = getChildElementStaleSafe(By.className("infra-model-list-search-result__table"))
+        getChildElementStaleSafe(By.className("infra-model-list-search-result__table"))
         val searchField = getElementWhenVisible(By.xpath("//div[@class='infra-model-search-form__auto-complete']//input"))
         clearInput(searchField)
         searchField.sendKeys(query)

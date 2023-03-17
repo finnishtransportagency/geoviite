@@ -17,7 +17,6 @@ $table-cell-padding: 10px 16px;
             // Heading cell
             @include typography-table-heading;
             background: $color-white-dark;
-            padding: $table-cell-padding;
             white-space: break-spaces;
 
             &.table__th--clickable {
@@ -28,6 +27,18 @@ $table-cell-padding: 10px 16px;
                     background: $color-white-darker;
                 }
             }
+        }
+
+        > .table__th--regular {
+            padding: $table-cell-padding;
+        }
+
+        > .table__th--multiline-top {
+            padding: 10px 16px 5px;
+        }
+
+        > .table__th--multiline-bottom {
+            padding: 5px 16px 10px;
         }
     }
 

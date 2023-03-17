@@ -8,8 +8,3 @@ logging:
     fi:
       fta:
         geoviite: #debug
-
-geoviite:
-  data:
-    csv-path: "${DATA_CSV_PATH:../ratko-export/exported-csv/dev}"
-    im-path: "${DATA_IM_PATH:../../InfraModelImport}"

@@ -46,18 +46,18 @@ class GeometryService @Autowired constructor(
             "sources" to sources, "bbox" to bbox, "filtered" to (filter != null)
         )
         return geometryDao.fetchPlanVersions(sources = sources, bbox = bbox)
-            .map(geometryDao::fetchPlanHeader)
+            .map(geometryDao::getPlanHeader)
             .let { all -> filter?.let(all::filter) ?: all }
     }
 
     fun getPlanHeader(planId: IntId<GeometryPlan>): GeometryPlanHeader {
         logger.serviceCall("getPlanHeader", "planId" to planId)
-        return geometryDao.fetchPlanVersion(planId).let(geometryDao::fetchPlanHeader)
+        return geometryDao.fetchPlanVersion(planId).let(geometryDao::getPlanHeader)
     }
 
     fun getManyPlanHeaders(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanHeader> {
         logger.serviceCall("getManyPlanHeaders", "planIds" to planIds)
-        return geometryDao.fetchManyPlanVersions(planIds).map(geometryDao::fetchPlanHeader)
+        return geometryDao.fetchManyPlanVersions(planIds).map(geometryDao::getPlanHeader)
     }
 
     fun getGeometryElement(geometryElementId: IndexedId<GeometryElement>): GeometryElement {
@@ -147,9 +147,9 @@ class GeometryService @Autowired constructor(
         return geometryDao.getLinkingSummaries(planIds)
     }
 
-    fun getDuplicateGeometryPlanHeader(newFile: InfraModelFile): GeometryPlanHeader? {
-        logger.serviceCall("getDuplicateGeometryPlanHeader", "newFile" to newFile)
-        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile)?.let(geometryDao::fetchPlanHeader)
+    fun fetchDuplicateGeometryPlanHeader(newFile: InfraModelFile, source: PlanSource): GeometryPlanHeader? {
+        logger.serviceCall("fetchDuplicateGeometryPlanHeader", "newFile" to newFile, "source" to source)
+        return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)
     }
 
     fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
@@ -210,8 +210,53 @@ class GeometryService @Autowired constructor(
         return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
     }
 
+    fun getVerticalGeometryListing(
+        planId: IntId<GeometryPlan>
+    ): List<VerticalGeometryListing> {
+        val planHeader = getPlanHeader(planId)
+        val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
+        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
+
+        return toVerticalGeometryListing(alignments, coordinateTransformationService::getLayoutTransformation, planHeader, geocodingContext)
+    }
+
+    fun getVerticalGeometryListingCsv(
+        planId: IntId<GeometryPlan>
+    ): Pair<FileName, ByteArray> {
+        logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
+        val plan = getPlanHeader(planId)
+        val verticalGeometryListing = getVerticalGeometryListing(planId)
+
+        val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing)
+        return FileName("${VERTICAL_GEOMETRY} ${plan.fileName}") to csvFileContent.toByteArray()
+    }
+
+    fun getVerticalGeometryListing(
+        locationTrackId: IntId<LocationTrack>,
+        startAddress: TrackMeter?,
+        endAddress: TrackMeter?,
+    ): List<VerticalGeometryListing> {
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
+        return toVerticalGeometryListing(track, alignment, startAddress, endAddress, geocodingContext, coordinateTransformationService::getLayoutTransformation, ::getHeaderAndAlignment)
+    }
+
+    fun getVerticalGeometryListingCsv(
+        locationTrackId: IntId<LocationTrack>,
+        startAddress: TrackMeter?,
+        endAddress: TrackMeter?,
+    ): Pair<FileName, ByteArray> {
+        logger.serviceCall("getVerticalGeometryListingCsv",
+            "trackId" to locationTrackId, "startAddress" to startAddress, "endAdress" to endAddress,)
+        val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
+        val verticalGeometryListing = getVerticalGeometryListing(locationTrackId, startAddress, endAddress)
+
+        val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
+        return FileName("${VERTICAL_GEOMETRY} ${locationTrack.name}") to csvFileContent.toByteArray()
+    }
+
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
-        val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::fetchPlanHeader)
+        val header = geometryDao.fetchAlignmentPlanVersion(id).let(geometryDao::getPlanHeader)
         val geometryAlignment = geometryDao.fetchAlignments(header.units, geometryAlignmentId = id).first()
         return header to geometryAlignment
     }

@@ -50,6 +50,14 @@ export const getPublicationDetails = (fromDate?: Date, toDate?: Date) => {
     return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}${params}`);
 };
 
+export const getLatestPublications = (count: number) => {
+    const params = queryParams({
+        count,
+    });
+
+    return getIgnoreError<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
+};
+
 export const getPublicationAsTableItems = (id: PublicationId) =>
     getIgnoreError<PublicationTableItem[]>(`${PUBLICATION_URL}/${id}/table-rows`);
 

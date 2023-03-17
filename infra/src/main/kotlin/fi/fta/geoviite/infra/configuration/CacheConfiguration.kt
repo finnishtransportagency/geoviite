@@ -40,6 +40,9 @@ const val CACHE_RATKO_HEALTH_STATUS = "ratko-health-status"
 
 const val CACHE_ADDRESS_POINTS = "track-address-points"
 
+const val CACHE_PUBLISHED_LOCATION_TRACKS = "published-location-tracks"
+const val CACHE_PUBLISHED_SWITCHES = "published-switches"
+
 @EnableCaching
 @Configuration
 class CacheConfiguration @Autowired constructor(
@@ -82,6 +85,10 @@ class CacheConfiguration @Autowired constructor(
             manager.registerCustomCache(CACHE_ADDRESS_POINTS, cache(2000, layoutCacheDuration))
 
             manager.registerCustomCache(CACHE_RATKO_HEALTH_STATUS, ephemeralCache(1, healthCheckLifetime))
+
+            manager.registerCustomCache(CACHE_PUBLISHED_LOCATION_TRACKS, cache(500, staticDataCacheDuration))
+            manager.registerCustomCache(CACHE_PUBLISHED_SWITCHES, cache(500, staticDataCacheDuration))
+
 
             manager
         } else {

@@ -117,17 +117,7 @@ export function createMapAlignmentBadgeFeature(
     trackNumber: LayoutTrackNumber,
     lineHighlighted: boolean,
     displayMode: DisplayMode,
-    showReferenceLines: boolean,
 ): Feature<Point>[] {
-    //When zoomed out enough, show track number alignment badges only
-    if (
-        displayMode === DisplayMode.NUMBER &&
-        alignment.alignmentType == 'LOCATION_TRACK' &&
-        showReferenceLines
-    ) {
-        return [];
-    }
-
     const badgeStyle = getMapAlignmentBadgeStyle(
         trackNumber,
         alignment,
@@ -261,15 +251,21 @@ function createFeatures(
             length += pointLength;
         });
 
-        const alignmentBadgeFeatures: Feature<Point>[] = createMapAlignmentBadgeFeature(
-            alignment,
-            badgePoints,
-            trackNumber,
-            selected || highlighted,
-            trackNumberDisplayMode,
-            showReferenceLines,
-        );
-        features.push(...alignmentBadgeFeatures);
+        //When zoomed out enough, show track number alignment badges only
+        if (
+            trackNumberDisplayMode != DisplayMode.NUMBER ||
+            alignment.alignmentType != 'LOCATION_TRACK' ||
+            !showReferenceLines
+        ) {
+            const alignmentBadgeFeatures: Feature<Point>[] = createMapAlignmentBadgeFeature(
+                alignment,
+                badgePoints,
+                trackNumber,
+                selected || highlighted,
+                trackNumberDisplayMode,
+            );
+            features.push(...alignmentBadgeFeatures);
+        }
     }
 
     segmentFeature.set(FEATURE_PROPERTY_SEGMENT_DATA, dataHolder);
@@ -489,7 +485,7 @@ adapterInfoRegister.add('alignment', {
             const found = shownItemsSearchFunction(hitArea, options);
             return {
                 locationTracks: found.locationTracks,
-                trackNumbers: found.referenceLines,
+                trackNumbers: found.trackNumbers,
             };
         };
 

@@ -575,7 +575,7 @@ class LinkingTestUI @Autowired constructor(
         switchLinkingInfoBox.createNewTrackLayoutSwitch()
             .editVaihdetunnus(layoutSwitchName)
             .editTilakategoria(Tilakategoria.OLEMASSA_OLEVA_KOHDE)
-            .tallenna(false)
+            .tallenna()
 
         switchLinkingInfoBox.linkTo(layoutSwitchName)
         switchLinkingInfoBox.linkita()
@@ -734,7 +734,7 @@ class LinkingTestUI @Autowired constructor(
         switchLinkingInfoBox.createNewTrackLayoutSwitch()
             .editVaihdetunnus(layoutSwitchName)
             .editTilakategoria(Tilakategoria.OLEMASSA_OLEVA_KOHDE)
-            .tallenna(false)
+            .tallenna()
         switchLinkingInfoBox.linkita()
 
         toolPanel.selectToolPanelTab(layoutSwitchName)
@@ -891,7 +891,7 @@ class LinkingTestUI @Autowired constructor(
     fun discardChanges() {
         val previewChangesPage = mapPage.esikatselu()
         previewChangesPage.logChanges()
-        val notificationAfterDiscardingChanges = previewChangesPage.hylkaaMuutokset()
+        previewChangesPage.hylkaaMuutokset()
     }
 
 

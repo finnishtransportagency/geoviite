@@ -66,6 +66,11 @@ $appbar-height: 48px;
 
     &__data-menu-button {
         position: relative;
+
+        &--active {
+            color: $color-blue-light;
+            border-bottom-color: $color-blue-light;
+        }
     }
 
     &__data-menu {

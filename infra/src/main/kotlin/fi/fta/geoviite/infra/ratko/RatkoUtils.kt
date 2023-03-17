@@ -4,40 +4,15 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 
-private fun sameNodeAddress(node1: RatkoNode?, node2: RatkoNode?): Boolean {
-    if (node1 == null || node2 == null) {
-        return false
-    }
-
-    val geometry1 = node1.point.geometry
-    val geometry2 = node2.point.geometry
-
-    return node2.point.kmM.isSame(node1.point.kmM) &&
-            if (geometry1 == null) geometry2 == null
-            else if (geometry2 == null) false
-            else isSame(
-                geometry1.coordinates[0],
-                geometry2.coordinates[0],
-                LAYOUT_COORDINATE_DELTA,
-            ) && isSame(
-                geometry1.coordinates[1],
-                geometry2.coordinates[1],
-                LAYOUT_COORDINATE_DELTA,
-            )
-
-}
-
 fun getEndPointNodeCollection(
     alignmentAddresses: AlignmentAddresses,
-    changedKmNumbers: Set<KmNumber>,
+    changedKmNumbers: Collection<KmNumber>,
     existingStartNode: RatkoNode? = null,
     existingEndNode: RatkoNode? = null,
 ): RatkoNodes? {
@@ -67,22 +42,6 @@ fun getEndPointNodeCollection(
     } else null
 }
 
-fun getNotInUseEndPointNodeCollection(alignmentAddresses: AlignmentAddresses): RatkoNodes {
-    val layoutStartNode = convertToRatkoNode(
-        addressPoint = alignmentAddresses.startPoint,
-        nodeType = RatkoNodeType.START_POINT,
-        state = RatkoPointStates.NOT_IN_USE,
-    )
-
-    val layoutEndNode = convertToRatkoNode(
-        addressPoint = alignmentAddresses.endPoint,
-        nodeType = RatkoNodeType.END_POINT,
-        state = RatkoPointStates.NOT_IN_USE,
-    )
-
-    return convertToRatkoNodeCollection(listOf(layoutStartNode, layoutEndNode))
-}
-
 fun asSwitchTypeString(switchType: SwitchType): String {
     val radius = switchType.parts.curveRadius
     val spread = switchType.parts.spread ?: ""
@@ -105,13 +64,14 @@ fun sortByNullDuplicateOfFirst(duplicateOf: IntId<LocationTrack>?) = if (duplica
 fun sortByDeletedStateFirst(layoutStateCategory: LayoutStateCategory) =
     if (layoutStateCategory == LayoutStateCategory.NOT_EXISTING) 0 else 1
 
-fun toRatkoPointsGroupedByKm(addressPoints: List<AddressPoint>) =
+fun toRatkoPointsGroupedByKm(addressPoints: Collection<AddressPoint>) =
     addressPoints
         .groupBy { point -> point.address.kmNumber }
         .map { (_, addressPointsForKm) ->
             addressPointsForKm
                 .map(::convertToRatkoPoint)
                 .distinctBy { it.kmM.meters } //track meters 0000+0000.010 and 0000+0000.01 are considered the same
+                .sortedBy { it.kmM }
         }
         .filter { ratkoPoints -> ratkoPoints.isNotEmpty() }
 

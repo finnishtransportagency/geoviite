@@ -6,8 +6,8 @@ import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
-import fi.fta.geoviite.infra.linking.Publication
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

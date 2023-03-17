@@ -111,7 +111,7 @@ class CreateEditLayoutSwitchDialog(val editedElement: WebElement): DialogPopUp()
         content.changeFieldDropDownValue("Tilakategoria", tilakategoria.uiText)
     }
 
-    fun tallenna(waitUntilRootIsStale: Boolean = true): Toaster {
+    fun tallenna(): Toaster {
         val isPoistunut = content.fieldValue("Tilakategoria") == Tilakategoria.POISTUNUT_KOHDE.uiText
         clickButton("Tallenna")
 

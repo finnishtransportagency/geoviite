@@ -7,11 +7,11 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.*
-import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,7 +19,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.math.ceil
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -725,14 +728,6 @@ class AddressChangesServiceIT @Autowired constructor(
                 kmPost.copy(location = moveFunc(kmPost.location!!))
             ).rowVersion
         )
-    }
-
-    fun assertAreEqual(addresses1: AlignmentAddresses?, addresses2: AlignmentAddresses?) {
-        assertEquals(addresses1, addresses2)
-    }
-
-    fun assertAreNotEqual(addresses1: AlignmentAddresses?, addresses2: AlignmentAddresses?) {
-        assertNotEquals(addresses1, addresses2)
     }
 
     fun createLineString(vararg transitPoints: Point): List<Point> {

@@ -2,9 +2,9 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.dataImport.RATKO_SRID
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.ratko.model.RATKO_SRID
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test

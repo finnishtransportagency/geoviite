@@ -6,6 +6,7 @@ import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 
 type Link = {
     link: string;
@@ -54,7 +55,11 @@ export const AppBar: React.FC = () => {
                     })}
                 <li>
                     <div
-                        className={`${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`}
+                        className={
+                            useLocation().pathname.includes('data-products')
+                                ? `${styles['app-bar__link']} ${styles['app-bar__data-menu-button--active']}`
+                                : `${styles['app-bar__link']} ${styles['app-bar__data-menu-button']}`
+                        }
                         onClick={() => setDataMenuOpen(!dataMenuOpen)}>
                         <span>{t('app-bar.data-products-title')}</span>
                         {dataMenuOpen && (

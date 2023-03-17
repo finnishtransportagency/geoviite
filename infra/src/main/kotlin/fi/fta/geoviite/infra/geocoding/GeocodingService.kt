@@ -2,11 +2,11 @@ package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.linking.ValidationVersions
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -135,8 +135,8 @@ class GeocodingService(
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationVersions: ValidationVersions,
-    ) = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, publicationVersions)
+        versions: ValidationVersions,
+    ) = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, versions)
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,

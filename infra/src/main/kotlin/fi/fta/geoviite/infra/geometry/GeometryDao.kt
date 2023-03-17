@@ -11,13 +11,13 @@ import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.InfraModelFileWithSource
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.linking.RemovedTrackNumberReferenceIds
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
+import fi.fta.geoviite.infra.publication.RemovedTrackNumberReferenceIds
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
@@ -189,19 +189,20 @@ class GeometryDao @Autowired constructor(
         })
     }
 
-    fun fetchDuplicateGeometryPlanVersion(newFile: InfraModelFile): RowVersion<GeometryPlan>? {
+    fun fetchDuplicateGeometryPlanVersion(newFile: InfraModelFile, source: PlanSource): RowVersion<GeometryPlan>? {
         //language=SQL
         val sql = """
-            select
-              plan.id, plan.version
-            from geometry.plan left join geometry.plan_file on plan.id = plan_file.plan_id
-              where plan_file.hash = :hash
+            select plan.id, plan.version
+            from geometry.plan 
+              left join geometry.plan_file on plan.id = plan_file.plan_id
+            where plan_file.hash = :hash and plan.source = :source::geometry.plan_source
         """.trimIndent()
-        val params = mapOf("hash" to newFile.hash)
+        val params = mapOf("hash" to newFile.hash, "source" to source.name)
 
-        logger.daoAccess(FETCH, InfraModelFile::class, params)
-        return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+        return jdbcTemplate.queryOptional<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
+        }?.also {
+            logger.daoAccess(FETCH, GeometryPlan::class, it)
         }
     }
 
@@ -558,7 +559,7 @@ class GeometryDao @Autowired constructor(
     }
 
     @Cacheable(CACHE_GEOMETRY_PLAN_HEADER, sync = true)
-    fun fetchPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
+    fun getPlanHeader(rowVersion: RowVersion<GeometryPlan>): GeometryPlanHeader {
         val sql = """
             select 
               plan.id as plan_id, 

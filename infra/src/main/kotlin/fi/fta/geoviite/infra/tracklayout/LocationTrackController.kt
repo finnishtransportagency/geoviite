@@ -9,6 +9,8 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
@@ -155,6 +157,6 @@ class LocationTrackController(
     ): List<AlignmentPlanSection> {
         logger.apiCall("getTrackSectionsByPlan",
             "publishType" to publishType, "id" to id, "bbox" to boundingBox)
-        return locationTrackService.getSectionsByPlan(id, publishType, boundingBox)
+        return locationTrackService.getMetadataSections(id, publishType, boundingBox)
     }
 }
