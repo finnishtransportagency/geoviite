@@ -23,7 +23,7 @@ import java.math.BigDecimal
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class GeocodingIT @Autowired constructor(
+class GeocodingServiceIT @Autowired constructor(
     private val geocodingService: GeocodingService,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geometryDao: GeometryDao,

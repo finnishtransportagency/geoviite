@@ -40,7 +40,7 @@ data class MapAlignment<T>(
     override val length: Double,
     val segmentCount: Int,
     val version: RowVersion<T>?,
-): IAlignment, AbstractAlignment()
+): IAlignment
 
 data class MapSegment(
     @JsonIgnore
