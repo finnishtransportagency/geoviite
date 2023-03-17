@@ -76,8 +76,8 @@ class GeocodingCacheService(
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         val plan = planLayoutService.getLayoutPlan(key.planVersion).first ?: return null
+        val startAddress = plan.startAddress ?: return null
         val referenceLine = getGeometryGeocodingContextReferenceLine(plan) ?: return null
-        val startAddress = getGeometryGeocodingContextStartAddress(key.planVersion.id) ?: return null
 
         return GeocodingContext.create(trackNumber, startAddress, referenceLine, plan.kmPosts)
     }
@@ -85,20 +85,5 @@ class GeocodingCacheService(
     private fun getGeometryGeocodingContextReferenceLine(plan: GeometryPlanLayout): MapAlignment<GeometryAlignment>? {
         val referenceLines = plan.alignments.filter { alignment -> alignment.alignmentType == MapAlignmentType.REFERENCE_LINE }
         return if (referenceLines.size == 1) referenceLines[0] else null
-    }
-
-    private fun getGeometryGeocodingContextStartAddress(planId: IntId<GeometryPlan>): TrackMeter? {
-        val planKmPosts = geometryDao.fetchKmPosts(planId)
-        val minimumKmNumber = planKmPosts.mapNotNull(GeometryKmPost::kmNumber).minOrNull() ?: return null
-        val minimumKmNumberPosts = planKmPosts.filter { kmPost -> kmPost.kmNumber == minimumKmNumber }
-        return if (minimumKmNumberPosts.size == 1) {
-            val precedingKmPost = minimumKmNumberPosts[0]
-            // safety: minimumKmNumberPosts was filtered for equality with a known-not-null kmNumber
-            // Negative or zero staInternals are assumed to be the distance of the preceding km post from the plan's
-            // reference line's start; for anything else, let's not assume we know what to do with it
-            if (precedingKmPost.staInternal <= BigDecimal.ZERO)
-                TrackMeter(precedingKmPost.kmNumber!!, -precedingKmPost.staInternal)
-            else null
-        } else null
     }
 }
