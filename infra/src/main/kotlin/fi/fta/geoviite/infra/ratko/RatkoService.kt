@@ -135,10 +135,12 @@ class RatkoService @Autowired constructor(
                     )
                 }
 
-            val pushedLocationTrackOids =
-                ratkoLocationTrackService.pushLocationTrackChangesToRatko(publishedLocationTrackChanges)
+            val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                publishedLocationTrackChanges,
+                latestPublicationMoment,
+            )
 
-            ratkoAssetService.pushSwitchChangesToRatko(switchChanges)
+            ratkoAssetService.pushSwitchChangesToRatko(switchChanges, latestPublicationMoment)
 
             try {
                 ratkoLocationTrackService.forceRedraw(
@@ -157,14 +159,23 @@ class RatkoService @Autowired constructor(
 
     private fun pushChanges(userName: UserName, publications: List<PublicationDetails>) {
         val ratkoPushId = ratkoPushDao.startPushing(userName, publications.map { it.id })
+        val lastPublicationTime = publications.maxOf { it.publicationTime }
         try {
-            val pushedRouteNumberOids =
-                ratkoRouteNumberService.pushTrackNumberChangesToRatko(publications.flatMap { it.allPublishedTrackNumbers })
+            val pushedRouteNumberOids = ratkoRouteNumberService.pushTrackNumberChangesToRatko(
+                publications.flatMap { it.allPublishedTrackNumbers },
+                lastPublicationTime
+            )
 
-            val pushedLocationTrackOids =
-                ratkoLocationTrackService.pushLocationTrackChangesToRatko(publications.flatMap { it.allPublishedLocationTracks })
+            val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                publications.flatMap { it.allPublishedLocationTracks },
+                lastPublicationTime
+            )
 
-            pushSwitchChanges(publications)
+            pushSwitchChanges(
+                publishedSwitches = publications.flatMap { it.allPublishedSwitches },
+                publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
+                publicationTime = lastPublicationTime,
+            )
 
             ratkoPushDao.updatePushStatus(
                 user = userName,
@@ -240,25 +251,26 @@ class RatkoService @Autowired constructor(
         }
     }
 
-    private fun pushSwitchChanges(publications: Collection<PublicationDetails>) {
-        val publicationMoment = publications.maxOf { it.publicationTime }
-
+    private fun pushSwitchChanges(
+        publishedSwitches: Collection<PublishedSwitch>,
+        publishedLocationTracks: List<PublishedLocationTrack>,
+        publicationTime: Instant,
+    ) {
         //Location track points are always removed per kilometre.
         //However, there is a slight chance that points used by switches (according to Geoviite)
         // will not match with the ones in Ratko.
         //Therefore, Geoviite will also update all switches with joints in the danger zone.
-        val locationTrackSwitchChanges = publications
-            .flatMap { it.allPublishedLocationTracks }
+        val locationTrackSwitchChanges = publishedLocationTracks
             .flatMap { locationTrack ->
                 getSwitchChangesByLocationTrack(
                     locationTrackId = locationTrack.version.id,
                     filterByKmNumbers = locationTrack.changedKmNumbers,
-                    moment = publicationMoment
+                    moment = publicationTime
                 )
-            }.map { switchChange -> mapToFakePublishedSwitch(switchChange, publicationMoment) }
+            }.map { switchChange -> mapToFakePublishedSwitch(switchChange, publicationTime) }
 
-        val switchChanges = publications.flatMap { it.allPublishedSwitches } + locationTrackSwitchChanges
-        ratkoAssetService.pushSwitchChangesToRatko(switchChanges)
+        val switchChanges = publishedSwitches + locationTrackSwitchChanges
+        ratkoAssetService.pushSwitchChangesToRatko(switchChanges, publicationTime)
     }
 
     fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
@@ -290,7 +302,7 @@ class RatkoService @Autowired constructor(
         locationTrackId: IntId<LocationTrack>,
         filterByKmNumbers: Collection<KmNumber>,
         moment: Instant,
-    ) = calculatedChangesService.getAllSwitchChangesByLocationTrack(locationTrackId, moment)
+    ) = calculatedChangesService.getAllSwitchChangesByLocationTrackAtMoment(locationTrackId, moment)
         .map { switchChanges ->
             switchChanges.copy(
                 changedJoints = switchChanges.changedJoints.filter { changedJoint ->

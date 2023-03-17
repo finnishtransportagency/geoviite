@@ -204,7 +204,7 @@ class CalculatedChangesService(
         )
     }
 
-    fun getAllSwitchChangesByLocationTrack(
+    fun getAllSwitchChangesByLocationTrackAtMoment(
         locationTrackId: IntId<LocationTrack>,
         moment: Instant,
     ): List<SwitchChange> {
