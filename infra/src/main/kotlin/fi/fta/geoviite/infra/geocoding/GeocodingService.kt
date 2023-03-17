@@ -1,12 +1,15 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.linking.ValidationVersions
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -123,8 +126,8 @@ class GeocodingService(
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationVersions: ValidationVersions,
-    ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, publicationVersions)
+        versions: ValidationVersions,
+    ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, versions)
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,

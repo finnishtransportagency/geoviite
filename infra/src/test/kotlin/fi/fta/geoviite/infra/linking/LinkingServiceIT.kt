@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test

@@ -112,6 +112,7 @@ export type PublishedTrackNumber = {
     id: LayoutTrackNumberId;
     number: TrackNumber;
     operation: Operation;
+    changedKmNumbers: KmNumber[];
 };
 
 export type PublishedReferenceLine = {
@@ -199,10 +200,23 @@ export interface SwitchChange {
     changedJoints: SwitchJointChange[];
 }
 
-export interface CalculatedChanges {
+export interface DirectChanges {
+    kmPostChanges: LayoutKmPostId[];
+    referenceLineChanges: ReferenceLineId[];
     trackNumberChanges: TrackNumberChange[];
-    locationTracksChanges: LocationTrackChange[];
+    locationTrackChanges: LocationTrackChange[];
     switchChanges: SwitchChange[];
+}
+
+export interface IndirectChanges {
+    trackNumberChanges: TrackNumberChange[];
+    locationTrackChanges: LocationTrackChange[];
+    switchChanges: SwitchChange[];
+}
+
+export interface CalculatedChanges {
+    directChanges: DirectChanges;
+    indirectChanges: IndirectChanges;
 }
 
 export type PublishedCalculatedChanges = {

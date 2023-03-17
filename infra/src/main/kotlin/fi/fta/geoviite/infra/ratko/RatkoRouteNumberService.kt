@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.publication.PublishedTrackNumber
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -24,11 +24,16 @@ class RatkoRouteNumberService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushTrackNumberChangesToRatko(trackNumberChanges: List<TrackNumberChange>): List<Oid<TrackLayoutTrackNumber>> {
-        return trackNumberChanges
-            .map { change -> change to trackNumberService.getOrThrow(PublishType.OFFICIAL, change.trackNumberId) }
-            .sortedBy { sortByDeletedStateFirst(it.second.state) }
-            .mapNotNull { (change, trackNumber) ->
+    fun pushTrackNumberChangesToRatko(publishedTrackNumbers: List<PublishedTrackNumber>): List<Oid<TrackLayoutTrackNumber>> {
+        return publishedTrackNumbers
+            .groupBy { it.version.id }
+            .map { (trackNumberId, trackNumbers) ->
+                trackNumberService.getOrThrow(
+                    PublishType.OFFICIAL, trackNumberId
+                ) to trackNumbers.flatMap { it.changedKmNumbers }.toSet()
+            }
+            .sortedBy { sortByDeletedStateFirst(it.first.state) }
+            .mapNotNull { (trackNumber, changedKmNumbers) ->
                 trackNumber.externalId?.also { externalId ->
                     try {
                         ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
@@ -38,7 +43,7 @@ class RatkoRouteNumberService @Autowired constructor(
                                 updateRouteNumber(
                                     existingRatkoRouteNumber = existingRouteNumber,
                                     trackNumber = trackNumber,
-                                    routeNumberChange = change
+                                    changedKmNumbers = changedKmNumbers
                                 )
                             }
                         } ?: createRouteNumber(trackNumber)
@@ -70,13 +75,13 @@ class RatkoRouteNumberService @Autowired constructor(
     private fun updateRouteNumber(
         trackNumber: TrackLayoutTrackNumber,
         existingRatkoRouteNumber: RatkoRouteNumber,
-        routeNumberChange: TrackNumberChange,
+        changedKmNumbers: Set<KmNumber>,
     ) {
         logger.serviceCall(
             "updateRatkoRouteNumber",
             "trackNumber" to trackNumber,
             "existingRatkoRouteNumber" to existingRatkoRouteNumber,
-            "routeNumberChange" to routeNumberChange
+            "changedKmNumbers" to changedKmNumbers
         )
         requireNotNull(trackNumber.externalId) { "Cannot update route number without oid $trackNumber" }
 
@@ -90,7 +95,7 @@ class RatkoRouteNumberService @Autowired constructor(
         val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
         val endPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            changedKmNumbers = routeNumberChange.changedKmNumbers,
+            changedKmNumbers = changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )
@@ -98,12 +103,12 @@ class RatkoRouteNumberService @Autowired constructor(
         //Update route number end points before deleting anything, otherwise old end points will stay in use
         updateRouteNumberProperties(trackNumber, endPointNodeCollection)
 
-        deleteRouteNumberPoints(routeNumberOid, routeNumberChange.changedKmNumbers)
+        deleteRouteNumberPoints(routeNumberOid, changedKmNumbers)
 
         updateRouteNumberGeometry(
             routeNumberOid = routeNumberOid,
             newPoints = addresses.midPoints.filter { p ->
-                routeNumberChange.changedKmNumbers.contains(p.address.kmNumber)
+                changedKmNumbers.contains(p.address.kmNumber)
             }
         )
     }

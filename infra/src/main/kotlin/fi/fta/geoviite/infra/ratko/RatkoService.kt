@@ -1,11 +1,12 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.publication.*
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -77,9 +78,10 @@ class RatkoService @Autowired constructor(
                 //Inclusive search, therefore the already pushed one is also returned
                 val publications = publicationService.fetchPublications(lastPublicationMoment)
                     .filter { it.publicationTime > lastPublicationMoment }
+                    .map { publicationService.getPublicationDetails(it.id) }
 
                 if (publications.isNotEmpty()) {
-                    pushChanges(userName, publications, getCalculatedChanges(lastPublicationMoment, publications))
+                    pushChanges(userName, publications)
                 }
             }
         }
@@ -100,13 +102,47 @@ class RatkoService @Autowired constructor(
 
             // Here, we only care about current moment, but fix it to the latest publication DB time, pushed or not
             val latestPublicationMoment = ratkoPushDao.getLatestPublicationMoment()
-            val switchChanges = calculatedChangesService.getAllSwitchChangesByLocationTrackChange(
-                locationTrackChanges = locationTrackChanges,
-                moment = latestPublicationMoment,
-            )
+            val switchChanges = locationTrackChanges
+                .flatMap { locationTrackChange ->
+                    getSwitchChangesByLocationTrack(
+                        locationTrackId = locationTrackChange.locationTrackId,
+                        filterByKmNumbers = locationTrackChange.changedKmNumbers,
+                        moment = latestPublicationMoment
+                    )
+                }.map { switchChange ->
+                    val switch = switchService.getOrThrow(PublishType.OFFICIAL, switchChange.switchId)
+
+                    //Fake PublishedSwitch, Ratko integration is built around published items
+                    PublishedSwitch(
+                        version = checkNotNull(switch.version) {
+                            "Switch version is needed push changes to Ratko, id=${switchChange.switchId}"
+                        },
+                        trackNumberIds = emptySet(), //Ratko integration doesn't care about this field
+                        name = switch.name,
+                        operation = Operation.MODIFY,
+                        changedJoints = switchChange.changedJoints
+                    )
+                }
+
+            val publishedLocationTrackChanges = locationTrackChanges
+                .map { locationTrackChange ->
+                    val locationTrack =
+                        locationTrackService.getOrThrow(PublishType.OFFICIAL, locationTrackChange.locationTrackId)
+
+                    //Fake PublishedLocationTrack, Ratko integration is built around published items
+                    PublishedLocationTrack(
+                        version = checkNotNull(locationTrack.version) {
+                            "Location track version is needed push changes to Ratko, id=${locationTrackChange.locationTrackId}"
+                        },
+                        name = locationTrack.name,
+                        trackNumberId = locationTrack.trackNumberId,
+                        operation = Operation.MODIFY,
+                        changedKmNumbers = locationTrackChange.changedKmNumbers
+                    )
+                }
 
             val pushedLocationTrackOids =
-                ratkoLocationTrackService.pushLocationTrackChangesToRatko(locationTrackChanges)
+                ratkoLocationTrackService.pushLocationTrackChangesToRatko(publishedLocationTrackChanges)
 
             ratkoAssetService.pushSwitchChangesToRatko(switchChanges)
 
@@ -118,63 +154,21 @@ class RatkoService @Autowired constructor(
         }
     }
 
-    private fun getCalculatedChanges(
-        lastPublicationMoment: Instant,
-        publications: List<Publication>,
-    ): CalculatedChanges {
-        val publicationMoment = publications.maxOf { it.publicationTime }
-        val publicationDetails = publications.map { publicationService.getPublicationDetails(it.id) }
-
-        val locationTrackIds =
-            publicationDetails.flatMap(PublicationDetails::locationTracks).map { it.version.id }.distinct()
-        val switchIds =
-            publicationDetails.flatMap(PublicationDetails::switches).map { it.version.id }.distinct()
-        val trackNumberIds = publicationDetails
-            .flatMap { p ->
-                p.trackNumbers.map { it.version.id } +
-                        p.kmPosts.map { it.trackNumberId } +
-                        p.referenceLines.map { it.trackNumberId }
-            }
-            .distinct()
-
-
-        val calculatedChanges = calculatedChangesService.getCalculatedChangesBetween(
-            trackNumberIds = trackNumberIds,
-            locationTrackIds = locationTrackIds,
-            switchIds = switchIds,
-            startMoment = lastPublicationMoment,
-            endMoment = publicationMoment,
-        )
-        //Location track points are always removed per kilometre.
-        //However, there is a slight chance that points used by switches (according to Geoviite)
-        // will not match with the ones in Ratko.
-        //Therefore, Geoviite will also update all switches with joints in the danger zone.
-        val locationTrackSwitchChanges = calculatedChangesService.getAllSwitchChangesByLocationTrackChange(
-            calculatedChanges.locationTracksChanges,
-            publicationMoment,
-        )
-        return calculatedChanges.copy(
-            switchChanges = mergeSwitchChanges(locationTrackSwitchChanges, calculatedChanges.switchChanges)
-        )
-    }
-
     private fun previousPushStateIn(vararg states: RatkoPushStatus?): Boolean {
         val previousPush = ratkoPushDao.fetchPreviousPush()
         return states.any { state -> previousPush.status == state }
     }
 
-    private fun pushChanges(
-        userName: UserName,
-        publications: List<Publication>,
-        calculatedChanges: CalculatedChanges,
-    ) {
+    private fun pushChanges(userName: UserName, publications: List<PublicationDetails>) {
         val ratkoPushId = ratkoPushDao.startPushing(userName, publications.map { it.id })
         try {
             val pushedRouteNumberOids =
-                ratkoRouteNumberService.pushTrackNumberChangesToRatko(calculatedChanges.trackNumberChanges)
+                ratkoRouteNumberService.pushTrackNumberChangesToRatko(publications.flatMap { it.allPublishedTrackNumbers })
+
             val pushedLocationTrackOids =
-                ratkoLocationTrackService.pushLocationTrackChangesToRatko(calculatedChanges.locationTracksChanges)
-            ratkoAssetService.pushSwitchChangesToRatko(calculatedChanges.switchChanges)
+                ratkoLocationTrackService.pushLocationTrackChangesToRatko(publications.flatMap { it.allPublishedLocationTracks })
+
+            pushSwitchChanges(publications)
 
             ratkoPushDao.updatePushStatus(
                 user = userName,
@@ -246,6 +240,38 @@ class RatkoService @Autowired constructor(
         }
     }
 
+    private fun pushSwitchChanges(publications: List<PublicationDetails>) {
+        val publicationMoment = publications.maxOf { it.publicationTime }
+
+        //Location track points are always removed per kilometre.
+        //However, there is a slight chance that points used by switches (according to Geoviite)
+        // will not match with the ones in Ratko.
+        //Therefore, Geoviite will also update all switches with joints in the danger zone.
+        val locationTrackSwitchChanges = publications
+            .flatMap { it.allPublishedLocationTracks }
+            .flatMap { locationTrack ->
+                getSwitchChangesByLocationTrack(
+                    locationTrackId = locationTrack.version.id,
+                    filterByKmNumbers = locationTrack.changedKmNumbers,
+                    moment = publicationMoment
+                )
+            }.map { switchChange ->
+                val switch = switchService.getOrThrow(PublishType.OFFICIAL, switchChange.switchId)
+                //Fake PublishedSwitch, Ratko integration is built around published items
+                PublishedSwitch(
+                    version = checkNotNull(switch.version) { "Switch version is needed push changes to Ratko, id=${switchChange.switchId}" },
+                    trackNumberIds = emptySet(), //Ratko integration doesn't care about this field
+                    name = switch.name,
+                    operation = Operation.MODIFY,
+                    changedJoints = switchChange.changedJoints
+                )
+
+            }
+
+        val switchChanges = publications.flatMap { it.allPublishedSwitches } + locationTrackSwitchChanges
+        ratkoAssetService.pushSwitchChangesToRatko(switchChanges)
+    }
+
     fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
         return ratkoPushDao.getLatestRatkoPushErrorFor(publishId)?.let { ratkoError ->
             val asset = when (ratkoError.assetType) {
@@ -270,5 +296,18 @@ class RatkoService @Autowired constructor(
     fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
         return ratkoClient.getRatkoOnlineStatus()
     }
+
+    private fun getSwitchChangesByLocationTrack(
+        locationTrackId: IntId<LocationTrack>,
+        filterByKmNumbers: Set<KmNumber>,
+        moment: Instant,
+    ) = calculatedChangesService.getAllSwitchChangesByLocationTrack(locationTrackId, moment)
+        .map { switchChanges ->
+            switchChanges.copy(
+                changedJoints = switchChanges.changedJoints.filter { changedJoint ->
+                    filterByKmNumbers.contains(changedJoint.address.kmNumber)
+                }
+            )
+        }.filter { it.changedJoints.isNotEmpty() }
 
 }

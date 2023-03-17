@@ -3,11 +3,9 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.integration.CalculatedChanges
-import fi.fta.geoviite.infra.linking.PublicationService
-import fi.fta.geoviite.infra.linking.PublishRequestIds
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometryType
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublishRequestIds
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberStateType
 import fi.fta.geoviite.infra.tracklayout.*
@@ -385,8 +383,13 @@ class RatkoServiceIT @Autowired constructor(
             kmPosts = kmPosts.map { it.id },
         )
         publicationService.updateExternalId(ids)
-        val versions = publicationService.getPublicationVersions(ids)
-        publicationService.publishChanges(versions, CalculatedChanges(listOf(), listOf(), listOf()), "")
+        val versions = publicationService.getValidationVersions(ids)
+        val calculatedChanges = publicationService.getCalculatedChanges(versions)
+        publicationService.publishChanges(
+            versions,
+            calculatedChanges,
+            ""
+        )
         ratkoService.pushChangesToRatko(getCurrentUserName())
     }
 }

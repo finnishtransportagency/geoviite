@@ -11,13 +11,13 @@ import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.InfraModelFileWithSource
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.linking.RemovedTrackNumberReferenceIds
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
+import fi.fta.geoviite.infra.publication.RemovedTrackNumberReferenceIds
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*

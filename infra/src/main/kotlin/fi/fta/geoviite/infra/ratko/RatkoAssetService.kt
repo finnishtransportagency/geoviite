@@ -2,9 +2,9 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -30,11 +30,22 @@ class RatkoAssetService @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushSwitchChangesToRatko(switchChanges: List<SwitchChange>) {
-        switchChanges
-            .map { change -> change to switchService.getOrThrow(OFFICIAL, change.switchId) }
-            .sortedBy { sortByDeletedStateFirst(it.second.stateCategory) }
-            .forEach { (switchChange, layoutSwitch) ->
+    fun pushSwitchChangesToRatko(publishedSwitches: List<PublishedSwitch>) {
+        publishedSwitches
+            .groupBy { it.version.id }
+            .map { (switchId, switches) ->
+                switchService.getOrThrow(
+                    OFFICIAL, switchId
+                ) to switches
+                    .flatMap { it.changedJoints }
+                    .reversed()
+                    //We assume that publishedSwitches are ordered by publication time
+                    //therefore if there are multiple changes for the same joint, the "last" one is what we want
+                    .distinctBy { it.number to it.locationTrackId }
+                    .reversed()
+            }
+            .sortedBy { (switch, _) -> sortByDeletedStateFirst(switch.stateCategory) }
+            .forEach { (layoutSwitch, changedJoints) ->
                 try {
                     layoutSwitch.externalId
                         ?.let { oid -> ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(oid)) }
@@ -42,10 +53,10 @@ class RatkoAssetService @Autowired constructor(
                             updateSwitch(
                                 layoutSwitch = layoutSwitch,
                                 existingRatkoSwitch = existingRatkoSwitch,
-                                jointChanges = switchChange.changedJoints,
+                                jointChanges = changedJoints,
                             )
                         }
-                        ?: createSwitch(layoutSwitch, switchChange.changedJoints)
+                        ?: createSwitch(layoutSwitch, changedJoints)
                 } catch (ex: RatkoPushException) {
                     throw RatkoSwitchPushException(ex, layoutSwitch)
                 }

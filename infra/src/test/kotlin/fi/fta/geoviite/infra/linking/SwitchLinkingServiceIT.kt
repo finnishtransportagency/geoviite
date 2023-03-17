@@ -47,7 +47,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun getSuggestedSwitchesWorks() {
-        val suggestions = switchLinkingService.getSuggestedSwitches(
+        switchLinkingService.getSuggestedSwitches(
             BoundingBox(
                 x = Range(500000.0, 600000.0),
                 y = Range(6900000.0, 7000000.0),
