@@ -204,9 +204,6 @@ fun validateMetadata(plan: GeometryPlan): List<ValidationError> = listOfNotNull<
     validate(plan.author != null) {
         MetadataError("author-missing", OBSERVATION_MINOR)
     },
-    validate(plan.alignments.any { alignment -> alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE }) {
-        MetadataError("reference-line-missing", OBSERVATION_MAJOR)
-    },
     validate(plan.kmPosts.isNotEmpty()) {
         MetadataError("km-posts-missing", OBSERVATION_MAJOR)
     },
@@ -290,10 +287,10 @@ fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<Valid
     val referenceLineAlignments = alignments.filter { alignment -> alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE }
     return listOfNotNull(
         validate(referenceLineAlignments.size >= 1) {
-            CollectionError(VALIDATION_ALIGNMENT, "no-reference-lines", OBSERVATION_MAJOR)
+            CollectionError("no-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
         },
         validate(referenceLineAlignments.size <= 1) {
-            CollectionError(VALIDATION_ALIGNMENT, "multiple-reference-lines", OBSERVATION_MAJOR)
+            CollectionError("multiple-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
         })
 }
 

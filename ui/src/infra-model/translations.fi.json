@@ -105,7 +105,7 @@
                 "unknown-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodi {{value}} ei vastaa raiteilla käytettyjä (111, 281)",
                 "wrong-feature-type": "Keskilinjan {{alignmentName}} tyyppikoodia {{value}} ei pitäisi käyttää raiteilla: keskilinjan koodi on 281",
                 "no-state": "Keskilinjalle {{alignmentName}} ei ole annettu tilatietoa",
-                "multiple-reference-lines": "Suunnitelman sisältää useamman kuin yhden pituusmittauslinjan",
+                "multiple-reference-lines": "Suunnitelma sisältää useamman kuin yhden pituusmittauslinjan",
                 "no-reference-lines": "Suunnitelma ei sisällä pituusmittauslinjaa"
             },
             "element": {
