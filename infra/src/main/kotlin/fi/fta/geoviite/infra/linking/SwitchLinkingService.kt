@@ -701,8 +701,8 @@ fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): LayoutAlignment {
 data class TrackIntersection(
     val point: IPoint,
     val distance: Double,
-    val track1: Pair<LocationTrack, LayoutAlignment>,
-    val track2: Pair<LocationTrack, LayoutAlignment>,
+    val alignment1: LayoutAlignment,
+    val alignment2: LayoutAlignment,
     val desiredLocation: IPoint
 ) : Comparable<TrackIntersection> {
     private val distanceToDesiredLocation by lazy { lineLength(point, desiredLocation) }
@@ -733,14 +733,11 @@ const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
 const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
 fun findClosestIntersections(
-    track1: Pair<LocationTrack, LayoutAlignment>,
-    track2: Pair<LocationTrack, LayoutAlignment>,
+    alignment1: LayoutAlignment,
+    alignment2: LayoutAlignment,
     desiredLocation: IPoint,
     count: Int
 ): List<TrackIntersection> {
-    val alignment1 = track1.second
-    val alignment2 = track2.second
-
     // Ignore parallel alignments. Points of alignments are filtered so
     // that alignments are about 0 - 200 meters long, and therefore we can compare
     // angles from start to end.
@@ -756,8 +753,8 @@ fun findClosestIntersections(
                 TrackIntersection(
                     point = intersection.point,
                     distance = 0.0,
-                    track1 = track1,
-                    track2 = track2,
+                    alignment1 = alignment1,
+                    alignment2 = alignment2,
                     desiredLocation = desiredLocation
                 )
             } else {
@@ -776,8 +773,8 @@ fun findClosestIntersections(
                     TrackIntersection(
                         point = minDistanceAndPoint.second,
                         distance = minDistanceAndPoint.first,
-                        track1 = track1,
-                        track2 = track2,
+                        alignment1 = alignment1,
+                        alignment2 = alignment2,
                         desiredLocation = desiredLocation
                     )
                 } else null
@@ -803,12 +800,9 @@ private fun alignmentStartEndDirection(alignment: LayoutAlignment): Double? {
     return if (start != null && end != null) directionBetweenPoints(start, end) else null
 }
 
-fun findTrackIntersections(
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    desiredLocation: IPoint
-): List<TrackIntersection> {
-    val trackPairs = locationTracks.flatMapIndexed { index, track1 ->
-        locationTracks.drop(index + 1).map { track2 -> track1 to track2 }
+fun findTrackIntersections(trackAlignments: List<LayoutAlignment>, desiredLocation: IPoint): List<TrackIntersection> {
+    val trackPairs = trackAlignments.flatMapIndexed { index, track1 ->
+        trackAlignments.drop(index + 1).map { track2 -> track1 to track2 }
     }
     return trackPairs.flatMap { (track1, track2) ->
         // Take two closest intersections instead of one because there might
@@ -858,12 +852,7 @@ fun findPointMatchingToDistance(from: IPoint, points: List<IPoint>, distance: Do
     return lastBeforePoint + lastBeforeToFirstAfterVector * distanceDiffRatio
 }
 
-fun findPointsOnTrack(
-    from: IPoint,
-    distance: Double,
-    track: Pair<LocationTrack, LayoutAlignment>
-): List<Pair<IPoint, IPoint>> {
-    val alignment = track.second
+fun findPointsOnTrack(from: IPoint, distance: Double, alignment: LayoutAlignment): List<Pair<IPoint, IPoint>> {
     val pointOnTrack = alignment.getLengthUntil(from)
         .let { pointAtLength ->
             if (pointAtLength != null) {
@@ -899,12 +888,12 @@ fun findPointsOnTrack(
 }
 
 fun findTransformations(
-    point: IPoint, track: Pair<LocationTrack, LayoutAlignment>, switchAlignment: SwitchAlignment, joint: SwitchJoint,
+    point: IPoint, alignment: LayoutAlignment, switchAlignment: SwitchAlignment, joint: SwitchJoint,
     switchStructure: SwitchStructure
 ): List<SwitchPositionTransformation> {
     val farthestJoint = findFarthestJoint(switchStructure, joint, switchAlignment)
     val jointDistance = lineLength(joint.location, farthestJoint.location)
-    val pointsOnTrack = findPointsOnTrack(point, jointDistance, track)
+    val pointsOnTrack = findPointsOnTrack(point, jointDistance, alignment)
     val transformations = pointsOnTrack.mapNotNull { (from, to) ->
         val testJoints = listOf(
             joint.copy(
@@ -924,17 +913,17 @@ fun findTransformations(
 
 fun findTransformations(
     point: IPoint,
-    track1: Pair<LocationTrack, LayoutAlignment>,
-    track2: Pair<LocationTrack, LayoutAlignment>,
+    alignment1: LayoutAlignment,
+    alignment2: LayoutAlignment,
     switchAlignment1: SwitchAlignment,
     switchAlignment2: SwitchAlignment,
     joint: SwitchJoint,
     switchStructure: SwitchStructure
 ): List<SwitchPositionTransformation> {
-    return findTransformations(point, track1, switchAlignment1, joint, switchStructure) +
-            findTransformations(point, track1, switchAlignment2, joint, switchStructure) +
-            findTransformations(point, track2, switchAlignment1, joint, switchStructure) +
-            findTransformations(point, track2, switchAlignment2, joint, switchStructure)
+    return findTransformations(point, alignment1, switchAlignment1, joint, switchStructure) +
+            findTransformations(point, alignment1, switchAlignment2, joint, switchStructure) +
+            findTransformations(point, alignment2, switchAlignment1, joint, switchStructure) +
+            findTransformations(point, alignment2, switchAlignment2, joint, switchStructure)
 }
 
 fun createSuggestedSwitch(
@@ -1036,9 +1025,7 @@ fun createSuggestedSwitchByPoint(
 ): SuggestedSwitch? {
     val bboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 2.25
     val bbox = BoundingBox(0.0..bboxSize, 0.0..bboxSize).centerAt(point)
-    val croppedTracks = nearbyLocationTracks.map { (locationTrack, alignment) ->
-        locationTrack to cropPoints(alignment, bbox)
-    }
+    val croppedTracks = nearbyLocationTracks.map { (_, alignment) -> cropPoints(alignment, bbox) }
 
     val intersections = findTrackIntersections(croppedTracks, point)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
@@ -1046,8 +1033,8 @@ fun createSuggestedSwitchByPoint(
     val suggestedSwitches = intersections.flatMap { intersection ->
         val transformations = findTransformations(
             intersection.point,
-            intersection.track1,
-            intersection.track2,
+            intersection.alignment1,
+            intersection.alignment2,
             switchAlignmentsContainingSharedJoint[0],
             switchAlignmentsContainingSharedJoint[1],
             sharedSwitchJoint,
