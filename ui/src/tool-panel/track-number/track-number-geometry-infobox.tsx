@@ -36,7 +36,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                 trackNumberId,
                 useBoungingBox ? viewport.area : undefined,
             ),
-        [trackNumberId, viewportDep],
+        [trackNumberId, publishType, viewportDep],
     );
 
     return (

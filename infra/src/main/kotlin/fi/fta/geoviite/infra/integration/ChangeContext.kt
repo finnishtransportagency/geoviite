@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.ValidationVersion
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import java.time.Instant
 import kotlin.reflect.KClass

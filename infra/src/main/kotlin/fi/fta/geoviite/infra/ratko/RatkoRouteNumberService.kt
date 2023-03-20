@@ -1,12 +1,13 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.publication.PublishedTrackNumber
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -19,37 +20,43 @@ import org.springframework.stereotype.Service
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoRouteNumberService @Autowired constructor(
     private val ratkoClient: RatkoClient,
-    private val trackNumberService: LayoutTrackNumberService,
+    private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingService: GeocodingService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushTrackNumberChangesToRatko(trackNumberChanges: List<TrackNumberChange>): List<Oid<TrackLayoutTrackNumber>> {
-        return trackNumberChanges
-            .map { change -> change to trackNumberService.getOrThrow(PublishType.OFFICIAL, change.trackNumberId) }
-            .sortedBy { sortByDeletedStateFirst(it.second.state) }
-            .mapNotNull { (change, trackNumber) ->
-                trackNumber.externalId?.also { externalId ->
-                    try {
-                        ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
-                            if (trackNumber.state == LayoutState.DELETED) {
-                                deleteRouteNumber(trackNumber, existingRouteNumber)
-                            } else {
-                                updateRouteNumber(
-                                    existingRatkoRouteNumber = existingRouteNumber,
-                                    trackNumber = trackNumber,
-                                    routeNumberChange = change
-                                )
+    fun pushTrackNumberChangesToRatko(publishedTrackNumbers: Collection<PublishedTrackNumber>): List<Oid<TrackLayoutTrackNumber>> {
+        return publishedTrackNumbers
+            .groupBy { it.version.id }
+            .map { (_, trackNumbers) ->
+                val newestVersion = trackNumbers.maxBy { it.version.version }.version
+                trackNumberDao.fetch(newestVersion) to trackNumbers.flatMap { it.changedKmNumbers }.toSet()
+            }.let { trackNumbers ->
+                trackNumbers
+                    .sortedBy { sortByDeletedStateFirst(it.first.state) }
+                    .mapNotNull { (trackNumber, changedKmNumbers) ->
+                        trackNumber.externalId?.also { externalId ->
+                            try {
+                                ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
+                                    if (trackNumber.state == LayoutState.DELETED) {
+                                        deleteRouteNumber(trackNumber, existingRouteNumber)
+                                    } else {
+                                        updateRouteNumber(
+                                            existingRatkoRouteNumber = existingRouteNumber,
+                                            trackNumber = trackNumber,
+                                            changedKmNumbers = changedKmNumbers
+                                        )
+                                    }
+                                } ?: createRouteNumber(trackNumber)
+                            } catch (ex: RatkoPushException) {
+                                throw RatkoTrackNumberPushException(ex, trackNumber)
                             }
-                        } ?: createRouteNumber(trackNumber)
-                    } catch (ex: RatkoPushException) {
-                        throw RatkoTrackNumberPushException(ex, trackNumber)
+                        }
                     }
-                }
             }
     }
 
-    fun forceRedraw(routeNumberOids: List<RatkoOid<RatkoRouteNumber>>) {
+    fun forceRedraw(routeNumberOids: Set<RatkoOid<RatkoRouteNumber>>) {
         if (routeNumberOids.isNotEmpty()) {
             ratkoClient.forceRatkoToRedrawRouteNumber(routeNumberOids)
         }
@@ -57,9 +64,9 @@ class RatkoRouteNumberService @Autowired constructor(
 
     private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber, existingRatkoRouteNumber: RatkoRouteNumber) {
         logger.serviceCall("deleteRouteNumber", "trackNumber" to trackNumber)
-        requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid $trackNumber" }
+        requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid, id=${trackNumber.id}" }
 
-        val deletedEndsPoints = existingRatkoRouteNumber.nodecollection?.let { nodes -> toNodeCollectionMarkingEndpointsNotInUse(nodes) }
+        val deletedEndsPoints = existingRatkoRouteNumber.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
 
         updateRouteNumberProperties(trackNumber, deletedEndsPoints)
 
@@ -70,15 +77,16 @@ class RatkoRouteNumberService @Autowired constructor(
     private fun updateRouteNumber(
         trackNumber: TrackLayoutTrackNumber,
         existingRatkoRouteNumber: RatkoRouteNumber,
-        routeNumberChange: TrackNumberChange,
+        changedKmNumbers: Set<KmNumber>,
     ) {
         logger.serviceCall(
             "updateRatkoRouteNumber",
             "trackNumber" to trackNumber,
             "existingRatkoRouteNumber" to existingRatkoRouteNumber,
-            "routeNumberChange" to routeNumberChange
+            "changedKmNumbers" to changedKmNumbers
         )
-        requireNotNull(trackNumber.externalId) { "Cannot update route number without oid $trackNumber" }
+        require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
+        requireNotNull(trackNumber.externalId) { "Cannot update route number without oid, id=${trackNumber.id}" }
 
         val addresses =
             geocodingService.getGeocodingContext(PublishType.OFFICIAL, trackNumber.id)?.referenceLineAddresses
@@ -90,7 +98,7 @@ class RatkoRouteNumberService @Autowired constructor(
         val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
         val endPointNodeCollection = getEndPointNodeCollection(
             alignmentAddresses = addresses,
-            changedKmNumbers = routeNumberChange.changedKmNumbers,
+            changedKmNumbers = changedKmNumbers,
             existingStartNode = existingStartNode,
             existingEndNode = existingEndNode,
         )
@@ -98,12 +106,12 @@ class RatkoRouteNumberService @Autowired constructor(
         //Update route number end points before deleting anything, otherwise old end points will stay in use
         updateRouteNumberProperties(trackNumber, endPointNodeCollection)
 
-        deleteRouteNumberPoints(routeNumberOid, routeNumberChange.changedKmNumbers)
+        deleteRouteNumberPoints(routeNumberOid, changedKmNumbers)
 
         updateRouteNumberGeometry(
             routeNumberOid = routeNumberOid,
             newPoints = addresses.midPoints.filter { p ->
-                routeNumberChange.changedKmNumbers.contains(p.address.kmNumber)
+                changedKmNumbers.contains(p.address.kmNumber)
             }
         )
     }
@@ -117,7 +125,7 @@ class RatkoRouteNumberService @Autowired constructor(
 
     private fun updateRouteNumberGeometry(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
-        newPoints: List<AddressPoint>,
+        newPoints: Collection<AddressPoint>,
     ) = toRatkoPointsGroupedByKm(newPoints).forEach { points ->
         ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
     }
@@ -132,23 +140,21 @@ class RatkoRouteNumberService @Autowired constructor(
         val ratkoNodes = convertToRatkoNodeCollection(addresses)
         val ratkoRouteNumber = convertToRatkoRouteNumber(trackNumber, ratkoNodes)
         val routeNumberOid = ratkoClient.newRouteNumber(ratkoRouteNumber)
-        checkNotNull(routeNumberOid) { "Did not receive oid from Ratko $ratkoRouteNumber" }
+        checkNotNull(routeNumberOid) { "Did not receive oid from Ratko for track number $ratkoRouteNumber" }
         createRouteNumberPoints(routeNumberOid, addresses.midPoints)
     }
 
     private fun createRouteNumberPoints(
         routeNumberOid: RatkoOid<RatkoRouteNumber>,
-        addressPoints: List<AddressPoint>,
-    ) = toRatkoPointsGroupedByKm(addressPoints).forEach { points ->
+        newPoints: Collection<AddressPoint>,
+    ) = toRatkoPointsGroupedByKm(newPoints).forEach { points ->
         ratkoClient.createRouteNumberPoints(routeNumberOid, points)
     }
-
 
     private fun updateRouteNumberProperties(
         trackNumber: TrackLayoutTrackNumber,
         nodeCollection: RatkoNodes? = null
     ) {
-        requireNotNull(trackNumber.externalId) { "Cannot update route number properties without oid $trackNumber" }
         val ratkoRouteNumber = convertToRatkoRouteNumber(
             trackNumber = trackNumber,
             nodeCollection = nodeCollection,

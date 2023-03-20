@@ -122,7 +122,7 @@ class ElementListingTest {
             )),
             startAddress = TrackMeter(KmNumber(1), 100),
         )
-        val geocodingContext = GeocodingContext.create(trackNumber, referenceLine, alignment, listOf())
+        val geocodingContext = GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, listOf())
         val clothoid = minimalClothoid(
             start = Point(10.0, 10.0) + gk27CoordinateBase,
             end = Point(20.0, 20.0) + gk27CoordinateBase,
@@ -270,35 +270,7 @@ class ElementListingTest {
         assertEquals(expectedIds, listing.map(ElementListing::elementId))
     }
 
-    private fun createAlignment(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
-        vararg elementTypes: GeometryElementType,
-    ) = geometryAlignment(
-        id = IntId(1),
-        trackNumberId = trackNumberId,
-        elements = createElements(1, *elementTypes),
-    )
 
-    private fun createElements(parentId: Int, vararg types: GeometryElementType) = types.mapIndexed { index, t ->
-        when (t) {
-            GeometryElementType.LINE -> minimalLine(
-                id = IndexedId(parentId, index),
-                start = Point(index.toDouble(), index.toDouble()),
-                end = Point((index+1).toDouble(), (index+1).toDouble()),
-            )
-            GeometryElementType.CURVE -> minimalCurve(
-                id = IndexedId(parentId, index),
-                start = Point(index.toDouble(), index.toDouble()),
-                end = Point((index+1).toDouble(), (index+1).toDouble()),
-            )
-            GeometryElementType.CLOTHOID -> minimalClothoid(
-                id = IndexedId(parentId, index),
-                start = Point(index.toDouble(), index.toDouble()),
-                end = Point((index+1).toDouble(), (index+1).toDouble()),
-            )
-            else -> throw IllegalStateException("element $t not supported by this test method")
-        }
-    }
 
     private fun createSegments(alignment: GeometryAlignment) =
         if (alignment.id !is IntId) throw IllegalStateException("Alignment must have int-id for element seeking to work")

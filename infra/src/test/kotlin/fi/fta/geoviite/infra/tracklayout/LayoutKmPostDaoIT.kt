@@ -89,8 +89,8 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val trackNumberId = insertOfficialTrackNumber()
         val (postOneId, postOneOfficial) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
         val postOneDraft = kmPostDao.insert(draft(kmPostDao.fetch(postOneOfficial))).rowVersion
-        val (postTwoId, postTwoOfficial) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
-        val postTwoDraft = kmPostDao.insert(draft(kmPostDao.fetch(postTwoOfficial))).rowVersion
+        val (_, postTwoOfficial) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
+        kmPostDao.insert(draft(kmPostDao.fetch(postTwoOfficial)))
         val (postThreeId, postThreeOnlyDraft) = kmPostDao.insert(draft(kmPost(trackNumberId, KmNumber(3))))
         val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4))).rowVersion
 
@@ -100,7 +100,10 @@ class LayoutKmPostDaoIT @Autowired constructor(
 
         assertEquals(setOf(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
         assertEquals(setOf(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
-        assertEquals(setOf(postOneDraft, postTwoOfficial, postThreeOnlyDraft, postFourOnlyOfficial), versionsOneAndThree.toSet())
+        assertEquals(
+            setOf(postOneDraft, postTwoOfficial, postThreeOnlyDraft, postFourOnlyOfficial),
+            versionsOneAndThree.toSet()
+        )
     }
 
     @Test

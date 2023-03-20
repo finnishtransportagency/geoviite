@@ -5,12 +5,11 @@ import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
-import fi.fta.geoviite.infra.linking.ValidationVersions
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -18,25 +17,7 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
-data class GeocodingContextCacheKey (
-    val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
-    val referenceLineVersion: RowVersion<ReferenceLine>,
-    val kmPostVersions: List<RowVersion<TrackLayoutKmPost>>,
-) {
-    init {
-        kmPostVersions.forEachIndexed { index, version ->
-            kmPostVersions.getOrNull(index+1)?.also { next ->
-                require(next.id.intValue > version.id.intValue) {
-                    "Cache key km-posts must be in order: " +
-                            "index=$index " +
-                            "trackNumberVersion=$trackNumberVersion " +
-                            "kmPostVersion=$version " +
-                            "nextKmPostVersion=$next"
-                }
-            }
-        }
-    }
-}
+
 
 @Transactional(readOnly = true)
 @Component
@@ -49,10 +30,10 @@ class GeocodingDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun getGeocodingContextCacheKey(
+    fun getLayoutGeocodingContextCacheKey(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): GeocodingContextCacheKey? {
+    ): LayoutGeocodingContextCacheKey? {
         //language=SQL
         val sql = """
             select
@@ -82,7 +63,7 @@ class GeocodingDao(
         return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
 
-    fun getGeocodingContextCacheKey(
+    fun getLayoutGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
     ): GeocodingContextCacheKey? {
@@ -141,12 +122,12 @@ class GeocodingDao(
         return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
 
-    private fun toGeocodingContextCacheKey(rs: ResultSet): GeocodingContextCacheKey? {
+    private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? {
         val tnVersion = rs.getRowVersionOrNull<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
         val rlVersion = rs.getRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
         return if (tnVersion == null || rlVersion == null) {
             null
-        } else GeocodingContextCacheKey(
+        } else LayoutGeocodingContextCacheKey(
             trackNumberVersion = tnVersion,
             referenceLineVersion = rlVersion,
             kmPostVersions = toRowVersions(
@@ -156,11 +137,11 @@ class GeocodingDao(
         )
     }
 
-    fun getGeocodingContextCacheKey(
+    fun getLayoutGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
     ): GeocodingContextCacheKey? {
-        val official = getGeocodingContextCacheKey(OFFICIAL, trackNumberId)
+        val official = getLayoutGeocodingContextCacheKey(OFFICIAL, trackNumberId)
         val trackNumberVersion = versions.findTrackNumber(trackNumberId)?.validatedAssetVersion ?: official?.trackNumberVersion
         // We have to fetch the actual objects (reference line & km-post) here to check references
         // However, when this is done, the objects are needed elsewhere as well -> they should always be in cache
@@ -174,21 +155,8 @@ class GeocodingDao(
                 draft.trackNumberId == trackNumberId && draft.state == LayoutState.IN_USE
             }.map { v -> v.validatedAssetVersion }
             val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.id.intValue }
-            GeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)
+            LayoutGeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)
         } else null
-    }
-
-    @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
-    fun getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext? {
-        logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
-        val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
-        val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
-        val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
-            ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
-        // If the tracknumber is deleted or reference line has no geometry, we cannot geocode.
-        if (!trackNumber.exists || alignment.segments.isEmpty()) return null
-        val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
-        return GeocodingContext.create(trackNumber, referenceLine, alignment, kmPosts)
     }
 
     private fun <T> toRowVersions(ids: List<IntId<T>>, versions: List<Int>) =

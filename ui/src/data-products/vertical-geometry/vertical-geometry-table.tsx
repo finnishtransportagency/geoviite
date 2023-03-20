@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Table, Th } from 'vayla-design-lib/table/table';
+import { Table, Th, ThVariant } from 'vayla-design-lib/table/table';
 import { VerticalGeometryTableItem } from 'data-products/vertical-geometry/vertical-geometry-table-item';
-import { VerticalGeometry } from 'geometry/geometry-model';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 import styles from 'data-products/data-product-table.scss';
 import {
     nonNumericHeading,
@@ -12,10 +12,11 @@ import { useTranslation } from 'react-i18next';
 import { createClassName } from 'vayla-design-lib/utils';
 
 type VerticalGeometryTableProps = {
-    verticalGeometry: VerticalGeometry[];
+    verticalGeometry: VerticalGeometryItem[];
+    showLocationTrack: boolean;
 };
 
-const HEADINGS = [
+const COMMON_HEADINGS = [
     nonNumericHeading('plan'),
     nonNumericHeading('alignment'),
     withSeparator(numericHeading('track-address')),
@@ -39,6 +40,7 @@ const HEADINGS = [
 
 export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
     verticalGeometry,
+    showLocationTrack,
 }) => {
     const { t } = useTranslation();
     const separatorAndCenteredClassName = createClassName(
@@ -51,25 +53,32 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
             hasSeparator && styles['data-product-table__table-heading--separator'],
         );
 
+    const headings = (showLocationTrack ? [nonNumericHeading('location-track')] : []).concat(
+        COMMON_HEADINGS,
+    );
+
     return (
         <div className={styles['data-product-table__table-container']}>
             <Table wide>
                 <thead className={styles['data-product-table__table-heading']}>
                     <tr>
                         <Th
-                            colSpan={2}
+                            colSpan={showLocationTrack ? 3 : 2}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={styles['data-product-table__table-heading--centered']}
                         />
                         <Th
                             colSpan={3}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={separatorAndCenteredClassName}>
                             {t(`data-products.vertical-geometry.table.curve-start`)}
                         </Th>
                         <Th
                             colSpan={2}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={separatorAndCenteredClassName}>
                             {t(
                                 `data-products.vertical-geometry.table.point-of-vertical-intersection`,
@@ -78,41 +87,47 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
                         <Th
                             colSpan={3}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={separatorAndCenteredClassName}>
                             {t(`data-products.vertical-geometry.table.curve-end`)}
                         </Th>
                         <Th
                             colSpan={2}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={separatorAndCenteredClassName}
                         />
                         <Th
                             colSpan={2}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={separatorAndCenteredClassName}>
                             {t(`data-products.vertical-geometry.table.linear-section-backward`)}
                         </Th>
                         <Th
                             colSpan={2}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={separatorAndCenteredClassName}>
                             {t(`data-products.vertical-geometry.table.linear-section-forward`)}
                         </Th>
                         <Th
                             colSpan={3}
                             scope={'colgroup'}
+                            variant={ThVariant.MULTILINE_TOP}
                             className={separatorAndCenteredClassName}>
                             {t(`data-products.vertical-geometry.table.station`)}
                         </Th>
                     </tr>
                     <tr>
-                        {HEADINGS.map((heading, index) => (
+                        {headings.map((heading, index) => (
                             <Th
                                 // The table contains columns with the same heading, so heading names can't be used as indexes.
                                 // Also columns never change dynamically, so dynamic data integrity is not a concern.
                                 key={index}
                                 className={headingClassName(heading.numeric, heading.hasSeparator)}
-                                scope={'colgroup'}>
+                                scope={'colgroup'}
+                                variant={ThVariant.MULTILINE_BOTTOM}>
                                 {t(`data-products.vertical-geometry.table.${heading.name}`)}
                             </Th>
                         ))}
@@ -123,6 +138,7 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
                         <VerticalGeometryTableItem
                             key={verticalGeom.id}
                             verticalGeometry={verticalGeom}
+                            showLocationTrack={showLocationTrack}
                         />
                     ))}
                 </tbody>

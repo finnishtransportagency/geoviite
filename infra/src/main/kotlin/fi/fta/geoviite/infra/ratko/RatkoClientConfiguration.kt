@@ -35,7 +35,6 @@ class RatkoClientConfiguration @Autowired constructor(
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
         val webClientBuilder = WebClient.builder()
-
             .clientConnector(ReactorClientHttpConnector(httpClient))
             .baseUrl(ratkoBaseUrl)
             .filter(logRequest())

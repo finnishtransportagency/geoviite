@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
@@ -843,7 +843,7 @@ class PublicationValidationTest {
         return GeocodingContext.create(
             // Start the geocoding from 0+0m
             trackNumber(TrackNumber("0000")),
-            referenceLine,
+            referenceLine.startAddress,
             alignment,
             kmPosts,
         )

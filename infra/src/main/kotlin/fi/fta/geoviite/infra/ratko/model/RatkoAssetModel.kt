@@ -7,16 +7,16 @@ import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 @JsonInclude(JsonInclude.Include.NON_NULL)
 abstract class RatkoAsset(
     open val state: RatkoAssetState,
-    open val properties: List<RatkoAssetProperty>,
+    open val properties: Collection<RatkoAssetProperty>,
     open val rowMetadata: RatkoMetadata,
     open val locations: List<RatkoAssetLocation>?,
-    val type: RatkoAssetType
+    val type: RatkoAssetType,
 ) {
     abstract fun withoutGeometries(): RatkoAsset
 }
 
 data class RatkoMetadataAsset(
-    override val properties: List<RatkoAssetProperty>,
+    override val properties: Collection<RatkoAssetProperty>,
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),
     override val locations: List<RatkoAssetLocation>,
 ) : RatkoAsset(
@@ -33,10 +33,10 @@ data class RatkoMetadataAsset(
 data class RatkoSwitchAsset(
     val id: String?,
     override val state: RatkoAssetState,
-    override val properties: List<RatkoAssetProperty>,
+    override val properties: Collection<RatkoAssetProperty>,
     override val rowMetadata: RatkoMetadata = RatkoMetadata(),
     override val locations: List<RatkoAssetLocation>?,
-    val assetGeoms: List<RatkoAssetGeometry>?
+    val assetGeoms: Collection<RatkoAssetGeometry>?,
 ) : RatkoAsset(
     state = state,
     type = RatkoAssetType.TURNOUT,

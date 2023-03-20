@@ -7,11 +7,11 @@ import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.*
-import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,7 +19,10 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
 import kotlin.math.ceil
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -52,7 +55,7 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesAreEmptyIfNothingIsChanged() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = setupData.locationTrack,
             afterTrack = setupData.locationTrack,
@@ -65,7 +68,7 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesContainAllAddressesIfThereIsNoBeforeVersion() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = null,
             afterTrack = setupData.locationTrack,
@@ -86,7 +89,7 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesContainAllAddressesIfTrackIsBeingRestoredFromBeingDeleted() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = setupData.locationTrack.copy(state = LayoutState.DELETED),
             afterTrack = setupData.locationTrack,
@@ -110,7 +113,7 @@ class AddressChangesServiceIT @Autowired constructor(
         val initialLocationTrack = setupData.locationTrack
         val locationTrackId = initialLocationTrack.id as IntId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
-        val contextKey = geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
 
         removeLocationTrackGeometryAndUpdate(initialLocationTrack, setupData.locationTrackGeometry)
         val updateMoment = locationTrackDao.fetchChangeTime()
@@ -190,7 +193,7 @@ class AddressChangesServiceIT @Autowired constructor(
         assertTrue(changes.startPointChanged, "Start should change: changes=$changes")
         assertTrue(changes.endPointChanged, "End should change: changes=$changes")
         val allKms = getAllKms(
-            geocodingDao.getGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!,
+            geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!,
             setupData.locationTrackGeometry.start!!,
             setupData.locationTrackGeometry.end!!,
         )
@@ -727,14 +730,6 @@ class AddressChangesServiceIT @Autowired constructor(
         )
     }
 
-    fun assertAreEqual(addresses1: AlignmentAddresses?, addresses2: AlignmentAddresses?) {
-        assertEquals(addresses1, addresses2)
-    }
-
-    fun assertAreNotEqual(addresses1: AlignmentAddresses?, addresses2: AlignmentAddresses?) {
-        assertNotEquals(addresses1, addresses2)
-    }
-
     fun createLineString(vararg transitPoints: Point): List<Point> {
         return transitPoints.flatMapIndexed { index, from ->
             val to = transitPoints.getOrNull(index + 1)
@@ -765,7 +760,6 @@ class AddressChangesServiceIT @Autowired constructor(
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
             midPoints = listOf(),
-            switchJointPoints = listOf(),
         )
 
     fun createAddresses(
@@ -797,7 +791,6 @@ class AddressChangesServiceIT @Autowired constructor(
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
             midPoints = addressPoints.slice(1..addressPoints.size-2),
-            switchJointPoints = listOf(),
         )
     }
 
@@ -808,7 +801,7 @@ class AddressChangesServiceIT @Autowired constructor(
     )
 
     fun getAllKms(geocodingContextCacheKey: GeocodingContextCacheKey, start: IPoint, end: IPoint): Set<KmNumber> {
-        val context = geocodingDao.getGeocodingContext(geocodingContextCacheKey)!!
+        val context = geocodingService.getGeocodingContext(geocodingContextCacheKey)!!
         val startKm = context.getAddress(start)!!.first.kmNumber
         val endKm = context.getAddress(end)!!.first.kmNumber
         return context.referencePoints.map { r -> r.kmNumber }.filter { km -> km in startKm..endKm }.toSet()
