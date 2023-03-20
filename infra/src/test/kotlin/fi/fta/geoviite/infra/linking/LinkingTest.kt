@@ -531,7 +531,7 @@ fun createGeometrySegments(): List<LayoutSegment> {
             LayoutPoint(transformedPoint.x, transformedPoint.y, p.z, p.m, p.cant)
         }
 
-        segment.withPoints(points = newPoints)
+        segment.copy(geometry = segment.geometry.withPoints(newPoints))
     }
 }
 

@@ -194,7 +194,6 @@ private fun toMapSegments(
                 ),
                 sourceId = element.id,
                 sourceStart = 0.0,
-                start = segmentStartLength,
                 source = GeometrySource.PLAN,
                 pointCount = segmentPoints.size,
             )

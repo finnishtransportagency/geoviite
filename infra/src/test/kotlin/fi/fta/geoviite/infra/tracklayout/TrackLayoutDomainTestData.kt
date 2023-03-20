@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
+import fi.fta.geoviite.infra.linking.SwitchLinkingSegment
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
@@ -242,13 +243,13 @@ fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
 fun alignment(segments: List<LayoutSegment>) =
     LayoutAlignment(
-        segments = fixStartDistances(segments),
+        segments = fixSegmentStarts(segments),
         sourceId = null,
     )
 
-fun fixStartDistances(segments: List<LayoutSegment>): List<LayoutSegment> {
+fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
     var distance = 0.0
-    return segments.map { s -> s.copy(start = distance).also { distance += s.length } }
+    return segments.map { s -> s.withStartM(distance).also { distance += s.length } }
 }
 
 fun locationTrackWithTwoSwitches(
@@ -494,7 +495,6 @@ fun segment(
     ),
     sourceId = sourceId,
     sourceStart = sourceStart,
-    start = start,
     switchId = switchId,
     startJointNumber = startJointNumber,
     endJointNumber = endJointNumber,
@@ -557,15 +557,6 @@ fun fixMValues(points: List<LayoutPoint>): List<LayoutPoint> {
         val previous = points.getOrNull(i-1)
         if (previous != null) m += lineLength(previous, p)
         p.copy(m = m)
-    }
-}
-
-fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
-    var start = 0.0
-    return segments.mapIndexed { index, segment ->
-        val previous = segments.getOrNull(index - 1)
-        if (previous != null) start += previous.length
-        segment.copy(start = start)
     }
 }
 
@@ -673,7 +664,7 @@ fun offsetAlignment(alignment: LayoutAlignment, amount: Point) =
 
 fun offsetSegment(segment: LayoutSegment, amount: Point): LayoutSegment {
     val newPoints = toTrackLayoutPoints(*(segment.points.map { p -> p + amount }.toTypedArray()))
-    return segment.withPoints(points = newPoints)
+    return segment.copy(geometry = segment.geometry.withPoints(newPoints))
 }
 
 fun externalIdForLocationTrack(): Oid<LocationTrack> {
@@ -693,3 +684,23 @@ fun externalIdForTrackNumber(): Oid<TrackLayoutTrackNumber> {
 
     return Oid("$first.$second.$third.$fourth")
 }
+
+fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int) =
+    switchLinkingAtStart(locationTrackId, alignment.segments, segmentIndex)
+
+fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
+    SwitchLinkingSegment(
+        locationTrackId = locationTrackId as IntId<LocationTrack>,
+        segmentIndex = segmentIndex,
+        m = segments[segmentIndex].points.first().m,
+    )
+
+fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int) =
+    switchLinkingAtEnd(locationTrackId, alignment.segments, segmentIndex)
+
+fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
+    SwitchLinkingSegment(
+        locationTrackId = locationTrackId as IntId<LocationTrack>,
+        segmentIndex = segmentIndex,
+        m = segments[segmentIndex].points.last().m,
+    )

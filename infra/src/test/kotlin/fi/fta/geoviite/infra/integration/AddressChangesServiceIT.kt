@@ -146,9 +146,12 @@ class AddressChangesServiceIT @Autowired constructor(
         // Move start-point a bit
         updateAndPublish(initialLocationTrack, setupData.locationTrackGeometry.copy(
             segments = setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
-                if (index == 0) segment.withPoints(
-                    points = listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1),
-                ) else segment
+                if (index == 0) segment.copy(
+                    geometry = segment.geometry.withPoints(
+                        listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1),
+                    )
+                )
+                else segment
             }
         ))
         val updateMoment = locationTrackDao.fetchChangeTime()
@@ -703,15 +706,17 @@ class AddressChangesServiceIT @Autowired constructor(
             referenceLine,
             alignment.copy(
                 segments = fixSegmentStarts(alignment.segments.map { segment ->
-                    segment.withPoints(
-                        points = fixMValues(segment.points.mapIndexed { inSegmentIndex, point ->
-                            val newPoint = moveFunc(index, point)
-                            if (inSegmentIndex < segment.points.lastIndex) index++
-                            point.copy(
-                                x = newPoint.x,
-                                y = newPoint.y
-                            )
-                        } ),
+                    segment.copy(
+                        geometry = segment.geometry.withPoints(
+                            fixMValues(segment.points.mapIndexed { inSegmentIndex, point ->
+                                val newPoint = moveFunc(index, point)
+                                if (inSegmentIndex < segment.points.lastIndex) index++
+                                point.copy(
+                                    x = newPoint.x,
+                                    y = newPoint.y
+                                )
+                            } ),
+                        ),
                     )
                 } )
             )

@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import fi.fta.geoviite.infra.tracklayout.ISegmentGeometry.PointSeekResult
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -54,8 +55,8 @@ class LayoutGeometryTest {
         val segment = LayoutSegment(
             geometry = SegmentGeometry(
                 points = listOf(
-                    point(10.0, 10.0, 0.0),
-                    point(20.0, 20.0, hypot(10.0, 10.0)),
+                    point(10.0, 10.0, 10.0),
+                    point(20.0, 20.0, 10.0 + hypot(10.0, 10.0)),
                 ),
                 resolution = 2,
             ),
@@ -64,7 +65,6 @@ class LayoutGeometryTest {
             switchId = StringId(),
             startJointNumber = JointNumber(2),
             endJointNumber = JointNumber(2),
-            start = 10.0,
             source = GeometrySource.IMPORTED,
         )
 
@@ -163,21 +163,42 @@ class LayoutGeometryTest {
     }
 
     @Test
-    fun segmentPointAtLengthWorks() {
+    fun seekSegmentPointAtMWorks() {
         val segment = segment(
             point(0.0, 0.0, 0.0),
             point(10.0, 0.0, 10.0),
             point(20.0, 0.0, 20.0),
         )
-        assertEquals(point(0.0, 0.0, 0.0), segment.getPointAtLength(0.0))
-        assertEquals(point(10.0, 0.0, 10.0), segment.getPointAtLength(10.0))
-        assertEquals(point(20.0, 0.0, 20.0), segment.getPointAtLength(20.0))
+        assertEquals(
+            PointSeekResult(point(0.0, 0.0, 0.0), 0, true),
+            segment.seekPointAtM(0.0),
+        )
+        assertEquals(
+            PointSeekResult(point(10.0, 0.0, 10.0), 1, true),
+            segment.seekPointAtM(10.0),
+        )
+        assertEquals(
+            PointSeekResult(point(20.0, 0.0, 20.0), 2, true),
+            segment.seekPointAtM(20.0),
+        )
 
-        assertEquals(point(0.0, 0.0, 0.0), segment.getPointAtLength(-5.0))
-        assertEquals(point(20.0, 0.0, 20.0), segment.getPointAtLength(25.0))
+        assertEquals(
+            PointSeekResult(point(0.0, 0.0, 0.0), 0, true),
+            segment.seekPointAtM(-5.0),
+        )
+        assertEquals(
+            PointSeekResult(point(20.0, 0.0, 20.0), 2, true),
+            segment.seekPointAtM(25.0),
+        )
 
-        assertEquals(point(5.0, 0.0, 5.0), segment.getPointAtLength(5.0))
-        assertEquals(point(13.0, 0.0, 13.0), segment.getPointAtLength(13.0))
+        assertEquals(
+            PointSeekResult(point(5.0, 0.0, 5.0), 0, false),
+            segment.seekPointAtM(5.0),
+        )
+        assertEquals(
+            PointSeekResult(point(13.0, 0.0, 13.0), 1, false),
+            segment.seekPointAtM(13.0),
+        )
     }
 
     @Test
@@ -187,20 +208,56 @@ class LayoutGeometryTest {
             point(10.0, 0.0, 10.0),
             point(20.0, 0.0, 20.0),
         )
-        assertEquals(point(0.05, 0.0, 0.05), segment.getPointAtLength(0.05, 0.0))
-        assertEquals(point(0.0, 0.0, 0.0), segment.getPointAtLength(0.05, 0.1))
-        assertEquals(point(0.15, 0.0, 0.15), segment.getPointAtLength(0.15, 0.1))
+        assertEquals(
+            PointSeekResult(point(0.05, 0.0, 0.05), 0, false),
+            segment.seekPointAtM(0.05, 0.0),
+        )
+        assertEquals(
+            PointSeekResult(point(0.0, 0.0, 0.0), 0, true),
+            segment.seekPointAtM(0.05, 0.1),
+        )
+        assertEquals(
+            PointSeekResult(point(0.15, 0.0, 0.15), 0, false),
+            segment.seekPointAtM(0.15, 0.1),
+        )
 
-        assertEquals(point(9.95, 0.0, 9.95), segment.getPointAtLength(9.95, 0.0))
-        assertEquals(point(10.0, 0.0, 10.0), segment.getPointAtLength(9.95, 0.1))
-        assertEquals(point(9.85, 0.0, 9.85), segment.getPointAtLength(9.85, 0.1))
-        assertEquals(point(10.05, 0.0, 10.05), segment.getPointAtLength(10.05, 0.0))
-        assertEquals(point(10.0, 0.0, 10.0), segment.getPointAtLength(10.05, 0.1))
-        assertEquals(point(10.15, 0.0, 10.15), segment.getPointAtLength(10.15, 0.1))
+        assertEquals(
+            PointSeekResult(point(9.95, 0.0, 9.95), 0, false),
+            segment.seekPointAtM(9.95, 0.0),
+        )
+        assertEquals(
+            PointSeekResult(point(10.0, 0.0, 10.0), 1, true),
+            segment.seekPointAtM(9.95, 0.1),
+        )
+        assertEquals(
+            PointSeekResult(point(9.85, 0.0, 9.85), 0, false),
+            segment.seekPointAtM(9.85, 0.1),
+        )
+        assertEquals(
+            PointSeekResult(point(10.05, 0.0, 10.05), 1, false),
+            segment.seekPointAtM(10.05, 0.0),
+        )
+        assertEquals(
+            PointSeekResult(point(10.0, 0.0, 10.0), 1, true),
+            segment.seekPointAtM(10.05, 0.1),
+        )
+        assertEquals(
+            PointSeekResult(point(10.15, 0.0, 10.15), 1, false),
+            segment.seekPointAtM(10.15, 0.1),
+        )
 
-        assertEquals(point(19.95, 0.0, 19.95), segment.getPointAtLength(19.95, 0.0))
-        assertEquals(point(20.0, 0.0, 20.0), segment.getPointAtLength(19.95, 0.1))
-        assertEquals(point(19.85, 0.0, 19.85), segment.getPointAtLength(19.85, 0.1))
+        assertEquals(
+            PointSeekResult(point(19.95, 0.0, 19.95), 1, false),
+            segment.seekPointAtM(19.95, 0.0),
+        )
+        assertEquals(
+            PointSeekResult(point(20.0, 0.0, 20.0), 2, true),
+            segment.seekPointAtM(19.95, 0.1),
+        )
+        assertEquals(
+            PointSeekResult(point(19.85, 0.0, 19.85), 1, false),
+            segment.seekPointAtM(19.85, 0.1),
+        )
     }
 
     @Test
@@ -220,43 +277,43 @@ class LayoutGeometryTest {
 
         assertApproximatelyEquals(
             point(0.0, 0.0, 0.0),
-            alignment.getPointAtLength(0.0)!!,
+            alignment.getPointAtM(0.0)!!,
             accuracy,
         )
         assertApproximatelyEquals(
             point(10.0, 0.0, 0.0),
-            alignment.getPointAtLength(10.0)!!,
+            alignment.getPointAtM(10.0)!!,
             accuracy,
         )
         assertApproximatelyEquals(
             point(15.0, 5.0, diagonalLength),
-            alignment.getPointAtLength(10.0+diagonalLength)!!,
+            alignment.getPointAtM(10.0+diagonalLength)!!,
             accuracy,
         )
         assertApproximatelyEquals(
             point(15.0, 15.0, 10.0+diagonalLength),
-            alignment.getPointAtLength(20.0+diagonalLength)!!,
+            alignment.getPointAtM(20.0+diagonalLength)!!,
             accuracy,
         )
 
         assertApproximatelyEquals(
             point(0.0, 0.0, 0.0),
-            alignment.getPointAtLength(-5.0)!!,
+            alignment.getPointAtM(-5.0)!!,
             accuracy)
         assertApproximatelyEquals(
             point(15.0, 15.0, 10.0+diagonalLength),
-            alignment.getPointAtLength(50.0)!!,
+            alignment.getPointAtM(50.0)!!,
             accuracy,
         )
 
         assertApproximatelyEquals(
             point(5.0, 0.0, 5.0),
-            alignment.getPointAtLength(5.0)!!,
+            alignment.getPointAtM(5.0)!!,
             accuracy,
         )
         assertApproximatelyEquals(
             point(13.0, 3.0, hypot(3.0, 3.0)),
-            alignment.getPointAtLength(10 + hypot(3.0, 3.0))!!,
+            alignment.getPointAtM(10 + hypot(3.0, 3.0))!!,
             accuracy,
         )
     }
@@ -267,10 +324,10 @@ class LayoutGeometryTest {
         val original = LayoutSegment(
             geometry = SegmentGeometry(
                 points = listOf(
-                    point(10.0, 10.0, 0.0),
-                    point(20.0, 20.0, pointInterval),
-                    point(30.0, 30.0, 2*pointInterval),
-                    point(40.0, 40.0, 3*pointInterval),
+                    point(10.0, 10.0, 10.0),
+                    point(20.0, 20.0, 10.0 + pointInterval),
+                    point(30.0, 30.0, 10.0 + 2*pointInterval),
+                    point(40.0, 40.0, 10.0 + 3*pointInterval),
                 ),
                 resolution = 2,
             ),
@@ -279,7 +336,6 @@ class LayoutGeometryTest {
             switchId = StringId(),
             startJointNumber = JointNumber(2),
             endJointNumber = JointNumber(2),
-            start = 10.0,
             source = GeometrySource.IMPORTED,
         )
 

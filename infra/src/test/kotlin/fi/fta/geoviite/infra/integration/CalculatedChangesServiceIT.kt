@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
 import fi.fta.geoviite.infra.linking.SwitchLinkingParameters
-import fi.fta.geoviite.infra.linking.SwitchLinkingSegment
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
@@ -1225,54 +1224,35 @@ class CalculatedChangesServiceIT @Autowired constructor(
                 joints = listOf(
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(1),
-                        location = Point(alignmentA.segments[segIndexA].points.first()),
+                        location = firstPoint(alignmentA, segIndexA).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackA.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexA,
-                                segmentM = 0.0
-                            ),
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackB.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexB,
-                                segmentM = 0.0
-                            ),
+                            switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA),
+                            switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB),
                         ),
                         locationAccuracy = null
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(5),
-                        location = Point(alignmentA.segments[segIndexA].points.last()),
+                        location = lastPoint(alignmentA, segIndexA).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackA.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexA,
-                                segmentM = 10.0
-                            ),
+                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA),
                         ),
                         locationAccuracy = null
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(2),
-                        location = Point(alignmentA.segments[segIndexA + 2].points.last()),
+                        location = lastPoint(alignmentA, segIndexA+2).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackA.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexA + 1,
-                                segmentM = 10.0
-                            ),
+                            // TODO: GVT-553 - should this be index + 2? what the hell does this thing test?
+                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA+1),
                         ),
                         locationAccuracy = null
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(3),
-                        location = Point(alignmentB.segments[segIndexB + 1].points.last()),
+                        location = lastPoint(alignmentB, segIndexB+1).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackB.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexB + 1,
-                                segmentM = 10.0
-                            ),
+                            switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB+1),
                         ),
                         locationAccuracy = null
                     )
@@ -1283,6 +1263,12 @@ class CalculatedChangesServiceIT @Autowired constructor(
         )
         return switch
     }
+
+    private fun firstPoint(alignment: LayoutAlignment, segmentIndex: Int) =
+        alignment.segments[segmentIndex].points.first()
+
+    private fun lastPoint(alignment: LayoutAlignment, segmentIndex: Int) =
+        alignment.segments[segmentIndex].points.last()
 
     private fun assertContainsSwitchJoint152Change(
         changes: List<SwitchChange>,

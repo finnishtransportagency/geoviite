@@ -119,7 +119,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 0.0
+                        m = segments[1].start,
                     )
                 ),
             ),
@@ -131,7 +131,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].end,
                     )
                 ),
             ),
@@ -143,7 +143,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].end,
                     )
                 ),
             ),
@@ -194,7 +194,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 0.0
+                        m = segments[1].start,
                     )
                 ),
             ),
@@ -206,7 +206,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].end,
                     )
                 ),
             ),
@@ -218,7 +218,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        segmentM = 14.142135623730951
+                        m = segments[1].end,
                     )
                 ),
             ),

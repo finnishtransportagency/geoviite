@@ -84,7 +84,7 @@ enum class SuggestedSwitchJointMatchType {
 
 data class SuggestedSwitchJointMatch(
     val locationTrackId: DomainId<LocationTrack>,
-//    val segmentIndex: Int,
+    val segmentIndex: Int,
 //    val segmentM: Double,
     val m: Double,
     val layoutSwitchId: DomainId<TrackLayoutSwitch>?,
@@ -116,7 +116,7 @@ data class SuggestedSwitch(
 data class SwitchLinkingSegment(
     val locationTrackId: IntId<LocationTrack>,
     val m: Double,
-//    val segmentIndex: Int,
+    val segmentIndex: Int,
 //    val segmentM: Double,
 )
 

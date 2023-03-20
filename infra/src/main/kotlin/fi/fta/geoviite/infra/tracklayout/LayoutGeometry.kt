@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
-import fi.fta.geoviite.infra.tracklayout.ISegmentGeometry.PointSeekResult
 import fi.fta.geoviite.infra.util.FileName
 import java.time.Instant
 import kotlin.math.abs
@@ -82,12 +81,18 @@ interface IAlignment {
             segmentM.let { (m, type) -> segment.start + m to type }
         }
 
-    fun getPointAtLength(distance: Double, snapDistance: Double = 0.0): LayoutPoint? =
-        if (distance <= 0.0) start
-        else if (distance >= length) end
-        else segments
-            .findLast { segment -> segment.start <= distance }
-            ?.let { segment -> segment.getPointAtLength(distance - segment.start, snapDistance) }
+    fun getPointAtM(m: Double, snapDistance: Double = 0.0): LayoutPoint? =
+        if (m <= 0.0) start
+        else if (m >= length) end
+        else getSegmentAtM(m)?.let { segment ->
+            segment.seekPointAtM(m - segment.start, snapDistance).point
+        }
+
+    fun getSegmentAtM(m: Double) = segments.getOrNull(segments.binarySearch { s ->
+        if (s.start > m) -1
+        else if (s.end < m) 1
+        else 0
+    })
 
     fun findClosestSegmentIndex(target: IPoint): Int? {
         return approximateClosestSegmentIndex(target)?.let { approximation ->
@@ -270,10 +275,14 @@ interface ISegmentGeometry {
         }
     }
 
-    private fun getPointAtLengthInternal(m: Double, snapDistance: Double = 0.0): PointSeekResult =
-        if (m <= points.first().m) {
+    /**
+     * Finds a point on the line at given m-value (length along alignment).
+     * Snaps to actual segment points at snapDistance, if provided and greater than zero.
+     */
+    fun seekPointAtM(m: Double, snapDistance: Double = 0.0): PointSeekResult =
+        if (m <= start) {
             PointSeekResult(points.first(), 0, true)
-        } else if (m >= points.last().m) {
+        } else if (m >= end) {
             PointSeekResult(points.last(), points.lastIndex, true)
         } else {
             val indexAfter = points.indexOfFirst { p -> p.m >= m }
@@ -291,14 +300,6 @@ interface ISegmentGeometry {
                 }
                 ?: PointSeekResult(pointAfter, indexAfter, true)
         }
-
-    /**
-     * Finds a point on the line at given m-value (length along segment).
-     * Snaps to actual segment points at snapDistance, if provided and greater than zero.
-     * @return
-     */
-    fun getPointAtLength(m: Double, snapDistance: Double = 0.0): LayoutPoint =
-        getPointAtLengthInternal(points, length, m, snapDistance).point
 
     data class PointSeekResult(
         val point: LayoutPoint,
@@ -342,8 +343,8 @@ data class SegmentGeometry(
         }
     }
 
-    fun withPoints(points: List<LayoutPoint>, start: Double): SegmentGeometry =
-        copy(points = adjustMValuesToStart(points, start), id = StringId())
+    fun withPoints(points: List<LayoutPoint>, start: Double? = null): SegmentGeometry =
+        copy(points = adjustMValuesToStart(points, start ?: points.first().m), id = StringId())
 
     fun withStartMAt(start: Double): SegmentGeometry = withPoints(points, start)
 }
@@ -383,19 +384,24 @@ data class LayoutSegment(
         require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
     }
 
-    fun slice(fromIndex: Int, toIndex: Int, newStart: Double): LayoutSegment? =
+    fun slice(fromIndex: Int, toIndex: Int, newStart: Double? = null): LayoutSegment? =
         if (fromIndex >= toIndex) null
         else withPoints(points.slice(fromIndex..toIndex), newStart)
 
-    fun withPoints(points: List<LayoutPoint>, newStart: Double = start): LayoutSegment = copy(
-        geometry = geometry.withPoints(points, newStart),
-        sourceStart = sourceStart?.plus(start),
-    )
+    private fun withPoints(points: List<LayoutPoint>, newStart: Double? = null): LayoutSegment =
+        geometry.withPoints(points, newStart).let { newGeom -> copy(
+            geometry = newGeom,
+            sourceStart = sourceStart?.plus(newGeom.start-start),
+        ) }
+
+    fun withStartM(newStartM: Double): LayoutSegment =
+        if (newStartM == start) this
+        else copy(geometry = geometry.withStartMAt(newStartM))
 
     fun splitAtM(m: Double, tolerance: Double): Pair<LayoutSegment, LayoutSegment?> =
         if (m !in start..end) this to null
         else {
-            val pointAtM = getPointAtLengthInternal(points, length, m, tolerance)
+            val pointAtM = seekPointAtM(m, tolerance)
             if (pointAtM.isSnapped && (pointAtM.index <= 0 || pointAtM.index >= points.lastIndex)) {
                 this to null
             } else {

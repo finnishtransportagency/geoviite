@@ -85,15 +85,17 @@ fun moveAlignmentPoints(
     moveFunc: (point: IPoint, length: Double) -> IPoint,
 ) = alignment.copy(
     segments = alignment.segments.map { segment ->
-        segment.withPoints(
-            points = segment.points.map { point ->
-                val length = segment.start + point.m
-                val newPoint = moveFunc(point, length)
-                point.copy(
-                    x = newPoint.x,
-                    y = newPoint.y
-                )
-            },
+        segment.copy(
+            geometry = segment.geometry.withPoints(
+                segment.points.map { point ->
+                    val length = segment.start + point.m
+                    val newPoint = moveFunc(point, length)
+                    point.copy(
+                        x = newPoint.x,
+                        y = newPoint.y
+                    )
+                },
+            )
         )
     }
 )

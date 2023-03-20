@@ -52,7 +52,7 @@ class SwitchLinkingTest {
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId,
                         segmentIndex = 0,
-                        segmentM = 0.0
+                        m = origAlignmentNoSwitchInfo.segments[0].start,
                     )
                 ),
             ),
@@ -64,7 +64,7 @@ class SwitchLinkingTest {
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId,
                         segmentIndex = 1,
-                        segmentM = 0.0
+                        m = origAlignmentNoSwitchInfo.segments[1].start,
                     )
                 )
             ),
@@ -76,7 +76,7 @@ class SwitchLinkingTest {
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId,
                         segmentIndex = 1,
-                        segmentM = 7.071067811865476
+                        m = origAlignmentNoSwitchInfo.segments[1].end,
                     )
                 )
             )
@@ -1124,11 +1124,7 @@ class SwitchLinkingTest {
                 Point(10.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = origLocationTrack.id as IntId,
-                        segmentIndex = 0,
-                        segmentM = 0.0
-                    )
+                    switchLinkingAtStart(origLocationTrack.id as IntId, origAlignment, 0),
                 ),
             ),
             SwitchLinkingJoint(
@@ -1136,11 +1132,7 @@ class SwitchLinkingTest {
                 Point(25.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = origLocationTrack.id as IntId,
-                        segmentIndex = 1,
-                        segmentM = 5.0
-                    )
+                    switchLinkingAtEnd(origLocationTrack.id as IntId, origAlignment, 1),
                 )
             )
         )

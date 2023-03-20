@@ -227,10 +227,10 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         alignment(segmentsWithoutZAndCant(alignmentSeed, segmentCount))
 
     private fun segmentsWithZAndCant(alignmentSeed: Int, count: Int) =
-        fixStartDistances((0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) })
+        fixSegmentStarts((0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) })
 
     private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int) =
-        fixStartDistances((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
+        fixSegmentStarts((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
 
     private fun segmentWithoutZAndCant(segmentSeed: Int) =
         createSegment(segmentSeed, points(

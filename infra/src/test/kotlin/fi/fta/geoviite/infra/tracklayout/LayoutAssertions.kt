@@ -88,7 +88,7 @@ fun assertMatches(expected: LayoutAlignment, actual: LayoutAlignment, idMatch: B
 }
 
 fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boolean = false) {
-    val expectedWithSameFloats = expected.copy(geometry = actual.geometry, start = actual.start)
+    val expectedWithSameFloats = expected.copy(geometry = actual.geometry)
     if (idMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {

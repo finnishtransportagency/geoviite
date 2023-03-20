@@ -224,7 +224,7 @@ class PublicationServiceIT @Autowired constructor(
         referenceLineService.saveDraft(
             tmpLine.copy(startAddress = TrackMeter("0002", 20)),
             tmpAlignment.copy(
-                segments = fixStartDistances(
+                segments = fixSegmentStarts(
                     listOf(
                         segment(Point(1.0, 1.0), Point(2.0, 2.0)),
                         segment(Point(2.0, 2.0), Point(3.0, 3.0)),
@@ -270,7 +270,7 @@ class PublicationServiceIT @Autowired constructor(
         locationTrackService.saveDraft(
             tmpTrack.copy(name = AlignmentName("DRAFT test 01")),
             tmpAlignment.copy(
-                segments = fixStartDistances(
+                segments = fixSegmentStarts(
                     listOf(
                         segment(Point(1.0, 1.0), Point(2.0, 2.0)),
                         segment(Point(2.0, 2.0), Point(3.0, 3.0)),

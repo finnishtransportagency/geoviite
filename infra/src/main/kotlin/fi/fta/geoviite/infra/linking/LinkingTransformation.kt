@@ -239,8 +239,8 @@ fun createGapConnectionSegment(start: Point, end: Point, startLength: Double): L
         geometry = SegmentGeometry(
             resolution = max(length.toInt(), 1),
             points = listOf(
-                LayoutPoint(start.x, start.y, null, 0.0, null),
-                LayoutPoint(end.x, end.y, null, length, null)
+                LayoutPoint(start.x, start.y, null, startLength, null),
+                LayoutPoint(end.x, end.y, null, startLength+length, null)
             ),
         ),
         sourceId = null,
@@ -248,7 +248,6 @@ fun createGapConnectionSegment(start: Point, end: Point, startLength: Double): L
         switchId = null,
         startJointNumber = null,
         endJointNumber = null,
-        start = startLength,
         source = GeometrySource.GENERATED,
     ) else null
 }
@@ -265,9 +264,7 @@ fun getSegmentsAfterNewGeometry(
     if (index == segments.size - 1) return listOf()
     var segmentStart = start
     return segments.drop(index + 1).map { s ->
-        val newSegment = s.copy(start = segmentStart)
-        segmentStart += s.length
-        newSegment
+        s.withStartM(segmentStart).also { fixed -> segmentStart += fixed.length }
     }
 }
 
@@ -278,36 +275,25 @@ fun getSegmentsInRange(
     start: Double,
 ): List<LayoutSegment> {
     var segmentStart = start
-    return if (startIndex <=
-        endIndex
-    ) {
+    return if (startIndex <= endIndex) {
         segments.slice(startIndex..endIndex).map { s ->
-            val segment = s.copy(start = segmentStart)
-            segmentStart += s.length
-            segment
+            s.withStartM(segmentStart).also { fixed -> segmentStart += fixed.length }
         }
     } else {
         listOf()
     }
 }
 
-fun transformGeometryToLayoutSegments(segments: List<MapSegment>): List<LayoutSegment> {
-    return segments.map { segment ->
-        LayoutSegment(
-            geometry = SegmentGeometry(
-                resolution = segment.resolution,
-                points = segment.points,
-            ),
-            sourceId = segment.sourceId,
-            sourceStart = segment.sourceStart,
-            switchId = null,
-            startJointNumber = null,
-            endJointNumber = null,
-            start = segment.start,
-            source = segment.source,
-        )
-    }
-}
+fun transformGeometryToLayoutSegments(segments: List<MapSegment>): List<LayoutSegment> =
+    segments.map { segment -> LayoutSegment(
+        geometry = segment.geometry,
+        sourceId = segment.sourceId,
+        sourceStart = segment.sourceStart,
+        switchId = null,
+        startJointNumber = null,
+        endJointNumber = null,
+        source = segment.source,
+    ) }
 
 fun isLinkedToSwitch(locationTrack: LocationTrack, alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>) =
     locationTrack.topologyStartSwitch?.switchId == switchId ||
