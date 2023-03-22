@@ -70,7 +70,7 @@ class LayoutGeometryTest {
             source = GeometrySource.IMPORTED,
         )
 
-        val (startSegment, endSegment) = segment.splitAtM(10.0, 0.5)
+        val (startSegment, endSegment) = segment.splitAtM(20.0, 0.5)
         assertNotNull(endSegment)
         endSegment!!
         assertEquals(segment.sourceId, startSegment.sourceId)
@@ -108,8 +108,8 @@ class LayoutGeometryTest {
         assertEquals(2, endSegment!!.points.size)
         assertEquals(10.0, endSegment.points.first().x)
         assertEquals(20.0, endSegment.points.last().x)
-        assertEquals(0.0, endSegment.points.first().m)
-        assertEquals(10.0, endSegment.points.last().m)
+        assertEquals(10.0, endSegment.points.first().m)
+        assertEquals(20.0, endSegment.points.last().m)
     }
 
     @Test
