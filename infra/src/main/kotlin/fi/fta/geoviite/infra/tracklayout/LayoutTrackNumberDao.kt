@@ -40,16 +40,6 @@ class LayoutTrackNumberDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         }
     }
 
-    fun fetchExternalIdToIdMapping(): Map<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>> {
-        val sql = "select id, external_id from layout.track_number where external_id is not null"
-        val result: List<Pair<Oid<TrackLayoutTrackNumber>, IntId<TrackLayoutTrackNumber>>> =
-            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-                rs.getOid<TrackLayoutTrackNumber>("external_id") to rs.getIntId("id")
-            }
-        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, result.map { r -> r.second })
-        return result.associate { it }
-    }
-
     fun getTrackNumberToIdMapping(): Map<TrackNumber, IntId<TrackLayoutTrackNumber>> {
         val sql = "select id, number from layout.track_number"
         val result: List<Pair<TrackNumber, IntId<TrackLayoutTrackNumber>>> =

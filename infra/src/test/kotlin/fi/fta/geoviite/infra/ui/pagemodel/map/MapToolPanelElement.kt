@@ -66,7 +66,7 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
     fun muokkaaAlkuLoppupistetta() {
         logger.info("Edit start/end point")
         clickButton("Lyhennä alkua ja/tai loppua")
-        getButtonElement("Valmis") //Only ensures that the infobox has changed to edit mode
+        getButtonElementByContent("Valmis") //Only ensures that the infobox has changed to edit mode
     }
 
     fun valmis(): Toaster{
@@ -332,13 +332,13 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
     fun aloitaLinkitys() {
         logger.info("Start linking")
         clickButton("Aloita linkitys")
-        getButtonElement("Peruuta") //ensures that the infobox has changed
+        getButtonElementByContent("Peruuta") //ensures that the infobox has changed
     }
 
     fun lisaaLinkitettavia() {
         logger.info("Add more linked alignments")
         clickButton("Lisää linkitettäviä")
-        getButtonElement("Peruuta")
+        getButtonElementByContent("Peruuta")
     }
 
     fun linkita(): Toaster {
@@ -414,7 +414,7 @@ class GeometrySwitchLinkingInfoBox(by: By): LinkingInfoBox(by) {
     fun lukitseValinta() = this {
         logger.info("Lock selection")
         clickButton("Lukitse valinta")
-        getButtonElement("Poista valinta")
+        getButtonElementByContent("Poista valinta")
     }
 
     fun createNewTrackLayoutSwitch(): CreateEditLayoutSwitchDialog {
@@ -485,7 +485,7 @@ class AddEndPointDialog : DialogPopUp() {
 
     private fun ok() = this  {
         clickButton("OK")
-        getButtonElement("Jatka")
+        getButtonElementByContent("Jatka")
         refresRootElement()
     }
 

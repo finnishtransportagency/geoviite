@@ -600,9 +600,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                         "point_x" to cj.point.x,
                         "point_y" to cj.point.y,
                         "location_track_id" to cj.locationTrackId.intValue,
-                        "location_track_external_id" to cj.locationTrackExternalId.toString(),
+                        "location_track_external_id" to cj.locationTrackExternalId,
                         "track_number_id" to cj.trackNumberId.intValue,
-                        "track_number_external_id" to cj.trackNumberExternalId.toString()
+                        "track_number_external_id" to cj.trackNumberExternalId
                     )
                 }
             }.toTypedArray()
@@ -770,9 +770,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 address = rs.getTrackMeter("address"),
                 point = rs.getPoint("x", "y"),
                 locationTrackId = rs.getIntId("location_track_id"),
-                locationTrackExternalId = rs.getOid("location_track_external_id"),
+                locationTrackExternalId = rs.getOidOrNull("location_track_external_id"),
                 trackNumberId = rs.getIntId("track_number_id"),
-                trackNumberExternalId = rs.getOid("track_number_external_id"),
+                trackNumberExternalId = rs.getOidOrNull("track_number_external_id"),
             )
         }
             .groupBy { it.first }

@@ -40,25 +40,25 @@ class RatkoLocationTrackService @Autowired constructor(
                             { sortByNullDuplicateOfFirst(it.first.duplicateOf) },
                             { sortByDeletedStateFirst(it.first.state) }
                         )
-                    ).mapNotNull { (layoutLocationTrack, changedKmNumbers) ->
-                        layoutLocationTrack.externalId?.also { externalId ->
-                            try {
-                                ratkoClient.getLocationTrack(RatkoOid(externalId))
-                                    ?.let { existingLocationTrack ->
-                                        if (layoutLocationTrack.state == LayoutState.DELETED) {
-                                            deleteLocationTrack(layoutLocationTrack, existingLocationTrack)
-                                        } else {
-                                            updateLocationTrack(
-                                                layoutLocationTrack = layoutLocationTrack,
-                                                existingRatkoLocationTrack = existingLocationTrack,
-                                                changedKmNumbers = changedKmNumbers
-                                            )
-                                        }
-                                    } ?: createLocationTrack(layoutLocationTrack)
-                            } catch (ex: RatkoPushException) {
-                                throw RatkoLocationTrackPushException(ex, layoutLocationTrack)
-                            }
+                    ).map { (layoutLocationTrack, changedKmNumbers) ->
+                        val externalId = requireNotNull(layoutLocationTrack.externalId) {"OID required for location track, lt=${layoutLocationTrack.id}"}
+                        try {
+                            ratkoClient.getLocationTrack(RatkoOid(externalId))
+                                ?.let { existingLocationTrack ->
+                                    if (layoutLocationTrack.state == LayoutState.DELETED) {
+                                        deleteLocationTrack(layoutLocationTrack, existingLocationTrack)
+                                    } else {
+                                        updateLocationTrack(
+                                            layoutLocationTrack = layoutLocationTrack,
+                                            existingRatkoLocationTrack = existingLocationTrack,
+                                            changedKmNumbers = changedKmNumbers
+                                        )
+                                    }
+                                } ?: createLocationTrack(layoutLocationTrack)
+                        } catch (ex: RatkoPushException) {
+                            throw RatkoLocationTrackPushException(ex, layoutLocationTrack)
                         }
+                        externalId
                     }
             }
     }
