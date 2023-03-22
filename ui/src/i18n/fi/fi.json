@@ -184,6 +184,8 @@
         "test": "Testiympäristö"
     },
     "version": {
-        "geoviite-updated": "Geoviitteen versio on päivittynyt. Välimuisti tyhjennetään."
+        "geoviite-updated": "Versiopäivitys",
+        "cache-needs-clearing": "Geoviitteen versio on päivittynyt. Sovelluksen välimuisti täytyy tyhjentää.",
+        "clear-cache": "Tyhjennä välimuisti"
     }
 }
