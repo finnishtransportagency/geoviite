@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.testgroup2
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -151,7 +152,10 @@ class LinkingTestUI @Autowired constructor(
         insertReferenceLine(REFERENCE_LINE_ESP2)
         //insertReferenceLine(REFERENCE_LINE_ESP3)
 
-        GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile(), null)))
+        val boundinBox = boundingPolygonPointsByConvexHull(REFERENCE_LINE_ESP1.second.allPoints() + REFERENCE_LINE_ESP2.second.allPoints() + REFERENCE_LINE_ESP3.second.allPoints(),
+            LAYOUT_CRS)
+
+        GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile(), boundinBox)))
 
     }
 

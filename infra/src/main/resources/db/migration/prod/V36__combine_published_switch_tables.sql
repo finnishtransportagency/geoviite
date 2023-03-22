@@ -71,7 +71,9 @@ alter table publication.switch
 
 alter table publication.switch_joint
   add constraint publication_switch_joint_switch_fk
-    foreign key (publication_id, switch_id) references publication.switch (publication_id, switch_id);
+    foreign key (publication_id, switch_id) references publication.switch (publication_id, switch_id),
+  alter column location_track_external_id drop not null,
+  alter column track_number_external_id drop not null;
 
 alter table publication.switch_location_tracks
   add constraint publication_switch_location_tracks unique (publication_id, switch_id, location_track_id),

@@ -237,7 +237,7 @@ class EspooTestData {
                 alignmentName = GEO_ALIGNMENT_I_NAME,
                 trackNumberId = trackNumberId,
                 basePoint = BASE_POINT + Point(x = -20.0, y = 3.0),
-                incrementPoints = listOf(Point(x = 150.0, y = 10.0), Point(x = 150.0, y = 10.0))
+                incrementPoints = listOf(Point(x = 140.0, y = 10.0), Point(x = 140.0, y = 10.0))
             )
 
         fun locationTrackH(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> =
@@ -262,7 +262,7 @@ class EspooTestData {
             )
 
         fun referenceLine1(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
-            val points = pointsFromIncrementList(BASE_POINT + Point(x = -20.0, y = 5.0), listOf(Point(x = 150.0, y = 10.0), Point(x = 150.0, y = 10.0)) )
+            val points = pointsFromIncrementList(BASE_POINT + Point(x = -20.0, y = 5.0), listOf(Point(x = 140.0, y = 10.0), Point(x = 140.0, y = 10.0)) )
 
             val trackLayoutPoints = toTrackLayoutPoints(*points.toTypedArray())
             val alignment = alignment(segment(trackLayoutPoints))
