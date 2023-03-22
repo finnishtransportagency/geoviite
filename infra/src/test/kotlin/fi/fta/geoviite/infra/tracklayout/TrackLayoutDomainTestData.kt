@@ -454,7 +454,7 @@ fun segment(
     startJointNumber: JointNumber? = null,
     endJointNumber: JointNumber? = null,
 ) = segment(
-    toTrackLayoutPoints(to3DMPoints(points.asList())),
+    toTrackLayoutPoints(to3DMPoints(points.asList(), start)),
     start = start,
     source = source,
     sourceId = sourceId,
@@ -468,11 +468,11 @@ fun segment(
     start: Double = 0.0,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
-) = segment(toTrackLayoutPoints(to3DMPoints(points.asList())), start, source, sourceId)
+) = segment(toTrackLayoutPoints(to3DMPoints(points.asList(), start)), start, source, sourceId)
 
 fun segment(
     vararg points: IPoint3DM,
-    start: Double = 0.0,
+    start: Double = points.first().m,
     source: GeometrySource = PLAN,
     sourceId: DomainId<GeometryElement>? = null,
 ) = segment(toTrackLayoutPoints(points.asList()), start, source, sourceId)
@@ -536,13 +536,13 @@ fun toTrackLayoutPoints(points: List<IPoint3DM>) = points.map { point ->
     )
 }
 
-fun to3DMPoints(points: List<IPoint>): List<IPoint3DM> {
+fun to3DMPoints(points: List<IPoint>, start: Double = 0.0): List<IPoint3DM> {
     val pointsWithDistance = points.mapIndexed { index, point ->
         val distance = points.getOrNull(index - 1)?.let { prev -> lineLength(prev, point) } ?: 0.0
         point to distance
     }
     return pointsWithDistance.mapIndexed { index, (point, _) ->
-        val m = pointsWithDistance.subList(0, index + 1).foldRight(0.0) { (_, distance), acc -> acc + distance }
+        val m = pointsWithDistance.subList(0, index + 1).foldRight(start) { (_, distance), acc -> acc + distance }
         when (point) {
             is LayoutPoint -> LayoutPoint(point.x, point.y, point.z, m, point.cant)
             is Point3DZ -> Point4DZM(point.x, point.y, point.z, m)

@@ -129,11 +129,12 @@ class GeocodingTest {
     fun contextDistancesWorkForSegmentEnds() {
         for (segment in alignment.segments) {
             val startResult = context.getDistance(segment.points.first())
+            val endResult = context.getDistance(segment.points.last())
+            println("segment=${segment.id} start=${segment.start} end=${segment.end} startDist=$startResult endDist=$endResult")
             assertEquals(WITHIN, startResult?.second)
             assertEquals(segment.start, startResult!!.first, DELTA)
-            val endResult = context.getDistance(segment.points.last())
             assertEquals(WITHIN, endResult?.second)
-            assertEquals(segment.start + segment.length, endResult!!.first, DELTA)
+            assertEquals(segment.end, endResult!!.first, DELTA)
         }
     }
 

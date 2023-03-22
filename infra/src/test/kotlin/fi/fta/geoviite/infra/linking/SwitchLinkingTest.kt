@@ -121,11 +121,7 @@ class SwitchLinkingTest {
                 Point(15.0, 15.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 1,
-                        segmentM = 7.071067811865476
-                    )
+                    switchLinkingAtEnd(locationTrackId, origAlignmentNoSwitchInfo, 1),
                 )
             ),
             SwitchLinkingJoint(
@@ -133,11 +129,7 @@ class SwitchLinkingTest {
                 Point(10.0, 10.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 1,
-                        segmentM = 0.0
-                    )
+                    switchLinkingAtStart(locationTrackId, origAlignmentNoSwitchInfo, 1),
                 )
             ),
             SwitchLinkingJoint(
@@ -145,11 +137,7 @@ class SwitchLinkingTest {
                 Point.zero(),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 0,
-                        segmentM = 0.0
-                    )
+                    switchLinkingAtStart(locationTrackId, origAlignmentNoSwitchInfo, 0),
                 ),
             ),
         )
@@ -193,11 +181,7 @@ class SwitchLinkingTest {
                 Point(x = 20.0, y = 20.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 1,
-                        segmentM = 14.142135623730951
-                    )
+                    switchLinkingAtEnd(locationTrackId, origAlignmentNoSwitchInfo, 1),
                 ),
             ),
             SwitchLinkingJoint(
@@ -205,11 +189,7 @@ class SwitchLinkingTest {
                 Point(x = 0.5, y = 0.5),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 0,
-                        segmentM = 0.0
-                    )
+                    switchLinkingAtStart(locationTrackId, origAlignmentNoSwitchInfo, 0),
                 ),
             ),
         )
@@ -246,11 +226,7 @@ class SwitchLinkingTest {
                 Point(x = 9.5, y = 9.5),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 1,
-                        segmentM = 0.0
-                    )
+                    switchLinkingAtStart(locationTrackId, origAlignmentNoSwitchInfo, 0),
                 ),
             ),
             SwitchLinkingJoint(
@@ -258,11 +234,7 @@ class SwitchLinkingTest {
                 Point(x = 20.0, y = 20.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 1,
-                        segmentM = 14.142135623730951
-                    )
+                    switchLinkingAtEnd(locationTrackId, origAlignmentNoSwitchInfo, 1),
                 ),
             ),
         )
@@ -299,11 +271,7 @@ class SwitchLinkingTest {
                 Point.zero(),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 0,
-                        segmentM = 0.0
-                    )
+                    switchLinkingAtStart(locationTrackId, origAlignmentNoSwitchInfo, 0),
                 ),
             ),
             SwitchLinkingJoint(
@@ -311,11 +279,7 @@ class SwitchLinkingTest {
                 Point(15.0, 15.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 1,
-                        segmentM = 7.071067811865476
-                    )
+                    switchLinkingAtEnd(locationTrackId, origAlignmentNoSwitchInfo, 1),
                 )
             )
         )
@@ -362,11 +326,7 @@ class SwitchLinkingTest {
                 Point.zero(),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 0,
-                        segmentM = 0.0
-                    )
+                    switchLinkingAtStart(locationTrackId, origAlignmentNoSwitchInfo, 0),
                 ),
             ),
             SwitchLinkingJoint(
@@ -374,11 +334,7 @@ class SwitchLinkingTest {
                 Point(30.0, 30.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 segments = listOf(
-                    SwitchLinkingSegment(
-                        locationTrackId = locationTrackId,
-                        segmentIndex = 2,
-                        segmentM = 14.142135623730951
-                    )
+                    switchLinkingAtEnd(locationTrackId, origAlignmentNoSwitchInfo, 2),
                 )
             )
         )
