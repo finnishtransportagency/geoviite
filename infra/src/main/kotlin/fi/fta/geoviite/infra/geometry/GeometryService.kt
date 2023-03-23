@@ -213,6 +213,7 @@ class GeometryService @Autowired constructor(
     fun getVerticalGeometryListing(
         planId: IntId<GeometryPlan>
     ): List<VerticalGeometryListing> {
+        logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
@@ -236,6 +237,8 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<VerticalGeometryListing> {
+        logger.serviceCall("getVerticalGeometryListing", "locationTrackId" to locationTrackId,
+            "startAddress" to startAddress, "endAddress" to endAddress)
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
         return toVerticalGeometryListing(track, alignment, startAddress, endAddress, geocodingContext, coordinateTransformationService::getLayoutTransformation, ::getHeaderAndAlignment)

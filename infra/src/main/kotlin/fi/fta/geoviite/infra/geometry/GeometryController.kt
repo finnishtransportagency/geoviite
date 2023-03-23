@@ -222,8 +222,7 @@ class GeometryController @Autowired constructor(
     fun getTrackVerticalGeometryListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
     ): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanVerticalGeometryListingCsv",
-            "id" to id)
+        log.apiCall("getPlanVerticalGeometryListingCsv", "id" to id)
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id)
         return toFileDownloadResponse("${filename}.csv", content)
     }
@@ -235,7 +234,8 @@ class GeometryController @Autowired constructor(
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        log.apiCall("getTrackVerticalGeometryListing", "id" to id)
+        log.apiCall("getTrackVerticalGeometryListing", "id" to id,
+            "startAddress" to startAddress, "endAddress" to endAddress)
         return geometryService.getVerticalGeometryListing(id, startAddress, endAddress)
     }
 
