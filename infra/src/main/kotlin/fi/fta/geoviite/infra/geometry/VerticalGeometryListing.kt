@@ -283,8 +283,8 @@ fun previousLinearSection(
     val previousLinearSegment =
         linearSegments.findLast { it.start.x < currentSegment.start.x && (previousCurvedSegment == null || it.start.x > previousCurvedSegment.start.x) }
     return toLinearSection(
-        previousLinearSegment?.let { previousLinearSegment.end.x - previousLinearSegment.start.x },
-        previousLinearSegment?.let {
+        linearSegmentLength = previousLinearSegment?.let { previousLinearSegment.end.x - previousLinearSegment.start.x },
+        stationValueDistance = previousLinearSegment?.let {
             val currentStationPoint = circCurveStationPoint(currentSegment)
             val previousStationPoint = previousCurvedSegment?.let { prev -> circCurveStationPoint(prev) }
                 ?: previousLinearSegment.start
@@ -302,8 +302,8 @@ fun nextLinearSection(
     val nextLinearSegment =
         linearSegments.find { it.start.x > currentSegment.start.x && (nextCurvedSegment == null || it.start.x < nextCurvedSegment.start.x) }
     return toLinearSection(
-        nextLinearSegment?.let { nextLinearSegment.end.x - nextLinearSegment.start.x },
-        nextLinearSegment?.let {
+        linearSegmentLength = nextLinearSegment?.let { nextLinearSegment.end.x - nextLinearSegment.start.x },
+        stationValueDistance = nextLinearSegment?.let {
             val currentStationPoint = circCurveStationPoint(currentSegment)
             val nextStationPoint = nextCurvedSegment?.let { next -> circCurveStationPoint(next) }
                 ?: nextLinearSegment.end
