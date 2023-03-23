@@ -14,6 +14,8 @@ import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
 
+const val POINT_SEEK_TOLERANCE = 1.0
+
 enum class GeometrySource {
     IMPORTED,
     PLAN,
@@ -64,19 +66,19 @@ interface IAlignment {
         return if (index != -1) index else null
     }
 
-    fun getLengthUntil(target: IPoint): Pair<Double, IntersectType>? =
+    fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
         findClosestSegmentIndex(target)?.let { segmentIndex ->
             val segment = segments[segmentIndex]
             if (segment.source == GENERATED) {
                 val proportion = closestPointProportionOnGeneratedSegment(segmentIndex, target)
-                val interpolatedM = proportion * segment.length
-                if (interpolatedM < -1.0) segment.start to BEFORE
-                else if (interpolatedM > segment.length + 1.0) segment.end to AFTER
-                else if (interpolatedM < 0.0) segment.start to WITHIN
-                else if (interpolatedM > segment.length) segment.end to WITHIN
-                else interpolatedM to WITHIN
+                val interpolatedInternalM = proportion * segment.length
+                if (interpolatedInternalM < -POINT_SEEK_TOLERANCE) segment.start to BEFORE
+                else if (interpolatedInternalM > segment.length + POINT_SEEK_TOLERANCE) segment.end to AFTER
+                else if (interpolatedInternalM < 0.0) segment.start to WITHIN
+                else if (interpolatedInternalM > segment.length) segment.end to WITHIN
+                else segment.start + interpolatedInternalM to WITHIN
             } else {
-                segment.getLengthUntil(target)
+                segment.getClosestPointM(target)
             }
         }
 
@@ -117,7 +119,7 @@ interface IAlignment {
             closestPointProportionOnLine(
                 segment.points[segment.points.lastIndex - 1],
                 segment.points[segment.points.lastIndex],
-                target
+                target,
             ) > 1.0
         }
     }
@@ -126,8 +128,8 @@ interface IAlignment {
     // Similarly, when finding the closest point on an alignment, we assume the segment going with that angle
     private fun closestPointProportionOnGeneratedSegment(segmentIndex: Int, target: IPoint): Double {
         val segment = segments[segmentIndex]
-        val start = segment.points[0]
-        val end = segment.points[segment.points.lastIndex]
+        val start = segment.points.first()
+        val end = segment.points.last()
         val prevDir = segments.getOrNull(segmentIndex - 1)?.endDirection
         val nextDir = segments.getOrNull(segmentIndex + 1)?.startDirection
         val fakeDir =
@@ -233,10 +235,10 @@ interface ISegmentGeometry {
         return points.any { point -> point.isSame(searchPoint, LAYOUT_COORDINATE_DELTA) }
     }
 
-    fun getLengthUntil(target: IPoint): Pair<Double, IntersectType> =
-        findLengthOnSegment(0..points.lastIndex, target)
+    fun getClosestPointM(target: IPoint): Pair<Double, IntersectType> =
+        findClosestPointM(0..points.lastIndex, target)
 
-    private fun findLengthOnSegment(range: ClosedRange<Int>, target: IPoint): Pair<Double, IntersectType> {
+    private fun findClosestPointM(range: ClosedRange<Int>, target: IPoint): Pair<Double, IntersectType> {
         if (range.start == range.endInclusive) {
             return points[range.start].m to WITHIN
         } else {
@@ -251,18 +253,18 @@ interface ISegmentGeometry {
             }
 
             val interpolatedM = interpolate(first.m, second.m, proportionOnLine)
-            return if (firstIndex == 0 && interpolatedM < -1.0) {
+            return if (firstIndex == 0 && interpolatedM < first.m - POINT_SEEK_TOLERANCE) {
                 // If in beginning & target is over 1m farther in negative direction
-                0.0 to BEFORE
-            } else if (secondIndex == points.lastIndex && interpolatedM > second.m + 1.0) {
+                first.m to BEFORE
+            } else if (secondIndex == points.lastIndex && interpolatedM > second.m + POINT_SEEK_TOLERANCE) {
                 // If in the end & target is over 1m farther in positive direction
                 second.m to AFTER
             } else if (proportionOnLine < 0.0) {
                 // Target in the negative direction (towards start)
-                findLengthOnSegment(range.start..firstIndex, target)
+                findClosestPointM(range.start..firstIndex, target)
             } else if (proportionOnLine > 1.0) {
                 // Target in the positive direction (towards end)
-                findLengthOnSegment(secondIndex..range.endInclusive, target)
+                findClosestPointM(secondIndex..range.endInclusive, target)
             } else {
                 // Found target between the points
                 interpolatedM to WITHIN

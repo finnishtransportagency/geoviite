@@ -156,7 +156,7 @@ data class GeocodingContext(
                 }
 
         private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: IAlignment) =
-            referenceLineGeometry.getLengthUntil(location)
+            referenceLineGeometry.getClosestPointM(location)
                 ?.let { (distance, intersectType) ->
                     if (distance > 0.0 && intersectType == WITHIN) {
                         val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtM(distance)) {
@@ -174,7 +174,7 @@ data class GeocodingContext(
     }
 
     fun getDistance(coordinate: IPoint): Pair<Double, IntersectType>? =
-        referenceLineGeometry.getLengthUntil(coordinate)
+        referenceLineGeometry.getClosestPointM(coordinate)
 
     fun getAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Pair<TrackMeter, IntersectType>? =
         getDistance(coordinate)?.let { (dist, type) -> getAddress(dist, decimals) to type }

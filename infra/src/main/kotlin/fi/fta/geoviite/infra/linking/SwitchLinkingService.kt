@@ -122,7 +122,7 @@ fun findSuggestedSwitchJointMatches(
                         SuggestedSwitchJointMatch(
                             locationTrackId = locationTrack.id,
                             layoutSwitchId = segment.switchId,
-                            m = segment.start + segment.getLengthUntil(closestAlignmentPoint).first,
+                            m = segment.start + segment.getClosestPointM(closestAlignmentPoint).first,
                             matchType = SuggestedSwitchJointMatchType.LINE,
                             switchJoint = joint,
                             distance = jointDistanceToSegment,
@@ -838,7 +838,7 @@ fun findPointMatchingToDistance(from: IPoint, points: List<IPoint>, distance: Do
 }
 
 fun findPointsOnTrack(from: IPoint, distance: Double, alignment: IAlignment): List<Pair<IPoint, IPoint>> {
-    val pointOnTrack = alignment.getLengthUntil(from)
+    val pointOnTrack = alignment.getClosestPointM(from)
         .let { pointAtLength ->
             if (pointAtLength != null) {
                 alignment
