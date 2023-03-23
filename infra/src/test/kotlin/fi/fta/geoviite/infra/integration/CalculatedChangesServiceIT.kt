@@ -550,7 +550,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             referenceLine,
             referenceLineAlignment,
             { point ->
-                if (point.m >= 1000 && point.m < 2900)
+                if (point.m > 1000 && point.m < 2900)
                 // make reference line wavy
                     point + Point(0.0, cos((point.m - 1000) / (2900 - 1000) * PI) * 5)
                 else
