@@ -119,7 +119,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        m = segments[1].start,
+                        m = segments[1].startM,
                     )
                 ),
             ),
@@ -131,7 +131,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        m = segments[1].end,
+                        m = segments[1].endM,
                     )
                 ),
             ),
@@ -143,7 +143,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        m = segments[1].end,
+                        m = segments[1].endM,
                     )
                 ),
             ),
@@ -194,7 +194,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        m = segments[1].start,
+                        m = segments[1].startM,
                     )
                 ),
             ),
@@ -206,7 +206,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        m = segments[1].end,
+                        m = segments[1].endM,
                     )
                 ),
             ),
@@ -218,7 +218,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     SwitchLinkingSegment(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
-                        m = segments[1].end,
+                        m = segments[1].endM,
                     )
                 ),
             ),

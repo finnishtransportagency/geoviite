@@ -95,7 +95,7 @@ fun assertMatches(expected: LayoutSegment, actual: LayoutSegment, idMatch: Boole
         assertEquals(expectedWithSameFloats, actual.copy(id = expected.id, sourceId = expected.sourceId))
         assertEquals(expected.sourceId != null, actual.sourceId != null)
     }
-    assertEquals(expected.start, actual.start, LENGTH_DELTA)
+    assertEquals(expected.startM, actual.startM, LENGTH_DELTA)
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
     assertEquals(expected.points.size, actual.points.size)
     assertEquals(expected.resolution, actual.resolution)

@@ -466,7 +466,7 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
                 // To compensate, we want to project with the direction of previous/next segments
                 else if (prevDir == null || nextDir == null) prevDir ?: nextDir ?: directionBetweenPoints(previous, point)
                 else angleAvgRads(prevDir, nextDir)
-            PolyLineEdge(previous, point, segment.start, direction)
+            PolyLineEdge(previous, point, segment.startM, direction)
         }
     }
 }

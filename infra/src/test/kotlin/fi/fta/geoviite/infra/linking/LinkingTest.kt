@@ -69,7 +69,7 @@ class LinkingTest {
         val endLayoutIndex = 1
         val segmentsAfterGeometry = getSegmentsAfterNewGeometry(segments, endLayoutIndex, 1.0)
         assertEquals(segments[2].id, segmentsAfterGeometry[0].id)
-        assertEquals(1.0, segmentsAfterGeometry[0].start)
+        assertEquals(1.0, segmentsAfterGeometry[0].startM)
     }
 
     @Test
@@ -80,7 +80,7 @@ class LinkingTest {
         val startSegmentToCut = segments[startLayoutIndex]
         val cutSegment = cutSegmentBeforePoint(startSegmentToCut, toPoint, 1.0)!!
         assertNotEquals(startSegmentToCut.points.size, cutSegment.points.size)
-        assertEquals(1.0, cutSegment.start)
+        assertEquals(1.0, cutSegment.startM)
     }
 
     @Test
@@ -91,7 +91,7 @@ class LinkingTest {
         val endSegmentToCut = segments[endLayoutIndex]
         val cutSegment = cutSegmentAfterPoint(endSegmentToCut, fromPoint, 1.0)!!
         assertNotEquals(endSegmentToCut.points.size, cutSegment.points.size)
-        assertEquals(1.0, cutSegment.start)
+        assertEquals(1.0, cutSegment.startM)
     }
 
     @Test
@@ -121,7 +121,7 @@ class LinkingTest {
             1.0,
         )
         assertEquals(expectedId, list[0].id)
-        assertEquals(1.0, list[0].start)
+        assertEquals(1.0, list[0].startM)
     }
 
     @Test
@@ -139,7 +139,7 @@ class LinkingTest {
         val actualIdList = list.map { segment -> segment.id }
         assertEquals(expectedIdList, actualIdList)
         val expectedStarts = listOf(10.0, 10.0 + segments[1].length)
-        val actualStarts = list.map { segment -> segment.start }
+        val actualStarts = list.map { segment -> segment.startM }
         assertEquals(expectedStarts, actualStarts)
     }
 

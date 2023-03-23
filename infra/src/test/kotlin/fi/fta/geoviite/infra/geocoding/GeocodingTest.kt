@@ -44,7 +44,7 @@ val segment2 = segment(
     Point(x = 382900.3670653631, y = 6677856.032651512),
     Point(x = 382761.2176702685, y = 6677923.467526838),
     Point(x = 382711.47467736073, y = 6677942.28533952),
-    start = segment1.start + segment1.length
+    start = segment1.startM + segment1.length
 )
 val segment3 = segment(
     Point(x = 382711.47467736073, y = 6677942.28533952),
@@ -60,7 +60,7 @@ val segment3 = segment(
     Point(x = 380075.3780522702, y = 6677812.131510135),
     Point(x = 379546.59970029286, y = 6677795.661380321),
     Point(x = 379109.7436289962, y = 6677820.218810541),
-    start = segment2.start + segment2.length
+    start = segment2.startM + segment2.length
 )
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
@@ -130,11 +130,11 @@ class GeocodingTest {
         for (segment in alignment.segments) {
             val startResult = context.getDistance(segment.points.first())
             val endResult = context.getDistance(segment.points.last())
-            println("segment=${segment.id} start=${segment.start} end=${segment.end} startDist=$startResult endDist=$endResult")
+            println("segment=${segment.id} start=${segment.startM} end=${segment.endM} startDist=$startResult endDist=$endResult")
             assertEquals(WITHIN, startResult?.second)
-            assertEquals(segment.start, startResult!!.first, DELTA)
+            assertEquals(segment.startM, startResult!!.first, DELTA)
             assertEquals(WITHIN, endResult?.second)
-            assertEquals(segment.end, endResult!!.first, DELTA)
+            assertEquals(segment.endM, endResult!!.first, DELTA)
         }
     }
 
@@ -226,13 +226,13 @@ class GeocodingTest {
         val connectSegment = segment(
             Point(3.0,4.0),
             Point(3.0,6.0),
-            start = startSegment.start + startSegment.length,
+            start = startSegment.startM + startSegment.length,
             source = GENERATED,
         )
         val endSegment = segment(
             Point(3.0,6.0),
             Point(7.0,10.0),
-            start = connectSegment.start + connectSegment.length,
+            start = connectSegment.startM + connectSegment.length,
             source = PLAN,
         )
         val startAddress = TrackMeter(KmNumber(2), 100)

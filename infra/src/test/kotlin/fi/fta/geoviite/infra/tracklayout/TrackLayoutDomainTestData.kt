@@ -689,18 +689,23 @@ fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, alignment: La
     switchLinkingAtStart(locationTrackId, alignment.segments, segmentIndex)
 
 fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
-    SwitchLinkingSegment(
-        locationTrackId = locationTrackId as IntId<LocationTrack>,
-        segmentIndex = segmentIndex,
-        m = segments[segmentIndex].points.first().m,
-    )
+    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].points.first().m)
 
 fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int) =
     switchLinkingAtEnd(locationTrackId, alignment.segments, segmentIndex)
 
 fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
+    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].points.last().m)
+
+fun switchLinkingAtHalf(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int) =
+    switchLinkingAtHalf(locationTrackId, alignment.segments, segmentIndex)
+
+fun switchLinkingAtHalf(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
+    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].let { s -> (s.endM+s.startM)/2 })
+
+fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: Double) =
     SwitchLinkingSegment(
         locationTrackId = locationTrackId as IntId<LocationTrack>,
         segmentIndex = segmentIndex,
-        m = segments[segmentIndex].points.last().m,
+        m = m,
     )

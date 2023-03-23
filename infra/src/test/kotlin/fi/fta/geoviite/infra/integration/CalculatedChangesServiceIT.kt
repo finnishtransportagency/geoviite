@@ -83,7 +83,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -414,13 +414,13 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack4,
             alignment4,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -474,7 +474,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, length -> if (length < 200) point + 2.0 else point },
+            { point -> if (point.m < 200) point + 2.0 else point },
             locationTrackService = locationTrackService
         )
 
@@ -505,7 +505,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
-            { point, length -> if (length < 900) point - 2.0 else point },
+            { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -549,10 +549,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
-            { point, length ->
-                if (length >= 1000 && length < 2900)
+            { point ->
+                if (point.m >= 1000 && point.m < 2900)
                 // make reference line wavy
-                    point + Point(0.0, cos((length - 1000) / (2900 - 1000) * PI) * 5)
+                    point + Point(0.0, cos((point.m - 1000) / (2900 - 1000) * PI) * 5)
                 else
                     point
             },
@@ -636,7 +636,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -682,7 +682,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -821,7 +821,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -840,7 +840,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -874,7 +874,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = alignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -893,7 +893,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = alignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -938,7 +938,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             alignment,
-            { point, length -> if (length < 900) point - 2.0 else point },
+            { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService
         )
 
@@ -969,14 +969,14 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = locationTrackAlignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = referenceLineAlignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -1013,7 +1013,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = alignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 

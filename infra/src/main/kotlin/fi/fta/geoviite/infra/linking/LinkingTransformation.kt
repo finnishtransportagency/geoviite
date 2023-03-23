@@ -69,7 +69,7 @@ fun endLength(segments: List<LayoutSegment>): Double =
     segments.lastOrNull()?.let(::endLength) ?: 0.0
 
 fun endLength(segment: LayoutSegment): Double =
-    segment.start + segment.length
+    segment.startM + segment.length
 
 fun extendAlignmentWithGeometry(
     layoutAlignment: LayoutAlignment,
@@ -205,7 +205,7 @@ fun getSegmentsBetweenPoints(
 fun cutSegmentBeforePoint(
     segmentToCut: LayoutSegment,
     toPoint: IPoint,
-    startLength: Double = segmentToCut.start,
+    startLength: Double = segmentToCut.startM,
 ): LayoutSegment? {
     val fromIndex = 0
     val toIndex = segmentToCut.getPointIndex(toPoint) ?: throw LinkingFailureException("to point index not found")
