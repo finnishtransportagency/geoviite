@@ -70,7 +70,7 @@ class VerticalGeometryListingTest() {
 
         val angleFraction = angleFractionBetweenPoints(point1, point2)
         assertNotNull(angleFraction)
-        assertEquals(angleFraction, 1.0, 0.0001)
+        assertEquals(angleFraction, 1.0, 0.000001)
     }
 
     @Test
@@ -80,7 +80,7 @@ class VerticalGeometryListingTest() {
 
         val angleFraction = angleFractionBetweenPoints(point1, point2)
         assertNotNull(angleFraction)
-        assertEquals(angleFraction, -0.1, 0.0001)
+        assertEquals(angleFraction, -0.1, 0.000001)
     }
 
     @Test
@@ -90,7 +90,7 @@ class VerticalGeometryListingTest() {
 
         val angleFraction = angleFractionBetweenPoints(point1, point2)
         assertNotNull(angleFraction)
-        assertEquals(angleFraction, 0.1, 0.0001)
+        assertEquals(angleFraction, 0.1, 0.000001)
     }
 
     @Test
@@ -113,8 +113,8 @@ class VerticalGeometryListingTest() {
         val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
 
         val previous = previousLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
-        assertEquals(previous.linearSegmentLength!!, 2.0, 0.0001)
-        assertEquals(previous.stationValueDistance!!, 4.0, 0.0001)
+        assertEquals(previous.linearSegmentLength!!.toDouble(), 2.0, 0.001)
+        assertEquals(previous.stationValueDistance!!.toDouble(), 4.0, 0.001)
     }
 
     @Test
@@ -127,8 +127,8 @@ class VerticalGeometryListingTest() {
         val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
 
         val previous = previousLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
-        assertEquals(previous.linearSegmentLength!!, 2.0, 0.0001)
-        assertEquals(previous.stationValueDistance!!, 3.0, 0.0001)
+        assertEquals(previous.linearSegmentLength!!.toDouble(), 2.0, 0.001)
+        assertEquals(previous.stationValueDistance!!.toDouble(), 3.0, 0.001)
     }
 
     @Test
@@ -155,8 +155,8 @@ class VerticalGeometryListingTest() {
         val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
 
         val next = nextLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
-        assertEquals(next.linearSegmentLength!!, 2.0, 0.0001)
-        assertEquals(next.stationValueDistance!!, 4.0, 0.0001)
+        assertEquals(next.linearSegmentLength!!.toDouble(), 2.0, 0.001)
+        assertEquals(next.stationValueDistance!!.toDouble(), 4.0, 0.001)
     }
 
     @Test
@@ -169,8 +169,8 @@ class VerticalGeometryListingTest() {
         val (curved, linear) = entireProfile.partition { it is CurvedProfileSegment }
 
         val next = nextLinearSection(segment, curved as List<CurvedProfileSegment>, linear as List<LinearProfileSegment>)
-        assertEquals(next.linearSegmentLength!!, 2.0, 0.0001)
-        assertEquals(next.stationValueDistance!!, 3.0, 0.0001)
+        assertEquals(next.linearSegmentLength!!.toDouble(), 2.0, 0.001)
+        assertEquals(next.stationValueDistance!!.toDouble(), 3.0, 0.001)
     }
 
     @Test
@@ -220,16 +220,16 @@ class VerticalGeometryListingTest() {
             linear as List<LinearProfileSegment>,
         )
 
-        assertEquals(verticalGeometryEntry.start.station, 4.0, 0.0001)
-        assertEquals(verticalGeometryEntry.start.angle!!, 1.0, 0.0001)
-        assertEquals(verticalGeometryEntry.end.station, 6.0, 0.0001)
-        assertEquals(verticalGeometryEntry.end.angle!!, -1.0, 0.0001)
-        assertEquals(verticalGeometryEntry.tangent!!, sqrt(2.0), 0.0001)
-        assertEquals(verticalGeometryEntry.point.station, 5.0, 0.0001)
-        assertEquals(verticalGeometryEntry.start.height, 0.0, 0.0001)
-        assertEquals(verticalGeometryEntry.end.height, 0.0, 0.0001)
-        assertEquals(verticalGeometryEntry.point.height, 1.0, 0.0001)
-        assertEquals(verticalGeometryEntry.radius, 1.0, 0.0001)
+        assertEquals(verticalGeometryEntry.start.station.toDouble(), 4.0, 0.001)
+        assertEquals(verticalGeometryEntry.start.angle!!.toDouble(), 1.0, 0.000001)
+        assertEquals(verticalGeometryEntry.end.station.toDouble(), 6.0, 0.001)
+        assertEquals(verticalGeometryEntry.end.angle!!.toDouble(), -1.0, 0.0000001)
+        assertEquals(verticalGeometryEntry.tangent!!.toDouble(), sqrt(2.0), 0.001)
+        assertEquals(verticalGeometryEntry.point.station.toDouble(), 5.0, 0.001)
+        assertEquals(verticalGeometryEntry.start.height.toDouble(), 0.0, 0.001)
+        assertEquals(verticalGeometryEntry.end.height.toDouble(), 0.0, 0.001)
+        assertEquals(verticalGeometryEntry.point.height.toDouble(), 1.0, 0.001)
+        assertEquals(verticalGeometryEntry.radius.toDouble(), 1.0, 0.001)
         assertEquals(verticalGeometryEntry.fileName, FileName("test"))
         assertEquals(verticalGeometryEntry.planId, IntId<GeometryPlan>(1))
         assertEquals(verticalGeometryEntry.alignmentName, AlignmentName("test-alignment"))
