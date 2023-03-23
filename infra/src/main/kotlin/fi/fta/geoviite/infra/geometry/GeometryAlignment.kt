@@ -34,13 +34,11 @@ data class GeometryAlignment(
 
     fun getElementAt(distance: Double) =
         foldElementLengths(elements).findLast { element -> element.first <= distance }
-            .let { match ->
-                match?.let {
+            ?.let { match ->
                     val distanceLeft = distance - match.first
                     if (distanceLeft <= match.second.calculatedLength) match
                     else null
                 }
-            }
 
     fun getCoordinateAt(distance: Double) =
         getElementAt(distance)?.let { match -> match.second.getCoordinateAt(distance - match.first) }

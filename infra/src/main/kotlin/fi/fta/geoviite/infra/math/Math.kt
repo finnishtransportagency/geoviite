@@ -15,6 +15,7 @@ fun factorial(n: Int): Long {
 }
 
 fun roundTo3Decimals(value: Double): BigDecimal = round(value, 3)
+fun roundTo6Decimals(value: Double): BigDecimal = round(value, 6)
 fun round(value: Double, scale: Int): BigDecimal =
     if (!value.isFinite()) throw IllegalArgumentException("Cannot round $value")
     else BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP)
