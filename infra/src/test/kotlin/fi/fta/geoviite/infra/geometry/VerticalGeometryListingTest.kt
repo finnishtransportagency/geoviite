@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.FileName
@@ -218,6 +219,8 @@ class VerticalGeometryListingTest() {
             null,
             curved as List<CurvedProfileSegment>,
             linear as List<LinearProfileSegment>,
+            TrackMeter.ZERO,
+            TrackMeter.ZERO,
         )
 
         assertEquals(verticalGeometryEntry.start.station.toDouble(), 4.0, 0.001)
