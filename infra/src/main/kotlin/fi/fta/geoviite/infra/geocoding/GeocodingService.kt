@@ -37,8 +37,9 @@ class GeocodingService(
         alignmentVersion: RowVersion<LayoutAlignment>,
     ): AlignmentAddresses? {
         logger.serviceCall(
-            "getAddressPointsForPublication",
-            "alignmentVersion" to alignmentVersion, "contextKey" to contextKey
+            "getAddressPoints",
+            "alignmentVersion" to alignmentVersion,
+            "contextKey" to contextKey,
         )
         return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
     }

@@ -254,7 +254,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val result = switchDao.findLocationTracksLinkedToSwitch(PublishType.DRAFT, switch.id as IntId)
         assertEquals(
             listOf(withStartLink, withEndLink, withSegmentLink),
-            result.sortedBy { ids -> ids.id.intValue },
+            result.sortedBy { ids -> ids.rowVersion.id.intValue },
         )
     }
 
@@ -299,7 +299,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         alignment: LayoutAlignment,
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
         val (id, version) = locationTrackService.saveDraft(locationTrack, alignment)
-        return locationTrackService.getDraft(id) to LocationTrackIdentifiers(id, version, locationTrack.externalId)
+        return locationTrackService.getDraft(id) to LocationTrackIdentifiers(version, locationTrack.externalId)
     }
 
     private fun generateDummyExternalId(): String {

@@ -13,6 +13,7 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Suppress("SameParameterValue")
 @Transactional(readOnly = true)
@@ -354,7 +355,6 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     }
 
     data class LocationTrackIdentifiers(
-        val id: IntId<LocationTrack>,
         val rowVersion: RowVersion<LocationTrack>,
         val externalId: Oid<LocationTrack>?,
     )
@@ -362,38 +362,22 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
     fun findLocationTracksLinkedToSwitch(
         publicationState: PublishType,
         switchId: IntId<TrackLayoutSwitch>,
-        topologyJointNumber: JointNumber? = null
     ): List<LocationTrackIdentifiers> {
         val sql = """ 
             select 
-              location_track.official_id, 
               location_track.row_id,
               location_track.row_version,
               location_track.external_id
             from layout.segment_version
-            inner join layout.location_track_publication_view location_track 
-              on location_track.alignment_id = segment_version.alignment_id
-                and location_track.alignment_version = segment_version.alignment_version
+              inner join layout.location_track_publication_view location_track 
+                on location_track.alignment_id = segment_version.alignment_id
+                  and location_track.alignment_version = segment_version.alignment_version
             where :publication_state = any(publication_states)
-             and (
-               segment_version.switch_id = :switch_id
-                 or (
-                  location_track.topology_start_switch_id = :switch_id 
-                  and (
-                    :topology_joint_number::int is null 
-                    or location_track.topology_start_switch_joint_number = :topology_joint_number::int
-                  )
-                 )
-                 or (
-                  location_track.topology_end_switch_id = :switch_id
-                  and (
-                    :topology_joint_number::int is null 
-                    or location_track.topology_end_switch_joint_number = :topology_joint_number::int
-                  )
-                 )
-               )
+              and (segment_version.switch_id = :switch_id 
+                or location_track.topology_start_switch_id = :switch_id
+                or location_track.topology_end_switch_id = :switch_id
+              )
             group by 
-              location_track.official_id, 
               location_track.row_id, 
               location_track.row_version, 
               location_track.external_id
@@ -401,12 +385,50 @@ class LayoutSwitchDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
         val params = mapOf(
             "switch_id" to switchId.intValue,
             "publication_state" to publicationState.name,
-            "topology_joint_number" to topologyJointNumber?.intValue
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrackIdentifiers(
-                id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
+                externalId = rs.getOidOrNull("external_id"),
+            )
+        }
+    }
+
+    fun findLocationTracksLinkedToSwitchAtMoment(
+        switchId: IntId<TrackLayoutSwitch>,
+        topologyJointNumber: JointNumber,
+        moment: Instant,
+    ): List<LocationTrackIdentifiers> {
+        val sql = """ 
+            select distinct
+              location_track.id, 
+              location_track.version,
+              location_track.external_id
+            from layout.switch_at(:moment) switch
+              inner join layout.location_track_at(:moment) location_track on not location_track.draft
+              inner join layout.segment_version segment 
+                on segment.alignment_id = location_track.alignment_id 
+                  and segment.alignment_version = location_track.alignment_version
+            where switch.id = :switch_id 
+                and (segment.switch_id = :switch_id
+                  or (location_track.topology_start_switch_id = :switch_id 
+                    and location_track.topology_start_switch_joint_number = :topology_joint_number
+                  )
+                  or (location_track.topology_end_switch_id = :switch_id
+                    and location_track.topology_end_switch_joint_number = :topology_joint_number
+                  )
+              )
+        """.trimIndent()
+
+        val params = mapOf(
+            "switch_id" to switchId.intValue,
+            "topology_joint_number" to topologyJointNumber.intValue,
+            "moment" to moment,
+        )
+
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            LocationTrackIdentifiers(
+                rowVersion = rs.getRowVersion("id", "version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
         }
