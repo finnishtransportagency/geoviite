@@ -62,15 +62,21 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
     }
 
     const verticalGeometries = useLoader(() => {
-        return !state.searchParameters.locationTrack ||
+        if (!state.searchParameters.locationTrack) {
+            return Promise.resolve([]);
+        }
+        if (
             hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
             hasErrors(state.committedFields, state.validationErrors, 'endTrackMeter')
-            ? Promise.resolve(state.verticalGeometry)
-            : debouncedTrackElementsFetch(
-                  state.searchParameters.locationTrack.id,
-                  validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                  validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-              );
+        ) {
+            return Promise.resolve(state.verticalGeometry);
+        }
+
+        return debouncedTrackElementsFetch(
+            state.searchParameters.locationTrack.id,
+            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+        );
     }, [state.searchParameters]);
     React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
 

@@ -89,17 +89,35 @@ fun toVerticalGeometryListing(
                 ?.let(::separateCurvedAndLinearProfileSegments)
                 ?: (emptyList<CurvedProfileSegment>() to emptyList())
         curvedSegments.map { segment ->
+            val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(getTransformation)
+            val (segmentStartAddress, segmentEndAddress) =
+                if (geocodingContext != null && coordinateTransform != null) {
+                    getTrackAddressAtStation(
+                        geocodingContext,
+                        coordinateTransform,
+                        alignment,
+                        segment.start.x
+                    ) to getTrackAddressAtStation(
+                        geocodingContext,
+                        coordinateTransform,
+                        alignment,
+                        segment.end.x
+                    )
+                } else (null to null)
+
             toVerticalGeometryListing(
                 segment,
                 alignment,
                 null,
-                planHeader.units.coordinateSystemSrid?.let(getTransformation),
+                coordinateTransform,
                 planHeader.id,
                 planHeader.source,
                 planHeader.fileName,
                 geocodingContext,
                 curvedSegments,
-                linearSegments
+                linearSegments,
+                segmentStartAddress,
+                segmentEndAddress
             )
         }
     }.flatten()
@@ -131,8 +149,27 @@ fun toVerticalGeometryListing(
         }
         .distinctBy { it.first }
 
-    return curvedSegmentsAndGeometryListingContexts.map { (segment, context) ->
-        toVerticalGeometryListing(
+    return curvedSegmentsAndGeometryListingContexts.mapNotNull { (segment, context) ->
+        val coordinateTransform = context.planHeader.units.coordinateSystemSrid?.let(getTransformation)
+        val (segmentStartAddress, segmentEndAddress) =
+            if (geocodingContext != null && coordinateTransform != null) {
+                getTrackAddressAtStation(
+                    geocodingContext,
+                    coordinateTransform,
+                    context.geometryAlignment,
+                    segment.start.x
+                ) to getTrackAddressAtStation(
+                    geocodingContext,
+                    coordinateTransform,
+                    context.geometryAlignment,
+                    segment.end.x
+                )
+            }
+            else (null to null)
+
+        if (segmentStartAddress != null && endAddress != null && segmentStartAddress > endAddress) null
+        else if (segmentEndAddress != null && startAddress != null && segmentEndAddress < startAddress) null
+        else toVerticalGeometryListing(
             segment,
             context.geometryAlignment,
             track.name,
@@ -143,7 +180,9 @@ fun toVerticalGeometryListing(
             context.planHeader.fileName,
             geocodingContext,
             context.curvedProfileSegments,
-            context.linearProfileSegments
+            context.linearProfileSegments,
+            segmentStartAddress,
+            segmentEndAddress
         )
     }
 }
@@ -159,14 +198,11 @@ fun toVerticalGeometryListing(
     geocodingContext: GeocodingContext?,
     curvedSegments: List<CurvedProfileSegment>,
     linearSegments: List<LinearProfileSegment>,
+    segmentStartAddress: TrackMeter?,
+    segmentEndAddress: TrackMeter?,
     ): VerticalGeometryListing {
     val stationPoint = circCurveStationPoint(segment)
-    val stationPointCoordinates = alignment.getCoordinateAt(alignment.stationValueNormalized(stationPoint.x))
-        ?.let { coordinateTransform?.transform(it) }
-    val startCoordinates = alignment.getCoordinateAt(alignment.stationValueNormalized(segment.start.x))
-        ?.let { coordinateTransform?.transform(it) }
-    val endCoordinates = alignment.getCoordinateAt(alignment.stationValueNormalized(segment.end.x))
-        ?.let { coordinateTransform?.transform(it) }
+    val stationPointAddress = if (geocodingContext != null && coordinateTransform != null) getTrackAddressAtStation(geocodingContext, coordinateTransform, alignment, stationPoint.x) else null
 
     return VerticalGeometryListing(
         id = StringId("${alignment.id}_${segment.start.x}"),
@@ -177,19 +213,19 @@ fun toVerticalGeometryListing(
         alignmentName = alignment.name,
         locationTrackName,
         start = toCurvedSectionEndpoint(
-            address = startCoordinates?.let { geocodingContext?.getAddress(startCoordinates)?.first },
+            address = segmentStartAddress,
             height = segment.start.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.start),
             station = segment.start.x
         ),
         end = toCurvedSectionEndpoint(
-            address = endCoordinates?.let { geocodingContext?.getAddress(endCoordinates)?.first },
+            address = segmentEndAddress,
             height = segment.end.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.end),
             station = segment.end.x
         ),
         point = toIntersectionPoint(
-            address = stationPointCoordinates?.let { geocodingContext?.getAddress(stationPointCoordinates)?.first },
+            address = stationPointAddress,
             height = stationPoint.y,
             station = stationPoint.x
         ),
@@ -334,7 +370,7 @@ fun angleFractionBetweenPoints(point1: IPoint, point2: IPoint) =
 
 fun getCurvedProfileSegmentsAndContextsOverlappingElement(
     headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
-    elementId: IndexedId<GeometryElement>
+    elementId: IndexedId<GeometryElement>,
 ): List<Pair<CurvedProfileSegment, GeometryProfileCalculationContext>> {
     val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
     val (curvedSegments, linearSegments) =
@@ -363,3 +399,13 @@ private fun separateCurvedAndLinearProfileSegments(segments: List<ProfileSegment
         .let { partitioned ->
             partitioned.first.map { it as CurvedProfileSegment } to partitioned.second.map { it as LinearProfileSegment }
         }
+
+fun getTrackAddressAtStation(
+    geocodingContext: GeocodingContext,
+    coordinateTransform: Transformation,
+    geometryAlignment: GeometryAlignment,
+    station: Double
+) = geometryAlignment
+        .getCoordinateAt(geometryAlignment.stationValueNormalized(station))
+        ?.let(coordinateTransform::transform)
+        ?.let(geocodingContext::getAddress)?.first
