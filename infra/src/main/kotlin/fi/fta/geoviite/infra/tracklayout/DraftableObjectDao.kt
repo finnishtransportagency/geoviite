@@ -194,7 +194,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
                 rs.getRowVersion("id", "version")
             }
-        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        require(versions.size == ids.size) { "RowVersions not found for some ids: ids=$ids versions=$versions" }
         return versions
     }
 

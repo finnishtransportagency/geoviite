@@ -36,25 +36,26 @@ class RatkoRouteNumberService @Autowired constructor(
                 trackNumberDao.fetch(newestVersion) to trackNumbers.flatMap { it.changedKmNumbers }.toSet()
             }
             .sortedBy { sortByDeletedStateFirst(it.first.state) }
-            .mapNotNull { (trackNumber, changedKmNumbers) ->
-                trackNumber.externalId?.also { externalId ->
-                    try {
-                        ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
-                            if (trackNumber.state == LayoutState.DELETED) {
-                                deleteRouteNumber(trackNumber, existingRouteNumber)
-                            } else {
-                                updateRouteNumber(
-                                    existingRatkoRouteNumber = existingRouteNumber,
-                                    trackNumber = trackNumber,
-                                    moment = publicationTime,
-                                    changedKmNumbers = changedKmNumbers
-                                )
-                            }
-                        } ?: createRouteNumber(trackNumber, publicationTime)
-                    } catch (ex: RatkoPushException) {
-                        throw RatkoTrackNumberPushException(ex, trackNumber)
-                    }
+            .map { (trackNumber, changedKmNumbers) ->
+                val externalId =
+                    requireNotNull(trackNumber.externalId) { "OID required for track number, tn=${trackNumber.id}" }
+                try {
+                    ratkoClient.getRouteNumber(RatkoOid(externalId))?.let { existingRouteNumber ->
+                        if (trackNumber.state == LayoutState.DELETED) {
+                            deleteRouteNumber(trackNumber, existingRouteNumber)
+                        } else {
+                            updateRouteNumber(
+                                existingRatkoRouteNumber = existingRouteNumber,
+                                trackNumber = trackNumber,
+                                moment = publicationTime,
+                                changedKmNumbers = changedKmNumbers
+                            )
+                        }
+                    } ?: createRouteNumber(trackNumber, publicationTime)
+                } catch (ex: RatkoPushException) {
+                    throw RatkoTrackNumberPushException(ex, trackNumber)
                 }
+                externalId
             }
     }
 

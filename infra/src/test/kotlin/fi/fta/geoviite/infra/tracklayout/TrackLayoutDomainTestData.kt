@@ -419,11 +419,7 @@ fun geocodingContext(
 ) = alignment(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
     GeocodingContext.create(
         trackNumber = trackNumber(id = trackNumberId),
-        referenceLine = referenceLine(
-            trackNumberId = trackNumberId,
-            startAddress = startAddress,
-            alignment = alignment,
-        ),
+        startAddress = startAddress,
         referenceLineGeometry = alignment,
         kmPosts = kmPosts,
     )

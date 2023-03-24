@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
+import java.math.BigDecimal
 import kotlin.math.tan
 
 data class GeometryProfileCalculationContext(
@@ -20,21 +21,42 @@ data class GeometryProfileCalculationContext(
 
 data class CurvedSectionEndpoint(
     val address: TrackMeter?,
-    val height: Double,
-    val angle: Double?,
-    val station: Double,
+    val height: BigDecimal,
+    val angle: BigDecimal?,
+    val station: BigDecimal,
 )
+
+fun toCurvedSectionEndpoint(address: TrackMeter?, height: Double, angle: Double?, station: Double) =
+    CurvedSectionEndpoint(
+        address = address,
+        height = roundTo3Decimals(height),
+        angle = angle?.let(::roundTo6Decimals),
+        station = roundTo3Decimals(station)
+    )
 
 data class IntersectionPoint(
     val address: TrackMeter?,
-    val height: Double,
-    val station: Double,
+    val height: BigDecimal,
+    val station: BigDecimal,
 )
 
+fun toIntersectionPoint(address: TrackMeter?, height: Double, station: Double) =
+    IntersectionPoint(
+        address = address,
+        height = roundTo3Decimals(height),
+        station = roundTo3Decimals(station)
+    )
+
 data class LinearSection(
-    val stationValueDistance: Double?,
-    val linearSegmentLength: Double?,
+    val stationValueDistance: BigDecimal?,
+    val linearSegmentLength: BigDecimal?,
 )
+
+fun toLinearSection(stationValueDistance: Double?, linearSegmentLength: Double?) =
+    LinearSection(
+        stationValueDistance = stationValueDistance?.let(::roundTo3Decimals),
+        linearSegmentLength = linearSegmentLength?.let(::roundTo3Decimals)
+    )
 
 data class VerticalGeometryListing(
     val id: StringId<ElementListing>,
@@ -49,8 +71,8 @@ data class VerticalGeometryListing(
     val start: CurvedSectionEndpoint,
     val end: CurvedSectionEndpoint,
     val point: IntersectionPoint,
-    val radius: Double,
-    val tangent: Double?,
+    val radius: BigDecimal,
+    val tangent: BigDecimal?,
     val linearSectionForward: LinearSection,
     val linearSectionBackward: LinearSection,
 )
@@ -104,10 +126,9 @@ fun toVerticalGeometryListing(
         .associateWith(getPlanHeaderAndAlignment)
 
     val curvedSegmentsAndGeometryListingContexts = linkedElementIds
-        .map { elementId ->
+        .flatMap { elementId ->
             getCurvedProfileSegmentsAndContextsOverlappingElement(headersAndAlignments, elementId)
         }
-        .flatten()
         .distinctBy { it.first }
 
     return curvedSegmentsAndGeometryListingContexts.map { (segment, context) ->
@@ -155,25 +176,25 @@ fun toVerticalGeometryListing(
         alignmentId = alignment.id,
         alignmentName = alignment.name,
         locationTrackName,
-        start = CurvedSectionEndpoint(
+        start = toCurvedSectionEndpoint(
             address = startCoordinates?.let { geocodingContext?.getAddress(startCoordinates)?.first },
             height = segment.start.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.start),
             station = segment.start.x
         ),
-        end = CurvedSectionEndpoint(
+        end = toCurvedSectionEndpoint(
             address = endCoordinates?.let { geocodingContext?.getAddress(endCoordinates)?.first },
             height = segment.end.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.end),
             station = segment.end.x
         ),
-        point = IntersectionPoint(
+        point = toIntersectionPoint(
             address = stationPointCoordinates?.let { geocodingContext?.getAddress(stationPointCoordinates)?.first },
             height = stationPoint.y,
             station = stationPoint.x
         ),
-        radius = segment.radius,
-        tangent = lineLength(segment.start, stationPoint),
+        radius = round(segment.radius, 0),
+        tangent = lineLength(segment.start, stationPoint).let(::roundTo3Decimals),
         linearSectionBackward = previousLinearSection(segment, curvedSegments, linearSegments),
         linearSectionForward = nextLinearSection(segment, curvedSegments, linearSegments),
     )
@@ -202,10 +223,10 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
         }
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.HEIGHT_START)) {
-        formatTo3Decimals(it.start.height)
+        it.start.height
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.ANGLE_START)) {
-        it.start.angle?.let(::formatTo6Decimals)
+        it.start.angle
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_POINT)) {
         it.point.address?.let { address ->
@@ -216,7 +237,7 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
         }
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.HEIGHT_POINT)) {
-        formatTo3Decimals(it.point.height)
+        it.point.height
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_END)) {
         it.end.address?.let { address ->
@@ -227,47 +248,31 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
         }
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.HEIGHT_END)) {
-        formatTo3Decimals(it.end.height)
+        it.end.height
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.ANGLE_END)) {
-        it.end.angle?.let(::formatTo6Decimals)
+        it.end.angle
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.RADIUS)) { it.radius },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TANGENT)) {
-        it.tangent?.let(
-            ::formatTo3Decimals
-        )
+        it.tangent
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_BACKWARD_LENGTH)) {
-        it.linearSectionBackward.stationValueDistance?.let(
-            ::formatTo3Decimals
-        )
+        it.linearSectionBackward.stationValueDistance
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_BACKWARD_LINEAR_SECTION)) {
-        it.linearSectionBackward.linearSegmentLength?.let(
-            ::formatTo3Decimals
-        )
+        it.linearSectionBackward.linearSegmentLength
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LENGTH)) {
-        it.linearSectionForward.stationValueDistance?.let(
-            ::formatTo3Decimals
-        )
+        it.linearSectionForward.stationValueDistance
     },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LINEAR_SECTION)) {
-        it.linearSectionForward.linearSegmentLength?.let(
-            ::formatTo3Decimals
-        )
+        it.linearSectionForward.linearSegmentLength
     },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_START)) { formatTo3Decimals(it.start.station) },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_POINT)) { formatTo3Decimals(it.point.station) },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_END)) { formatTo3Decimals(it.end.station) },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_START)) { it.start.station },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_POINT)) { it.point.station },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_END)) { it.end.station },
 )
-
-private fun formatTo3Decimals(number: Double) =
-    String.format("%.3f", number)
-
-private fun formatTo6Decimals(number: Double) =
-    String.format("%.6f", number)
 
 fun previousLinearSection(
     currentSegment: CurvedProfileSegment,
@@ -277,7 +282,7 @@ fun previousLinearSection(
     val previousCurvedSegment = curvedSegments.findLast { it.start.x < currentSegment.start.x }
     val previousLinearSegment =
         linearSegments.findLast { it.start.x < currentSegment.start.x && (previousCurvedSegment == null || it.start.x > previousCurvedSegment.start.x) }
-    return LinearSection(
+    return toLinearSection(
         linearSegmentLength = previousLinearSegment?.let { previousLinearSegment.end.x - previousLinearSegment.start.x },
         stationValueDistance = previousLinearSegment?.let {
             val currentStationPoint = circCurveStationPoint(currentSegment)
@@ -296,7 +301,7 @@ fun nextLinearSection(
     val nextCurvedSegment = curvedSegments.find { it.start.x > currentSegment.start.x }
     val nextLinearSegment =
         linearSegments.find { it.start.x > currentSegment.start.x && (nextCurvedSegment == null || it.start.x < nextCurvedSegment.start.x) }
-    return LinearSection(
+    return toLinearSection(
         linearSegmentLength = nextLinearSegment?.let { nextLinearSegment.end.x - nextLinearSegment.start.x },
         stationValueDistance = nextLinearSegment?.let {
             val currentStationPoint = circCurveStationPoint(currentSegment)
@@ -311,7 +316,7 @@ fun circCurveStationPoint(curve: CurvedProfileSegment): IPoint {
     val line1 = circCurveTangentLine(curve.start, curve.startAngle)
     val line2 = circCurveTangentLine(curve.end, curve.endAngle)
     val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
-    require (intersection != null) {"Circular curve must have an intersection point"}
+    requireNotNull(intersection) {"Circular curve must have an intersection point"}
     return intersection.point
 }
 

@@ -88,6 +88,8 @@ dependencies {
     testImplementation("org.seleniumhq.selenium:selenium-java:4.8.1")
     testImplementation("io.github.bonigarcia:webdrivermanager:5.3.2")
     testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
+    testImplementation("org.apache.httpcomponents.client5:httpclient5:5.2.1")
+
 }
 
 licenseReport {

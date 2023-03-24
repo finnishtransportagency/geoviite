@@ -36,6 +36,7 @@ class InfraModelTestUI @Autowired constructor(
 
     val TESTFILE_SIMPLE_PATH: String = "src/test/resources/inframodel/testfile_simple.xml"
     val TESTFILE_CLOTHOID_AND_PARABOLA_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola.xml"
+    val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String = "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
 
     @BeforeAll
     fun clearDb() {
@@ -113,10 +114,10 @@ class InfraModelTestUI @Autowired constructor(
     }
 
     @Test
-    fun `Edit and import bhki_ratapiha_2018_xml`() {
+    fun `Edit and import testfile_clothoid_and_parabola_2_xml`() {
         val infraModelRowsBefore = infraModelPage.infraModelList().infraModelRows()
 
-        val file = File(TESTFILE_CLOTHOID_AND_PARABOLA_PATH)
+        val file = File(TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH)
 
         val uploadForm = infraModelPage.lataaUusi(file.absolutePath)
 
@@ -165,7 +166,7 @@ class InfraModelTestUI @Autowired constructor(
 
         val uploadedPlanRow = infraModelRowsAfterUpload.find { row -> row.projektinNimi().equals(projektinNimi) }
         assertNotNull(uploadedPlanRow)
-        assertEquals("testfile_clothoid_and_parabola.xml", uploadedPlanRow.tiedostonimi())
+        assertEquals("testfile_clothoid_and_parabola_2.xml", uploadedPlanRow.tiedostonimi())
 
     }
 

@@ -279,12 +279,12 @@ export type ElementItem = {
 };
 
 type LinearSection = {
-    stationValueDistance: number | undefined;
-    linearSegmentLength: number | undefined;
+    stationValueDistance: number | null;
+    linearSegmentLength: number | null;
 };
 
 type StationPoint = {
-    address: TrackMeter | undefined;
+    address: TrackMeter | null;
     height: number;
     station: number;
 };

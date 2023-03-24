@@ -4,8 +4,8 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.error.PublicationFailureException
+import fi.fta.geoviite.infra.geocoding.GeocodingCacheService
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
-import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -32,7 +32,6 @@ import java.util.*
 class PublicationService @Autowired constructor(
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
-    private val geocodingDao: GeocodingDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val switchService: LayoutSwitchService,
     private val kmPostService: LayoutKmPostService,
@@ -49,6 +48,7 @@ class PublicationService @Autowired constructor(
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
     private val geometryDao: GeometryDao,
+    private val geocodingCacheService: GeocodingCacheService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -774,7 +774,7 @@ class PublicationService @Autowired constructor(
     }
 
     private fun validateGeocodingContext(cacheKey: GeocodingContextCacheKey?, localizationKey: String) =
-        cacheKey?.let(geocodingDao::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
+        cacheKey?.let(geocodingCacheService::getGeocodingContext)?.let { context -> validateGeocodingContext(context) }
             ?: listOf(noGeocodingContext(localizationKey))
 
     private fun validateAddressPoints(

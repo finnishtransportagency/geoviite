@@ -25,6 +25,7 @@ class AddressPointsCache(
     val alignmentDao: LayoutAlignmentDao,
     val locationTrackDao: LocationTrackDao,
     val geocodingDao: GeocodingDao,
+    val geocodingCacheService: GeocodingCacheService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -35,7 +36,7 @@ class AddressPointsCache(
     ): AddressPointCacheKey? {
         return locationTrackDao.fetchVersion(locationTrackId, publishType)?.let { trackVersion ->
             val track = locationTrackDao.fetch(trackVersion)
-            val contextCacheKey = geocodingDao.getGeocodingContextCacheKey(publishType, track.trackNumberId)
+            val contextCacheKey = geocodingDao.getLayoutGeocodingContextCacheKey(publishType, track.trackNumberId)
             if (track.alignmentVersion != null && contextCacheKey != null) {
                 AddressPointCacheKey(track.alignmentVersion, contextCacheKey)
             } else {
@@ -51,7 +52,7 @@ class AddressPointsCache(
     fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? {
         logger.serviceCall("getAddressPoints", "cacheKey" to cacheKey)
         val alignment = alignmentDao.fetch(cacheKey.alignmentVersion)
-        return geocodingDao.getGeocodingContext(cacheKey.geocodingContextCacheKey)
+        return geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)
             ?.getAddressPoints(alignment)
     }
 }

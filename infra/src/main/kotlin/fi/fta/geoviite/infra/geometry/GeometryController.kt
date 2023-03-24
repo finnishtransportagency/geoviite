@@ -23,7 +23,10 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/geometry")
-class GeometryController @Autowired constructor(private val geometryService: GeometryService) {
+class GeometryController @Autowired constructor(
+    private val geometryService: GeometryService,
+    private val planLayoutService: PlanLayoutService,
+) {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -76,7 +79,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
             "getTackLayoutPlan",
             "planId" to geometryPlanId, "includeGeometryData" to includeGeometryData
         )
-        return geometryService.getLayoutPlan(geometryPlanId, includeGeometryData).first
+        return planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).first
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -219,8 +222,7 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
     fun getTrackVerticalGeometryListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
     ): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanVerticalGeometryListingCsv",
-            "id" to id)
+        log.apiCall("getPlanVerticalGeometryListingCsv", "id" to id)
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id)
         return toFileDownloadResponse("${filename}.csv", content)
     }
@@ -232,7 +234,8 @@ class GeometryController @Autowired constructor(private val geometryService: Geo
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        log.apiCall("getTrackVerticalGeometryListing", "id" to id)
+        log.apiCall("getTrackVerticalGeometryListing", "id" to id,
+            "startAddress" to startAddress, "endAddress" to endAddress)
         return geometryService.getVerticalGeometryListing(id, startAddress, endAddress)
     }
 

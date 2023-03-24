@@ -188,7 +188,7 @@ class SwitchStructureTest {
             SwitchType("YV60-900P-1:18-O").parts
         )
         assertEquals(
-            SwitchTypeParts(SwitchBaseType.KRV, 43, listOf(270), null, "1:9,514", null),
+            SwitchTypeParts(SwitchBaseType.KRV, 43, listOf(270), null, "1:9,514", SwitchHand.NONE),
             SwitchType("KRV43-270-1:9,514").parts
         )
         assertEquals(
@@ -196,7 +196,7 @@ class SwitchStructureTest {
             SwitchType("YV60-5000/2500-1:26-V").parts
         )
         assertEquals(
-            SwitchTypeParts(SwitchBaseType.SRR, 54, listOf(), null, "2x1:9-6,0", null),
+            SwitchTypeParts(SwitchBaseType.SRR, 54, listOf(), null, "2x1:9-6,0", SwitchHand.NONE),
             SwitchType("SRR54-2x1:9-6,0").parts
         )
     }

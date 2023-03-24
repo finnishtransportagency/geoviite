@@ -25,6 +25,7 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
         }
 
         clickButton("Julkaise")
+
         PreviewChangesSaveOrDiscardDialog().julkaise()
         return waitAndGetToasterElement()
     }
@@ -70,8 +71,12 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
 
 class PreviewChangesSaveOrDiscardDialog(): DialogPopUp() {
 
-    fun julkaise() =
-        clickButton("Julkaise")
+    fun julkaise() {
+        val messageBox = getElementWhenVisible(By.cssSelector("textarea[qa-id=publication-message]"))
+        messageBox.click()
+        messageBox.sendKeys("test")
+        clickButtonByQaId("publication-confirm")
+    }
 
     fun hylkaa() =
         clickButton("Hylkää")

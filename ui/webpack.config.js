@@ -35,6 +35,8 @@ const licenseOverrides = {
     'turf-jsts@1.2.3': 'EPL-1.0',
 };
 
+const glyphLocations = [/geoviite-design-lib\/glyphs/, /vayla-design-lib\/icon/]
+
 module.exports = (env) => {
     return {
         entry: './src/index.tsx',
@@ -88,16 +90,15 @@ module.exports = (env) => {
                     test: /\.(png|jp(e*)g|gif|woff|woff2|ttf|eot|ico|otf)$/,
                     type: 'asset/resource',
                 },
-                // For now import all SVG files as text, this is needed by icon component.
-                // If there is a need to import SVG files other way, use more precise test here
-                // to keep icon component working.
+
                 {
                     test: /\.svg$/,
-                    exclude: /logo\.svg$/,
+                    include: glyphLocations,
                     type: 'asset/source',
                 },
                 {
-                    test: /logo\.svg$/,
+                    test: /\.svg$/,
+                    exclude: glyphLocations,
                     type: 'asset/resource',
                 },
                 {

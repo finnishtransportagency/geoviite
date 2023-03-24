@@ -307,13 +307,13 @@ fun convertToRatkoSwitch(
         ),
         RatkoAssetProperty(
             name = "handedness",
-            enumValue = switchStructure.hand?.let { hand ->
+            enumValue = switchStructure.hand.let { hand ->
                 when (hand) {
                     SwitchHand.LEFT -> "Vasenkätinen"
                     SwitchHand.RIGHT -> "Oikeakätinen"
                     else -> "Ei kätisyyttä"
                 }
-            } ?: "Ei tiedossa",
+            }
         )
     ),
     locations = null,

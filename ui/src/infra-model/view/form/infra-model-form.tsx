@@ -180,9 +180,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     }, [changeTimes]);
 
     React.useEffect(() => {
-        getProject(overrideInfraModelParameters.projectId || geometryPlan.project.id).then(
-            setProject,
-        );
+        overrideInfraModelParameters.projectId
+            ? getProject(overrideInfraModelParameters.projectId).then(setProject)
+            : setProject(geometryPlan.project);
         fetchAuthors().then((authors) => {
             const authorInList = authors.find((p) => p.id === geometryPlan.author?.id);
             setAuthors([
