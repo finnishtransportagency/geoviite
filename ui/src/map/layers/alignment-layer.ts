@@ -461,23 +461,27 @@ adapterInfoRegister.add('alignment', {
             };
             const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
             const holders = getMatchingSegmentDatas(hitArea, features, matchOptions);
-            // Map features are per-segment -> deduplicate for track numbers & alignments
-            const trackNumberIds = deduplicate(
-                holders.map(({ trackNumber }) => trackNumber?.id).filter(filterNotEmpty),
-            );
             const alignments = holders
                 .map(({ alignment }) => alignment)
                 .filter(filterUniqueById((a) => `${a.alignmentType}_${a.id}`));
             const locationTracks = alignments
                 .map((a) => (a.alignmentType === 'LOCATION_TRACK' ? a.id : null))
                 .filter(filterNotEmpty);
-            const referenceLines = alignments
-                .map((a) => (a.alignmentType === 'REFERENCE_LINE' ? a.id : null))
-                .filter(filterNotEmpty);
+
+            const referenceLines = alignments.filter((a) => a.alignmentType === 'REFERENCE_LINE');
+
+            // Map features are per-segment -> deduplicate for track numbers & alignments
+            const trackNumberIds = deduplicate(
+                holders
+                    .map(({ trackNumber }) => trackNumber?.id)
+                    .filter(filterNotEmpty)
+                    .filter((tn) => referenceLines.some((r) => r.trackNumberId == tn)),
+            );
+
             return {
                 trackNumbers: trackNumberIds.slice(0, options.limit),
                 locationTracks: locationTracks.slice(0, options.limit),
-                referenceLines: referenceLines.slice(0, options.limit),
+                referenceLines: referenceLines.slice(0, options.limit).map((a) => a.id),
                 segments: holders.map(({ segment }) => segment).slice(0, options.limit),
             };
         };
