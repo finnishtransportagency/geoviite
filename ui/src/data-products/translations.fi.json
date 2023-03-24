@@ -14,7 +14,9 @@
             "invalid-track-meter": "Tarkista osoitteen muoto",
             "end-before-start": "Rataosoitteen loppu on ennen alkua",
             "not-selected": "Ei valittu",
-            "download-csv": "Lataa CSV"
+            "download-csv": "Lataa CSV",
+            "track-meter-range": "Metriväli",
+            "track-number": "Ratanumero"
         },
         "element-list": {
             "element-list-title": "Elementtiluettelo",
@@ -79,6 +81,10 @@
                 "curve-end": "Pyöristyksen loppu",
                 "point-of-vertical-intersection": "Taite"
             }
+        },
+        "km-lengths": {
+            "title": "Kilometrien pituudet",
+            "legend": "Kilometrien tiedot on laskettu paikannuspohjan tietojen perusteella. Paikannuspohjan tiedot eivät ole tarkkoja, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. tilastointiin tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. suunnittelytyön lähtötietona."
         }
     }
 }

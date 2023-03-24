@@ -79,8 +79,12 @@ export const AppBar: React.FC = () => {
                                             {t('app-bar.data-products.vertical-geometry')}
                                         </NavLink>
                                     </div>
-                                    <div className={styles['menu__item']}>
-                                        {t('app-bar.data-products.km-lengths')}
+                                    <div>
+                                        <NavLink
+                                            className={styles['menu__item']}
+                                            to={'data-products/kilometer-lengths'}>
+                                            {t('app-bar.data-products.km-lengths')}
+                                        </NavLink>
                                     </div>
                                 </EnvRestricted>
                             </div>

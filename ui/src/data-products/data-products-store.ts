@@ -9,7 +9,11 @@ import {
 import { filterNotEmpty } from 'utils/array-utils';
 import { ElementItem, GeometryPlanHeader, GeometryType, PlanSource } from 'geometry/geometry-model';
 import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
-import { LayoutLocationTrack } from 'track-layout/track-layout-model';
+import {
+    LayoutKmPost,
+    LayoutLocationTrack,
+    LayoutTrackNumber,
+} from 'track-layout/track-layout-model';
 import { wrapReducers } from 'store/store-utils';
 
 type SearchGeometries = {
@@ -51,6 +55,13 @@ export type PlanVerticalGeometrySearchState = {
     validationErrors: ValidationError<PlanVerticalGeometrySearchState>[];
     committedFields: (keyof PlanVerticalGeometrySearchState)[];
     verticalGeometry: never[];
+};
+
+export type KmLengthsSearchState = {
+    trackNumber: LayoutTrackNumber | undefined;
+    startKm: LayoutKmPost | undefined;
+    endKm: LayoutKmPost | undefined;
+    kmLengths: never[];
 };
 
 enum MissingSection {
@@ -142,6 +153,13 @@ const initialPlanVerticalGeometrySearchState: PlanVerticalGeometrySearchState = 
     validationErrors: [],
     committedFields: [],
     verticalGeometry: [],
+};
+
+const initialKmLengthsSearchState: KmLengthsSearchState = {
+    trackNumber: undefined,
+    startKm: undefined,
+    endKm: undefined,
+    kmLengths: [],
 };
 
 const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
@@ -387,6 +405,25 @@ export const planVerticalGeometrySearchSlice = createSlice({
     },
 });
 
+export const kmLengthsSearchSlice = createSlice({
+    name: 'kmLengthsSearch',
+    initialState: initialKmLengthsSearchState,
+    reducers: {
+        onUpdateKmLengthsSearchProp: function <TKey extends keyof KmLengthsSearchState>(
+            state: KmLengthsSearchState,
+            { payload: propEdit }: PayloadAction<PropEdit<KmLengthsSearchState, TKey>>,
+        ) {
+            state[propEdit.key] = propEdit.value;
+        },
+        onSetKmLengths: function (
+            state: KmLengthsSearchState,
+            { payload: kmLengths }: PayloadAction<never[]>,
+        ) {
+            state.kmLengths = kmLengths;
+        },
+    },
+});
+
 type SelectedSearch = 'PLAN' | 'LOCATION_TRACK';
 
 type DataProductsState = {
@@ -400,6 +437,7 @@ type DataProductsState = {
         planSearch: PlanVerticalGeometrySearchState;
         locationTrackSearch: LocationTrackVerticalGeometrySearchState;
     };
+    kmLenghts: KmLengthsSearchState;
 };
 
 const initialDataProductsState: DataProductsState = {
@@ -413,6 +451,7 @@ const initialDataProductsState: DataProductsState = {
         planSearch: initialPlanVerticalGeometrySearchState,
         locationTrackSearch: initialLocationTrackVerticalGeometrySearchState,
     },
+    kmLenghts: initialKmLengthsSearchState,
 };
 
 const dataProductsSlice = createSlice({
@@ -446,6 +485,10 @@ const dataProductsSlice = createSlice({
         ...wrapReducers(
             (state: DataProductsState) => state.verticalGeometry.planSearch,
             planVerticalGeometrySearchSlice.caseReducers,
+        ),
+        ...wrapReducers(
+            (state: DataProductsState) => state.kmLenghts,
+            kmLengthsSearchSlice.caseReducers,
         ),
     },
 });

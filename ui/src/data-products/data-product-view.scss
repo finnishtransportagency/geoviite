@@ -25,10 +25,10 @@
     > :not(:last-child) {
         margin-right: 16px;
     }
-}
 
-.element-list__geometry-checkboxes {
-    margin-top: 22px;
+    &--no-label {
+        margin-top: 22px;
+    }
 }
 
 .element-list__geometry-checkbox > :not(:last-child) {
