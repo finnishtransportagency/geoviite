@@ -180,20 +180,19 @@ class LinkingService @Autowired constructor(
         layoutInterval: LayoutInterval<T>,
     ): List<LayoutSegment> {
         val geometryAlignment = getAlignmentLayout(planId, geometryInterval.alignmentId)
-
         val segments = if (layoutInterval.mRange.min == layoutInterval.mRange.max) {
             extendAlignmentWithGeometry(
-                layoutAlignment,
-                geometryAlignment,
-                layoutInterval.mRange.min,
-                geometryInterval,
+                layoutAlignment = layoutAlignment,
+                geometryAlignment = geometryAlignment,
+                layoutM = layoutInterval.mRange.min,
+                geometryMInterval = geometryInterval.mRange,
             )
         } else {
             replaceTrackLayoutGeometry(
-                geometryAlignment,
-                layoutAlignment,
-                layoutInterval,
-                geometryInterval,
+                geometryAlignment = geometryAlignment,
+                layoutAlignment = layoutAlignment,
+                layoutMInterval = layoutInterval.mRange,
+                geometryMInterval = geometryInterval.mRange,
             )
         }
         return segments
@@ -293,7 +292,7 @@ class LinkingService @Autowired constructor(
             }
         }
         return try {
-            original.withSegments(fixSegmentStarts(newSegments))
+            original.withSegments(newSegments)
         } catch (e: IllegalArgumentException) {
             logger.warn("Linking selection produces invalid alignment: ${e.message}")
             throw LinkingFailureException(

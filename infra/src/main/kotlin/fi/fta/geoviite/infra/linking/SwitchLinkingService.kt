@@ -443,7 +443,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
 
     val segmentsWithNewSwitch = alignment.segments
         .map { segment ->
-            if (overriddenSwitches.contains(segment.switchId)) clearSwitchInformation(segment)
+            if (overriddenSwitches.contains(segment.switchId)) segment.withoutSwitch()
             else segment
         }
         .mapIndexed { index, segment ->
@@ -549,7 +549,7 @@ private fun getSegmentsByLinkingJoints(
             //Handle cases differently when there are multiple joint matches in a single segment
             if (linkingJoints.size == 1) {
                 acc.add(
-                    if (isFirstSegment) clearSwitchInformation(startSplitSegment)
+                    if (isFirstSegment) startSplitSegment.withoutSwitch()
                     else if (isLastSegment) setEndJointNumber(startSplitSegment, layoutSwitchId, jointNumber)
                     else startSplitSegment.copy(
                         switchId = layoutSwitchId, startJointNumber = null, endJointNumber = null
@@ -558,7 +558,7 @@ private fun getSegmentsByLinkingJoints(
                 endSplitSegment?.let {
                     acc.add(
                         if (isFirstSegment) setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber)
-                        else if (isLastSegment) clearSwitchInformation(endSplitSegment)
+                        else if (isLastSegment) endSplitSegment.withoutSwitch()
                         else setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber)
                     )
                 }
@@ -567,7 +567,7 @@ private fun getSegmentsByLinkingJoints(
                     //First joint match
                     0 -> {
                         acc.add(
-                            if (isFirstSegment) clearSwitchInformation(startSplitSegment)
+                            if (isFirstSegment) startSplitSegment.withoutSwitch()
                             else startSplitSegment.copy(
                                 switchId = layoutSwitchId,
                                 startJointNumber = null,
@@ -585,7 +585,7 @@ private fun getSegmentsByLinkingJoints(
 
                         endSplitSegment?.let {
                             acc.add(
-                                if (isLastSegment) clearSwitchInformation(endSplitSegment)
+                                if (isLastSegment) endSplitSegment.withoutSwitch()
                                 else endSplitSegment.copy(
                                     switchId = layoutSwitchId,
                                     startJointNumber = null,

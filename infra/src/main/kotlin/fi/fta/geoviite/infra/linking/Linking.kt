@@ -17,30 +17,14 @@ enum class LocationTrackPointUpdateType {
     END_POINT
 }
 
-//data class IntervalLayoutPoint(
-//    val segmentId: IndexedId<LayoutSegment>,
-//    val endPointType: EndPointType?,
-//    val mRange: Range<Double>,
-//    val point: Point,
-//)
-//
-//data class IntervalGeometryPoint(
-//    val segmentId: DomainId<LayoutSegment>,
-//    val point: Point,
-//)
-
 data class LayoutInterval<T>(
     val alignmentId: IntId<T>,
     val mRange: Range<Double>,
-//    val start: IntervalLayoutPoint,
-//    val end: IntervalLayoutPoint,
 )
 
 data class GeometryInterval(
     val alignmentId: IntId<GeometryAlignment>,
     val mRange: Range<Double>,
-//    val start: IntervalGeometryPoint,
-//    val end: IntervalGeometryPoint,
 )
 
 data class LinkingParameters<T>(
@@ -53,15 +37,6 @@ data class EmptyAlignmentLinkingParameters<T>(
     val geometryPlanId: IntId<GeometryPlan>,
     val layoutAlignmentId: IntId<T>,
     val geometryInterval: GeometryInterval,
-)
-
-data class LocationTrackEndPointUpdateRequest(
-    val updateType: LocationTrackPointUpdateType,
-)
-
-data class LocationTrackEndPointConnectedUpdateRequest(
-    val connectedLocationTrackId: IntId<LocationTrack>,
-    val updateType: LocationTrackPointUpdateType,
 )
 
 data class LocationTrackSaveRequest(
