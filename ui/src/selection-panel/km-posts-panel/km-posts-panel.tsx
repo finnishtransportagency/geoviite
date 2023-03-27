@@ -15,7 +15,7 @@ export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
     kmPosts,
     onToggleKmPostSelection,
     selectedKmPosts,
-    max = 18,
+    max = 16,
 }: KmPostsPanelProps) => {
     const { t } = useTranslation();
 
