@@ -11,6 +11,7 @@ import { Button } from 'vayla-design-lib/button/button';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { LayoutKmPost, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { getKmLengthsCsv, getKmPostsOnTrackNumber } from 'track-layout/layout-km-post-api';
+import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;
@@ -32,7 +33,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     const kmPosts =
         useLoader(
             () => state.trackNumber && getKmPostsOnTrackNumber('OFFICIAL', state.trackNumber.id),
-            [],
+            [state.trackNumber],
         )?.map((km) => ({
             name: km.kmNumber,
             value: km,
@@ -77,32 +78,37 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                 <FieldLayout
                     label={t(`data-products.search.track-meter-range`)}
                     value={
-                        <Dropdown
-                            value={state.startKm}
-                            getName={(item: LayoutKmPost) => item.kmNumber}
-                            placeholder={t('location-track-dialog.search')}
-                            options={kmPosts}
-                            searchable
-                            onChange={(e) => updateProp('startKm', e)}
-                            canUnselect={true}
-                            wideList
-                            size={DropdownSize.SMALL}
-                        />
+                        <span className={styles['data-products__search--combined-field']}>
+                            <Dropdown
+                                value={state.startKm}
+                                getName={(item: LayoutKmPost) => item.kmNumber}
+                                placeholder={t('location-track-dialog.search')}
+                                options={kmPosts}
+                                searchable
+                                onChange={(e) => updateProp('startKm', e)}
+                                canUnselect={true}
+                                wideList
+                                size={DropdownSize.SMALL}
+                            />
+                            <Dropdown
+                                value={state.endKm}
+                                getName={(item: LayoutKmPost) => item.kmNumber}
+                                placeholder={t('location-track-dialog.search')}
+                                options={kmPosts}
+                                searchable
+                                onChange={(e) => updateProp('endKm', e)}
+                                canUnselect={true}
+                                wideList
+                                size={DropdownSize.SMALL}
+                            />
+                        </span>
                     }
+                    errors={getVisibleErrorsByProp(
+                        state.committedFields,
+                        state.validationErrors,
+                        'endKm',
+                    ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <div className={styles['data-products__search--no-label']}>
-                    <Dropdown
-                        value={state.endKm}
-                        getName={(item: LayoutKmPost) => item.kmNumber}
-                        placeholder={t('location-track-dialog.search')}
-                        options={kmPosts}
-                        searchable
-                        onChange={(e) => updateProp('endKm', e)}
-                        canUnselect={true}
-                        wideList
-                        size={DropdownSize.SMALL}
-                    />
-                </div>
                 <Button
                     className={styles['element-list__download-button']}
                     disabled={!state.kmLengths || state.kmLengths.length === 0}

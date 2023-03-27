@@ -29,6 +29,10 @@
     &--no-label {
         margin-top: 22px;
     }
+
+    &--combined-field > :not(:last-child) {
+        margin-right: 16px;
+    }
 }
 
 .element-list__geometry-checkbox > :not(:last-child) {
@@ -36,7 +40,7 @@
 }
 
 .element-list__download-button {
-    align-self: center;
+    margin-top: 22px;
     margin-left: auto;
     margin-right: 24px;
 }

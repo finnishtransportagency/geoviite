@@ -53,7 +53,7 @@ class LayoutKmPostController(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("trackNumberId") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getKmPost", "publishType" to publishType, "id" to id)
+        logger.apiCall("getKmPostsOnTrackNumber", "publishType" to publishType, "id" to id)
         return kmPostService.list(publishType, id)
     }
 

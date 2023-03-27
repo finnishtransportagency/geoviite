@@ -5,6 +5,7 @@ import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/ho
 import { createDelegates } from 'store/store-utils';
 import { dataProductsActions } from 'data-products/data-products-store';
 import KilometerLengthsSearch from 'data-products/kilometer-lengths/kilometer-lengths-search';
+import { KilometerLengthsTable } from 'data-products/kilometer-lengths/kilometer-lengths-table';
 
 export const KilometerLengthsView = () => {
     const rootDispatch = useDataProductsAppDispatch();
@@ -12,6 +13,21 @@ export const KilometerLengthsView = () => {
     const state = useDataProductsAppSelector((state) => state.dataProducts.kmLenghts);
 
     const { t } = useTranslation();
+
+    // TODO Remove when a proper backend exists for fetching this stuff
+    const testData = [
+        {
+            trackNumberId: 'INT_1',
+            kmNumber: '0001',
+            length: 1024.0,
+            stationStart: -500.0,
+            stationEnd: 524.0,
+            location: {
+                x: 6660000.0,
+                y: 3330000.0,
+            },
+        },
+    ];
 
     return (
         <div className={styles['data-product-view']}>
@@ -26,6 +42,7 @@ export const KilometerLengthsView = () => {
                     onUpdateProp={dataProductsDelegates.onUpdateKmLengthsSearchProp}
                 />
             </div>
+            <KilometerLengthsTable kmLengths={testData} />
         </div>
     );
 };

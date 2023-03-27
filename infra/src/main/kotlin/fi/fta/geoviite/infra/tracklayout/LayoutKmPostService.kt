@@ -42,13 +42,13 @@ class LayoutKmPostService(dao: LayoutKmPostDao) : DraftableObjectService<TrackLa
     override fun createPublished(item: TrackLayoutKmPost) = published(item)
 
     fun list(publicationState: PublishType, filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?): List<TrackLayoutKmPost> {
-        logger.serviceCall("getKmPosts", "publicationState" to publicationState, "filter" to (filter != null))
+        logger.serviceCall("list", "publicationState" to publicationState, "filter" to (filter != null))
         val all = listInternal(publicationState, false)
         return filter?.let(all::filter) ?: all
     }
 
     fun list(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
-        logger.serviceCall("getKmPosts",
+        logger.serviceCall("list",
             "publicationState" to publicationState, "trackNumberId" to trackNumberId)
         return listInternal(publicationState, false, trackNumberId)
     }

@@ -61,6 +61,9 @@ export type KmLengthsSearchState = {
     trackNumber: LayoutTrackNumber | undefined;
     startKm: LayoutKmPost | undefined;
     endKm: LayoutKmPost | undefined;
+
+    validationErrors: ValidationError<KmLengthsSearchState>[];
+    committedFields: (keyof KmLengthsSearchState)[];
     kmLengths: never[];
 };
 
@@ -159,6 +162,9 @@ const initialKmLengthsSearchState: KmLengthsSearchState = {
     trackNumber: undefined,
     startKm: undefined,
     endKm: undefined,
+
+    validationErrors: [],
+    committedFields: [],
     kmLengths: [],
 };
 
@@ -414,6 +420,27 @@ export const kmLengthsSearchSlice = createSlice({
             { payload: propEdit }: PayloadAction<PropEdit<KmLengthsSearchState, TKey>>,
         ) {
             state[propEdit.key] = propEdit.value;
+            if (propEdit.key === 'trackNumber') {
+                state['startKm'] = undefined;
+                state['endKm'] = undefined;
+                state.committedFields = ['trackNumber'];
+            } else {
+                state.committedFields = Array.from(
+                    new Set([...state.committedFields, propEdit.key]),
+                );
+            }
+            state.validationErrors = [
+                validate(
+                    !state.startKm ||
+                        !state.endKm ||
+                        state.endKm.kmNumber >= state.startKm.kmNumber,
+                    {
+                        field: 'endKm',
+                        reason: 'km-end-before-start',
+                        type: ValidationErrorType.ERROR,
+                    },
+                ),
+            ].filter(filterNotEmpty);
         },
         onSetKmLengths: function (
             state: KmLengthsSearchState,

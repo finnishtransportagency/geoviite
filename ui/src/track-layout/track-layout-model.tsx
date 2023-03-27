@@ -223,6 +223,15 @@ export type LayoutKmPost = {
     draftType: DraftType;
 };
 
+export type LayoutKmPostLengthDetails = {
+    trackNumberId: LayoutTrackNumberId;
+    kmNumber: KmNumber;
+    length: number;
+    stationStart: number;
+    stationEnd: number;
+    location: Point;
+};
+
 export type PlanAreaId = string;
 export type PlanArea = {
     id: PlanAreaId;
