@@ -469,18 +469,13 @@ adapterInfoRegister.add('alignment', {
                 .filter(filterNotEmpty);
 
             const referenceLines = alignments.filter((a) => a.alignmentType === 'REFERENCE_LINE');
-
-            // Map features are per-segment -> deduplicate for track numbers & alignments
             const trackNumberIds = deduplicate(
-                holders
-                    .map(({ trackNumber }) => trackNumber?.id)
-                    .filter(filterNotEmpty)
-                    .filter((tn) => referenceLines.some((r) => r.trackNumberId == tn)),
+                referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
             );
 
             return {
-                trackNumbers: trackNumberIds.slice(0, options.limit),
                 locationTracks: locationTracks.slice(0, options.limit),
+                trackNumbers: trackNumberIds,
                 referenceLines: referenceLines.slice(0, options.limit).map((a) => a.id),
                 segments: holders.map(({ segment }) => segment).slice(0, options.limit),
             };
@@ -489,6 +484,7 @@ adapterInfoRegister.add('alignment', {
             const found = shownItemsSearchFunction(hitArea, options);
             return {
                 locationTracks: found.locationTracks,
+                referenceLines: found.referenceLines,
                 trackNumbers: found.trackNumbers,
             };
         };
