@@ -24,6 +24,7 @@ import {
     getVisibleErrorsByProp,
     hasErrors,
 } from 'data-products/data-products-utils';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -33,7 +34,7 @@ type LocationTrackVerticalGeometrySearchProps = {
     onCommitField: <TKey extends keyof LocationTrackVerticalGeometrySearchParameters>(
         key: TKey,
     ) => void;
-    setVerticalGeometry: (verticalGeometry: never[]) => void;
+    setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
 };
 
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackVerticalGeometry, 250);

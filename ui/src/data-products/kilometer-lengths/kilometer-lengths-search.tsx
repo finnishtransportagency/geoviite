@@ -9,7 +9,11 @@ import { useLoader } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { LayoutKmPost, LayoutTrackNumber } from 'track-layout/track-layout-model';
+import {
+    LayoutKmPost,
+    LayoutKmPostLengthDetails,
+    LayoutTrackNumber,
+} from 'track-layout/track-layout-model';
 import { getKmLengthsCsv, getKmPostsOnTrackNumber } from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 
@@ -18,7 +22,7 @@ type KilometerLengthsSearchProps = {
     onUpdateProp: <TKey extends keyof KmLengthsSearchState>(
         propEdit: PropEdit<KmLengthsSearchState, TKey>,
     ) => void;
-    setLengths: (lengths: never[]) => void;
+    setLengths: (lengths: LayoutKmPostLengthDetails[]) => void;
 };
 
 export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({

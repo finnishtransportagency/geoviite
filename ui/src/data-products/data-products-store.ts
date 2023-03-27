@@ -7,10 +7,17 @@ import {
     ValidationErrorType,
 } from 'utils/validation-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { ElementItem, GeometryPlanHeader, GeometryType, PlanSource } from 'geometry/geometry-model';
+import {
+    ElementItem,
+    GeometryPlanHeader,
+    GeometryType,
+    PlanSource,
+    VerticalGeometryItem,
+} from 'geometry/geometry-model';
 import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
 import {
     LayoutKmPost,
+    LayoutKmPostLengthDetails,
     LayoutLocationTrack,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
@@ -45,7 +52,7 @@ export type LocationTrackVerticalGeometrySearchState = {
 
     validationErrors: ValidationError<LocationTrackVerticalGeometrySearchParameters>[];
     committedFields: (keyof LocationTrackVerticalGeometrySearchParameters)[];
-    verticalGeometry: never[];
+    verticalGeometry: VerticalGeometryItem[];
 };
 
 export type PlanVerticalGeometrySearchState = {
@@ -54,7 +61,7 @@ export type PlanVerticalGeometrySearchState = {
 
     validationErrors: ValidationError<PlanVerticalGeometrySearchState>[];
     committedFields: (keyof PlanVerticalGeometrySearchState)[];
-    verticalGeometry: never[];
+    verticalGeometry: VerticalGeometryItem[];
 };
 
 export type KmLengthsSearchState = {
@@ -64,7 +71,7 @@ export type KmLengthsSearchState = {
 
     validationErrors: ValidationError<KmLengthsSearchState>[];
     committedFields: (keyof KmLengthsSearchState)[];
-    kmLengths: never[];
+    kmLengths: LayoutKmPostLengthDetails[];
 };
 
 enum MissingSection {
@@ -379,7 +386,7 @@ export const locationTrackVerticalGeometrySearchSlice = createSlice({
         },
         onSetLocationTrackVerticalGeometry: function (
             state: LocationTrackVerticalGeometrySearchState,
-            { payload: verticalGeometry }: PayloadAction<never[]>,
+            { payload: verticalGeometry }: PayloadAction<VerticalGeometryItem[]>,
         ) {
             state.verticalGeometry = verticalGeometry;
         },
@@ -404,7 +411,7 @@ export const planVerticalGeometrySearchSlice = createSlice({
         },
         onSetPlanVerticalGeometry: function (
             state: PlanVerticalGeometrySearchState,
-            { payload: verticalGeometry }: PayloadAction<never[]>,
+            { payload: verticalGeometry }: PayloadAction<VerticalGeometryItem[]>,
         ) {
             state.verticalGeometry = verticalGeometry;
         },
@@ -444,7 +451,7 @@ export const kmLengthsSearchSlice = createSlice({
         },
         onSetKmLengths: function (
             state: KmLengthsSearchState,
-            { payload: kmLengths }: PayloadAction<never[]>,
+            { payload: kmLengths }: PayloadAction<LayoutKmPostLengthDetails[]>,
         ) {
             state.kmLengths = kmLengths;
         },
