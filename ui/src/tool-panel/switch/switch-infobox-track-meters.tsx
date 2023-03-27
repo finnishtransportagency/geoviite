@@ -2,12 +2,12 @@ import * as React from 'react';
 import styles from './switch-infobox.scss';
 import { SwitchJointTrackMeter } from 'track-layout/track-layout-model';
 import { JointNumber } from 'common/common-model';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
 import { groupBy } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
+import { ShowMoreButton } from 'show-more-button/show-more-button';
 
 const formatJointTrackMeter = (jointTrackMeter: SwitchJointTrackMeter) => {
     return (
@@ -90,15 +90,12 @@ export const SwitchInfoboxTrackMeters: React.FC<SwitchInfoboxTrackMetersProps> =
 
             {Object.keys(otherJointsAddress).length > 0 && (
                 <section>
-                    <Button
-                        className={styles['switch-infobox-track-meters__show-more']}
-                        size={ButtonSize.SMALL}
-                        variant={ButtonVariant.GHOST}
-                        onClick={() => setShowOtherJoints(!showOtherJoints)}>
-                        {showOtherJoints
-                            ? t('tool-panel.switch.layout.show-less')
-                            : t('tool-panel.switch.layout.show-more')}
-                    </Button>
+                    <div className={styles['switch-infobox-track-meters__show-more']}>
+                        <ShowMoreButton
+                            onShowMore={() => setShowOtherJoints(!showOtherJoints)}
+                            expanded={showOtherJoints}
+                        />
+                    </div>
                 </section>
             )}
         </div>
