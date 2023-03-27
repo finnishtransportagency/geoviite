@@ -100,6 +100,22 @@ const alignmentBackgroundStyle = new Style({
     zIndex: 0,
 });
 
+const alignmentBackgroundRed = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentRedBackground,
+        width: 12,
+    }),
+    zIndex: 1,
+});
+
+const alignmentBackgroundBlue = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentBlueBackground,
+        width: 12,
+    }),
+    zIndex: 1,
+});
+
 export enum DisplayMode {
     NONE,
     NUMBER,
@@ -198,6 +214,8 @@ function createFeatures(
     trackNumberDisplayMode: DisplayMode,
     drawDistance: number,
     showReferenceLines: boolean,
+    showMissingLinking: boolean,
+    showDuplicateTracks: boolean,
 ): Feature<LineString | Point>[] {
     const { trackNumber, alignment, segment } = dataHolder;
     const lineString = new LineString(segment.points.map((point) => [point.x, point.y]));
@@ -208,20 +226,30 @@ function createFeatures(
     addBbox(segmentFeature);
     features.push(segmentFeature);
 
-    segmentFeature.setStyle(() => [
-        alignmentBackgroundStyle,
-        alignment.alignmentType === 'REFERENCE_LINE'
-            ? selected
-                ? selectedReferenceLineStyle
-                : highlighted
-                ? highlightedReferenceLineStyle
-                : referenceLineStyle
-            : selected
-            ? selectedLocationTrackStyle
-            : highlighted
-            ? highlightedLocationTrackStyle
-            : locationTrackStyle,
-    ]);
+    const styles = [alignmentBackgroundStyle];
+    const isReferenceLine = alignment.alignmentType === 'REFERENCE_LINE';
+
+    if (selected) {
+        styles.push(isReferenceLine ? selectedReferenceLineStyle : selectedLocationTrackStyle);
+    } else if (highlighted) {
+        styles.push(
+            isReferenceLine ? highlightedReferenceLineStyle : highlightedLocationTrackStyle,
+        );
+    } else styles.push(isReferenceLine ? referenceLineStyle : locationTrackStyle);
+
+    if (
+        showMissingLinking &&
+        dataHolder.segment.source == 'IMPORTED' &&
+        !dataHolder.segment.sourceId
+    ) {
+        styles.push(alignmentBackgroundRed);
+    }
+
+    if (showDuplicateTracks && dataHolder.alignment.duplicateOf) {
+        styles.push(alignmentBackgroundBlue);
+    }
+
+    segmentFeature.setStyle(styles);
 
     const numbersBeforeSegment = Math.floor(segment.start / drawDistance);
     const numbersAfterSegment = Math.floor((segment.start + segment.length) / drawDistance);
@@ -283,10 +311,16 @@ function featureKey(
     drawDistance: number,
     alignmentId: LocationTrackId,
     alignmentVersion: string | null,
+    missingLinking: boolean,
+    duplicateTracks: boolean,
 ): string {
     return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${
         selected ? '1' : '0'
-    }_${highlighted ? '1' : '0'}_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}`;
+    }_${
+        highlighted ? '1' : '0'
+    }_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}_${
+        missingLinking ? '1' : '0'
+    }_${duplicateTracks ? '1' : '0'}`;
 }
 
 type DataCollection = {
@@ -376,6 +410,8 @@ function createFeaturesCached(
     trackNumberDisplayMode: DisplayMode,
     trackNumberDrawDistance: number,
     showReferenceLines: boolean,
+    showMissingLinking: boolean,
+    showDuplicateTracks: boolean,
 ): Feature<LineString | Point>[] {
     const previousFeatures = new Map<string, Feature<LineString | Point>[]>(featureCache);
     featureCache.clear();
@@ -400,6 +436,8 @@ function createFeaturesCached(
                 trackNumberDrawDistance,
                 data.alignment.id,
                 data.alignment.version,
+                showMissingLinking,
+                showDuplicateTracks,
             );
             const previous = previousFeatures.get(key);
             const features =
@@ -412,6 +450,8 @@ function createFeaturesCached(
                           trackNumberDisplayMode,
                           trackNumberDrawDistance,
                           showReferenceLines,
+                          showMissingLinking,
+                          showDuplicateTracks,
                       );
             featureCache.set(key, features);
             return features;
@@ -530,6 +570,8 @@ adapterInfoRegister.add('alignment', {
                     trackNumberDisplayMode,
                     trackNumberDrawDistance || 0,
                     mapLayer.showReferenceLines,
+                    mapLayer.showMissingLinking,
+                    mapLayer.showDuplicateTracks,
                 );
                 // All features ready, clear old ones and add new ones
                 vectorSource.clear();
