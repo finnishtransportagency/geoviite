@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
@@ -40,6 +41,7 @@ data class MapAlignment<T>(
     override val length: Double,
     val segmentCount: Int,
     val version: RowVersion<T>?,
+    val duplicateOf: IntId<LocationTrack>?,
 ): IAlignment
 
 data class MapSegment(
@@ -73,6 +75,7 @@ fun toMapAlignment(
     length = alignment?.length ?: 0.0,
     segmentCount = alignment?.segments?.size ?: 0,
     version = referenceLine.version,
+    duplicateOf = null,
 )
 
 fun toMapAlignment(
@@ -94,6 +97,7 @@ fun toMapAlignment(
     length = alignment?.length ?: 0.0,
     segmentCount = alignment?.segments?.size ?: 0,
     version = locationTrack.version,
+    duplicateOf = locationTrack.duplicateOf
 )
 
 fun toMapSegment(

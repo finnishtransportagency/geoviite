@@ -34,6 +34,16 @@ export const TrackLayoutContainer: React.FC = () => {
                 layerId: id,
                 visible: visible,
             }),
+        onMissingLinkingVisibilityChange: (id: string, visible: boolean) =>
+            delegates.onMissingLinkingVisibilityChange({
+                layerId: id,
+                visible: visible,
+            }),
+        onDuplicateTracksVisibilityChange: (id: string, visible: boolean) =>
+            delegates.onDuplicateTracksVisibilityChange({
+                layerId: id,
+                visible: visible,
+            }),
         changeTimes: trackLayoutState.changeTimes,
         onShownItemsChange: delegates.onShownItemsChange,
         showArea: delegates.showArea,
