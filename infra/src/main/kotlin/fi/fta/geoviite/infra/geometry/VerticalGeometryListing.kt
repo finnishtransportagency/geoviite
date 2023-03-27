@@ -12,13 +12,6 @@ import fi.fta.geoviite.infra.util.printCsv
 import java.math.BigDecimal
 import kotlin.math.tan
 
-data class GeometryProfileCalculationContext(
-    val geometryAlignment: GeometryAlignment,
-    val planHeader: GeometryPlanHeader,
-    val curvedProfileSegments: List<CurvedProfileSegment>,
-    val linearProfileSegments: List<LinearProfileSegment>,
-)
-
 data class CurvedSectionEndpoint(
     val address: TrackMeter?,
     val height: BigDecimal,
@@ -143,48 +136,76 @@ fun toVerticalGeometryListing(
         .distinct()
         .associateWith(getPlanHeaderAndAlignment)
 
-    val curvedSegmentsAndGeometryListingContexts = linkedElementIds
-        .flatMap { elementId ->
-            getCurvedProfileSegmentsAndContextsOverlappingElement(headersAndAlignments, elementId)
-        }
-        .distinctBy { it.first }
+    return linkedElementIds.flatMap { elementId ->
+        val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
+        val elementRange = Range(geometryAlignment.getElementStationRangeWithinAlignment(elementId))
 
-    return curvedSegmentsAndGeometryListingContexts.mapNotNull { (segment, context) ->
-        val coordinateTransform = context.planHeader.units.coordinateSystemSrid?.let(getTransformation)
-        val (segmentStartAddress, segmentEndAddress) =
-            if (geocodingContext != null && coordinateTransform != null) {
-                getTrackAddressAtStation(
+        val (curvedProfileSegments, linearProfileSegments) = separateCurvedAndLinearProfileSegments(geometryAlignment.profile?.segments ?: emptyList())
+        geometryAlignment.profile?.segments?.mapIndexedNotNull { index, segment ->
+            val segmentRange = Range(geometryAlignment.stationValueNormalized(segment.start.x)..geometryAlignment.stationValueNormalized(segment.end.x))
+            if (segment is CurvedProfileSegment && segmentRange.overlaps(elementRange)) {
+                toVerticalGeometry(
+                    planHeader,
+                    getTransformation,
                     geocodingContext,
-                    coordinateTransform,
-                    context.geometryAlignment,
-                    segment.start.x
-                ) to getTrackAddressAtStation(
-                    geocodingContext,
-                    coordinateTransform,
-                    context.geometryAlignment,
-                    segment.end.x
-                )
+                    geometryAlignment,
+                    segment,
+                    endAddress,
+                    startAddress,
+                    track,
+                    curvedProfileSegments,
+                    linearProfileSegments,
+                )?.let { segment to it }
             }
-            else (null to null)
+            else null
+        } ?: emptyList()
+    }.distinctBy { it.first }.map { it.second }
+}
 
-        if (segmentStartAddress != null && endAddress != null && segmentStartAddress > endAddress) null
-        else if (segmentEndAddress != null && startAddress != null && segmentEndAddress < startAddress) null
-        else toVerticalGeometryListing(
-            segment,
-            context.geometryAlignment,
-            track.name,
-            context.planHeader.units.coordinateSystemSrid
-                ?.let(getTransformation),
-            context.planHeader.id,
-            context.planHeader.source,
-            context.planHeader.fileName,
-            geocodingContext,
-            context.curvedProfileSegments,
-            context.linearProfileSegments,
-            segmentStartAddress,
-            segmentEndAddress
-        )
-    }
+private fun toVerticalGeometry(
+    planHeader: GeometryPlanHeader,
+    getTransformation: (srid: Srid) -> Transformation,
+    geocodingContext: GeocodingContext?,
+    geometryAlignment: GeometryAlignment,
+    segment: CurvedProfileSegment,
+    endAddress: TrackMeter?,
+    startAddress: TrackMeter?,
+    track: LocationTrack,
+    curvedProfileSegments: List<CurvedProfileSegment>,
+    linearProfileSegments: List<LinearProfileSegment>,
+): VerticalGeometryListing? {
+    val coordinateTransform = planHeader.units.coordinateSystemSrid?.let(getTransformation)
+    val (segmentStartAddress, segmentEndAddress) =
+        if (geocodingContext != null && coordinateTransform != null) {
+            getTrackAddressAtStation(
+                geocodingContext,
+                coordinateTransform,
+                geometryAlignment,
+                segment.start.x
+            ) to getTrackAddressAtStation(
+                geocodingContext,
+                coordinateTransform,
+                geometryAlignment,
+                segment.end.x
+            )
+        } else (null to null)
+
+    return if (segmentStartAddress != null && endAddress != null && segmentStartAddress > endAddress) null
+    else if (segmentEndAddress != null && startAddress != null && segmentEndAddress < startAddress) null
+    else toVerticalGeometryListing(
+        segment,
+        geometryAlignment,
+        track.name,
+        planHeader.units.coordinateSystemSrid?.let(getTransformation),
+        planHeader.id,
+        planHeader.source,
+        planHeader.fileName,
+        geocodingContext,
+        curvedProfileSegments,
+        linearProfileSegments,
+        segmentStartAddress,
+        segmentEndAddress
+    )
 }
 
 fun toVerticalGeometryListing(
@@ -367,32 +388,6 @@ fun angleFractionBetweenPoints(point1: IPoint, point2: IPoint) =
     if (point1.x == point2.x) null
     else if (point1.x < point2.x) (point2.y - point1.y) / (point2.x - point1.x)
     else (point1.y - point2.y) / (point1.x - point2.x)
-
-fun getCurvedProfileSegmentsAndContextsOverlappingElement(
-    headersAndAlignments: Map<IntId<GeometryAlignment>, Pair<GeometryPlanHeader, GeometryAlignment>>,
-    elementId: IndexedId<GeometryElement>,
-): List<Pair<CurvedProfileSegment, GeometryProfileCalculationContext>> {
-    val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
-    val (curvedSegments, linearSegments) =
-        geometryAlignment.profile?.segments
-            ?.let(::separateCurvedAndLinearProfileSegments)
-            ?: (emptyList<CurvedProfileSegment>() to emptyList())
-    val elementRange = geometryAlignment.getElementStationRangeWithinAlignment(elementId)
-    val segmentsOverlappingElement = curvedSegments
-        .filter { segment ->
-            geometryAlignment.stationValueNormalized(segment.start.x) <= elementRange.endInclusive &&
-                    geometryAlignment.stationValueNormalized(segment.end.x) >= elementRange.start
-        }
-
-    return segmentsOverlappingElement.map { curve ->
-        curve to GeometryProfileCalculationContext(
-            geometryAlignment,
-            planHeader,
-            curvedSegments,
-            linearSegments
-        )
-    }
-}
 
 private fun separateCurvedAndLinearProfileSegments(segments: List<ProfileSegment>) =
     segments.partition { it is CurvedProfileSegment }
