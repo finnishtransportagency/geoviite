@@ -78,7 +78,9 @@
         "delete": "Poista",
         "ok": "OK",
         "continue": "Jatka",
-        "yes": "Kyllä"
+        "yes": "Kyllä",
+        "show-more": "Näytä lisää",
+        "show-less": "Piilota"
     },
     "yes": "Kyllä",
     "no": "Ei",

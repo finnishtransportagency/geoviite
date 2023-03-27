@@ -1,8 +1,6 @@
 {
     "user-card": {
         "my-details": "Omat tiedot",
-        "show-less": "Näytä vähemmän",
-        "show-more": "Näytä lisää",
         "role": "Rooli",
         "permissions": "Oikeudet"
     }
