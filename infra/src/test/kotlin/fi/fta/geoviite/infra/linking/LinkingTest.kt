@@ -13,29 +13,6 @@ import org.junit.jupiter.api.Test
 class LinkingTest {
 
     @Test
-    fun shouldReverseTrackPointUpdateType(){
-        val reversedEndPoint = getReversedTrackPointUpdateType(LocationTrackPointUpdateType.END_POINT)
-        val reversedStartPoint = getReversedTrackPointUpdateType(LocationTrackPointUpdateType.START_POINT)
-        assertEquals(reversedEndPoint, LocationTrackPointUpdateType.START_POINT)
-        assertEquals(reversedStartPoint, LocationTrackPointUpdateType.END_POINT)
-    }
-
-    @Test
-    fun shouldUpdateLocationTrackEndPoint(){
-        val switchId = IntId<TrackLayoutSwitch>(1711)
-        val segments = getAlignmentEndPointSegmentsData(switchId)
-        val actualSegments = removeLinkingToSwitchFromSegments(switchId, segments)
-        assertEquals(null, actualSegments.last().switchId)
-    }
-
-    @Test
-    fun shouldGetLastSegmentSwitchId(){
-        val expectedSwitchId = IntId<TrackLayoutSwitch>(1711)
-        val segments = getAlignmentEndPointSegmentsData(expectedSwitchId)
-        assertEquals(expectedSwitchId, getSwitchId(segments, LocationTrackPointUpdateType.END_POINT))
-    }
-
-    @Test
     fun indexShouldBeReturnedForAGivenPointOnAList() {
         val point1 = LayoutPoint(0.0, 0.0, null, 0.0, null)
         val point2 = LayoutPoint(1.0, 0.0, null, 1.0, null)

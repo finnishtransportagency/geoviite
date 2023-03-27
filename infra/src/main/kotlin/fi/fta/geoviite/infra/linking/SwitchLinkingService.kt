@@ -609,9 +609,6 @@ private fun getSegmentsByLinkingJoints(
         acc
     }.toList()
 
-private fun clearSwitchInformation(segment: LayoutSegment) =
-    segment.copy(switchId = null, startJointNumber = null, endJointNumber = null)
-
 private fun setStartJointNumber(segment: LayoutSegment, switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber) =
     segment.copy(switchId = switchId, startJointNumber = jointNumber, endJointNumber = null)
 

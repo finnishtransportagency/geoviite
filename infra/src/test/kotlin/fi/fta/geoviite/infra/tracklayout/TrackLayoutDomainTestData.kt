@@ -247,10 +247,6 @@ fun alignment(segments: List<LayoutSegment>) =
         sourceId = null,
     )
 
-fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
-    var distance = 0.0
-    return segments.map { s -> s.withStartM(distance).also { distance += s.length } }
-}
 
 fun locationTrackWithTwoSwitches(
     trackNumberId: IntId<TrackLayoutTrackNumber>,

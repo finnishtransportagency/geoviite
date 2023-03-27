@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -16,27 +17,30 @@ enum class LocationTrackPointUpdateType {
     END_POINT
 }
 
-data class IntervalLayoutPoint(
-    val segmentId: IndexedId<LayoutSegment>,
-    val endPointType: EndPointType?,
-    val point: Point,
-)
-
-data class IntervalGeometryPoint(
-    val segmentId: DomainId<LayoutSegment>,
-    val point: Point,
-)
+//data class IntervalLayoutPoint(
+//    val segmentId: IndexedId<LayoutSegment>,
+//    val endPointType: EndPointType?,
+//    val mRange: Range<Double>,
+//    val point: Point,
+//)
+//
+//data class IntervalGeometryPoint(
+//    val segmentId: DomainId<LayoutSegment>,
+//    val point: Point,
+//)
 
 data class LayoutInterval<T>(
     val alignmentId: IntId<T>,
-    val start: IntervalLayoutPoint,
-    val end: IntervalLayoutPoint,
+    val mRange: Range<Double>,
+//    val start: IntervalLayoutPoint,
+//    val end: IntervalLayoutPoint,
 )
 
 data class GeometryInterval(
     val alignmentId: IntId<GeometryAlignment>,
-    val start: IntervalGeometryPoint,
-    val end: IntervalGeometryPoint,
+    val mRange: Range<Double>,
+//    val start: IntervalGeometryPoint,
+//    val end: IntervalGeometryPoint,
 )
 
 data class LinkingParameters<T>(

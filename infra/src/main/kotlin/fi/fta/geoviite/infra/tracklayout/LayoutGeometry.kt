@@ -13,6 +13,7 @@ import java.time.Instant
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
 
 const val POINT_SEEK_TOLERANCE = 1.0
 
@@ -187,6 +188,7 @@ data class LayoutAlignment(
     }
 
     fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
+
 }
 
 data class LayoutSegmentMetadata(
@@ -388,6 +390,24 @@ data class LayoutSegment(
             withPoints(newPoints, newStart, sourceStart?.plus(newPoints.first().m - points.first().m))
         }
 
+    fun slice(mRange: Range<Double>, snapDistance: Double = 0.0): LayoutSegment {
+        require(mRange.min + snapDistance < mRange.max) {
+            "Slice m-range must be at least as long as snap distance: range=$mRange snapDistance=$snapDistance"
+        }
+        require(mRange.min + snapDistance >= startM && mRange.max - startM <= endM) {
+            "Slice m-range ends must be within segment (with snapDistance tolerance):" +
+                    " range=$mRange snapDistance=$snapDistance segment=${startM..endM}"
+        }
+        val start = seekPointAtM(mRange.min, snapDistance)
+        val end = seekPointAtM(mRange.max, snapDistance)
+        val firstActualPointIndex = if (start.isSnapped) start.index else start.index + 1
+        val currentPoints = points.slice(firstActualPointIndex..end.index)
+        val interpolatedStart = listOfNotNull(if (start.isSnapped) null else start.point)
+        val interpolatedEnd = listOfNotNull(if (end.isSnapped) null else end.point)
+        val newPoints = interpolatedStart + currentPoints + interpolatedEnd
+        return withPoints(newPoints, null, sourceStart?.plus(newPoints.first().m - points.first().m))
+    }
+
     private fun withPoints(points: List<LayoutPoint>, newStart: Double?, newSourceStart: Double?): LayoutSegment =
         copy(
             geometry = geometry.withPoints(points, newStart),
@@ -426,6 +446,11 @@ data class LayoutSegment(
         }
 
     fun getSourceLengthAt(pointIndex: Int): Double? = sourceStart?.plus(points[pointIndex].m)
+
+    fun withoutSwitch(): LayoutSegment =
+        if (switchId == null && startJointNumber == null && endJointNumber == null) this
+        else copy(switchId = null, startJointNumber = null, endJointNumber = null)
+
 }
 
 const val LAYOUT_COORDINATE_DELTA = 0.001

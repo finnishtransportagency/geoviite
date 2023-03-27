@@ -71,9 +71,10 @@ export type LinkPoint = {
     alignmentType: MapAlignmentType;
     alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
     segmentId: LayoutSegmentId;
-    ordering: number;
+    // ordering: number;
     x: number;
     y: number;
+    m: number;
     isSegmentEndPoint: boolean;
     isEndPoint: boolean;
     direction: number | undefined;
