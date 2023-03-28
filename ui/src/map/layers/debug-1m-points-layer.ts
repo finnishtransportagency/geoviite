@@ -10,7 +10,6 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { AddressPoint, PublishType } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
-import { roundToPrecision } from 'utils/rounding';
 import { DEBUG_1M_POINTS } from './layer-visibility-limits';
 
 export type Debug1mPointsLayerFeatureType = OlPoint;
@@ -31,12 +30,11 @@ function addressPointToDebugData(
     point: AddressPoint,
 ): DebugLayerPoint {
     const address = `${point.address.kmNumber}+${point.address.meters}`;
-    const distance = roundToPrecision(point.distance, 1);
     return {
         x: point.point.x,
         y: point.point.y,
         color: color,
-        text: `${name}=${address} (${distance})`,
+        text: `${name}=${address}`,
     };
 }
 

@@ -113,7 +113,5 @@ fun lineConstant(point: Point, slope: Double): Double {
 
 data class Line(val start: IPoint, val end: IPoint) {
     val angle: Double by lazy { directionBetweenPoints(start, end) }
-    val length by lazy {
-        lineLength(start, end)
-    }
+    val length by lazy { lineLength(start, end) }
 }

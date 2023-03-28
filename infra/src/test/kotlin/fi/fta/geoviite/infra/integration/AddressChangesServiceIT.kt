@@ -750,12 +750,10 @@ class AddressChangesServiceIT @Autowired constructor(
             startPoint = AddressPoint(
                 LayoutPoint(start.first.x, start.first.y, null, 0.0, null),
                 start.second,
-                0.0,
             ),
             endPoint = AddressPoint(
                 LayoutPoint(end.first.x, end.first.y, null, lineLength(start.first, end.first), null),
                 start.second,
-                0.0,
             ),
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
@@ -777,7 +775,6 @@ class AddressChangesServiceIT @Autowired constructor(
                     AddressPoint(
                         point = layoutPoint,
                         address = fromAddress + layoutPoint.m,
-                        distance = layoutPoint.m
                     )
                 }
                 addressPoints
@@ -797,7 +794,6 @@ class AddressChangesServiceIT @Autowired constructor(
     fun someAddressPoint() = AddressPoint(
         LayoutPoint(0.0, 0.0, null, 0.0, null),
         TrackMeter(0, 0),
-        0.0,
     )
 
     fun getAllKms(geocodingContextCacheKey: GeocodingContextCacheKey, start: IPoint, end: IPoint): Set<KmNumber> {
