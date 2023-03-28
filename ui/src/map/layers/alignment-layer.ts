@@ -251,17 +251,17 @@ function createFeatures(
 
     segmentFeature.setStyle(styles);
 
-    const numbersBeforeSegment = Math.floor(segment.start / drawDistance);
-    const numbersAfterSegment = Math.floor((segment.start + segment.length) / drawDistance);
+    const numbersBeforeSegment = Math.floor(segment.startM / drawDistance);
+    const numbersAfterSegment = Math.floor((segment.startM + segment.length) / drawDistance);
     const segmentHasTrackNumberLabel =
-        segment.start === 0.0 || numbersBeforeSegment !== numbersAfterSegment;
+        segment.startM === 0.0 || numbersBeforeSegment !== numbersAfterSegment;
     if (
         trackNumber !== null &&
         trackNumberDisplayMode !== DisplayMode.NONE &&
         segmentHasTrackNumberLabel
     ) {
         const badgePoints: MapAlignmentBadgePoint[] = [];
-        let length = segment.start % drawDistance;
+        let length = segment.startM % drawDistance;
         const pointLength = segment.length / segment.points.length;
         segment.points.forEach((point, index) => {
             if (
@@ -360,7 +360,7 @@ function collectSegmentData(
         const trackNumber = trackNumbers.find((tn) => tn.id === parts.baseAlignment.trackNumberId);
         const deduplicatedSegments = [
             ...new Map(parts.segments.map((s) => [s.id, s])).values(),
-        ].sort(fieldComparator((s) => s.start));
+        ].sort(fieldComparator((s) => s.startM));
         if (individualSegments) {
             return deduplicatedSegments.map((segment) => ({
                 trackNumber: trackNumber || null,
@@ -428,7 +428,7 @@ function createFeaturesCached(
             const key = featureKey(
                 data.alignment.alignmentType,
                 data.segment.id,
-                data.segment.start,
+                data.segment.startM,
                 data.segment.resolution,
                 !!(selected || isLinking),
                 highlighted,

@@ -6,12 +6,7 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import {
-    LinkingAlignment,
-    LinkingState,
-    LinkingType,
-    toIntervalRequest,
-} from 'linking/linking-model';
+import { LinkingAlignment, LinkingState, LinkingType } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { updateLocationTrackGeometry } from 'linking/linking-api';
 import {
@@ -143,17 +138,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         if (canUpdate && state.layoutAlignmentInterval.start && state.layoutAlignmentInterval.end) {
             setUpdatingLength(true);
             updateLocationTrackGeometry(state.layoutAlignmentId, {
-                alignmentId: state.layoutAlignmentId,
-                start: toIntervalRequest(state.layoutAlignmentInterval.start),
-                end: toIntervalRequest(state.layoutAlignmentInterval.end),
-            })
-                .then(() => {
-                    Snackbar.success(
-                        t('tool-panel.location-track.location-track-endpoints-updated'),
-                    );
-                    onEndLocationTrackGeometryChange();
-                })
-                .finally(() => setUpdatingLength(false));
+                min: state.layoutAlignmentInterval.start.m,
+                max: state.layoutAlignmentInterval.end.m,
+            }).then(() => {
+                Snackbar.success(
+                    t('tool-panel.location-track.location-track-endpoints-updated'),
+                );
+                onEndLocationTrackGeometryChange();
+            }).finally(() => setUpdatingLength(false));
         }
     };
 

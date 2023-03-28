@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -67,26 +68,20 @@ class LinkingController @Autowired constructor(
     @PutMapping("/location-tracks/{id}/geometry")
     fun updateLocationTrackGeometry(
         @PathVariable("id") alignmentId: IntId<LocationTrack>,
-        @RequestBody interval: LayoutInterval<LocationTrack>,
+        @RequestBody mRange: Range<Double>,
     ): IntId<LocationTrack> {
-        logger.apiCall(
-            "updateLocationTrackGeometry",
-            "alignmentId" to alignmentId, "interval" to interval
-        )
-        return linkingService.updateLocationTrackGeometry(alignmentId, interval)
+        logger.apiCall("updateLocationTrackGeometry", "alignmentId" to alignmentId, "mRange" to mRange)
+        return linkingService.updateLocationTrackGeometry(alignmentId, mRange)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PutMapping("/reference-lines/{id}/geometry")
     fun updateReferenceLineGeometry(
         @PathVariable("id") alignmentId: IntId<ReferenceLine>,
-        @RequestBody interval: LayoutInterval<ReferenceLine>,
+        @RequestBody mRange: Range<Double>,
     ): IntId<ReferenceLine> {
-        logger.apiCall(
-            "updateReferenceLineGeometry",
-            "alignmentId" to alignmentId, "interval" to interval
-        )
-        return linkingService.updateReferenceLineGeometry(alignmentId, interval)
+        logger.apiCall("updateReferenceLineGeometry", "alignmentId" to alignmentId, "mRange" to mRange)
+        return linkingService.updateReferenceLineGeometry(alignmentId, mRange)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

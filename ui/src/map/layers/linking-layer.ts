@@ -18,13 +18,7 @@ import {
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import { LINKING_DOTS } from 'map/layers/layer-visibility-limits';
 import { ChangeTimes } from 'track-layout/track-layout-store';
-import {
-    ClusterPoint,
-    LinkingState,
-    LinkingType,
-    LinkInterval,
-    LinkPoint,
-} from 'linking/linking-model';
+import { ClusterPoint, LinkingState, LinkingType, LinkInterval, LinkPoint } from 'linking/linking-model';
 import { createUpdatedInterval } from 'linking/linking-store';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
@@ -462,11 +456,10 @@ function getPointsByOrder(
 ): LinkPoint[] {
     if (allPoints.length == 0 || orderStart == undefined || orderEnd == undefined) return [];
     else if (
-        orderEnd < allPoints[0].ordering ||
-        orderStart > allPoints[allPoints.length - 1].ordering
-    )
-        return [];
-    else return allPoints.filter((p) => p.ordering >= orderStart && p.ordering <= orderEnd);
+        orderEnd < allPoints[0].m ||
+        orderStart > allPoints[allPoints.length - 1].m
+    ) return [];
+    else return allPoints.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
 function createFeaturesForAlignment(
@@ -484,15 +477,15 @@ function createFeaturesForAlignment(
     lineSelectedHighlightedStyle: Style,
 ): Feature<Point | LineString>[] {
     const selectedInterval = linkInterval;
-    const selectedIntervalStart = selectedInterval.start?.ordering;
-    const selectedIntervalEnd = selectedInterval.end?.ordering || selectedIntervalStart;
+    const selectedIntervalStart = selectedInterval.start?.m;
+    const selectedIntervalEnd = selectedInterval.end?.m || selectedIntervalStart;
 
     const highlightedInterval =
         highlightedLinkPoint != undefined
             ? createUpdatedInterval(selectedInterval, highlightedLinkPoint, true)
             : selectedInterval;
-    const highlightedIntervalStart = highlightedInterval.start?.ordering;
-    const highlightedIntervalEnd = highlightedInterval.end?.ordering || highlightedIntervalStart;
+    const highlightedIntervalStart = highlightedInterval.start?.m;
+    const highlightedIntervalEnd = highlightedInterval.end?.m || highlightedIntervalStart;
 
     const beforeSelectionPoints = getPointsByOrder(points, 0, selectedIntervalStart || Infinity);
     const afterSelectionPoints = getPointsByOrder(points, selectedIntervalEnd, Infinity);
@@ -576,17 +569,18 @@ function pointsOverlapping(layoutPoint: LinkPoint, geometryPoint: LinkPoint): Cl
     if (distance <= buffer)
         return {
             id: geometryPoint.id + layoutPoint.id,
-            alignmentType: layoutPoint.alignmentType,
-            alignmentId: geometryPoint.alignmentId + layoutPoint.alignmentId,
-            segmentId: geometryPoint.segmentId + layoutPoint.segmentId,
-            ordering: geometryPoint.ordering,
+            // alignmentType: layoutPoint.alignmentType,
+            // alignmentId: geometryPoint.alignmentId + layoutPoint.alignmentId,
+            // segmentId: geometryPoint.segmentId + layoutPoint.segmentId,
+            // // TODO: GVT-553 what's this? We can't just use ordering/m from one point, they're not the same!
+            // m: geometryPoint.m,
             x: geometryPoint.x,
             y: geometryPoint.y,
-            isSegmentEndPoint: geometryPoint.isSegmentEndPoint,
+            // isSegmentEndPoint: geometryPoint.isSegmentEndPoint,
             layoutPoint: layoutPoint,
             geometryPoint: geometryPoint,
-            isEndPoint: geometryPoint.isEndPoint,
-            direction: undefined,
+            // isEndPoint: geometryPoint.isEndPoint,
+            // direction: undefined,
         };
     else return null;
 }
@@ -731,7 +725,7 @@ function createFeaturesWhenLinkingGeometryWithLayoutAlignment(
         geometryInterval.start &&
         geometryInterval.end
     ) {
-        if (alignmentInterval.start.ordering === 0) {
+        if (alignmentInterval.start.m === 0) {
             allFeatures.push(createConnectingLine(alignmentInterval.start, geometryInterval.end));
         } else {
             allFeatures.push(createConnectingLine(alignmentInterval.end, geometryInterval.start));
@@ -784,6 +778,7 @@ adapterInfoRegister.add('linking', {
                         ? getLocationTrackSegmentEnds(linkingState.layoutAlignmentId, publishType)
                         : getReferenceLineSegmentEnds(linkingState.layoutAlignmentId, publishType),
                 ]).then(([points, _]) => {
+                    console.log(points.map(p => p.m))
                     const allFeatures = createFeaturesWhenUpdatingLayoutAlignment(
                         selection,
                         points,

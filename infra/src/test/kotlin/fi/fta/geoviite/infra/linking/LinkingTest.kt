@@ -32,22 +32,22 @@ class LinkingTest {
         assertEquals(expectedIndex3, point3Index)
     }
 
-    @Test
-    fun shouldReturnSegmentsBeforeNewModifiedGeometry() {
-        val segments = createSegments()
-        val startLayoutIndex = 1
-        val segmentsBeforeStart = getSegmentsBeforeNewGeometry(segments, startLayoutIndex)
-        assertEquals(segments[0].id, segmentsBeforeStart[0].id)
-    }
-
-    @Test
-    fun shouldReturnSegmentsAfterNewModifiedGeometry() {
-        val segments = createSegments()
-        val endLayoutIndex = 1
-        val segmentsAfterGeometry = getSegmentsAfterNewGeometry(segments, endLayoutIndex, 1.0)
-        assertEquals(segments[2].id, segmentsAfterGeometry[0].id)
-        assertEquals(1.0, segmentsAfterGeometry[0].startM)
-    }
+//    @Test
+//    fun shouldReturnSegmentsBeforeNewModifiedGeometry() {
+//        val segments = createSegments()
+//        val startLayoutIndex = 1
+//        val segmentsBeforeStart = getSegmentsBeforeNewGeometry(segments, startLayoutIndex)
+//        assertEquals(segments[0].id, segmentsBeforeStart[0].id)
+//    }
+//
+//    @Test
+//    fun shouldReturnSegmentsAfterNewModifiedGeometry() {
+//        val segments = createSegments()
+//        val endLayoutIndex = 1
+//        val segmentsAfterGeometry = getSegmentsAfterNewGeometry(segments, endLayoutIndex, 1.0)
+//        assertEquals(segments[2].id, segmentsAfterGeometry[0].id)
+//        assertEquals(1.0, segmentsAfterGeometry[0].startM)
+//    }
 
     // TODO: GVT-553 New tests for new LinkingTransformation functions
 //    @Test
@@ -85,41 +85,41 @@ class LinkingTest {
 //        assertEquals(expectedListSize, geometrySegments.size)
 //    }
 
-    @Test
-    fun shouldReturnSegmentsBetweenIndicesWhenStartAndEndIndicesAreTheSame() {
-        val segments = createSegments()
-        val startLayoutIndex = 1
-        val endLayoutIndex = 1
+//    @Test
+//    fun shouldReturnSegmentsBetweenIndicesWhenStartAndEndIndicesAreTheSame() {
+//        val segments = createSegments()
+//        val startLayoutIndex = 1
+//        val endLayoutIndex = 1
+//
+//        val expectedId: DomainId<LayoutSegment> = segments[1].id
+//        val list = getSegmentsInRange(
+//            segments,
+//            startLayoutIndex,
+//            endLayoutIndex,
+//            1.0,
+//        )
+//        assertEquals(expectedId, list[0].id)
+//        assertEquals(1.0, list[0].startM)
+//    }
 
-        val expectedId: DomainId<LayoutSegment> = segments[1].id
-        val list = getSegmentsInRange(
-            segments,
-            startLayoutIndex,
-            endLayoutIndex,
-            1.0,
-        )
-        assertEquals(expectedId, list[0].id)
-        assertEquals(1.0, list[0].startM)
-    }
-
-    @Test
-    fun shouldReturnSegmentsBetweenIndices() {
-        val segments = createSegments()
-        val startLayoutIndex = 1
-        val endLayoutIndex = 2
-        val list = getSegmentsInRange(
-            segments,
-            startIndex = startLayoutIndex,
-            endIndex = endLayoutIndex,
-            10.0,
-        )
-        val expectedIdList: List<DomainId<LayoutSegment>> = listOf(segments[1].id, segments[2].id)
-        val actualIdList = list.map { segment -> segment.id }
-        assertEquals(expectedIdList, actualIdList)
-        val expectedStarts = listOf(10.0, 10.0 + segments[1].length)
-        val actualStarts = list.map { segment -> segment.startM }
-        assertEquals(expectedStarts, actualStarts)
-    }
+//    @Test
+//    fun shouldReturnSegmentsBetweenIndices() {
+//        val segments = createSegments()
+//        val startLayoutIndex = 1
+//        val endLayoutIndex = 2
+//        val list = getSegmentsInRange(
+//            segments,
+//            startIndex = startLayoutIndex,
+//            endIndex = endLayoutIndex,
+//            10.0,
+//        )
+//        val expectedIdList: List<DomainId<LayoutSegment>> = listOf(segments[1].id, segments[2].id)
+//        val actualIdList = list.map { segment -> segment.id }
+//        assertEquals(expectedIdList, actualIdList)
+//        val expectedStarts = listOf(10.0, 10.0 + segments[1].length)
+//        val actualStarts = list.map { segment -> segment.startM }
+//        assertEquals(expectedStarts, actualStarts)
+//    }
 
     @Test
     fun shouldCalculateSourceLengthFromStartAndListOfPoints() {

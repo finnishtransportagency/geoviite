@@ -5,17 +5,9 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import {
-    API_URI,
-    getIgnoreError,
-    getThrowError,
-    postIgnoreError,
-    putIgnoreError,
-    queryParams,
-} from 'api/api-fetch';
+import { API_URI, getIgnoreError, getThrowError, postIgnoreError, putIgnoreError, queryParams } from 'api/api-fetch';
 import {
     GeometryPlanLinkStatus,
-    IntervalRequest,
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     LocationTrackEndpoint,
@@ -38,7 +30,7 @@ import { MapTile } from 'map/map-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
-import { BoundingBox, Point } from 'model/geometry';
+import { BoundingBox, Point, Range } from 'model/geometry';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -76,7 +68,7 @@ export const linkGeometryWithReferenceLine = async (
         linkingUri('reference-lines', 'geometry'),
         parameters,
     );
-    updateReferenceLineChangeTime();
+    await updateReferenceLineChangeTime();
     return response;
 };
 
@@ -87,7 +79,7 @@ export const linkGeometryWithLocationTrack = async (
         linkingUri('location-tracks', 'geometry'),
         parameters,
     );
-    updateLocationTrackChangeTime();
+    await updateLocationTrackChangeTime();
     return response;
 };
 
@@ -98,7 +90,7 @@ export const linkGeometryWithEmptyReferenceLine = async (
         LinkingGeometryWithEmptyAlignmentParameters,
         ReferenceLineId
     >(linkingUri('reference-lines', 'empty-geometry'), parameters);
-    updateReferenceLineChangeTime();
+    await updateReferenceLineChangeTime();
     return response;
 };
 
@@ -109,31 +101,31 @@ export const linkGeometryWithEmptyLocationTrack = async (
         LinkingGeometryWithEmptyAlignmentParameters,
         LocationTrackId
     >(linkingUri('location-tracks', 'empty-geometry'), parameters);
-    updateLocationTrackChangeTime();
+    await updateLocationTrackChangeTime();
     return response;
 };
 
 export async function updateReferenceLineGeometry(
     id: ReferenceLineId,
-    interval: IntervalRequest,
+    mRange: Range,
 ): Promise<ReferenceLineId | null> {
-    const result = await putIgnoreError<IntervalRequest, ReferenceLineId>(
+    const result = await putIgnoreError<Range, ReferenceLineId>(
         linkingUri('reference-lines', 'geometry', id),
-        interval,
+        mRange,
     );
-    updateReferenceLineChangeTime();
+    await updateReferenceLineChangeTime();
     return result;
 }
 
 export async function updateLocationTrackGeometry(
     id: LocationTrackId,
-    interval: IntervalRequest,
+    mRange: Range,
 ): Promise<LocationTrackId | null> {
-    const result = await putIgnoreError<IntervalRequest, LocationTrackId>(
+    const result = await putIgnoreError<Range, LocationTrackId>(
         linkingUri('location-tracks', 'geometry', id),
-        interval,
+        mRange,
     );
-    updateLocationTrackChangeTime();
+    await updateLocationTrackChangeTime();
     return result;
 }
 
@@ -220,8 +212,8 @@ export async function linkSwitch(params: SwitchLinkingParameters): Promise<Layou
     if (!result) {
         throw Error('Failed to link switch!');
     }
-    updateLocationTrackChangeTime();
-    updateSwitchChangeTime();
+    await updateLocationTrackChangeTime();
+    await updateSwitchChangeTime();
     return result;
 }
 
@@ -252,7 +244,7 @@ export async function linkKmPost(
     if (!result) {
         throw Error('Failed to link km post!');
     }
-    updateKmPostChangeTime();
-    updatePlanChangeTime();
+    await updateKmPostChangeTime();
+    await updatePlanChangeTime();
     return result;
 }

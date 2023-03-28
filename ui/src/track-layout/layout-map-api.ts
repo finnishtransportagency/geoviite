@@ -95,13 +95,14 @@ export async function getLinkPointsByTiles(
             const segments = allAlignments
                 .filter((a) => a.id === alignmentId)
                 .flatMap((a) => a.segments)
-                .sort((a, b) => a.start - b.start);
+                .sort((a, b) => a.startM - b.startM);
 
             const uniqueIds = segments.map((s) => s.id);
             const uniqueSegments = segments.filter(
                 ({ id }, index) => !uniqueIds.includes(id, index + 1),
             );
 
+            console.log(uniqueSegments.map(s => `${s.startM}-${s.endM}`))
             return createLinkPoints(alignmentType, alignmentId, uniqueSegments);
         })
     ).flat();

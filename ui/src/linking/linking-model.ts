@@ -19,11 +19,10 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { Point } from 'model/geometry';
+import { Point, Range } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
-    LayoutEndPoint,
     LocationAccuracy,
     LocationTrackPointUpdateType,
     SwitchAlignmentId,
@@ -80,7 +79,10 @@ export type LinkPoint = {
     direction: number | undefined;
 };
 
-export type ClusterPoint = LinkPoint & {
+export type ClusterPoint = {// = LinkPoint & {
+    id: string;
+    x: number;
+    y: number;
     layoutPoint: LinkPoint;
     geometryPoint: LinkPoint;
 };
@@ -171,16 +173,9 @@ export enum LinkingType {
     UnknownAlignment,
 }
 
-export type PointRequest = {
-    segmentId: LayoutSegmentId;
-    endPointType?: LayoutEndPoint;
-    point: Point;
-};
-
 export type IntervalRequest = {
-    start: PointRequest;
-    end: PointRequest;
-    alignmentId: LocationTrackId | ReferenceLineId;
+    mRange: Range;
+    alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
 };
 
 export type LinkingGeometryWithAlignmentParameters = {
@@ -195,12 +190,16 @@ export type LinkingGeometryWithEmptyAlignmentParameters = {
     geometryInterval: IntervalRequest;
 };
 
-export function toIntervalRequest(point: LinkPoint): PointRequest {
+export function toIntervalRequest(
+    alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId,
+    startM: number,
+    endM: number,
+): IntervalRequest {
     return {
-        segmentId: point.segmentId,
-        point: {
-            x: point.x,
-            y: point.y,
+        alignmentId: alignmentId,
+        mRange: {
+            min: startM,
+            max: endM,
         },
     };
 }

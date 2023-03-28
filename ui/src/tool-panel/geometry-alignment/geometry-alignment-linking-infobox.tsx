@@ -88,16 +88,8 @@ function createLinkingGeometryWithAlignmentParameters(
     if (geometryStart && geometryEnd && layoutStart && layoutEnd) {
         return {
             geometryPlanId: alignmentLinking.geometryPlanId,
-            geometryInterval: {
-                alignmentId: geometryStart.alignmentId,
-                start: toIntervalRequest(geometryStart),
-                end: toIntervalRequest(geometryEnd),
-            },
-            layoutInterval: {
-                alignmentId: layoutStart.alignmentId,
-                start: toIntervalRequest(layoutStart),
-                end: toIntervalRequest(layoutEnd),
-            },
+            geometryInterval: toIntervalRequest(geometryStart.alignmentId, geometryStart.m, geometryEnd.m),
+            layoutInterval: toIntervalRequest(layoutStart.alignmentId, layoutStart.m, layoutEnd.m),
         };
     } else {
         throw Error('Cannot create linking parameters, mandatory information is missing!');
@@ -114,11 +106,7 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
         return {
             geometryPlanId: linking.geometryPlanId,
             layoutAlignmentId: linking.layoutAlignmentId,
-            geometryInterval: {
-                alignmentId: geometryStart.alignmentId,
-                start: toIntervalRequest(geometryStart),
-                end: toIntervalRequest(geometryEnd),
-            },
+            geometryInterval: toIntervalRequest(geometryStart.alignmentId, geometryStart.m, geometryEnd.m),
         };
     } else {
         throw Error('Cannot create linking parameters, mandatory information is missing!');
