@@ -2,8 +2,11 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.math.Point3DZ
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -13,41 +16,39 @@ import org.junit.jupiter.api.Test
 class LinkingTest {
 
     @Test
-    fun indexShouldBeReturnedForAGivenPointOnAList() {
-        val point1 = LayoutPoint(0.0, 0.0, null, 0.0, null)
-        val point2 = LayoutPoint(1.0, 0.0, null, 1.0, null)
-        val point3 = LayoutPoint(2.0, 0.0, null, 2.0, null)
+    fun findAffectedSwitchesWorks() {
 
-        val segmentPoints = listOf(point1, point2, point3)
-        val segment = segment(segmentPoints)
-        val point1Index = segment.getPointIndex(point1)
-        val point2Index = segment.getPointIndex(point2)
-        val point3Index = segment.getPointIndex(point3)
-        val expectedIndex1 = 0
-        val expectedIndex2 = 1
-        val expectedIndex3 = 2
-
-        assertEquals(expectedIndex1, point1Index)
-        assertEquals(expectedIndex2, point2Index)
-        assertEquals(expectedIndex3, point3Index)
     }
 
-//    @Test
-//    fun shouldReturnSegmentsBeforeNewModifiedGeometry() {
-//        val segments = createSegments()
-//        val startLayoutIndex = 1
-//        val segmentsBeforeStart = getSegmentsBeforeNewGeometry(segments, startLayoutIndex)
-//        assertEquals(segments[0].id, segmentsBeforeStart[0].id)
-//    }
-//
-//    @Test
-//    fun shouldReturnSegmentsAfterNewModifiedGeometry() {
-//        val segments = createSegments()
-//        val endLayoutIndex = 1
-//        val segmentsAfterGeometry = getSegmentsAfterNewGeometry(segments, endLayoutIndex, 1.0)
-//        assertEquals(segments[2].id, segmentsAfterGeometry[0].id)
-//        assertEquals(1.0, segmentsAfterGeometry[0].startM)
-//    }
+    @Test
+    fun `Layout alignment can be replace with full geometry alignment`() {
+        val layoutAlignment = alignment(
+            segment(Point(1.0, 1.0), Point(2.0, 2.0)),
+            segment(Point(2.0, 2.0), Point(3.0, 3.0)),
+        )
+        val geometryAlignment = mapAlignment<GeometryAlignment>(
+            mapSegment(Point3DM(10.0, 10.0, 0.0), Point3DM(13.0, 10.0, 3.0)),
+            mapSegment(Point3DM(13.0, 10.0, 3.0), Point3DM(15.0, 10.0, 5.0)),
+        )
+        assertGeometryChange(
+            layoutAlignment,
+            replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(0.0, geometryAlignment.length)),
+            geometryAlignment.segments.map { s -> s.points },
+        )
+    }
+
+    private fun assertGeometryChange(
+        originalAlignment: LayoutAlignment,
+        newAlignment: LayoutAlignment,
+        segmentPointLists: List<List<LayoutPoint>>,
+    ) {
+        assertEquals(originalAlignment.id, newAlignment.id)
+        assertEquals(newAlignment.segments.size, segmentPointLists.size)
+        segmentPointLists.forEachIndexed { index, expectedPoints ->
+            val segment = newAlignment.segments[index]
+            assertEquals(expectedPoints, segment.points)
+        }
+    }
 
     // TODO: GVT-553 New tests for new LinkingTransformation functions
 //    @Test

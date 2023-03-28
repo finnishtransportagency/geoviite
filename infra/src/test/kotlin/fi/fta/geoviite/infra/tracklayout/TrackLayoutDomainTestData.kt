@@ -242,12 +242,29 @@ fun <T> someOid() = Oid<T>(
 )
 fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
 
-fun alignment(segments: List<LayoutSegment>) =
-    LayoutAlignment(
-        segments = fixSegmentStarts(segments),
-        sourceId = null,
-    )
+fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(
+    segments = fixSegmentStarts(segments),
+    sourceId = null,
+)
 
+fun <T> mapAlignment(vararg segments: MapSegment) = mapAlignment<T>(segments.toList())
+
+fun <T> mapAlignment(segments: List<MapSegment>) = MapAlignment<T>(
+    name = AlignmentName("test-alignment"),
+    description = FreeText("test alignment description"),
+    alignmentSource = MapAlignmentSource.GEOMETRY,
+    alignmentType = MapAlignmentType.LOCATION_TRACK,
+    type = LocationTrackType.MAIN,
+    state = LayoutState.IN_USE,
+    segmentCount = segments.size,
+    segments = segments,
+    trackNumberId = IntId(1),
+    sourceId = StringId(),
+    id = StringId(),
+    boundingBox = boundingBoxCombining(segments.mapNotNull(MapSegment::boundingBox)),
+    length = segments.map(MapSegment::length).sum(),
+    version = null,
+)
 
 fun locationTrackWithTwoSwitches(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -496,6 +513,41 @@ fun segment(
     startJointNumber = startJointNumber,
     endJointNumber = endJointNumber,
     source = source,
+)
+
+fun mapSegment(
+    vararg points: Point3DM,
+    start: Double = points[0].m,
+    sourceId: DomainId<GeometryElement>? = null,
+    sourceStart: Double? = null,
+    source: GeometrySource = PLAN,
+) = mapSegment(
+    points = toTrackLayoutPoints(points.asList()),
+    start = start,
+    sourceId = sourceId,
+    sourceStart = sourceStart,
+    source = source,
+)
+
+fun mapSegment(
+    points: List<LayoutPoint>,
+    start: Double = 0.0,
+    resolution: Int = 1,
+    sourceId: DomainId<GeometryElement>? = null,
+    sourceStart: Double? = null,
+    source: GeometrySource = PLAN,
+    id: DomainId<LayoutSegment> = StringId(),
+) = MapSegment(
+    geometry = SegmentGeometry(
+        points = points,
+        resolution = resolution,
+        start = start,
+    ),
+    pointCount = points.size,
+    sourceId = sourceId,
+    sourceStart = sourceStart,
+    source = source,
+    id = id,
 )
 
 fun splitSegment(segment: LayoutSegment, numberOfParts: Int): List<LayoutSegment> {

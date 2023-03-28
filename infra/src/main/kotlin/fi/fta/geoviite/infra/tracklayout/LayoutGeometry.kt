@@ -223,15 +223,9 @@ interface ISegmentGeometry {
     @get:JsonIgnore
     val boundingBox: BoundingBox?
 
-    // TODO: GVT-553 Rename these to startM and endM
     val startM: Double get() = points.first().m
     val endM: Double get() = points.last().m
     val length: Double get() = endM - startM
-
-    fun getPointIndex(trackLayoutPoint: IPoint): Int? {
-        val index = points.indexOfFirst { point -> point.x == trackLayoutPoint.x && point.y == trackLayoutPoint.y }
-        return if (index != -1) index else null
-    }
 
     fun includes(searchPoint: IPoint): Boolean {
         return points.any { point -> point.isSame(searchPoint, LAYOUT_COORDINATE_DELTA) }
