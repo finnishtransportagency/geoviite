@@ -218,14 +218,16 @@ data class GeocodingContext(
     }
 
     fun getTrackLocation(alignment: LayoutAlignment, address: TrackMeter): AddressPoint? {
-        val startAddress = alignment.start?.let(::getAddress)?.first
-        val endAddress = alignment.end?.let(::getAddress)?.first
+        val alignmentStart = alignment.start
+        val alignmentEnd = alignment.end
+        val startAddress = alignmentStart?.let(::getAddress)?.first
+        val endAddress = alignmentEnd?.let(::getAddress)?.first
         return if (startAddress == null || endAddress == null || address !in startAddress..endAddress) {
             null
         } else if (startAddress.isSame(address)) {
-            AddressPoint(alignment.start!!, startAddress)
+            AddressPoint(alignmentStart, startAddress)
         } else if (endAddress.isSame(address)) {
-            AddressPoint(alignment.end!!, endAddress)
+            AddressPoint(alignmentEnd, endAddress)
         } else getProjectionLine(address)?.let { projectionLine ->
             getProjectedAddressPoint(projectionLine, alignment)
         }
