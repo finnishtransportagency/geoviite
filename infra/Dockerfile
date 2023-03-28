@@ -1,6 +1,6 @@
-ARG OPENJDK_IMAGE=""
+ARG TEMURIN_IMAGE=""
 
-FROM $OPENJDK_IMAGE
+FROM $TEMURIN_IMAGE
 
 COPY build/libs/infra-SNAPSHOT.jar/ /geoviite/infra/
 COPY build/reports/dependency-license /geoviite/infra/dependency-license
