@@ -3,19 +3,25 @@
 @import '../../vayla-design-lib/typography';
 
 .map-layer-settings {
-    @include shadow-4dp;
+    position: relative;
     padding: 16px;
-    border-radius: 6px;
     background: $color-white-dark;
-}
 
-.map-layer-settings > *:not(:last-child) {
-    margin-bottom: 16px;
-}
+    &__close-button {
+        position: absolute;
+        right: 6px;
+        top: 6px;
+    }
 
-.map-layer-settings__title {
-    @include typography-sub-heading;
-    color: $color-black-lighter;
+    > &__title {
+        @include typography-sub-heading;
+        color: $color-black-lighter;
+        margin-bottom: 10px;
+
+        &:not(:first-of-type) {
+            margin-top: 20px;
+        }
+    }
 }
 
 .layer-visibility-setting {
@@ -23,6 +29,10 @@
     align-items: center;
     user-select: none;
     cursor: pointer;
+
+    &:not(:last-child) {
+        margin-bottom: 14px;
+    }
 
     &--indented {
         margin-left: 16px;

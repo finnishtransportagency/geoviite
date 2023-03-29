@@ -9,6 +9,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { useTranslation } from 'react-i18next';
 import { compareByField } from 'utils/array-utils';
+import { ShowMoreButton } from 'show-more-button/show-more-button';
 
 type LocationTracksPanelProps = {
     locationTracks: LayoutLocationTrack[];
@@ -16,6 +17,7 @@ type LocationTracksPanelProps = {
     selectedLocationTracks?: LocationTrackId[];
     canSelectLocationTrack: boolean;
     max?: number;
+    showMoreMax?: number;
 };
 
 export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
@@ -24,10 +26,19 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
     selectedLocationTracks,
     canSelectLocationTrack,
     max = 16,
+    showMoreMax = 48,
 }: LocationTracksPanelProps) => {
     const { t } = useTranslation();
+    const [showMore, setShowMore] = React.useState(false);
     const [trackCount, setTrackCount] = React.useState(0);
     const [visibleTracks, setVisibleTracks] = React.useState<LayoutLocationTrack[]>([]);
+
+    React.useEffect(() => {
+        if (trackCount != locationTracks.length) {
+            setShowMore(false);
+        }
+    }, [locationTracks]);
+
     React.useEffect(() => {
         if (locationTracks) {
             const sortedLocationTracks = [...locationTracks].sort((a, b) => {
@@ -40,13 +51,15 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                 return compareByField(a, b, (lt) => lt.id);
             });
 
-            setVisibleTracks(sortedLocationTracks.length < max + 1 ? sortedLocationTracks : []);
+            const visibleTracks = sortedLocationTracks.slice(0, showMore ? showMoreMax : max);
+
+            setVisibleTracks(sortedLocationTracks.length <= showMoreMax ? visibleTracks : []);
             setTrackCount(sortedLocationTracks.length);
         } else {
             setVisibleTracks([]);
             setTrackCount(0);
         }
-    }, [locationTracks]);
+    }, [locationTracks, showMore]);
 
     return (
         <div>
@@ -80,7 +93,8 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                     );
                 })}
             </ol>
-            {trackCount > max && (
+
+            {trackCount > showMoreMax && (
                 <span className={styles['location-tracks-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
                 )}`}</span>
@@ -90,6 +104,12 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                 <span className={styles['location-tracks-panel__subtitle']}>{`${t(
                     'selection-panel.no-results',
                 )}`}</span>
+            )}
+
+            {max < trackCount && trackCount <= showMoreMax && (
+                <div className={styles['location-tracks-panel__show-more']}>
+                    <ShowMoreButton onShowMore={() => setShowMore(!showMore)} expanded={showMore} />
+                </div>
             )}
         </div>
     );

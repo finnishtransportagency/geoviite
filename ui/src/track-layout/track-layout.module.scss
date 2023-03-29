@@ -22,9 +22,14 @@
 }
 
 .track-layout__map-settings {
+    @include shadow-8dp;
+
     position: absolute;
-    left: 5px;
-    top: 5px;
+    overflow-y: auto;
+    margin-top: 5px;
+    margin-left: 5px;
+    max-height: 100%;
+    border-radius: 6px;
     z-index: $layer-popup;
 }
 

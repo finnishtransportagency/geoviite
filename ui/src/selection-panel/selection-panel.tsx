@@ -31,8 +31,8 @@ import {
 import { ChangeTimes } from 'track-layout/track-layout-store';
 import { PublishType } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
-import { LocationTracksPanel } from 'selection-panel/alignment-panel/location-tracks-panel';
-import ReferenceLinesPanel from 'selection-panel/alignment-panel/reference-lines-panel';
+import { LocationTracksPanel } from 'selection-panel/location-track-panel/location-tracks-panel';
+import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 
 type SelectionPanelProps = {

@@ -67,11 +67,13 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
 
     return (
         <div className={styles['map-layer-settings']}>
-            <Button
-                variant={ButtonVariant.GHOST}
-                icon={Icons.Close}
-                onClick={() => props.onClose && props.onClose()}
-            />
+            <span className={styles['map-layer-settings__close-button']}>
+                <Button
+                    variant={ButtonVariant.GHOST}
+                    icon={Icons.Close}
+                    onClick={() => props.onClose && props.onClose()}
+                />
+            </span>
             <div className={styles['map-layer-settings__title']}>
                 {t('map-layer-settings.layout')}
             </div>
