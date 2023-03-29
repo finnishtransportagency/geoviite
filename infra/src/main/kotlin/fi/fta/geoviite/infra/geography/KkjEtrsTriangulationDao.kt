@@ -7,18 +7,21 @@ import fi.fta.geoviite.infra.configuration.CACHE_KKJ_ETRS_TRIANGULATION_NETWORK
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getPoint
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 
-@Component
-class KKJtoETRSTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
-    @Cacheable(CACHE_KKJ_ETRS_TRIANGULATION_NETWORK, sync = true)
-    fun fetchTriangulationNetwork(): RTree<KKJtoETRSTriangle, Rectangle> {
-        val sql = """
-          select
+enum class TriangulationDirection(val direction: String) {
+    KKJ_TO_ETRS("KKJ_TO_ETRS"),
+    ETRS_TO_KKJ("ETRS_TO_KKJ")
+}
+
+//language=SQL
+val KKJ_TO_ETRS_SQL = """
+              select
             postgis.st_x(t1.coord_kkj) as x1,
             postgis.st_y(t1.coord_kkj) as y1,
             postgis.st_x(t2.coord_kkj) as x2,
@@ -29,10 +32,37 @@ class KKJtoETRSTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) 
             inner join common.kkj_etrs_triangle_corner_point t1 on kkj_etrs_triangulation_network.coord1_id = t1.id
             inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
             inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
-        """.trimIndent()
+              where kkj_etrs_triangulation_network.direction = 'KKJ_TO_ETRS'
+""".trimIndent()
+
+//language=SQL
+val ETRS_TO_KKJ_SQL = """
+              select
+            postgis.st_x(t1.coord_etrs) as x1,
+            postgis.st_y(t1.coord_etrs) as y1,
+            postgis.st_x(t2.coord_etrs) as x2,
+            postgis.st_y(t2.coord_etrs) as y2,
+            postgis.st_x(t3.coord_etrs) as x3,
+            postgis.st_y(t3.coord_etrs) as y3,
+              a1, a2, delta_e, delta_n, b1, b2 from common.kkj_etrs_triangulation_network
+            inner join common.kkj_etrs_triangle_corner_point t1 on kkj_etrs_triangulation_network.coord1_id = t1.id
+            inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
+            inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
+              where kkj_etrs_triangulation_network.direction = 'ETRS_TO_KKJ'
+""".trimIndent()
+
+@Component
+class KkjEtrsTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+    @Cacheable(CACHE_KKJ_ETRS_TRIANGULATION_NETWORK, sync = true)
+    fun fetchTriangulationNetwork(direction: TriangulationDirection): RTree<KkjEtrsTriangle, Rectangle> {
         logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
+        val sql = when (direction) {
+            TriangulationDirection.KKJ_TO_ETRS -> KKJ_TO_ETRS_SQL
+            TriangulationDirection.ETRS_TO_KKJ -> ETRS_TO_KKJ_SQL
+        }
+
         val triangles = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, i ->
-            val heightTriangle = KKJtoETRSTriangle(
+            val heightTriangle = KkjEtrsTriangle(
                 corner1 = rs.getPoint("x1", "y1"),
                 corner2 = rs.getPoint("x2", "y2"),
                 corner3 = rs.getPoint("x3", "y3"),
@@ -41,15 +71,19 @@ class KKJtoETRSTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) 
                 deltaE = rs.getDouble("delta_e"),
                 b1 = rs.getDouble("b1"),
                 b2 = rs.getDouble("b2"),
-                deltaN = rs.getDouble("delta_n")
+                deltaN = rs.getDouble("delta_n"),
+                crs = when (direction) {
+                    TriangulationDirection.KKJ_TO_ETRS -> crs(KKJ3_YKJ)
+                    TriangulationDirection.ETRS_TO_KKJ -> LAYOUT_CRS
+                }
             )
             heightTriangle
         }
         return triangulationNetworkToRTree(triangles)
     }
 
-    private fun triangulationNetworkToRTree(triangulationNetwork: List<KKJtoETRSTriangle>) =
-        triangulationNetwork.fold(RTree.star().create<KKJtoETRSTriangle, Rectangle>()) { tree, triangle ->
+    private fun triangulationNetworkToRTree(triangulationNetwork: List<KkjEtrsTriangle>) =
+        triangulationNetwork.fold(RTree.star().create<KkjEtrsTriangle, Rectangle>()) { tree, triangle ->
             val bbox = boundingBoxAroundPoints(triangle.corner1, triangle.corner2, triangle.corner3)
             tree.add(
                 triangle,

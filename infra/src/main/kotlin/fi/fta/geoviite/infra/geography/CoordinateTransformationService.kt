@@ -17,22 +17,23 @@ import org.springframework.stereotype.Service
 data class Transformation private constructor(
     val sourceSrid: Srid,
     val targetSrid: Srid,
-    val triangulationNetwork: RTree<KKJtoETRSTriangle, Rectangle>?
+    val kkjToEtrsTriangulationNetwork: RTree<KkjEtrsTriangle, Rectangle>?,
+    val etrsToKkjTriangulationNetwork: RTree<KkjEtrsTriangle, Rectangle>?,
 ) {
     private val sourceCrs: CoordinateReferenceSystem by lazy { crs(sourceSrid) }
     private val targetCrs: CoordinateReferenceSystem by lazy { crs(targetSrid) }
     private val math: MathTransform by lazy { CRS.findMathTransform(sourceCrs, targetCrs) }
 
     companion object {
-        fun possiblyKKJToETRSTransform(sourceSrid: Srid, targetSrid: Srid, triangleTree: RTree<KKJtoETRSTriangle, Rectangle>) =
-            Transformation(sourceSrid, targetSrid, triangleTree)
+        fun possiblyTriangulableTransform(sourceSrid: Srid, targetSrid: Srid, ykjEtrsTriangles: RTree<KkjEtrsTriangle, Rectangle>, etrsYkjTriangles: RTree<KkjEtrsTriangle, Rectangle>) =
+            Transformation(sourceSrid, targetSrid, ykjEtrsTriangles, etrsYkjTriangles)
 
-        fun nonKKJToETRSTransform(sourceSrid: Srid, targetSrid: Srid) =
-            Transformation(sourceSrid, targetSrid, triangulationNetwork = null)
+        fun nonTriangulableTransform(sourceSrid: Srid, targetSrid: Srid) =
+            Transformation(sourceSrid, targetSrid, kkjToEtrsTriangulationNetwork = null, etrsToKkjTriangulationNetwork = null)
     }
 
     init {
-        require((triangulationNetwork != null && !triangulationNetwork.isEmpty) || !isKKJ(sourceSrid) || targetSrid != LAYOUT_SRID) {
+        require((kkjToEtrsTriangulationNetwork != null && !kkjToEtrsTriangulationNetwork.isEmpty) || !isKKJ(sourceSrid) || targetSrid != LAYOUT_SRID) {
             "Trying to convert from KKJx (${sourceSrid}) to ${targetSrid} without triangulation network"
         }
     }
@@ -40,9 +41,9 @@ data class Transformation private constructor(
     fun transform(point: IPoint): Point {
         try {
             // Intercept transforms from KKJx to ETRS
-            return if (triangulationNetwork != null && !triangulationNetwork.isEmpty && isKKJ(sourceSrid) && targetSrid == LAYOUT_SRID) {
+            return if (kkjToEtrsTriangulationNetwork != null && !kkjToEtrsTriangulationNetwork.isEmpty && isKKJ(sourceSrid) && targetSrid == LAYOUT_SRID) {
                 val ykjPoint = transformKkjToYkjAndNormalizeAxes(point)
-                val triangle = triangulationNetwork
+                val triangle = kkjToEtrsTriangulationNetwork
                     .search(Geometries.point(ykjPoint.x, ykjPoint.y))
                     .find { it.value().intersects(ykjPoint) }
                     ?.value()
@@ -50,7 +51,19 @@ data class Transformation private constructor(
                 requireNotNull(triangle) {
                     "Point was not inside the triangulation network: point=$point ykjPoint=$ykjPoint"
                 }
-                transformYkjPointToEtrs(ykjPoint, triangle)
+                transformPointInTriangle(ykjPoint, targetCrs, triangle)
+            } else if (etrsToKkjTriangulationNetwork != null && !etrsToKkjTriangulationNetwork.isEmpty && sourceSrid == LAYOUT_SRID && isKKJ(targetSrid)) {
+                val jtsPoint = toJtsPoint(point, crs(sourceSrid))
+                val triangle = etrsToKkjTriangulationNetwork
+                    .search(Geometries.point(point.x, point.y))
+                    .find { it.value().intersects(jtsPoint) }
+                    ?.value()
+
+                requireNotNull(triangle) {
+                    "Point was not inside the triangulation network: point=$point"
+                }
+                val ykjPoint = transformPointInTriangle(jtsPoint, YKJ_CRS, triangle)
+                transformYkjToKkjAndNormalizeAxes(ykjPoint).let { toGvtPoint(it, targetCrs) }
             } else {
                 val jtsPoint = toJtsPoint(point, sourceCrs)
                 val jtsPointTransformed = JTS.transform(jtsPoint, math) as org.locationtech.jts.geom.Point
@@ -63,14 +76,20 @@ data class Transformation private constructor(
 
     private fun transformKkjToYkjAndNormalizeAxes(point: IPoint): org.locationtech.jts.geom.Point {
         // Geotools is accurate enough for transformations between KKJx and YKJ, so use it for those
-        val kkjToYkj = nonKKJToETRSTransform(sourceSrid, KKJ3_YKJ)
+        val kkjToYkj = nonTriangulableTransform(sourceSrid, KKJ3_YKJ)
         return JTS.transform(toJtsPoint(point, sourceCrs), kkjToYkj.math) as org.locationtech.jts.geom.Point
+    }
+
+    private fun transformYkjToKkjAndNormalizeAxes(point: IPoint): org.locationtech.jts.geom.Point {
+        // Geotools is accurate enough for transformations between KKJx and YKJ, so use it for those
+        val ykjToKkj = nonTriangulableTransform(KKJ3_YKJ, targetSrid)
+        return JTS.transform(toJtsPoint(point, YKJ_CRS), ykjToKkj.math) as org.locationtech.jts.geom.Point
     }
 }
 
 @Service
 class CoordinateTransformationService @Autowired constructor(
-    private val kkJtoETRSTriangulationDao: KKJtoETRSTriangulationDao
+    private val kkjEtrsTriangulationDao: KkjEtrsTriangulationDao
 ) {
     private val transformations = mutableMapOf<Pair<Srid, Srid>, Transformation>()
 
@@ -78,10 +97,11 @@ class CoordinateTransformationService @Autowired constructor(
 
     fun getTransformation(sourceSrid: Srid, targetSrid: Srid): Transformation =
         transformations.getOrPut(Pair(sourceSrid, targetSrid)) {
-            Transformation.possiblyKKJToETRSTransform(
+            Transformation.possiblyTriangulableTransform(
                 sourceSrid,
                 targetSrid,
-                kkJtoETRSTriangulationDao.fetchTriangulationNetwork()
+                kkjEtrsTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_ETRS),
+                kkjEtrsTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.ETRS_TO_KKJ),
             )
         }
 

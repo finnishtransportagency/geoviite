@@ -16,7 +16,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 
-val DummyTriangulationNetwork = RTree.create<KKJtoETRSTriangle, Rectangle>()
+val DummyTriangulationNetwork = RTree.create<KkjEtrsTriangle, Rectangle>()
 
 class TransformationTest {
 
@@ -73,21 +73,21 @@ class TransformationTest {
     @Test
     fun `Creating KKJ to TM35 transformation using non-KKJ transform throws`() {
         assertThrows<IllegalArgumentException> {
-            Transformation.nonKKJToETRSTransform(KKJ2, LAYOUT_SRID)
+            Transformation.nonTriangulableTransform(KKJ2, LAYOUT_SRID)
         }
     }
 
     @Test
     fun `Creating LAYOUT_SRID to RATKO_SRID transformation works without triangulation network`() {
         assertDoesNotThrow {
-            Transformation.nonKKJToETRSTransform(LAYOUT_SRID, RATKO_SRID)
+            Transformation.nonTriangulableTransform(LAYOUT_SRID, RATKO_SRID)
         }
     }
 
     @Test
     fun `Creating KKJ to TM35 transform works with triangulation network`() {
         assertDoesNotThrow {
-            Transformation.possiblyKKJToETRSTransform(LAYOUT_SRID, RATKO_SRID, DummyTriangulationNetwork)
+            Transformation.possiblyTriangulableTransform(LAYOUT_SRID, RATKO_SRID, DummyTriangulationNetwork, DummyTriangulationNetwork)
         }
     }
 }

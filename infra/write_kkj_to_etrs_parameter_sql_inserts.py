@@ -12,6 +12,11 @@ def fetch_kkj_to_etrs_affine_transform_paramteres():
     url = r"https://www.maanmittauslaitos.fi/sites/maanmittauslaitos.fi/files/attachments/2019/02/KKJ_TO_ETRS_TM35FIN.txt"  # pylint: disable=line-too-long
     return pd.read_csv(url, encoding="latin-1", delim_whitespace=True, header=None, dtype=str)
 
+def fetch_etrs_to_kkj_affine_transform_paramteres():
+    """Get affine parameters for triangles."""
+    url = r"https://www.maanmittauslaitos.fi/sites/maanmittauslaitos.fi/files/attachments/2019/02/ETRS_TM35FIN_TO_KKJ.txt"  # pylint: disable=line-too-long
+    return pd.read_csv(url, encoding="latin-1", delim_whitespace=True, header=None, dtype=str)
+
 
 def parse_vertices(df_vertices):
     df_vertices.columns = ["Id", "kkj_n", "kkj_e", "etrs_n", "etrs_e"]
@@ -51,14 +56,14 @@ def create_inserts_for_triangle_corner_points(df_vertices):
     print("Corner point inserts finished!")
 
 
-def create_inserts_for_affine_parameters(df_affine_parameters):
+def create_inserts_for_affine_parameters(df_affine_parameters, direction):
     print("Creating inserts for kkj_etrs_triangulation_network")
-    file = open("V10.05.03__common_inserts_for_kkj_etrs_triangulation_network.sql", "w")
-    insert_str = "insert into common.kkj_etrs_triangulation_network(coord1_id, coord2_id, coord3_id, a1, a2, delta_e, b1, b2, delta_n) values"
+    file = open("V10.05.03__common_inserts_for_{direction}_triangulation_network.sql".format(direction=direction), "w")
+    insert_str = "insert into common.kkj_etrs_triangulation_network(coord1_id, coord2_id, coord3_id, a1, a2, delta_e, b1, b2, delta_n, direction) values"
     value_lines_str = []
 
     for i, (index, row) in enumerate(df_affine_parameters.iterrows()):
-        line = "({coord1_id}, {coord2_id}, {coord3_id}, {a1}, {a2}, {delta_e}, {b1}, {b2}, {delta_n})".format(
+        line = "({coord1_id}, {coord2_id}, {coord3_id}, {a1}, {a2}, {delta_e}, {b1}, {b2}, {delta_n}, '{direction}')".format(
             coord1_id=row["point1"],
             coord2_id=row["point2"],
             coord3_id=row["point3"],
@@ -67,7 +72,8 @@ def create_inserts_for_affine_parameters(df_affine_parameters):
             delta_e=row["delta_e"],
             b1=row["b1"],
             b2=row["b2"],
-            delta_n=row["delta_n"]
+            delta_n=row["delta_n"],
+            direction=direction
         )
         value_lines_str.append(line)
 
@@ -80,10 +86,12 @@ def create_inserts_for_affine_parameters(df_affine_parameters):
 def main():
     print("Downloading input data")
     df_vertices = parse_vertices(fetch_kkj_to_etrs_triangulation_vertices())
-    df_affine_params = parse_affine_parameters(fetch_kkj_to_etrs_affine_transform_paramteres())
+    df_affine_params_kkj_to_etrs = parse_affine_parameters(fetch_kkj_to_etrs_affine_transform_paramteres())
+    df_affine_params_etrs_to_kkj = parse_affine_parameters(fetch_etrs_to_kkj_affine_transform_paramteres())
     print("Downloaded. Creating SQL Files next")
     create_inserts_for_triangle_corner_points(df_vertices)
-    create_inserts_for_affine_parameters(df_affine_params)
+    create_inserts_for_affine_parameters(df_affine_params_kkj_to_etrs, "KKJ_TO_ETRS")
+    create_inserts_for_affine_parameters(df_affine_params_etrs_to_kkj, "ETRS_TO_KKJ")
     print("All done.")
 
 
