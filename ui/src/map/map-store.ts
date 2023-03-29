@@ -184,41 +184,25 @@ export const mapReducers = {
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
-        state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
-                (<LayoutAlignmentsLayer>layer).showTrackNumbers = visibilitySetting.visible;
-            }
-        });
+        onAlignmentLayerVisibilityChange(state, 'showTrackNumbers', visibilitySetting);
     },
     onReferencelineVisibilityChange: (
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
-        state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
-                (<LayoutAlignmentsLayer>layer).showReferenceLines = visibilitySetting.visible;
-            }
-        });
+        onAlignmentLayerVisibilityChange(state, 'showReferenceLines', visibilitySetting);
     },
     onMissingLinkingVisibilityChange: (
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
-        state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
-                (<LayoutAlignmentsLayer>layer).showMissingLinking = visibilitySetting.visible;
-            }
-        });
+        onAlignmentLayerVisibilityChange(state, 'showMissingLinking', visibilitySetting);
     },
     onDuplicateTracksVisibilityChange: (
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
-        state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
-                (<LayoutAlignmentsLayer>layer).showDuplicateTracks = visibilitySetting.visible;
-            }
-        });
+        onAlignmentLayerVisibilityChange(state, 'showDuplicateTracks', visibilitySetting);
     },
     onMapSettingsVisibilityChange: (
         state: Map,
@@ -233,6 +217,22 @@ export const mapReducers = {
         state.clickLocation = clickLocation;
     },
 };
+
+function onAlignmentLayerVisibilityChange(
+    state: Map,
+    property:
+        | 'showReferenceLines'
+        | 'showTrackNumbers'
+        | 'showMissingLinking'
+        | 'showDuplicateTracks',
+    layerVisibility: LayerVisibility,
+) {
+    state.mapLayers.forEach((layer) => {
+        if (layer.id == layerVisibility.layerId) {
+            (<LayoutAlignmentsLayer>layer)[property] = layerVisibility.visible;
+        }
+    });
+}
 
 function shownItemsByLayer(layerType: MapLayerType): keyof ShownItems | undefined {
     switch (layerType) {
