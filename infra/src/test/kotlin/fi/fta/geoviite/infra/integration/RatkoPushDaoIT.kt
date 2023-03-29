@@ -241,6 +241,6 @@ internal class RatkoPushDaoIT @Autowired constructor(
                     switchChanges = emptyList(),
                 ),
             )
-            publicationDao.savePublishCalculatedChanges(publicationId, calculatedChanges)
+            publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         }
 }
