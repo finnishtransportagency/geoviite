@@ -148,6 +148,7 @@ fun toMapAlignments(
                 length = alignment.elements.sumOf(GeometryElement::calculatedLength),
                 segmentCount = alignment.elements.size,
                 version = null,
+                duplicateOf = null
             )
         }
 }

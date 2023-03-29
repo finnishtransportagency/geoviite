@@ -192,7 +192,7 @@ class PublicationDaoIT @Autowired constructor(
             indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList())
         )
         val publicationId = publicationDao.createPublication("")
-        publicationDao.savePublishCalculatedChanges(publicationId, changes)
+        publicationDao.insertCalculatedChanges(publicationId, changes)
 
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
         val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publicationId)

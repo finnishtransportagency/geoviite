@@ -457,7 +457,7 @@ class PublicationService @Autowired constructor(
         val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
 
         val publishId = publicationDao.createPublication(message)
-        publicationDao.savePublishCalculatedChanges(publishId, calculatedChanges)
+        publicationDao.insertCalculatedChanges(publishId, calculatedChanges)
 
         return PublishResult(
             publishId = publishId,

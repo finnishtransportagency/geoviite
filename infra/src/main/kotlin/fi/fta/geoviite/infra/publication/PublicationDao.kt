@@ -282,7 +282,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
     }
 
     @Transactional
-    fun savePublishCalculatedChanges(publicationId: IntId<Publication>, changes: CalculatedChanges) {
+    fun insertCalculatedChanges(publicationId: IntId<Publication>, changes: CalculatedChanges) {
         saveTrackNumberChanges(
             publicationId,
             changes.directChanges.trackNumberChanges,
