@@ -394,8 +394,8 @@ data class LayoutSegment(
         }
         val start = seekPointAtM(mRange.min, snapDistance)
         val end = seekPointAtM(mRange.max, snapDistance)
-        val firstActualPointIndex = if (start.isSnapped) start.index else start.index + 1
-        val currentPoints = points.slice(firstActualPointIndex..end.index)
+        val actualPointsRange = start.index..(if (end.isSnapped) end.index else end.index-1)
+        val currentPoints = points.slice(actualPointsRange)
         val interpolatedStart = listOfNotNull(if (start.isSnapped) null else start.point)
         val interpolatedEnd = listOfNotNull(if (end.isSnapped) null else end.point)
         val newPoints = interpolatedStart + currentPoints + interpolatedEnd
@@ -438,8 +438,6 @@ data class LayoutSegment(
                 first to second
             }
         }
-
-    fun getSourceLengthAt(pointIndex: Int): Double? = sourceStart?.plus(points[pointIndex].m)
 
     fun withoutSwitch(): LayoutSegment =
         if (switchId == null && startJointNumber == null && endJointNumber == null) this

@@ -1,136 +1,245 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
-import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.Point3DM
-import fi.fta.geoviite.infra.math.Point3DZ
-import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 
 
 class LinkingTest {
 
     @Test
-    fun findAffectedSwitchesWorks() {
-
-    }
-
-    @Test
-    fun `Layout alignment can be replace with full geometry alignment`() {
+    fun `Layout alignment can be replace with geometry alignment`() {
         val layoutAlignment = alignment(
             segment(Point(1.0, 1.0), Point(2.0, 2.0)),
             segment(Point(2.0, 2.0), Point(3.0, 3.0)),
         )
         val geometryAlignment = mapAlignment<GeometryAlignment>(
-            mapSegment(Point3DM(10.0, 10.0, 0.0), Point3DM(13.0, 10.0, 3.0)),
-            mapSegment(Point3DM(13.0, 10.0, 3.0), Point3DM(15.0, 10.0, 5.0)),
+            mapSegment(Point3DM(10.0, 10.0, 0.0), Point3DM(13.0, 10.0, 3.0), Point3DM(16.0, 10.0, 6.0)),
+            mapSegment(Point3DM(16.0, 10.0, 6.0), Point3DM(19.0, 10.0, 9.0), Point3DM(22.0, 10.0, 12.0)),
         )
+        // Take the full range of geometry -> all points match
         assertGeometryChange(
             layoutAlignment,
             replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(0.0, geometryAlignment.length)),
             geometryAlignment.segments.map { s -> s.points },
         )
+        // Split so that we skip the first and last points
+        assertGeometryChange(
+            layoutAlignment,
+            replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(3.0, 9.0)),
+            withPointsStartingFrom0(listOf(
+                geometryAlignment.segments[0].points.takeLast(2),
+                geometryAlignment.segments[1].points.take(2),
+            )),
+        )
+        // Split both segments between points
+        assertGeometryChange(
+            layoutAlignment,
+            replaceLayoutGeometry(layoutAlignment, geometryAlignment, Range(2.5, 11.0)),
+            listOf(
+                toTrackLayoutPoints(Point3DM(12.5, 10.0, 0.0), Point3DM(13.0, 10.0, 0.5), Point3DM(16.0, 10.0, 3.5)),
+                toTrackLayoutPoints(Point3DM(16.0, 10.0, 3.5), Point3DM(19.0, 10.0, 6.5), Point3DM(21.0, 10.0, 8.5)),
+            ),
+        )
     }
-
-    private fun assertGeometryChange(
-        originalAlignment: LayoutAlignment,
-        newAlignment: LayoutAlignment,
-        segmentPointLists: List<List<LayoutPoint>>,
-    ) {
-        assertEquals(originalAlignment.id, newAlignment.id)
-        assertEquals(newAlignment.segments.size, segmentPointLists.size)
-        segmentPointLists.forEachIndexed { index, expectedPoints ->
-            val segment = newAlignment.segments[index]
-            assertEquals(expectedPoints, segment.points)
-        }
-    }
-
-    // TODO: GVT-553 New tests for new LinkingTransformation functions
-//    @Test
-//    fun shouldRemovePointsFromLayoutStartSegment() {
-//        val segments = createSegments()
-//        val startLayoutIndex = 1
-//        val toPoint = Point(x = 2776410.812373895, y = 8438660.427285915)
-//        val startSegmentToCut = segments[startLayoutIndex]
-//        val cutSegment = cutSegmentBeforePoint(startSegmentToCut, toPoint, 1.0)!!
-//        assertNotEquals(startSegmentToCut.points.size, cutSegment.points.size)
-//        assertEquals(1.0, cutSegment.startM)
-//    }
-//
-//    @Test
-//    fun shouldRemovePointsFromLayoutEndSegment() {
-//        val segments = createSegments()
-//        val endLayoutIndex = 1
-//        val fromPoint = Point(x = 2776304.1633397467, y = 8439435.393078482)
-//        val endSegmentToCut = segments[endLayoutIndex]
-//        val cutSegment = cutSegmentAfterPoint(endSegmentToCut, fromPoint, 1.0)!!
-//        assertNotEquals(endSegmentToCut.points.size, cutSegment.points.size)
-//        assertEquals(1.0, cutSegment.startM)
-//    }
-//
-//    @Test
-//    fun shouldReturnGeometrySegments() {
-//        val segments = createGeometrySegments()
-//        val geometryStart = Point(x = 385770.05828143685, y = 6672686.609479602)
-//        val startIndex = 0
-//        val endIndex = 0
-//        val geometryEnd = Point(x = 385770.0141087553, y = 6672688.60851115)
-//        val geometrySegments =
-//            getSegmentsBetweenPoints(startIndex, endIndex, segments, geometryStart, geometryEnd, 10.0)
-//        val expectedListSize = 1
-//        assertEquals(expectedListSize, geometrySegments.size)
-//    }
-
-//    @Test
-//    fun shouldReturnSegmentsBetweenIndicesWhenStartAndEndIndicesAreTheSame() {
-//        val segments = createSegments()
-//        val startLayoutIndex = 1
-//        val endLayoutIndex = 1
-//
-//        val expectedId: DomainId<LayoutSegment> = segments[1].id
-//        val list = getSegmentsInRange(
-//            segments,
-//            startLayoutIndex,
-//            endLayoutIndex,
-//            1.0,
-//        )
-//        assertEquals(expectedId, list[0].id)
-//        assertEquals(1.0, list[0].startM)
-//    }
-
-//    @Test
-//    fun shouldReturnSegmentsBetweenIndices() {
-//        val segments = createSegments()
-//        val startLayoutIndex = 1
-//        val endLayoutIndex = 2
-//        val list = getSegmentsInRange(
-//            segments,
-//            startIndex = startLayoutIndex,
-//            endIndex = endLayoutIndex,
-//            10.0,
-//        )
-//        val expectedIdList: List<DomainId<LayoutSegment>> = listOf(segments[1].id, segments[2].id)
-//        val actualIdList = list.map { segment -> segment.id }
-//        assertEquals(expectedIdList, actualIdList)
-//        val expectedStarts = listOf(10.0, 10.0 + segments[1].length)
-//        val actualStarts = list.map { segment -> segment.startM }
-//        assertEquals(expectedStarts, actualStarts)
-//    }
 
     @Test
-    fun shouldCalculateSourceLengthFromStartAndListOfPoints() {
-        val segment = segment(
-            points = toTrackLayoutPoints(Point(0.0, 10.0), Point(0.0, 15.0), Point(0.0, 25.0)),
-            sourceStart = 6.5,
+    fun `Layout alignment can be shortened`() {
+        val layoutAlignment = alignment(
+            // First segment m values: 0, 1, 2
+            segment(Point(1.0, 0.0), Point(2.0, 0.0), Point(3.0, 0.0)),
+            // Second segment m values: 2, 3, 4
+            segment(Point(3.0, 0.0), Point(4.0, 0.0), Point(5.0, 0.0)),
         )
-        val expectedSourceLength = 6.5 + 5.0
-        val actualSourceLength = segment.getSourceLengthAt(1)
-        assertEquals(expectedSourceLength, actualSourceLength)
+        // Cut nothing -> geometry remains the same
+        assertGeometryChange(
+            layoutAlignment,
+            cutLayoutGeometry(layoutAlignment, Range(0.0, 4.0)),
+            layoutAlignment.segments.map { s -> s.points },
+        )
+        // Cut 1m from start
+        assertGeometryChange(
+            layoutAlignment,
+            cutLayoutGeometry(layoutAlignment, Range(1.0, 4.0)),
+            withPointsStartingFrom0(listOf(
+                layoutAlignment.segments[0].points.takeLast(2),
+                layoutAlignment.segments[1].points,
+            )),
+        )
+        // Cut 1m from end
+        assertGeometryChange(
+            layoutAlignment,
+            cutLayoutGeometry(layoutAlignment, Range(0.0, 3.0)),
+            withPointsStartingFrom0(listOf(
+                layoutAlignment.segments[0].points,
+                layoutAlignment.segments[1].points.take(2),
+            )),
+        )
+        // Cut to just 1m in the middle, splitting only a piece of the first segment
+        assertGeometryChange(
+            layoutAlignment,
+            cutLayoutGeometry(layoutAlignment, Range(1.0, 2.0)),
+            withPointsStartingFrom0(listOf(layoutAlignment.segments.first().points.takeLast(2))),
+        )
+        // Cut to just 1m in the middle, splitting only a piece of the second segment
+        assertGeometryChange(
+            layoutAlignment,
+            cutLayoutGeometry(layoutAlignment, Range(2.0, 3.0)),
+            withPointsStartingFrom0(listOf(layoutAlignment.segments.last().points.take(2))),
+        )
+        // Cut to just 2m in the middle, splitting a piece of each segment
+        assertGeometryChange(
+            layoutAlignment,
+            cutLayoutGeometry(layoutAlignment, Range(1.0, 3.0)),
+            withPointsStartingFrom0(listOf(
+                layoutAlignment.segments.first().points.takeLast(2),
+                layoutAlignment.segments.last().points.take(2),
+            )),
+        )
+        // Cut to just 2m in the middle, splitting each segment between-points
+        assertGeometryChange(
+            layoutAlignment,
+            cutLayoutGeometry(layoutAlignment, Range(0.5, 3.5)),
+            listOf(
+                toTrackLayoutPoints(Point3DM(1.5, 0.0, 0.0), Point3DM(2.0, 0.0, 0.5), Point3DM(3.0, 0.0, 1.5)),
+                toTrackLayoutPoints(Point3DM(3.0, 0.0, 1.5), Point3DM(4.0, 0.0, 2.5), Point3DM(4.5, 0.0, 3.0)),
+            ),
+        )
+    }
+
+    @Test
+    fun `Portion of layout alignment can be linked from geometry`() {
+        val layoutAlignment = alignment(
+            // First segment m values, matching y: 0, 1, 2
+            segment(
+                Point(0.0, 0.0),
+                Point(0.0, 1.0),
+                Point(0.0, 2.0),
+                Point(0.0, 3.0),
+            ),
+            // Second segment m values, matching y: 2, 3, 4
+            segment(
+                Point(0.0, 3.0),
+                Point(0.0, 4.0),
+                Point(0.0, 5.0),
+                Point(0.0, 6.0),
+            ),
+        )
+        // Geometry alignment, offset 0.1m in x axis
+        val geometryAlignment = mapAlignment<GeometryAlignment>(
+            mapSegment(
+                Point3DM(0.1, 0.0, 0.0),
+                Point3DM(0.1, 1.0, 1.0),
+                Point3DM(0.1, 2.0, 2.0),
+                Point3DM(0.1, 3.0, 3.0),
+            ),
+            mapSegment(
+                Point3DM(0.1, 3.0, 3.0),
+                Point3DM(0.1, 4.0, 4.0),
+                Point3DM(0.1, 5.0, 5.0),
+                Point3DM(0.1, 6.0, 6.0),
+            ),
+        )
+        // Replace entire geometry
+        assertGeometryChange(
+            layoutAlignment,
+            linkLayoutGeometrySection(layoutAlignment, Range(0.0, 6.0), geometryAlignment, Range(0.0, 6.0)),
+            geometryAlignment.segments.map { s -> s.points },
+        )
+        // Keep start and take the rest from geometry
+        assertGeometryChange(
+            layoutAlignment,
+            linkLayoutGeometrySection(layoutAlignment, Range(2.0, 6.0), geometryAlignment, Range(3.0, 6.0)),
+            withPointsStartingFrom0(listOf(
+                layoutAlignment.segments[0].points.take(3),
+                // Connection segment
+                toTrackLayoutPoints(
+                    Point3DM(0.0, 2.0, 0.0),
+                    Point3DM(0.1, 3.0, calculateDistance(LAYOUT_SRID, Point(0.0, 2.0), Point(0.1, 3.0)))
+                ),
+                geometryAlignment.segments[1].points,
+            )),
+        )
+        // Keep end and take the start from geometry
+        assertGeometryChange(
+            layoutAlignment,
+            linkLayoutGeometrySection(layoutAlignment, Range(0.0, 3.0), geometryAlignment, Range(0.0, 2.0)),
+            withPointsStartingFrom0(listOf(
+                geometryAlignment.segments[0].points.take(3),
+                // Connection segment
+                toTrackLayoutPoints(
+                    Point3DM(0.1, 2.0, 0.0),
+                    Point3DM(0.0, 3.0, calculateDistance(LAYOUT_SRID, Point(0.1, 2.0), Point(0.0, 3.0))),
+                ),
+                layoutAlignment.segments[1].points,
+            ))
+        )
+        // Keep start and end, taking the middle from geometry
+        assertGeometryChange(
+            layoutAlignment,
+            linkLayoutGeometrySection(layoutAlignment, Range(1.0, 5.0), geometryAlignment, Range(2.0, 4.0)),
+            withPointsStartingFrom0(listOf(
+                layoutAlignment.segments[0].points.take(2),
+                // Connection segment
+                toTrackLayoutPoints(
+                    Point3DM(0.0, 1.0, 0.0),
+                    Point3DM(0.1, 2.0, calculateDistance(LAYOUT_SRID, Point(0.0, 1.0), Point(0.1, 2.0))),
+                ),
+                geometryAlignment.segments[0].points.takeLast(2),
+                geometryAlignment.segments[1].points.take(2),
+                // Connection segment
+                toTrackLayoutPoints(
+                    Point3DM(0.1, 4.0, 0.0),
+                    Point3DM(0.0, 5.0, calculateDistance(LAYOUT_SRID, Point(0.1, 4.0), Point(0.0, 5.0))),
+                ),
+                layoutAlignment.segments[1].points.takeLast(2),
+            ))
+        )
+        // Keep start and end, taking the middle from geometry but splitting between points
+        assertGeometryChange(
+            layoutAlignment,
+            linkLayoutGeometrySection(layoutAlignment, Range(1.5, 4.5), geometryAlignment, Range(2.5, 3.5)),
+            withPointsStartingFrom0(listOf(
+                // First part from layout, last point is interpolated
+                toTrackLayoutPoints(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 1.5)),
+                // Connection segment
+                toTrackLayoutPoints(
+                    Point3DM(0.0, 1.5, 0.0),
+                    Point3DM(0.1, 2.5, calculateDistance(LAYOUT_SRID, Point(0.0, 1.5), Point(0.1, 2.5))),
+                ),
+                // Middle 2 segments from geometry, ends both interpolated
+                toTrackLayoutPoints(Point(0.1, 2.5), Point(0.1, 3.0)),
+                toTrackLayoutPoints(Point(0.1, 3.0), Point(0.1, 3.5)),
+                // Connection segment
+                toTrackLayoutPoints(
+                    Point3DM(0.1, 3.5, 0.0),
+                    Point3DM(0.0, 4.5, calculateDistance(LAYOUT_SRID, Point(0.1, 3.5), Point(0.0, 4.5))),
+                ),
+                // Last part from layout, first point is interpolated
+                toTrackLayoutPoints(Point(0.0, 4.5), Point(0.0, 5.0), Point(0.0, 6.0)),
+            ))
+        )
+    }
+
+    @Test
+    fun `Selected switches can be removed from alignment`() {
+        TODO()
+    }
+
+    @Test
+    fun `Affected switches are found with m-value range`() {
+        TODO()
+    }
+
+    @Test
+    fun `Source length values should be correct after splitting`() {
+        TODO()
     }
 }
 
@@ -595,4 +704,29 @@ private fun getAlignmentEndPointSegmentsData(switchId: IntId<TrackLayoutSwitch>)
             source = GeometrySource.PLAN,
         )
     )
+}
+
+private fun withPointsStartingFrom0(pointLists: List<List<LayoutPoint>>): List<List<LayoutPoint>> {
+    var totalM = 0.0
+    return pointLists.map { pointList ->
+        var lastM = pointList.first().m
+        pointList.map { point ->
+            totalM += point.m - lastM
+            lastM = point.m
+            point.copy(m = totalM)
+        }
+    }
+}
+
+private fun assertGeometryChange(
+    originalAlignment: LayoutAlignment,
+    newAlignment: LayoutAlignment,
+    segmentPointLists: List<List<LayoutPoint>>,
+) {
+    assertEquals(originalAlignment.id, newAlignment.id)
+    assertEquals(segmentPointLists.size, newAlignment.segments.size)
+    segmentPointLists.forEachIndexed { index, expectedPoints ->
+        val segment = newAlignment.segments[index]
+        assertEquals(expectedPoints, segment.points)
+    }
 }
