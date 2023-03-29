@@ -106,7 +106,7 @@ const PlanGeometryElementListingSearch = ({
                             <Dropdown
                                 value={state.plan}
                                 getName={(item: GeometryPlanHeader) => item.fileName}
-                                placeholder={t('location-track-dialog.search')}
+                                placeholder={t('data-products.search.search')}
                                 options={geometryPlanHeaders}
                                 searchable
                                 onChange={(e) => updateProp('plan', e)}

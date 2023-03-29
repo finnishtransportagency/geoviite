@@ -60,72 +60,70 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     React.useEffect(() => setLengths([]), [kmLengths]);
 
     return (
-        <React.Fragment>
-            <div className={styles['data-products__search']}>
-                <FieldLayout
-                    label={t(`data-products.search.track-number`)}
-                    value={
+        <div className={styles['data-products__search']}>
+            <FieldLayout
+                label={t(`data-products.search.track-number`)}
+                value={
+                    <Dropdown
+                        value={state.trackNumber}
+                        getName={(item: LayoutTrackNumber) => item.number}
+                        placeholder={t('data-products.search.search')}
+                        options={geometryPlanHeaders}
+                        searchable
+                        onChange={(e) => updateProp('trackNumber', e)}
+                        canUnselect={true}
+                        unselectText={t('data-products.search.not-selected')}
+                        wideList
+                        wide
+                    />
+                }
+            />
+            <FieldLayout
+                label={t(`data-products.search.track-meter-range`)}
+                value={
+                    <span className={styles['data-products__search--combined-field']}>
                         <Dropdown
-                            value={state.trackNumber}
-                            getName={(item: LayoutTrackNumber) => item.number}
-                            placeholder={t('location-track-dialog.search')}
-                            options={geometryPlanHeaders}
+                            value={state.startKm}
+                            getName={(item: LayoutKmPost) => item.kmNumber}
+                            placeholder={t('data-products.search.search')}
+                            options={kmPosts}
                             searchable
-                            onChange={(e) => updateProp('trackNumber', e)}
+                            onChange={(e) => updateProp('startKm', e)}
                             canUnselect={true}
-                            unselectText={t('data-products.search.not-selected')}
                             wideList
-                            wide
+                            size={DropdownSize.SMALL}
                         />
+                        <Dropdown
+                            value={state.endKm}
+                            getName={(item: LayoutKmPost) => item.kmNumber}
+                            placeholder={t('data-products.search.search')}
+                            options={kmPosts}
+                            searchable
+                            onChange={(e) => updateProp('endKm', e)}
+                            canUnselect={true}
+                            wideList
+                            size={DropdownSize.SMALL}
+                        />
+                    </span>
+                }
+                errors={getVisibleErrorsByProp(
+                    state.committedFields,
+                    state.validationErrors,
+                    'endKm',
+                ).map((error) => t(`data-products.search.${error}`))}
+            />
+            <Button
+                className={styles['element-list__download-button']}
+                disabled={!state.kmLengths || state.kmLengths.length === 0}
+                onClick={() => {
+                    if (state.trackNumber) {
+                        location.href = getKmLengthsCsv(state.trackNumber?.id);
                     }
-                />
-                <FieldLayout
-                    label={t(`data-products.search.track-meter-range`)}
-                    value={
-                        <span className={styles['data-products__search--combined-field']}>
-                            <Dropdown
-                                value={state.startKm}
-                                getName={(item: LayoutKmPost) => item.kmNumber}
-                                placeholder={t('location-track-dialog.search')}
-                                options={kmPosts}
-                                searchable
-                                onChange={(e) => updateProp('startKm', e)}
-                                canUnselect={true}
-                                wideList
-                                size={DropdownSize.SMALL}
-                            />
-                            <Dropdown
-                                value={state.endKm}
-                                getName={(item: LayoutKmPost) => item.kmNumber}
-                                placeholder={t('location-track-dialog.search')}
-                                options={kmPosts}
-                                searchable
-                                onChange={(e) => updateProp('endKm', e)}
-                                canUnselect={true}
-                                wideList
-                                size={DropdownSize.SMALL}
-                            />
-                        </span>
-                    }
-                    errors={getVisibleErrorsByProp(
-                        state.committedFields,
-                        state.validationErrors,
-                        'endKm',
-                    ).map((error) => t(`data-products.search.${error}`))}
-                />
-                <Button
-                    className={styles['element-list__download-button']}
-                    disabled={!state.kmLengths || state.kmLengths.length === 0}
-                    onClick={() => {
-                        if (state.trackNumber) {
-                            location.href = getKmLengthsCsv(state.trackNumber?.id);
-                        }
-                    }}
-                    icon={Icons.Download}>
-                    {t(`data-products.search.download-csv`)}
-                </Button>
-            </div>
-        </React.Fragment>
+                }}
+                icon={Icons.Download}>
+                {t(`data-products.search.download-csv`)}
+            </Button>
+        </div>
     );
 };
 

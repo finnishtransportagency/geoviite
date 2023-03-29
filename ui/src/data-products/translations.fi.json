@@ -17,7 +17,8 @@
             "not-selected": "Ei valittu",
             "download-csv": "Lataa CSV",
             "track-meter-range": "Kilometriväli",
-            "track-number": "Ratanumero"
+            "track-number": "Ratanumero",
+            "search": "Hae..."
         },
         "element-list": {
             "element-list-title": "Elementtiluettelo",
