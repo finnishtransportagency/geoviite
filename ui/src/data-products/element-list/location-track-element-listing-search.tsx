@@ -92,7 +92,7 @@ const LocationTrackElementListingSearch = ({
                         <Dropdown
                             value={state.searchParameters.locationTrack}
                             getName={(item) => item.name}
-                            placeholder={t('location-track-dialog.search')}
+                            placeholder={t('data-products.search.search')}
                             options={getLocationTracks}
                             searchable
                             onChange={(e) => updateProp('locationTrack', e)}
