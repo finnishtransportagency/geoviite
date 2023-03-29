@@ -29,6 +29,7 @@ import { createDelegates } from 'store/store-utils';
 import { actionCreators } from 'track-layout/track-layout-store';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
 import { Button } from 'vayla-design-lib/button/button';
+import { KilometerLengthsContainerWithProvider } from 'data-products/kilometer-lengths/kilometer-lengths-container-with-provider';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -69,6 +70,10 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                     <Route
                         path="/data-products/vertical-geometry"
                         element={<VerticalGeometryContainerWithProvider />}
+                    />
+                    <Route
+                        path="/data-products/kilometer-lengths"
+                        element={<KilometerLengthsContainerWithProvider />}
                     />
                     <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>

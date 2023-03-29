@@ -145,7 +145,7 @@ const LocationTrackElementListingSearch = ({
                         'endTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <div className={styles['element-list__geometry-checkboxes']}>
+                <div className={styles['data-products__search--no-label']}>
                     <FieldLayout
                         label={''}
                         value={

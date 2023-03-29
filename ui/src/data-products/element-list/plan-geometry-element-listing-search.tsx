@@ -117,7 +117,7 @@ const PlanGeometryElementListingSearch = ({
                         }
                     />
                 </div>
-                <div className={styles['element-list__geometry-checkboxes']}>
+                <div className={styles['data-products__search--no-label']}>
                     <FieldLayout
                         value={
                             <div className={styles['element-list__geometry-checkbox']}>

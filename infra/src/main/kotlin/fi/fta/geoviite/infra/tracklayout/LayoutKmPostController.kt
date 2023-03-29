@@ -48,6 +48,16 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/on-track-number/{trackNumberId}")
+    fun getKmPostsOnTrackNumber(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("trackNumberId") id: IntId<TrackLayoutTrackNumber>,
+    ): List<TrackLayoutKmPost> {
+        logger.apiCall("getKmPostsOnTrackNumber", "publishType" to publishType, "id" to id)
+        return kmPostService.list(publishType, id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}", params=["bbox", "step"])
     fun findKmPosts(
         @PathVariable("publishType") publishType: PublishType,

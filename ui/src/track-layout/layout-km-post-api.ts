@@ -22,6 +22,7 @@ import { KmPostSaveError, KmPostSaveRequest } from 'linking/linking-model';
 import { Result } from 'neverthrow';
 import { ValidatedAsset } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { GEOMETRY_URI } from 'geometry/geometry-api';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
@@ -159,3 +160,15 @@ export async function getKmPostValidation(
 ): Promise<ValidatedAsset> {
     return getThrowError<ValidatedAsset>(`${layoutUri('km-posts', publishType, id)}/validation`);
 }
+
+export async function getKmPostsOnTrackNumber(
+    publishType: PublishType,
+    id: LayoutTrackNumberId,
+): Promise<LayoutKmPost[]> {
+    return getThrowError<LayoutKmPost[]>(
+        `${layoutUri('km-posts', publishType)}/on-track-number/${id}`,
+    );
+}
+
+export const getKmLengthsCsv = (trackNumberId: LayoutTrackNumberId) =>
+    `${GEOMETRY_URI}/track-numbers/${trackNumberId}/km-lengths/file`;

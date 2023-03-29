@@ -138,7 +138,7 @@ export async function getLocationTrackVerticalGeometry(
     id: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
-): Promise<never[] | null> {
+): Promise<VerticalGeometryItem[] | null> {
     const params = queryParams({
         startAddress: startAddress,
         endAddress: endAddress,
