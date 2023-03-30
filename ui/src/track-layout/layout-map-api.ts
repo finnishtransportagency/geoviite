@@ -102,7 +102,6 @@ export async function getLinkPointsByTiles(
                 ({ id }, index) => !uniqueIds.includes(id, index + 1),
             );
 
-            console.log(uniqueSegments.map(s => `${s.startM}-${s.endM}`))
             return createLinkPoints(alignmentType, alignmentId, uniqueSegments);
         })
     ).flat();

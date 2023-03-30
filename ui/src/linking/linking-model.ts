@@ -70,7 +70,6 @@ export type LinkPoint = {
     alignmentType: MapAlignmentType;
     alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
     segmentId: LayoutSegmentId;
-    // ordering: number;
     x: number;
     y: number;
     m: number;
@@ -79,7 +78,7 @@ export type LinkPoint = {
     direction: number | undefined;
 };
 
-export type ClusterPoint = {// = LinkPoint & {
+export type ClusterPoint = {
     id: string;
     x: number;
     y: number;

@@ -252,7 +252,7 @@ function createFeatures(
     segmentFeature.setStyle(styles);
 
     const numbersBeforeSegment = Math.floor(segment.startM / drawDistance);
-    const numbersAfterSegment = Math.floor((segment.startM + segment.length) / drawDistance);
+    const numbersAfterSegment = Math.floor(segment.endM / drawDistance);
     const segmentHasTrackNumberLabel =
         segment.startM === 0.0 || numbersBeforeSegment !== numbersAfterSegment;
     if (
