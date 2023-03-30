@@ -185,16 +185,8 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
         val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
-        var prevIndex = -1
         var start = 0.0
         return segmentResults.mapIndexed { index, (data, geometryId) ->
-            require(index == prevIndex+1)
-            if (index == 0) require(data.start == 0.0)
-            else require(abs(data.start - segmentResults[index-1].let { (d,gid) ->
-                d.start + geometries[gid]!!.length
-            }) < 0.001) {
-                "WTF: data.start=${data.start} index=$index prev.start=${segmentResults[index-1].first.start} prev.geomId=${segmentResults[index-1].second}"
-            }
             require(abs(start - data.start) < LAYOUT_M_DELTA) {
                 "Segment start value does not match the calculated one: stored=${data.start} calc=$start"
             }
@@ -212,7 +204,6 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 geometry = geometry,
             ).also {
                 start += geometry.length
-                prevIndex = index
             }
         }
     }
