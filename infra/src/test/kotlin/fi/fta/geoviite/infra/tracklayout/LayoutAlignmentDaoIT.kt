@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.getIntId
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -63,6 +64,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         assertEquals(afterInsert, alignmentDao.fetch(insertedVersion))
         assertEquals(afterUpdate, alignmentDao.fetch(updatedVersion))
         assertEquals(afterUpdate2, alignmentDao.fetch(updatedVersion2))
+        assertDbGeometriesStartWith0m()
     }
 
     @Test
@@ -282,4 +284,17 @@ class LayoutAlignmentDaoIT @Autowired constructor(
                 """,
             mapOf("id" to alignmentId.intValue),
         ) { rs, _ -> rs.getInt("count") } ?: 0
+
+    private fun assertDbGeometriesStartWith0m() {
+        val sql = """
+           select id, postgis.st_astext(geometry) geom
+           from layout.segment_geometry
+           where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0;
+        """.trimIndent()
+        val nonZeroStartMGeometries = jdbc.query(sql, mapOf<String,Any>()) { rs,_ ->
+            rs.getIntId<SegmentGeometry>("id") to rs.getString("geom")
+        }
+        assertTrue(nonZeroStartMGeometries.isEmpty(), "All geometries should have 0.0 as start m value")
+    }
+
 }

@@ -401,7 +401,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
             val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->
-                if (s.geometry.id is StringId) s.geometry else null
+                if (s.geometry.id is StringId) s.geometry.withStartMAt(0.0) else null
             })
             //language=SQL
             val sqlIndexed = """
@@ -449,6 +449,9 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     private fun insertSegmentGeometries(
         geometries: List<SegmentGeometry>,
     ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
+        require(geometries.all { geom -> geom.startM == 0.0 }) {
+            "Geometries in DB must be set to startM=0.0, so they remain valid if an earlier segment changes"
+        }
         //language=SQL
         val sql = """
           insert into layout.segment_geometry(
