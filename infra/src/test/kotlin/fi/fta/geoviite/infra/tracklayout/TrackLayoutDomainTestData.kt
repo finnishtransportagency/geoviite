@@ -264,6 +264,7 @@ fun <T> mapAlignment(segments: List<MapSegment>) = MapAlignment<T>(
     boundingBox = boundingBoxCombining(segments.mapNotNull(MapSegment::boundingBox)),
     length = segments.map(MapSegment::length).sum(),
     version = null,
+    duplicateOf = null,
 )
 
 fun locationTrackWithTwoSwitches(
