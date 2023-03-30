@@ -64,7 +64,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         assertEquals(afterInsert, alignmentDao.fetch(insertedVersion))
         assertEquals(afterUpdate, alignmentDao.fetch(updatedVersion))
         assertEquals(afterUpdate2, alignmentDao.fetch(updatedVersion2))
-        assertDbGeometriesStartWith0m()
+        assertDbGeometriesHaveCorrectMValues()
     }
 
     @Test
@@ -285,16 +285,22 @@ class LayoutAlignmentDaoIT @Autowired constructor(
             mapOf("id" to alignmentId.intValue),
         ) { rs, _ -> rs.getInt("count") } ?: 0
 
-    private fun assertDbGeometriesStartWith0m() {
+    private fun assertDbGeometriesHaveCorrectMValues() {
         val sql = """
-           select id, postgis.st_astext(geometry) geom
+           select id, postgis.st_astext(geometry) geom, postgis.st_length(geometry) length
            from layout.segment_geometry
-           where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0;
+           where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
+              or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry)) > 0.1;
         """.trimIndent()
-        val nonZeroStartMGeometries = jdbc.query(sql, mapOf<String,Any>()) { rs,_ ->
-            rs.getIntId<SegmentGeometry>("id") to rs.getString("geom")
-        }
-        assertTrue(nonZeroStartMGeometries.isEmpty(), "All geometries should have 0.0 as start m value")
+        val geometriesWithInvalidMValues = jdbc.query(sql, mapOf<String,Any>()) { rs, _ -> Triple(
+            rs.getIntId<SegmentGeometry>("id"),
+            rs.getDouble("length"),
+            rs.getString("geom"),
+        ) }
+        assertTrue(
+            geometriesWithInvalidMValues.isEmpty(),
+            "All geometries should have m-values at 0.0-length: violations=$geometriesWithInvalidMValues",
+        )
     }
 
 }

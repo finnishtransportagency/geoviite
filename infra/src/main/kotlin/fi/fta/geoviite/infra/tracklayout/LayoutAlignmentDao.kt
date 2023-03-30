@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
+import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geography.create3DMLineString
 import fi.fta.geoviite.infra.geography.parse3DMLineString
@@ -452,6 +453,11 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         require(geometries.all { geom -> geom.startM == 0.0 }) {
             "Geometries in DB must be set to startM=0.0, so they remain valid if an earlier segment changes"
         }
+        require(geometries.all { geom ->
+            val calculatedLength = calculateDistance(geom.points, LAYOUT_SRID)
+            val maxDelta = calculatedLength*0.01
+            abs(calculatedLength - geom.endM) <= maxDelta
+        }) { "Geometries in DB should have (approximately) endM=length" }
         //language=SQL
         val sql = """
           insert into layout.segment_geometry(

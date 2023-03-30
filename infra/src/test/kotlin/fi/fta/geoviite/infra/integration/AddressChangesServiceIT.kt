@@ -146,14 +146,14 @@ class AddressChangesServiceIT @Autowired constructor(
 
         // Move start-point a bit
         updateAndPublish(initialLocationTrack, setupData.locationTrackGeometry.copy(
-            segments = setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
+            segments = fixSegmentStarts(setupData.locationTrackGeometry.segments.mapIndexed { index, segment ->
                 if (index == 0) segment.copy(
                     geometry = segment.geometry.withPoints(
-                        listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1),
+                        fixMValues(listOf(movePoint(segment.points.first(), -1.0)) + segment.points.drop(1)),
                     )
                 )
                 else segment
-            }
+            })
         ))
         val updateMoment = locationTrackDao.fetchChangeTime()
 
