@@ -116,14 +116,14 @@ class LinkingTest {
     @Test
     fun `Portion of layout alignment can be linked from geometry`() {
         val layoutAlignment = alignment(
-            // First segment m values, matching y: 0, 1, 2
+            // First segment m values, matching y: 0, 1, 2, 3
             segment(
                 Point(0.0, 0.0),
                 Point(0.0, 1.0),
                 Point(0.0, 2.0),
                 Point(0.0, 3.0),
             ),
-            // Second segment m values, matching y: 2, 3, 4
+            // Second segment m values, matching y: 3, 4, 5, 6
             segment(
                 Point(0.0, 3.0),
                 Point(0.0, 4.0),
@@ -228,6 +228,69 @@ class LinkingTest {
     }
 
     @Test
+    fun `Alignment can be extended with portion of geometry`() {
+        val layoutAlignment = alignment(
+            // First segment m values, matching y: 0, 1, 2
+            segment(Point(0.0, 0.0), Point(0.0, 1.0), Point(0.0, 2.0)),
+            // Second segment m values, matching y: 2, 3, 4
+            segment(Point(0.0, 2.0), Point(0.0, 3.0), Point(0.0, 4.0)),
+        )
+        // Geometry alignment, offset 0.1m in x-axis and long enough to be linked in both ends
+        val geometryAlignment = mapAlignment<GeometryAlignment>(
+            // First segment before layout alignment: m 0-3
+            mapSegment(
+                Point3DM(0.1, -3.0, 0.0),
+                Point3DM(0.1, -2.0, 1.0),
+                Point3DM(0.1, -1.0, 2.0),
+                Point3DM(0.1, 0.0, 3.0),
+            ),
+            // Mid-segment next to the layout segments: m 3-7
+            mapSegment(Point3DM(0.1, 0.0, 3.0), Point3DM(0.1, 4.0, 7.0)),
+            // Last segment after layout alignment: m 7-10
+            mapSegment(
+                Point3DM(0.1, 4.0, 7.0),
+                Point3DM(0.1, 5.0, 8.0),
+                Point3DM(0.1, 6.0, 9.0),
+                Point3DM(0.1, 7.0, 10.0),
+            ),
+        )
+        // Extend start
+        assertGeometryChange(
+            layoutAlignment,
+            linkLayoutGeometrySection(layoutAlignment, Range(0.0, 0.0), geometryAlignment, Range(0.0, 2.0)),
+            withPointsStartingFrom0(
+                listOf(
+                    // Extension from geometry
+                    geometryAlignment.segments[0].points.take(3),
+                    // Connection segment
+                    toTrackLayoutPoints(
+                        Point3DM(0.1, -1.0, 0.0),
+                        Point3DM(0.0, 0.0, calculateDistance(LAYOUT_SRID, Point(0.1, -1.0), Point(0.0, 0.0))),
+                    ),
+                    // Rest from the layout alignment as-is
+                ) + layoutAlignment.segments.map { s -> s.points },
+            ),
+        )
+        // Extend end
+        assertGeometryChange(
+            layoutAlignment,
+            linkLayoutGeometrySection(layoutAlignment, Range(4.0, 4.0), geometryAlignment, Range(8.0, 10.0)),
+            withPointsStartingFrom0(
+                layoutAlignment.segments.map { s -> s.points } +
+                listOf(
+                    // Connection segment
+                    toTrackLayoutPoints(
+                        Point3DM(0.0, 4.0, 0.0),
+                        Point3DM(0.1, 5.0, calculateDistance(LAYOUT_SRID, Point(0.0, 4.0), Point(0.1, 5.0))),
+                    ),
+                    // Extension from geometry
+                    geometryAlignment.segments[2].points.takeLast(3),
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `Selected switches can be removed from alignment`() {
         TODO()
     }
@@ -238,7 +301,7 @@ class LinkingTest {
     }
 
     @Test
-    fun `Source length values should be correct after splitting`() {
+    fun `Source length values are correct after splitting`() {
         TODO()
     }
 }
