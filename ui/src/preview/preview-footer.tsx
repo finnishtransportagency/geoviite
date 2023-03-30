@@ -170,6 +170,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                                 {t('publish.publish-confirm.cancel')}
                             </Button>
                             <Button
+                                qa-id={'publication-confirm'}
                                 disabled={isPublishing || message.length === 0}
                                 isProcessing={isPublishing}
                                 onClick={publish}>
@@ -186,6 +187,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         label={`${t('publish.publish-confirm.message')} *`}
                         value={
                             <TextArea
+                                qa-id={'publication-message'}
                                 value={message}
                                 wide
                                 onChange={(e) => setMessage(e.currentTarget.value)}

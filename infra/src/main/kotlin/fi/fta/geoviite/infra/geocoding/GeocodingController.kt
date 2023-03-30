@@ -50,10 +50,10 @@ class GeocodingController(
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/address-pointlist/{alignmentId}")
     fun getAlignmentAddressPoints(
-        @PathVariable("alignmentId") alignmentId: IntId<LocationTrack>,
+        @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
         @PathVariable("publishType") publishType: PublishType,
     ): ResponseEntity<AlignmentAddresses> {
-        logger.apiCall("getAlignmentAddressPoints", "alignmentId" to alignmentId)
-        return toResponse(geocodingService.getAddressPoints(alignmentId, publishType))
+        logger.apiCall("getAlignmentAddressPoints", "locationTrackId" to locationTrackId)
+        return toResponse(geocodingService.getAddressPoints(locationTrackId, publishType))
     }
 }

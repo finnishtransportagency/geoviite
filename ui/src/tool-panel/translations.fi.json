@@ -95,8 +95,6 @@
                 "start-switch-placing": "Aloita linkitys",
                 "switch-placing-help": "Klikkaa kartalta sijainti, johon haluat linkittää vaihteen",
                 "no-location": "Ei sijaintia",
-                "show-less": "Piilota",
-                "show-more": "Näytä lisää",
                 "joint-number": "Piste {{number}}"
             },
             "geometry": {

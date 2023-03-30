@@ -15,6 +15,7 @@ import {
     SortByValue,
     SortOrderValue,
     ProjectId,
+    VerticalGeometryItem,
 } from 'geometry/geometry-model';
 import {
     GeometryPlanLayout,
@@ -137,7 +138,7 @@ export async function getLocationTrackVerticalGeometry(
     id: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
-): Promise<never[] | null> {
+): Promise<VerticalGeometryItem[] | null> {
     const params = queryParams({
         startAddress: startAddress,
         endAddress: endAddress,
@@ -149,11 +150,11 @@ export async function getLocationTrackVerticalGeometry(
 
 export async function getGeometryPlanVerticalGeometry(
     planId: GeometryPlanId,
-): Promise<never[] | null> {
+): Promise<VerticalGeometryItem[] | null> {
     return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
 }
 export const getLocationTrackVerticalGeometryCsv = (
-    planId: GeometryPlanId,
+    trackId: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
 ) => {
@@ -161,7 +162,7 @@ export const getLocationTrackVerticalGeometryCsv = (
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    return `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file${params}`;
+    return `${GEOMETRY_URI}/layout/location-tracks/${trackId}/vertical-geometry/file${params}`;
 };
 
 export const getGeometryPlanVerticalGeometryCsv = (planId: GeometryPlanId) =>

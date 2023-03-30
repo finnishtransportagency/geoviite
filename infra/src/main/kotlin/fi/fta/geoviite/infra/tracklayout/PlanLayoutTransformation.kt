@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geometry.PlanState.*
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import fi.fta.geoviite.infra.util.FileName
+import java.math.BigDecimal
 import kotlin.math.max
 
 val REFERENCE_LINE_TYPE_CODE = FeatureTypeCode("111")
@@ -22,6 +23,7 @@ data class GeometryPlanLayout(
     val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox }),
     val planId: DomainId<GeometryPlan>,
     val planDataType: DataType,
+    val startAddress: TrackMeter?,
 )
 
 fun simplifyPlanLayout(layout: GeometryPlanLayout, resolution: Int) = layout.copy(
@@ -47,6 +49,7 @@ fun toTrackLayout(
     )
 
     val kmPosts = toTrackLayoutKmPosts(geometryPlan.kmPosts, planToLayout)
+    val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
         planId = geometryPlan.id,
@@ -54,10 +57,10 @@ fun toTrackLayout(
         fileName = geometryPlan.fileName,
         alignments = alignments,
         switches = switches.values.toList(),
-        kmPosts = kmPosts
+        kmPosts = kmPosts,
+        startAddress = startAddress
     )
 }
-
 
 fun toTrackLayoutKmPosts(
     kmPosts: List<GeometryKmPost>,
@@ -145,6 +148,7 @@ fun toMapAlignments(
                 length = alignment.elements.sumOf(GeometryElement::calculatedLength),
                 segmentCount = alignment.elements.size,
                 version = null,
+                duplicateOf = null
             )
         }
 }
@@ -269,3 +273,17 @@ fun lengthPoints(length: Double, stepSize: Int): List<Double> {
 
 fun <T> deriveFromSourceId(prefix: String, source: DomainId<*>?): StringId<T> =
     if (source != null) StringId("${prefix}_$source") else StringId()
+
+private fun getPlanStartAddress(planKmPosts: List<GeometryKmPost>): TrackMeter? {
+    val minimumKmNumber = planKmPosts.mapNotNull(GeometryKmPost::kmNumber).minOrNull() ?: return null
+    val minimumKmNumberPosts = planKmPosts.filter { kmPost -> kmPost.kmNumber == minimumKmNumber }
+    return if (minimumKmNumberPosts.size == 1) {
+        val precedingKmPost = minimumKmNumberPosts[0]
+        // safety: minimumKmNumberPosts was filtered for equality with a known-not-null kmNumber
+        // Negative or zero staInternals are assumed to be the distance of the preceding km post from the plan's
+        // reference line's start; for anything else, let's not assume we know what to do with it
+        if (precedingKmPost.staInternal <= BigDecimal.ZERO)
+            TrackMeter(precedingKmPost.kmNumber!!, -precedingKmPost.staInternal)
+        else null
+    } else null
+}

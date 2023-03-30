@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.geometry.GeometryService
-import fi.fta.geoviite.infra.linking.PublicationService
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

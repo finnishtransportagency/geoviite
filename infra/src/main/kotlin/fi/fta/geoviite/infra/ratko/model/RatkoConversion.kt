@@ -69,7 +69,7 @@ fun mapToRatkoSwitchState(
     else ratkoSwitchState
 
 fun convertToRatkoAssetGeometries(
-    joints: List<TrackLayoutSwitchJoint>,
+    joints: Collection<TrackLayoutSwitchJoint>,
     switchType: SwitchBaseType,
 ) = joints.map { joint ->
     RatkoAssetGeometry(
@@ -204,7 +204,7 @@ fun convertToRatkoNodeCollection(addresses: AlignmentAddresses) = convertToRatko
     )
 )
 
-fun convertToRatkoNodeCollection(nodes: List<RatkoNode>) = RatkoNodes(nodes, RatkoNodesType.START_AND_END)
+fun convertToRatkoNodeCollection(nodes: Collection<RatkoNode>) = RatkoNodes(nodes, RatkoNodesType.START_AND_END)
 
 fun convertToRatkoNode(
     addressPoint: AddressPoint,
@@ -307,13 +307,13 @@ fun convertToRatkoSwitch(
         ),
         RatkoAssetProperty(
             name = "handedness",
-            enumValue = switchStructure.hand?.let { hand ->
+            enumValue = switchStructure.hand.let { hand ->
                 when (hand) {
                     SwitchHand.LEFT -> "Vasenkätinen"
                     SwitchHand.RIGHT -> "Oikeakätinen"
                     else -> "Ei kätisyyttä"
                 }
-            } ?: "Ei tiedossa",
+            }
         )
     ),
     locations = null,
@@ -335,11 +335,11 @@ fun convertToRatkoAssetLocations(
                 )
 
                 checkNotNull(jointChange.locationTrackExternalId) {
-                    "Cannot push switch changes with missing location track oid ${jointChange.locationTrackExternalId}"
+                    "Cannot push switch changes with missing location track oid $jointChange"
                 }
 
                 checkNotNull(jointChange.trackNumberExternalId) {
-                    "Cannot push switch changes with missing route number oid ${jointChange.trackNumberExternalId}"
+                    "Cannot push switch changes with missing route number oid $jointChange"
                 }
 
                 nodeType?.let {

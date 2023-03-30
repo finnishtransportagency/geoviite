@@ -34,10 +34,12 @@ export type LayoutPoint = {
 };
 
 export type LayoutSegmentId = string;
+export type GeometrySource = 'IMPORTED' | 'GENERATED' | 'PLAN';
 
 export type MapSegment = {
     pointCount: number;
     points: LayoutPoint[];
+    source: GeometrySource;
     sourceId: GeometryElementId | null;
     resolution: number;
     start: number;
@@ -61,6 +63,7 @@ export function simplifySegments(
         sourceId: null,
         start: segments[0].start,
         length: lengths.reduce((prev, current) => prev + current, 0),
+        source: 'GENERATED',
     };
 }
 
@@ -157,6 +160,7 @@ export type MapAlignment = {
     version: string;
     draftType: DraftType;
     topologicalConnectivity: TopologicalConnectivityType;
+    duplicateOf: LocationTrackId | null;
 };
 
 export enum TrapPoint {
@@ -221,6 +225,15 @@ export type LayoutKmPost = {
     sourceId: GeometryKmPostId | null;
     version: string | null;
     draftType: DraftType;
+};
+
+export type LayoutKmPostLengthDetails = {
+    trackNumberId: LayoutTrackNumberId;
+    kmNumber: KmNumber;
+    length: number;
+    stationStart: number;
+    stationEnd: number;
+    location: Point;
 };
 
 export type PlanAreaId = string;

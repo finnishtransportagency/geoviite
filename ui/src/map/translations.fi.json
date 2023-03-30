@@ -4,7 +4,9 @@
         "track-numbers": "Ratanumerot",
         "reference-lines": "Pituusmittauslinjat",
         "geometry": "Geometriat",
-        "debug": "Debug-työkalut"
+        "debug": "Debug-työkalut",
+        "missing-linking": "Korosta linkittämättömät",
+        "duplicate-tracks": "Korosta duplikaattiraiteet"
     },
     "map-view": {
         "cluster-overlay-title": "Klusteripiste",

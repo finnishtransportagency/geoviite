@@ -408,7 +408,7 @@ export function getMatchingEntities<T extends { id: string }>(
     );
 }
 
-const tickImageCache = new Map<string,RegularShape>();
+const tickImageCache = new Map<string, RegularShape>();
 
 export function getTickStyle(
     point1: Coordinate,
@@ -418,11 +418,11 @@ export function getTickStyle(
     style: Style,
 ): Style {
     const angleVersionCount = 100;
-    const angleStep = Math.PI*2/angleVersionCount;
+    const angleStep = (Math.PI * 2) / angleVersionCount;
     const actualAngle = Math.atan2(point1[0] - point2[0], point1[1] - point2[1]) + Math.PI / 2;
-    const roundAngle = Math.round(actualAngle/angleStep)*angleStep;
+    const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
     const strokeData = JSON.stringify(style.getStroke());
-    const key = `${roundAngle}_${length}_${strokeData}`
+    const key = `${roundAngle}_${length}_${strokeData}`;
     let image = tickImageCache.get(key);
     if (!image) {
         image = new RegularShape({
@@ -431,7 +431,7 @@ export function getTickStyle(
             radius: length,
             radius2: 0,
             angle: roundAngle,
-        })
+        });
         tickImageCache.set(key, image);
     }
 
@@ -521,7 +521,6 @@ export function mergePartialShownItemSearchResults(
             referenceLines: mergeOptionalArrays(merged.referenceLines, searchResult.referenceLines),
             kmPosts: mergeOptionalArrays(merged.kmPosts, searchResult.kmPosts),
             switches: mergeOptionalArrays(merged.switches, searchResult.switches),
-            trackNumbers: mergeOptionalArrays(merged.trackNumbers, searchResult.trackNumbers),
         };
     }, {});
 }

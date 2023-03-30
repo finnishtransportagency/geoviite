@@ -14,7 +14,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 
-data class AddressPoint(val point: LayoutPoint, val address: TrackMeter, val distance: Double) {
+data class AddressPoint(val point: LayoutPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
 }
 data class AlignmentAddresses(
@@ -23,7 +23,6 @@ data class AlignmentAddresses(
     val startIntersect: IntersectType,
     val endIntersect: IntersectType,
     val midPoints: List<AddressPoint>,
-    val switchJointPoints: List<AddressPoint>,
 ) {
     @get:JsonIgnore
     val allPoints: List<AddressPoint> by lazy {
@@ -36,7 +35,7 @@ data class AlignmentStartAndEnd(
     val end: AddressPoint?,
 )
 
-data class ProjectionLine(val address: TrackMeter, val projection: Line)
+data class ProjectionLine(val address: TrackMeter, val projection: Line, val distance: Double)
 
 data class GeocodingReferencePoint(
     val kmNumber: KmNumber,
@@ -71,22 +70,21 @@ private val logger: Logger = LoggerFactory.getLogger(GeocodingContext::class.jav
 
 data class GeocodingContext(
     val trackNumber: TrackLayoutTrackNumber,
-    val referenceLine: ReferenceLine,
-    val referenceLineGeometry: LayoutAlignment,
+    val startAddress: TrackMeter,
+    val referenceLineGeometry: IAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
     val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
     val projectionLineMaxAngleDelta: Double = PROJECTION_LINE_MAX_ANGLE_DELTA,
 ) {
+    private val polyLineEdges: List<PolyLineEdge> by lazy { getPolyLineEdges(referenceLineGeometry) }
     val projectionLines: List<ProjectionLine> by lazy {
-        val edges = getPolyLineEdges(referenceLineGeometry)
-        require(isSame(edges.last().endDistance, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
+        require(isSame(polyLineEdges.last().endDistance, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
             "Polyline edges should cover the whole reference line geometry: " +
                     "trackNumber=${trackNumber.number} " +
-                    "referenceLine=${referenceLine.id} " +
                     "alignment=${referenceLineGeometry.id}"
         }
-        createProjectionLines(referencePoints, edges).also { lines ->
+        createProjectionLines(referencePoints, polyLineEdges).also { lines ->
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
         }
     }
@@ -94,25 +92,47 @@ data class GeocodingContext(
         referencePoints.map(GeocodingReferencePoint::kmNumber).distinct()
     }
 
+    val startProjection: ProjectionLine by lazy {
+        val address = TrackMeter(referencePoints.first().kmNumber, referencePoints.first().meters)
+        val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
+        ProjectionLine(address, projectionLine, 0.0)
+    }
+
+    val endProjection: ProjectionLine by lazy {
+        val meters = referenceLineGeometry.length - referencePoints.last().let { p -> p.distance - p.meters.toDouble() }
+        val address = TrackMeter(referencePoints.last().kmNumber, meters, referencePoints.first().meters.scale())
+        val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
+        ProjectionLine(address, projectionLine, referenceLineGeometry.length)
+    }
+
     fun getProjectionLine(address: TrackMeter): ProjectionLine? =
-        projectionLines.getOrNull(projectionLines.binarySearch { projectionLine ->
-            compareValuesBy(
-                projectionLine.address, address,
-                { a: TrackMeter -> a.kmNumber },
-                { a: TrackMeter -> a.meters.toInt() }) // Drop fractions, as we only have even meters cached
-        })
+        if (address.decimalCount() == 0 || address <= startProjection.address || address >= endProjection.address) {
+            findCachedProjectionLine(address)
+        } else findCachedProjectionLine(address.floor())?.let { previous ->
+            val distance = previous.distance + (address.meters.toDouble() - previous.address.meters.toDouble())
+            findEdge(distance, polyLineEdges)?.let { edge ->
+                ProjectionLine(address, edge.crossSectionAt(distance), distance)
+            }
+        }
+
+    private fun findCachedProjectionLine(address: TrackMeter) =
+        if (address !in startProjection.address..endProjection.address) null
+        else if (address == startProjection.address) startProjection
+        else if (address == endProjection.address) endProjection
+        else if (projectionLines.isEmpty()) null
+        else projectionLines.binarySearch { line -> line.address.compareTo(address) }.let(projectionLines::getOrNull)
 
     companion object {
         fun create(
             trackNumber: TrackLayoutTrackNumber,
-            referenceLine: ReferenceLine,
-            referenceLineGeometry: LayoutAlignment,
+            startAddress: TrackMeter,
+            referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContext {
-            val referencePoints = createReferencePoints(referenceLine.startAddress, kmPosts, referenceLineGeometry)
+            val referencePoints = createReferencePoints(startAddress, kmPosts, referenceLineGeometry)
             return GeocodingContext(
                 trackNumber = trackNumber,
-                referenceLine = referenceLine,
+                startAddress = startAddress,
                 referenceLineGeometry = referenceLineGeometry,
                 referencePoints = referencePoints,
                 rejectedKmPosts = kmPosts.filterNot { post ->
@@ -126,7 +146,7 @@ data class GeocodingContext(
         private fun createReferencePoints(
             startAddress: TrackMeter,
             kmPosts: List<TrackLayoutKmPost>,
-            referenceLineGeometry: LayoutAlignment,
+            referenceLineGeometry: IAlignment,
         ) = listOf(GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)) +
                 kmPosts.mapNotNull { post ->
                     if (post.location != null && TrackMeter(post.kmNumber,0) > startAddress) {
@@ -134,7 +154,7 @@ data class GeocodingContext(
                     } else null
                 }
 
-        private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: LayoutAlignment) =
+        private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: IAlignment) =
             referenceLineGeometry.getLengthUntil(location)
                 ?.let { (distance, intersectType) ->
                     if (distance > 0.0 && intersectType == WITHIN) {
@@ -169,12 +189,12 @@ data class GeocodingContext(
             ?: throw IllegalStateException("Can't resolve reference line addresses")
     }
 
-    fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
+    private fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
         getDistance(point)?.let { (distance, intersectType) ->
-            AddressPoint(point, getAddress(distance, decimals), distance) to intersectType
+            AddressPoint(point, getAddress(distance, decimals)) to intersectType
         }
 
-    fun getAddressPoints(alignment: LayoutAlignment): AlignmentAddresses? {
+    fun getAddressPoints(alignment: IAlignment): AlignmentAddresses? {
         val startPoint = alignment.start?.let(::toAddressPoint)
         val endPoint = alignment.end?.let(::toAddressPoint)
         return if (startPoint != null && endPoint != null) {
@@ -182,7 +202,6 @@ data class GeocodingContext(
                 alignment,
                 (startPoint.first.address + MIN_METER_LENGTH)..(endPoint.first.address - MIN_METER_LENGTH)
             )
-            val switchPoints = getSwitchPoints(alignment)
 
             AlignmentAddresses(
                 startPoint = startPoint.first,
@@ -190,16 +209,21 @@ data class GeocodingContext(
                 startIntersect = startPoint.second,
                 endIntersect = endPoint.second,
                 midPoints = midPoints,
-                switchJointPoints = switchPoints,
             )
         } else null
     }
 
     fun getTrackLocation(alignment: LayoutAlignment, address: TrackMeter): AddressPoint? {
-        val startAddress = alignment.start?.let(::getAddress)?.first
-        val endAddress = alignment.end?.let(::getAddress)?.first
+        val alignmentStart = alignment.start
+        val alignmentEnd = alignment.end
+        val startAddress = alignmentStart?.let(::getAddress)?.first
+        val endAddress = alignmentEnd?.let(::getAddress)?.first
         return if (startAddress == null || endAddress == null || address !in startAddress..endAddress) {
             null
+        } else if (startAddress.isSame(address)) {
+            AddressPoint(alignmentStart, startAddress)
+        } else if (endAddress.isSame(address)) {
+            AddressPoint(alignmentEnd, endAddress)
         } else getProjectionLine(address)?.let { projectionLine ->
             getProjectedAddressPoint(projectionLine, alignment)
         }
@@ -211,12 +235,12 @@ data class GeocodingContext(
         return AlignmentStartAndEnd(startAddress?.first, endAddress?.first)
     }
 
-    private fun getMidPoints(alignment: LayoutAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {
+    private fun getMidPoints(alignment: IAlignment, range: ClosedRange<TrackMeter>): List<AddressPoint> {
         val projectionLines = getSublistForRangeInOrderedList(projectionLines, range) { p, e -> p.address.compareTo(e) }
         return getProjectedAddressPoints(projectionLines, alignment)
     }
 
-    private fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
+    fun getSwitchPoints(alignment: LayoutAlignment): List<AddressPoint> {
         val locations = alignment.segments.flatMap { segment -> listOfNotNull(
             segment.startJointNumber?.let { segment.points.first() },
             segment.endJointNumber?.let { segment.points.last() },
@@ -225,14 +249,13 @@ data class GeocodingContext(
             getDistance(location)?.first?.let { distance -> AddressPoint(
                 point = location,
                 address = getAddress(distance, 3),
-                distance = distance,
             ) }
         }.distinctBy { addressPoint -> addressPoint.address }
     }
 
     private fun findPreviousPoint(targetDistance: Double): GeocodingReferencePoint {
         val target = roundTo3Decimals(targetDistance) // Round to 1mm to work around small imprecision
-        if (target < BigDecimal.ZERO) throw GeocodingFailureException("Cannot reverse geocode with negative distance")
+        if (target < BigDecimal.ZERO) throw GeocodingFailureException("Cannot geocode with negative distance")
         return referencePoints.findLast { (_, _, distance: Double) -> roundTo3Decimals(distance) <= target }
             ?: throw GeocodingFailureException("Target point is not withing the reference line length")
     }
@@ -303,14 +326,13 @@ fun getProjectedAddressPoint(
         AddressPoint(
             point = edge.getPointAtPortion(portion),
             address = projection.address,
-            distance = edge.getDistanceToPortion(portion),
         )
     }
 }
 
 fun getProjectedAddressPoints(
     projectionLines: List<ProjectionLine>,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
 ): List<AddressPoint> {
 
     val alignmentEdges = getPolyLineEdges(alignment)
@@ -328,11 +350,7 @@ fun getProjectedAddressPoints(
             }
             WITHIN -> {
                 addressPoints.add(
-                    AddressPoint(
-                        point = edge.getPointAtPortion(intersection.segment1Portion),
-                        address = projection.address,
-                        distance = edge.getDistanceToPortion(intersection.segment1Portion),
-                    )
+                    AddressPoint(edge.getPointAtPortion(intersection.segment1Portion), projection.address),
                 )
                 projectionIndex += 1
             }
@@ -363,7 +381,7 @@ private fun createProjectionLines(
                         "minMeter=$minMeter maxMeter=$maxMeter maxDistance=$maxDistance" +
                         "edges=${edges.filter { e -> e.startDistance in distance - 10.0..distance + 10.0 }}"
             )
-            ProjectionLine(TrackMeter(point.kmNumber, meter), edge.crossSectionAt(distance))
+            ProjectionLine(TrackMeter(point.kmNumber, meter), edge.crossSectionAt(distance), distance)
         }
     }
 }
@@ -427,15 +445,15 @@ fun getIntersection(projection: Line, edges: List<PolyLineEdge>): Pair<PolyLineE
     }
 }
 
-private fun getPolyLineEdges(alignment: LayoutAlignment): List<PolyLineEdge> {
-    return alignment.segments.flatMapIndexed { index: Int, segment: LayoutSegment -> getPolyLineEdges(
+private fun getPolyLineEdges(alignment: IAlignment): List<PolyLineEdge> {
+    return alignment.segments.flatMapIndexed { index: Int, segment: ISegment -> getPolyLineEdges(
         segment,
         alignment.segments.getOrNull(index-1)?.endDirection,
         alignment.segments.getOrNull(index+1)?.startDirection,
     ) }
 }
 
-private fun getPolyLineEdges(segment: LayoutSegment, prevDir: Double?, nextDir: Double?): List<PolyLineEdge> {
+private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Double?): List<PolyLineEdge> {
     return segment.points.mapIndexedNotNull { pointIndex: Int, point: LayoutPoint ->
         if (pointIndex == 0) null
         else {

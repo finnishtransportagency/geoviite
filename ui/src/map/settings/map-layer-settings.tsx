@@ -12,6 +12,8 @@ export type MapLayersSettingsProps = {
     onLayerVisibilityChange: (layerId: string, visible: boolean) => void;
     onTrackNumberVisibilityChange: (layerId: string, visible: boolean) => void;
     onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
+    onMissingLinkingVisibilityChange: (layerId: string, visible: boolean) => void;
+    onDuplicateTrackVisibilityChange: (layerId: string, visible: boolean) => void;
     onClose?: () => void;
 };
 
@@ -67,11 +69,13 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
 
     return (
         <div className={styles['map-layer-settings']}>
-            <Button
-                variant={ButtonVariant.GHOST}
-                icon={Icons.Close}
-                onClick={() => props.onClose && props.onClose()}
-            />
+            <span className={styles['map-layer-settings__close-button']}>
+                <Button
+                    variant={ButtonVariant.GHOST}
+                    icon={Icons.Close}
+                    onClick={() => props.onClose && props.onClose()}
+                />
+            </span>
             <div className={styles['map-layer-settings__title']}>
                 {t('map-layer-settings.layout')}
             </div>
@@ -107,6 +111,30 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                         onVisibilityChange={(visible) =>
                                             props.onReferenceLineVisibilityChange(layer.id, visible)
                                         }
+                                    />
+                                    <LayerVisibilitySetting
+                                        name={t('map-layer-settings.missing-linking')}
+                                        visible={layer.showMissingLinking}
+                                        disabled={!layer.visible}
+                                        indented={true}
+                                        onVisibilityChange={(visible) => {
+                                            props.onMissingLinkingVisibilityChange(
+                                                layer.id,
+                                                visible,
+                                            );
+                                        }}
+                                    />
+                                    <LayerVisibilitySetting
+                                        name={t('map-layer-settings.duplicate-tracks')}
+                                        visible={layer.showDuplicateTracks}
+                                        disabled={!layer.visible}
+                                        indented={true}
+                                        onVisibilityChange={(visible) => {
+                                            props.onDuplicateTrackVisibilityChange(
+                                                layer.id,
+                                                visible,
+                                            );
+                                        }}
                                     />
                                 </>
                             )}

@@ -17,6 +17,8 @@ import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
 import { useTranslation } from 'react-i18next';
+import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { useNavigate } from 'react-router-dom';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
@@ -25,6 +27,9 @@ import { VerticalGeometryContainerWithProvider } from 'data-products/vertical-ge
 import { getEnvironmentInfo } from 'environment/environment-info';
 import { createDelegates } from 'store/store-utils';
 import { actionCreators } from 'track-layout/track-layout-store';
+import { Dialog } from 'vayla-design-lib/dialog/dialog';
+import { Button } from 'vayla-design-lib/button/button';
+import { KilometerLengthsContainerWithProvider } from 'data-products/kilometer-lengths/kilometer-lengths-container-with-provider';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -66,6 +71,10 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                         path="/data-products/vertical-geometry"
                         element={<VerticalGeometryContainerWithProvider />}
                     />
+                    <Route
+                        path="/data-products/kilometer-lengths"
+                        element={<KilometerLengthsContainerWithProvider />}
+                    />
                     <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>
             </div>
@@ -85,31 +94,49 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
 
 export const MainContainer: React.FC = () => {
     const { t } = useTranslation();
-
+    const navigate = useNavigate();
     const layoutMode = useTrackLayoutAppSelector((state) => state.trackLayout.layoutMode);
     const versionInStore = useTrackLayoutAppSelector((state) => state.trackLayout.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, actionCreators);
-    const storageResetRequired =
-        !!versionFromBackend && !!versionInStore && versionInStore !== versionFromBackend;
+    const [showDialog, setShowDialog] = React.useState(false);
 
     React.useEffect(() => {
-        versionFromBackend && delegates.setVersion(versionFromBackend || '');
-
-        if (storageResetRequired) {
-            alert(t('version.geoviite-updated'));
-            localStorage.clear();
-            location.reload();
-        }
+        setShowDialog(
+            !!versionFromBackend && !!versionInStore && versionInStore !== versionFromBackend,
+        );
+        if (versionFromBackend && !versionInStore) delegates.setVersion(versionFromBackend || '');
     }, [versionFromBackend]);
 
     const props = {
         layoutMode: layoutMode,
-        version: versionFromBackend,
+        version: versionInStore || versionFromBackend,
     };
 
-    return <Main {...props} />;
+    return (
+        <React.Fragment>
+            <Main {...props} />{' '}
+            {showDialog && (
+                <Dialog
+                    allowClose={false}
+                    className={dialogStyles['dialog--wide']}
+                    title={t('version.geoviite-updated')}
+                    footerContent={
+                        <Button
+                            onClick={() => {
+                                navigate('/');
+                                localStorage.clear();
+                                location.reload();
+                            }}>
+                            {t('version.clear-cache')}
+                        </Button>
+                    }>
+                    {t('version.cache-needs-clearing')}
+                </Dialog>
+            )}
+        </React.Fragment>
+    );
 };
 
 export default connect()(MainContainer);

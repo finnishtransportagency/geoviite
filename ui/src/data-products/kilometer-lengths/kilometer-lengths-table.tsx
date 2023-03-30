@@ -1,0 +1,76 @@
+import * as React from 'react';
+import { Table, Th } from 'vayla-design-lib/table/table';
+import { useTranslation } from 'react-i18next';
+import styles from '../data-product-table.scss';
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import {
+    ElementHeading,
+    nonNumericHeading,
+    numericHeading,
+} from 'data-products/data-products-utils';
+import { KilometerLengthTableItem } from 'data-products/kilometer-lengths/kilometer-lengths-table-item';
+import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
+
+type KilometerLengthsTableProps = {
+    kmLengths: LayoutKmPostLengthDetails[];
+};
+
+export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps) => {
+    const { t } = useTranslation();
+    const trackNumbers = useTrackNumbers('OFFICIAL');
+    const amount = kmLengths.length;
+    const headings: ElementHeading[] = [
+        nonNumericHeading('track-number'),
+        nonNumericHeading('kilometer'),
+        numericHeading('station-start'),
+        numericHeading('station-end'),
+        numericHeading('length'),
+        numericHeading('location-e'),
+        numericHeading('location-n'),
+    ];
+
+    return (
+        <React.Fragment>
+            <p className={styles['data-product-table__element-count']}>
+                {t(`data-products.km-lengths.amount`, { amount })}
+            </p>
+            <div className={styles['data-product-table__table-container']}>
+                <Table wide>
+                    <thead className={styles['data-product-table__table-heading']}>
+                        <tr>
+                            {headings.map((heading) => (
+                                <Th
+                                    key={heading.name}
+                                    className={
+                                        heading.numeric
+                                            ? styles['data-product-table__column--number']
+                                            : ''
+                                    }>
+                                    {t(`data-products.km-lengths.table.${heading.name}`)}
+                                </Th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {kmLengths.map((item) => (
+                            <React.Fragment key={`${item.kmNumber}`}>
+                                <KilometerLengthTableItem
+                                    trackNumber={
+                                        trackNumbers?.find((tn) => tn.id == item.trackNumberId)
+                                            ?.number
+                                    }
+                                    length={item.length}
+                                    kilometer={item.kmNumber}
+                                    stationStart={item.stationStart}
+                                    stationEnd={item.stationEnd}
+                                    locationE={item.location.x}
+                                    locationN={item.location.y}
+                                />
+                            </React.Fragment>
+                        ))}
+                    </tbody>
+                </Table>
+            </div>
+        </React.Fragment>
+    );
+};

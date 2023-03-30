@@ -3,7 +3,6 @@ import {
     GeometryPlanLayout,
     LayoutKmPostId,
     LayoutSwitchId,
-    LayoutTrackNumberId,
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
@@ -25,6 +24,8 @@ export type LayoutAlignmentsLayer = MapLayerBase & {
     type: 'alignment';
     showReferenceLines: boolean;
     showTrackNumbers: boolean;
+    showMissingLinking: boolean;
+    showDuplicateTracks: boolean;
 };
 
 export type GeometryLayer = MapLayerBase & {
@@ -116,14 +117,12 @@ export type MapViewport = {
 };
 
 export type OptionalShownItems = {
-    trackNumbers?: LayoutTrackNumberId[];
     referenceLines?: ReferenceLineId[];
     locationTracks?: LocationTrackId[];
     kmPosts?: LayoutKmPostId[];
     switches?: LayoutSwitchId[];
 };
 export type ShownItems = {
-    trackNumbers: LayoutTrackNumberId[];
     referenceLines: ReferenceLineId[];
     locationTracks: LocationTrackId[];
     kmPosts: LayoutKmPostId[];

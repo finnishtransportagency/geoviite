@@ -1,5 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { LayoutAlignmentsLayer, Map, MapLayerType, MapViewport, OptionalShownItems, ShownItems } from 'map/map-model';
+import {
+    LayoutAlignmentsLayer,
+    Map,
+    MapLayerType,
+    MapViewport,
+    OptionalShownItems,
+    ShownItems,
+} from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
 
@@ -10,7 +17,6 @@ export type LayerVisibility = {
 
 export function createEmptyShownItems(): ShownItems {
     return {
-        trackNumbers: [],
         referenceLines: [],
         locationTracks: [],
         kmPosts: [],
@@ -34,6 +40,8 @@ export const initialMapState: Map = {
             visible: true,
             showTrackNumbers: true,
             showReferenceLines: true,
+            showMissingLinking: false,
+            showDuplicateTracks: false,
         },
         {
             type: 'geometry',
@@ -120,12 +128,9 @@ export const initialMapState: Map = {
 
 export const mapReducers = {
     onShownItemsChange: (
-        {shownItems}: Map,
-        {payload}: PayloadAction<OptionalShownItems>,
+        { shownItems }: Map,
+        { payload }: PayloadAction<OptionalShownItems>,
     ): void => {
-        if (payload.trackNumbers != null) {
-            shownItems.trackNumbers = payload.trackNumbers;
-        }
         if (payload.referenceLines != null) {
             shownItems.referenceLines = payload.referenceLines;
         }
@@ -149,14 +154,14 @@ export const mapReducers = {
             // Also zoom out a bit to make it look more natural (hence the "* 1.2").
             resolution: state.viewport.area
                 ? state.viewport.resolution *
-                boundingBoxScale(state.viewport.area, action.payload) *
-                1.2
+                  boundingBoxScale(state.viewport.area, action.payload) *
+                  1.2
                 : state.viewport.resolution,
         };
     },
     onLayerVisibilityChange: (
         state: Map,
-        {payload: visibilitySetting}: PayloadAction<LayerVisibility>,
+        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
         state.mapLayers.forEach((layer) => {
             if (layer.id == visibilitySetting.layerId) {
@@ -173,37 +178,57 @@ export const mapReducers = {
 
     onTrackNumberVisibilityChange: (
         state: Map,
-        {payload: visibilitySetting}: PayloadAction<LayerVisibility>,
+        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
-        state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
-                (<LayoutAlignmentsLayer>layer).showTrackNumbers = visibilitySetting.visible;
-            }
-        });
+        onAlignmentLayerVisibilityChange(state, 'showTrackNumbers', visibilitySetting);
     },
     onReferencelineVisibilityChange: (
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
-        state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
-                (<LayoutAlignmentsLayer>layer).showReferenceLines = visibilitySetting.visible;
-            }
-        });
+        onAlignmentLayerVisibilityChange(state, 'showReferenceLines', visibilitySetting);
+    },
+    onMissingLinkingVisibilityChange: (
+        state: Map,
+        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
+    ): void => {
+        onAlignmentLayerVisibilityChange(state, 'showMissingLinking', visibilitySetting);
+    },
+    onDuplicateTracksVisibilityChange: (
+        state: Map,
+        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
+    ): void => {
+        onAlignmentLayerVisibilityChange(state, 'showDuplicateTracks', visibilitySetting);
     },
     onMapSettingsVisibilityChange: (
         state: Map,
-        {payload: visible}: PayloadAction<boolean>,
+        { payload: visible }: PayloadAction<boolean>,
     ): void => {
         state.settingsVisible = visible;
     },
-    onHoverLocation: (state: Map, {payload: hoverLocation}: PayloadAction<Point>): void => {
+    onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>): void => {
         state.hoveredLocation = hoverLocation;
     },
-    onClickLocation: (state: Map, {payload: clickLocation}: PayloadAction<Point>): void => {
+    onClickLocation: (state: Map, { payload: clickLocation }: PayloadAction<Point>): void => {
         state.clickLocation = clickLocation;
     },
 };
+
+function onAlignmentLayerVisibilityChange(
+    state: Map,
+    property:
+        | 'showReferenceLines'
+        | 'showTrackNumbers'
+        | 'showMissingLinking'
+        | 'showDuplicateTracks',
+    layerVisibility: LayerVisibility,
+) {
+    state.mapLayers.forEach((layer) => {
+        if (layer.id == layerVisibility.layerId) {
+            (<LayoutAlignmentsLayer>layer)[property] = layerVisibility.visible;
+        }
+    });
+}
 
 function shownItemsByLayer(layerType: MapLayerType): keyof ShownItems | undefined {
     switch (layerType) {
@@ -234,4 +259,6 @@ export const {
     onLayerVisibilityChange,
     onTrackNumberVisibilityChange,
     onReferencelineVisibilityChange,
+    onMissingLinkingVisibilityChange,
+    onDuplicateTracksVisibilityChange,
 } = mapSlice.actions;

@@ -19,12 +19,12 @@ class PublicationListItem(val root: WebElement) {
     }
 }
 
-class PublicationDetails(): PageModel(By.cssSelector("div.publication-details__publication")) {
+class PublicationDetails(): PageModel(By.cssSelector("div.publication-details")) {
     fun returnFrontPage() = rootElement.findElement(By.cssSelector("div.publication-details__title a")).click()
     fun publicationDetails(): List<PublicationDetailRow> {
         logger.info("Load publication detail rows")
         val header = getChildElementsStaleSafe(By.cssSelector("th span.table__th-children")).map { it.text }
-        return getChildElementsStaleSafe(By.cssSelector("tr.preview-table-item")).map { PublicationDetailRow(it, header) }
+        return getChildElementsStaleSafe(By.cssSelector("tr.publication-table__row")).map { PublicationDetailRow(it, header) }
     }
 }
 

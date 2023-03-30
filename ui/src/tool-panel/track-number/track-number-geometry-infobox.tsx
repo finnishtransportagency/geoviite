@@ -34,7 +34,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                 trackNumberId,
                 useBoungingBox ? viewport.area : undefined,
             ),
-        [trackNumberId, viewportDep],
+        [trackNumberId, publishType, viewportDep],
     );
 
     function highlightReferenceLineSection(trackNumberId:LayoutTrackNumberId, section: AlignmentPlanSection) {

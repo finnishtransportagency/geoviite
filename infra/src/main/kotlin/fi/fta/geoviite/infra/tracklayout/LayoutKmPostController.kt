@@ -5,12 +5,12 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.linking.PublicationService
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
-import fi.fta.geoviite.infra.linking.ValidatedAsset
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -45,6 +45,16 @@ class LayoutKmPostController(
     ): List<TrackLayoutKmPost> {
         logger.apiCall("getKmPost", "publishType" to publishType, "ids" to ids)
         return kmPostService.getMany(publishType, ids)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/on-track-number/{trackNumberId}")
+    fun getKmPostsOnTrackNumber(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("trackNumberId") id: IntId<TrackLayoutTrackNumber>,
+    ): List<TrackLayoutKmPost> {
+        logger.apiCall("getKmPostsOnTrackNumber", "publishType" to publishType, "id" to id)
+        return kmPostService.list(publishType, id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

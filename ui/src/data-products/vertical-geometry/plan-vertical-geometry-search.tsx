@@ -5,7 +5,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { planSources } from 'utils/enum-localization-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
+import { GeometryPlanHeader, PlanSource, VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     getGeometryPlanVerticalGeometry,
     getGeometryPlanVerticalGeometryCsv,
@@ -26,7 +26,7 @@ type PlanVerticalGeometrySearchProps = {
     onUpdateProp: <TKey extends keyof PlanVerticalGeometrySearchState>(
         propEdit: PropEdit<PlanVerticalGeometrySearchState, TKey>,
     ) => void;
-    setVerticalGeometry: (verticalGeometry: never[]) => void;
+    setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
 };
 
 const debouncedGetPlanVerticalGeometry = debounceAsync(getGeometryPlanVerticalGeometry, 250);
@@ -75,21 +75,17 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
             <div className={styles['data-products__search']}>
                 <FieldLayout
                     label={t(`data-products.search.source`)}
-                    value={
-                        <>
-                            {planSources.map((source) => (
-                                <span
-                                    key={source.value}
-                                    className={styles['data-product-view__radio-layout']}>
-                                    <Radio
-                                        checked={state.source === source.value}
-                                        onChange={() => setSource(source.value)}>
-                                        {t(source.name)}
-                                    </Radio>
-                                </span>
-                            ))}
-                        </>
-                    }
+                    value={planSources.map((source) => (
+                        <span
+                            key={source.value}
+                            className={styles['data-product-view__radio-layout']}>
+                            <Radio
+                                checked={state.source === source.value}
+                                onChange={() => setSource(source.value)}>
+                                {t(source.name)}
+                            </Radio>
+                        </span>
+                    ))}
                 />
                 <div className={styles['element-list__plan-search-dropdown']}>
                     <FieldLayout
@@ -98,7 +94,7 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                             <Dropdown
                                 value={state.plan}
                                 getName={(item: GeometryPlanHeader) => item.fileName}
-                                placeholder={t('location-track-dialog.search')}
+                                placeholder={t('data-products.search.search')}
                                 options={geometryPlanHeaders}
                                 searchable
                                 onChange={(e) => updateProp('plan', e)}

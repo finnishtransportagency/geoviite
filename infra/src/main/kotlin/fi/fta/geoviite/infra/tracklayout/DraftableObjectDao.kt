@@ -7,10 +7,10 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.linking.ValidationVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Transactional
@@ -194,7 +194,7 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
                 rs.getRowVersion("id", "version")
             }
-        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        require(versions.size == ids.size) { "RowVersions not found for some ids: ids=$ids versions=$versions" }
         return versions
     }
 

@@ -106,7 +106,7 @@ const PlanGeometryElementListingSearch = ({
                             <Dropdown
                                 value={state.plan}
                                 getName={(item: GeometryPlanHeader) => item.fileName}
-                                placeholder={t('location-track-dialog.search')}
+                                placeholder={t('data-products.search.search')}
                                 options={geometryPlanHeaders}
                                 searchable
                                 onChange={(e) => updateProp('plan', e)}
@@ -117,7 +117,7 @@ const PlanGeometryElementListingSearch = ({
                         }
                     />
                 </div>
-                <div className={styles['element-list__geometry-checkboxes']}>
+                <div className={styles['data-products__search--no-label']}>
                     <FieldLayout
                         value={
                             <div className={styles['element-list__geometry-checkbox']}>

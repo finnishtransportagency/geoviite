@@ -92,7 +92,7 @@ const LocationTrackElementListingSearch = ({
                         <Dropdown
                             value={state.searchParameters.locationTrack}
                             getName={(item) => item.name}
-                            placeholder={t('location-track-dialog.search')}
+                            placeholder={t('data-products.search.search')}
                             options={getLocationTracks}
                             searchable
                             onChange={(e) => updateProp('locationTrack', e)}
@@ -145,7 +145,7 @@ const LocationTrackElementListingSearch = ({
                         'endTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <div className={styles['element-list__geometry-checkboxes']}>
+                <div className={styles['data-products__search--no-label']}>
                     <FieldLayout
                         label={''}
                         value={

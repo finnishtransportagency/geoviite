@@ -7,9 +7,20 @@ import {
     ValidationErrorType,
 } from 'utils/validation-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { ElementItem, GeometryPlanHeader, GeometryType, PlanSource } from 'geometry/geometry-model';
+import {
+    ElementItem,
+    GeometryPlanHeader,
+    GeometryType,
+    PlanSource,
+    VerticalGeometryItem,
+} from 'geometry/geometry-model';
 import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
-import { LayoutLocationTrack } from 'track-layout/track-layout-model';
+import {
+    LayoutKmPost,
+    LayoutKmPostLengthDetails,
+    LayoutLocationTrack,
+    LayoutTrackNumber,
+} from 'track-layout/track-layout-model';
 import { wrapReducers } from 'store/store-utils';
 
 type SearchGeometries = {
@@ -41,7 +52,7 @@ export type LocationTrackVerticalGeometrySearchState = {
 
     validationErrors: ValidationError<LocationTrackVerticalGeometrySearchParameters>[];
     committedFields: (keyof LocationTrackVerticalGeometrySearchParameters)[];
-    verticalGeometry: never[];
+    verticalGeometry: VerticalGeometryItem[];
 };
 
 export type PlanVerticalGeometrySearchState = {
@@ -50,7 +61,17 @@ export type PlanVerticalGeometrySearchState = {
 
     validationErrors: ValidationError<PlanVerticalGeometrySearchState>[];
     committedFields: (keyof PlanVerticalGeometrySearchState)[];
-    verticalGeometry: never[];
+    verticalGeometry: VerticalGeometryItem[];
+};
+
+export type KmLengthsSearchState = {
+    trackNumber: LayoutTrackNumber | undefined;
+    startKm: LayoutKmPost | undefined;
+    endKm: LayoutKmPost | undefined;
+
+    validationErrors: ValidationError<KmLengthsSearchState>[];
+    committedFields: (keyof KmLengthsSearchState)[];
+    kmLengths: LayoutKmPostLengthDetails[];
 };
 
 enum MissingSection {
@@ -142,6 +163,16 @@ const initialPlanVerticalGeometrySearchState: PlanVerticalGeometrySearchState = 
     validationErrors: [],
     committedFields: [],
     verticalGeometry: [],
+};
+
+const initialKmLengthsSearchState: KmLengthsSearchState = {
+    trackNumber: undefined,
+    startKm: undefined,
+    endKm: undefined,
+
+    validationErrors: [],
+    committedFields: [],
+    kmLengths: [],
 };
 
 const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
@@ -355,7 +386,7 @@ export const locationTrackVerticalGeometrySearchSlice = createSlice({
         },
         onSetLocationTrackVerticalGeometry: function (
             state: LocationTrackVerticalGeometrySearchState,
-            { payload: verticalGeometry }: PayloadAction<never[]>,
+            { payload: verticalGeometry }: PayloadAction<VerticalGeometryItem[]>,
         ) {
             state.verticalGeometry = verticalGeometry;
         },
@@ -380,9 +411,49 @@ export const planVerticalGeometrySearchSlice = createSlice({
         },
         onSetPlanVerticalGeometry: function (
             state: PlanVerticalGeometrySearchState,
-            { payload: verticalGeometry }: PayloadAction<never[]>,
+            { payload: verticalGeometry }: PayloadAction<VerticalGeometryItem[]>,
         ) {
             state.verticalGeometry = verticalGeometry;
+        },
+    },
+});
+
+export const kmLengthsSearchSlice = createSlice({
+    name: 'kmLengthsSearch',
+    initialState: initialKmLengthsSearchState,
+    reducers: {
+        onUpdateKmLengthsSearchProp: function <TKey extends keyof KmLengthsSearchState>(
+            state: KmLengthsSearchState,
+            { payload: propEdit }: PayloadAction<PropEdit<KmLengthsSearchState, TKey>>,
+        ) {
+            state[propEdit.key] = propEdit.value;
+            if (propEdit.key === 'trackNumber') {
+                state['startKm'] = undefined;
+                state['endKm'] = undefined;
+                state.committedFields = ['trackNumber'];
+            } else {
+                state.committedFields = Array.from(
+                    new Set([...state.committedFields, propEdit.key]),
+                );
+            }
+            state.validationErrors = [
+                validate(
+                    !state.startKm ||
+                        !state.endKm ||
+                        state.endKm.kmNumber >= state.startKm.kmNumber,
+                    {
+                        field: 'endKm',
+                        reason: 'km-end-before-start',
+                        type: ValidationErrorType.ERROR,
+                    },
+                ),
+            ].filter(filterNotEmpty);
+        },
+        onSetKmLengths: function (
+            state: KmLengthsSearchState,
+            { payload: kmLengths }: PayloadAction<LayoutKmPostLengthDetails[]>,
+        ) {
+            state.kmLengths = kmLengths;
         },
     },
 });
@@ -400,6 +471,7 @@ type DataProductsState = {
         planSearch: PlanVerticalGeometrySearchState;
         locationTrackSearch: LocationTrackVerticalGeometrySearchState;
     };
+    kmLenghts: KmLengthsSearchState;
 };
 
 const initialDataProductsState: DataProductsState = {
@@ -413,6 +485,7 @@ const initialDataProductsState: DataProductsState = {
         planSearch: initialPlanVerticalGeometrySearchState,
         locationTrackSearch: initialLocationTrackVerticalGeometrySearchState,
     },
+    kmLenghts: initialKmLengthsSearchState,
 };
 
 const dataProductsSlice = createSlice({
@@ -446,6 +519,10 @@ const dataProductsSlice = createSlice({
         ...wrapReducers(
             (state: DataProductsState) => state.verticalGeometry.planSearch,
             planVerticalGeometrySearchSlice.caseReducers,
+        ),
+        ...wrapReducers(
+            (state: DataProductsState) => state.kmLenghts,
+            kmLengthsSearchSlice.caseReducers,
         ),
     },
 });

@@ -1,12 +1,13 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
+import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
@@ -43,17 +44,23 @@ open class Publication(
     open val message: String?,
 )
 
+data class PublishedItemListing<T>(
+    val directChanges: List<T>,
+    val indirectChanges: List<T>,
+)
+
 data class PublishedTrackNumber(
     val version: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val operation: Operation,
+    val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedReferenceLine(
     val version: RowVersion<ReferenceLine>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
-    val changedKmNumbers: List<KmNumber>,
+    val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedLocationTrack(
@@ -61,7 +68,7 @@ data class PublishedLocationTrack(
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
-    val changedKmNumbers: List<KmNumber>,
+    val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedSwitch(
@@ -69,6 +76,7 @@ data class PublishedSwitch(
     val trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
     val name: SwitchName,
     val operation: Operation,
+    @JsonIgnore val changedJoints: List<SwitchJointChange>,
 )
 
 data class PublishedKmPost(
@@ -78,8 +86,9 @@ data class PublishedKmPost(
     val operation: Operation,
 )
 
-data class PublishedCalculatedChanges(
-    val trackNumbers: List<PublishedTrackNumber>,
+data class PublishedIndirectChanges(
+    //Currently only used by Ratko integration
+    @JsonIgnore val trackNumbers: List<PublishedTrackNumber>,
     val locationTracks: List<PublishedLocationTrack>,
     val switches: List<PublishedSwitch>,
 )
@@ -96,8 +105,12 @@ data class PublicationDetails(
     val kmPosts: List<PublishedKmPost>,
     val ratkoPushStatus: RatkoPushStatus?,
     val ratkoPushTime: Instant?,
-    val calculatedChanges: PublishedCalculatedChanges,
-) : Publication(id, publicationTime, publicationUser, message)
+    val indirectChanges: PublishedIndirectChanges,
+) : Publication(id, publicationTime, publicationUser, message) {
+    val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
+    val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
+    val allPublishedSwitches = switches + indirectChanges.switches
+}
 
 enum class DraftChangeType {
     TRACK_NUMBER, LOCATION_TRACK, REFERENCE_LINE, SWITCH, KM_POST,
@@ -135,7 +148,7 @@ data class PublishCandidates(
         kmPosts.map { candidate -> candidate.id },
     )
 
-    fun getPublicationVersions() = ValidationVersions(
+    fun getValidationVersions() = ValidationVersions(
         trackNumbers = trackNumbers.map(TrackNumberPublishCandidate::getPublicationVersion),
         referenceLines = referenceLines.map(ReferenceLinePublishCandidate::getPublicationVersion),
         locationTracks = locationTracks.map(LocationTrackPublishCandidate::getPublicationVersion),
@@ -152,9 +165,6 @@ data class PublishCandidates(
     )
 }
 
-private inline fun <reified T, reified S : PublishCandidate<T>> getOrThrow(all: List<S>, id: IntId<T>) =
-    all.find { c -> c.id == id } ?: throw NoSuchEntityException(S::class, id)
-
 data class ValidationVersions(
     val trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>>,
     val locationTracks: List<ValidationVersion<LocationTrack>>,
@@ -162,10 +172,7 @@ data class ValidationVersions(
     val switches: List<ValidationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<ValidationVersion<TrackLayoutKmPost>>,
 ) {
-    fun containsTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.any { it.officialId == id }
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
-    fun containsReferenceLine(id: IntId<ReferenceLine>) = referenceLines.any { it.officialId == id }
-    fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }

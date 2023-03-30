@@ -21,19 +21,35 @@ abstract class PageModel(
 
     protected open fun clickButton(buttonContent: String) {
         logger.info("Click button '$buttonContent'")
-        val button = getButtonElement(buttonContent)
+        val button = getButtonElementByContent(buttonContent)
         try {
             waitUntilElementIsClickable(button)
             Thread.sleep(500) //Fixes problems where button cannot be clicked while enabled
             button.click()
         } catch (ex: StaleElementReferenceException) {
-            getButtonElement(buttonContent).click()
+            getButtonElementByContent(buttonContent).click()
         }
 
     }
 
-    protected fun getButtonElement(buttonContent: String) =
+    protected open fun clickButtonByQaId(qaId: String) {
+        logger.info("Click button qa-id=$qaId")
+        val button = getButtonElementByQaId(qaId)
+        try {
+            waitUntilElementIsClickable(button)
+            Thread.sleep(500) //Fixes problems where button cannot be clicked while enabled
+            button.click()
+        } catch (ex: StaleElementReferenceException) {
+            getButtonElementByContent(qaId).click()
+        }
+
+    }
+
+    protected fun getButtonElementByContent(buttonContent: String) =
         getChildElementStaleSafe(By.xpath(".//span[text() = '$buttonContent']"))
+
+    protected fun getButtonElementByQaId(qaId: String) =
+        getChildElementStaleSafe(By.cssSelector("button[qa-id=$qaId]"))
 
     protected fun getChildElementStaleSafe(childByCondition: By): WebElement {
         try {

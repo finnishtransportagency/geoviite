@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { User } from 'user/user-model';
 import Card from 'geoviite-design-lib/card/card';
-import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import styles from './user-card.scss';
 import { useTranslation } from 'react-i18next';
+import { ShowMoreButton } from 'show-more-button/show-more-button';
 
 type UserCardProps = {
     user: User;
@@ -23,15 +23,12 @@ export const UserCard: React.FC<UserCardProps> = ({ user }: UserCardProps) => {
                     </h3>
                     <div className={styles['user-card__username']}>{user.details.userName}</div>
 
-                    <Button
-                        className={styles['user-card__show-more']}
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SMALL}
-                        onClick={() => {
-                            setShowMoreDetails(!showMoreDetails);
-                        }}>
-                        {showMoreDetails ? t('user-card.show-less') : t('user-card.show-more')}
-                    </Button>
+                    <div className={styles['user-card__show-more']}>
+                        <ShowMoreButton
+                            onShowMore={() => setShowMoreDetails(!showMoreDetails)}
+                            expanded={showMoreDetails}
+                        />
+                    </div>
 
                     {showMoreDetails && (
                         <React.Fragment>

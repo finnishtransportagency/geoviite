@@ -24,6 +24,7 @@ import {
     getVisibleErrorsByProp,
     hasErrors,
 } from 'data-products/data-products-utils';
+import { VerticalGeometryItem } from 'geometry/geometry-model';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -33,7 +34,7 @@ type LocationTrackVerticalGeometrySearchProps = {
     onCommitField: <TKey extends keyof LocationTrackVerticalGeometrySearchParameters>(
         key: TKey,
     ) => void;
-    setVerticalGeometry: (verticalGeometry: never[]) => void;
+    setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
 };
 
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackVerticalGeometry, 250);
@@ -62,15 +63,21 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
     }
 
     const verticalGeometries = useLoader(() => {
-        return !state.searchParameters.locationTrack ||
+        if (!state.searchParameters.locationTrack) {
+            return Promise.resolve([]);
+        }
+        if (
             hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
             hasErrors(state.committedFields, state.validationErrors, 'endTrackMeter')
-            ? Promise.resolve(state.verticalGeometry)
-            : debouncedTrackElementsFetch(
-                  state.searchParameters.locationTrack.id,
-                  validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
-                  validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
-              );
+        ) {
+            return Promise.resolve(state.verticalGeometry);
+        }
+
+        return debouncedTrackElementsFetch(
+            state.searchParameters.locationTrack.id,
+            validTrackMeterOrUndefined(state.searchParameters.startTrackMeter),
+            validTrackMeterOrUndefined(state.searchParameters.endTrackMeter),
+        );
     }, [state.searchParameters]);
     React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
 
@@ -86,7 +93,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                         <Dropdown
                             value={state.searchParameters.locationTrack}
                             getName={(item) => item.name}
-                            placeholder={t('location-track-dialog.search')}
+                            placeholder={t('data-products.search.search')}
                             options={getLocationTracks}
                             searchable
                             onChange={(e) => updateProp('locationTrack', e)}

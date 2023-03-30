@@ -29,11 +29,12 @@ fun createTrackLayoutTrackNumber(number: String, description: String = "descript
     externalId = null,
 )
 
-fun createGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>, location: Point, kmNumber: String) =
+fun createGeometryKmPost(trackNumberId: IntId<TrackLayoutTrackNumber>, location: Point?, kmNumber: String,
+                         staInternal: BigDecimal = BigDecimal("-148.729000")) =
     GeometryKmPost(
         staBack = null,
         staAhead = BigDecimal("-148.729000"),
-        staInternal = BigDecimal("-148.729000"),
+        staInternal = staInternal,
         kmNumber = KmNumber(kmNumber),
         description = PlanElementName("0"),
         state = PlanState.PROPOSED,

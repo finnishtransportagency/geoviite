@@ -13,15 +13,19 @@
             "no-types-selected": "Valitse vähintään yksi elementin tyyppi",
             "invalid-track-meter": "Tarkista osoitteen muoto",
             "end-before-start": "Rataosoitteen loppu on ennen alkua",
+            "km-end-before-start": "Loppukilometri on ennen alkua",
             "not-selected": "Ei valittu",
-            "download-csv": "Lataa CSV"
+            "download-csv": "Lataa CSV",
+            "track-meter-range": "Kilometriväli",
+            "track-number": "Ratanumero",
+            "search": "Hae..."
         },
         "element-list": {
             "element-list-title": "Elementtiluettelo",
             "location-track-geometry": "Raiteen geometria",
             "location-track-legend": "Raiteen geometria näyttää luettelossa paikannuspohjan raiteeseen liityvät geometriaelementit. Tämä elementtiluettelo ei täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää  epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "plan-geometry": "Suunnitelman geometria",
-            "plan-legend": "Suunnitelman geometria näyttää luettelossa suunnitelman sisältämät geometriaelementit. Rataosoiteet on laskettu paikannuspohjan pituusmittauksen mukaan, joten rataosoitteiden tarkkuutta on syytä pitää epäluotettavana. Myös paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
+            "plan-legend": "Suunnitelman geometria näyttää luettelossa suunnitelman sisältämät geometriaelementit. Paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "geometry-elements": "Geometriaelementit ({{amount}} kpl)",
             "pcs": "kpl",
             "element-list-table": {
@@ -59,6 +63,7 @@
             "location-track-search-legend": "Raiteen pystygeometria näyttää luettelossa paikannuspohjan raiteeseen liityvät taitepisteet. Paikannuspohjan raide voi olla koostettu useasta suunnitelmasta, eikä täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "plan-search-legend": "Suunnitelman pystygeometria näyttää luettelossa suunnitelman sisältämät taitepisteet. Rataosoiteet on laskettu paikannuspohjan pituusmittauksen mukaan, joten rataosoitteiden tarkkuutta on syytä pitää epäluotettavana. Myös  paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "table": {
+                "location-track": "Sijaintiraide",
                 "plan": "Suunnitelma",
                 "alignment": "Suunnitelman raide",
                 "track-address": "Rataosoite",
@@ -70,13 +75,27 @@
                 "linear-section": "Suora osa",
                 "station-start": "Alku",
                 "station-vertical-intersection": "Taite",
-                "station-end": "End",
+                "station-end": "Loppu",
                 "station": "Paaluluku",
                 "linear-section-forward": "Kaltevuusjakso eteenpäin",
                 "linear-section-backward": "Kaltevuusjakso taaksepäin",
                 "curve-start": "Pyöristyksen alku",
                 "curve-end": "Pyöristyksen loppu",
                 "point-of-vertical-intersection": "Taite"
+            }
+        },
+        "km-lengths": {
+            "amount": "Kilometrit ({{amount}} kpl)",
+            "title": "Kilometrien pituudet",
+            "legend": "Kilometrien tiedot on laskettu paikannuspohjan tietojen perusteella. Paikannuspohjan tiedot eivät ole tarkkoja, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. tilastointiin tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. suunnittelytyön lähtötietona.",
+            "table": {
+                "track-number": "Ratanumero",
+                "kilometer": "Kilometri",
+                "station-start": "Alkupaalu",
+                "station-end": "Loppupaalu",
+                "length": "Pituus",
+                "location-e": "Koordinaatti E",
+                "location-n": "Koordinaatti N"
             }
         }
     }

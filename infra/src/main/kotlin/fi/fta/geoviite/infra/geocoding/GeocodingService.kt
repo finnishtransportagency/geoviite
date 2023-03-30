@@ -1,11 +1,12 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.linking.ValidationVersions
+import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -16,6 +17,8 @@ import java.time.Instant
 class GeocodingService(
     private val addressPointsCache: AddressPointsCache,
     private val geocodingDao: GeocodingDao,
+    private val geocodingCacheService: GeocodingCacheService,
+    private val trackNumberDao: LayoutTrackNumberDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -34,8 +37,9 @@ class GeocodingService(
         alignmentVersion: RowVersion<LayoutAlignment>,
     ): AlignmentAddresses? {
         logger.serviceCall(
-            "getAddressPointsForPublication",
-            "alignmentVersion" to alignmentVersion, "contextKey" to contextKey
+            "getAddressPoints",
+            "alignmentVersion" to alignmentVersion,
+            "contextKey" to contextKey,
         )
         return addressPointsCache.getAddressPoints(AddressPointCacheKey(alignmentVersion, contextKey))
     }
@@ -102,32 +106,43 @@ class GeocodingService(
         trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     ) = if (trackNumberId is IntId) getGeocodingContext(publicationState, trackNumberId) else null
 
+    fun getGeocodingContext(geocodingContextCacheKey: GeocodingContextCacheKey) =
+        geocodingCacheService.getGeocodingContext(geocodingContextCacheKey)
+
     fun getGeocodingContext(
         publicationState: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): GeocodingContext? =
-        geocodingDao.getGeocodingContextCacheKey(publicationState, trackNumberId)?.let(::getGeocodingContext)
+        geocodingDao.getLayoutGeocodingContextCacheKey(publicationState, trackNumberId)?.let(geocodingCacheService::getGeocodingContext)
 
     fun getGeocodingContextAtMoment(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
     ): GeocodingContext? =
-        geocodingDao.getGeocodingContextCacheKey(trackNumberId, moment)?.let(::getGeocodingContext)
+        geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, moment)?.let(geocodingCacheService::getGeocodingContext)
 
-    fun getGeocodingContext(cacheKey: GeocodingContextCacheKey) = geocodingDao.getGeocodingContext(cacheKey)
+    fun getGeocodingContext(
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        plan: RowVersion<GeometryPlan>,
+    ): GeocodingContext? =
+        trackNumberDao.fetchVersion(trackNumberId, PublishType.OFFICIAL)?.let { trackNumberVersion ->
+            getGeocodingContext(GeometryGeocodingContextCacheKey(trackNumberVersion, plan))
+        }
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         publicationState: PublishType,
-    ) = geocodingDao.getGeocodingContextCacheKey(publicationState, trackNumberId)
+    ) = geocodingDao.getLayoutGeocodingContextCacheKey(publicationState, trackNumberId)
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationVersions: ValidationVersions,
-    ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, publicationVersions)
+        versions: ValidationVersions,
+    ) = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, versions)
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
-    ) = geocodingDao.getGeocodingContextCacheKey(trackNumberId, moment)
+    ) = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, moment)
+
+
 }

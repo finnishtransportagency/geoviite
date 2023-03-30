@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
@@ -52,8 +52,8 @@ class PublicationController @Autowired constructor(
     @PostMapping("/calculated-changes")
     fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
         logger.apiCall("getCalculatedChanges", "request" to request)
-        return calculatedChangesService.getCalculatedChangesInDraft(
-            publicationService.getPublicationVersions(request)
+        return calculatedChangesService.getCalculatedChanges(
+            publicationService.getValidationVersions(request)
         )
     }
 
@@ -82,7 +82,7 @@ class PublicationController @Autowired constructor(
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.updateExternalId(request.content)
-            val versions = publicationService.getPublicationVersions(request.content)
+            val versions = publicationService.getValidationVersions(request.content)
             publicationService.validatePublishRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
             publicationService.publishChanges(versions, calculatedChanges, request.message)
@@ -94,17 +94,32 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping
-    fun getPublications(
+    fun getPublicationsBetween(
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
     ): Page<PublicationDetails> {
-        logger.apiCall("getPublications", "from" to from, "to" to to)
-        val publications = publicationService.fetchPublicationDetails(from, to)
+        logger.apiCall("getPublicationsBetween", "from" to from, "to" to to)
+        val publications = publicationService.fetchPublicationDetailsBetweenInstants(from, to)
 
         return Page(
             totalCount = publications.size,
             start = 0,
-            items = publications.take(50) //Prevents frontend from going kaput, todo: replace with proper paging
+            items = publications.take(50) //Prevents frontend from going kaput
+        )
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("latest")
+    fun getLatestPublications(
+        @RequestParam("count") count: Int
+    ): Page<PublicationDetails> {
+        logger.apiCall("getLatestPublications", "count" to count)
+        val publications = publicationService.fetchLatestPublicationDetails(count)
+
+        return Page(
+            totalCount = publications.size,
+            start = 0,
+            items = publications
         )
     }
 

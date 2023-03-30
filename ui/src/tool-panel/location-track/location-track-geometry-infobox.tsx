@@ -33,7 +33,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                 locationTrackId,
                 useBoungingBox ? viewport.area : undefined,
             ),
-        [locationTrackId, viewportDep],
+        [locationTrackId, publishType, viewportDep],
     );
 
     function highlightSection(locationTrackId:LocationTrackId, section: AlignmentPlanSection) {

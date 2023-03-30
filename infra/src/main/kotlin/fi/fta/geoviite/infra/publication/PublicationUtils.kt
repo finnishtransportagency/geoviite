@@ -1,8 +1,9 @@
-package fi.fta.geoviite.infra.linking
+package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -48,7 +49,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId = ZoneId.of("U
             it.trackNumbers.sorted().joinToString(", ")
         },
         PublicationTableColumn.CHANGED_KM_NUMBERS to {
-            it.changedKmNumbers?.let(::formatChangedKmNumbers)
+            it.changedKmNumbers?.sorted()?.let(::formatChangedKmNumbers)
         },
         PublicationTableColumn.OPERATION to { formatOperation(it.operation) },
         PublicationTableColumn.PUBLICATION_TIME to { formatInstant(it.publicationTime, timeZone) },
@@ -93,21 +94,49 @@ fun formatMessage(message: String?, isCalculatedChange: Boolean): String {
 }
 
 private fun formatChangedKmNumbers(kmNumbers: List<KmNumber>) =
-    kmNumbers
-        .sorted()
-        .fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
-            if (acc.isEmpty()) acc.add(listOf(kmNumber))
-            else {
-                val previousKmNumbers = acc.last()
-                val previousKmNumber = previousKmNumbers.last().number
+    kmNumbers.fold(mutableListOf<List<KmNumber>>()) { acc, kmNumber ->
+        if (acc.isEmpty()) acc.add(listOf(kmNumber))
+        else {
+            val previousKmNumbers = acc.last()
+            val previousKmNumber = previousKmNumbers.last().number
 
-                if (kmNumber.number == previousKmNumber || kmNumber.number == previousKmNumber + 1) {
-                    acc[acc.lastIndex] = listOf(previousKmNumbers.first(), kmNumber)
-                } else acc.add(listOf(kmNumber))
-            }
+            if (kmNumber.number == previousKmNumber || kmNumber.number == previousKmNumber + 1) {
+                acc[acc.lastIndex] = listOf(previousKmNumbers.first(), kmNumber)
+            } else acc.add(listOf(kmNumber))
+        }
+        acc
+    }.joinToString(", ") { it.joinToString("-") }
 
-            acc
-        }.joinToString(", ") { it.joinToString("-") }
+fun getComparator(sortBy: PublicationTableColumn, order: SortOrder? = null): Comparator<PublicationTableItem> =
+    if (order == SortOrder.DESCENDING) getComparator(sortBy).reversed() else getComparator(sortBy)
+
+//Nulls are "last", e.g., 0, 1, 2, null
+private fun <T : Comparable<T>> compareNullsLast(a: T?, b: T?) =
+    if (a == null && b == null) 0
+    else if (a == null) 1
+    else if (b == null) -1
+    else a.compareTo(b)
+
+private fun getComparator(sortBy: PublicationTableColumn): Comparator<PublicationTableItem> {
+    return when (sortBy) {
+        PublicationTableColumn.NAME -> Comparator.comparing { p -> p.name }
+        PublicationTableColumn.TRACK_NUMBERS -> Comparator { a, b ->
+            compareNullsLast(a.trackNumbers.minOrNull(), b.trackNumbers.minOrNull())
+        }
+
+        PublicationTableColumn.CHANGED_KM_NUMBERS -> Comparator { a, b ->
+            compareNullsLast(a.changedKmNumbers?.minOrNull(), b.changedKmNumbers?.minOrNull())
+        }
+
+        PublicationTableColumn.OPERATION -> Comparator.comparing { p -> p.operation.priority }
+        PublicationTableColumn.PUBLICATION_TIME -> Comparator.comparing { p -> p.publicationTime }
+        PublicationTableColumn.PUBLICATION_USER -> Comparator.comparing { p -> p.publicationUser }
+        PublicationTableColumn.MESSAGE -> Comparator.comparing { p -> p.message }
+        PublicationTableColumn.RATKO_PUSH_TIME -> Comparator { a, b ->
+            compareNullsLast(a.ratkoPushTime, b.ratkoPushTime)
+        }
+    }
+}
 
 fun getTranslation(key: String) = publicationTranslations[key] ?: ""
 
