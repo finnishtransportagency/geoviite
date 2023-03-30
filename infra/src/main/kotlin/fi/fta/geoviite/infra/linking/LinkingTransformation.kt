@@ -146,7 +146,7 @@ fun fixSegmentStarts(segments: List<LayoutSegment>): List<LayoutSegment> {
     return segments.map { s -> s.withStartM(cumulativeM).also { cumulativeM += s.length } }
 }
 
-private fun sliceSegments(
+fun sliceSegments(
     segments: List<ISegment>,
     mRange: Range<Double>,
     snapDistance: Double = ALIGNMENT_LINKING_SNAP
@@ -168,13 +168,13 @@ private fun firstPoint(segments: List<LayoutSegment>) = segments.firstOrNull()?.
 private fun lastPoint(segments: List<LayoutSegment>) = segments.lastOrNull()?.points?.lastOrNull()
 
 
-private fun removeSwitches(segments: List<LayoutSegment>, switchIds: Set<DomainId<TrackLayoutSwitch>>): List<LayoutSegment> =
+fun removeSwitches(segments: List<LayoutSegment>, switchIds: Set<DomainId<TrackLayoutSwitch>>): List<LayoutSegment> =
     segments.map { s -> if (switchIds.contains(s.switchId)) s.withoutSwitch() else s }
 
-private fun getSwitchIdsInside(segments: List<LayoutSegment>, mRange: Range<Double>) =
+fun getSwitchIdsInside(segments: List<LayoutSegment>, mRange: Range<Double>) =
     getSwitchIds(segments) { s -> mRange.min < s.endM && mRange.max > s.startM }
 
-private fun getSwitchIdsOutside(segments: List<LayoutSegment>, mRange: Range<Double>) =
+fun getSwitchIdsOutside(segments: List<LayoutSegment>, mRange: Range<Double>) =
     getSwitchIds(segments) { s -> mRange.min > s.startM || mRange.max < s.endM }
 
 private fun getSwitchIds(segments: List<LayoutSegment>, predicate: (LayoutSegment) -> Boolean) =

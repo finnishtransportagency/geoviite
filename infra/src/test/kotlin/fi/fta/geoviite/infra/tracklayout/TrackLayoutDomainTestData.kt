@@ -467,14 +467,16 @@ fun segment(
     switchId: IntId<TrackLayoutSwitch>? = null,
     startJointNumber: JointNumber? = null,
     endJointNumber: JointNumber? = null,
+    sourceStart: Double? = null,
 ) = segment(
     toTrackLayoutPoints(to3DMPoints(points.asList(), start)),
     start = start,
     source = source,
+    sourceStart = sourceStart,
     sourceId = sourceId,
     switchId = switchId,
     startJointNumber = startJointNumber,
-    endJointNumber = endJointNumber
+    endJointNumber = endJointNumber,
 )
 
 fun segment(
