@@ -1,7 +1,7 @@
 import { trackLayoutStore } from 'store/store';
 
 import { API_URI, getIgnoreError, getWithDefault } from 'api/api-fetch';
-import { actionCreators, ChangeTimes } from 'track-layout/track-layout-store';
+import { actionCreators, ChangeTimes } from 'store/track-layout-store';
 import { createDelegates } from 'store/store-utils';
 import { TimeStamp } from 'common/common-model';
 

@@ -3,7 +3,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import React from 'react';
 import { useTrackLayoutAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import { actionCreators as TrackLayoutActions } from 'store/track-layout-store';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import { GeometryPlanId } from 'geometry/geometry-model';
 

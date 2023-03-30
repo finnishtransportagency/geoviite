@@ -3,7 +3,7 @@ import { useTrackLayoutAppDispatch } from 'store/hooks';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import { actionCreators as TrackLayoutActions } from 'store/track-layout-store';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-utils';
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';

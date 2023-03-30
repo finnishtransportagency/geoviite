@@ -12,7 +12,7 @@ import { GeometryPlanLayout, MapAlignment, simplifySegment } from 'track-layout/
 import { getMatchingSegmentDatas, getTickStyles, MatchOptions } from 'map/layers/layer-utils';
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'store/track-layout-store';
 import { LinkingState } from 'linking/linking-model';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';

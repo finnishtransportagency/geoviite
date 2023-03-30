@@ -14,7 +14,7 @@ import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/l
 import { getMatchingKmPosts } from 'map/layers/layer-utils';
 import { getKmPostRenderer, getSelectedKmPostRenderer } from 'map/layers/km-post-renderers';
 import { calculateTileSize } from 'map/map-utils';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'store/track-layout-store';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState } from 'linking/linking-model';
 import { GeometryPlanId } from 'geometry/geometry-model';

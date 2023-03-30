@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { actionCreators } from 'track-layout/track-layout-store';
+import { actionCreators } from 'store/track-layout-store';
 import { createDelegates } from 'store/store-utils';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import Frontpage from 'frontpage/frontpage';

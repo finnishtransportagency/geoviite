@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { trackLayoutReducer } from 'track-layout/track-layout-store';
+import { trackLayoutReducer } from 'store/track-layout-store';
 import { infraModelReducer } from 'infra-model/infra-model-store';
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from 'redux';

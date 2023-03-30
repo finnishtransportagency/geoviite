@@ -23,7 +23,7 @@ import {
     SelectedGeometryItem,
 } from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'store/track-layout-store';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';

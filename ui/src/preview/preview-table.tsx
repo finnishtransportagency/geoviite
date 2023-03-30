@@ -11,7 +11,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import styles from './preview-view.scss';
-import { SelectedPublishChange } from 'track-layout/track-layout-store';
+import { SelectedPublishChange } from 'store/track-layout-store';
 import { negComparator } from 'utils/array-utils';
 import {
     getSortInfoForProp,

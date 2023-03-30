@@ -26,7 +26,7 @@ import { ElementListContainerWithProvider } from 'data-products/element-list/ele
 import { VerticalGeometryContainerWithProvider } from 'data-products/vertical-geometry/vertical-geometry-container-with-provider';
 import { getEnvironmentInfo } from 'environment/environment-info';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators } from 'track-layout/track-layout-store';
+import { actionCreators } from 'store/track-layout-store';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
 import { Button } from 'vayla-design-lib/button/button';
 import { KilometerLengthsContainerWithProvider } from 'data-products/kilometer-lengths/kilometer-lengths-container-with-provider';

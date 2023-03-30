@@ -4,7 +4,7 @@ import OlView from 'ol/View';
 import { MapLayer, MapTile, OptionalShownItems } from 'map/map-model';
 import { OptionalItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'store/track-layout-store';
 import { PublishType } from 'common/common-model';
 
 export type LayerItemSearchResult = OptionalItemCollections;

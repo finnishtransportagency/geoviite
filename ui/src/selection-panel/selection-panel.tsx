@@ -28,7 +28,7 @@ import {
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'store/track-layout-store';
 import { PublishType } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/location-track-panel/location-tracks-panel';

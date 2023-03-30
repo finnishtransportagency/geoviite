@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './infra-model-main.scss';
 import { InfraModelListContainer } from 'infra-model/list/infra-model-list-container';
 import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-container';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'store/track-layout-store';
 import { Route, Routes } from 'react-router-dom';
 import { InfraModelViewType } from 'infra-model/infra-model-store';
 

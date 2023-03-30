@@ -2,7 +2,7 @@ import React from 'react';
 import { SwitchSuggestionCreatorDialog } from 'linking/switch/switch-suggestion-creator-dialog';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators } from 'track-layout/track-layout-store';
+import { actionCreators } from 'store/track-layout-store';
 import { LocationTrackEndpoint, SuggestedSwitch } from 'linking/linking-model';
 import { PublishTypeHandlingDialog } from 'linking/publish-type-handling-dialog';
 

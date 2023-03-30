@@ -11,7 +11,7 @@ import { PlanArea } from 'track-layout/track-layout-model';
 import { getPlanAreasByTile } from 'geometry/geometry-api';
 import { LayerItemSearchResult, OlLayerAdapter } from 'map/layers/layer-model';
 import { calculateTileSize } from 'map/map-utils';
-import { ChangeTimes } from 'track-layout/track-layout-store';
+import { ChangeTimes } from 'store/track-layout-store';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 

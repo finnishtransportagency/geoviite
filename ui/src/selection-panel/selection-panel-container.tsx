@@ -1,5 +1,5 @@
 import SelectionPanel from 'selection-panel/selection-panel';
-import { actionCreators, getSelectableItemTypes } from 'track-layout/track-layout-store';
+import { actionCreators, getSelectableItemTypes } from 'store/track-layout-store';
 import { createDelegates } from 'store/store-utils';
 import * as React from 'react';
 import { MapContext } from 'map/map-store';

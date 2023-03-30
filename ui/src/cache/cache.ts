@@ -1,6 +1,6 @@
 import memCache from 'memory-cache';
 import { TimeStamp } from 'common/common-model';
-import { initialChangeTime } from 'track-layout/track-layout-store';
+import { initialChangeTime } from 'store/track-layout-store';
 import { toDate } from 'utils/date-utils';
 
 export type Cache<TKey, TVal> = {
