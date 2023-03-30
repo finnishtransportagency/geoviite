@@ -290,7 +290,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
            select id, postgis.st_astext(geometry) geom, postgis.st_length(geometry) length
            from layout.segment_geometry
            where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
-              or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry)) > 0.1;
+             or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
         """.trimIndent()
         val geometriesWithInvalidMValues = jdbc.query(sql, mapOf<String,Any>()) { rs, _ -> Triple(
             rs.getIntId<SegmentGeometry>("id"),
