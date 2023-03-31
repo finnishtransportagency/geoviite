@@ -34,6 +34,11 @@ export const TrackLayoutContainer: React.FC = () => {
                 layerId: id,
                 visible: visible,
             }),
+        onMissingVerticalGeometryVisibilityChange: (id: string, visible: boolean) =>
+            delegates.onMissingVerticalGeometryVisibilityChange({
+                layerId: id,
+                visible: visible,
+            }),
         onMissingLinkingVisibilityChange: (id: string, visible: boolean) =>
             delegates.onMissingLinkingVisibilityChange({
                 layerId: id,

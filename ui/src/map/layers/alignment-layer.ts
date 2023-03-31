@@ -214,6 +214,7 @@ function createFeatures(
     trackNumberDisplayMode: DisplayMode,
     drawDistance: number,
     showReferenceLines: boolean,
+    showMissingVerticalGeometry: boolean,
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
 ): Feature<LineString | Point>[] {
@@ -247,6 +248,10 @@ function createFeatures(
 
     if (showDuplicateTracks && dataHolder.alignment.duplicateOf) {
         styles.push(alignmentBackgroundBlue);
+    }
+
+    if (showMissingVerticalGeometry && segment.hasProfile !== null && !segment.hasProfile) {
+        styles.push(alignmentBackgroundRed);
     }
 
     segmentFeature.setStyle(styles);
@@ -312,6 +317,7 @@ function featureKey(
     alignmentId: LocationTrackId,
     alignmentVersion: string | null,
     missingLinking: boolean,
+    missingVerticalGeometry: boolean,
     duplicateTracks: boolean,
 ): string {
     return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${
@@ -320,7 +326,7 @@ function featureKey(
         highlighted ? '1' : '0'
     }_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}_${
         missingLinking ? '1' : '0'
-    }_${duplicateTracks ? '1' : '0'}`;
+    }_${missingVerticalGeometry ? '1' : '0'}_${duplicateTracks ? '1' : '0'}`;
 }
 
 type DataCollection = {
@@ -410,6 +416,7 @@ function createFeaturesCached(
     trackNumberDisplayMode: DisplayMode,
     trackNumberDrawDistance: number,
     showReferenceLines: boolean,
+    showMissingVerticalGeometry: boolean,
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
 ): Feature<LineString | Point>[] {
@@ -437,6 +444,7 @@ function createFeaturesCached(
                 data.alignment.id,
                 data.alignment.version,
                 showMissingLinking,
+                showMissingVerticalGeometry,
                 showDuplicateTracks,
             );
             const previous = previousFeatures.get(key);
@@ -450,6 +458,7 @@ function createFeaturesCached(
                           trackNumberDisplayMode,
                           trackNumberDrawDistance,
                           showReferenceLines,
+                          showMissingVerticalGeometry,
                           showMissingLinking,
                           showDuplicateTracks,
                       );
@@ -546,6 +555,7 @@ adapterInfoRegister.add('alignment', {
                 : mapLayer.showReferenceLines
                 ? 'all'
                 : 'locationtrack',
+            mapLayer.showMissingVerticalGeometry,
             selectedAlignment,
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
@@ -566,6 +576,7 @@ adapterInfoRegister.add('alignment', {
                     trackNumberDisplayMode,
                     trackNumberDrawDistance || 0,
                     mapLayer.showReferenceLines,
+                    mapLayer.showMissingVerticalGeometry,
                     mapLayer.showMissingLinking,
                     mapLayer.showDuplicateTracks,
                 );

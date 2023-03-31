@@ -53,6 +53,7 @@ data class MapSegment(
     override val start: Double,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment>,
+    val hasProfile: Boolean? = null,
 ): ISegment, ISegmentGeometry by geometry
 
 fun toMapAlignment(

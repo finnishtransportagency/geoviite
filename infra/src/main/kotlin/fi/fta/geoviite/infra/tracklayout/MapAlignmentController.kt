@@ -26,6 +26,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("resolution") resolution: Int,
         @RequestParam("type") type: AlignmentFetchType? = null,
         @RequestParam("selectedId") selectedId: IntId<LocationTrack>? = null,
+        @RequestParam("includeProfile") includeProfile: Boolean = false,
     ): List<MapAlignment<*>> {
         logger.apiCall(
             "getMapAlignments",
@@ -34,8 +35,9 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
             "resolution" to resolution,
             "type" to type,
             "selectedId" to selectedId,
+            "includeProfile" to includeProfile,
         )
-        return mapAlignmentService.getMapAlignments(publishType, bbox, resolution, type ?: ALL, selectedId)
+        return mapAlignmentService.getMapAlignments(publishType, bbox, resolution, type ?: ALL, selectedId, includeProfile)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

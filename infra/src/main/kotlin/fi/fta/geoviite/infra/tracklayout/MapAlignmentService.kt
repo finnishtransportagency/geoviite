@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import org.slf4j.Logger
@@ -28,6 +29,7 @@ class MapAlignmentService(
         resolution: Int,
         type: AlignmentFetchType,
         selectedId: IntId<LocationTrack>?,
+        includeProfile: Boolean,
     ): List<MapAlignment<*>> {
         logger.serviceCall("getMapAlignments",
             "publishType" to publishType,
@@ -35,6 +37,7 @@ class MapAlignmentService(
             "resolution" to resolution,
             "type" to type,
             "selectedId" to selectedId,
+            "includeProfile" to includeProfile,
         )
         val trackNumbers = trackNumberService.mapById(publishType)
         val referenceLines =
@@ -46,12 +49,17 @@ class MapAlignmentService(
             if (type != AlignmentFetchType.REFERENCE) getMapLocationTracks(publishType, bbox, resolution)
             else listOf()
         val selected = selectedId?.let { id ->
-            if (locationTracks.any { t -> t.id == selectedId }) null
+            if (locationTracks.any { t -> t.second.id == selectedId }) null
             else locationTrackService.get(publishType, id)
                 ?.takeIf { t -> t.state != LayoutState.DELETED }
-                ?.let { toMap(it, bbox, resolution) }
+                ?.let { it.alignmentVersion to toMap(it, bbox, resolution) }
         }
-        return (referenceLines + locationTracks + listOfNotNull(selected)).filter { ma -> ma.segments.isNotEmpty() }
+        return (referenceLines + locationTracks + listOfNotNull(selected))
+            .filter { ma -> ma.second.segments.isNotEmpty() }
+            .map {
+                if (it.second.alignmentType == MapAlignmentType.LOCATION_TRACK) includeProfileInformation(includeProfile, it.first, it.second)
+                else it.second
+            }
     }
 
     fun getMapReferenceLine(
@@ -82,7 +90,23 @@ class MapAlignmentService(
         publishType: PublishType,
         bbox: BoundingBox,
         resolution: Int,
-    ) = locationTrackService.list(publishType).map { track -> toMap(track, bbox, resolution) }
+    ) = locationTrackService.list(publishType).map { track -> track.alignmentVersion to toMap(track, bbox, resolution) }
+
+    private fun <T>includeProfileInformation(
+        includeProfile: Boolean,
+        alignmentVersion: RowVersion<LayoutAlignment>?,
+        mapAlignment: MapAlignment<T>
+    ) = if (includeProfile) {
+        requireNotNull(alignmentVersion)
+        val segmentProfileInformation = alignmentDao.fetchSegmentProfileInfo(alignmentVersion)
+        mapAlignment.copy(
+            segments = mapAlignment.segments.map { segment ->
+                segment.copy(
+                    hasProfile = segmentProfileInformation.find { it.first == segment.id }?.second ?: false
+                )
+            }
+        )
+    } else mapAlignment
 
     private fun getMapReferenceLines(
         trackNumbers: Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
@@ -92,7 +116,7 @@ class MapAlignmentService(
     ) = referenceLineService.list(publishType).mapNotNull { line ->
         val trackNumber = trackNumbers[line.trackNumberId]
         if (trackNumber != null && trackNumber.state != LayoutState.DELETED)
-            toMap(line, trackNumber, bbox, resolution)
+            line.alignmentVersion to toMap(line, trackNumber, bbox, resolution)
         else null
     }
 

@@ -389,6 +389,35 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
+    fun fetchSegmentProfileInfo(alignmentVersion: RowVersion<LayoutAlignment>): List<Pair<DomainId<MapSegment>, Boolean>> {
+        //language=SQL
+        val sql = """
+            select
+              segment_version.alignment_id,
+              segment_version.segment_index,
+              plan.vertical_coordinate_system
+            from layout.segment_version
+              inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+              left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
+              left join geometry.plan on alignment.plan_id = plan.id
+            where segment_version.alignment_id = :alignment_id 
+              and segment_version.alignment_version = :alignment_version
+            order by alignment.id, segment_version.segment_index
+        """.trimIndent()
+
+        val params = mapOf(
+            "alignment_id" to alignmentVersion.id.intValue,
+            "alignment_version" to alignmentVersion.version,
+        )
+
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getIndexedId<MapSegment>(
+                "alignment_id",
+                "segment_index"
+            ) to (rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null)
+        }
+    }
+
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
             val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->

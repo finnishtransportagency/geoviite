@@ -45,6 +45,7 @@ export type MapSegment = {
     start: number;
     length: number;
     id: LayoutSegmentId;
+    hasProfile: boolean | null;
 };
 
 export function simplifySegments(
@@ -64,6 +65,7 @@ export function simplifySegments(
         start: segments[0].start,
         length: lengths.reduce((prev, current) => prev + current, 0),
         source: 'GENERATED',
+        hasProfile: null,
     };
 }
 

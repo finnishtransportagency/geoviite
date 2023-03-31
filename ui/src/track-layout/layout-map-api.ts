@@ -36,11 +36,19 @@ export async function getAlignmentsByTile(
     mapTile: MapTile,
     publishType: PublishType,
     fetchType: AlignmentFetchType,
+    includeProfile: boolean,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
-    const tileKey = `${mapTile.id}_${publishType}_${fetchType}`;
+    const tileKey = `${mapTile.id}_${publishType}_${fetchType}_${includeProfile}`;
     return alignmentTilesCache.get(changeTime, tileKey, () =>
-        getAlignments(mapTile.area, mapTile.resolution, publishType, fetchType, selectedId),
+        getAlignments(
+            mapTile.area,
+            mapTile.resolution,
+            publishType,
+            fetchType,
+            includeProfile,
+            selectedId,
+        ),
     );
 }
 
@@ -49,12 +57,20 @@ export async function getAlignmentsByTiles(
     mapTiles: MapTile[],
     publishType: PublishType,
     fetchType: AlignmentFetchType,
+    includeProfile: boolean,
     selectedId?: AlignmentId,
 ): Promise<MapAlignment[]> {
     return (
         await Promise.all(
             mapTiles.map((tile) =>
-                getAlignmentsByTile(changeTime, tile, publishType, fetchType, selectedId),
+                getAlignmentsByTile(
+                    changeTime,
+                    tile,
+                    publishType,
+                    fetchType,
+                    includeProfile,
+                    selectedId,
+                ),
             ),
         )
     ).flat();
@@ -88,7 +104,7 @@ export async function getLinkPointsByTiles(
 ): Promise<LinkPoint[]> {
     return (
         await Promise.all(
-            mapTiles.map((tile) => getAlignmentsByTile(changeTime, tile, 'DRAFT', 'all')),
+            mapTiles.map((tile) => getAlignmentsByTile(changeTime, tile, 'DRAFT', 'all', false)),
         ).then((alignments) => {
             const allAlignments = alignments.flat().filter((a) => a.alignmentType == alignmentType);
             if (allAlignments.length == 0) return [];
@@ -140,12 +156,14 @@ async function getAlignments(
     resolution: number,
     publishType: PublishType,
     fetchType: AlignmentFetchType,
+    includeProfile: boolean,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
     const params = queryParams({
         resolution: toMapAlignmentResolution(resolution),
         bbox: bboxString(area),
         type: fetchType.toUpperCase(),
+        includeProfile,
         selectedId,
     });
     return await getWithDefault<MapAlignment[]>(

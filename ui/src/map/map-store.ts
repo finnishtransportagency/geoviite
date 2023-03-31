@@ -40,6 +40,7 @@ export const initialMapState: Map = {
             visible: true,
             showTrackNumbers: true,
             showReferenceLines: true,
+            showMissingVerticalGeometry: false,
             showMissingLinking: false,
             showDuplicateTracks: false,
         },
@@ -188,6 +189,12 @@ export const mapReducers = {
     ): void => {
         onAlignmentLayerVisibilityChange(state, 'showReferenceLines', visibilitySetting);
     },
+    onMissingVerticalGeometryVisibilityChange: (
+        state: Map,
+        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
+    ): void => {
+        onAlignmentLayerVisibilityChange(state, 'showMissingVerticalGeometry', visibilitySetting);
+    },
     onMissingLinkingVisibilityChange: (
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
@@ -219,6 +226,7 @@ function onAlignmentLayerVisibilityChange(
     property:
         | 'showReferenceLines'
         | 'showTrackNumbers'
+        | 'showMissingVerticalGeometry'
         | 'showMissingLinking'
         | 'showDuplicateTracks',
     layerVisibility: LayerVisibility,
