@@ -9,7 +9,10 @@ import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
-import { ProgressIndicatorType, ProgressIndicatorWrapper } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 
@@ -37,11 +40,13 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
         [trackNumberId, publishType, viewportDep],
     );
 
-    function highlightReferenceLineSection(trackNumberId:LayoutTrackNumberId, section: AlignmentPlanSection) {
+    function highlightReferenceLineSection(
+        trackNumberId: LayoutTrackNumberId,
+        section: AlignmentPlanSection,
+    ) {
         // TODO
         console.log('highlight reference line section', trackNumberId, section);
     }
-
 
     return (
         <Infobox title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}>
@@ -57,7 +62,8 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                 />
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
-                    inProgress={elementFetchStatus !== LoaderStatus.Ready}>
+                    inProgress={elementFetchStatus !== LoaderStatus.Ready}
+                    inline={false}>
                     {sections && sections.length == 0 ? (
                         <p className={'infobox__text'}>
                             {t(
@@ -67,7 +73,9 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                     ) : (
                         <AlignmentPlanSectionInfoboxContent
                             sections={sections || []}
-                            highlightSection={(section) => highlightReferenceLineSection(trackNumberId, section)}
+                            highlightSection={(section) =>
+                                highlightReferenceLineSection(trackNumberId, section)
+                            }
                         />
                     )}
                 </ProgressIndicatorWrapper>
