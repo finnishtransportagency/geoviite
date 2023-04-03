@@ -402,7 +402,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
               left join geometry.plan on alignment.plan_id = plan.id
             where segment_version.alignment_id = :alignment_id 
               and segment_version.alignment_version = :alignment_version
-            order by alignment.id, segment_version.segment_index
+            order by segment_version.segment_index
         """.trimIndent()
 
         val params = mapOf(
