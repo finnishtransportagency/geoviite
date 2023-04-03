@@ -56,9 +56,11 @@ class MapAlignmentService(
         }
         return (referenceLines + locationTracks + listOfNotNull(selected))
             .filter { ma -> ma.second.segments.isNotEmpty() }
-            .map {
-                if (it.second.alignmentType == MapAlignmentType.LOCATION_TRACK) includeProfileInformation(includeProfile, it.first, it.second)
-                else it.second
+            .map { (alignmentVersion, mapAlignment) ->
+                if (includeProfile) {
+                    requireNotNull(alignmentVersion) { "Alignment version required for fetching geometry profile" }
+                    includeHasProfile(alignmentVersion, mapAlignment)
+                } else mapAlignment
             }
     }
 
@@ -92,21 +94,19 @@ class MapAlignmentService(
         resolution: Int,
     ) = locationTrackService.list(publishType).map { track -> track.alignmentVersion to toMap(track, bbox, resolution) }
 
-    private fun <T>includeProfileInformation(
-        includeProfile: Boolean,
-        alignmentVersion: RowVersion<LayoutAlignment>?,
+    private fun <T>includeHasProfile(
+        alignmentVersion: RowVersion<LayoutAlignment>,
         mapAlignment: MapAlignment<T>
-    ) = if (includeProfile) {
-        requireNotNull(alignmentVersion)
+    ): MapAlignment<T> {
         val segmentProfileInformation = alignmentDao.fetchSegmentProfileInfo(alignmentVersion)
-        mapAlignment.copy(
+        return mapAlignment.copy(
             segments = mapAlignment.segments.map { segment ->
                 segment.copy(
                     hasProfile = segmentProfileInformation.find { it.first == segment.id }?.second ?: false
                 )
             }
         )
-    } else mapAlignment
+    }
 
     private fun getMapReferenceLines(
         trackNumbers: Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
