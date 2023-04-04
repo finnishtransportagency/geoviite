@@ -1243,7 +1243,6 @@ class CalculatedChangesServiceIT @Autowired constructor(
                         jointNumber = JointNumber(2),
                         location = lastPoint(alignmentA, segIndexA+2).toPoint(),
                         segments = listOf(
-                            // TODO: GVT-553 - should this be index + 2? what the hell does this thing test?
                             switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA+1),
                         ),
                         locationAccuracy = null

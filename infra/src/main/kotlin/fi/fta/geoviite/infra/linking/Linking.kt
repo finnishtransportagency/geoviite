@@ -93,7 +93,6 @@ data class SwitchLinkingSegment(
     val locationTrackId: IntId<LocationTrack>,
     val m: Double,
     val segmentIndex: Int,
-//    val segmentM: Double,
 )
 
 data class SwitchLinkingJoint(
