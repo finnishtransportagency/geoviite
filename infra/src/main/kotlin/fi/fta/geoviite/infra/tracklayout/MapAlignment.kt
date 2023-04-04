@@ -50,7 +50,6 @@ data class MapSegment(
     val pointCount: Int,
     override val sourceId: DomainId<GeometryElement>?,
     override val sourceStart: Double?,
-    override val start: Double,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment>,
 ): ISegment, ISegmentGeometry by geometry
@@ -109,7 +108,6 @@ fun toMapSegment(
     pointCount = originalPointCount,
     sourceId = segmentFields.sourceId,
     sourceStart = segmentFields.sourceStart,
-    start = segmentFields.start,
     id = segmentFields.id,
     source = segmentFields.source,
 )

@@ -209,7 +209,6 @@ fun locationTrackAndAlignmentForGeometryAlignment(
                 ),
                 startJointNumber = element.startJointNumber,
                 endJointNumber = element.endJointNumber,
-                start = 0.0,
                 source = GeometrySource.PLAN,
                 sourceId = element.id,
                 sourceStart = null,

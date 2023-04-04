@@ -5,7 +5,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.getIntId
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -62,6 +64,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         assertEquals(afterInsert, alignmentDao.fetch(insertedVersion))
         assertEquals(afterUpdate, alignmentDao.fetch(updatedVersion))
         assertEquals(afterUpdate2, alignmentDao.fetch(updatedVersion2))
+        assertDbGeometriesHaveCorrectMValues()
     }
 
     @Test
@@ -227,10 +230,10 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         alignment(segmentsWithoutZAndCant(alignmentSeed, segmentCount))
 
     private fun segmentsWithZAndCant(alignmentSeed: Int, count: Int) =
-        fixStartDistances((0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) })
+        fixSegmentStarts((0..count).map { seed -> segmentWithZAndCant(alignmentSeed + seed) })
 
     private fun segmentsWithoutZAndCant(alignmentSeed: Int, count: Int) =
-        fixStartDistances((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
+        fixSegmentStarts((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
 
     private fun segmentWithoutZAndCant(segmentSeed: Int) =
         createSegment(segmentSeed, points(
@@ -281,4 +284,23 @@ class LayoutAlignmentDaoIT @Autowired constructor(
                 """,
             mapOf("id" to alignmentId.intValue),
         ) { rs, _ -> rs.getInt("count") } ?: 0
+
+    private fun assertDbGeometriesHaveCorrectMValues() {
+        val sql = """
+           select id, postgis.st_astext(geometry) geom, postgis.st_length(geometry) length
+           from layout.segment_geometry
+           where postgis.st_m(postgis.st_startpoint(geometry)) <> 0.0
+             or abs(postgis.st_m(postgis.st_endpoint(geometry)) - postgis.st_length(geometry))/postgis.st_length(geometry) > 0.01;
+        """.trimIndent()
+        val geometriesWithInvalidMValues = jdbc.query(sql, mapOf<String,Any>()) { rs, _ -> Triple(
+            rs.getIntId<SegmentGeometry>("id"),
+            rs.getDouble("length"),
+            rs.getString("geom"),
+        ) }
+        assertTrue(
+            geometriesWithInvalidMValues.isEmpty(),
+            "All geometries should have m-values at 0.0-length: violations=$geometriesWithInvalidMValues",
+        )
+    }
+
 }

@@ -95,7 +95,7 @@ export async function getLinkPointsByTiles(
             const segments = allAlignments
                 .filter((a) => a.id === alignmentId)
                 .flatMap((a) => a.segments)
-                .sort((a, b) => a.start - b.start);
+                .sort((a, b) => a.startM - b.startM);
 
             const uniqueIds = segments.map((s) => s.id);
             const uniqueSegments = segments.filter(
@@ -125,7 +125,7 @@ export async function createGeometryLinkPointsByTiles(
             (linkPoint: LinkPoint, isSegmentEndPoint: boolean) =>
                 isSegmentEndPoint ||
                 resolution <= 1 ||
-                Math.floor(linkPoint.ordering) % resolution == 0 ||
+                Math.floor(linkPoint.m) % resolution == 0 ||
                 alwaysIncludePoints.some(
                     (alwaysIncludePoint) => alwaysIncludePoint.id == linkPoint.id,
                 ),

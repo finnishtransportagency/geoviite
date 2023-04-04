@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.*
@@ -88,28 +89,18 @@ class LinkingServiceIT @Autowired constructor(
         // Pick the whole geometry as interval
         val geometryInterval = GeometryInterval(
             alignmentId = geometryLayoutAlignment.id as IntId,
-            start = IntervalGeometryPoint(
-                segmentId = geometryStartSegment.id,
-                point = Point(geometryStartSegment.points.first())
-            ),
-            end = IntervalGeometryPoint(
-                segmentId = geometryEndSegment.id,
-                point = Point(geometryEndSegment.points.last())
+            mRange = Range(
+                geometryStartSegment.points.first().m,
+                geometryEndSegment.points.last().m,
             ),
         )
 
         // Pick layout interval to cut after first 2 point, skipping to 5th point of second interval
         val layoutInterval = LayoutInterval(
             alignmentId = locationTrackId,
-            start = IntervalLayoutPoint(
-                segmentId = officialAlignment.segments[0].id as IndexedId<LayoutSegment>,
-                endPointType = null,
-                point = Point(officialAlignment.segments[0].points.first())
-            ),
-            end = IntervalLayoutPoint(
-                segmentId = officialAlignment.segments[1].id as IndexedId<LayoutSegment>,
-                endPointType = null,
-                point = Point(officialAlignment.segments[1].points[4])
+            mRange = Range(
+                officialAlignment.segments[0].points.first().m,
+                officialAlignment.segments[1].points[4].m,
             ),
         )
 
