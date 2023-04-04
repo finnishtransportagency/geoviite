@@ -1243,7 +1243,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                         jointNumber = JointNumber(2),
                         location = lastPoint(alignmentA, segIndexA+2).toPoint(),
                         segments = listOf(
-                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA+1),
+                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA+2),
                         ),
                         locationAccuracy = null
                     ),
