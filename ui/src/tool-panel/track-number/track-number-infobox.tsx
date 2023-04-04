@@ -1,12 +1,7 @@
 import * as React from 'react';
 import styles from './track-number-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import {
-    LAYOUT_SRID,
-    LayoutReferenceLine,
-    LayoutTrackNumber,
-    MapAlignment,
-} from 'track-layout/track-layout-model';
+import { LAYOUT_SRID, LayoutReferenceLine, LayoutTrackNumber, MapAlignment } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
@@ -20,12 +15,7 @@ import {
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
-import {
-    LinkingAlignment,
-    LinkingState,
-    LinkingType,
-    toIntervalRequest,
-} from 'linking/linking-model';
+import { LinkingAlignment, LinkingState, LinkingType } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
@@ -35,7 +25,8 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatDateShort } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
+import TrackNumberDeleteConfirmationDialog
+    from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
@@ -91,15 +82,12 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         if (canUpdate && state.layoutAlignmentInterval.start && state.layoutAlignmentInterval.end) {
             setUpdatingLength(true);
             updateReferenceLineGeometry(state.layoutAlignmentId, {
-                alignmentId: state.layoutAlignmentId,
-                start: toIntervalRequest(state.layoutAlignmentInterval.start),
-                end: toIntervalRequest(state.layoutAlignmentInterval.end),
-            })
-                .then(() => {
-                    Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
-                    onEndReferenceLineGeometryChange();
-                })
-                .finally(() => setUpdatingLength(false));
+                min: state.layoutAlignmentInterval.start.m,
+                max: state.layoutAlignmentInterval.end.m,
+            }).then(() => {
+                Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
+                onEndReferenceLineGeometryChange();
+            }).finally(() => setUpdatingLength(false));
         }
     };
 

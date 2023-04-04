@@ -176,7 +176,7 @@ private fun toMapSegments(
             val segmentPoints = toPointList(element, pointListStepLength).map { p ->
                 toTrackLayoutPoint(
                     planToLayoutTransformation.transform(p),
-                    p.m,
+                    segmentStartLength + p.m,
                     alignment.profile,
                     alignment.cant,
                     alignmentStationStart,
@@ -194,7 +194,6 @@ private fun toMapSegments(
                 ),
                 sourceId = element.id,
                 sourceStart = 0.0,
-                start = segmentStartLength,
                 source = GeometrySource.PLAN,
                 pointCount = segmentPoints.size,
             )

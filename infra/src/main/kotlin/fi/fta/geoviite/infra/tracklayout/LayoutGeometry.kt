@@ -13,6 +13,9 @@ import java.time.Instant
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.min
+
+const val POINT_SEEK_TOLERANCE = 1.0
 
 enum class GeometrySource {
     IMPORTED,
@@ -45,15 +48,12 @@ data class AlignmentPlanSection(
 interface IAlignment {
     val segments: List<ISegment>
     val id: DomainId<*>
-    val length: Double
-        get() = segments.lastOrNull()?.let { s -> s.start + s.length } ?: 0.0
-
     val boundingBox: BoundingBox?
 
+    val length: Double
+        get() = segments.lastOrNull()?.let(ISegmentGeometry::endM) ?: 0.0
     val start: LayoutPoint?
         get() = segments.firstOrNull()?.points?.first()
-
-
     val end: LayoutPoint?
         get() = segments.lastOrNull()?.points?.last()
 
@@ -67,29 +67,32 @@ interface IAlignment {
         return if (index != -1) index else null
     }
 
-    fun getLengthUntil(target: IPoint): Pair<Double, IntersectType>? =
+    fun getClosestPointM(target: IPoint): Pair<Double, IntersectType>? =
         findClosestSegmentIndex(target)?.let { segmentIndex ->
             val segment = segments[segmentIndex]
-            val segmentM = if (segment.source == GENERATED) {
+            if (segment.source == GENERATED) {
                 val proportion = closestPointProportionOnGeneratedSegment(segmentIndex, target)
-                val interpolatedM = proportion * segment.length
-                if (interpolatedM < -1.0) 0.0 to BEFORE
-                else if (interpolatedM > segment.length + 1.0) segment.length to AFTER
-                else if (interpolatedM < 0.0) 0.0 to WITHIN
-                else if (interpolatedM > segment.length) segment.length to WITHIN
-                else interpolatedM to WITHIN
+                val interpolatedInternalM = proportion * segment.length
+                if (interpolatedInternalM < -POINT_SEEK_TOLERANCE) segment.startM to BEFORE
+                else if (interpolatedInternalM > segment.length + POINT_SEEK_TOLERANCE) segment.endM to AFTER
+                else if (interpolatedInternalM < 0.0) segment.startM to WITHIN
+                else if (interpolatedInternalM > segment.length) segment.endM to WITHIN
+                else segment.startM + interpolatedInternalM to WITHIN
             } else {
-                segment.getLengthUntil(target)
+                segment.getClosestPointM(target)
             }
-            segmentM.let { (m, type) -> segment.start + m to type }
         }
 
-    fun getPointAtLength(distance: Double, snapDistance: Double = 0.0): LayoutPoint? =
-        if (distance <= 0.0) start
-        else if (distance >= length) end
-        else segments
-            .findLast { segment -> segment.start <= distance }
-            ?.let { segment -> segment.getPointAtLength(distance - segment.start, snapDistance) }
+    fun getPointAtM(m: Double, snapDistance: Double = 0.0): LayoutPoint? =
+        if (m <= 0.0) start
+        else if (m >= length) end
+        else getSegmentAtM(m)?.seekPointAtM(m, snapDistance)?.point
+
+    fun getSegmentAtM(m: Double) = segments.getOrNull(segments.binarySearch { s ->
+        if (m < s.startM) 1
+        else if (m > s.endM) -1
+        else 0
+    })
 
     fun findClosestSegmentIndex(target: IPoint): Int? {
         return approximateClosestSegmentIndex(target)?.let { approximation ->
@@ -117,7 +120,7 @@ interface IAlignment {
             closestPointProportionOnLine(
                 segment.points[segment.points.lastIndex - 1],
                 segment.points[segment.points.lastIndex],
-                target
+                target,
             ) > 1.0
         }
     }
@@ -126,8 +129,8 @@ interface IAlignment {
     // Similarly, when finding the closest point on an alignment, we assume the segment going with that angle
     private fun closestPointProportionOnGeneratedSegment(segmentIndex: Int, target: IPoint): Double {
         val segment = segments[segmentIndex]
-        val start = segment.points[0]
-        val end = segment.points[segment.points.lastIndex]
+        val start = segment.points.first()
+        val end = segment.points.last()
         val prevDir = segments.getOrNull(segmentIndex - 1)?.endDirection
         val nextDir = segments.getOrNull(segmentIndex + 1)?.startDirection
         val fakeDir =
@@ -165,8 +168,8 @@ data class LayoutAlignment(
     init {
         segments.forEachIndexed { index, segment ->
             if (index == 0) {
-                require(segment.start == 0.0) {
-                    "First segment should start at 0.0: alignment=$id firstStart=${segment.start}"
+                require(segment.startM == 0.0) {
+                    "First segment should start at 0.0: alignment=$id firstStart=${segment.startM}"
                 }
             } else {
                 val previous = segments[index - 1]
@@ -176,15 +179,16 @@ data class LayoutAlignment(
                             "length=${segment.length} prevLength=${previous.length} " +
                             "diff=${lineLength(previous.points.last(), segment.points.first())}"
                 }
-                require(isSame(previous.start + previous.length, segment.start, LAYOUT_M_DELTA)) {
+                require(isSame(previous.startM + previous.length, segment.startM, LAYOUT_M_DELTA)) {
                     "Alignment segment m-calculation should be continuous: " +
-                            "alignment=$id segment=$index prevEnd=${previous.start + previous.length} start=${segment.start}"
+                            "alignment=$id segment=$index prevEnd=${previous.startM + previous.length} start=${segment.startM}"
                 }
             }
         }
     }
 
     fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
+
 }
 
 data class LayoutSegmentMetadata(
@@ -212,7 +216,6 @@ data class LayoutSegmentMetadata(
 interface ISegmentGeometry {
     val resolution: Int
     val points: List<LayoutPoint>
-    val length: Double
     @get:JsonIgnore
     val startDirection: Double
     @get:JsonIgnore
@@ -220,19 +223,18 @@ interface ISegmentGeometry {
     @get:JsonIgnore
     val boundingBox: BoundingBox?
 
-    fun getPointIndex(trackLayoutPoint: IPoint): Int? {
-        val index = points.indexOfFirst { point -> point.x == trackLayoutPoint.x && point.y == trackLayoutPoint.y }
-        return if (index != -1) index else null
-    }
+    val startM: Double get() = points.first().m
+    val endM: Double get() = points.last().m
+    val length: Double get() = endM - startM
 
     fun includes(searchPoint: IPoint): Boolean {
         return points.any { point -> point.isSame(searchPoint, LAYOUT_COORDINATE_DELTA) }
     }
 
-    fun getLengthUntil(target: IPoint): Pair<Double, IntersectType> =
-        findLengthOnSegment(0..points.lastIndex, target)
+    fun getClosestPointM(target: IPoint): Pair<Double, IntersectType> =
+        findClosestPointM(0..points.lastIndex, target)
 
-    private fun findLengthOnSegment(range: ClosedRange<Int>, target: IPoint): Pair<Double, IntersectType> {
+    private fun findClosestPointM(range: ClosedRange<Int>, target: IPoint): Pair<Double, IntersectType> {
         if (range.start == range.endInclusive) {
             return points[range.start].m to WITHIN
         } else {
@@ -247,18 +249,18 @@ interface ISegmentGeometry {
             }
 
             val interpolatedM = interpolate(first.m, second.m, proportionOnLine)
-            return if (firstIndex == 0 && interpolatedM < -1.0) {
+            return if (firstIndex == 0 && interpolatedM < first.m - POINT_SEEK_TOLERANCE) {
                 // If in beginning & target is over 1m farther in negative direction
-                0.0 to BEFORE
-            } else if (secondIndex == points.lastIndex && interpolatedM > second.m + 1.0) {
+                first.m to BEFORE
+            } else if (secondIndex == points.lastIndex && interpolatedM > second.m + POINT_SEEK_TOLERANCE) {
                 // If in the end & target is over 1m farther in positive direction
                 second.m to AFTER
             } else if (proportionOnLine < 0.0) {
                 // Target in the negative direction (towards start)
-                findLengthOnSegment(range.start..firstIndex, target)
+                findClosestPointM(range.start..firstIndex, target)
             } else if (proportionOnLine > 1.0) {
                 // Target in the positive direction (towards end)
-                findLengthOnSegment(secondIndex..range.endInclusive, target)
+                findClosestPointM(secondIndex..range.endInclusive, target)
             } else {
                 // Found target between the points
                 interpolatedM to WITHIN
@@ -269,12 +271,28 @@ interface ISegmentGeometry {
     }
 
     /**
-     * Finds a point on the line at given m-value (length along segment).
+     * Finds a point on the line at given m-value (length along alignment).
      * Snaps to actual segment points at snapDistance, if provided and greater than zero.
-     * @return
      */
-    fun getPointAtLength(m: Double, snapDistance: Double = 0.0): LayoutPoint =
-        getPointAtLengthInternal(points, length, m, snapDistance).point
+    fun seekPointAtM(m: Double, snapDistance: Double = 0.0): PointSeekResult =
+        if (m <= startM) {
+            PointSeekResult(points.first(), 0, true)
+        } else if (m >= endM) {
+            PointSeekResult(points.last(), points.lastIndex, true)
+        } else {
+            val indexAfter = points.indexOfFirst { p -> p.m >= m }
+            val pointAfter = points[indexAfter]
+            points.getOrNull(indexAfter - 1)?.let { pointBefore ->
+                if (abs(pointAfter.m - m) <= snapDistance) {
+                    PointSeekResult(pointAfter, indexAfter, true)
+                } else if (abs(pointBefore.m - m) <= snapDistance) {
+                    PointSeekResult(pointBefore, indexAfter - 1, true)
+                } else {
+                    val portion = (m - pointBefore.m) / (pointAfter.m - pointBefore.m)
+                    PointSeekResult(interpolate(pointBefore, pointAfter, portion), indexAfter, false)
+                }
+            } ?: PointSeekResult(pointAfter, indexAfter, true)
+        }
 
     data class PointSeekResult(
         val point: LayoutPoint,
@@ -283,39 +301,13 @@ interface ISegmentGeometry {
     )
 }
 
-private fun getPointAtLengthInternal(
-    points: List<LayoutPoint>,
-    length: Double,
-    m: Double,
-    snapDistance: Double = 0.0
-): ISegmentGeometry.PointSeekResult =
-    if (m <= 0.0) {
-        ISegmentGeometry.PointSeekResult(points.first(), 0, true)
-    } else if (m >= length) {
-        ISegmentGeometry.PointSeekResult(points.last(), points.lastIndex, true)
-    } else {
-        val indexAfter = points.indexOfFirst { p -> p.m >= m }
-        val pointAfter = points[indexAfter]
-        points.getOrNull(indexAfter - 1)
-            ?.let { pointBefore ->
-                if (abs(pointAfter.m - m) < snapDistance) {
-                    ISegmentGeometry.PointSeekResult(pointAfter, indexAfter, true)
-                } else if (abs(pointBefore.m - m) < snapDistance) {
-                    ISegmentGeometry.PointSeekResult(pointBefore, indexAfter - 1, true)
-                } else {
-                    val portion = (m - pointBefore.m) / (pointAfter.m - pointBefore.m)
-                    ISegmentGeometry.PointSeekResult(interpolate(pointBefore, pointAfter, portion), indexAfter, false)
-                }
-            }
-            ?: ISegmentGeometry.PointSeekResult(pointAfter, indexAfter, true)
-    }
-
 data class SegmentGeometry(
     override val resolution: Int,
     override val points: List<LayoutPoint>,
     val id: DomainId<SegmentGeometry> = StringId(),
 ): ISegmentGeometry {
-    override val length: Double by lazy { points.last().m }
+    constructor(resolution: Int, points: List<LayoutPoint>, start: Double):
+            this (resolution, adjustMValuesToStart(points, start))
 
     override val boundingBox: BoundingBox? by lazy { boundingBoxAroundPointsOrNull(points) }
 
@@ -329,7 +321,9 @@ data class SegmentGeometry(
     init {
         require(resolution > 0) { "Invalid segment geometry resolution: $resolution" }
         require(points.size >= 2) { "Segment geometry must have at least 2 points: points=${points.size}" }
-        require(points.first().m == 0.0) { "M-values should be from segment geometry start" }
+        require(startM.isFinite() && startM >= 0.0) { "Invalid start m: $startM" }
+        require(endM.isFinite() && endM >= startM) { "Invalid end m: $endM" }
+        require(length.isFinite() && length >= 0.0) { "Invalid length: $length" }
         points.forEachIndexed { index, point ->
             require(index == 0 || point.x != points[index - 1].x || point.y != points[index - 1].y) {
                 "There should be no duplicate points in segment geometry:" +
@@ -342,21 +336,22 @@ data class SegmentGeometry(
         }
     }
 
-    fun withPoints(points: List<LayoutPoint>): SegmentGeometry {
-        val mOffset = points.first().m
-        val newPoints =
-            if (mOffset == 0.0) points
-            else points.map { p -> p.copy(m = max(0.0, p.m - mOffset)) }
-        return copy(points = newPoints, id = StringId())
-    }
+    fun withPoints(points: List<LayoutPoint>, start: Double? = null): SegmentGeometry =
+        copy(points = adjustMValuesToStart(points, start ?: points.first().m), id = StringId())
+
+    fun withStartMAt(start: Double): SegmentGeometry =
+        copy(points = adjustMValuesToStart(points, start))
 }
 
+private fun adjustMValuesToStart(points: List<LayoutPoint>, start: Double): List<LayoutPoint> =
+    if (start == points.first().m) points
+    else (start-points.first().m).let { mOffset ->
+        points.map { p -> p.copy(m = max(0.0, p.m + mOffset)) }
+    }
 
 interface ISegmentFields {
     val sourceId: DomainId<GeometryElement>?
     val sourceStart: Double?
-    val start: Double
-    val length: Double
     val source: GeometrySource
     val id: DomainId<LayoutSegment>
 }
@@ -374,7 +369,6 @@ data class LayoutSegment(
     val switchId: DomainId<TrackLayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
-    override val start: Double,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment> = deriveFromSourceId("AS", sourceId),
 ): ISegmentGeometry by geometry, ISegment {
@@ -382,24 +376,46 @@ data class LayoutSegment(
     init {
         require(source != GENERATED || points.size == 2) { "Generated segment can't have more than 2 points" }
         require(sourceStart?.isFinite() != false) { "Invalid source start length: $sourceStart" }
-        require(start.isFinite()) { "Invalid start length: $start" }
-        require(length.isFinite() && length >= 0.0) { "Invalid length: $length" }
     }
 
-    fun slice(fromIndex: Int, toIndex: Int, newStart: Double): LayoutSegment? =
+    fun slice(fromIndex: Int, toIndex: Int, newStart: Double? = null): LayoutSegment? =
         if (fromIndex >= toIndex) null
-        else withPoints(points.slice(fromIndex..toIndex), newStart)
+        else points.slice(fromIndex..toIndex).let { newPoints ->
+            withPoints(newPoints, newStart, sourceStart?.plus(newPoints.first().m - points.first().m))
+        }
 
-    fun withPoints(points: List<LayoutPoint>, newStart: Double = start): LayoutSegment = copy(
-        geometry = geometry.withPoints(points),
-        sourceStart = sourceStart?.plus(points.first().m),
-        start = newStart,
-    )
+    fun slice(mRange: Range<Double>, snapDistance: Double = 0.0): LayoutSegment {
+        require(mRange.min + snapDistance < mRange.max) {
+            "Slice m-range must be at least as long as snap distance: range=$mRange snapDistance=$snapDistance"
+        }
+        require(mRange.min + snapDistance >= startM && mRange.max - startM <= endM) {
+            "Slice m-range ends must be within segment (with snapDistance tolerance):" +
+                    " range=$mRange snapDistance=$snapDistance segment=${startM..endM}"
+        }
+        val start = seekPointAtM(mRange.min, snapDistance)
+        val end = seekPointAtM(mRange.max, snapDistance)
+        val actualPointsRange = start.index..(if (end.isSnapped) end.index else end.index-1)
+        val currentPoints = points.slice(actualPointsRange)
+        val interpolatedStart = listOfNotNull(if (start.isSnapped) null else start.point)
+        val interpolatedEnd = listOfNotNull(if (end.isSnapped) null else end.point)
+        val newPoints = interpolatedStart + currentPoints + interpolatedEnd
+        return withPoints(newPoints, null, sourceStart?.plus(newPoints.first().m - points.first().m))
+    }
+
+    private fun withPoints(points: List<LayoutPoint>, newStart: Double?, newSourceStart: Double?): LayoutSegment =
+        copy(
+            geometry = geometry.withPoints(points, newStart),
+            sourceStart = newSourceStart,
+        )
+
+    fun withStartM(newStartM: Double): LayoutSegment =
+        if (newStartM == startM) this
+        else copy(geometry = geometry.withStartMAt(newStartM))
 
     fun splitAtM(m: Double, tolerance: Double): Pair<LayoutSegment, LayoutSegment?> =
-        if (m <= points.first().m || m >= points.last().m) this to null
+        if (m !in startM..endM) this to null
         else {
-            val pointAtM = getPointAtLengthInternal(points, length, m, tolerance)
+            val pointAtM = seekPointAtM(m, tolerance)
             if (pointAtM.isSnapped && (pointAtM.index <= 0 || pointAtM.index >= points.lastIndex)) {
                 this to null
             } else {
@@ -409,11 +425,24 @@ data class LayoutSegment(
                 val secondPoints =
                     if (pointAtM.isSnapped) points.slice(pointAtM.index..points.lastIndex)
                     else listOf(pointAtM.point) + points.slice(pointAtM.index..points.lastIndex)
-                withPoints(firstPoints, start) to withPoints(secondPoints, start + pointAtM.point.m)
+                val first = withPoints(
+                    points = firstPoints,
+                    newStart = startM,
+                    newSourceStart = sourceStart,
+                )
+                val second = withPoints(
+                    points = secondPoints,
+                    newStart = pointAtM.point.m,
+                    newSourceStart = sourceStart?.plus(secondPoints.first().m - points.first().m),
+                )
+                first to second
             }
         }
 
-    fun getSourceLengthAt(pointIndex: Int): Double? = sourceStart?.plus(points[pointIndex].m)
+    fun withoutSwitch(): LayoutSegment =
+        if (switchId == null && startJointNumber == null && endJointNumber == null) this
+        else copy(switchId = null, startJointNumber = null, endJointNumber = null)
+
 }
 
 const val LAYOUT_COORDINATE_DELTA = 0.001
@@ -426,8 +455,7 @@ data class LayoutPoint(
     override val y: Double,
     val z: Double?,
     /**
-     * Length (in meters) along the segment, from segment start to this point.
-     * Combine with segment.start to get length from alignment start.
+     * Length (in meters) along the alignment, from start to this point.
      */
     override val m: Double,
     val cant: Double?,

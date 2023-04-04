@@ -2,7 +2,8 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
@@ -15,7 +16,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import kotlin.math.abs
 import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
@@ -84,34 +84,30 @@ fun findSuggestedSwitchJointMatches(
 
             listOfNotNull(
                 //Check if segment's start point is within tolerance
-                if (startMatches) {
-                    SuggestedSwitchJointMatch(
-                        locationTrackId = locationTrack.id,
-                        segmentIndex = segmentIndex,
-                        layoutSwitchId = segment.switchId,
-                        segmentM = startPoint.m,
-                        matchType = SuggestedSwitchJointMatchType.START,
-                        switchJoint = joint,
-                        distance = lineLength(startPoint, jointLocation),
-                        distanceToAlignment = jointDistanceToAlignment,
-                        alignmentId = locationTrack.alignmentVersion?.id,
-                    )
-                } else null,
+                if (startMatches) SuggestedSwitchJointMatch(
+                    locationTrackId = locationTrack.id,
+                    layoutSwitchId = segment.switchId,
+                    m = startPoint.m,
+                    matchType = SuggestedSwitchJointMatchType.START,
+                    switchJoint = joint,
+                    distance = lineLength(startPoint, jointLocation),
+                    distanceToAlignment = jointDistanceToAlignment,
+                    alignmentId = locationTrack.alignmentVersion?.id,
+                    segmentIndex = segmentIndex,
+                ) else null,
 
                 //Check if segment's end point is within tolerance
-                if (endMatches) {
-                    SuggestedSwitchJointMatch(
-                        locationTrackId = locationTrack.id,
-                        segmentIndex = segmentIndex,
-                        layoutSwitchId = segment.switchId,
-                        segmentM = endPoint.m,
-                        matchType = SuggestedSwitchJointMatchType.END,
-                        switchJoint = joint,
-                        distance = lineLength(endPoint, jointLocation),
-                        distanceToAlignment = jointDistanceToAlignment,
-                        alignmentId = locationTrack.alignmentVersion?.id,
-                    )
-                } else null
+                if (endMatches) SuggestedSwitchJointMatch(
+                    locationTrackId = locationTrack.id,
+                    layoutSwitchId = segment.switchId,
+                    m = endPoint.m,
+                    matchType = SuggestedSwitchJointMatchType.END,
+                    switchJoint = joint,
+                    distance = lineLength(endPoint, jointLocation),
+                    distanceToAlignment = jointDistanceToAlignment,
+                    alignmentId = locationTrack.alignmentVersion?.id,
+                    segmentIndex = segmentIndex,
+                ) else null
             ) + segment.points.mapIndexedNotNull { pIdx, point ->
                 segment.points.getOrNull(pIdx - 1)?.let { previousPoint ->
                     val closestAlignmentPoint = closestPointOnLine(previousPoint, point, jointLocation)
@@ -120,14 +116,14 @@ fun findSuggestedSwitchJointMatches(
                     if (jointDistanceToSegment < tolerance) {
                         SuggestedSwitchJointMatch(
                             locationTrackId = locationTrack.id,
-                            segmentIndex = segmentIndex,
                             layoutSwitchId = segment.switchId,
-                            segmentM = segment.getLengthUntil(closestAlignmentPoint).first,
+                            m = segment.getClosestPointM(closestAlignmentPoint).first,
                             matchType = SuggestedSwitchJointMatchType.LINE,
                             switchJoint = joint,
                             distance = jointDistanceToSegment,
                             distanceToAlignment = jointDistanceToAlignment,
                             alignmentId = locationTrack.alignmentVersion?.id,
+                            segmentIndex = segmentIndex,
                         )
                     } else null
                 }
@@ -175,17 +171,15 @@ fun createSuggestedSwitch(
         .filterNot { matchByJoint.containsKey(it) }
         .associateWith { emptyList<SuggestedSwitchJointMatch>() }
 
-    val suggestedJoints = (matchByJoint + jointsWithoutMatches)
-        .map { (joint, matches) ->
-            val locationAccuracy = switchJointLocationAccuracy(getMeasurementMethod, geometrySwitch)
-
-            SuggestedSwitchJoint(
-                number = joint.number,
-                location = joint.location,
-                matches = matches,
-                locationAccuracy = locationAccuracy
-            )
-        }
+    val suggestedJoints = (matchByJoint + jointsWithoutMatches).map { (joint, matches) ->
+        val locationAccuracy = switchJointLocationAccuracy(getMeasurementMethod, geometrySwitch)
+        SuggestedSwitchJoint(
+            number = joint.number,
+            location = joint.location,
+            matches = matches,
+            locationAccuracy = locationAccuracy,
+        )
+    }
 
     return SuggestedSwitch(
         name = geometrySwitch?.name ?: SwitchName(switchStructure.baseType.name),
@@ -241,7 +235,7 @@ private fun getBestMatchesForJoint(
 private fun getEndJoints(matchesByLocationTrack: Map<LocationTrack, List<SuggestedSwitchJointMatch>>) =
     matchesByLocationTrack
         .mapValues { (_, joints) ->
-            val jointsSortedByMatchLength = joints.sortedWith(compareBy({ it.segmentIndex }, { it.segmentM }))
+            val jointsSortedByMatchLength = joints.sortedWith(compareBy(SuggestedSwitchJointMatch::m))
             val min = jointsSortedByMatchLength.first().switchJoint
             val max = jointsSortedByMatchLength.last().switchJoint
             min to max
@@ -449,7 +443,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
 
     val segmentsWithNewSwitch = alignment.segments
         .map { segment ->
-            if (overriddenSwitches.contains(segment.switchId)) clearSwitchInformation(segment)
+            if (overriddenSwitches.contains(segment.switchId)) segment.withoutSwitch()
             else segment
         }
         .mapIndexed { index, segment ->
@@ -464,7 +458,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
                     // getSegmentsByLinkingJoints expects the linking joints to be in track address order, and we
                     // couldn't sort them earlier due to the possibility of duplicate tracks going in the opposite
                     // direction
-                    .sortedWith(compareBy({ it.segments.first().segmentIndex }, { it.segments.first().segmentM }))
+                    .sortedWith(compareBy { linkingJoint -> linkingJoint.segments.first().m })
 
                 if (switchLinkingJoints.isEmpty()) {
                     //Segment that is between two other segments that are linked to the switch joints
@@ -531,12 +525,12 @@ private fun getSegmentsByLinkingJoints(
     .foldIndexed(mutableListOf<LayoutSegment>()) { index, acc, linkingJoint ->
         val jointNumber = linkingJoint.jointNumber
         val previousSegment = acc.lastOrNull()?.also { acc.removeLast() } ?: segment
-        val suggestedPointLength = linkingJoint.segments.first().segmentM
+        val suggestedPointM = linkingJoint.segments.first().m
 
-        if (isSame(segment.points.first().m, suggestedPointLength, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
+        if (isSame(segment.points.first().m, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
             //Check if suggested point is start point
             acc.add(setStartJointNumber(segment, layoutSwitchId, jointNumber))
-        } else if (isSame(segment.points.last().m, suggestedPointLength, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
+        } else if (isSame(segment.points.last().m, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
             //Check if suggested point is end point
             if (linkingJoints.size == 1) {
                 acc.add(setEndJointNumber(previousSegment, layoutSwitchId, jointNumber))
@@ -548,14 +542,14 @@ private fun getSegmentsByLinkingJoints(
             //StartSplitSegment: before M-value
             //EndSplitSegment: after M-value
             val (startSplitSegment, endSplitSegment) = previousSegment.splitAtM(
-                suggestedPointLength,
+                suggestedPointM,
                 TOLERANCE_JOINT_LOCATION_NEW_POINT
             )
 
             //Handle cases differently when there are multiple joint matches in a single segment
             if (linkingJoints.size == 1) {
                 acc.add(
-                    if (isFirstSegment) clearSwitchInformation(startSplitSegment)
+                    if (isFirstSegment) startSplitSegment.withoutSwitch()
                     else if (isLastSegment) setEndJointNumber(startSplitSegment, layoutSwitchId, jointNumber)
                     else startSplitSegment.copy(
                         switchId = layoutSwitchId, startJointNumber = null, endJointNumber = null
@@ -564,7 +558,7 @@ private fun getSegmentsByLinkingJoints(
                 endSplitSegment?.let {
                     acc.add(
                         if (isFirstSegment) setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber)
-                        else if (isLastSegment) clearSwitchInformation(endSplitSegment)
+                        else if (isLastSegment) endSplitSegment.withoutSwitch()
                         else setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber)
                     )
                 }
@@ -573,7 +567,7 @@ private fun getSegmentsByLinkingJoints(
                     //First joint match
                     0 -> {
                         acc.add(
-                            if (isFirstSegment) clearSwitchInformation(startSplitSegment)
+                            if (isFirstSegment) startSplitSegment.withoutSwitch()
                             else startSplitSegment.copy(
                                 switchId = layoutSwitchId,
                                 startJointNumber = null,
@@ -591,7 +585,7 @@ private fun getSegmentsByLinkingJoints(
 
                         endSplitSegment?.let {
                             acc.add(
-                                if (isLastSegment) clearSwitchInformation(endSplitSegment)
+                                if (isLastSegment) endSplitSegment.withoutSwitch()
                                 else endSplitSegment.copy(
                                     switchId = layoutSwitchId,
                                     startJointNumber = null,
@@ -614,9 +608,6 @@ private fun getSegmentsByLinkingJoints(
 
         acc
     }.toList()
-
-private fun clearSwitchInformation(segment: LayoutSegment) =
-    segment.copy(switchId = null, startJointNumber = null, endJointNumber = null)
 
 private fun setStartJointNumber(segment: LayoutSegment, switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber) =
     segment.copy(switchId = switchId, startJointNumber = jointNumber, endJointNumber = null)
@@ -660,49 +651,33 @@ private fun combineAdjacentSegmentJointNumbers(
  * Returns a copy of the alignment filtering out points that do not locate
  * in the given bounding box.
  */
-fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): LayoutAlignment {
-    val filteredSegments = alignment.segments
-        .mapNotNull { segment ->
-            if (bbox.intersects(segment.boundingBox)) {
-                val firstMatchingPointIndex = segment.points.indexOfFirst { point ->
-                    bbox.contains(point)
-                }
-                if (firstMatchingPointIndex != -1) {
-                    val firstMatchingPoint = segment.points[firstMatchingPointIndex]
-                    val matchingPoints = segment.points
-                        .drop(firstMatchingPointIndex)
-                        .takeWhile { point ->
-                            bbox.contains(point)
-                        }
-
-                    // We need at least two points to create a segment
-                    if (matchingPoints.size >= 2) {
-                        segment.withPoints(
-                            matchingPoints,
-                            segment.start + firstMatchingPoint.m
-                        )
-                    } else null
-                } else null
+fun cropPoints(alignment: LayoutAlignment, bbox: BoundingBox): IAlignment {
+    val filteredSegments = alignment.segments.mapNotNull { segment ->
+        if (bbox.intersects(segment.boundingBox)) {
+            val firstMatchingPointIndex = segment.points.indexOfFirst(bbox::contains)
+            val lastMatchingPointIndex = segment.points.indexOfLast(bbox::contains)
+            if (firstMatchingPointIndex in 0 until lastMatchingPointIndex) {
+                segment.slice(firstMatchingPointIndex, lastMatchingPointIndex)
             } else null
-        }
-
-    val firstSegmentStart = filteredSegments.firstOrNull()?.start ?: 0.0
-    val segmentsForAlignments = filteredSegments.map { segment ->
-        segment.copy(
-            start = segment.start - firstSegmentStart
-        )
+        } else null
     }
-
-    return alignment.copy(
-        segments = segmentsForAlignments
-    )
+    return CroppedAlignment(filteredSegments, alignment.id)
 }
 
-data class TrackIntersection(
+private data class CroppedAlignment(
+    override val segments: List<ISegment>,
+    override val id: DomainId<*>,
+): IAlignment {
+    override val boundingBox: BoundingBox? by lazy {
+        boundingBoxCombining(segments.mapNotNull(ISegment::boundingBox))
+    }
+}
+
+private data class TrackIntersection(
     val point: IPoint,
     val distance: Double,
-    val track1: Pair<LocationTrack, LayoutAlignment>,
-    val track2: Pair<LocationTrack, LayoutAlignment>,
+    val alignment1: IAlignment,
+    val alignment2: IAlignment,
     val desiredLocation: IPoint
 ) : Comparable<TrackIntersection> {
     private val distanceToDesiredLocation by lazy { lineLength(point, desiredLocation) }
@@ -721,7 +696,7 @@ data class TrackIntersection(
 
 }
 
-private fun lines(alignment: LayoutAlignment): List<Line> {
+private fun lines(alignment: IAlignment): List<Line> {
     return alignment.segments.flatMap { segment ->
         segment.points.dropLast(1).mapIndexed { index, point ->
             Line(point, segment.points[index + 1])
@@ -732,15 +707,12 @@ private fun lines(alignment: LayoutAlignment): List<Line> {
 const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
 const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
-fun findClosestIntersections(
-    track1: Pair<LocationTrack, LayoutAlignment>,
-    track2: Pair<LocationTrack, LayoutAlignment>,
+private fun findClosestIntersections(
+    alignment1: IAlignment,
+    alignment2: IAlignment,
     desiredLocation: IPoint,
     count: Int
 ): List<TrackIntersection> {
-    val alignment1 = track1.second
-    val alignment2 = track2.second
-
     // Ignore parallel alignments. Points of alignments are filtered so
     // that alignments are about 0 - 200 meters long, and therefore we can compare
     // angles from start to end.
@@ -756,8 +728,8 @@ fun findClosestIntersections(
                 TrackIntersection(
                     point = intersection.point,
                     distance = 0.0,
-                    track1 = track1,
-                    track2 = track2,
+                    alignment1 = alignment1,
+                    alignment2 = alignment2,
                     desiredLocation = desiredLocation
                 )
             } else {
@@ -776,8 +748,8 @@ fun findClosestIntersections(
                     TrackIntersection(
                         point = minDistanceAndPoint.second,
                         distance = minDistanceAndPoint.first,
-                        track1 = track1,
-                        track2 = track2,
+                        alignment1 = alignment1,
+                        alignment2 = alignment2,
                         desiredLocation = desiredLocation
                     )
                 } else null
@@ -789,7 +761,7 @@ fun findClosestIntersections(
         .take(count)
 }
 
-private fun alignmentStartEndDirectionDiff(alignment1: LayoutAlignment, alignment2: LayoutAlignment): Double? {
+private fun alignmentStartEndDirectionDiff(alignment1: IAlignment, alignment2: IAlignment): Double? {
     val track1Direction = alignmentStartEndDirection(alignment1)
     val track2Direction = alignmentStartEndDirection(alignment2)
     return if (track1Direction != null && track2Direction != null) {
@@ -797,18 +769,15 @@ private fun alignmentStartEndDirectionDiff(alignment1: LayoutAlignment, alignmen
     } else null
 }
 
-private fun alignmentStartEndDirection(alignment: LayoutAlignment): Double? {
+private fun alignmentStartEndDirection(alignment: IAlignment): Double? {
     val start = alignment.start
     val end = alignment.end
     return if (start != null && end != null) directionBetweenPoints(start, end) else null
 }
 
-fun findTrackIntersections(
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    desiredLocation: IPoint
-): List<TrackIntersection> {
-    val trackPairs = locationTracks.flatMapIndexed { index, track1 ->
-        locationTracks.drop(index + 1).map { track2 -> track1 to track2 }
+private fun findTrackIntersections(trackAlignments: List<IAlignment>, desiredLocation: IPoint): List<TrackIntersection> {
+    val trackPairs = trackAlignments.flatMapIndexed { index, track1 ->
+        trackAlignments.drop(index + 1).map { track2 -> track1 to track2 }
     }
     return trackPairs.flatMap { (track1, track2) ->
         // Take two closest intersections instead of one because there might
@@ -832,109 +801,58 @@ fun findFarthestJoint(
     return switchStructure.getJoint(jointNumber)
 }
 
-fun findPointMatchingToDistance(from: IPoint, points: List<IPoint>, distance: Double): IPoint? {
-    val firstAfterIndex = points.indexOfFirst { candidatePoint ->
-        val candidateDistance = lineLength(from, candidatePoint)
-        if (abs(candidateDistance - distance) < 0.1) {
-            // is "exact" point, no need to search anymore
-            return candidatePoint
+private data class SwitchPointSeekResult(
+    val fixPoint: LayoutPoint,
+    val pointBackwards: LayoutPoint?,
+    val pointForwards: LayoutPoint?,
+)
+
+private fun findPointsOnTrack(from: IPoint, distance: Double, alignment: IAlignment): SwitchPointSeekResult? {
+    val snapDistance = 0.1
+    return alignment.getClosestPointM(from)
+        ?.let { (mValue, state) ->
+            if (state == IntersectType.WITHIN) alignment.getPointAtM(mValue, snapDistance)?.let { p -> mValue to p }
+            else null
         }
-        candidateDistance > distance
-    }
-    if (firstAfterIndex == -1) return null
-
-    val firstAfterPoint = points[firstAfterIndex]
-    val firstAfterDistance = lineLength(from, firstAfterPoint)
-    val firstAfterDistanceDiff = abs(distance - firstAfterDistance)
-
-    val lastBeforeIndex = firstAfterIndex - 1
-    val lastBeforePoint = points[lastBeforeIndex]
-    val lastBeforeDistance = lineLength(from, lastBeforePoint)
-    val lastBeforeDistanceDiff = abs(distance - lastBeforeDistance)
-
-    val distanceDiffRatio = lastBeforeDistanceDiff / (firstAfterDistanceDiff + lastBeforeDistanceDiff)
-
-    val lastBeforeToFirstAfterVector = firstAfterPoint - lastBeforePoint
-    return lastBeforePoint + lastBeforeToFirstAfterVector * distanceDiffRatio
-}
-
-fun findPointsOnTrack(
-    from: IPoint,
-    distance: Double,
-    track: Pair<LocationTrack, LayoutAlignment>
-): List<Pair<IPoint, IPoint>> {
-    val alignment = track.second
-    val pointOnTrack = alignment.getLengthUntil(from)
-        .let { pointAtLength ->
-            if (pointAtLength != null) {
-                alignment
-                    .getPointAtLength(pointAtLength.first)
-                    ?.copy(
-                        // We need M value from the start of the alignment
-                        m = pointAtLength.first
-                    )
-            } else null
-        } ?: return listOf()
-    val allPoints = alignment.segments.flatMap { segment ->
-        segment.points.map { point ->
-            point.copy(
-                m = segment.start + point.m
-            )
-        }
-    }
-
-    val pointAhead = findPointMatchingToDistance(
-        pointOnTrack,
-        allPoints.dropWhile { point -> point.m < pointOnTrack.m },
-        distance
-    )
-
-    val pointBehind = findPointMatchingToDistance(
-        pointOnTrack,
-        allPoints.takeWhile { point -> point.m < pointOnTrack.m }.reversed(),
-        distance
-    )
-
-    return listOfNotNull(pointAhead, pointBehind).map { point -> pointOnTrack to point }
+        ?.let { (mValue, pointOnTrack) -> SwitchPointSeekResult(
+            fixPoint = pointOnTrack,
+            pointBackwards = alignment.getPointAtM(mValue - distance, snapDistance),
+            pointForwards = alignment.getPointAtM(mValue + distance, snapDistance),
+        ) }
 }
 
 fun findTransformations(
-    point: IPoint, track: Pair<LocationTrack, LayoutAlignment>, switchAlignment: SwitchAlignment, joint: SwitchJoint,
+    point: IPoint, alignment: IAlignment, switchAlignment: SwitchAlignment, joint: SwitchJoint,
     switchStructure: SwitchStructure
 ): List<SwitchPositionTransformation> {
     val farthestJoint = findFarthestJoint(switchStructure, joint, switchAlignment)
     val jointDistance = lineLength(joint.location, farthestJoint.location)
-    val pointsOnTrack = findPointsOnTrack(point, jointDistance, track)
-    val transformations = pointsOnTrack.mapNotNull { (from, to) ->
+    val pointsOnTrack = findPointsOnTrack(point, jointDistance, alignment)
+    return listOfNotNull(
+        pointsOnTrack?.pointBackwards?.let { back -> pointsOnTrack.fixPoint to back },
+        pointsOnTrack?.pointForwards?.let { forward -> pointsOnTrack.fixPoint to forward },
+    ).mapNotNull { (from, to) ->
         val testJoints = listOf(
-            joint.copy(
-                location = Point(from)
-            ),
-            farthestJoint.copy(
-                location = Point(to)
-            )
+            joint.copy(location = from.toPoint()),
+            farthestJoint.copy(location = to.toPoint()),
         )
-        calculateSwitchLocationDeltaOrNull(
-            testJoints,
-            switchStructure
-        )
+        calculateSwitchLocationDeltaOrNull(testJoints, switchStructure)
     }
-    return transformations
 }
 
 fun findTransformations(
     point: IPoint,
-    track1: Pair<LocationTrack, LayoutAlignment>,
-    track2: Pair<LocationTrack, LayoutAlignment>,
+    alignment1: IAlignment,
+    alignment2: IAlignment,
     switchAlignment1: SwitchAlignment,
     switchAlignment2: SwitchAlignment,
     joint: SwitchJoint,
     switchStructure: SwitchStructure
 ): List<SwitchPositionTransformation> {
-    return findTransformations(point, track1, switchAlignment1, joint, switchStructure) +
-            findTransformations(point, track1, switchAlignment2, joint, switchStructure) +
-            findTransformations(point, track2, switchAlignment1, joint, switchStructure) +
-            findTransformations(point, track2, switchAlignment2, joint, switchStructure)
+    return findTransformations(point, alignment1, switchAlignment1, joint, switchStructure) +
+            findTransformations(point, alignment1, switchAlignment2, joint, switchStructure) +
+            findTransformations(point, alignment2, switchAlignment1, joint, switchStructure) +
+            findTransformations(point, alignment2, switchAlignment2, joint, switchStructure)
 }
 
 fun createSuggestedSwitch(
@@ -1036,9 +954,7 @@ fun createSuggestedSwitchByPoint(
 ): SuggestedSwitch? {
     val bboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 2.25
     val bbox = BoundingBox(0.0..bboxSize, 0.0..bboxSize).centerAt(point)
-    val croppedTracks = nearbyLocationTracks.map { (locationTrack, alignment) ->
-        locationTrack to cropPoints(alignment, bbox)
-    }
+    val croppedTracks = nearbyLocationTracks.map { (_, alignment) -> cropPoints(alignment, bbox) }
 
     val intersections = findTrackIntersections(croppedTracks, point)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
@@ -1046,8 +962,8 @@ fun createSuggestedSwitchByPoint(
     val suggestedSwitches = intersections.flatMap { intersection ->
         val transformations = findTransformations(
             intersection.point,
-            intersection.track1,
-            intersection.track2,
+            intersection.alignment1,
+            intersection.alignment2,
             switchAlignmentsContainingSharedJoint[0],
             switchAlignmentsContainingSharedJoint[1],
             sharedSwitchJoint,

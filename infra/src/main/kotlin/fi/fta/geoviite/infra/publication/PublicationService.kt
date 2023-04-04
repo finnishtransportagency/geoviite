@@ -612,6 +612,16 @@ class PublicationService @Autowired constructor(
         return linkedOfficial + linkedDraft
     }
 
+    private fun isLinkedToSwitch(
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
+        switchId: IntId<TrackLayoutSwitch>,
+    ): Boolean =
+        locationTrack.topologyStartSwitch?.switchId == switchId ||
+                locationTrack.topologyEndSwitch?.switchId == switchId ||
+                alignment.segments.any { seg -> seg.switchId == switchId }
+
+
     private fun getLinkedTrackDraftsNotIncludedInPublication(
         switchId: IntId<TrackLayoutSwitch>,
         versions: ValidationVersions,

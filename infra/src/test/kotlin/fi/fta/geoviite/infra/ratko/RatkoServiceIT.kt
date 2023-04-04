@@ -363,9 +363,9 @@ class RatkoServiceIT @Autowired constructor(
     private fun detachSwitchesFromTrack(locationTrackId: IntId<LocationTrack>) {
         val locationTrack = locationTrackDao.fetch(locationTrackDao.fetchDraftVersion(locationTrackId)!!)
         val alignment = alignmentDao.fetch(locationTrack.alignmentVersion!!)
-        val deSwitchedAlignment = alignment.copy(segments = alignment.segments.map { s ->
-            s.copy(switchId = null, startJointNumber = null, endJointNumber = null)
-        })
+        val deSwitchedAlignment = alignment.copy(
+            segments = alignment.segments.map(LayoutSegment::withoutSwitch),
+        )
         locationTrackService.saveDraft(locationTrack, deSwitchedAlignment)
     }
 

@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
 import fi.fta.geoviite.infra.linking.SwitchLinkingParameters
-import fi.fta.geoviite.infra.linking.SwitchLinkingSegment
 import fi.fta.geoviite.infra.linking.SwitchLinkingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
@@ -84,7 +83,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -415,13 +414,13 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack4,
             alignment4,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -475,7 +474,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, length -> if (length < 200) point + 2.0 else point },
+            { point -> if (point.m < 200) point + 2.0 else point },
             locationTrackService = locationTrackService
         )
 
@@ -506,7 +505,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
-            { point, length -> if (length < 900) point - 2.0 else point },
+            { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -550,10 +549,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             referenceLineAlignment,
-            { point, length ->
-                if (length >= 1000 && length < 2900)
+            { point ->
+                if (point.m > 1000 && point.m < 2900)
                 // make reference line wavy
-                    point + Point(0.0, cos((length - 1000) / (2900 - 1000) * PI) * 5)
+                    point + Point(0.0, cos((point.m - 1000) / (2900 - 1000) * PI) * 5)
                 else
                     point
             },
@@ -637,7 +636,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack3,
             alignment3,
-            { point, _ -> point + 2.0 },
+            { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -683,7 +682,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -822,7 +821,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -841,7 +840,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = alignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -875,7 +874,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = alignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -894,7 +893,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = alignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -939,7 +938,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine,
             alignment,
-            { point, length -> if (length < 900) point - 2.0 else point },
+            { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService
         )
 
@@ -970,14 +969,14 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = locationTrackAlignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
         moveReferenceLineGeometryPointsAndUpdate(
             referenceLine = referenceLine,
             alignment = referenceLineAlignment,
-            moveFunc = { point, length -> if (length < 900) point - 2.0 else point },
+            moveFunc = { point -> if (point.m < 900) point - 2.0 else point },
             referenceLineService = referenceLineService
         )
 
@@ -1014,7 +1013,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         moveLocationTrackGeometryPointsAndUpdate(
             locationTrack = locationTrack,
             alignment = alignment,
-            moveFunc = { point, _ -> point + 2.0 },
+            moveFunc = { point -> point + 2.0 },
             locationTrackService = locationTrackService
         )
 
@@ -1225,54 +1224,34 @@ class CalculatedChangesServiceIT @Autowired constructor(
                 joints = listOf(
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(1),
-                        location = Point(alignmentA.segments[segIndexA].points.first()),
+                        location = firstPoint(alignmentA, segIndexA).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackA.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexA,
-                                segmentM = 0.0
-                            ),
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackB.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexB,
-                                segmentM = 0.0
-                            ),
+                            switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA),
+                            switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB),
                         ),
                         locationAccuracy = null
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(5),
-                        location = Point(alignmentA.segments[segIndexA].points.last()),
+                        location = lastPoint(alignmentA, segIndexA).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackA.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexA,
-                                segmentM = 10.0
-                            ),
+                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA),
                         ),
                         locationAccuracy = null
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(2),
-                        location = Point(alignmentA.segments[segIndexA + 2].points.last()),
+                        location = lastPoint(alignmentA, segIndexA+2).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackA.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexA + 1,
-                                segmentM = 10.0
-                            ),
+                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA+2),
                         ),
                         locationAccuracy = null
                     ),
                     SwitchLinkingJoint(
                         jointNumber = JointNumber(3),
-                        location = Point(alignmentB.segments[segIndexB + 1].points.last()),
+                        location = lastPoint(alignmentB, segIndexB+1).toPoint(),
                         segments = listOf(
-                            SwitchLinkingSegment(
-                                locationTrackId = locationTrackB.id as IntId<LocationTrack>,
-                                segmentIndex = segIndexB + 1,
-                                segmentM = 10.0
-                            ),
+                            switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB+1),
                         ),
                         locationAccuracy = null
                     )
@@ -1283,6 +1262,12 @@ class CalculatedChangesServiceIT @Autowired constructor(
         )
         return switch
     }
+
+    private fun firstPoint(alignment: LayoutAlignment, segmentIndex: Int) =
+        alignment.segments[segmentIndex].points.first()
+
+    private fun lastPoint(alignment: LayoutAlignment, segmentIndex: Int) =
+        alignment.segments[segmentIndex].points.last()
 
     private fun assertContainsSwitchJoint152Change(
         changes: List<SwitchChange>,

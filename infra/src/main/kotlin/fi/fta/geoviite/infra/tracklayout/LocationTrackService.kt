@@ -69,9 +69,7 @@ class LocationTrackService(
         return if (locationTrack.state != LayoutState.DELETED) {
             saveDraft(updateTopology(locationTrack, originalAlignment))
         } else {
-            val segmentsWithoutSwitch = originalAlignment.segments.map { segment ->
-                segment.copy(switchId = null, startJointNumber = null, endJointNumber = null)
-            }
+            val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
             val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
             saveDraft(updateTopology(locationTrack, newAlignment), newAlignment)
         }

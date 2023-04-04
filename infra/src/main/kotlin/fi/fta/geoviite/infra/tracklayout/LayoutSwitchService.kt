@@ -255,15 +255,8 @@ fun clearSwitchInformationFromSegments(
     layoutSwitchId: IntId<TrackLayoutSwitch>,
 ): Pair<LocationTrack, LayoutAlignment> {
     val newSegments = alignment.segments.map { segment ->
-        if (segment.switchId == layoutSwitchId) {
-            segment.copy(
-                switchId = null,
-                endJointNumber = null,
-                startJointNumber = null
-            )
-        } else {
-            segment
-        }
+        if (segment.switchId == layoutSwitchId) segment.withoutSwitch()
+        else segment
     }
     val newAlignment = alignment.withSegments(newSegments)
     val newLocationTrack = locationTrack.copy(
