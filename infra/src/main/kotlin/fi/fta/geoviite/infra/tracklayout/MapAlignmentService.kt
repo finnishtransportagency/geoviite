@@ -29,7 +29,7 @@ class MapAlignmentService(
         resolution: Int,
         type: AlignmentFetchType,
         selectedId: IntId<LocationTrack>?,
-        includeProfile: Boolean,
+        includePlanExtraInfo: Boolean,
     ): List<MapAlignment<*>> {
         logger.serviceCall("getMapAlignments",
             "publishType" to publishType,
@@ -37,7 +37,7 @@ class MapAlignmentService(
             "resolution" to resolution,
             "type" to type,
             "selectedId" to selectedId,
-            "includeProfile" to includeProfile,
+            "includePlanExtraInfo" to includePlanExtraInfo,
         )
         val trackNumbers = trackNumberService.mapById(publishType)
         val referenceLines =
@@ -52,14 +52,14 @@ class MapAlignmentService(
             if (locationTracks.any { t -> t.second.id == selectedId }) null
             else locationTrackService.get(publishType, id)
                 ?.takeIf { t -> t.state != LayoutState.DELETED }
-                ?.let { it.alignmentVersion to toMap(it, bbox, resolution) }
+                ?.let { t -> t.alignmentVersion to toMap(t, bbox, resolution) }
         }
         return (referenceLines + locationTracks + listOfNotNull(selected))
             .filter { ma -> ma.second.segments.isNotEmpty() }
             .map { (alignmentVersion, mapAlignment) ->
-                if (includeProfile) {
+                if (includePlanExtraInfo) {
                     requireNotNull(alignmentVersion) { "Alignment version required for fetching geometry profile" }
-                    includeHasProfile(alignmentVersion, mapAlignment)
+                    includePlanInfo(alignmentVersion, mapAlignment)
                 } else mapAlignment
             }
     }
@@ -94,15 +94,17 @@ class MapAlignmentService(
         resolution: Int,
     ) = locationTrackService.list(publishType).map { track -> track.alignmentVersion to toMap(track, bbox, resolution) }
 
-    private fun <T>includeHasProfile(
+    private fun <T>includePlanInfo(
         alignmentVersion: RowVersion<LayoutAlignment>,
         mapAlignment: MapAlignment<T>
     ): MapAlignment<T> {
-        val segmentProfileInformation = alignmentDao.fetchSegmentProfileInfo(alignmentVersion)
+        val segmentProfileInformation = alignmentDao.fetchSegmentPlanInfo(alignmentVersion)
         return mapAlignment.copy(
             segments = mapAlignment.segments.map { segment ->
+                val additionalSegmentData = segmentProfileInformation.find { it.id == segment.id }
                 segment.copy(
-                    hasProfile = segmentProfileInformation.find { it.first == segment.id }?.second ?: false
+                    hasProfile = additionalSegmentData?.hasProfile,
+                    planId = additionalSegmentData?.planId,
                 )
             }
         )

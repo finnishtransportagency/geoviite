@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
+import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentSource.LAYOUT
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentType.LOCATION_TRACK
@@ -52,8 +53,15 @@ data class MapSegment(
     override val sourceStart: Double?,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment>,
+    val planId: DomainId<GeometryPlan>? = null,
     val hasProfile: Boolean? = null,
 ): ISegment, ISegmentGeometry by geometry
+
+data class MapSegmentPlanData(
+    val id: DomainId<MapSegment>,
+    val planId: DomainId<GeometryPlan>?,
+    val hasProfile: Boolean?
+)
 
 fun toMapAlignment(
     trackNumber: TrackLayoutTrackNumber,

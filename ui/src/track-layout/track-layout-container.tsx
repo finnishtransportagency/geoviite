@@ -39,6 +39,11 @@ export const TrackLayoutContainer: React.FC = () => {
                 layerId: id,
                 visible: visible,
             }),
+        onSegmentsFromSelectedPlanVisibilityChange: (id: string, visible: boolean) =>
+            delegates.onShowSegmentsFromSelectedPlanVisibilityChange({
+                layerId: id,
+                visible: visible,
+            }),
         onMissingLinkingVisibilityChange: (id: string, visible: boolean) =>
             delegates.onMissingLinkingVisibilityChange({
                 layerId: id,

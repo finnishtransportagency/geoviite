@@ -36,17 +36,17 @@ export async function getAlignmentsByTile(
     mapTile: MapTile,
     publishType: PublishType,
     fetchType: AlignmentFetchType,
-    includeProfile: boolean,
+    includePlanExtraInfo: boolean,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
-    const tileKey = `${mapTile.id}_${publishType}_${fetchType}_${includeProfile}`;
+    const tileKey = `${mapTile.id}_${publishType}_${fetchType}_${includePlanExtraInfo}`;
     return alignmentTilesCache.get(changeTime, tileKey, () =>
         getAlignments(
             mapTile.area,
             mapTile.resolution,
             publishType,
             fetchType,
-            includeProfile,
+            includePlanExtraInfo,
             selectedId,
         ),
     );
@@ -57,7 +57,7 @@ export async function getAlignmentsByTiles(
     mapTiles: MapTile[],
     publishType: PublishType,
     fetchType: AlignmentFetchType,
-    includeProfile: boolean,
+    includePlanExtraInfo: boolean,
     selectedId?: AlignmentId,
 ): Promise<MapAlignment[]> {
     return (
@@ -68,7 +68,7 @@ export async function getAlignmentsByTiles(
                     tile,
                     publishType,
                     fetchType,
-                    includeProfile,
+                    includePlanExtraInfo,
                     selectedId,
                 ),
             ),
@@ -156,14 +156,14 @@ async function getAlignments(
     resolution: number,
     publishType: PublishType,
     fetchType: AlignmentFetchType,
-    includeProfile: boolean,
+    includePlanExtraInfo: boolean,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
     const params = queryParams({
         resolution: toMapAlignmentResolution(resolution),
         bbox: bboxString(area),
         type: fetchType.toUpperCase(),
-        includeProfile,
+        includePlanExtraInfo,
         selectedId,
     });
     return await getWithDefault<MapAlignment[]>(

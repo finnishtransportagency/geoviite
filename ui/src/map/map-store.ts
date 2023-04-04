@@ -41,6 +41,7 @@ export const initialMapState: Map = {
             showTrackNumbers: true,
             showReferenceLines: true,
             showMissingVerticalGeometry: false,
+            showSegmentsFromSelectedPlan: false,
             showMissingLinking: false,
             showDuplicateTracks: false,
         },
@@ -195,6 +196,12 @@ export const mapReducers = {
     ): void => {
         onAlignmentLayerVisibilityChange(state, 'showMissingVerticalGeometry', visibilitySetting);
     },
+    onShowSegmentsFromSelectedPlanVisibilityChange: (
+        state: Map,
+        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
+    ): void => {
+        onAlignmentLayerVisibilityChange(state, 'showSegmentsFromSelectedPlan', visibilitySetting);
+    },
     onMissingLinkingVisibilityChange: (
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
@@ -227,6 +234,7 @@ function onAlignmentLayerVisibilityChange(
         | 'showReferenceLines'
         | 'showTrackNumbers'
         | 'showMissingVerticalGeometry'
+        | 'showSegmentsFromSelectedPlan'
         | 'showMissingLinking'
         | 'showDuplicateTracks',
     layerVisibility: LayerVisibility,
@@ -268,5 +276,6 @@ export const {
     onTrackNumberVisibilityChange,
     onReferencelineVisibilityChange,
     onMissingLinkingVisibilityChange,
+    onShowSegmentsFromSelectedPlanVisibilityChange,
     onDuplicateTracksVisibilityChange,
 } = mapSlice.actions;

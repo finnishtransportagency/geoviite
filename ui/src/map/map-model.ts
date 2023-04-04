@@ -25,6 +25,7 @@ export type LayoutAlignmentsLayer = MapLayerBase & {
     showReferenceLines: boolean;
     showTrackNumbers: boolean;
     showMissingVerticalGeometry: boolean;
+    showSegmentsFromSelectedPlan: boolean;
     showMissingLinking: boolean;
     showDuplicateTracks: boolean;
 };

@@ -13,6 +13,7 @@ export type MapLayersSettingsProps = {
     onTrackNumberVisibilityChange: (layerId: string, visible: boolean) => void;
     onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
     onMissingVerticalGeometryVisibilityChange: (layerId: string, visible: boolean) => void;
+    onSegmentsFromSelectedPlanVisibilityChange: (layerId: string, visible: boolean) => void;
     onMissingLinkingVisibilityChange: (layerId: string, visible: boolean) => void;
     onDuplicateTrackVisibilityChange: (layerId: string, visible: boolean) => void;
     onClose?: () => void;
@@ -120,6 +121,18 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                         indented={true}
                                         onVisibilityChange={(visible) => {
                                             props.onMissingVerticalGeometryVisibilityChange(
+                                                layer.id,
+                                                visible,
+                                            );
+                                        }}
+                                    />
+                                    <LayerVisibilitySetting
+                                        name={t('map-layer-settings.segments-from-plan')}
+                                        visible={layer.showSegmentsFromSelectedPlan}
+                                        disabled={!layer.visible}
+                                        indented={true}
+                                        onVisibilityChange={(visible) => {
+                                            props.onSegmentsFromSelectedPlanVisibilityChange(
                                                 layer.id,
                                                 visible,
                                             );

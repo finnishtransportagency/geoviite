@@ -399,13 +399,14 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
-    fun fetchSegmentProfileInfo(alignmentVersion: RowVersion<LayoutAlignment>): List<Pair<DomainId<MapSegment>, Boolean>> {
+    fun fetchSegmentPlanInfo(alignmentVersion: RowVersion<LayoutAlignment>): List<MapSegmentPlanData> {
         //language=SQL
         val sql = """
             select
               segment_version.alignment_id,
               segment_version.segment_index,
-              plan.vertical_coordinate_system
+              plan.vertical_coordinate_system,
+              plan.id as plan_id
             from layout.segment_version
               inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
               left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
@@ -421,10 +422,14 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIndexedId<MapSegment>(
-                "alignment_id",
-                "segment_index"
-            ) to (rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null)
+            MapSegmentPlanData(
+                id = rs.getIndexedId(
+                    "alignment_id",
+                    "segment_index"
+                ),
+                hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null,
+                planId = rs.getIntIdOrNull("plan_id")
+            )
         }
     }
 

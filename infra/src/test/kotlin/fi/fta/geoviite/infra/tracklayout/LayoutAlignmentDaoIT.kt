@@ -281,7 +281,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         )
         val version = alignmentDao.insert(alignment)
 
-        val profileInfo = alignmentDao.fetchSegmentProfileInfo(version)
+        val profileInfo = alignmentDao.fetchSegmentPlanInfo(version)
         assertEquals(5, profileInfo.size)
         assertTrue(profileInfo[0].second)
         assertFalse(profileInfo[1].second)

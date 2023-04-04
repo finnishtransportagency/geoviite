@@ -41,6 +41,7 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
 
@@ -215,6 +216,8 @@ function createFeatures(
     drawDistance: number,
     showReferenceLines: boolean,
     showMissingVerticalGeometry: boolean,
+    showSegmentsFromSelectedPlan: boolean,
+    selectedPlanIds: GeometryPlanId[],
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
 ): Feature<LineString | Point>[] {
@@ -251,6 +254,13 @@ function createFeatures(
     }
 
     if (showMissingVerticalGeometry && segment.hasProfile !== null && !segment.hasProfile) {
+        styles.push(alignmentBackgroundRed);
+    }
+
+    if (
+        showSegmentsFromSelectedPlan &&
+        selectedPlanIds.some((selectedPlanId) => selectedPlanId === segment.planId)
+    ) {
         styles.push(alignmentBackgroundRed);
     }
 
@@ -318,6 +328,8 @@ function featureKey(
     alignmentVersion: string | null,
     missingLinking: boolean,
     missingVerticalGeometry: boolean,
+    selectedPlanSegments: boolean,
+    selectedPlans: GeometryPlanId[],
     duplicateTracks: boolean,
 ): string {
     return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${
@@ -326,7 +338,9 @@ function featureKey(
         highlighted ? '1' : '0'
     }_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}_${
         missingLinking ? '1' : '0'
-    }_${missingVerticalGeometry ? '1' : '0'}_${duplicateTracks ? '1' : '0'}`;
+    }_${missingVerticalGeometry ? '1' : '0'}_${duplicateTracks ? '1' : '0'}_${
+        selectedPlanSegments ? selectedPlans.join('-') : '-1'
+    }`;
 }
 
 type DataCollection = {
@@ -417,6 +431,7 @@ function createFeaturesCached(
     trackNumberDrawDistance: number,
     showReferenceLines: boolean,
     showMissingVerticalGeometry: boolean,
+    showSegmentsFromSelectedPlan: boolean,
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
 ): Feature<LineString | Point>[] {
@@ -445,6 +460,8 @@ function createFeaturesCached(
                 data.alignment.version,
                 showMissingLinking,
                 showMissingVerticalGeometry,
+                showSegmentsFromSelectedPlan,
+                selection.selectedItems.geometryPlans,
                 showDuplicateTracks,
             );
             const previous = previousFeatures.get(key);
@@ -459,6 +476,8 @@ function createFeaturesCached(
                           trackNumberDrawDistance,
                           showReferenceLines,
                           showMissingVerticalGeometry,
+                          showSegmentsFromSelectedPlan,
+                          selection.selectedItems.geometryPlans,
                           showMissingLinking,
                           showDuplicateTracks,
                       );
@@ -555,7 +574,7 @@ adapterInfoRegister.add('alignment', {
                 : mapLayer.showReferenceLines
                 ? 'all'
                 : 'locationtrack',
-            mapLayer.showMissingVerticalGeometry,
+            mapLayer.showMissingVerticalGeometry || mapLayer.showSegmentsFromSelectedPlan,
             selectedAlignment,
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
@@ -578,6 +597,7 @@ adapterInfoRegister.add('alignment', {
                     mapLayer.showReferenceLines,
                     mapLayer.showMissingVerticalGeometry,
                     mapLayer.showMissingLinking,
+                    mapLayer.showSegmentsFromSelectedPlan,
                     mapLayer.showDuplicateTracks,
                 );
                 // All features ready, clear old ones and add new ones
