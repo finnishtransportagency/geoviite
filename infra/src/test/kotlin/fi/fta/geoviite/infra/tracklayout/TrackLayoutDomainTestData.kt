@@ -635,6 +635,7 @@ fun kmPost(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     km: KmNumber,
     location: IPoint? = Point(1.0, 1.0),
+    draft: Boolean = false,
     state: LayoutState = LayoutState.IN_USE,
 ) = TrackLayoutKmPost(
     trackNumberId = trackNumberId,
@@ -642,7 +643,7 @@ fun kmPost(
     location = location?.toPoint(),
     state = state,
     sourceId = null,
-)
+).let { kp -> if (draft) draft(kp) else kp }
 
 fun point(x: Double, y: Double, m: Double = 1.0) =
     LayoutPoint(x, y, null, m, null)

@@ -72,6 +72,7 @@ data class GeocodingContext(
     val trackNumber: TrackLayoutTrackNumber,
     val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
+    val kmPosts: List<TrackLayoutKmPost>,
     val referencePoints: List<GeocodingReferencePoint>,
     val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
@@ -130,16 +131,19 @@ data class GeocodingContext(
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContext {
             val referencePoints = createReferencePoints(startAddress, kmPosts, referenceLineGeometry)
+            val (validKmPosts, rejectedKmPosts) = kmPosts.partition { post ->
+                referencePoints.any { reference ->
+                    reference.kmNumber == post.kmNumber && reference.meters == BigDecimal.ZERO
+                }
+            }
+
             return GeocodingContext(
                 trackNumber = trackNumber,
                 startAddress = startAddress,
                 referenceLineGeometry = referenceLineGeometry,
                 referencePoints = referencePoints,
-                rejectedKmPosts = kmPosts.filterNot { post ->
-                    referencePoints.any { reference ->
-                        reference.kmNumber == post.kmNumber && reference.meters == BigDecimal.ZERO
-                    }
-                },
+                kmPosts = validKmPosts,
+                rejectedKmPosts = rejectedKmPosts
             )
         }
 
