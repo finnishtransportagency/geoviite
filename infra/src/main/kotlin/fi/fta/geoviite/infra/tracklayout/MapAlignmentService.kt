@@ -42,27 +42,46 @@ class MapAlignmentService(
         val trackNumbers = trackNumberService.mapById(publishType)
         val referenceLines =
             if (type != AlignmentFetchType.LOCATIONTRACK) {
-                getMapReferenceLines(trackNumbers, publishType, bbox, resolution)
+                getMapReferenceLines(trackNumbers, publishType, bbox, resolution).map { it.second }
             }
             else listOf()
         val locationTracks =
-            if (type != AlignmentFetchType.REFERENCE) getMapLocationTracks(publishType, bbox, resolution)
+            if (type != AlignmentFetchType.REFERENCE) getMapLocationTracks(publishType, bbox, resolution).map { it.second }
             else listOf()
         val selected = selectedId?.let { id ->
-            if (locationTracks.any { t -> t.second.id == selectedId }) null
+            if (locationTracks.any { t -> t.id == selectedId }) null
             else locationTrackService.get(publishType, id)
                 ?.takeIf { t -> t.state != LayoutState.DELETED }
-                ?.let { t -> t.alignmentVersion to toMap(t, bbox, resolution) }
+                ?.let { t -> toMap(t, bbox, resolution) }
         }
         return (referenceLines + locationTracks + listOfNotNull(selected))
-            .filter { ma -> ma.second.segments.isNotEmpty() }
-            .map { (alignmentVersion, mapAlignment) ->
-                if (includePlanExtraInfo) {
-                    requireNotNull(alignmentVersion) { "Alignment version required for fetching geometry profile" }
-                    includePlanInfo(alignmentVersion, mapAlignment)
-                } else mapAlignment
-            }
+            .filter { ma -> ma.segments.isNotEmpty() }
     }
+
+    data class HighlightRange(
+        val start: Double,
+        val end: Double,
+    )
+    data class MapAlignmentHighlight<T>(
+        val id: IntId<T>,
+        val ranges: List<HighlightRange>
+    )
+
+    fun getProfileInfo(
+        publishType: PublishType,
+        ids: List<IntId<LocationTrack>>
+    ): List<MapAlignmentHighlight<LocationTrack>> {
+        logger.serviceCall("getProfileInfo", "publishType" to publishType, "ids" to ids)
+        val tracks = locationTrackService.getMany(publishType, ids)
+        return tracks.mapNotNull { locationTrack ->
+            locationTrack.alignmentVersion?.let {
+                MapAlignmentHighlight(locationTrack.id as IntId, getSectionsWithoutProfile(
+                    locationTrack.alignmentVersion
+                ))
+            }
+        }
+    }
+
 
     fun getMapReferenceLine(
         publishType: PublishType,
@@ -94,20 +113,24 @@ class MapAlignmentService(
         resolution: Int,
     ) = locationTrackService.list(publishType).map { track -> track.alignmentVersion to toMap(track, bbox, resolution) }
 
-    private fun <T>includePlanInfo(
+    private fun getSectionsWithoutProfile(
         alignmentVersion: RowVersion<LayoutAlignment>,
-        mapAlignment: MapAlignment<T>
-    ): MapAlignment<T> {
+    ): MutableList<HighlightRange> {
+        val alignment = alignmentDao.fetch(alignmentVersion)
         val segmentProfileInformation = alignmentDao.fetchSegmentPlanInfo(alignmentVersion)
-        return mapAlignment.copy(
-            segments = mapAlignment.segments.map { segment ->
-                val additionalSegmentData = segmentProfileInformation.find { it.id == segment.id }
-                segment.copy(
-                    hasProfile = additionalSegmentData?.hasProfile,
-                    planId = additionalSegmentData?.planId,
-                )
+        return alignment.segments.foldIndexed(mutableListOf()) { index, acc, segment ->
+            val profileInfo = segmentProfileInformation.find { prof -> prof.id == segment.id }
+            if (profileInfo == null || !profileInfo.hasProfile) {
+                if (acc.isEmpty()) {
+                    acc.add(HighlightRange(segment.startM, segment.endM))
+                } else if (acc.last().end == alignment.segments.get(index - 1).endM) {
+                    acc.set(acc.size - 1, HighlightRange(acc.last().start, segment.endM))
+                } else {
+                    acc.add(HighlightRange(segment.startM, segment.endM))
+                }
             }
-        )
+            acc
+        }
     }
 
     private fun getMapReferenceLines(

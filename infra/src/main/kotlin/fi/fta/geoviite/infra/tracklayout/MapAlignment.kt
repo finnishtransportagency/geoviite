@@ -60,7 +60,7 @@ data class MapSegment(
 data class MapSegmentPlanData(
     val id: DomainId<MapSegment>,
     val planId: DomainId<GeometryPlan>?,
-    val hasProfile: Boolean?
+    val hasProfile: Boolean
 )
 
 fun toMapAlignment(

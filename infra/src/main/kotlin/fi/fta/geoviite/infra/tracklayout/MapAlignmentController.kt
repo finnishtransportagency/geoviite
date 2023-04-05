@@ -41,6 +41,20 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/alignments/extra/{ids}")
+    fun getMapAlignmentsExtraData(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("ids") ids: List<IntId<LocationTrack>>,
+    ): List<MapAlignmentService.MapAlignmentHighlight<*>> {
+        logger.apiCall(
+            "getMapAlignments",
+            "publishType" to publishType,
+            "ids" to ids,
+        )
+        return mapAlignmentService.getProfileInfo(publishType, ids)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/reference-lines/{id}")
     fun getMapReferenceLine(
         @PathVariable("publishType") publishType: PublishType,

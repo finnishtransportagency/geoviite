@@ -283,11 +283,11 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
         val profileInfo = alignmentDao.fetchSegmentPlanInfo(version)
         assertEquals(5, profileInfo.size)
-        assertTrue(profileInfo[0].second)
-        assertFalse(profileInfo[1].second)
-        assertFalse(profileInfo[2].second)
-        assertFalse(profileInfo[3].second)
-        assertTrue(profileInfo[4].second)
+        assertTrue(profileInfo[0].hasProfile!!)
+        assertFalse(profileInfo[1].hasProfile!!)
+        assertFalse(profileInfo[2].hasProfile!!)
+        assertFalse(profileInfo[3].hasProfile!!)
+        assertTrue(profileInfo[4].hasProfile!!)
     }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =

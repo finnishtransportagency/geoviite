@@ -20,7 +20,11 @@ import {
     simplifySegments,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { getAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    AlignmentHighlight,
+    getAlignmentsByTiles,
+    getLocationTrackProfileInfo,
+} from 'track-layout/layout-map-api';
 import {
     addBbox,
     getMatchingSegmentDatas,
@@ -220,6 +224,7 @@ function createFeatures(
     selectedPlanIds: GeometryPlanId[],
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
+    profileInfo: AlignmentHighlight[] | null,
 ): Feature<LineString | Point>[] {
     const { trackNumber, alignment, segment } = dataHolder;
     const lineString = new LineString(segment.points.map((point) => [point.x, point.y]));
@@ -253,8 +258,11 @@ function createFeatures(
         styles.push(alignmentBackgroundBlue);
     }
 
-    if (showMissingVerticalGeometry && segment.hasProfile !== null && !segment.hasProfile) {
-        styles.push(alignmentBackgroundRed);
+    if (showMissingVerticalGeometry) {
+        const profile = profileInfo?.find((prof) => prof.id === alignment.id);
+        if (profile) {
+            addHighlight(profile, segment, features);
+        }
     }
 
     if (
@@ -313,6 +321,29 @@ function createFeatures(
 
     segmentFeature.set(FEATURE_PROPERTY_SEGMENT_DATA, dataHolder);
     return features;
+}
+
+function addHighlight(
+    highlight: AlignmentHighlight,
+    segment: MapSegment,
+    features: Feature<Point | LineString>[],
+): void {
+    const ranges = highlight.ranges.filter(
+        ({ start, end }) => segment.startM <= end && segment.endM >= start,
+    );
+    const highlightLineStrings = ranges
+        .map((rng) => segment.points.filter((seg) => seg.m >= rng.start && seg.m <= rng.end))
+        .filter((array) => array.length >= 2)
+        .map((pointArray) => new LineString(pointArray.map((point) => [point.x, point.y])));
+
+    highlightLineStrings.forEach((lineString) => {
+        const highlightFeature = new Feature({
+            geometry: lineString,
+        });
+        addBbox(highlightFeature);
+        features.push(highlightFeature);
+        highlightFeature.setStyle([alignmentBackgroundRed]);
+    });
 }
 
 function featureKey(
@@ -434,6 +465,7 @@ function createFeaturesCached(
     showSegmentsFromSelectedPlan: boolean,
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
+    profileInfo: AlignmentHighlight[] | null,
 ): Feature<LineString | Point>[] {
     const previousFeatures = new Map<string, Feature<LineString | Point>[]>(featureCache);
     featureCache.clear();
@@ -480,6 +512,7 @@ function createFeaturesCached(
                           selection.selectedItems.geometryPlans,
                           showMissingLinking,
                           showDuplicateTracks,
+                          profileInfo,
                       );
             featureCache.set(key, features);
             return features;
@@ -574,7 +607,6 @@ adapterInfoRegister.add('alignment', {
                 : mapLayer.showReferenceLines
                 ? 'all'
                 : 'locationtrack',
-            mapLayer.showMissingVerticalGeometry || mapLayer.showSegmentsFromSelectedPlan,
             selectedAlignment,
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
@@ -587,7 +619,31 @@ adapterInfoRegister.add('alignment', {
                     resolution * MAP_RESOLUTION_MULTIPLIER,
                 ),
             )
-            .then((dataCollection) => {
+            .then((asd) => {
+                if (mapLayer.showMissingVerticalGeometry) {
+                    return Promise.all([
+                        Promise.resolve(asd),
+                        getLocationTrackProfileInfo(
+                            publishType,
+                            Array.from(
+                                new Set(
+                                    asd.dataHolders
+                                        .filter(
+                                            (dh) => dh.alignment.alignmentType === 'LOCATION_TRACK',
+                                        )
+                                        .map((aa) => aa.alignment.id),
+                                ),
+                            ),
+                        ),
+                    ]);
+                } else {
+                    return Promise.resolve<[DataCollection, AlignmentHighlight[] | null]>([
+                        asd,
+                        null,
+                    ]);
+                }
+            })
+            .then(([dataCollection, extraInfo]) => {
                 const features = createFeaturesCached(
                     dataCollection.dataHolders,
                     selection,
@@ -599,6 +655,7 @@ adapterInfoRegister.add('alignment', {
                     mapLayer.showMissingLinking,
                     mapLayer.showSegmentsFromSelectedPlan,
                     mapLayer.showDuplicateTracks,
+                    extraInfo,
                 );
                 // All features ready, clear old ones and add new ones
                 vectorSource.clear();

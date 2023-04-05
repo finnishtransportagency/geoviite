@@ -1,7 +1,7 @@
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { AlignmentId, LocationTrackId, MapAlignment, MapAlignmentType } from './track-layout-model';
-import { API_URI, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
+import { API_URI, getIgnoreError, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
 import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
@@ -36,19 +36,11 @@ export async function getAlignmentsByTile(
     mapTile: MapTile,
     publishType: PublishType,
     fetchType: AlignmentFetchType,
-    includePlanExtraInfo: boolean,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
-    const tileKey = `${mapTile.id}_${publishType}_${fetchType}_${includePlanExtraInfo}`;
+    const tileKey = `${mapTile.id}_${publishType}_${fetchType}`;
     return alignmentTilesCache.get(changeTime, tileKey, () =>
-        getAlignments(
-            mapTile.area,
-            mapTile.resolution,
-            publishType,
-            fetchType,
-            includePlanExtraInfo,
-            selectedId,
-        ),
+        getAlignments(mapTile.area, mapTile.resolution, publishType, fetchType, selectedId),
     );
 }
 
@@ -57,23 +49,27 @@ export async function getAlignmentsByTiles(
     mapTiles: MapTile[],
     publishType: PublishType,
     fetchType: AlignmentFetchType,
-    includePlanExtraInfo: boolean,
     selectedId?: AlignmentId,
 ): Promise<MapAlignment[]> {
     return (
         await Promise.all(
             mapTiles.map((tile) =>
-                getAlignmentsByTile(
-                    changeTime,
-                    tile,
-                    publishType,
-                    fetchType,
-                    includePlanExtraInfo,
-                    selectedId,
-                ),
+                getAlignmentsByTile(changeTime, tile, publishType, fetchType, selectedId),
             ),
         )
     ).flat();
+}
+
+export type AlignmentHighlight = {
+    id: string;
+    ranges: { start: number; end: number }[];
+};
+
+export async function getLocationTrackProfileInfo(
+    publishType: PublishType,
+    ids: LocationTrackId[],
+): Promise<AlignmentHighlight[] | null> {
+    return await getIgnoreError(`${mapUri('alignments', publishType)}/extra/${ids.join(',')}`);
 }
 
 export async function getReferenceLineSegmentEnds(
@@ -104,7 +100,7 @@ export async function getLinkPointsByTiles(
 ): Promise<LinkPoint[]> {
     return (
         await Promise.all(
-            mapTiles.map((tile) => getAlignmentsByTile(changeTime, tile, 'DRAFT', 'all', false)),
+            mapTiles.map((tile) => getAlignmentsByTile(changeTime, tile, 'DRAFT', 'all')),
         ).then((alignments) => {
             const allAlignments = alignments.flat().filter((a) => a.alignmentType == alignmentType);
             if (allAlignments.length == 0) return [];
@@ -156,14 +152,12 @@ async function getAlignments(
     resolution: number,
     publishType: PublishType,
     fetchType: AlignmentFetchType,
-    includePlanExtraInfo: boolean,
     selectedId?: LocationTrackId,
 ): Promise<MapAlignment[]> {
     const params = queryParams({
         resolution: toMapAlignmentResolution(resolution),
         bbox: bboxString(area),
         type: fetchType.toUpperCase(),
-        includePlanExtraInfo,
         selectedId,
     });
     return await getWithDefault<MapAlignment[]>(
