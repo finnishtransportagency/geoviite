@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import styles from '../data-product-table.scss';
+import { GeometrySource } from 'track-layout/track-layout-model';
+import { useTranslation } from 'react-i18next';
 
 export type KilometerLengthsTableItemProps = {
     trackNumber: string | undefined;
@@ -10,6 +12,7 @@ export type KilometerLengthsTableItemProps = {
     endM: number;
     locationE: number | undefined;
     locationN: number | undefined;
+    source: GeometrySource;
 };
 
 export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> = ({
@@ -20,7 +23,11 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     endM,
     locationE,
     locationN,
+    source,
 }) => {
+    const { t } = useTranslation();
+    const hasLocation = locationE && locationN;
+
     return (
         <React.Fragment>
             <tr>
@@ -36,10 +43,19 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                     {roundToPrecision(length, Precision.measurementMeterDistance)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {locationE && roundToPrecision(locationE, Precision.TM35FIN)}
+                    {hasLocation && roundToPrecision(locationE, Precision.TM35FIN)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {locationN && roundToPrecision(locationN, Precision.TM35FIN)}
+                    {hasLocation && roundToPrecision(locationN, Precision.TM35FIN)}
+                </td>
+                <td>
+                    {hasLocation &&
+                        source == 'IMPORTED' &&
+                        t('data-products.km-lengths.table.imported-warning')}
+
+                    {hasLocation &&
+                        source == 'GENERATED' &&
+                        t('data-products.km-lengths.table.generated-warning')}
                 </td>
             </tr>
         </React.Fragment>

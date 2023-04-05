@@ -125,7 +125,8 @@ class LayoutTrackNumberService(
                     kmNumber = context.referenceLineAddresses.startPoint.address.kmNumber,
                     startM = roundTo3Decimals(context.startAddress.meters.negate()),
                     endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
-                    locationSource = GeometrySource.GENERATED
+                    locationSource = GeometrySource.GENERATED,
+                    location = context.referenceLineAddresses.startPoint.point.toPoint()
                 )
             ) + distances.sortedBy { it.second }.mapIndexed { index, (kmPost, startM) ->
                 val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength

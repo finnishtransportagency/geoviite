@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -197,19 +196,11 @@ data class TrackLayoutKmPostLengthDetails(
     val startM: BigDecimal,
     val endM: BigDecimal,
     val locationSource: GeometrySource,
-    val location: IPoint? = null,
+    val location: Point?,
 ) {
     val length = endM - startM
 
     init {
-        require(startM.scale() == 3) {
-            "Invalid scale for startM. trackNumberId=$trackNumberId kmNumber=$kmNumber startM=$startM"
-        }
-
-        require(endM.scale() == 3) {
-            "Invalid scale for endM. trackNumberId=$trackNumberId kmNumber=$kmNumber endM=$endM"
-        }
-
         require(endM >= startM) {
             "Km post is wrong way around (endM is smaller than startM), trackNumberId=$trackNumberId kmNumber=$kmNumber startM=$startM endM=$endM"
         }

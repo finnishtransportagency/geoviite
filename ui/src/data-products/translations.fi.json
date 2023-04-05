@@ -95,7 +95,10 @@
                 "station-end": "Loppupaalu",
                 "length": "Pituus (m)",
                 "location-e": "Koordinaatti E",
-                "location-n": "Koordinaatti N"
+                "location-n": "Koordinaatti N",
+                "warning": "Huomiot",
+                "generated-warning": "Sijainti on pituusmittauslinjan alun sijainti.",
+                "imported-warning": "Sijainti on raiteen keskilinjalle projisoitu sijainti."
             }
         }
     }

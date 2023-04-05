@@ -18,7 +18,7 @@ export const KilometerLengthsView = () => {
     const startIndex = state.startKm ? findIndex(state.startKm, state.kmLengths) : 0;
     const endIndex = state.endKm
         ? findIndex(state.endKm, state.kmLengths) + 1
-        : state.kmLengths.length - 1;
+        : state.kmLengths.length;
     const kmLengths = state.kmLengths.slice(startIndex, endIndex);
 
     return (
