@@ -2,7 +2,7 @@ import React from 'react';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { ExtraInfraModelParameters } from 'infra-model/infra-model-store';
+import { ExtraInfraModelParameters } from 'infra-model/infra-model-slice';
 import { EditablePlanField } from 'infra-model/view/form/infra-model-form';
 import { useTranslation } from 'react-i18next';
 import { planDecisionPhases } from 'utils/enum-localization-utils';

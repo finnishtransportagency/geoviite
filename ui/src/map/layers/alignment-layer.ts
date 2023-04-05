@@ -33,7 +33,7 @@ import {
     getTrackNumberDrawDistance,
     MAP_RESOLUTION_MULTIPLIER,
 } from 'map/layers/layer-visibility-limits';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { deduplicate, fieldComparator, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState, LinkingType } from 'linking/linking-model';

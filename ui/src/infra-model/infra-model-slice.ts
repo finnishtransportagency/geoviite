@@ -28,7 +28,17 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
+/*
+import { RESET_STORE_ACTION } from 'store/store';
 
+export const infraModelRootReducer: typeof infraModelReducer = (state, action) => {
+    if (action.type == RESET_STORE_ACTION.type) {
+        // Reset to initial state
+        return infraModelReducer(undefined, action);
+    }
+    return infraModelReducer(state, action);
+};
+*/
 export enum InfraModelViewType {
     UPLOAD,
     EDIT,
@@ -130,10 +140,16 @@ const infraModelSlice = createSlice({
     reducers: {
         onPlanFetchReady: (
             state: InfraModelState,
-            { payload: { plan, planLayout } }: PayloadAction<OnPlanFetchReady>,
+            { payload: { plan, planLayout } }: PayloadAction<OnPlanFetchReady>, //MIKSI NÄÄ ON NULL
         ) => {
             state.plan = plan;
             state.planLayout = planLayout;
+
+            console.log('INFRA-MODEL-SLICESTÄ STATE, PLAN JA PLANLAYOUT');
+            console.log({ ...state });
+            console.log(plan);
+            console.log(planLayout);
+
             if (planLayout) {
                 state.selection.planLayouts = [planLayout];
                 const bBox = planLayout && planLayout.boundingBox;
@@ -227,6 +243,11 @@ const infraModelSlice = createSlice({
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),
         ...wrapReducers((state: InfraModelState) => state.selection, selectionReducers),
     },
+    /*
+    extraReducers: (builder) => {
+        //builder.addCase();
+    },
+     */
 });
 
 function createError<TEntity>(field: keyof TEntity, reason: string, type: ValidationErrorType) {
@@ -275,4 +296,4 @@ function validateParams(
     return errors;
 }
 export const infraModelReducer = infraModelSlice.reducer;
-export const actionCreators = infraModelSlice.actions;
+export const infraModelActionCreators = infraModelSlice.actions;

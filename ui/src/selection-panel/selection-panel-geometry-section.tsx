@@ -29,7 +29,7 @@ import {
     OpenedPlanLayout,
     OptionalItemCollections,
 } from 'selection/selection-model';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { PublishType } from 'common/common-model';
 
 type GeometryPlansPanelProps = {

@@ -3,19 +3,19 @@ import * as ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { HashRouter } from 'react-router-dom';
 import { MainContainer } from 'main/main';
-import { trackLayoutStore } from 'store/store';
+import { rootStore } from 'store/store';
 import './style.scss';
 import 'normalize.css';
 import { PersistGate } from 'redux-persist/integration/react';
 import { persistStore } from 'redux-persist';
 
-const persistor = persistStore(trackLayoutStore);
+const persistor = persistStore(rootStore);
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
-        <Provider store={trackLayoutStore}>
+        <Provider store={rootStore}>
             <PersistGate loading={null} persistor={persistor}>
                 <HashRouter>
                     <MainContainer />

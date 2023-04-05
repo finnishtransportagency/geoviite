@@ -4,7 +4,7 @@ import LocationTrackInfobox from 'tool-panel/location-track/location-track-infob
 import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'store/track-layout-store';
+import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { MapViewport } from 'map/map-model';

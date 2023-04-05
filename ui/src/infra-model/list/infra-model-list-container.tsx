@@ -4,9 +4,9 @@ import { InfraModelListView } from 'infra-model/list/infra-model-list-view';
 import { createDelegates } from 'store/store-utils';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { actionCreators } from 'infra-model/infra-model-store';
-import { useInframodelAppDispatch, useInframodelAppSelector } from 'store/hooks';
-import { ChangeTimes } from 'store/track-layout-store';
+import { infraModelActionCreators } from 'infra-model/infra-model-slice';
+import { useInfraModelAppSelector, useAppDispatch } from 'store/hooks';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { useAppNavigate } from 'common/navigate';
 
 export type InfraModelListContainerProps = {
@@ -16,9 +16,9 @@ export type InfraModelListContainerProps = {
 export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = ({
     changeTimes,
 }) => {
-    const rootDispatch = useInframodelAppDispatch();
-    const infraModelListDelegates = createDelegates(rootDispatch, actionCreators);
-    const state = useInframodelAppSelector((state) => state.infraModel.infraModelList);
+    const rootDispatch = useAppDispatch();
+    const infraModelListDelegates = createDelegates(rootDispatch, infraModelActionCreators);
+    const state = useInfraModelAppSelector((state) => state.infraModelList);
     const navigate = useAppNavigate();
 
     React.useEffect(() => {

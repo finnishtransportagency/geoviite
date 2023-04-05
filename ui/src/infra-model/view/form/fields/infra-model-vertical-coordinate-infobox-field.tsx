@@ -5,7 +5,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import {
     InfraModelParametersProp,
     OverrideInfraModelParameters,
-} from 'infra-model/infra-model-store';
+} from 'infra-model/infra-model-slice';
 import { EditablePlanField } from 'infra-model/view/form/infra-model-form';
 import { useTranslation } from 'react-i18next';
 import { verticalCoordinateSystems } from 'utils/enum-localization-utils';

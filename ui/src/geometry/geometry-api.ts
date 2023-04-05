@@ -41,7 +41,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import { TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
-import { GeometryTypeIncludingMissing } from 'data-products/data-products-store';
+import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 

@@ -18,7 +18,7 @@ import {
     OnPlanFetchReady,
     OverrideInfraModelParameters,
     XmlCharset,
-} from 'infra-model/infra-model-store';
+} from 'infra-model/infra-model-slice';
 import {
     GeometryElement,
     GeometryElementId,
@@ -38,7 +38,7 @@ import { convertToNativeFile } from 'utils/file-utils';
 import { Title } from 'vayla-design-lib/title/title';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { Prop } from 'utils/type-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import { useTranslation } from 'react-i18next';
@@ -133,6 +133,9 @@ const getValidationResponseGeometryPlan = async (
 };
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
+    console.log('INFRA-MODEL-VIEW-PROPSIT:');
+    console.log(props);
+
     const { t } = useTranslation();
     const navigate = useAppNavigate();
 

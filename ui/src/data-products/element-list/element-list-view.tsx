@@ -3,16 +3,16 @@ import { useTranslation } from 'react-i18next';
 import styles from 'data-products/data-product-view.scss';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import LocationTrackElementListingSearch from 'data-products/element-list/location-track-element-listing-search';
-import { dataProductsActions } from 'data-products/data-products-store';
 import { createDelegates } from 'store/store-utils';
 import PlanGeometryElementListingSearch from 'data-products/element-list/plan-geometry-element-listing-search';
 import { ElementTable } from 'data-products/element-list/element-table';
 import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
+import { dataProductsActions } from 'data-products/data-products-slice';
 
 const ElementListView = () => {
     const rootDispatch = useDataProductsAppDispatch();
     const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
-    const state = useDataProductsAppSelector((state) => state.dataProducts.elementList);
+    const state = useDataProductsAppSelector((state) => state.elementList);
     const { t } = useTranslation();
     const continuousGeometrySelected = state.selectedSearch === 'LOCATION_TRACK';
 

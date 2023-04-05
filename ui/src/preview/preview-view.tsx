@@ -21,7 +21,7 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { ChangeTimes, SelectedPublishChange } from 'store/track-layout-store';
+import { ChangeTimes, SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { AssetId, PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';

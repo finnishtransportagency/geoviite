@@ -22,7 +22,7 @@ import {
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { useTranslation } from 'react-i18next';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';

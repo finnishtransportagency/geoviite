@@ -5,11 +5,6 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { debounceAsync } from 'utils/async-utils';
-import {
-    LocationTrackVerticalGeometrySearchParameters,
-    LocationTrackVerticalGeometrySearchState,
-    validTrackMeterOrUndefined,
-} from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
 import {
     getLocationTrackVerticalGeometry,
@@ -25,6 +20,11 @@ import {
     hasErrors,
 } from 'data-products/data-products-utils';
 import { VerticalGeometryItem } from 'geometry/geometry-model';
+import {
+    LocationTrackVerticalGeometrySearchParameters,
+    LocationTrackVerticalGeometrySearchState,
+    validTrackMeterOrUndefined,
+} from 'data-products/data-products-slice';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;

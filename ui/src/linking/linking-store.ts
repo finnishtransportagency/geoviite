@@ -1,4 +1,4 @@
-import { TrackLayoutState } from 'store/track-layout-store';
+import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import {

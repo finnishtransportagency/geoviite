@@ -22,7 +22,16 @@ import {
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
 import { wrapReducers } from 'store/store-utils';
+/*import { RESET_STORE_ACTION } from 'store/store';
 
+export const dataProductsRootReducer: typeof dataProductsReducer = (state, action) => {
+    if (action.type == RESET_STORE_ACTION.type) {
+        // Reset to initial state
+        return dataProductsReducer(undefined, action);
+    }
+    return dataProductsReducer(state, action);
+};
+*/
 type SearchGeometries = {
     searchLines: boolean;
     searchCurves: boolean;
@@ -460,7 +469,7 @@ export const kmLengthsSearchSlice = createSlice({
 
 type SelectedSearch = 'PLAN' | 'LOCATION_TRACK';
 
-type DataProductsState = {
+export type DataProductsState = {
     elementList: {
         selectedSearch: SelectedSearch;
         planSearch: PlanGeometrySearchState;

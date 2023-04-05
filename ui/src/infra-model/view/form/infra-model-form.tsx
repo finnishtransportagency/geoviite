@@ -16,7 +16,7 @@ import {
     ExtraInfraModelParameters,
     InfraModelParametersProp,
     OverrideInfraModelParameters,
-} from 'infra-model/infra-model-store';
+} from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
@@ -34,7 +34,7 @@ import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layou
 import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infra-model-form-chosen-date-dropdowns';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { filterNotEmpty } from 'utils/array-utils';
 import { InfraModelTextField } from 'infra-model/view/form/infra-model-form-text-field';

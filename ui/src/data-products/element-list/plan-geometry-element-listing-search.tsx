@@ -4,7 +4,6 @@ import styles from 'data-products/data-product-view.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-store';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import { getGeometryPlanElements, getGeometryPlanElementsCsv } from 'geometry/geometry-api';
@@ -19,6 +18,7 @@ import {
     getGeometryPlanOptions,
     getVisibleErrorsByProp,
 } from 'data-products/data-products-utils';
+import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-slice';
 
 type PlanGeometryElementListingSearchProps = {
     state: PlanGeometrySearchState;

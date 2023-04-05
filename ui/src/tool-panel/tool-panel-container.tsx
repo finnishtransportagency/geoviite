@@ -1,8 +1,8 @@
 import * as React from 'react';
 import ToolPanel from 'tool-panel/tool-panel';
 import { MapContext } from 'map/map-store';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
-import { actionCreators as TrackLayoutActions } from 'store/track-layout-store';
+import { useAppSelector, useTrackLayoutAppDispatch } from 'store/hooks';
+import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
@@ -10,7 +10,7 @@ import { getSuggestedSwitchByPoint } from 'linking/linking-api';
 
 const ToolPanelContainer: React.FC = () => {
     const context = React.useContext(MapContext);
-    const store = useTrackLayoutAppSelector((state) => state[context]);
+    const store = useAppSelector((state) => state[context]);
 
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = React.useMemo(() => {

@@ -8,7 +8,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'store/track-layout-store';
+import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType } from 'common/common-model';
 import GeometryAlignmentInfobox from 'tool-panel/geometry-alignment/geometry-alignment-infobox';
@@ -42,7 +42,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
         return createDelegates(dispatch, TrackLayoutActions);
     }, []);
 
-    const store = useTrackLayoutAppSelector((state) => state.trackLayout);
+    const store = useTrackLayoutAppSelector((state) => state);
     const changeTimes = store.changeTimes;
     const locationTrack = useLocationTrack(
         selectedLocationTrackId,

@@ -32,7 +32,7 @@ import { calculateMapTiles, calculateTileSize } from 'map/map-utils';
 import { adapterInfoRegister } from 'map/layers/register';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { fromExtent } from 'ol/geom/Polygon';
 import { searchShownItemsFromLayers } from 'map/tools/tool-utils';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';

@@ -1,4 +1,4 @@
-import { connect } from 'react-redux';
+import { connect, Provider } from 'react-redux';
 import * as React from 'react';
 import 'i18n/config';
 import { Route, Routes } from 'react-router-dom';
@@ -8,7 +8,6 @@ import { Slide, ToastContainer } from 'react-toastify';
 import { I18nDemo } from 'i18n/i18n-demo';
 import { AppBar } from 'app-bar/app-bar';
 import { HttpStatusCodeGenerator } from 'monitoring/http-status-code-generator';
-import { InfraModelMainContainerWithProvider } from 'infra-model/infra-model-main-container';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
 import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
@@ -26,15 +25,21 @@ import { ElementListContainerWithProvider } from 'data-products/element-list/ele
 import { VerticalGeometryContainerWithProvider } from 'data-products/vertical-geometry/vertical-geometry-container-with-provider';
 import { getEnvironmentInfo } from 'environment/environment-info';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators } from 'store/track-layout-store';
+import { actionCreators } from 'track-layout/track-layout-slice';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
 import { Button } from 'vayla-design-lib/button/button';
 import { KilometerLengthsContainerWithProvider } from 'data-products/kilometer-lengths/kilometer-lengths-container-with-provider';
+import { InfraModelMainView } from 'infra-model/infra-model-main-view';
+import { PersistGate } from 'redux-persist/integration/react';
+import { persistStore } from 'redux-persist';
+import { rootStore } from 'store/store';
 
 type MainProps = {
     layoutMode: LayoutMode;
     version: string | undefined;
 };
+
+const persistorRoot = persistStore(rootStore);
 
 const Main: React.VFC<MainProps> = (props: MainProps) => {
     const { t } = useTranslation();
@@ -57,10 +62,7 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                             )
                         }
                     />
-                    <Route
-                        path="/infra-model/*"
-                        element={<InfraModelMainContainerWithProvider />}
-                    />
+                    <Route path="/infra-model/*" element={<InfraModelMainView />} />
                     <Route path="/design-lib-demo" element={<GeoviiteLibDemo />} />
                     <Route path="/localization-demo" element={<I18nDemo />} />
                     <Route
@@ -95,8 +97,8 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
 export const MainContainer: React.FC = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const layoutMode = useTrackLayoutAppSelector((state) => state.trackLayout.layoutMode);
-    const versionInStore = useTrackLayoutAppSelector((state) => state.trackLayout.version);
+    const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
+    const versionInStore = useTrackLayoutAppSelector((state) => state.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, actionCreators);
@@ -116,7 +118,11 @@ export const MainContainer: React.FC = () => {
 
     return (
         <React.Fragment>
-            <Main {...props} />{' '}
+            <Provider store={rootStore}>
+                <PersistGate loading={null} persistor={persistorRoot}>
+                    <Main {...props} />
+                </PersistGate>
+            </Provider>{' '}
             {showDialog && (
                 <Dialog
                     allowClose={false}

@@ -16,7 +16,7 @@ import {
     TrackMeter,
     VerticalCoordinateSystem,
 } from 'common/common-model';
-import { GeometryTypeIncludingMissing } from 'data-products/data-products-store';
+import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 
 export type GeometryPlanLayoutId = string;
 export type GeometryPlanId = string;

@@ -26,7 +26,7 @@ import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { Point } from 'model/geometry';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';

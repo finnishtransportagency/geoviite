@@ -17,7 +17,7 @@ import {
 } from 'map/layers/layer-utils';
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import { LINKING_DOTS } from 'map/layers/layer-visibility-limits';
-import { ChangeTimes } from 'store/track-layout-store';
+import { ChangeTimes } from 'track-layout/track-layout-slice';
 import {
     ClusterPoint,
     LinkingState,

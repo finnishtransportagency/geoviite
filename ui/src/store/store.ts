@@ -1,80 +1,71 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { trackLayoutReducer } from 'store/track-layout-store';
-import { infraModelReducer } from 'infra-model/infra-model-store';
+import { trackLayoutReducer } from 'track-layout/track-layout-slice';
+import { infraModelReducer } from 'infra-model/infra-model-slice';
+import { dataProductsReducer } from 'data-products/data-products-slice';
+import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from 'redux';
-import { persistReducer } from 'redux-persist';
+
 import thunk from 'redux-thunk';
-import { dataProductsReducer } from 'data-products/data-products-store';
 
 export const RESET_STORE_ACTION = {
     type: 'RESET_STORE',
-};
-
-const trackLayoutReducers = combineReducers({
-    trackLayout: trackLayoutReducer,
-});
-
-const inframodelReducers = combineReducers({
-    infraModel: infraModelReducer,
-});
-
-const dataProductsReducers = combineReducers({
-    dataProducts: dataProductsReducer,
-});
-
-// Wrap combined reducers to handle root level state
-const trackLayoutRootReducer: typeof trackLayoutReducers = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return trackLayoutReducers(undefined, action);
-    }
-    return trackLayoutReducers(state, action);
-};
-
-const inframodelRootReducer: typeof inframodelReducers = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return inframodelReducers(undefined, action);
-    }
-    return inframodelReducers(state, action);
-};
-
-const dataProductsRootReducer: typeof dataProductsReducers = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return dataProductsReducers(undefined, action);
-    }
-    return dataProductsReducers(state, action);
 };
 
 const trackLayoutPersistConfig = {
     key: 'rootTracklayout',
     storage,
 };
-
-const inframodelPersistConfig = {
-    key: 'rootInfraModel',
-    storage,
-};
-
-const dataProductsPersistConfig = {
-    key: 'rootDataProducts',
-    storage,
+// Wrap combined reducers to handle root level state
+const trackLayoutRootReducer: typeof trackLayoutReducer = (state, action) => {
+    if (action.type == RESET_STORE_ACTION.type) {
+        // Reset to initial state
+        return trackLayoutReducer(undefined, action);
+    }
+    return trackLayoutReducer(state, action);
 };
 
 const persistedTrackLayoutReducer = persistReducer(
     trackLayoutPersistConfig,
     trackLayoutRootReducer,
 );
-const persistedInframodelReducer = persistReducer(inframodelPersistConfig, inframodelRootReducer);
+
+const infraModelPersistConfig = {
+    key: 'rootInfraModel',
+    storage,
+};
+const infraModelRootReducer: typeof infraModelReducer = (state, action) => {
+    if (action.type == RESET_STORE_ACTION.type) {
+        // Reset to initial state
+        return infraModelReducer(undefined, action);
+    }
+    return infraModelReducer(state, action);
+};
+const persistedInfraModelReducer = persistReducer(infraModelPersistConfig, infraModelRootReducer);
+
+const dataProductsPersistConfig = {
+    key: 'rootDataProducts',
+    storage,
+};
+const dataProductsRootReducer: typeof dataProductsReducer = (state, action) => {
+    if (action.type == RESET_STORE_ACTION.type) {
+        // Reset to initial state
+        return dataProductsReducer(undefined, action);
+    }
+    return dataProductsReducer(state, action);
+};
+
 const persistedDataProductsReducer = persistReducer(
     dataProductsPersistConfig,
     dataProductsRootReducer,
 );
 
-export const trackLayoutStore = configureStore({
-    reducer: persistedTrackLayoutReducer,
+export const rootStore = configureStore({
+    reducer: combineReducers({
+        trackLayout: persistedTrackLayoutReducer,
+        dataProducts: persistedDataProductsReducer,
+        infraModel: persistedInfraModelReducer,
+    }),
     middleware: (getDefaultMiddleware) => [
         ...getDefaultMiddleware({
             // For now we don't need to store our redux store and therefore
@@ -85,33 +76,14 @@ export const trackLayoutStore = configureStore({
     ],
 });
 
-export const inframodelStore = configureStore({
-    reducer: persistedInframodelReducer,
-    middleware: (getDefaultMiddleware) => [
-        ...getDefaultMiddleware({
-            // For now we don't need to store our redux store and therefore
-            // we don't need to ensure that everything in the store is serializable.
-            serializableCheck: false,
-        }),
-        thunk,
-    ],
-});
+//NÄIHIN SPESIFIMMIN STATET KUN KAIKKI ON NYT SAMAA TYYPPIÄ?
+//https://stackoverflow.com/questions/72807148/how-to-access-state-of-one-slice-in-reducer-of-another-slice-using-redux-toolkit
+export type RootState = ReturnType<typeof rootStore.getState>;
+export type RootDispatch = typeof rootStore.dispatch;
 
-export const dataProductsStore = configureStore({
-    reducer: persistedDataProductsReducer,
-    middleware: (getDefaultMiddleware) => [
-        ...getDefaultMiddleware({
-            // For now we don't need to store our redux store and therefore
-            // we don't need to ensure that everything in the store is serializable.
-            serializableCheck: false,
-        }),
-        thunk,
-    ],
-});
-
-export type TrackLayoutRootState = ReturnType<typeof trackLayoutStore.getState>;
-export type InfraModelRootState = ReturnType<typeof inframodelStore.getState>;
-export type DataProductsRootState = ReturnType<typeof dataProductsStore.getState>;
-export type TrackLayoutAppDispatch = typeof trackLayoutStore.dispatch;
-export type InframodelDispatch = typeof inframodelStore.dispatch;
-export type DataProductsDispatch = typeof dataProductsStore.dispatch;
+export type TrackLayoutSliceState = ReturnType<typeof rootStore.getState>;
+export type InfraModelSliceState = ReturnType<typeof rootStore.getState>; //palauta tällanen: useRootSelector((state) => state.infraModel)
+export type DataProductsSliceState = ReturnType<typeof rootStore.getState>;
+export type TrackLayoutAppDispatch = typeof rootStore.dispatch;
+export type InfraModelDispatch = typeof rootStore.dispatch;
+export type DataProductsDispatch = typeof rootStore.dispatch;

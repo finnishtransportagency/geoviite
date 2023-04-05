@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Breadcrumb, BreadcrumbItem } from 'geoviite-design-lib/breadcrumb/breadcrumb';
-import { InfraModelViewType } from 'infra-model/infra-model-store';
+import { InfraModelViewType } from 'infra-model/infra-model-slice';
 import { useTranslation } from 'react-i18next';
 
 export type InfraModelToolbarProps = {
