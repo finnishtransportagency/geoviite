@@ -9,12 +9,12 @@ import { useLoader } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { LayoutKmPostLengthDetails, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import {
-    LayoutKmPost,
-    LayoutKmPostLengthDetails,
-    LayoutTrackNumber,
-} from 'track-layout/track-layout-model';
-import { getKmLengthsCsv, getKmPostsOnTrackNumber } from 'track-layout/layout-km-post-api';
+    getKmLengthsCsv,
+    getKmPostLengths,
+    getKmPostsOnTrackNumber,
+} from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 
 type KilometerLengthsSearchProps = {
@@ -31,7 +31,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     setLengths,
 }) => {
     const { t } = useTranslation();
-    const geometryPlanHeaders =
+    const trackNumbers =
         useTrackNumbers('OFFICIAL')?.map((tn) => ({ name: tn.number, value: tn })) || [];
 
     const kmPosts =
@@ -40,7 +40,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
             [state.trackNumber],
         )?.map((km) => ({
             name: km.kmNumber,
-            value: km,
+            value: km.kmNumber,
         })) || [];
 
     function updateProp<TKey extends keyof KmLengthsSearchState>(
@@ -54,10 +54,13 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
         });
     }
 
-    const kmLengths = useLoader(() => {
-        return !state.trackNumber ? Promise.resolve([]) : Promise.resolve([]);
+    React.useEffect(() => {
+        if (state.trackNumber) {
+            getKmPostLengths('OFFICIAL', state.trackNumber.id).then((kmPosts) => {
+                setLengths(kmPosts);
+            });
+        } else setLengths([]);
     }, [state.trackNumber]);
-    React.useEffect(() => setLengths([]), [kmLengths]);
 
     return (
         <div className={styles['data-products__search']}>
@@ -68,7 +71,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         value={state.trackNumber}
                         getName={(item: LayoutTrackNumber) => item.number}
                         placeholder={t('data-products.search.search')}
-                        options={geometryPlanHeaders}
+                        options={trackNumbers}
                         searchable
                         onChange={(e) => updateProp('trackNumber', e)}
                         canUnselect={true}
@@ -84,7 +87,6 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                     <span className={styles['data-products__search--combined-field']}>
                         <Dropdown
                             value={state.startKm}
-                            getName={(item: LayoutKmPost) => item.kmNumber}
                             placeholder={t('data-products.search.search')}
                             options={kmPosts}
                             searchable
@@ -95,7 +97,6 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         />
                         <Dropdown
                             value={state.endKm}
-                            getName={(item: LayoutKmPost) => item.kmNumber}
                             placeholder={t('data-products.search.search')}
                             options={kmPosts}
                             searchable

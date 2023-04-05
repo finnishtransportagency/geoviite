@@ -93,7 +93,7 @@
                 "kilometer": "Kilometri",
                 "station-start": "Alkupaalu",
                 "station-end": "Loppupaalu",
-                "length": "Pituus",
+                "length": "Pituus (m)",
                 "location-e": "Koordinaatti E",
                 "location-n": "Koordinaatti N"
             }
