@@ -512,18 +512,16 @@ export const SwitchEditDialog = ({
                             )}
                         </>
                     }>
-                    <React.Fragment>
-                        <ul className={styles['switch-edit-dialog__confirmation-list']}>
-                            {switchStateCategory == 'NOT_EXISTING' && (
-                                <li>{t('switch-dialog.deleted-state-warning')}</li>
-                            )}
+                    <ul className={styles['switch-edit-dialog__confirmation-list']}>
+                        {switchStateCategory == 'NOT_EXISTING' && (
+                            <li>{t('switch-dialog.deleted-state-warning')}</li>
+                        )}
 
-                            {switchStructureChanged && (
-                                <li>{t('switch-dialog.changed-switch-structure-warning')}</li>
-                            )}
-                        </ul>
-                        <p>{t('switch-dialog.confirm-switch-save')}</p>
-                    </React.Fragment>
+                        {switchStructureChanged && (
+                            <li>{t('switch-dialog.changed-switch-structure-warning')}</li>
+                        )}
+                    </ul>
+                    <p>{t('switch-dialog.confirm-switch-save')}</p>
                 </Dialog>
             )}
             {showDeleteDialog && switchId && (
