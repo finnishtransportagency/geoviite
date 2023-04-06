@@ -23,7 +23,7 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import {
     AlignmentHighlight,
     getAlignmentsByTiles,
-    getLocationTrackProfileInfo,
+    getAlignmentSectionsWithoutProfile,
 } from 'track-layout/layout-map-api';
 import {
     addBbox,
@@ -46,6 +46,7 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import { GeometryPlanId } from 'geometry/geometry-model';
+import { combineBoundingBoxes } from 'model/geometry';
 
 export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
 
@@ -623,17 +624,9 @@ adapterInfoRegister.add('alignment', {
                 if (mapLayer.showMissingVerticalGeometry) {
                     return Promise.all([
                         Promise.resolve(asd),
-                        getLocationTrackProfileInfo(
+                        getAlignmentSectionsWithoutProfile(
                             publishType,
-                            Array.from(
-                                new Set(
-                                    asd.dataHolders
-                                        .filter(
-                                            (dh) => dh.alignment.alignmentType === 'LOCATION_TRACK',
-                                        )
-                                        .map((aa) => aa.alignment.id),
-                                ),
-                            ),
+                            combineBoundingBoxes(mapTiles.map((tile) => tile.area)),
                         ),
                     ]);
                 } else {

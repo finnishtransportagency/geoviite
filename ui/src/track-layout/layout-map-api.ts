@@ -65,11 +65,15 @@ export type AlignmentHighlight = {
     ranges: { start: number; end: number }[];
 };
 
-export async function getLocationTrackProfileInfo(
+export async function getAlignmentSectionsWithoutProfile(
     publishType: PublishType,
-    ids: LocationTrackId[],
+    bbox: BoundingBox,
 ): Promise<AlignmentHighlight[] | null> {
-    return await getIgnoreError(`${mapUri('alignments', publishType)}/extra/${ids.join(',')}`);
+    return await getIgnoreError(
+        `${mapUri('alignments', publishType)}/without-profile${queryParams({
+            bbox: bboxString(bbox),
+        })}`,
+    );
 }
 
 export async function getReferenceLineSegmentEnds(

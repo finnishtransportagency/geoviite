@@ -2,9 +2,9 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Range
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -29,7 +29,6 @@ class MapAlignmentService(
         resolution: Int,
         type: AlignmentFetchType,
         selectedId: IntId<LocationTrack>?,
-        includePlanExtraInfo: Boolean,
     ): List<MapAlignment<*>> {
         logger.serviceCall("getMapAlignments",
             "publishType" to publishType,
@@ -37,16 +36,15 @@ class MapAlignmentService(
             "resolution" to resolution,
             "type" to type,
             "selectedId" to selectedId,
-            "includePlanExtraInfo" to includePlanExtraInfo,
         )
         val trackNumbers = trackNumberService.mapById(publishType)
         val referenceLines =
             if (type != AlignmentFetchType.LOCATIONTRACK) {
-                getMapReferenceLines(trackNumbers, publishType, bbox, resolution).map { it.second }
+                getMapReferenceLines(trackNumbers, publishType, bbox, resolution)
             }
             else listOf()
         val locationTracks =
-            if (type != AlignmentFetchType.REFERENCE) getMapLocationTracks(publishType, bbox, resolution).map { it.second }
+            if (type != AlignmentFetchType.REFERENCE) getMapLocationTracks(publishType, bbox, resolution)
             else listOf()
         val selected = selectedId?.let { id ->
             if (locationTracks.any { t -> t.id == selectedId }) null
@@ -58,30 +56,40 @@ class MapAlignmentService(
             .filter { ma -> ma.segments.isNotEmpty() }
     }
 
-    data class HighlightRange(
-        val start: Double,
-        val end: Double,
-    )
     data class MapAlignmentHighlight<T>(
         val id: IntId<T>,
-        val ranges: List<HighlightRange>
+        val ranges: List<Range<Double>>,
     )
 
-    fun getProfileInfo(
+    fun getSectionsWithoutProfile(
         publishType: PublishType,
-        ids: List<IntId<LocationTrack>>
+        bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> {
-        logger.serviceCall("getProfileInfo", "publishType" to publishType, "ids" to ids)
-        val tracks = locationTrackService.getMany(publishType, ids)
-        return tracks.mapNotNull { locationTrack ->
-            locationTrack.alignmentVersion?.let {
-                MapAlignmentHighlight(locationTrack.id as IntId, getSectionsWithoutProfile(
-                    locationTrack.alignmentVersion
-                ))
-            }
-        }
+        logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
+        return alignmentDao.fetchSegmentPlanInfos<LocationTrack>(publishType, bbox)
+            .filter { !it.hasProfile }
+            .groupBy { it.id }
+            .map {
+                MapAlignmentHighlight(
+                    id = it.key as IntId<LocationTrack>,
+                    ranges = it.value.fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
+                        if (!acc.contains(info.alignmentId.index - 1)) acc.put(
+                            info.alignmentId.index,
+                            Range(info.points.first().m + info.segmentStart, info.points.last().m + info.segmentStart)
+                        )
+                        else {
+                            val prev = acc.remove(info.alignmentId.index - 1)
+                            prev?.let {
+                                acc.put(
+                                    info.alignmentId.index,
+                                    Range(prev.min, info.points.last().m + info.segmentStart)
+                                )
+                            }
+                        }
+                        acc
+                    }.values.toList()
+            ) }
     }
-
 
     fun getMapReferenceLine(
         publishType: PublishType,
@@ -111,27 +119,7 @@ class MapAlignmentService(
         publishType: PublishType,
         bbox: BoundingBox,
         resolution: Int,
-    ) = locationTrackService.list(publishType).map { track -> track.alignmentVersion to toMap(track, bbox, resolution) }
-
-    private fun getSectionsWithoutProfile(
-        alignmentVersion: RowVersion<LayoutAlignment>,
-    ): MutableList<HighlightRange> {
-        val alignment = alignmentDao.fetch(alignmentVersion)
-        val segmentProfileInformation = alignmentDao.fetchSegmentPlanInfo(alignmentVersion)
-        return alignment.segments.foldIndexed(mutableListOf()) { index, acc, segment ->
-            val profileInfo = segmentProfileInformation.find { prof -> prof.id == segment.id }
-            if (profileInfo == null || !profileInfo.hasProfile) {
-                if (acc.isEmpty()) {
-                    acc.add(HighlightRange(segment.startM, segment.endM))
-                } else if (acc.last().end == alignment.segments.get(index - 1).endM) {
-                    acc.set(acc.size - 1, HighlightRange(acc.last().start, segment.endM))
-                } else {
-                    acc.add(HighlightRange(segment.startM, segment.endM))
-                }
-            }
-            acc
-        }
-    }
+    ) = locationTrackService.list(publishType).map { track -> toMap(track, bbox, resolution) }
 
     private fun getMapReferenceLines(
         trackNumbers: Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
@@ -141,7 +129,7 @@ class MapAlignmentService(
     ) = referenceLineService.list(publishType).mapNotNull { line ->
         val trackNumber = trackNumbers[line.trackNumberId]
         if (trackNumber != null && trackNumber.state != LayoutState.DELETED)
-            line.alignmentVersion to toMap(line, trackNumber, bbox, resolution)
+            toMap(line, trackNumber, bbox, resolution)
         else null
     }
 

@@ -26,7 +26,6 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("resolution") resolution: Int,
         @RequestParam("type") type: AlignmentFetchType? = null,
         @RequestParam("selectedId") selectedId: IntId<LocationTrack>? = null,
-        @RequestParam("includePlanExtraInfo") includePlanExtraInfo: Boolean = false,
     ): List<MapAlignment<*>> {
         logger.apiCall(
             "getMapAlignments",
@@ -35,23 +34,22 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
             "resolution" to resolution,
             "type" to type,
             "selectedId" to selectedId,
-            "includePlanExtraInfo" to includePlanExtraInfo,
         )
-        return mapAlignmentService.getMapAlignments(publishType, bbox, resolution, type ?: ALL, selectedId, includePlanExtraInfo)
+        return mapAlignmentService.getMapAlignments(publishType, bbox, resolution, type ?: ALL, selectedId)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/{publishType}/alignments/extra/{ids}")
-    fun getMapAlignmentsExtraData(
+    @GetMapping("/{publishType}/alignments/without-profile")
+    fun getSectionsWithoutProfile(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("ids") ids: List<IntId<LocationTrack>>,
+        @RequestParam("bbox") bbox: BoundingBox,
     ): List<MapAlignmentService.MapAlignmentHighlight<*>> {
         logger.apiCall(
-            "getMapAlignments",
+            "getSectionsWithoutProfile",
             "publishType" to publishType,
-            "ids" to ids,
+            "bbox" to bbox,
         )
-        return mapAlignmentService.getProfileInfo(publishType, ids)
+        return mapAlignmentService.getSectionsWithoutProfile(publishType, bbox)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

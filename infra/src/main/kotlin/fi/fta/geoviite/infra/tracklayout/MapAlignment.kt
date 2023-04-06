@@ -1,14 +1,12 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentSource.LAYOUT
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentType.LOCATION_TRACK
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentType.REFERENCE_LINE
@@ -57,9 +55,11 @@ data class MapSegment(
     val hasProfile: Boolean? = null,
 ): ISegment, ISegmentGeometry by geometry
 
-data class MapSegmentPlanData(
-    val id: DomainId<MapSegment>,
-    val planId: DomainId<GeometryPlan>?,
+data class MapSegmentPlanData<T>(
+    val id: IntId<T>,
+    val alignmentId: IndexedId<LayoutSegment>,
+    val points: List<LayoutPoint>,
+    val segmentStart: Double,
     val hasProfile: Boolean
 )
 
