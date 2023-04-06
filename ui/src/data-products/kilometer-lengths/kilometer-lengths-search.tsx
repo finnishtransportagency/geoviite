@@ -11,8 +11,8 @@ import { Button } from 'vayla-design-lib/button/button';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { LayoutKmPostLengthDetails, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import {
-    getKmLengthsCsv,
     getKmPostLengths,
+    getKmPostLengthsAsCsv,
     getKmPostsOnTrackNumber,
 } from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
@@ -118,7 +118,12 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                 disabled={!state.kmLengths || state.kmLengths.length === 0}
                 onClick={() => {
                     if (state.trackNumber) {
-                        location.href = getKmLengthsCsv(state.trackNumber?.id);
+                        location.href = getKmPostLengthsAsCsv(
+                            'OFFICIAL',
+                            state.trackNumber?.id,
+                            state.startKm,
+                            state.endKm,
+                        );
                     }
                 }}
                 icon={Icons.Download}>

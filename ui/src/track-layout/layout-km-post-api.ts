@@ -24,7 +24,6 @@ import { KmPostSaveError, KmPostSaveRequest } from 'linking/linking-model';
 import { Result } from 'neverthrow';
 import { ValidatedAsset } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
-import { GEOMETRY_URI } from 'geometry/geometry-api';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
@@ -187,5 +186,16 @@ export async function getKmPostLengths(
     });
 }
 
-export const getKmLengthsCsv = (trackNumberId: LayoutTrackNumberId) =>
-    `${GEOMETRY_URI}/track-numbers/${trackNumberId}/km-lengths/file`;
+export const getKmPostLengthsAsCsv = (
+    publishType: PublishType,
+    trackNumberId: LayoutTrackNumberId,
+    startKmNumber: KmNumber | undefined,
+    endKmNumber: KmNumber | undefined,
+) => {
+    const params = queryParams({
+        startKmNumber,
+        endKmNumber,
+    });
+
+    return `${layoutUri('track-numbers', publishType, trackNumberId)}/km-lengths/as-csv${params}`;
+};

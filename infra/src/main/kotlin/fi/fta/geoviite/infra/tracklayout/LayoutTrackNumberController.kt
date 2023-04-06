@@ -3,12 +3,15 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.publication.getCsvResponseEntity
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -113,5 +116,34 @@ class LayoutTrackNumberController(
         )
 
         return trackNumberService.getKmPostLengths(publishType, id)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/km-lengths/as-csv")
+    fun getTrackNumberKmLengthsAsCsv(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @RequestParam("startKmNumber") startKmNumber: KmNumber? = null,
+        @RequestParam("endKmNumber") endKmNumber: KmNumber? = null,
+    ): ResponseEntity<ByteArray> {
+        logger.apiCall(
+            "getTrackNumberKmLengthsAsCsv",
+            "publishType" to publishType,
+            "id" to id,
+            "startKmNumber" to startKmNumber,
+            "endKmNumber" to endKmNumber
+        )
+
+        val csv = trackNumberService.getKmPostLengthsAsCsv(
+            publishType = publishType,
+            trackNumberId = id,
+            startKmNumber = startKmNumber,
+            endKmNumber = endKmNumber
+        )
+
+        val trackNumber = trackNumberService.getOrThrow(publishType, id)
+
+        val fileName = FileName("${trackNumber.number}.csv")
+        return getCsvResponseEntity(csv, fileName)
     }
 }
