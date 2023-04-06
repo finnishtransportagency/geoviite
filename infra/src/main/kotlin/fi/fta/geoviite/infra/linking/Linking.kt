@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -16,27 +17,14 @@ enum class LocationTrackPointUpdateType {
     END_POINT
 }
 
-data class IntervalLayoutPoint(
-    val segmentId: IndexedId<LayoutSegment>,
-    val endPointType: EndPointType?,
-    val point: Point,
-)
-
-data class IntervalGeometryPoint(
-    val segmentId: DomainId<LayoutSegment>,
-    val point: Point,
-)
-
 data class LayoutInterval<T>(
     val alignmentId: IntId<T>,
-    val start: IntervalLayoutPoint,
-    val end: IntervalLayoutPoint,
+    val mRange: Range<Double>,
 )
 
 data class GeometryInterval(
     val alignmentId: IntId<GeometryAlignment>,
-    val start: IntervalGeometryPoint,
-    val end: IntervalGeometryPoint,
+    val mRange: Range<Double>,
 )
 
 data class LinkingParameters<T>(
@@ -49,15 +37,6 @@ data class EmptyAlignmentLinkingParameters<T>(
     val geometryPlanId: IntId<GeometryPlan>,
     val layoutAlignmentId: IntId<T>,
     val geometryInterval: GeometryInterval,
-)
-
-data class LocationTrackEndPointUpdateRequest(
-    val updateType: LocationTrackPointUpdateType,
-)
-
-data class LocationTrackEndPointConnectedUpdateRequest(
-    val connectedLocationTrackId: IntId<LocationTrack>,
-    val updateType: LocationTrackPointUpdateType,
 )
 
 data class LocationTrackSaveRequest(
@@ -85,16 +64,14 @@ enum class SuggestedSwitchJointMatchType {
 data class SuggestedSwitchJointMatch(
     val locationTrackId: DomainId<LocationTrack>,
     val segmentIndex: Int,
+    val m: Double,
     val layoutSwitchId: DomainId<TrackLayoutSwitch>?,
-    val segmentM: Double,
     @JsonIgnore val switchJoint: SwitchJoint,
     @JsonIgnore val matchType: SuggestedSwitchJointMatchType,
     @JsonIgnore val distance: Double,
     @JsonIgnore val distanceToAlignment: Double,
     @JsonIgnore val alignmentId: IntId<LayoutAlignment>?,
-) {
-    fun segmentId(): IndexedId<LayoutSegment>? = alignmentId?.let { aid -> IndexedId(aid.intValue, segmentIndex) }
-}
+)
 
 data class SuggestedSwitchJoint(
     override val number: JointNumber,
@@ -114,8 +91,8 @@ data class SuggestedSwitch(
 
 data class SwitchLinkingSegment(
     val locationTrackId: IntId<LocationTrack>,
+    val m: Double,
     val segmentIndex: Int,
-    val segmentM: Double,
 )
 
 data class SwitchLinkingJoint(

@@ -72,6 +72,7 @@ data class GeocodingContext(
     val trackNumber: TrackLayoutTrackNumber,
     val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
+    val kmPosts: List<TrackLayoutKmPost>,
     val referencePoints: List<GeocodingReferencePoint>,
     val rejectedKmPosts: List<TrackLayoutKmPost> = listOf(),
     val projectionLineDistanceDeviation: Double = PROJECTION_LINE_DISTANCE_DEVIATION,
@@ -79,10 +80,11 @@ data class GeocodingContext(
 ) {
     private val polyLineEdges: List<PolyLineEdge> by lazy { getPolyLineEdges(referenceLineGeometry) }
     val projectionLines: List<ProjectionLine> by lazy {
-        require(isSame(polyLineEdges.last().endDistance, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
+        require(isSame(polyLineEdges.last().end.m, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
             "Polyline edges should cover the whole reference line geometry: " +
                     "trackNumber=${trackNumber.number} " +
-                    "alignment=${referenceLineGeometry.id}"
+                    "alignment=${referenceLineGeometry.id} " +
+                    "edgeMValues=${polyLineEdges.map { e -> e.start.m..e.end.m }}"
         }
         createProjectionLines(referencePoints, polyLineEdges).also { lines ->
             validateProjectionLines(lines, projectionLineDistanceDeviation, projectionLineMaxAngleDelta)
@@ -130,16 +132,19 @@ data class GeocodingContext(
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContext {
             val referencePoints = createReferencePoints(startAddress, kmPosts, referenceLineGeometry)
+            val (validKmPosts, rejectedKmPosts) = kmPosts.partition { post ->
+                referencePoints.any { reference ->
+                    reference.kmNumber == post.kmNumber && reference.meters == BigDecimal.ZERO
+                }
+            }
+
             return GeocodingContext(
                 trackNumber = trackNumber,
                 startAddress = startAddress,
                 referenceLineGeometry = referenceLineGeometry,
                 referencePoints = referencePoints,
-                rejectedKmPosts = kmPosts.filterNot { post ->
-                    referencePoints.any { reference ->
-                        reference.kmNumber == post.kmNumber && reference.meters == BigDecimal.ZERO
-                    }
-                },
+                kmPosts = validKmPosts,
+                rejectedKmPosts = rejectedKmPosts
             )
         }
 
@@ -155,10 +160,10 @@ data class GeocodingContext(
                 }
 
         private fun toReferencePoint(location: IPoint, kmNumber: KmNumber, referenceLineGeometry: IAlignment) =
-            referenceLineGeometry.getLengthUntil(location)
+            referenceLineGeometry.getClosestPointM(location)
                 ?.let { (distance, intersectType) ->
                     if (distance > 0.0 && intersectType == WITHIN) {
-                        val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtLength(distance)) {
+                        val pointOnLine = requireNotNull(referenceLineGeometry.getPointAtM(distance)) {
                             "Couldn't resolve distance to point on reference line: not continuous?"
                         }
                         GeocodingReferencePoint(
@@ -173,7 +178,7 @@ data class GeocodingContext(
     }
 
     fun getDistance(coordinate: IPoint): Pair<Double, IntersectType>? =
-        referenceLineGeometry.getLengthUntil(coordinate)
+        referenceLineGeometry.getClosestPointM(coordinate)
 
     fun getAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Pair<TrackMeter, IntersectType>? =
         getDistance(coordinate)?.let { (dist, type) -> getAddress(dist, decimals) to type }
@@ -366,7 +371,7 @@ private fun createProjectionLines(
     addressPoints: List<GeocodingReferencePoint>,
     edges: List<PolyLineEdge>,
 ): List<ProjectionLine> {
-    val endDistance = edges.lastOrNull()?.let(PolyLineEdge::endDistance) ?: 0.0
+    val endDistance = edges.lastOrNull()?.end?.m ?: 0.0
     return addressPoints.flatMapIndexed { index: Int, point: GeocodingReferencePoint ->
         val minMeter = point.meters.setScale(0, RoundingMode.CEILING).toInt()
         val maxDistance = (addressPoints.getOrNull(index + 1)?.distance?.minus(MIN_METER_LENGTH) ?: endDistance)
@@ -379,7 +384,7 @@ private fun createProjectionLines(
                         "km=${point.kmNumber} m=$meter distance=$distance " +
                         "endDistance=$endDistance refPointDistance=${point.distance} " +
                         "minMeter=$minMeter maxMeter=$maxMeter maxDistance=$maxDistance" +
-                        "edges=${edges.filter { e -> e.startDistance in distance - 10.0..distance + 10.0 }}"
+                        "edges=${edges.filter { e -> e.start.m in distance - 10.0..distance + 10.0 }}"
             )
             ProjectionLine(TrackMeter(point.kmNumber, meter), edge.crossSectionAt(distance), distance)
         }
@@ -465,7 +470,7 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
                 // To compensate, we want to project with the direction of previous/next segments
                 else if (prevDir == null || nextDir == null) prevDir ?: nextDir ?: directionBetweenPoints(previous, point)
                 else angleAvgRads(prevDir, nextDir)
-            PolyLineEdge(previous, point, segment.start, direction)
+            PolyLineEdge(previous, point, segment.startM, direction)
         }
     }
 }
@@ -476,8 +481,8 @@ private fun getPolyLineEdges(segment: ISegment, prevDir: Double?, nextDir: Doubl
  */
 private fun findEdge(distance: Double, all: List<PolyLineEdge>, delta: Double = 0.000001): PolyLineEdge? =
     all.getOrNull(all.binarySearch { edge ->
-        if (edge.startDistance > distance + delta) 1
-        else if (edge.endDistance < distance - delta) -1
+        if (edge.start.m > distance + delta) 1
+        else if (edge.end.m < distance - delta) -1
         else 0
     })
 
@@ -496,24 +501,21 @@ data class PolyLineEdge(
     val segmentStart: Double,
     val projectionDirection: Double,
 ) {
-
     val length: Double = end.m - start.m
-    val startDistance: Double = segmentStart + start.m
-    val endDistance: Double = segmentStart + end.m
 
     fun crossSectionAt(distance: Double) = pointAt(distance).let { point ->
         Line(point, pointInDirection(point, distance = PROJECTION_LINE_LENGTH, direction = projectionDirection))
     }
 
     private fun pointAt(distance: Double): IPoint =
-        if (distance <= startDistance) start
-        else if (distance >= endDistance) end
-        else interpolate(start, end, (distance - startDistance) / length)
+        if (distance <= start.m) start
+        else if (distance >= end.m) end
+        else interpolate(start, end, (distance - start.m) / length)
 
     fun getPointAtPortion(portion: Double) =
         if (portion <= 0.0) start
         else if (portion >= 1.0) end
         else interpolate(start, end, portion)
 
-    fun getDistanceToPortion(portion: Double): Double = startDistance + length * portion
+    fun getDistanceToPortion(portion: Double): Double = start.m + length * portion
 }

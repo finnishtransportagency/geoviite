@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Range
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -13,6 +14,12 @@ enum class AlignmentFetchType {
     REFERENCE,
     ALL,
 }
+
+data class MapAlignmentHighlight<T>(
+    val id: IntId<T>,
+    val ranges: List<Range<Double>>,
+)
+
 @Service
 class MapAlignmentService(
     private val trackNumberService: LayoutTrackNumberService,
@@ -49,9 +56,40 @@ class MapAlignmentService(
             if (locationTracks.any { t -> t.id == selectedId }) null
             else locationTrackService.get(publishType, id)
                 ?.takeIf { t -> t.state != LayoutState.DELETED }
-                ?.let { toMap(it, bbox, resolution) }
+                ?.let { t -> toMap(t, bbox, resolution) }
         }
-        return (referenceLines + locationTracks + listOfNotNull(selected)).filter { ma -> ma.segments.isNotEmpty() }
+        return (referenceLines + locationTracks + listOfNotNull(selected))
+            .filter { ma -> ma.segments.isNotEmpty() }
+    }
+
+    fun getSectionsWithoutProfile(
+        publishType: PublishType,
+        bbox: BoundingBox,
+    ): List<MapAlignmentHighlight<LocationTrack>> {
+        logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
+        return alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
+            .filter { !it.hasProfile }
+            .groupBy { it.id }
+            .map {
+                MapAlignmentHighlight(
+                    id = it.key,
+                    ranges = it.value.fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
+                        if (!acc.contains(info.alignmentId.index - 1)) acc.put(
+                            info.alignmentId.index,
+                            Range(info.points.first().m + info.segmentStart, info.points.last().m + info.segmentStart)
+                        )
+                        else {
+                            val prev = acc.remove(info.alignmentId.index - 1)
+                            prev?.let {
+                                acc.put(
+                                    info.alignmentId.index,
+                                    Range(prev.min, info.points.last().m + info.segmentStart)
+                                )
+                            }
+                        }
+                        acc
+                    }.values.toList()
+            ) }
     }
 
     fun getMapReferenceLine(

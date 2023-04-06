@@ -381,6 +381,7 @@ fun plan(
     trackNumberDesc: PlanElementName = PlanElementName("TNDesc"),
     fileName: FileName = FileName("test_file.xml"),
     coordinateSystemName: CoordinateSystemName? = null,
+    verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
 ): GeometryPlan {
     return GeometryPlan(
@@ -389,7 +390,7 @@ fun plan(
         application = application(),
         author = author("TEST Company"),
         planTime = Instant.EPOCH,
-        units = geometryUnits(srid, coordinateSystemName),
+        units = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
         trackNumberId = trackNumberId,
         trackNumberDescription = trackNumberDesc,
         alignments = alignments,
@@ -412,12 +413,13 @@ fun planHeader(
     srid: Srid = Srid(3879),
     coordinateSystemName: CoordinateSystemName? = null,
     trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
 ) = GeometryPlanHeader(
     id = id,
     fileName = fileName,
     project = project(),
-    units = geometryUnits(srid, coordinateSystemName),
+    units = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
     planPhase = PlanPhase.RAILWAY_PLAN,
     decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
     measurementMethod = measurementMethod,
@@ -581,11 +583,11 @@ fun kmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>) = listOf(
     )
 )
 
-fun geometryUnits(srid: Srid, coordinateSystemName: CoordinateSystemName? = null) =
+fun geometryUnits(srid: Srid, coordinateSystemName: CoordinateSystemName? = null, verticalCoordinateSystem: VerticalCoordinateSystem? = VerticalCoordinateSystem.N2000) =
     GeometryUnits(
         coordinateSystemSrid = srid,
         coordinateSystemName = coordinateSystemName,
-        verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
+        verticalCoordinateSystem = verticalCoordinateSystem,
         directionUnit = AngularUnit.GRADS,
         linearUnit = LinearUnit.METER,
     )

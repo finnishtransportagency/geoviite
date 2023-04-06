@@ -30,11 +30,11 @@ import InfoboxText from 'tool-panel/infobox/infobox-text';
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
     geometryAlignment: MapAlignment;
-    layoutLocationTrack?: LayoutLocationTrack;
-    layoutReferenceLine?: LayoutReferenceLine;
+    selectedLayoutLocationTrack?: LayoutLocationTrack;
+    selectedLayoutReferenceLine?: LayoutReferenceLine;
     segment?: MapSegment;
     planId: GeometryPlanId;
-    alignmentChangeTime: TimeStamp;
+    locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?: LinkingState;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
@@ -48,11 +48,11 @@ type GeometryAlignmentInfoboxProps = {
 const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     onSelect,
     geometryAlignment,
-    layoutLocationTrack,
-    layoutReferenceLine,
+    selectedLayoutLocationTrack,
+    selectedLayoutReferenceLine,
     segment,
     planId,
-    alignmentChangeTime,
+    locationTrackChangeTime,
     trackNumberChangeTime,
     linkingState,
     onLinkingStart,
@@ -101,10 +101,10 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                 <GeometryAlignmentLinkingInfobox
                     onSelect={onSelect}
                     geometryAlignment={geometryAlignment}
-                    layoutLocationTrack={layoutLocationTrack}
-                    layoutReferenceLine={layoutReferenceLine}
+                    selectedLayoutLocationTrack={selectedLayoutLocationTrack}
+                    selectedLayoutReferenceLine={selectedLayoutReferenceLine}
                     planId={planId}
-                    alignmentChangeTime={alignmentChangeTime}
+                    locationTrackChangeTime={locationTrackChangeTime}
                     trackNumberChangeTime={trackNumberChangeTime}
                     linkingState={linkingState}
                     onLinkingStart={onLinkingStart}

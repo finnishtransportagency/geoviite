@@ -24,6 +24,16 @@ export type LayoutAlignmentsLayer = MapLayerBase & {
     type: 'alignment';
     showReferenceLines: boolean;
     showTrackNumbers: boolean;
+    showMissingVerticalGeometry: boolean;
+    showSegmentsFromSelectedPlan: boolean;
+    showMissingLinking: boolean;
+    showDuplicateTracks: boolean;
+};
+
+export type HighlightsLayer = MapLayerBase & {
+    type: 'highlight';
+    showMissingVerticalGeometry: boolean;
+    showSegmentsFromSelectedPlan: boolean;
     showMissingLinking: boolean;
     showDuplicateTracks: boolean;
 };
@@ -81,6 +91,7 @@ export type DebugLayer = MapLayerBase & {
 
 export type MapLayer =
     | LayoutAlignmentsLayer
+    | HighlightsLayer
     | TileMapLayer
     | GeometryLayer
     | KmPostLayer
@@ -141,4 +152,9 @@ export type MapTile = {
     id: string;
     area: BoundingBox;
     resolution: number;
+};
+
+export type AlignmentHighlight = {
+    id: string;
+    ranges: { start: number; end: number }[];
 };

@@ -42,7 +42,8 @@ export type MapSegment = {
     source: GeometrySource;
     sourceId: GeometryElementId | null;
     resolution: number;
-    start: number;
+    startM: number;
+    endM: number;
     length: number;
     id: LayoutSegmentId;
 };
@@ -61,7 +62,8 @@ export function simplifySegments(
         pointCount: segments.map((s) => s.pointCount).reduce((v, acc) => v + acc, 0),
         points: pickSegmentPoints(segments[0].resolution, resolution, joinSegmentPoints(segments)),
         sourceId: null,
-        start: segments[0].start,
+        startM: segments[0].startM,
+        endM: segments[segments.length - 1].endM,
         length: lengths.reduce((prev, current) => prev + current, 0),
         source: 'GENERATED',
     };
@@ -231,9 +233,10 @@ export type LayoutKmPostLengthDetails = {
     trackNumberId: LayoutTrackNumberId;
     kmNumber: KmNumber;
     length: number;
-    stationStart: number;
-    stationEnd: number;
-    location: Point;
+    startM: number;
+    endM: number;
+    locationSource: GeometrySource;
+    location: Point | null;
 };
 
 export type PlanAreaId = string;

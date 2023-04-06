@@ -108,14 +108,18 @@ class SuggestedSwitchTest {
     }
 
     private fun reverseAlignment(alignment: LayoutAlignment): LayoutAlignment {
-        val reverseSegments = fixStartDistances(alignment.segments.reversed().map { segment ->
+        val reverseSegments = fixSegmentStarts(alignment.segments.reversed().map { segment ->
             val reversedPoints = segment.points.reversed()
             var cumulativeM = 0.0
-            segment.withPoints(
-                reversedPoints.mapIndexed { index, point ->
-                    cumulativeM += if (index == 0) 0.0 else lineLength(reversedPoints[index - 1], point)
-                    point.copy(m = cumulativeM)
-                }
+            segment.copy(
+                geometry = segment.geometry.withPoints(
+                    reversedPoints.mapIndexed { index, point ->
+                        cumulativeM += if (index == 0) 0.0 else lineLength(reversedPoints[index - 1], point)
+                        point.copy(m = cumulativeM)
+                    }
+                ),
+                sourceId = null,
+                sourceStart = null,
             )
         })
         return alignment.copy(segments = reverseSegments)

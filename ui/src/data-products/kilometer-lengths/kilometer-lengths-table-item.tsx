@@ -6,17 +6,18 @@ export type KilometerLengthsTableItemProps = {
     trackNumber: string | undefined;
     kilometer: string;
     length: number;
-    stationStart: number;
-    stationEnd: number;
-    locationE: number;
-    locationN: number;
+    startM: number;
+    endM: number;
+    locationE: number | undefined;
+    locationN: number | undefined;
 };
 
 export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> = ({
     trackNumber,
     kilometer,
-    stationStart,
-    stationEnd,
+    length,
+    startM,
+    endM,
     locationE,
     locationN,
 }) => {
@@ -26,19 +27,19 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                 <td>{trackNumber}</td>
                 <td>{kilometer}</td>
                 <td className={styles['data-product-table__column--number']}>
+                    {roundToPrecision(startM, Precision.measurementMeterDistance)}
+                </td>
+                <td className={styles['data-product-table__column--number']}>
+                    {roundToPrecision(endM, Precision.measurementMeterDistance)}
+                </td>
+                <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(length, Precision.measurementMeterDistance)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(stationStart, Precision.measurementMeterDistance)}
+                    {locationE && roundToPrecision(locationE, Precision.TM35FIN)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(stationEnd, Precision.measurementMeterDistance)}
-                </td>
-                <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationE, Precision.TM35FIN)}
-                </td>
-                <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationN, Precision.TM35FIN)}
+                    {locationN && roundToPrecision(locationN, Precision.TM35FIN)}
                 </td>
             </tr>
         </React.Fragment>

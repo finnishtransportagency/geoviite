@@ -8,7 +8,6 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 export type LocationTrackLinkProps = {
     locationTrackId: LocationTrackId;
     locationTrackName: string;
-    //onClick: () => void;
 };
 
 export const LocationTrackLink: React.FC<LocationTrackLinkProps> = (

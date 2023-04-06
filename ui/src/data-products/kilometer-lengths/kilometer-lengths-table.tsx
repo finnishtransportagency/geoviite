@@ -61,10 +61,10 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
                                     }
                                     length={item.length}
                                     kilometer={item.kmNumber}
-                                    stationStart={item.stationStart}
-                                    stationEnd={item.stationEnd}
-                                    locationE={item.location.x}
-                                    locationN={item.location.y}
+                                    startM={item.startM}
+                                    endM={item.endM}
+                                    locationE={item.location?.x}
+                                    locationN={item.location?.y}
                                 />
                             </React.Fragment>
                         ))}

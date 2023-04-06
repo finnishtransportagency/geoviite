@@ -4,17 +4,24 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.FreeText
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 
 @ActiveProfiles("dev", "test")
@@ -25,6 +32,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val kmPostDao: LayoutKmPostDao,
 ): ITTestBase() {
 
     @Test
@@ -48,7 +56,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     @Test
     fun deletingDraftOnlyTrackNumberDeletesItAndReferenceLineAndAlignment() {
         val (trackNumber, referenceLine, alignment) = createTrackNumberAndReferenceLineAndAlignment()
-        assertEquals(referenceLine.alignmentVersion?.id, alignment.id)
+        assertEquals(referenceLine.alignmentVersion?.id, alignment.id as IntId)
         val trackNumberId = trackNumber.id as IntId
 
         assertDoesNotThrow { trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumberId) }
@@ -70,6 +78,73 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         assertThrows<DeletingFailureException> {
             trackNumberService.deleteDraftOnlyTrackNumberAndReferenceLine(trackNumber.id as IntId)
         }
+    }
+
+    @Test
+    fun `should return correct lengths for km posts`() {
+        val trackNumber = trackNumberDao.insert(trackNumber(getUnusedTrackNumber()))
+        referenceLineAndAlignment(
+            trackNumberId = trackNumber.id,
+            segments = listOf(
+                segment(
+                    Point(0.0, 0.0),
+                    Point(1.0, 0.0),
+                    Point(2.0, 0.0),
+                    Point(3.0, 0.0),
+                    Point(4.0, 0.0),
+                )
+            ),
+            startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
+        ).let { (referenceLine, alignment) ->
+            val referenceLineVersion =
+                referenceLineDao.insert(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
+            referenceLineDao.fetch(referenceLineVersion.rowVersion)
+        }
+
+        listOf(
+            kmPost(trackNumberId = trackNumber.id, km = KmNumber(2), location = Point(1.0, 0.0)),
+            kmPost(trackNumberId = trackNumber.id, km = KmNumber(3), location = Point(3.0, 0.0))
+        ).map(kmPostDao::insert)
+
+        val kmLengths = trackNumberService.getKmPostLengths(OFFICIAL, trackNumber.id)
+        assertNotNull(kmLengths)
+        assertEquals(3, kmLengths.size)
+
+        assertEquals(
+            TrackLayoutKmPostLengthDetails(
+                trackNumberId = trackNumber.id,
+                kmNumber = KmNumber(1),
+                startM = BigDecimal(-0.5).setScale(3),
+                endM = BigDecimal(1).setScale(3),
+                locationSource = GeometrySource.GENERATED,
+                location = null
+            ),
+            kmLengths.first()
+        )
+
+        assertEquals(
+            TrackLayoutKmPostLengthDetails(
+                trackNumberId = trackNumber.id,
+                kmNumber = KmNumber(2),
+                startM = BigDecimal(1).setScale(3),
+                endM = BigDecimal(3).setScale(3),
+                locationSource = GeometrySource.IMPORTED,
+                location = Point(1.0, 0.0)
+            ),
+            kmLengths[1]
+        )
+
+        assertEquals(
+            TrackLayoutKmPostLengthDetails(
+                trackNumberId = trackNumber.id,
+                kmNumber = KmNumber(3),
+                startM = BigDecimal(3).setScale(3),
+                endM = BigDecimal(4).setScale(3),
+                locationSource = GeometrySource.IMPORTED,
+                location = Point(3.0, 0.0),
+            ),
+            kmLengths[2]
+        )
     }
 
     fun createTrackNumberAndReferenceLineAndAlignment(): Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {

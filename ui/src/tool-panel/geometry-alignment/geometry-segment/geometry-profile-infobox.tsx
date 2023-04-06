@@ -12,11 +12,7 @@ const GeometryProfileInfobox: React.FC<VerticalGeometryInfoBoxProps> = ({
     chosenSegment,
     planHeader,
 }: VerticalGeometryInfoBoxProps) => {
-    return (
-        <React.Fragment>
-            <GeometryProfileRange chosenSegment={chosenSegment} planHeader={planHeader} />
-        </React.Fragment>
-    );
+    return <GeometryProfileRange chosenSegment={chosenSegment} planHeader={planHeader} />;
 };
 
 export default GeometryProfileInfobox;

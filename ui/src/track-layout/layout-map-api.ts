@@ -1,7 +1,7 @@
 import { asyncCache } from 'cache/cache';
-import { MapTile } from 'map/map-model';
+import { AlignmentHighlight, MapTile } from 'map/map-model';
 import { AlignmentId, LocationTrackId, MapAlignment, MapAlignmentType } from './track-layout-model';
-import { API_URI, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
+import { API_URI, getIgnoreError, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
 import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
@@ -60,6 +60,17 @@ export async function getAlignmentsByTiles(
     ).flat();
 }
 
+export async function getAlignmentSectionsWithoutProfile(
+    publishType: PublishType,
+    bbox: BoundingBox,
+): Promise<AlignmentHighlight[] | null> {
+    return await getIgnoreError(
+        `${mapUri('alignments', publishType)}/without-profile${queryParams({
+            bbox: bboxString(bbox),
+        })}`,
+    );
+}
+
 export async function getReferenceLineSegmentEnds(
     id: LocationTrackId,
     publishType: PublishType,
@@ -95,7 +106,7 @@ export async function getLinkPointsByTiles(
             const segments = allAlignments
                 .filter((a) => a.id === alignmentId)
                 .flatMap((a) => a.segments)
-                .sort((a, b) => a.start - b.start);
+                .sort((a, b) => a.startM - b.startM);
 
             const uniqueIds = segments.map((s) => s.id);
             const uniqueSegments = segments.filter(
@@ -125,7 +136,7 @@ export async function createGeometryLinkPointsByTiles(
             (linkPoint: LinkPoint, isSegmentEndPoint: boolean) =>
                 isSegmentEndPoint ||
                 resolution <= 1 ||
-                Math.floor(linkPoint.ordering) % resolution == 0 ||
+                Math.floor(linkPoint.m) % resolution == 0 ||
                 alwaysIncludePoints.some(
                     (alwaysIncludePoint) => alwaysIncludePoint.id == linkPoint.id,
                 ),

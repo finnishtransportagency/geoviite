@@ -5,7 +5,12 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
 import OlView from 'ol/View';
-import { LayoutAlignmentsLayer, MapTile, OptionalShownItems } from 'map/map-model';
+import {
+    AlignmentHighlight,
+    LayoutAlignmentsLayer,
+    MapTile,
+    OptionalShownItems,
+} from 'map/map-model';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { adapterInfoRegister } from './register';
 import {
@@ -20,7 +25,10 @@ import {
     simplifySegments,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { getAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    getAlignmentsByTiles,
+    getAlignmentSectionsWithoutProfile,
+} from 'track-layout/layout-map-api';
 import {
     addBbox,
     getMatchingSegmentDatas,
@@ -40,6 +48,8 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
+import { GeometryPlanId } from 'geometry/geometry-model';
+import { combineBoundingBoxes } from 'model/geometry';
 import { ChangeTimes } from 'common/common-slice';
 
 export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
@@ -214,8 +224,10 @@ function createFeatures(
     trackNumberDisplayMode: DisplayMode,
     drawDistance: number,
     showReferenceLines: boolean,
+    showMissingVerticalGeometry: boolean,
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
+    profileInfo: AlignmentHighlight[] | null,
 ): Feature<LineString | Point>[] {
     const { trackNumber, alignment, segment } = dataHolder;
     const lineString = new LineString(segment.points.map((point) => [point.x, point.y]));
@@ -249,19 +261,26 @@ function createFeatures(
         styles.push(alignmentBackgroundBlue);
     }
 
+    if (showMissingVerticalGeometry) {
+        const profile = profileInfo?.find((prof) => prof.id === alignment.id);
+        if (profile) {
+            addHighlight(profile, segment, features, alignmentBackgroundRed);
+        }
+    }
+
     segmentFeature.setStyle(styles);
 
-    const numbersBeforeSegment = Math.floor(segment.start / drawDistance);
-    const numbersAfterSegment = Math.floor((segment.start + segment.length) / drawDistance);
+    const numbersBeforeSegment = Math.floor(segment.startM / drawDistance);
+    const numbersAfterSegment = Math.floor(segment.endM / drawDistance);
     const segmentHasTrackNumberLabel =
-        segment.start === 0.0 || numbersBeforeSegment !== numbersAfterSegment;
+        segment.startM === 0.0 || numbersBeforeSegment !== numbersAfterSegment;
     if (
         trackNumber !== null &&
         trackNumberDisplayMode !== DisplayMode.NONE &&
         segmentHasTrackNumberLabel
     ) {
         const badgePoints: MapAlignmentBadgePoint[] = [];
-        let length = segment.start % drawDistance;
+        let length = segment.startM % drawDistance;
         const pointLength = segment.length / segment.points.length;
         segment.points.forEach((point, index) => {
             if (
@@ -300,6 +319,33 @@ function createFeatures(
     return features;
 }
 
+function addHighlight(
+    highlight: AlignmentHighlight,
+    segment: MapSegment,
+    features: Feature<Point | LineString>[],
+    highlightStyle: Style,
+): void {
+    const highlightLineStrings = highlight.ranges
+        .map((range) => {
+            const pointsWithinRange = segment.points.filter(
+                (segmentPoint) => segmentPoint.m >= range.start && segmentPoint.m <= range.end,
+            );
+            return pointsWithinRange.length > 1
+                ? new LineString(pointsWithinRange.map((point) => [point.x, point.y]))
+                : undefined;
+        })
+        .filter(filterNotEmpty);
+
+    highlightLineStrings.forEach((lineString) => {
+        const highlightFeature = new Feature({
+            geometry: lineString,
+        });
+        addBbox(highlightFeature);
+        features.push(highlightFeature);
+        highlightFeature.setStyle([highlightStyle]);
+    });
+}
+
 function featureKey(
     alignmentType: MapAlignmentType,
     segmentId: LayoutSegmentId,
@@ -312,6 +358,9 @@ function featureKey(
     alignmentId: LocationTrackId,
     alignmentVersion: string | null,
     missingLinking: boolean,
+    missingVerticalGeometry: boolean,
+    selectedPlanSegments: boolean,
+    selectedPlans: GeometryPlanId[],
     duplicateTracks: boolean,
 ): string {
     return `${alignmentType}_${segmentId}_${segmentStart}_${segmentResolution}_${
@@ -320,7 +369,9 @@ function featureKey(
         highlighted ? '1' : '0'
     }_${displayMode}_${drawDistance}_${alignmentId}_${alignmentVersion}_${
         missingLinking ? '1' : '0'
-    }_${duplicateTracks ? '1' : '0'}`;
+    }_${missingVerticalGeometry ? '1' : '0'}_${duplicateTracks ? '1' : '0'}_${
+        selectedPlanSegments ? selectedPlans.join('-') : '-1'
+    }`;
 }
 
 type DataCollection = {
@@ -360,7 +411,7 @@ function collectSegmentData(
         const trackNumber = trackNumbers.find((tn) => tn.id === parts.baseAlignment.trackNumberId);
         const deduplicatedSegments = [
             ...new Map(parts.segments.map((s) => [s.id, s])).values(),
-        ].sort(fieldComparator((s) => s.start));
+        ].sort(fieldComparator((s) => s.startM));
         if (individualSegments) {
             return deduplicatedSegments.map((segment) => ({
                 trackNumber: trackNumber || null,
@@ -410,8 +461,11 @@ function createFeaturesCached(
     trackNumberDisplayMode: DisplayMode,
     trackNumberDrawDistance: number,
     showReferenceLines: boolean,
+    showMissingVerticalGeometry: boolean,
+    showSegmentsFromSelectedPlan: boolean,
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
+    profileInfo: AlignmentHighlight[] | null,
 ): Feature<LineString | Point>[] {
     const previousFeatures = new Map<string, Feature<LineString | Point>[]>(featureCache);
     featureCache.clear();
@@ -428,7 +482,7 @@ function createFeaturesCached(
             const key = featureKey(
                 data.alignment.alignmentType,
                 data.segment.id,
-                data.segment.start,
+                data.segment.startM,
                 data.segment.resolution,
                 !!(selected || isLinking),
                 highlighted,
@@ -437,6 +491,9 @@ function createFeaturesCached(
                 data.alignment.id,
                 data.alignment.version,
                 showMissingLinking,
+                showMissingVerticalGeometry,
+                showSegmentsFromSelectedPlan,
+                selection.selectedItems.geometryPlans,
                 showDuplicateTracks,
             );
             const previous = previousFeatures.get(key);
@@ -450,8 +507,10 @@ function createFeaturesCached(
                           trackNumberDisplayMode,
                           trackNumberDrawDistance,
                           showReferenceLines,
+                          showMissingVerticalGeometry,
                           showMissingLinking,
                           showDuplicateTracks,
+                          profileInfo,
                       );
             featureCache.set(key, features);
             return features;
@@ -508,7 +567,9 @@ adapterInfoRegister.add('alignment', {
                 .map((a) => (a.alignmentType === 'LOCATION_TRACK' ? a.id : null))
                 .filter(filterNotEmpty);
 
-            const referenceLines = alignments.filter((a) => a.alignmentType === 'REFERENCE_LINE');
+            const referenceLines = alignments
+                .filter((a) => a.alignmentType === 'REFERENCE_LINE')
+                .slice(0, options.limit);
             const trackNumberIds = deduplicate(
                 referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
             );
@@ -516,7 +577,7 @@ adapterInfoRegister.add('alignment', {
             return {
                 locationTracks: locationTracks.slice(0, options.limit),
                 trackNumbers: trackNumberIds,
-                referenceLines: referenceLines.slice(0, options.limit).map((a) => a.id),
+                referenceLines: referenceLines.map((a) => a.id),
                 segments: holders.map(({ segment }) => segment).slice(0, options.limit),
             };
         };
@@ -549,50 +610,65 @@ adapterInfoRegister.add('alignment', {
             selectedAlignment,
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
-        Promise.all([alignmentsFetch, trackNumbersFetch])
-            .then(([alignmentsPerTile, trackNumbers]) =>
+        const alignmentSectionsWithoutProfile = mapLayer.showMissingVerticalGeometry
+            ? getAlignmentSectionsWithoutProfile(
+                  publishType,
+                  combineBoundingBoxes(mapTiles.map((tile) => tile.area)),
+              )
+            : Promise.resolve<AlignmentHighlight[] | null>(null);
+        Promise.all([alignmentsFetch, trackNumbersFetch, alignmentSectionsWithoutProfile])
+            .then(([alignmentsPerTile, trackNumbers, alignmentSectionsWithoutProfile]) => [
                 collectSegmentData(
                     alignmentsPerTile.flat(),
                     trackNumbers,
                     resolution < Limits.SEPARATE_SEGMENTS,
                     resolution * MAP_RESOLUTION_MULTIPLIER,
                 ),
-            )
-            .then((dataCollection) => {
-                const features = createFeaturesCached(
-                    dataCollection.dataHolders,
-                    selection,
-                    linkingState,
-                    trackNumberDisplayMode,
-                    trackNumberDrawDistance || 0,
-                    mapLayer.showReferenceLines,
-                    mapLayer.showMissingLinking,
-                    mapLayer.showDuplicateTracks,
-                );
-                // All features ready, clear old ones and add new ones
-                vectorSource.clear();
-                vectorSource.addFeatures(features.flat());
-                if (onViewContentChanged) {
-                    const compare = `${publishType}${dataCollection.compareString}`;
-                    const changeTimeCompare = getMaxTimestamp(
-                        changeTimes.layoutLocationTrack,
-                        changeTimes.layoutReferenceLine,
+                alignmentSectionsWithoutProfile,
+            ])
+            .then(
+                ([dataCollection, alignmentSectionsWithoutProfile]: [
+                    DataCollection,
+                    AlignmentHighlight[] | null,
+                ]) => {
+                    const features = createFeaturesCached(
+                        dataCollection.dataHolders,
+                        selection,
+                        linkingState,
+                        trackNumberDisplayMode,
+                        trackNumberDrawDistance || 0,
+                        mapLayer.showReferenceLines,
+                        mapLayer.showMissingVerticalGeometry,
+                        mapLayer.showMissingLinking,
+                        mapLayer.showSegmentsFromSelectedPlan,
+                        mapLayer.showDuplicateTracks,
+                        alignmentSectionsWithoutProfile,
                     );
-                    // Change time comparison is not needed for the alignment layer itself,
-                    // but for the alignment list box, as it updates itself based on data
-                    // updated here
-                    if (
-                        compare !== alignmentCompare ||
-                        changeTimeCompare !== alignmentChangeTimeCompare
-                    ) {
-                        alignmentCompare = compare;
-                        alignmentChangeTimeCompare = changeTimeCompare;
-                        const area = fromExtent(olView.calculateExtent());
-                        const result = shownItemsSearchFunction(area, {});
-                        onViewContentChanged(result);
+                    // All features ready, clear old ones and add new ones
+                    vectorSource.clear();
+                    vectorSource.addFeatures(features.flat());
+                    if (onViewContentChanged) {
+                        const compare = `${publishType}${dataCollection.compareString}`;
+                        const changeTimeCompare = getMaxTimestamp(
+                            changeTimes.layoutLocationTrack,
+                            changeTimes.layoutReferenceLine,
+                        );
+                        // Change time comparison is not needed for the alignment layer itself,
+                        // but for the alignment list box, as it updates itself based on data
+                        // updated here
+                        if (
+                            compare !== alignmentCompare ||
+                            changeTimeCompare !== alignmentChangeTimeCompare
+                        ) {
+                            alignmentCompare = compare;
+                            alignmentChangeTimeCompare = changeTimeCompare;
+                            const area = fromExtent(olView.calculateExtent());
+                            const result = shownItemsSearchFunction(area, {});
+                            onViewContentChanged(result);
+                        }
                     }
-                }
-            });
+                },
+            );
 
         return {
             layer: layer,

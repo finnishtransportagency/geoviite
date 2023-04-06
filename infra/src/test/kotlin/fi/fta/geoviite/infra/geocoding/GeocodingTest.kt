@@ -44,7 +44,7 @@ val segment2 = segment(
     Point(x = 382900.3670653631, y = 6677856.032651512),
     Point(x = 382761.2176702685, y = 6677923.467526838),
     Point(x = 382711.47467736073, y = 6677942.28533952),
-    start = segment1.start + segment1.length
+    start = segment1.startM + segment1.length
 )
 val segment3 = segment(
     Point(x = 382711.47467736073, y = 6677942.28533952),
@@ -60,7 +60,7 @@ val segment3 = segment(
     Point(x = 380075.3780522702, y = 6677812.131510135),
     Point(x = 379546.59970029286, y = 6677795.661380321),
     Point(x = 379109.7436289962, y = 6677820.218810541),
-    start = segment2.start + segment2.length
+    start = segment2.startM + segment2.length
 )
 val alignment = alignment(segment1, segment2, segment3)
 val startAddress = TrackMeter(KmNumber(2), 150)
@@ -68,14 +68,27 @@ val addressPoints = listOf(
     GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(4), BigDecimal.ZERO, 2 * alignment.length / 5, 0.0, WITHIN),
-    GeocodingReferencePoint(KmNumber(5,"A"), BigDecimal.ZERO, 3 * alignment.length / 5, 0.0, WITHIN),
+    GeocodingReferencePoint(KmNumber(5, "A"), BigDecimal.ZERO, 3 * alignment.length / 5, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(5, "B"), BigDecimal.ZERO, 4 * alignment.length / 5, 0.0, WITHIN),
 )
 val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"))
+val kmPostLocations = (0..5).map { i ->
+    val layoutPoint = alignment.getPointAtM(i * alignment.length / 5)
+    checkNotNull(layoutPoint?.toPoint())
+}
+
+val kmPosts = listOf(
+    kmPost(trackNumberId = null, km = startAddress.kmNumber, location = kmPostLocations[0]),
+    kmPost(trackNumberId = null, km = KmNumber(3), location = kmPostLocations[1]),
+    kmPost(trackNumberId = null, km = KmNumber(4), location = kmPostLocations[2]),
+    kmPost(trackNumberId = null, km = KmNumber(5, "A"), location = kmPostLocations[3]),
+    kmPost(trackNumberId = null, km = KmNumber(5, "B"), location = kmPostLocations[4]),
+)
 val context = GeocodingContext(
     trackNumber,
     startAddress,
     alignment,
+    kmPosts,
     addressPoints,
     // test-data is inaccurate so allow more delta in validation
     projectionLineDistanceDeviation = 0.05,
@@ -129,11 +142,12 @@ class GeocodingTest {
     fun contextDistancesWorkForSegmentEnds() {
         for (segment in alignment.segments) {
             val startResult = context.getDistance(segment.points.first())
-            assertEquals(WITHIN, startResult?.second)
-            assertEquals(segment.start, startResult!!.first, DELTA)
             val endResult = context.getDistance(segment.points.last())
+            println("segment=${segment.id} start=${segment.startM} end=${segment.endM} startDist=$startResult endDist=$endResult")
+            assertEquals(WITHIN, startResult?.second)
+            assertEquals(segment.startM, startResult!!.first, DELTA)
             assertEquals(WITHIN, endResult?.second)
-            assertEquals(segment.start + segment.length, endResult!!.first, DELTA)
+            assertEquals(segment.endM, endResult!!.first, DELTA)
         }
     }
 
@@ -225,13 +239,13 @@ class GeocodingTest {
         val connectSegment = segment(
             Point(3.0,4.0),
             Point(3.0,6.0),
-            start = startSegment.start + startSegment.length,
+            start = startSegment.startM + startSegment.length,
             source = GENERATED,
         )
         val endSegment = segment(
             Point(3.0,6.0),
             Point(7.0,10.0),
-            start = connectSegment.start + connectSegment.length,
+            start = connectSegment.startM + connectSegment.length,
             source = PLAN,
         )
         val startAddress = TrackMeter(KmNumber(2), 100)
@@ -327,12 +341,23 @@ class GeocodingTest {
             start + Point(0.0, 4.0),
             start + Point(0.0, 6.0),
         ))
-        val referenceLine = referenceLine(trackNumberId = IntId(1), alignment = alignment, startAddress = startAddress)
         val projectionContext = GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
+            kmPosts = listOf(
+                kmPost(
+                    trackNumberId = null,
+                    km = KmNumber(2),
+                    location = checkNotNull(alignment.getPointAtM(0.0)).toPoint()
+                ),
+                kmPost(
+                    trackNumberId = null,
+                    km = KmNumber(3),
+                    location = checkNotNull(alignment.getPointAtM(3.0)).toPoint()
+                ),
+            ),
             referenceLineGeometry = alignment,
-            listOf(
+            referencePoints = listOf(
                 GeocodingReferencePoint(KmNumber(2), BigDecimal("100.0"), 0.0, 0.0, WITHIN),
                 GeocodingReferencePoint(KmNumber(3), BigDecimal("0.0"), 3.0, 0.0, WITHIN),
             )
@@ -422,14 +447,35 @@ class GeocodingTest {
         referencePoints: List<Pair<TrackMeter, Double>>,
     ): GeocodingContext {
         val alignment = alignment(segment(*geometryPoints.toTypedArray()))
-        val startRefPoint = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
+        val startRefPoint = GeocodingReferencePoint(
+            kmNumber = startAddress.kmNumber,
+            meters = startAddress.meters,
+            distance = 0.0,
+            kmPostOffset = 0.0,
+            intersectType = WITHIN
+        )
+        val referencePoints = listOf(startRefPoint) + referencePoints.map { (address, distance) ->
+            GeocodingReferencePoint(
+                kmNumber = address.kmNumber,
+                meters = address.meters,
+                distance = distance,
+                kmPostOffset = 0.0,
+                intersectType = WITHIN
+            )
+        }
+
         return GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
-            referenceLineGeometry = alignment,
-            referencePoints = listOf(startRefPoint) + referencePoints.map { (address, distance) ->
-                GeocodingReferencePoint(address.kmNumber, address.meters, distance, 0.0, WITHIN)
+            kmPosts = referencePoints.map { p ->
+                kmPost(
+                    trackNumberId = null,
+                    km = p.kmNumber,
+                    location = checkNotNull(alignment.getPointAtM(p.distance)).toPoint()
+                )
             },
+            referenceLineGeometry = alignment,
+            referencePoints = referencePoints,
         )
     }
 
@@ -442,13 +488,27 @@ class GeocodingTest {
             Point3DM(start.x + 0.0, start.y + 3 * n.toDouble(), 3 * n.toDouble())
         })
         val verticalAlignment = alignment(segment(verticalPoints))
-        val verticalContext = GeocodingContext(trackNumber, startAddress, verticalAlignment, listOf(
-            GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
-        ))
-        val diagonalLine = alignment(segment(
-            start + Point(-52.5, 2.5),
-            start + Point(-47.5, 7.5),
-        ))
+        val verticalContext = GeocodingContext(
+            trackNumber,
+            startAddress,
+            verticalAlignment,
+            listOf(kmPost(trackNumberId = null, km = startAddress.kmNumber, location = start)),
+            listOf(
+                GeocodingReferencePoint(
+                    kmNumber = startAddress.kmNumber,
+                    meters = startAddress.meters,
+                    distance = 0.0,
+                    kmPostOffset = 0.0,
+                    intersectType = WITHIN
+                )
+            )
+        )
+        val diagonalLine = alignment(
+            segment(
+                start + Point(-52.5, 2.5),
+                start + Point(-47.5, 7.5),
+            )
+        )
 
         val diagonalCenter = start + Point(-50.0, 5.0)
         assertEquals(5.0, verticalContext.getDistance(diagonalCenter)!!.first, 0.000001)

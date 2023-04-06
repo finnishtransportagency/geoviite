@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -50,10 +47,17 @@ data class MapSegment(
     val pointCount: Int,
     override val sourceId: DomainId<GeometryElement>?,
     override val sourceStart: Double?,
-    override val start: Double,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment>,
 ): ISegment, ISegmentGeometry by geometry
+
+data class MapSegmentProfileInfo<T>(
+    val id: IntId<T>,
+    val alignmentId: IndexedId<LayoutSegment>,
+    val points: List<LayoutPoint>,
+    val segmentStart: Double,
+    val hasProfile: Boolean,
+)
 
 fun toMapAlignment(
     trackNumber: TrackLayoutTrackNumber,
@@ -109,7 +113,6 @@ fun toMapSegment(
     pointCount = originalPointCount,
     sourceId = segmentFields.sourceId,
     sourceStart = segmentFields.sourceStart,
-    start = segmentFields.start,
     id = segmentFields.id,
     source = segmentFields.source,
 )

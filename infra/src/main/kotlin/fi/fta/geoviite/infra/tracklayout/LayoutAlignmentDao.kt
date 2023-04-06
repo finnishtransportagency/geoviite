@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_LAYOUT_ALIGNMENT
+import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.geography.create3DMLineString
 import fi.fta.geoviite.infra.geography.parse3DMLineString
@@ -18,6 +19,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
+import kotlin.math.abs
 
 const val GEOMETRY_CACHE_SIZE = 500000L
 
@@ -184,19 +186,27 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
         val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
-        return segmentResults.map { (data, geometryId) -> LayoutSegment(
-            id = data.id,
-            start = data.start,
-            sourceId = data.sourceId,
-            sourceStart = data.sourceStart,
-            switchId = data.switchId,
-            startJointNumber = data.startJointNumber,
-            endJointNumber = data.endJointNumber,
-            source = data.source,
-            geometry = requireNotNull(geometries[geometryId]) {
+        var start = 0.0
+        return segmentResults.mapIndexed { index, (data, geometryId) ->
+            require(abs(start - data.start) < LAYOUT_M_DELTA) {
+                "Segment start value does not match the calculated one: stored=${data.start} calc=$start"
+            }
+            val geometry = requireNotNull(geometries[geometryId]) {
                 "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
-            },
-        ) }
+            }.withStartMAt(start)
+            LayoutSegment(
+                id = data.id,
+                sourceId = data.sourceId,
+                sourceStart = data.sourceStart,
+                switchId = data.switchId,
+                startJointNumber = data.startJointNumber,
+                endJointNumber = data.endJointNumber,
+                source = data.source,
+                geometry = geometry,
+            ).also {
+                start += geometry.length
+            }
+        }
     }
 
     fun fetchSegmentGeometriesAndPlanMetadata(
@@ -389,10 +399,55 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
+    fun <T>fetchProfileInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentProfileInfo<T>> {
+        //language=SQL
+        val sql = """
+            select
+              location_track.id,
+              segment_version.alignment_id,
+              segment_version.segment_index,
+              segment_version.start,
+              postgis.st_astext(segment_geometry.geometry) as geometry_wkt,
+              plan.vertical_coordinate_system
+              from layout.location_track
+                inner join layout.segment_version on
+                    location_track.alignment_id = segment_version.alignment_id and
+                    location_track.alignment_version = segment_version.alignment_version
+                inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
+                left join geometry.plan on alignment.plan_id = plan.id
+              where postgis.st_intersects(
+                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                  segment_geometry.bounding_box
+                )
+                and location_track.draft = :is_draft
+              order by segment_version.segment_index
+        """.trimIndent()
+
+        val params = mapOf(
+            "x_min" to bbox.min.x,
+            "y_min" to bbox.min.y,
+            "x_max" to bbox.max.x,
+            "y_max" to bbox.max.y,
+            "layout_srid" to LAYOUT_SRID.code,
+            "is_draft" to (publishType == PublishType.DRAFT)
+        )
+
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            MapSegmentProfileInfo(
+                id = rs.getIntId("id"),
+                alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
+                points = getSegmentPoints(rs, "geometry_wkt"),
+                segmentStart = rs.getDouble("start"),
+                hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
+            )
+        }
+    }
+
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
             val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->
-                if (s.geometry.id is StringId) s.geometry else null
+                if (s.geometry.id is StringId) s.geometry.withStartMAt(0.0) else null
             })
             //language=SQL
             val sqlIndexed = """
@@ -418,7 +473,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                 ps.setInt(1, alignmentId.id.intValue)
                 ps.setInt(2, alignmentId.version)
                 ps.setInt(3, index)
-                ps.setDouble(4, s.start)
+                ps.setDouble(4, s.startM)
                 ps.setNullableInt(5) { if (s.sourceId is IndexedId) s.sourceId.parentId else null }
                 ps.setNullableInt(6) { if (s.sourceId is IndexedId) s.sourceId.index else null }
                 ps.setNullableInt(7) { if (s.switchId is IntId) s.switchId.intValue else null }
@@ -440,6 +495,14 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     private fun insertSegmentGeometries(
         geometries: List<SegmentGeometry>,
     ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
+        require(geometries.all { geom -> geom.startM == 0.0 }) {
+            "Geometries in DB must be set to startM=0.0, so they remain valid if an earlier segment changes"
+        }
+        require(geometries.all { geom ->
+            val calculatedLength = calculateDistance(geom.points, LAYOUT_SRID)
+            val maxDelta = calculatedLength*0.01
+            abs(calculatedLength - geom.endM) <= maxDelta
+        }) { "Geometries in DB should have (approximately) endM=length" }
         //language=SQL
         val sql = """
           insert into layout.segment_geometry(
@@ -511,24 +574,23 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
     }
 }
 
-fun getSegmentPoints(
+private fun getSegmentPoints(
     rs: ResultSet,
     geometryColumn: String,
-    heightColumn: String,
-    cantColumn: String,
+    heightColumn: String? = null,
+    cantColumn: String? = null,
 ): List<LayoutPoint> {
-    val rawGeometry = rs.getString(geometryColumn)
-    if (rawGeometry == null) return emptyList()
-    val geometryValues = parse3DMLineString(rs.getString(geometryColumn))
-    val heightValues = rs.getNullableDoubleListOrNullFromString(heightColumn)
-    val cantValues = rs.getNullableDoubleListOrNullFromString(cantColumn)
+    val rawGeometry = rs.getString(geometryColumn) ?: return emptyList()
+    val geometryValues = parse3DMLineString(rawGeometry)
+    val heightValues = heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
+    val cantValues = cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
     return geometryValues.mapIndexed { index, coordinate ->
         LayoutPoint(
             x = coordinate.x,
             y = coordinate.y,
             z = heightValues?.getOrNull(index),
             m = coordinate.m,
-            cant = cantValues?.getOrNull(index)
+            cant = cantValues?.getOrNull(index),
         )
     }
 }

@@ -6,12 +6,7 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import {
-    LinkingAlignment,
-    LinkingState,
-    LinkingType,
-    toIntervalRequest,
-} from 'linking/linking-model';
+import { LinkingAlignment, LinkingState, LinkingType } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { updateLocationTrackGeometry } from 'linking/linking-api';
 import {
@@ -143,9 +138,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         if (canUpdate && state.layoutAlignmentInterval.start && state.layoutAlignmentInterval.end) {
             setUpdatingLength(true);
             updateLocationTrackGeometry(state.layoutAlignmentId, {
-                alignmentId: state.layoutAlignmentId,
-                start: toIntervalRequest(state.layoutAlignmentInterval.start),
-                end: toIntervalRequest(state.layoutAlignmentInterval.end),
+                min: state.layoutAlignmentInterval.start.m,
+                max: state.layoutAlignmentInterval.end.m,
             })
                 .then(() => {
                     Snackbar.success(
@@ -158,12 +152,12 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     };
 
     const existingDuplicateOfList = useLoader(() => {
-        const duplicateOftrack =
+        const duplicateOfTrack =
             locationTrack?.duplicateOf &&
             getLocationTracksBySearchTerm(locationTrack?.duplicateOf, publishType, 1);
-        if (duplicateOftrack === '') return undefined;
-        else if (duplicateOftrack === null) return undefined;
-        else return duplicateOftrack;
+        if (duplicateOfTrack === '') return undefined;
+        else if (duplicateOfTrack === null) return undefined;
+        else return duplicateOfTrack;
     }, [locationTrack]);
 
     const existingDuplicate = existingDuplicateOfList && existingDuplicateOfList[0];
@@ -353,13 +347,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxContent>
                 </Infobox>
             )}
-            {
-                <LocationTrackGeometryInfobox
-                    publishType={publishType}
-                    locationTrackId={locationTrack.id}
-                    viewport={viewport}
-                />
-            }
+            <LocationTrackGeometryInfobox
+                publishType={publishType}
+                locationTrackId={locationTrack.id}
+                viewport={viewport}
+            />
             {locationTrack.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
                     id={locationTrack.id}

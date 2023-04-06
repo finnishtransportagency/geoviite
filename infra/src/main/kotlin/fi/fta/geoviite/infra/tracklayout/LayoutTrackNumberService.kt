@@ -7,10 +7,12 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -100,6 +102,57 @@ class LayoutTrackNumberService(
     fun find(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> {
         logger.serviceCall("find", "trackNumber" to trackNumber, "publishType" to publishType)
         return dao.fetchVersions(publishType, false, trackNumber).map(dao::fetch)
+    }
+
+    fun getKmPostLengths(
+        publishType: PublishType,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+    ): List<TrackLayoutKmPostLengthDetails> {
+        logger.serviceCall(
+            "getKmPostLengths",
+            "trackNumberId" to trackNumberId,
+            "publishType" to publishType,
+        )
+
+        val kmLengths = geocodingService.getGeocodingContext(publishType, trackNumberId)?.let { context ->
+            val distances = getKmPostDistances(context)
+            val referenceLineLength = context.referenceLineGeometry.length
+
+            //First km post is usually on another reference line, and therefore it has to be generated here
+            listOf(
+                TrackLayoutKmPostLengthDetails(
+                    trackNumberId = trackNumberId,
+                    kmNumber = context.referenceLineAddresses.startPoint.address.kmNumber,
+                    startM = roundTo3Decimals(context.startAddress.meters.negate()),
+                    endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
+                    locationSource = GeometrySource.GENERATED
+                )
+            ) + distances.sortedBy { it.second }.mapIndexed { index, (kmPost, startM) ->
+                val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
+
+                TrackLayoutKmPostLengthDetails(
+                    trackNumberId = trackNumberId,
+                    kmNumber = kmPost.kmNumber,
+                    startM = roundTo3Decimals(startM),
+                    endM = roundTo3Decimals(endM),
+                    location = kmPost.location,
+                    locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED
+                )
+            }
+        }
+
+        return checkNotNull(kmLengths) {
+            "No geocoding context for track number, trackNumberId=$trackNumberId publishType=$publishType"
+        }
+    }
+
+    private fun getKmPostDistances(context: GeocodingContext) = context.kmPosts.map { kmPost ->
+        val distance = kmPost.location?.let { loc ->
+            context.getDistance(loc)?.first
+        }
+        checkNotNull(distance) { "Couldn't calculated distance for km post, id=${kmPost.id} location=${kmPost.location}" }
+
+        kmPost to distance
     }
 
     @Transactional(readOnly = true)

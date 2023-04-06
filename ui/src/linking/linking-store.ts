@@ -301,11 +301,11 @@ export function createUpdatedInterval(
     else if (toggleOn && start?.id === newPoint.id) return { start: end, end: end };
     else if (toggleOn && end?.id === newPoint.id) return { start: start, end: start };
     else {
-        const startDiff = start ? Math.abs(start.ordering - newPoint.ordering) : -1;
-        const endDiff = end ? Math.abs(end.ordering - newPoint.ordering) : -1;
+        const startDiff = start ? Math.abs(start.m - newPoint.m) : -1;
+        const endDiff = end ? Math.abs(end.m - newPoint.m) : -1;
         const points: LinkPoint[] = [startDiff >= endDiff ? interval.start : interval.end, newPoint]
             .filter(filterNotEmpty)
-            .sort(fieldComparator((p) => p.ordering));
+            .sort(fieldComparator((p) => p.m));
         return {
             start: points.length > 0 ? points[0] : undefined,
             end: points.length > 0 ? points[points.length - 1] : undefined,
@@ -386,9 +386,9 @@ function areConnectorsTooSteep(
                 ? isConnectorTooSteep(layoutEnd, geomEnd, 'GeometryToLayout')
                 : false;
         return startSteep || endSteep;
-    } else if (layoutStart.ordering === 0 && layoutStart && geomEnd) {
+    } else if (layoutStart.m === 0 && layoutStart && geomEnd) {
         return isConnectorTooSteep(layoutStart, geomEnd, 'GeometryToLayout');
-    } else if (layoutStart.ordering !== 0 && layoutEnd && geomStart) {
+    } else if (layoutStart.m !== 0 && layoutEnd && geomStart) {
         return isConnectorTooSteep(layoutEnd, geomStart, 'LayoutToGeometry');
     } else {
         return false;
@@ -558,9 +558,9 @@ function createLinkPoint(
         alignmentType: alignmentType,
         alignmentId: alignmentId,
         segmentId: segment.id,
-        ordering: segment.start + point.m,
         x: point.x,
         y: point.y,
+        m: point.m,
         isSegmentEndPoint: pointIndex === 0 || pointIndex == segment.points.length - 1,
         isEndPoint: isEndPoint,
         direction: direction,

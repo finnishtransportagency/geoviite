@@ -33,6 +33,8 @@ export type TrackLayoutParams = TrackLayoutState & {
     onLayerVisibilityChange: (layerId: string, visible: boolean) => void;
     onTrackNumberVisibilityChange: (layerId: string, visible: boolean) => void;
     onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
+    onMissingVerticalGeometryVisibilityChange: (layerId: string, visible: boolean) => void;
+    onSegmentsFromSelectedPlanVisibilityChange: (layerId: string, visible: boolean) => void;
     onMissingLinkingVisibilityChange: (layerId: string, visible: boolean) => void;
     onDuplicateTracksVisibilityChange: (layerId: string, visible: boolean) => void;
     onShownItemsChange: (shownItems: OptionalShownItems) => void;
@@ -97,6 +99,12 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                                 onTrackNumberVisibilityChange={props.onTrackNumberVisibilityChange}
                                 onReferenceLineVisibilityChange={
                                     props.onReferenceLineVisibilityChange
+                                }
+                                onMissingVerticalGeometryVisibilityChange={
+                                    props.onMissingVerticalGeometryVisibilityChange
+                                }
+                                onSegmentsFromSelectedPlanVisibilityChange={
+                                    props.onSegmentsFromSelectedPlanVisibilityChange
                                 }
                                 onMissingLinkingVisibilityChange={
                                     props.onMissingLinkingVisibilityChange

@@ -6,15 +6,15 @@ type TopologicalConnectivityLabelProps = {
     topologicalConnectivity: TopologicalConnectivityType;
 };
 
-
-
 const TopologicalConnectivityLabel: React.FC<TopologicalConnectivityLabelProps> = ({
     topologicalConnectivity,
 }: TopologicalConnectivityLabelProps) => {
     const { t } = useTranslation();
 
     return (
-        <React.Fragment>{t(`enum.topological-connectivity-type.${topologicalConnectivity}`)}</React.Fragment>
+        <React.Fragment>
+            {t(`enum.topological-connectivity-type.${topologicalConnectivity}`)}
+        </React.Fragment>
     );
 };
 
