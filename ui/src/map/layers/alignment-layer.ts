@@ -611,69 +611,65 @@ adapterInfoRegister.add('alignment', {
             selectedAlignment,
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
-        Promise.all([alignmentsFetch, trackNumbersFetch])
-            .then(([alignmentsPerTile, trackNumbers]) =>
+        const alignmentSectionsWithoutProfile = mapLayer.showMissingVerticalGeometry
+            ? getAlignmentSectionsWithoutProfile(
+                  publishType,
+                  combineBoundingBoxes(mapTiles.map((tile) => tile.area)),
+              )
+            : Promise.resolve<AlignmentHighlight[] | null>(null);
+        Promise.all([alignmentsFetch, trackNumbersFetch, alignmentSectionsWithoutProfile])
+            .then(([alignmentsPerTile, trackNumbers, alignmentSectionsWithoutProfile]) => [
                 collectSegmentData(
                     alignmentsPerTile.flat(),
                     trackNumbers,
                     resolution < Limits.SEPARATE_SEGMENTS,
                     resolution * MAP_RESOLUTION_MULTIPLIER,
                 ),
-            )
-            .then((asd) => {
-                if (mapLayer.showMissingVerticalGeometry) {
-                    return Promise.all([
-                        Promise.resolve(asd),
-                        getAlignmentSectionsWithoutProfile(
-                            publishType,
-                            combineBoundingBoxes(mapTiles.map((tile) => tile.area)),
-                        ),
-                    ]);
-                } else {
-                    return Promise.resolve<[DataCollection, AlignmentHighlight[] | null]>([
-                        asd,
-                        null,
-                    ]);
-                }
-            })
-            .then(([dataCollection, extraInfo]) => {
-                const features = createFeaturesCached(
-                    dataCollection.dataHolders,
-                    selection,
-                    linkingState,
-                    trackNumberDisplayMode,
-                    trackNumberDrawDistance || 0,
-                    mapLayer.showReferenceLines,
-                    mapLayer.showMissingVerticalGeometry,
-                    mapLayer.showMissingLinking,
-                    mapLayer.showSegmentsFromSelectedPlan,
-                    mapLayer.showDuplicateTracks,
-                    extraInfo,
-                );
-                // All features ready, clear old ones and add new ones
-                vectorSource.clear();
-                vectorSource.addFeatures(features.flat());
-                if (onViewContentChanged) {
-                    const compare = `${publishType}${dataCollection.compareString}`;
-                    const changeTimeCompare = getMaxTimestamp(
-                        changeTimes.layoutLocationTrack,
-                        changeTimes.layoutReferenceLine,
+                alignmentSectionsWithoutProfile,
+            ])
+            .then(
+                ([dataCollection, alignmentSectionsWithoutProfile]: [
+                    DataCollection,
+                    AlignmentHighlight[] | null,
+                ]) => {
+                    const features = createFeaturesCached(
+                        dataCollection.dataHolders,
+                        selection,
+                        linkingState,
+                        trackNumberDisplayMode,
+                        trackNumberDrawDistance || 0,
+                        mapLayer.showReferenceLines,
+                        mapLayer.showMissingVerticalGeometry,
+                        mapLayer.showMissingLinking,
+                        mapLayer.showSegmentsFromSelectedPlan,
+                        mapLayer.showDuplicateTracks,
+                        alignmentSectionsWithoutProfile,
                     );
-                    // Change time comparison is not needed for the alignment layer itself,
-                    // but for the alignment list box, as it updates itself based on data
-                    // updated here
-                    if (
-                        compare !== alignmentCompare ||
-                        changeTimeCompare !== alignmentChangeTimeCompare
-                    ) {
-                        alignmentCompare = compare;
-                        alignmentChangeTimeCompare = changeTimeCompare;
-                        const area = fromExtent(olView.calculateExtent());
-                        const result = shownItemsSearchFunction(area, {});
-                        onViewContentChanged(result);
+                    // All features ready, clear old ones and add new ones
+                    vectorSource.clear();
+                    vectorSource.addFeatures(features.flat());
+                    if (onViewContentChanged) {
+                        const compare = `${publishType}${dataCollection.compareString}`;
+                        const changeTimeCompare = getMaxTimestamp(
+                            changeTimes.layoutLocationTrack,
+                            changeTimes.layoutReferenceLine,
+                        );
+                        // Change time comparison is not needed for the alignment layer itself,
+                        // but for the alignment list box, as it updates itself based on data
+                        // updated here
+                        if (
+                            compare !== alignmentCompare ||
+                            changeTimeCompare !== alignmentChangeTimeCompare
+                        ) {
+                            alignmentCompare = compare;
+                            alignmentChangeTimeCompare = changeTimeCompare;
+                            const area = fromExtent(olView.calculateExtent());
+                            const result = shownItemsSearchFunction(area, {});
+                            onViewContentChanged(result);
+                        }
                     }
-                }
-            });
+                },
+            );
 
         return {
             layer: layer,

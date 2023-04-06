@@ -71,7 +71,7 @@ class MapAlignmentService(
             .groupBy { it.id }
             .map {
                 MapAlignmentHighlight(
-                    id = it.key as IntId<LocationTrack>,
+                    id = it.key,
                     ranges = it.value.fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
                         if (!acc.contains(info.alignmentId.index - 1)) acc.put(
                             info.alignmentId.index,

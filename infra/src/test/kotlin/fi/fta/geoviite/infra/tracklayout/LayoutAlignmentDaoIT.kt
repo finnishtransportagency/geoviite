@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -9,8 +10,10 @@ import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.getIntId
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,6 +29,12 @@ class LayoutAlignmentDaoIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val geometryDao: GeometryDao,
 ): ITTestBase() {
+
+    @BeforeEach
+    fun lol() {
+        initUserMdc()
+        jdbc.execute("truncate layout.alignment cascade") { it.execute() }
+    }
 
     @Test
     fun alignmentsAreStoredAndLoadedOk() {
@@ -280,8 +289,12 @@ class LayoutAlignmentDaoIT @Autowired constructor(
             segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement.id),
         )
         val version = alignmentDao.insert(alignment)
+        locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version))
 
-        val profileInfo = alignmentDao.fetchSegmentPlanInfo(version)
+        val profileInfo = alignmentDao.fetchSegmentPlanInfos<LocationTrack>(
+            PublishType.OFFICIAL,
+            boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
+        )
         assertEquals(5, profileInfo.size)
         assertTrue(profileInfo[0].hasProfile!!)
         assertFalse(profileInfo[1].hasProfile!!)

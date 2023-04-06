@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentSource.LAYOUT
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentType.LOCATION_TRACK
 import fi.fta.geoviite.infra.tracklayout.MapAlignmentType.REFERENCE_LINE
