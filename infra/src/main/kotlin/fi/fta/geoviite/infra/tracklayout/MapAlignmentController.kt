@@ -43,7 +43,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getSectionsWithoutProfile(
         @PathVariable("publishType") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox,
-    ): List<MapAlignmentService.MapAlignmentHighlight<*>> {
+    ): List<MapAlignmentHighlight<*>> {
         logger.apiCall(
             "getSectionsWithoutProfile",
             "publishType" to publishType,
