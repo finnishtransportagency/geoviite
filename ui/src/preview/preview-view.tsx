@@ -21,7 +21,7 @@ import {
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
-import { ChangeTimes, SelectedPublishChange } from 'track-layout/track-layout-slice';
+import { SelectedPublishChange } from 'track-layout/track-layout-slice';
 import { AssetId, PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -43,6 +43,7 @@ import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-rever
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
+import { ChangeTimes } from 'common/common-slice';
 
 type Candidate = {
     id: AssetId;

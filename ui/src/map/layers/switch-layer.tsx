@@ -20,12 +20,12 @@ import {
     createSelectedSwitchLabelRenderer,
     createUnselectedSwitchRenderer,
 } from 'map/layers/switch-renderers';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType, SwitchStructure, TimeStamp } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
+import { ChangeTimes } from 'common/common-slice';
 
 const switchFeatures = new Map<string, OlFeature<OlPoint>[]>();
 

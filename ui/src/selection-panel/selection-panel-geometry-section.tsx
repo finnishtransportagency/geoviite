@@ -29,8 +29,8 @@ import {
     OpenedPlanLayout,
     OptionalItemCollections,
 } from 'selection/selection-model';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { PublishType } from 'common/common-model';
+import { ChangeTimes } from 'common/common-slice';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;

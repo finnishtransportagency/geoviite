@@ -11,9 +11,9 @@ import { PlanArea } from 'track-layout/track-layout-model';
 import { getPlanAreasByTile } from 'geometry/geometry-api';
 import { LayerItemSearchResult, OlLayerAdapter } from 'map/layers/layer-model';
 import { calculateTileSize } from 'map/map-utils';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
+import { ChangeTimes } from 'common/common-slice';
 
 function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];

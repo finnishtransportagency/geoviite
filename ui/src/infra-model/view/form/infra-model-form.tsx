@@ -34,7 +34,6 @@ import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layou
 import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infra-model-form-chosen-date-dropdowns';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { filterNotEmpty } from 'utils/array-utils';
 import { InfraModelTextField } from 'infra-model/view/form/infra-model-form-text-field';
@@ -43,6 +42,7 @@ import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/t
 import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'common/change-time-api';
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
+import { ChangeTimes } from 'common/common-slice';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;

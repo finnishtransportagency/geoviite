@@ -1,4 +1,3 @@
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { Dialog, DialogVariant } from 'vayla-design-lib/dialog/dialog';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import * as React from 'react';
@@ -21,6 +20,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { TimeStamp } from 'common/common-model';
 import { PublishRequestIds } from 'publication/publication-model';
+import { ChangeTimes } from 'common/common-slice';
 
 export interface PreviewRejectConfirmDialogProps {
     changesBeingReverted: ChangesBeingReverted;

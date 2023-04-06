@@ -33,7 +33,6 @@ import {
     getTrackNumberDrawDistance,
     MAP_RESOLUTION_MULTIPLIER,
 } from 'map/layers/layer-visibility-limits';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { deduplicate, fieldComparator, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -41,6 +40,7 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
+import { ChangeTimes } from 'common/common-slice';
 
 export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
 

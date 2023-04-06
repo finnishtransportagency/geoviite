@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useAppDispatch, useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import {
     LayoutTrackNumberId,
     LocationTrackId,
@@ -42,8 +42,8 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
         return createDelegates(dispatch, TrackLayoutActions);
     }, []);
 
-    const store = useTrackLayoutAppSelector((state) => state);
-    const changeTimes = store.changeTimes;
+    const trackLayoutState = useTrackLayoutAppSelector((state) => state);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const locationTrack = useLocationTrack(
         selectedLocationTrackId,
         publishType,
@@ -72,7 +72,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             onLinkingStart={delegates.startAlignmentLinking}
             onLockAlignment={delegates.lockAlignmentSelection}
             onStopLinking={delegates.stopLinking}
-            resolution={store.map.viewport.resolution}
+            resolution={trackLayoutState.map.viewport.resolution}
             publishType={publishType}
             showArea={delegates.showArea}
         />

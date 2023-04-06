@@ -38,7 +38,6 @@ import { convertToNativeFile } from 'utils/file-utils';
 import { Title } from 'vayla-design-lib/title/title';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { Prop } from 'utils/type-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +48,7 @@ import { Menu } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { useAppNavigate } from 'common/navigate';
+import { ChangeTimes } from 'common/common-slice';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {

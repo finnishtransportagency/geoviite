@@ -14,13 +14,13 @@ import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/l
 import { getMatchingKmPosts } from 'map/layers/layer-utils';
 import { getKmPostRenderer, getSelectedKmPostRenderer } from 'map/layers/km-post-renderers';
 import { calculateTileSize } from 'map/map-utils';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState } from 'linking/linking-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { Point } from 'model/geometry';
+import { ChangeTimes } from 'common/common-slice';
 
 export type KmPostType = 'layoutKmPost' | 'geometryKmPost';
 

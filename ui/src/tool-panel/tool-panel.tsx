@@ -23,7 +23,6 @@ import {
     SelectedGeometryItem,
 } from 'selection/selection-model';
 import { BoundingBox, Point } from 'model/geometry';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
@@ -38,6 +37,7 @@ import { getSwitches } from 'track-layout/layout-switch-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
 import { getGeometryPlanHeaders } from 'geometry/geometry-api';
+import { ChangeTimes } from 'common/common-slice';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];

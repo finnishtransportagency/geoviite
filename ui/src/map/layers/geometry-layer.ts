@@ -12,7 +12,6 @@ import { GeometryPlanLayout, MapAlignment, simplifySegment } from 'track-layout/
 import { getMatchingSegmentDatas, getTickStyles, MatchOptions } from 'map/layers/layer-utils';
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { LinkingState } from 'linking/linking-model';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
@@ -22,6 +21,7 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { toMapAlignmentResolution } from 'track-layout/layout-map-api';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
+import { ChangeTimes } from 'common/common-slice';
 
 const unlinkedAlignmentStyle = new Style({
     stroke: new Stroke({

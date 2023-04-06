@@ -5,7 +5,7 @@ import { InfraModelSearchResult } from 'infra-model/list/infra-model-search-resu
 import { GeometryPlanId, GeometryPlanSearchParams } from 'geometry/geometry-model';
 import { InfraModelListState } from 'infra-model/list/infra-model-list-store';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
+import { ChangeTimes } from 'common/common-slice';
 
 export type InfraModelListViewProps = Pick<
     InfraModelListState,

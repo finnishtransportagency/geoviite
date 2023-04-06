@@ -32,7 +32,6 @@ import { calculateMapTiles, calculateTileSize } from 'map/map-utils';
 import { adapterInfoRegister } from 'map/layers/register';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { fromExtent } from 'ol/geom/Polygon';
 import { searchShownItemsFromLayers } from 'map/tools/tool-utils';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
@@ -56,6 +55,7 @@ import {
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
+import { ChangeTimes } from 'common/common-slice';
 
 declare global {
     interface Window {

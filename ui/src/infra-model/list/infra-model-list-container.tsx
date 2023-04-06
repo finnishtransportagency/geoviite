@@ -6,8 +6,8 @@ import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { infraModelActionCreators } from 'infra-model/infra-model-slice';
 import { useInfraModelAppSelector, useAppDispatch } from 'store/hooks';
-import { ChangeTimes } from 'track-layout/track-layout-slice';
 import { useAppNavigate } from 'common/navigate';
+import { ChangeTimes } from 'common/common-slice';
 
 export type InfraModelListContainerProps = {
     changeTimes: ChangeTimes;
