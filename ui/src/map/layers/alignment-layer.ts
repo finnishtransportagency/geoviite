@@ -225,8 +225,6 @@ function createFeatures(
     drawDistance: number,
     showReferenceLines: boolean,
     showMissingVerticalGeometry: boolean,
-    showSegmentsFromSelectedPlan: boolean,
-    selectedPlanIds: GeometryPlanId[],
     showMissingLinking: boolean,
     showDuplicateTracks: boolean,
     profileInfo: AlignmentHighlight[] | null,
@@ -266,15 +264,8 @@ function createFeatures(
     if (showMissingVerticalGeometry) {
         const profile = profileInfo?.find((prof) => prof.id === alignment.id);
         if (profile) {
-            addHighlight(profile, segment, features);
+            addHighlight(profile, segment, features, alignmentBackgroundRed);
         }
-    }
-
-    if (
-        showSegmentsFromSelectedPlan &&
-        selectedPlanIds.some((selectedPlanId) => selectedPlanId === segment.planId)
-    ) {
-        styles.push(alignmentBackgroundRed);
     }
 
     segmentFeature.setStyle(styles);
@@ -332,14 +323,18 @@ function addHighlight(
     highlight: AlignmentHighlight,
     segment: MapSegment,
     features: Feature<Point | LineString>[],
+    highlightStyle: Style,
 ): void {
-    const ranges = highlight.ranges.filter(
-        ({ start, end }) => segment.startM <= end && segment.endM >= start,
-    );
-    const highlightLineStrings = ranges
-        .map((rng) => segment.points.filter((seg) => seg.m >= rng.start && seg.m <= rng.end))
-        .filter((array) => array.length >= 2)
-        .map((pointArray) => new LineString(pointArray.map((point) => [point.x, point.y])));
+    const highlightLineStrings = highlight.ranges
+        .map((range) => {
+            const pointsWithinRange = segment.points.filter(
+                (segmentPoint) => segmentPoint.m >= range.start && segmentPoint.m <= range.end,
+            );
+            return pointsWithinRange.length > 1
+                ? new LineString(pointsWithinRange.map((point) => [point.x, point.y]))
+                : undefined;
+        })
+        .filter(filterNotEmpty);
 
     highlightLineStrings.forEach((lineString) => {
         const highlightFeature = new Feature({
@@ -347,7 +342,7 @@ function addHighlight(
         });
         addBbox(highlightFeature);
         features.push(highlightFeature);
-        highlightFeature.setStyle([alignmentBackgroundRed]);
+        highlightFeature.setStyle([highlightStyle]);
     });
 }
 
@@ -513,8 +508,6 @@ function createFeaturesCached(
                           trackNumberDrawDistance,
                           showReferenceLines,
                           showMissingVerticalGeometry,
-                          showSegmentsFromSelectedPlan,
-                          selection.selectedItems.geometryPlans,
                           showMissingLinking,
                           showDuplicateTracks,
                           profileInfo,

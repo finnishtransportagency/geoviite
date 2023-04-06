@@ -2,7 +2,6 @@ import {
     GeometryAlignmentId,
     GeometryElementId,
     GeometryKmPostId,
-    GeometryPlanId,
     GeometryPlanLayoutId,
     GeometrySwitchId,
     GeometryTrackNumberId,
@@ -47,8 +46,6 @@ export type MapSegment = {
     endM: number;
     length: number;
     id: LayoutSegmentId;
-    hasProfile: boolean | null;
-    planId: GeometryPlanId | null;
 };
 
 export function simplifySegments(
@@ -69,8 +66,6 @@ export function simplifySegments(
         endM: segments[segments.length - 1].endM,
         length: lengths.reduce((prev, current) => prev + current, 0),
         source: 'GENERATED',
-        hasProfile: null,
-        planId: null,
     };
 }
 
