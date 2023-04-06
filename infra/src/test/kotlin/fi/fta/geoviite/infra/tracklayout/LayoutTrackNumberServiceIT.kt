@@ -21,6 +21,7 @@ import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 
 @ActiveProfiles("dev", "test")
@@ -44,7 +45,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         val id = trackNumberService.insert(saveRequest)
         val trackNumber = trackNumberService.getDraft(id)
 
-        assertNotNull(trackNumber.externalId)
+        assertNull(trackNumber.externalId)
 
         trackNumberService.updateExternalId(trackNumber.id as IntId, externalIdForTrackNumber())
 

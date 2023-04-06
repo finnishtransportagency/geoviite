@@ -73,7 +73,7 @@ val addressPoints = listOf(
 )
 val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"))
 val kmPostLocations = (0..5).map { i ->
-    val layoutPoint = alignment.getPointAtLength(i * alignment.length / 5)
+    val layoutPoint = alignment.getPointAtM(i * alignment.length / 5)
     checkNotNull(layoutPoint?.toPoint())
 }
 
@@ -348,12 +348,12 @@ class GeocodingTest {
                 kmPost(
                     trackNumberId = null,
                     km = KmNumber(2),
-                    location = checkNotNull(alignment.getPointAtLength(0.0)).toPoint()
+                    location = checkNotNull(alignment.getPointAtM(0.0)).toPoint()
                 ),
                 kmPost(
                     trackNumberId = null,
                     km = KmNumber(3),
-                    location = checkNotNull(alignment.getPointAtLength(3.0)).toPoint()
+                    location = checkNotNull(alignment.getPointAtM(3.0)).toPoint()
                 ),
             ),
             referenceLineGeometry = alignment,
@@ -471,7 +471,7 @@ class GeocodingTest {
                 kmPost(
                     trackNumberId = null,
                     km = p.kmNumber,
-                    location = checkNotNull(alignment.getPointAtLength(p.distance)).toPoint()
+                    location = checkNotNull(alignment.getPointAtM(p.distance)).toPoint()
                 )
             },
             referenceLineGeometry = alignment,
