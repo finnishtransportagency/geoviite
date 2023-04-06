@@ -399,7 +399,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
-    fun <T>fetchProfileInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentPlanData<T>> {
+    fun <T>fetchProfileInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentProfileInfo<T>> {
         //language=SQL
         val sql = """
             select
@@ -434,7 +434,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            MapSegmentPlanData(
+            MapSegmentProfileInfo(
                 id = rs.getIntId("id"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
                 points = getSegmentPoints(rs, "geometry_wkt"),

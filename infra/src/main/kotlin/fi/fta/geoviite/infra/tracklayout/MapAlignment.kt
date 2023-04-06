@@ -54,7 +54,7 @@ data class MapSegment(
     val hasProfile: Boolean? = null,
 ): ISegment, ISegmentGeometry by geometry
 
-data class MapSegmentPlanData<T>(
+data class MapSegmentProfileInfo<T>(
     val id: IntId<T>,
     val alignmentId: IndexedId<LayoutSegment>,
     val points: List<LayoutPoint>,
