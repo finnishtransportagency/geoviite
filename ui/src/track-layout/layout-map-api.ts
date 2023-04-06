@@ -1,7 +1,7 @@
 import { asyncCache } from 'cache/cache';
-import { MapTile } from 'map/map-model';
+import { AlignmentHighlight, MapTile } from 'map/map-model';
 import { AlignmentId, LocationTrackId, MapAlignment, MapAlignmentType } from './track-layout-model';
-import { API_URI, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
+import { API_URI, getIgnoreError, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
 import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
@@ -58,6 +58,17 @@ export async function getAlignmentsByTiles(
             ),
         )
     ).flat();
+}
+
+export async function getAlignmentSectionsWithoutProfile(
+    publishType: PublishType,
+    bbox: BoundingBox,
+): Promise<AlignmentHighlight[] | null> {
+    return await getIgnoreError(
+        `${mapUri('alignments', publishType)}/without-profile${queryParams({
+            bbox: bboxString(bbox),
+        })}`,
+    );
 }
 
 export async function getReferenceLineSegmentEnds(

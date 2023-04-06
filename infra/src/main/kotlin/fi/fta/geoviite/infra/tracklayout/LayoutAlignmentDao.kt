@@ -399,6 +399,51 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
+    fun <T>fetchProfileInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentProfileInfo<T>> {
+        //language=SQL
+        val sql = """
+            select
+              location_track.id,
+              segment_version.alignment_id,
+              segment_version.segment_index,
+              segment_version.start,
+              postgis.st_astext(segment_geometry.geometry) as geometry_wkt,
+              plan.vertical_coordinate_system
+              from layout.location_track
+                inner join layout.segment_version on
+                    location_track.alignment_id = segment_version.alignment_id and
+                    location_track.alignment_version = segment_version.alignment_version
+                inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
+                left join geometry.plan on alignment.plan_id = plan.id
+              where postgis.st_intersects(
+                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                  segment_geometry.bounding_box
+                )
+                and location_track.draft = :is_draft
+              order by segment_version.segment_index
+        """.trimIndent()
+
+        val params = mapOf(
+            "x_min" to bbox.min.x,
+            "y_min" to bbox.min.y,
+            "x_max" to bbox.max.x,
+            "y_max" to bbox.max.y,
+            "layout_srid" to LAYOUT_SRID.code,
+            "is_draft" to (publishType == PublishType.DRAFT)
+        )
+
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            MapSegmentProfileInfo(
+                id = rs.getIntId("id"),
+                alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
+                points = getSegmentPoints(rs, "geometry_wkt"),
+                segmentStart = rs.getDouble("start"),
+                hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
+            )
+        }
+    }
+
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
             val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->
@@ -532,13 +577,13 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 private fun getSegmentPoints(
     rs: ResultSet,
     geometryColumn: String,
-    heightColumn: String,
-    cantColumn: String,
+    heightColumn: String? = null,
+    cantColumn: String? = null,
 ): List<LayoutPoint> {
     val rawGeometry = rs.getString(geometryColumn) ?: return emptyList()
     val geometryValues = parse3DMLineString(rawGeometry)
-    val heightValues = rs.getNullableDoubleListOrNullFromString(heightColumn)
-    val cantValues = rs.getNullableDoubleListOrNullFromString(cantColumn)
+    val heightValues = heightColumn?.let { rs.getNullableDoubleListOrNullFromString(heightColumn) }
+    val cantValues = cantColumn?.let { rs.getNullableDoubleListOrNullFromString(cantColumn) }
     return geometryValues.mapIndexed { index, coordinate ->
         LayoutPoint(
             x = coordinate.x,

@@ -6,6 +6,7 @@
         "geometry": "Geometriat",
         "debug": "Debug-työkalut",
         "missing-linking": "Korosta linkittämättömät",
+        "missing-vertical-geometry": "Korosta puuttuva pituuskaltevuus",
         "duplicate-tracks": "Korosta duplikaattiraiteet"
     },
     "map-view": {

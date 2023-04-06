@@ -39,6 +39,20 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/alignments/without-profile")
+    fun getSectionsWithoutProfile(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<MapAlignmentHighlight<*>> {
+        logger.apiCall(
+            "getSectionsWithoutProfile",
+            "publishType" to publishType,
+            "bbox" to bbox,
+        )
+        return mapAlignmentService.getSectionsWithoutProfile(publishType, bbox)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/reference-lines/{id}")
     fun getMapReferenceLine(
         @PathVariable("publishType") publishType: PublishType,
