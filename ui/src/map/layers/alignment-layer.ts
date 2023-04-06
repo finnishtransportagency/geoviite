@@ -508,7 +508,9 @@ adapterInfoRegister.add('alignment', {
                 .map((a) => (a.alignmentType === 'LOCATION_TRACK' ? a.id : null))
                 .filter(filterNotEmpty);
 
-            const referenceLines = alignments.filter((a) => a.alignmentType === 'REFERENCE_LINE');
+            const referenceLines = alignments
+                .filter((a) => a.alignmentType === 'REFERENCE_LINE')
+                .slice(0, options.limit);
             const trackNumberIds = deduplicate(
                 referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
             );
@@ -516,7 +518,7 @@ adapterInfoRegister.add('alignment', {
             return {
                 locationTracks: locationTracks.slice(0, options.limit),
                 trackNumbers: trackNumberIds,
-                referenceLines: referenceLines.slice(0, options.limit).map((a) => a.id),
+                referenceLines: referenceLines.map((a) => a.id),
                 segments: holders.map(({ segment }) => segment).slice(0, options.limit),
             };
         };
