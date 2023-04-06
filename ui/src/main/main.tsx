@@ -1,4 +1,4 @@
-import { connect, Provider } from 'react-redux';
+import { Provider } from 'react-redux';
 import * as React from 'react';
 import 'i18n/config';
 import { Route, Routes } from 'react-router-dom';
@@ -142,4 +142,4 @@ export const MainContainer: React.FC = () => {
     );
 };
 
-export default connect()(MainContainer);
+export default MainContainer;
