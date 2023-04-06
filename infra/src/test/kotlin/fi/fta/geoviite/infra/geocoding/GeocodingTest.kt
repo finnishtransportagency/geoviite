@@ -68,14 +68,27 @@ val addressPoints = listOf(
     GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(3), BigDecimal.ZERO, alignment.length / 5, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(4), BigDecimal.ZERO, 2 * alignment.length / 5, 0.0, WITHIN),
-    GeocodingReferencePoint(KmNumber(5,"A"), BigDecimal.ZERO, 3 * alignment.length / 5, 0.0, WITHIN),
+    GeocodingReferencePoint(KmNumber(5, "A"), BigDecimal.ZERO, 3 * alignment.length / 5, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(5, "B"), BigDecimal.ZERO, 4 * alignment.length / 5, 0.0, WITHIN),
 )
 val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"))
+val kmPostLocations = (0..5).map { i ->
+    val layoutPoint = alignment.getPointAtLength(i * alignment.length / 5)
+    checkNotNull(layoutPoint?.toPoint())
+}
+
+val kmPosts = listOf(
+    kmPost(trackNumberId = null, km = startAddress.kmNumber, location = kmPostLocations[0]),
+    kmPost(trackNumberId = null, km = KmNumber(3), location = kmPostLocations[1]),
+    kmPost(trackNumberId = null, km = KmNumber(4), location = kmPostLocations[2]),
+    kmPost(trackNumberId = null, km = KmNumber(5, "A"), location = kmPostLocations[3]),
+    kmPost(trackNumberId = null, km = KmNumber(5, "B"), location = kmPostLocations[4]),
+)
 val context = GeocodingContext(
     trackNumber,
     startAddress,
     alignment,
+    kmPosts,
     addressPoints,
     // test-data is inaccurate so allow more delta in validation
     projectionLineDistanceDeviation = 0.05,
@@ -328,12 +341,23 @@ class GeocodingTest {
             start + Point(0.0, 4.0),
             start + Point(0.0, 6.0),
         ))
-        val referenceLine = referenceLine(trackNumberId = IntId(1), alignment = alignment, startAddress = startAddress)
         val projectionContext = GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
+            kmPosts = listOf(
+                kmPost(
+                    trackNumberId = null,
+                    km = KmNumber(2),
+                    location = checkNotNull(alignment.getPointAtLength(0.0)).toPoint()
+                ),
+                kmPost(
+                    trackNumberId = null,
+                    km = KmNumber(3),
+                    location = checkNotNull(alignment.getPointAtLength(3.0)).toPoint()
+                ),
+            ),
             referenceLineGeometry = alignment,
-            listOf(
+            referencePoints = listOf(
                 GeocodingReferencePoint(KmNumber(2), BigDecimal("100.0"), 0.0, 0.0, WITHIN),
                 GeocodingReferencePoint(KmNumber(3), BigDecimal("0.0"), 3.0, 0.0, WITHIN),
             )
@@ -423,14 +447,35 @@ class GeocodingTest {
         referencePoints: List<Pair<TrackMeter, Double>>,
     ): GeocodingContext {
         val alignment = alignment(segment(*geometryPoints.toTypedArray()))
-        val startRefPoint = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
+        val startRefPoint = GeocodingReferencePoint(
+            kmNumber = startAddress.kmNumber,
+            meters = startAddress.meters,
+            distance = 0.0,
+            kmPostOffset = 0.0,
+            intersectType = WITHIN
+        )
+        val referencePoints = listOf(startRefPoint) + referencePoints.map { (address, distance) ->
+            GeocodingReferencePoint(
+                kmNumber = address.kmNumber,
+                meters = address.meters,
+                distance = distance,
+                kmPostOffset = 0.0,
+                intersectType = WITHIN
+            )
+        }
+
         return GeocodingContext(
             trackNumber = trackNumber,
             startAddress = startAddress,
-            referenceLineGeometry = alignment,
-            referencePoints = listOf(startRefPoint) + referencePoints.map { (address, distance) ->
-                GeocodingReferencePoint(address.kmNumber, address.meters, distance, 0.0, WITHIN)
+            kmPosts = referencePoints.map { p ->
+                kmPost(
+                    trackNumberId = null,
+                    km = p.kmNumber,
+                    location = checkNotNull(alignment.getPointAtLength(p.distance)).toPoint()
+                )
             },
+            referenceLineGeometry = alignment,
+            referencePoints = referencePoints,
         )
     }
 
@@ -443,13 +488,27 @@ class GeocodingTest {
             Point3DM(start.x + 0.0, start.y + 3 * n.toDouble(), 3 * n.toDouble())
         })
         val verticalAlignment = alignment(segment(verticalPoints))
-        val verticalContext = GeocodingContext(trackNumber, startAddress, verticalAlignment, listOf(
-            GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
-        ))
-        val diagonalLine = alignment(segment(
-            start + Point(-52.5, 2.5),
-            start + Point(-47.5, 7.5),
-        ))
+        val verticalContext = GeocodingContext(
+            trackNumber,
+            startAddress,
+            verticalAlignment,
+            listOf(kmPost(trackNumberId = null, km = startAddress.kmNumber, location = start)),
+            listOf(
+                GeocodingReferencePoint(
+                    kmNumber = startAddress.kmNumber,
+                    meters = startAddress.meters,
+                    distance = 0.0,
+                    kmPostOffset = 0.0,
+                    intersectType = WITHIN
+                )
+            )
+        )
+        val diagonalLine = alignment(
+            segment(
+                start + Point(-52.5, 2.5),
+                start + Point(-47.5, 7.5),
+            )
+        )
 
         val diagonalCenter = start + Point(-50.0, 5.0)
         assertEquals(5.0, verticalContext.getDistance(diagonalCenter)!!.first, 0.000001)

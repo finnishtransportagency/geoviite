@@ -2,12 +2,14 @@ import { asyncCache } from 'cache/cache';
 import {
     LayoutKmPost,
     LayoutKmPostId,
+    LayoutKmPostLengthDetails,
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import {
     deleteAdt,
+    getAdt,
     getIgnoreError,
     getThrowError,
     postAdt,
@@ -168,6 +170,21 @@ export async function getKmPostsOnTrackNumber(
     return getThrowError<LayoutKmPost[]>(
         `${layoutUri('km-posts', publishType)}/on-track-number/${id}`,
     );
+}
+
+export async function getKmPostLengths(
+    publishType: PublishType,
+    id: LayoutTrackNumberId,
+): Promise<LayoutKmPostLengthDetails[]> {
+    return getAdt<LayoutKmPostLengthDetails[]>(
+        `${layoutUri('track-numbers', publishType, id)}/km-lengths`,
+    ).then((response) => {
+        if (response.isOk()) {
+            return response.value;
+        } else {
+            return [];
+        }
+    });
 }
 
 export const getKmLengthsCsv = (trackNumberId: LayoutTrackNumberId) =>

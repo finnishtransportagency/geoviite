@@ -93,8 +93,25 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
-        logger.apiCall("getTrackSectionsByPlan",
-            "publishType" to publishType, "id" to id, "bbox" to boundingBox)
+        logger.apiCall(
+            "getTrackSectionsByPlan",
+            "publishType" to publishType, "id" to id, "bbox" to boundingBox
+        )
         return trackNumberService.getMetadataSections(id, publishType, boundingBox)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/{id}/km-lengths")
+    fun getTrackNumberKmLengths(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+    ): List<TrackLayoutKmPostLengthDetails> {
+        logger.apiCall(
+            "getTrackNumberKmLengths",
+            "publishType" to publishType,
+            "id" to id
+        )
+
+        return trackNumberService.getKmPostLengths(publishType, id)
     }
 }

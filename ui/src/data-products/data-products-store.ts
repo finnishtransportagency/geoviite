@@ -14,9 +14,8 @@ import {
     PlanSource,
     VerticalGeometryItem,
 } from 'geometry/geometry-model';
-import { compareTrackMeterStrings, trackMeterIsValid } from 'common/common-model';
+import { compareTrackMeterStrings, KmNumber, trackMeterIsValid } from 'common/common-model';
 import {
-    LayoutKmPost,
     LayoutKmPostLengthDetails,
     LayoutLocationTrack,
     LayoutTrackNumber,
@@ -66,8 +65,8 @@ export type PlanVerticalGeometrySearchState = {
 
 export type KmLengthsSearchState = {
     trackNumber: LayoutTrackNumber | undefined;
-    startKm: LayoutKmPost | undefined;
-    endKm: LayoutKmPost | undefined;
+    startKm: KmNumber | undefined;
+    endKm: KmNumber | undefined;
 
     validationErrors: ValidationError<KmLengthsSearchState>[];
     committedFields: (keyof KmLengthsSearchState)[];
@@ -437,16 +436,11 @@ export const kmLengthsSearchSlice = createSlice({
                 );
             }
             state.validationErrors = [
-                validate(
-                    !state.startKm ||
-                        !state.endKm ||
-                        state.endKm.kmNumber >= state.startKm.kmNumber,
-                    {
-                        field: 'endKm',
-                        reason: 'km-end-before-start',
-                        type: ValidationErrorType.ERROR,
-                    },
-                ),
+                validate(!state.startKm || !state.endKm || state.endKm >= state.startKm, {
+                    field: 'endKm',
+                    reason: 'km-end-before-start',
+                    type: ValidationErrorType.ERROR,
+                }),
             ].filter(filterNotEmpty);
         },
         onSetKmLengths: function (

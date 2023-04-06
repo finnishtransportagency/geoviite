@@ -233,9 +233,10 @@ export type LayoutKmPostLengthDetails = {
     trackNumberId: LayoutTrackNumberId;
     kmNumber: KmNumber;
     length: number;
-    stationStart: number;
-    stationEnd: number;
-    location: Point;
+    startM: number;
+    endM: number;
+    locationSource: GeometrySource;
+    location: Point | null;
 };
 
 export type PlanAreaId = string;
