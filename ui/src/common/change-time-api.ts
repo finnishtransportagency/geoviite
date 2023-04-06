@@ -1,13 +1,13 @@
 import { rootStore } from 'store/store';
 
 import { API_URI, getIgnoreError, getWithDefault } from 'api/api-fetch';
-import { actionCreators, ChangeTimes } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators, ChangeTimes } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { TimeStamp } from 'common/common-model';
 
 const CHANGES_API = `${API_URI}/change-times`;
 
-const delegates = createDelegates(rootStore.dispatch, actionCreators);
+const delegates = createDelegates(rootStore.dispatch, trackLayoutActionCreators);
 
 const _intervalHandle = window.setInterval(() => {
     updateAllChangeTimes();

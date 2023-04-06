@@ -7,7 +7,7 @@ import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { useAppDispatch } from 'store/hooks';
 import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 

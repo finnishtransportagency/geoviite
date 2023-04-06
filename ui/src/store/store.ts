@@ -7,6 +7,7 @@ import storage from 'redux-persist/lib/storage';
 import { combineReducers } from 'redux';
 
 import thunk from 'redux-thunk';
+import { commonReducer } from 'common/common-slice';
 
 export const RESET_STORE_ACTION = {
     type: 'RESET_STORE',
@@ -60,11 +61,26 @@ const persistedDataProductsReducer = persistReducer(
     dataProductsRootReducer,
 );
 
+const commonPersistConfig = {
+    key: 'common',
+    storage,
+};
+const commonDataReducer: typeof commonReducer = (state, action) => {
+    if (action.type == RESET_STORE_ACTION.type) {
+        // Reset to initial state
+        return commonReducer(undefined, action);
+    }
+    return commonReducer(state, action);
+};
+
+const persistedCommonReducer = persistReducer(commonPersistConfig, commonDataReducer);
+
 export const rootStore = configureStore({
     reducer: combineReducers({
         trackLayout: persistedTrackLayoutReducer,
         dataProducts: persistedDataProductsReducer,
         infraModel: persistedInfraModelReducer,
+        common: persistedCommonReducer,
     }),
     middleware: (getDefaultMiddleware) => [
         ...getDefaultMiddleware({

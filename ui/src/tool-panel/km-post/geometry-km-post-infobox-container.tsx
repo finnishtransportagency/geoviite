@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import GeometryKmPostInfoboxView from 'tool-panel/km-post/geometry-km-post-infobox-view';
 import { LinkingType } from 'linking/linking-model';
 import { LayoutKmPost } from 'track-layout/track-layout-model';

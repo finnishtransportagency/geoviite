@@ -2,7 +2,7 @@ import React from 'react';
 import { SwitchSuggestionCreatorDialog } from 'linking/switch/switch-suggestion-creator-dialog';
 import { useAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { LocationTrackEndpoint, SuggestedSwitch } from 'linking/linking-model';
 import { PublishTypeHandlingDialog } from 'linking/publish-type-handling-dialog';
 
@@ -12,7 +12,7 @@ type SuggestionCreatorData = {
 
 export const SwitchSuggestionCreatorContainer: React.FC = () => {
     const { onSelect, onPublishTypeChange, onLayerVisibilityChange, startSwitchLinking } =
-        createDelegates(useAppDispatch(), actionCreators);
+        createDelegates(useAppDispatch(), trackLayoutActionCreators);
     const state = useTrackLayoutAppSelector((state) => ({
         publishType: state.publishType,
         locationTrackEndPoint: state.selection.selectedItems.locationTrackEndPoints[0],

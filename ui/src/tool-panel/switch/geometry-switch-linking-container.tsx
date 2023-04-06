@@ -3,7 +3,7 @@ import GeometrySwitchLinkingInfobox from 'tool-panel/switch/geometry-switch-link
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { useAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { TimeStamp } from 'common/common-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';

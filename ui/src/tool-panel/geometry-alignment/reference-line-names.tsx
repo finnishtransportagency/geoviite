@@ -9,7 +9,7 @@ import { PublishType, TimeStamp } from 'common/common-model';
 import { useLoader } from 'utils/react-utils';
 import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 

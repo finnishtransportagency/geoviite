@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { actionCreators } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { useAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import Frontpage from 'frontpage/frontpage';
@@ -12,7 +12,7 @@ export const FrontpageContainer: React.FC = () => {
         };
     });
     const dispatch = useAppDispatch();
-    const delegates = createDelegates(dispatch, actionCreators);
+    const delegates = createDelegates(dispatch, trackLayoutActionCreators);
 
     return (
         <Frontpage

@@ -1,5 +1,5 @@
 import SelectionPanel from 'selection-panel/selection-panel';
-import { actionCreators, getSelectableItemTypes } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators, getSelectableItemTypes } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import * as React from 'react';
 import { MapContext } from 'map/map-store';
@@ -14,7 +14,7 @@ import {
 export const SelectionPanelContainer: React.FC = () => {
     const dispatch = useAppDispatch();
     const delegates = React.useMemo(() => {
-        return createDelegates(dispatch, actionCreators);
+        return createDelegates(dispatch, trackLayoutActionCreators);
     }, []);
     const context = React.useContext(MapContext);
     const store = useAppSelector((state) => state[context]);

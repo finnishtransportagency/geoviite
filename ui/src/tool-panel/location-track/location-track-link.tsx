@@ -3,7 +3,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import React from 'react';
 import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 
 export type LocationTrackLinkProps = {
     locationTrackId: LocationTrackId;

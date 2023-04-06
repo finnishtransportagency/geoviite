@@ -63,7 +63,6 @@ export const initialChangeTimes: ChangeTimes = {
 };
 
 export type TrackLayoutState = {
-    version: string | undefined;
     publishType: PublishType;
     layoutMode: LayoutMode;
     map: Map;
@@ -77,7 +76,6 @@ export type TrackLayoutState = {
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
-    version: undefined,
     publishType: 'OFFICIAL',
     layoutMode: 'DEFAULT',
     map: initialMapState,
@@ -373,14 +371,8 @@ const trackLayoutSlice = createSlice({
         ): void => {
             state.selectedToolPanelTabId = payload;
         },
-        setVersion: (
-            state: TrackLayoutState,
-            { payload: version }: PayloadAction<string>,
-        ): void => {
-            state.version = version;
-        },
     },
 });
 
 export const trackLayoutReducer = trackLayoutSlice.reducer;
-export const actionCreators = trackLayoutSlice.actions;
+export const trackLayoutActionCreators = trackLayoutSlice.actions;

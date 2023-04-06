@@ -8,7 +8,7 @@ import {
 import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
 import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 
