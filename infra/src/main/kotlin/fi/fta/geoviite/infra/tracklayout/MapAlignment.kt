@@ -50,8 +50,6 @@ data class MapSegment(
     override val sourceStart: Double?,
     override val source: GeometrySource,
     override val id: DomainId<LayoutSegment>,
-    val planId: DomainId<GeometryPlan>? = null,
-    val hasProfile: Boolean? = null,
 ): ISegment, ISegmentGeometry by geometry
 
 data class MapSegmentProfileInfo<T>(
@@ -59,7 +57,7 @@ data class MapSegmentProfileInfo<T>(
     val alignmentId: IndexedId<LayoutSegment>,
     val points: List<LayoutPoint>,
     val segmentStart: Double,
-    val hasProfile: Boolean
+    val hasProfile: Boolean,
 )
 
 fun toMapAlignment(
