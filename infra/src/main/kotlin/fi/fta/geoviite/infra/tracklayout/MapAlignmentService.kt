@@ -14,6 +14,12 @@ enum class AlignmentFetchType {
     REFERENCE,
     ALL,
 }
+
+data class MapAlignmentHighlight<T>(
+    val id: IntId<T>,
+    val ranges: List<Range<Double>>,
+)
+
 @Service
 class MapAlignmentService(
     private val trackNumberService: LayoutTrackNumberService,
@@ -55,11 +61,6 @@ class MapAlignmentService(
         return (referenceLines + locationTracks + listOfNotNull(selected))
             .filter { ma -> ma.segments.isNotEmpty() }
     }
-
-    data class MapAlignmentHighlight<T>(
-        val id: IntId<T>,
-        val ranges: List<Range<Double>>,
-    )
 
     fun getSectionsWithoutProfile(
         publishType: PublishType,
