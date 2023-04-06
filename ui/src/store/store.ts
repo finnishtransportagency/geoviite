@@ -76,14 +76,5 @@ export const rootStore = configureStore({
     ],
 });
 
-//NÄIHIN SPESIFIMMIN STATET KUN KAIKKI ON NYT SAMAA TYYPPIÄ?
-//https://stackoverflow.com/questions/72807148/how-to-access-state-of-one-slice-in-reducer-of-another-slice-using-redux-toolkit
 export type RootState = ReturnType<typeof rootStore.getState>;
 export type RootDispatch = typeof rootStore.dispatch;
-
-export type TrackLayoutSliceState = ReturnType<typeof rootStore.getState>;
-export type InfraModelSliceState = ReturnType<typeof rootStore.getState>; //palauta tällanen: useRootSelector((state) => state.infraModel)
-export type DataProductsSliceState = ReturnType<typeof rootStore.getState>;
-export type TrackLayoutAppDispatch = typeof rootStore.dispatch;
-export type InfraModelDispatch = typeof rootStore.dispatch;
-export type DataProductsDispatch = typeof rootStore.dispatch;

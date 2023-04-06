@@ -54,51 +54,19 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         },
     };
 
-    //Tähän avaa propsit sellaisenaan jotta selvempää mitä laitetaan eteenpäin
     return viewType == InfraModelViewType.UPLOAD ? (
         <InfraModelView
             {...infraModelState}
+            {...delegatesProps}
             changeTimes={changeTimes}
             viewType={viewType}
-            {...delegatesProps}
         />
     ) : (
         <InfraModelEditLoader
             {...infraModelState}
+            {...delegatesProps}
             changeTimes={changeTimes}
             viewType={viewType}
-            {...delegatesProps}
         />
     );
 };
-
-/*
-viewType: InfraModelViewType;
-    onInfraModelExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
-        infraModelExtraParameters: Prop<ExtraInfraModelParameters, TKey>,
-    ) => void;
-    onInfraModelOverrideParametersChange: (
-        overrideInfraModelParameters: OverrideInfraModelParameters,
-    ) => void;
-    onPlanUpdate: () => void;
-    onPlanFetchReady: (plan: OnPlanFetchReady) => void;
-    onViewportChange: (viewport: MapViewport) => void;
-    onHoverLocation: OnHoverLocationFunction;
-    onClickLocation: OnClickLocationFunction;
-    onSelect: OnSelectFunction;
-    changeTimes: ChangeTimes;
-    onHighlightItems: OnHighlightItemsFunction;
-    getGeometryElement: (geomElemId: GeometryElementId) => Promise<GeometryElement | null>;
-    getGeometrySwitch: (geomSwitchId: GeometrySwitchId) => Promise<GeometrySwitch | null>;
-    onCommitField: (fieldName: string) => void;
- */
-
-//export const InfraModelViewContainer
-
-//korvaa hooksilla
-/*
-export const InfraModelViewContainer = connect(
-    mapStateToProps, //mapStateToProps is used for selecting the part of the data from the store that the connected component needs.
-    mapDispatchToProps, //mapDispatchToProps is used for dispatching actions to the store
-)(InfraModelViewContainer);
-*/

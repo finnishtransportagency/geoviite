@@ -7,7 +7,7 @@ import { ReferenceLineBadge } from 'geoviite-design-lib/alignment/reference-line
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLoader } from 'utils/react-utils';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
@@ -20,7 +20,7 @@ type ReferenceLineNamesProps = {
 };
 
 function createSelectAction() {
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
     return (trackNumberId: LayoutTrackNumberId) =>
         delegates.onSelect({

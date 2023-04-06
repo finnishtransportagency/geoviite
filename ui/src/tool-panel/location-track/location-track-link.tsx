@@ -1,7 +1,7 @@
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Link } from 'vayla-design-lib/link/link';
 import React from 'react';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 
@@ -14,7 +14,7 @@ export type LocationTrackLinkProps = {
 export const LocationTrackLink: React.FC<LocationTrackLinkProps> = (
     props: LocationTrackLinkProps,
 ) => {
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
 
     return (

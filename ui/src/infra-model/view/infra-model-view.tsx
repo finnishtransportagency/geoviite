@@ -133,9 +133,6 @@ const getValidationResponseGeometryPlan = async (
 };
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
-    console.log('INFRA-MODEL-VIEW-PROPSIT:');
-    console.log(props);
-
     const { t } = useTranslation();
     const navigate = useAppNavigate();
 
@@ -171,8 +168,8 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             : props.overrideInfraModelParameters;
 
         const extraParams = {
-            ...props.extraInframodelParameters,
-            oid: props.extraInframodelParameters.oid || undefined,
+            ...props.extraInfraModelParameters,
+            oid: props.extraInfraModelParameters.oid || undefined,
         };
         const formData = getFormFile(file, extraParams, overrideParameters);
 
@@ -301,7 +298,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 props.onInfraModelExtraParametersChange
                             }
                             overrideInfraModelParameters={props.overrideInfraModelParameters}
-                            extraInframodelParameters={props.extraInframodelParameters}
+                            extraInframodelParameters={props.extraInfraModelParameters}
                             onCommitField={props.onCommitField}
                             committedFields={props.committedFields}
                             onSelect={props.onSelect}

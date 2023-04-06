@@ -3,7 +3,7 @@ import { useTrackNumber } from 'track-layout/track-layout-react-utils';
 import { PublishType } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
 import React from 'react';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
@@ -15,7 +15,7 @@ export type TrackNumberLinkProps = {
 };
 
 function createSelectAction() {
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
     return (trackNumberId: LayoutTrackNumberId) =>
         delegates.onSelect({

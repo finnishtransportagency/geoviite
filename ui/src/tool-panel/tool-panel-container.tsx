@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ToolPanel from 'tool-panel/tool-panel';
 import { MapContext } from 'map/map-store';
-import { useAppSelector, useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppSelector, useAppDispatch } from 'store/hooks';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
@@ -12,7 +12,7 @@ const ToolPanelContainer: React.FC = () => {
     const context = React.useContext(MapContext);
     const store = useAppSelector((state) => state[context]);
 
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = React.useMemo(() => {
         return createDelegates(dispatch, TrackLayoutActions);
     }, []);

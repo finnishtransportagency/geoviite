@@ -3,7 +3,7 @@ import { actionCreators, getSelectableItemTypes } from 'track-layout/track-layou
 import { createDelegates } from 'store/store-utils';
 import * as React from 'react';
 import { MapContext } from 'map/map-store';
-import { useAppSelector, useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppSelector, useAppDispatch } from 'store/hooks';
 import {
     useKmPosts,
     useLocationTracks,
@@ -12,7 +12,7 @@ import {
 } from 'track-layout/track-layout-react-utils';
 
 export const SelectionPanelContainer: React.FC = () => {
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = React.useMemo(() => {
         return createDelegates(dispatch, actionCreators);
     }, []);

@@ -24,19 +24,6 @@ import {
 import { Point } from 'model/geometry';
 import { addIfExists, subtract } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
-//import { RESET_STORE_ACTION } from 'store/store';
-
-/*
-// Wrap combined reducers to handle root level state
-export const trackLayoutRootReducer: typeof trackLayoutReducer = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return trackLayoutReducer(undefined, action);
-    }
-    return trackLayoutReducer(state, action);
-};
-
- */
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;

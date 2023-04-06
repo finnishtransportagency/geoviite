@@ -2,11 +2,11 @@ import { PreviewView } from 'preview/preview-view';
 import { actionCreators } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import * as React from 'react';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 
 export const PreviewContainer: React.FC = () => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, actionCreators);
 
     const props = {

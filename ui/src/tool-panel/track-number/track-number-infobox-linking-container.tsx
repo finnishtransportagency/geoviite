@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppDispatch } from 'store/hooks';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
@@ -27,7 +27,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     onUnselect,
     viewport,
 }: TrackNumberInfoboxLinkingContainerProps) => {
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
     const referenceLine = useTrackNumberReferenceLine(
         trackNumber.id,

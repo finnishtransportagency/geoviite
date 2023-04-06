@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppDispatch } from 'store/hooks';
 import LocationTrackInfobox from 'tool-panel/location-track/location-track-infobox';
 import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
@@ -28,7 +28,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     onDataChange,
     viewport,
 }: LocationTrackInfoboxLinkingContainerProps) => {
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
     const locationTrack = useLocationTrack(locationTrackId, publishType, locationTrackChangeTime);
 

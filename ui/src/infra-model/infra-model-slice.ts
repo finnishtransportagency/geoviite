@@ -28,17 +28,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
-/*
-import { RESET_STORE_ACTION } from 'store/store';
 
-export const infraModelRootReducer: typeof infraModelReducer = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return infraModelReducer(undefined, action);
-    }
-    return infraModelReducer(state, action);
-};
-*/
 export enum InfraModelViewType {
     UPLOAD,
     EDIT,
@@ -51,7 +41,7 @@ export type InfraModelState = {
     plan: GeometryPlan | null;
     planLayout: GeometryPlanLayout | null;
     file: SerializableFile | undefined;
-    extraInframodelParameters: ExtraInfraModelParameters;
+    extraInfraModelParameters: ExtraInfraModelParameters;
     overrideInfraModelParameters: OverrideInfraModelParameters;
     validationErrors: ValidationError<InfraModelParameters>[];
     committedFields: InfraModelParametersProp[];
@@ -112,7 +102,7 @@ export const initialInfraModelState: InfraModelState = {
     plan: null,
     planLayout: null,
     file: undefined,
-    extraInframodelParameters: {
+    extraInfraModelParameters: {
         oid: undefined,
         planPhase: undefined,
         decisionPhase: undefined,
@@ -140,15 +130,10 @@ const infraModelSlice = createSlice({
     reducers: {
         onPlanFetchReady: (
             state: InfraModelState,
-            { payload: { plan, planLayout } }: PayloadAction<OnPlanFetchReady>, //MIKSI NÄÄ ON NULL
+            { payload: { plan, planLayout } }: PayloadAction<OnPlanFetchReady>,
         ) => {
             state.plan = plan;
             state.planLayout = planLayout;
-
-            console.log('INFRA-MODEL-SLICESTÄ STATE, PLAN JA PLANLAYOUT');
-            console.log({ ...state });
-            console.log(plan);
-            console.log(planLayout);
 
             if (planLayout) {
                 state.selection.planLayouts = [planLayout];
@@ -167,10 +152,10 @@ const infraModelSlice = createSlice({
             state: InfraModelState,
             { payload: propEdit }: PayloadAction<Prop<ExtraInfraModelParameters, TKey>>,
         ) {
-            state.extraInframodelParameters[propEdit.key] = propEdit.value;
+            state.extraInfraModelParameters[propEdit.key] = propEdit.value;
             state.validationErrors = validateParams(
                 state.plan,
-                state.extraInframodelParameters,
+                state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
             if (
@@ -188,7 +173,7 @@ const infraModelSlice = createSlice({
             state.overrideInfraModelParameters = { ...payload };
             state.validationErrors = validateParams(
                 state.plan,
-                state.extraInframodelParameters,
+                state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
         },
@@ -201,7 +186,7 @@ const infraModelSlice = createSlice({
         onPlanUpdate: (state: InfraModelState) => {
             state.validationErrors = validateParams(
                 state.plan,
-                state.extraInframodelParameters,
+                state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
         },
@@ -215,12 +200,12 @@ const infraModelSlice = createSlice({
             state.selection = initialSelectionState;
             state.map.viewport = initialMapState.viewport;
             state.committedFields = [];
-            state.extraInframodelParameters = initialInfraModelState.extraInframodelParameters;
+            state.extraInfraModelParameters = initialInfraModelState.extraInfraModelParameters;
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
             state.validationErrors = validateParams(
                 state.plan,
-                state.extraInframodelParameters,
+                state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
         },
@@ -229,7 +214,7 @@ const infraModelSlice = createSlice({
             { payload }: PayloadAction<GeometryPlanWithParameters>,
         ) => {
             state.plan = payload.geometryPlan;
-            state.extraInframodelParameters = payload.extraInfraModelParameters;
+            state.extraInfraModelParameters = payload.extraInfraModelParameters;
 
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
@@ -243,11 +228,6 @@ const infraModelSlice = createSlice({
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),
         ...wrapReducers((state: InfraModelState) => state.selection, selectionReducers),
     },
-    /*
-    extraReducers: (builder) => {
-        //builder.addCase();
-    },
-     */
 });
 
 function createError<TEntity>(field: keyof TEntity, reason: string, type: ValidationErrorType) {

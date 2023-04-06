@@ -1,15 +1,15 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from 'data-products/data-product-view.scss';
-import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
+import { useAppDispatch, useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import KilometerLengthsSearch from 'data-products/kilometer-lengths/kilometer-lengths-search';
 import { KilometerLengthsTable } from 'data-products/kilometer-lengths/kilometer-lengths-table';
 import { dataProductsActions } from 'data-products/data-products-slice';
 
 export const KilometerLengthsView = () => {
-    const rootDispatch = useDataProductsAppDispatch();
-    const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
+    const dispatch = useAppDispatch();
+    const dataProductsDelegates = createDelegates(dispatch, dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.kmLenghts);
 
     const { t } = useTranslation();

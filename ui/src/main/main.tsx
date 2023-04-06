@@ -10,7 +10,7 @@ import { AppBar } from 'app-bar/app-bar';
 import { HttpStatusCodeGenerator } from 'monitoring/http-status-code-generator';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
 import { LayoutMode } from 'common/common-model';
 import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
@@ -100,7 +100,7 @@ export const MainContainer: React.FC = () => {
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
     const versionInStore = useTrackLayoutAppSelector((state) => state.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, actionCreators);
     const [showDialog, setShowDialog] = React.useState(false);
 

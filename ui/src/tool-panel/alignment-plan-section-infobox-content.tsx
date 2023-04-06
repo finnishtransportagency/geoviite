@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
 import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
-import { useTrackLayoutAppDispatch } from 'store/hooks';
+import { useAppDispatch } from 'store/hooks';
 import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 
 type AlignmentPlanSectionInfoboxContentProps = {
@@ -20,7 +20,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
 > = ({ sections }) => {
     const { t } = useTranslation();
 
-    const dispatch = useTrackLayoutAppDispatch();
+    const dispatch = useAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
 
     const errorFragment = (errorMessage = '') => (

@@ -6,12 +6,12 @@ import LocationTrackElementListingSearch from 'data-products/element-list/locati
 import { createDelegates } from 'store/store-utils';
 import PlanGeometryElementListingSearch from 'data-products/element-list/plan-geometry-element-listing-search';
 import { ElementTable } from 'data-products/element-list/element-table';
-import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
+import { useAppDispatch, useDataProductsAppSelector } from 'store/hooks';
 import { dataProductsActions } from 'data-products/data-products-slice';
 
 const ElementListView = () => {
-    const rootDispatch = useDataProductsAppDispatch();
-    const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
+    const dispatch = useAppDispatch();
+    const dataProductsDelegates = createDelegates(dispatch, dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.elementList);
     const { t } = useTranslation();
     const continuousGeometrySelected = state.selectedSearch === 'LOCATION_TRACK';

@@ -21,7 +21,6 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
             setIsLoading(true);
             getGeometryPlan(params.id).then((plan: GeometryPlan | null) => {
                 if (plan) {
-                    console.log('EDIT_LOADER ', plan);
                     setExistingInfraModel({
                         geometryPlan: plan,
                         extraInfraModelParameters: {
