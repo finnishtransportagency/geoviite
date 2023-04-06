@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.KKJ3_YKJ
+import fi.fta.geoviite.infra.geography.KKJ4
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.ratko.model.RATKO_SRID
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -54,5 +56,24 @@ class CoordinateTransformServiceIT @Autowired constructor(
         // Expected values are from paikkatietoikkuna
         Assertions.assertEquals(642412.7448, transformedPoint.x, 0.001)
         Assertions.assertEquals(6943735.9093, transformedPoint.y, 0.001)
+    }
+
+    @Test
+    fun `Transforms TM35FIN to YKJ accurately`() {
+        // Point is in Hervanta, Tampere
+        val point = Point(332391.7884, 6817075.2561)
+        val transformedPoint = coordinateTransformationService.transformCoordinate(LAYOUT_SRID, KKJ3_YKJ, point)
+        // Expected values are from paikkatietoikkuna
+        Assertions.assertEquals(3332494.083, transformedPoint.x, 0.001)
+        Assertions.assertEquals(6819936.144, transformedPoint.y, 0.001)
+    }
+
+    @Test
+    fun `Transforms TM35FIN to KKJ4 accurately`() {
+        val kkj4point = Point(642412.7448, 6943735.9093)
+        val transformedPoint = coordinateTransformationService.transformCoordinate(LAYOUT_SRID, KKJ4, kkj4point)
+        // Expected values are from paikkatietoikkuna
+        Assertions.assertEquals(4488552.946177, transformedPoint.x, 0.001)
+        Assertions.assertEquals(6943595.611588, transformedPoint.y, 0.001)
     }
 }

@@ -19,7 +19,7 @@ import kotlin.test.assertEquals
 
 private val allElementTypes = GeometryElementType.values().toList()
 private val allTrackElementTypes = TrackGeometryElementType.values().toList()
-private val getTransformation = { srid: Srid -> Transformation.nonKKJToETRSTransform(srid, LAYOUT_SRID) }
+private val getTransformation = { srid: Srid -> Transformation.nonTriangulableTransform(srid, LAYOUT_SRID) }
 
 class ElementListingTest {
 

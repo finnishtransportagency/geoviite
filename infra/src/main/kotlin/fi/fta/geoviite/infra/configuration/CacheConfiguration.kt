@@ -32,7 +32,7 @@ const val CACHE_COORDINATE_SYSTEMS = "coordinate-systems"
 const val CACHE_FEATURE_TYPES = "feature-types"
 const val CACHE_COMMON_SWITCH_STRUCTURE = "switch-structure"
 const val CACHE_COMMON_SWITCH_OWNER = "switch-owner"
-const val CACHE_KKJ_ETRS_TRIANGULATION_NETWORK = "kkj-etrs-triangles"
+const val CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK = "kkj-tm35fin-triangles"
 
 const val CACHE_GEOCODING_CONTEXTS = "geocoding-contexts"
 const val CACHE_PLAN_GEOCODING_CONTEXTS = "plan-geocoding-contexts"
@@ -68,7 +68,7 @@ class CacheConfiguration @Autowired constructor(
             manager.registerCustomCache(CACHE_COORDINATE_SYSTEMS, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_FEATURE_TYPES, cache(1, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_COMMON_SWITCH_STRUCTURE, cache(1, staticDataCacheDuration))
-            manager.registerCustomCache(CACHE_KKJ_ETRS_TRIANGULATION_NETWORK, cache(1, staticDataCacheDuration))
+            manager.registerCustomCache(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, cache(2, staticDataCacheDuration))
 
             manager.registerCustomCache(CACHE_GEOCODING_CONTEXTS, cache(500, layoutCacheDuration))
 
