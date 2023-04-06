@@ -21,18 +21,18 @@ import { useNavigate } from 'react-router-dom';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
-import { ElementListContainerWithProvider } from 'data-products/element-list/element-list-container-with-provider';
-import { VerticalGeometryContainerWithProvider } from 'data-products/vertical-geometry/vertical-geometry-container-with-provider';
 import { getEnvironmentInfo } from 'environment/environment-info';
 import { createDelegates } from 'store/store-utils';
 import { actionCreators } from 'track-layout/track-layout-slice';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
 import { Button } from 'vayla-design-lib/button/button';
-import { KilometerLengthsContainerWithProvider } from 'data-products/kilometer-lengths/kilometer-lengths-container-with-provider';
 import { InfraModelMainView } from 'infra-model/infra-model-main-view';
 import { PersistGate } from 'redux-persist/integration/react';
 import { persistStore } from 'redux-persist';
 import { rootStore } from 'store/store';
+import ElementListView from 'data-products/element-list/element-list-view';
+import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
+import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -65,17 +65,14 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                     <Route path="/infra-model/*" element={<InfraModelMainView />} />
                     <Route path="/design-lib-demo" element={<GeoviiteLibDemo />} />
                     <Route path="/localization-demo" element={<I18nDemo />} />
-                    <Route
-                        path="/data-products/element-list"
-                        element={<ElementListContainerWithProvider />}
-                    />
+                    <Route path="/data-products/element-list" element={<ElementListView />} />
                     <Route
                         path="/data-products/vertical-geometry"
-                        element={<VerticalGeometryContainerWithProvider />}
+                        element={<VerticalGeometryView />}
                     />
                     <Route
                         path="/data-products/kilometer-lengths"
-                        element={<KilometerLengthsContainerWithProvider />}
+                        element={<KilometerLengthsView />}
                     />
                     <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>
