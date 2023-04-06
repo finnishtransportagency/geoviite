@@ -1,5 +1,5 @@
 import { asyncCache } from 'cache/cache';
-import { MapTile } from 'map/map-model';
+import { AlignmentHighlight, MapTile } from 'map/map-model';
 import { AlignmentId, LocationTrackId, MapAlignment, MapAlignmentType } from './track-layout-model';
 import { API_URI, getIgnoreError, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
 import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
@@ -59,11 +59,6 @@ export async function getAlignmentsByTiles(
         )
     ).flat();
 }
-
-export type AlignmentHighlight = {
-    id: string;
-    ranges: { start: number; end: number }[];
-};
 
 export async function getAlignmentSectionsWithoutProfile(
     publishType: PublishType,

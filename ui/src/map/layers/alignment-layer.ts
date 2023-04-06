@@ -5,7 +5,12 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
 import OlView from 'ol/View';
-import { LayoutAlignmentsLayer, MapTile, OptionalShownItems } from 'map/map-model';
+import {
+    AlignmentHighlight,
+    LayoutAlignmentsLayer,
+    MapTile,
+    OptionalShownItems,
+} from 'map/map-model';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { adapterInfoRegister } from './register';
 import {
@@ -21,7 +26,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import {
-    AlignmentHighlight,
     getAlignmentsByTiles,
     getAlignmentSectionsWithoutProfile,
 } from 'track-layout/layout-map-api';
