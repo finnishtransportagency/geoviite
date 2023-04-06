@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.KkjEtrsTriangulationDao
+import fi.fta.geoviite.infra.geography.KkjTm35finTriangulationDao
 import fi.fta.geoviite.infra.geography.TriangulationDirection
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -32,7 +32,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
     private val switchStructureDao: SwitchStructureDao,
-    private val kkjEtrsTriangulationDao: KkjEtrsTriangulationDao
+    private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao
     ) : ITTestBase() {
 
     lateinit var switchStructure: SwitchStructure
@@ -271,8 +271,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 val (locationTrack, alignment) = locationTrackAndAlignmentForGeometryAlignment(
                     trackNumberId,
                     a,
-                    kkjEtrsTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_ETRS),
-                    kkjEtrsTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.ETRS_TO_KKJ)
+                    kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_TM35FIN),
+                    kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.TM35FIN_TO_KKJ)
                 )
                 locationTrackService.saveDraft(locationTrack, alignment)
             }

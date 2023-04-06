@@ -90,8 +90,8 @@ def main():
     df_affine_params_etrs_to_kkj = parse_affine_parameters(fetch_etrs_to_kkj_affine_transform_paramteres())
     print("Downloaded. Creating SQL Files next")
     create_inserts_for_triangle_corner_points(df_vertices)
-    create_inserts_for_affine_parameters(df_affine_params_kkj_to_etrs, "KKJ_TO_ETRS")
-    create_inserts_for_affine_parameters(df_affine_params_etrs_to_kkj, "ETRS_TO_KKJ")
+    create_inserts_for_affine_parameters(df_affine_params_kkj_to_etrs, "KKJ_TO_TM35FIN")
+    create_inserts_for_affine_parameters(df_affine_params_etrs_to_kkj, "TM35FIN_TO_KKJ")
     print("All done.")
 
 

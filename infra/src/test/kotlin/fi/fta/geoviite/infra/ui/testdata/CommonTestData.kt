@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.ui.testdata
 import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geography.KkjEtrsTriangle
+import fi.fta.geoviite.infra.geography.KkjTm35finTriangle
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.*
@@ -190,8 +190,8 @@ fun pointsFromIncrementList(basePoint: Point, incrementPoints: List<Point>) =
 fun locationTrackAndAlignmentForGeometryAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     geometryAlignment: GeometryAlignment,
-    ykjToEtrsTriangulationNetwork: RTree<KkjEtrsTriangle, Rectangle>,
-    etrsToYkjTriangulationNetwork: RTree<KkjEtrsTriangle, Rectangle>,
+    ykjToEtrsTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>,
+    etrsToYkjTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>,
     planSrid: Srid = LAYOUT_SRID,
 ): Pair<LocationTrack, LayoutAlignment> {
     val transformation = Transformation.possiblyTriangulableTransform(planSrid, LAYOUT_SRID, ykjToEtrsTriangulationNetwork, etrsToYkjTriangulationNetwork)

@@ -13,7 +13,7 @@ val KKJ4 = Srid(2394)
 val KKJ5 = Srid(3387)
 val YKJ_CRS = crs(KKJ3_YKJ)
 
-data class KkjEtrsTriangle(
+data class KkjTm35finTriangle(
     val corner1: Point,
     val corner2: Point,
     val corner3: Point,
@@ -37,7 +37,7 @@ data class KkjEtrsTriangle(
         polygon.intersects(poly)
 }
 
-fun transformPointInTriangle(point: org.locationtech.jts.geom.Point, targetCrs: CoordinateReferenceSystem, triangle: KkjEtrsTriangle): Point {
+fun transformPointInTriangle(point: org.locationtech.jts.geom.Point, targetCrs: CoordinateReferenceSystem, triangle: KkjTm35finTriangle): Point {
     val x = (triangle.a2 * point.y) + (triangle.a1 * point.x) + triangle.deltaE
     val y = (triangle.b2 * point.y) + (triangle.b1 * point.x) + triangle.deltaN
     return toPoint(Coordinate(x, y), targetCrs)

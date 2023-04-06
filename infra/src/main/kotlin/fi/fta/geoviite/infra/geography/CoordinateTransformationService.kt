@@ -17,15 +17,15 @@ import org.springframework.stereotype.Service
 data class Transformation private constructor(
     val sourceSrid: Srid,
     val targetSrid: Srid,
-    val kkjToEtrsTriangulationNetwork: RTree<KkjEtrsTriangle, Rectangle>?,
-    val etrsToKkjTriangulationNetwork: RTree<KkjEtrsTriangle, Rectangle>?,
+    val kkjToEtrsTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>?,
+    val etrsToKkjTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>?,
 ) {
     private val sourceCrs: CoordinateReferenceSystem by lazy { crs(sourceSrid) }
     private val targetCrs: CoordinateReferenceSystem by lazy { crs(targetSrid) }
     private val math: MathTransform by lazy { CRS.findMathTransform(sourceCrs, targetCrs) }
 
     companion object {
-        fun possiblyTriangulableTransform(sourceSrid: Srid, targetSrid: Srid, ykjEtrsTriangles: RTree<KkjEtrsTriangle, Rectangle>, etrsYkjTriangles: RTree<KkjEtrsTriangle, Rectangle>) =
+        fun possiblyTriangulableTransform(sourceSrid: Srid, targetSrid: Srid, ykjEtrsTriangles: RTree<KkjTm35finTriangle, Rectangle>, etrsYkjTriangles: RTree<KkjTm35finTriangle, Rectangle>) =
             Transformation(sourceSrid, targetSrid, ykjEtrsTriangles, etrsYkjTriangles)
 
         fun nonTriangulableTransform(sourceSrid: Srid, targetSrid: Srid) =
@@ -89,7 +89,7 @@ data class Transformation private constructor(
 
 @Service
 class CoordinateTransformationService @Autowired constructor(
-    private val kkjEtrsTriangulationDao: KkjEtrsTriangulationDao
+    private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao
 ) {
     private val transformations = mutableMapOf<Pair<Srid, Srid>, Transformation>()
 
@@ -100,8 +100,8 @@ class CoordinateTransformationService @Autowired constructor(
             Transformation.possiblyTriangulableTransform(
                 sourceSrid,
                 targetSrid,
-                kkjEtrsTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_ETRS),
-                kkjEtrsTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.ETRS_TO_KKJ),
+                kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_TM35FIN),
+                kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.TM35FIN_TO_KKJ),
             )
         }
 

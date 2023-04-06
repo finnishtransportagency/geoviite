@@ -16,7 +16,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 
-val DummyTriangulationNetwork = RTree.create<KkjEtrsTriangle, Rectangle>()
+val DummyTriangulationNetwork = RTree.create<KkjTm35finTriangle, Rectangle>()
 
 class TransformationTest {
 
