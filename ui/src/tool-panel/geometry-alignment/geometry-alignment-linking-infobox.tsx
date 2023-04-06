@@ -51,7 +51,10 @@ import ReferenceLineNames from 'tool-panel/geometry-alignment/reference-line-nam
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { OnSelectOptions } from 'selection/selection-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
-import { GeometryAlignmentLinkingCandidates } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
+import {
+    GeometryAlignmentLinkingLocationTrackCandidates,
+    GeometryAlignmentLinkingReferenceLineCandidates,
+} from 'tool-panel/geometry-alignment/geometry-alignment-linking-reference-line-candidates';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -280,18 +283,26 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     )}
 
                     {linkingState && (
-                        <GeometryAlignmentLinkingCandidates
-                            geometryAlignment={geometryAlignment}
-                            publishType={publishType}
-                            trackNumberChangeTime={trackNumberChangeTime}
-                            locationTrackChangeTime={locationTrackChangeTime}
-                            onSelect={onSelect}
-                            selectedLayoutReferenceLine={selectedLayoutReferenceLine}
-                            selectedLayoutLocationTrack={selectedLayoutLocationTrack}
-                            onShowAddTrackNumberDialog={() => setShowAddTrackNumberDialog(true)}
-                            onShowAddLocationTrackDialog={() =>
-                                setShowAddLocationTrackDialog(true)
-                            }></GeometryAlignmentLinkingCandidates>
+                        <div className={styles['geometry-alignment-infobox__linking-container']}>
+                            <GeometryAlignmentLinkingReferenceLineCandidates
+                                geometryAlignment={geometryAlignment}
+                                publishType={publishType}
+                                trackNumberChangeTime={trackNumberChangeTime}
+                                onSelect={onSelect}
+                                selectedLayoutReferenceLine={selectedLayoutReferenceLine}
+                                onShowAddTrackNumberDialog={() => setShowAddTrackNumberDialog(true)}
+                            />
+                            <GeometryAlignmentLinkingLocationTrackCandidates
+                                geometryAlignment={geometryAlignment}
+                                publishType={publishType}
+                                locationTrackChangeTime={locationTrackChangeTime}
+                                onSelect={onSelect}
+                                selectedLayoutLocationTrack={selectedLayoutLocationTrack}
+                                onShowAddLocationTrackDialog={() =>
+                                    setShowAddLocationTrackDialog(true)
+                                }
+                            />
+                        </div>
                     )}
                     {linkingInProgress && (
                         <React.Fragment>
