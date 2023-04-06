@@ -66,7 +66,7 @@ class MapAlignmentService(
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> {
         logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
-        return alignmentDao.fetchSegmentPlanInfos<LocationTrack>(publishType, bbox)
+        return alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
             .filter { !it.hasProfile }
             .groupBy { it.id }
             .map {

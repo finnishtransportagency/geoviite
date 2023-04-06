@@ -291,7 +291,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val version = alignmentDao.insert(alignment)
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version))
 
-        val profileInfo = alignmentDao.fetchSegmentPlanInfos<LocationTrack>(
+        val profileInfo = alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
             PublishType.OFFICIAL,
             boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
         )

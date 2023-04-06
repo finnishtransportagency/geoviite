@@ -399,7 +399,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
-    fun <T>fetchSegmentPlanInfos(publishType: PublishType, bbox: BoundingBox): List<MapSegmentPlanData<T>> {
+    fun <T>fetchProfileInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentPlanData<T>> {
         //language=SQL
         val sql = """
             select
