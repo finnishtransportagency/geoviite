@@ -29,10 +29,10 @@ function createSelectAction() {
 const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationTracks }) => {
     const { t } = useTranslation();
 
-    const sortedLocationTracks = linkedLocationTracks?.sort((a, b) => a.name.localeCompare(b.name));
+    const sortedLocationTracks = linkedLocationTracks.sort((a, b) => a.name.localeCompare(b.name));
 
     const trackName =
-        sortedLocationTracks && sortedLocationTracks.length > 1
+        sortedLocationTracks.length > 1
             ? t('tool-panel.location-track.track-name-short-plural')
             : t('tool-panel.location-track.track-name-short-singular');
 
@@ -43,7 +43,7 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationT
             label={trackName}
             value={
                 <React.Fragment>
-                    {sortedLocationTracks?.map((locationTrack) => {
+                    {sortedLocationTracks.map((locationTrack) => {
                         return (
                             <div
                                 className={styles['linked-items-list__list-item']}

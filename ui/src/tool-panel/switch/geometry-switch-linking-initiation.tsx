@@ -20,25 +20,22 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
     const { t } = useTranslation();
     return (
         <React.Fragment>
-            {linkingState === undefined && (
-                <React.Fragment>
-                    {hasSuggestedSwitch ? (
-                        <InfoboxButtons>
-                            <Button size={ButtonSize.SMALL} onClick={onStartLinking}>
-                                {t('tool-panel.switch.geometry.start-setup')}
-                            </Button>
-                        </InfoboxButtons>
-                    ) : (
-                        <InfoboxContentSpread>
-                            <MessageBox>
-                                {t(
-                                    'tool-panel.switch.geometry.cannot-start-switch-linking-related-tracks-not-linked-msg',
-                                )}
-                            </MessageBox>
-                        </InfoboxContentSpread>
-                    )}
-                </React.Fragment>
-            )}
+            {linkingState === undefined &&
+                (hasSuggestedSwitch ? (
+                    <InfoboxButtons>
+                        <Button size={ButtonSize.SMALL} onClick={onStartLinking}>
+                            {t('tool-panel.switch.geometry.start-setup')}
+                        </Button>
+                    </InfoboxButtons>
+                ) : (
+                    <InfoboxContentSpread>
+                        <MessageBox>
+                            {t(
+                                'tool-panel.switch.geometry.cannot-start-switch-linking-related-tracks-not-linked-msg',
+                            )}
+                        </MessageBox>
+                    </InfoboxContentSpread>
+                ))}
         </React.Fragment>
     );
 };

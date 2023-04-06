@@ -59,11 +59,11 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
         <GeometryAlignmentInfobox
             onSelect={delegates.onSelect}
             geometryAlignment={geometryAlignment}
-            layoutLocationTrack={selectedLocationTrackId ? locationTrack : undefined}
-            layoutReferenceLine={selectedLocationTrackId ? undefined : referenceLine}
+            selectedLayoutLocationTrack={selectedLocationTrackId ? locationTrack : undefined}
+            selectedLayoutReferenceLine={selectedLocationTrackId ? undefined : referenceLine}
             segment={segment}
             planId={planId}
-            alignmentChangeTime={getMaxTimestamp(
+            locationTrackChangeTime={getMaxTimestamp(
                 changeTimes.layoutReferenceLine,
                 changeTimes.layoutLocationTrack,
             )}

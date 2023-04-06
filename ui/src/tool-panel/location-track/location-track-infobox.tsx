@@ -140,22 +140,24 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             updateLocationTrackGeometry(state.layoutAlignmentId, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
-            }).then(() => {
-                Snackbar.success(
-                    t('tool-panel.location-track.location-track-endpoints-updated'),
-                );
-                onEndLocationTrackGeometryChange();
-            }).finally(() => setUpdatingLength(false));
+            })
+                .then(() => {
+                    Snackbar.success(
+                        t('tool-panel.location-track.location-track-endpoints-updated'),
+                    );
+                    onEndLocationTrackGeometryChange();
+                })
+                .finally(() => setUpdatingLength(false));
         }
     };
 
     const existingDuplicateOfList = useLoader(() => {
-        const duplicateOftrack =
+        const duplicateOfTrack =
             locationTrack?.duplicateOf &&
             getLocationTracksBySearchTerm(locationTrack?.duplicateOf, publishType, 1);
-        if (duplicateOftrack === '') return undefined;
-        else if (duplicateOftrack === null) return undefined;
-        else return duplicateOftrack;
+        if (duplicateOfTrack === '') return undefined;
+        else if (duplicateOfTrack === null) return undefined;
+        else return duplicateOfTrack;
     }, [locationTrack]);
 
     const existingDuplicate = existingDuplicateOfList && existingDuplicateOfList[0];
@@ -345,13 +347,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     </InfoboxContent>
                 </Infobox>
             )}
-            {
-                <LocationTrackGeometryInfobox
-                    publishType={publishType}
-                    locationTrackId={locationTrack.id}
-                    viewport={viewport}
-                />
-            }
+            <LocationTrackGeometryInfobox
+                publishType={publishType}
+                locationTrackId={locationTrack.id}
+                viewport={viewport}
+            />
             {locationTrack.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
                     id={locationTrack.id}

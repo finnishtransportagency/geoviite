@@ -27,14 +27,14 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     viewport,
 }) => {
     const { t } = useTranslation();
-    const [useBoungingBox, setUseBoundingBox] = React.useState(true);
-    const viewportDep = useBoungingBox && viewport;
+    const [useBoundingBox, setUseBoundingBox] = React.useState(true);
+    const viewportDep = useBoundingBox && viewport;
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
             getLocationTrackSectionsByPlan(
                 publishType,
                 locationTrackId,
-                useBoungingBox ? viewport.area : undefined,
+                useBoundingBox ? viewport.area : undefined,
             ),
         [locationTrackId, publishType, viewportDep],
     );
@@ -46,7 +46,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                     label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
                     value={
                         <Checkbox
-                            checked={useBoungingBox}
+                            checked={useBoundingBox}
                             onChange={(e) => setUseBoundingBox(e.target.checked)}
                         />
                     }

@@ -67,7 +67,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id == editTrackNumberId)}
                 inEditReferenceLine={editReferenceLine}
                 trackNumbers={trackNumbers}
-                isNewDraft={!!isDeletable}
+                isNewDraft={isDeletable}
                 onClose={onClose}
                 onSave={onSave}
             />
@@ -166,41 +166,39 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
             scrollable={false}
             footerClassName={'dialog-footer'}
             footerContent={
-                <React.Fragment>
-                    <div className={styles['dialog-footer__content-area']}>
-                        {isNewDraft && inEditTrackNumber && (
-                            <div className={styles['dialog-footer__content--shrink']}>
-                                <Button
-                                    onClick={() => {
-                                        inEditTrackNumber ? confirmNewDraftDelete() : undefined;
-                                    }}
-                                    icon={Icons.Delete}
-                                    variant={ButtonVariant.WARNING}>
-                                    {t('track-number-edit.title.delete-draft')}
-                                </Button>
-                            </div>
-                        )}
-                        <div
-                            className={createClassName(
-                                styles['dialog-footer__content--grow'],
-                                styles['dialog-footer__content--centered'],
-                                styles['dialog-footer__content--padded'],
-                            )}>
+                <div className={styles['dialog-footer__content-area']}>
+                    {isNewDraft && inEditTrackNumber && (
+                        <div className={styles['dialog-footer__content--shrink']}>
                             <Button
-                                variant={ButtonVariant.SECONDARY}
-                                disabled={saveInProgress}
-                                onClick={onClose}>
-                                {t('track-number-edit.action.cancel')}
-                            </Button>
-                            <Button
-                                disabled={hasErrors || saveInProgress}
-                                isProcessing={saveInProgress}
-                                onClick={saveOrConfirm}>
-                                {t('track-number-edit.action.save')}
+                                onClick={() => {
+                                    inEditTrackNumber ? confirmNewDraftDelete() : undefined;
+                                }}
+                                icon={Icons.Delete}
+                                variant={ButtonVariant.WARNING}>
+                                {t('track-number-edit.title.delete-draft')}
                             </Button>
                         </div>
+                    )}
+                    <div
+                        className={createClassName(
+                            styles['dialog-footer__content--grow'],
+                            styles['dialog-footer__content--centered'],
+                            styles['dialog-footer__content--padded'],
+                        )}>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            disabled={saveInProgress}
+                            onClick={onClose}>
+                            {t('track-number-edit.action.cancel')}
+                        </Button>
+                        <Button
+                            disabled={hasErrors || saveInProgress}
+                            isProcessing={saveInProgress}
+                            onClick={saveOrConfirm}>
+                            {t('track-number-edit.action.save')}
+                        </Button>
                     </div>
-                </React.Fragment>
+                </div>
             }>
             <FormLayout isProcessing={saveInProgress}>
                 <FormLayoutColumn>

@@ -41,14 +41,14 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
     );
 
     const referenceLineName =
-        linkedReferenceLines && linkedReferenceLines.length > 1
+        linkedReferenceLines.length > 1
             ? t('tool-panel.reference-line.reference-line-plural')
             : t('tool-panel.reference-line.reference-line-singular');
 
     const clickAction = createSelectAction();
 
     const referenceLineTrackNumberPair = new Map(
-        linkedReferenceLines?.map((a) => [a, getTrackNumber(a)]),
+        linkedReferenceLines.map((a) => [a, getTrackNumber(a)]),
     );
 
     const sortedReferenceLineTrackNumberPairs = new Map(
@@ -83,9 +83,7 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
                                     key={referenceLine.id}>
                                     <ReferenceLineBadge
                                         trackNumber={trackNumber}
-                                        onClick={() =>
-                                            trackNumber && clickAction(trackNumber.id)
-                                        }
+                                        onClick={() => trackNumber && clickAction(trackNumber.id)}
                                     />
                                 </div>
                             )
