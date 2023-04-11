@@ -84,4 +84,9 @@
             margin-right: 12px;
         }
     }
+
+    &__no-matches {
+        @include typography-caption;
+        color: $color-black-lighter;
+    }
 }

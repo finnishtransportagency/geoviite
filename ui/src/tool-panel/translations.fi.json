@@ -125,7 +125,8 @@
                 "unknown": "Ei tiedossa",
                 "geometry-plan-title": "Infra model metatiedot",
                 "manual-linking-title": "Manuaalinen vaihteen linkitys",
-                "manual-linking-info": "Manuaalisesti linkitettävään vaihteeseen ei liity suunnitelman vaihdetta, vaan linkitys tehdään lähtötietojen perusteella."
+                "manual-linking-info": "Manuaalisesti linkitettävään vaihteeseen ei liity suunnitelman vaihdetta, vaan linkitys tehdään lähtötietojen perusteella.",
+                "no-linkable-switches": "Sopivia vaihteita ei löytynyt linkitettäväksi."
             }
         },
         "reference-line": {
@@ -163,7 +164,9 @@
                 "linking-succeeded-and-previous-unlinked": "Raide linkitetty ja vanhentuneen geometrian linkitys purettu.",
                 "linking-succeeded": "Raide linkitetty",
                 "add-linking": "Lisää linkitettäviä",
-                "show-on-map": "Kohdista kartalla"
+                "show-on-map": "Kohdista kartalla",
+                "no-linkable-location-tracks": "Sopivia sijaintiraiteita ei löytynyt linkitettäväksi.",
+                "no-linkable-reference-lines": "Sopivia pituusmittauslinjoja ei löytynyt linkitettäväksi."
             },
             "geometry-segment": {
                 "title": "Vaaka- ja pystygeometriat",

@@ -8,6 +8,7 @@ import { SuggestedSwitch } from 'linking/linking-model';
 import { TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { useTranslation } from 'react-i18next';
 
 type GeometrySwitchLinkingCandidatesProps = {
     suggestedSwitch: SuggestedSwitch | null | undefined;
@@ -24,6 +25,8 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
     switchChangeTime,
     onShowAddSwitchDialog,
 }) => {
+    const { t } = useTranslation();
+
     const switches = useLoader(() => {
         const point = suggestedSwitch?.joints.find((joint) => joint.location)?.location;
         if (point) {
@@ -69,6 +72,11 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
                         </li>
                     );
                 })}
+                {switches?.length == 0 && (
+                    <i className={styles['geometry-switch-infobox__no-matches']}>
+                        {t('tool-panel.switch.geometry.no-linkable-switches')}
+                    </i>
+                )}
             </ul>
         </React.Fragment>
     );

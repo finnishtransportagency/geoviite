@@ -78,6 +78,11 @@
             margin-right: 12px;
         }
     }
+
+    &__no-matches {
+        @include typography-caption;
+        color: $color-black-lighter;
+    }
 }
 
 .geometry-switch-infobox__switch-type-warning-msg {
