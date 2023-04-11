@@ -14,7 +14,7 @@ const _intervalHandle = window.setInterval(() => {
 }, 15000);
 
 export function getChangeTimes(): ChangeTimes {
-    return rootStore.getState().trackLayout.changeTimes;
+    return rootStore.getState().common.changeTimes;
 }
 
 export function updateAllChangeTimes(): Promise<ChangeTimes> {

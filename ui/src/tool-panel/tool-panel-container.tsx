@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ToolPanel from 'tool-panel/tool-panel';
 import { MapContext } from 'map/map-store';
-import { useAppSelector, useAppDispatch } from 'store/hooks';
+import { useAppSelector, useAppDispatch, useCommonDataAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
@@ -19,6 +19,7 @@ const ToolPanelContainer: React.FC = () => {
     const typeChange = React.useCallback(() => delegates.onPublishTypeChange('DRAFT'), [delegates]);
     const kmPostIds = store.selection.selectedItems.kmPosts;
     const switchIds = store.selection.selectedItems.switches;
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
     const startSwitchLinking = React.useCallback(function (
         suggestedSwitch: SuggestedSwitch,
@@ -66,7 +67,7 @@ const ToolPanelContainer: React.FC = () => {
             geometrySegments={store.selection.selectedItems.geometrySegments}
             linkingState={store.linkingState}
             showArea={delegates.showArea}
-            changeTimes={store.changeTimes}
+            changeTimes={changeTimes}
             publishType={store.publishType}
             suggestedSwitches={store.selection.selectedItems.suggestedSwitches}
             onDataChange={typeChange}

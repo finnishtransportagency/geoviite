@@ -7,11 +7,9 @@ import KilometerLengthsSearch from 'data-products/kilometer-lengths/kilometer-le
 import { KilometerLengthsTable } from 'data-products/kilometer-lengths/kilometer-lengths-table';
 import { KmNumber } from 'common/common-model';
 import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
+import { dataProductsActions } from 'data-products/data-products-slice';
 
 export const KilometerLengthsView = () => {
-    const rootDispatch = useDataProductsAppDispatch();
-    const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
-    const state = useDataProductsAppSelector((state) => state.dataProducts.kmLenghts);
     const dispatch = useAppDispatch();
     const dataProductsDelegates = createDelegates(dispatch, dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.kmLenghts);

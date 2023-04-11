@@ -4,10 +4,10 @@ import { InfraModelListContainer } from 'infra-model/list/infra-model-list-conta
 import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-container';
 import { Route, Routes } from 'react-router-dom';
 import { InfraModelViewType } from 'infra-model/infra-model-slice';
-import { useAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 export const InfraModelMainView: React.FC = () => {
-    const changeTimes = useAppSelector((state) => state.trackLayout.changeTimes);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     return (
         <div className={styles['infra-model-main']}>
             <Routes>
