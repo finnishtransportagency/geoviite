@@ -156,5 +156,5 @@ export type MapTile = {
 
 export type AlignmentHighlight = {
     id: string;
-    ranges: { start: number; end: number }[];
+    ranges: { min: number; max: number }[];
 };
