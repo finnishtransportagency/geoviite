@@ -68,7 +68,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                                 {a.jointNumbers.map((j) => switchJointNumberToString(j)).join('-')}
                             </dt>
                             <dd className={styles['switch-joint-infobox__location-tracks']}>
-                                {getLocationTracksForJointNumbers(a.jointNumbers)}
+                                <div>{getLocationTracksForJointNumbers(a.jointNumbers)}</div>
                             </dd>
                         </React.Fragment>
                     );
@@ -92,7 +92,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                                         {t('tool-panel.switch.layout.point')}
                                     </dt>
                                     <dd className={styles['switch-joint-infobox__location-tracks']}>
-                                        {getLocationTrackBadges(a.locationTrackIds)}
+                                        <div>{getLocationTrackBadges(a.locationTrackIds)}</div>
                                     </dd>
                                 </React.Fragment>
                             );
