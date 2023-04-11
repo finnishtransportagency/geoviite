@@ -25,6 +25,7 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
         numericHeading('length'),
         numericHeading('location-e'),
         numericHeading('location-n'),
+        nonNumericHeading('warning'),
     ];
 
     return (
@@ -60,6 +61,7 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
                                     endM={item.endM}
                                     locationE={item.location?.x}
                                     locationN={item.location?.y}
+                                    source={item.locationSource}
                                 />
                             </React.Fragment>
                         ))}
