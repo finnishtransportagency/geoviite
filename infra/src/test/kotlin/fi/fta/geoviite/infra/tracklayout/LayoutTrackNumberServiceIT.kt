@@ -117,7 +117,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
                 locationSource = GeometrySource.GENERATED,
-                location = null
+                location = Point(0.0, 0.0)
             ),
             kmLengths.first()
         )
