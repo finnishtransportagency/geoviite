@@ -82,9 +82,9 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
     @Test
     fun `should return correct lengths for km posts`() {
-        val trackNumber = trackNumberDao.insert(trackNumber(getUnusedTrackNumber()))
+        val trackNumber = trackNumberDao.fetch(trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).rowVersion)
         referenceLineAndAlignment(
-            trackNumberId = trackNumber.id,
+            trackNumberId = trackNumber.id as IntId,
             segments = listOf(
                 segment(
                     Point(0.0, 0.0),
@@ -102,17 +102,17 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         }
 
         listOf(
-            kmPost(trackNumberId = trackNumber.id, km = KmNumber(2), location = Point(1.0, 0.0)),
-            kmPost(trackNumberId = trackNumber.id, km = KmNumber(3), location = Point(3.0, 0.0))
+            kmPost(trackNumberId = trackNumber.id as IntId, km = KmNumber(2), location = Point(1.0, 0.0)),
+            kmPost(trackNumberId = trackNumber.id as IntId, km = KmNumber(3), location = Point(3.0, 0.0))
         ).map(kmPostDao::insert)
 
-        val kmLengths = trackNumberService.getKmPostLengths(OFFICIAL, trackNumber.id)
+        val kmLengths = trackNumberService.getKmPostLengths(OFFICIAL, trackNumber.id as IntId)
         assertNotNull(kmLengths)
         assertEquals(3, kmLengths.size)
 
         assertEquals(
             TrackLayoutKmPostLengthDetails(
-                trackNumberId = trackNumber.id,
+                trackNumber = trackNumber.number,
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
@@ -124,7 +124,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
         assertEquals(
             TrackLayoutKmPostLengthDetails(
-                trackNumberId = trackNumber.id,
+                trackNumber = trackNumber.number,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(3).setScale(3),
@@ -136,7 +136,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
         assertEquals(
             TrackLayoutKmPostLengthDetails(
-                trackNumberId = trackNumber.id,
+                trackNumber = trackNumber.number,
                 kmNumber = KmNumber(3),
                 startM = BigDecimal(3).setScale(3),
                 endM = BigDecimal(4).setScale(3),

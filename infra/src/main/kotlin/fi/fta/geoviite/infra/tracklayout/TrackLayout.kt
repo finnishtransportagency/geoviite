@@ -190,8 +190,19 @@ data class TrackLayoutKmPost(
     val exists = !state.isRemoved()
 }
 
+enum class TrackLayoutKmPostTableColumn {
+    TRACK_NUMBER,
+    KILOMETER,
+    START_M,
+    END_M,
+    LENGTH,
+    LOCATION_E,
+    LOCATION_N,
+    WARNING
+}
+
 data class TrackLayoutKmPostLengthDetails(
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val trackNumber: TrackNumber,
     val kmNumber: KmNumber,
     val startM: BigDecimal,
     val endM: BigDecimal,
@@ -202,10 +213,10 @@ data class TrackLayoutKmPostLengthDetails(
 
     init {
         require(endM >= startM) {
-            "Km post is wrong way around (endM is smaller than startM), trackNumberId=$trackNumberId kmNumber=$kmNumber startM=$startM endM=$endM"
+            "Km post is wrong way around (endM is smaller than startM), trackNumber=$trackNumber kmNumber=$kmNumber startM=$startM endM=$endM"
         }
         require(length >= BigDecimal.ZERO) {
-            "Km post cannot have negative length, trackNumberId=$trackNumberId kmNumber=$kmNumber length=$length"
+            "Km post cannot have negative length, trackNumber=$trackNumber kmNumber=$kmNumber length=$length"
         }
     }
 }
@@ -245,4 +256,19 @@ data class ChangeTimes(
     val changed: Instant,
     val officialChanged: Instant?,
     val draftChanged: Instant?,
+)
+
+fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""
+
+private val kmLengthTranslations = mapOf(
+    "projected-location-warning" to "Sijainti on raiteen keskilinjalle projisoitu sijainti.",
+    "start-address-location-warning" to "Sijainti on pituusmittauslinjan alun sijainti.",
+    "TRACK_NUMBER-header" to "Ratanumero",
+    "KILOMETER-header" to "Kilometri",
+    "START_M-header" to "Alkupaalu",
+    "END_M-header" to "Loppupaalu",
+    "LENGTH-header" to "Pituus (m)",
+    "LOCATION_E-header" to "Koordinaatti E",
+    "LOCATION_N-header" to "Koordinaatti N",
+    "WARNING-header" to "Huomiot"
 )

@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from '../data-product-table.scss';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
     ElementHeading,
     nonNumericHeading,
@@ -17,7 +16,6 @@ type KilometerLengthsTableProps = {
 
 export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = kmLengths.length;
     const headings: ElementHeading[] = [
         nonNumericHeading('track-number'),
@@ -56,10 +54,7 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
                         {kmLengths.map((item) => (
                             <React.Fragment key={`${item.kmNumber}`}>
                                 <KilometerLengthTableItem
-                                    trackNumber={
-                                        trackNumbers?.find((tn) => tn.id == item.trackNumberId)
-                                            ?.number
-                                    }
+                                    trackNumber={item.trackNumber}
                                     length={item.length}
                                     kilometer={item.kmNumber}
                                     startM={item.startM}
