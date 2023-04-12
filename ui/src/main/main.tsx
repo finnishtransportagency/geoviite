@@ -31,6 +31,7 @@ import ElementListView from 'data-products/element-list/element-list-view';
 import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
+import { VerticalGeometryDiagram } from 'vertical-geometry/vertical-geometry-diagram';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -67,6 +68,27 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                     <Route
                         path="/data-products/vertical-geometry"
                         element={<VerticalGeometryView />}
+                    />
+                    <Route
+                        path="/vertical-geometry-diagram-demo"
+                        element={
+                            <div>
+                                <VerticalGeometryDiagram
+                                    initialStartM={3000}
+                                    initialEndM={6000}
+                                    alignmentId={{ planId: 'INT_1', alignmentId: 'INT_1' }}
+                                />
+                                <br />
+                                <VerticalGeometryDiagram
+                                    initialStartM={3000}
+                                    initialEndM={6000}
+                                    alignmentId={{
+                                        locationTrackId: 'INT_202',
+                                        publishType: 'DRAFT',
+                                    }}
+                                />
+                            </div>
+                        }
                     />
                     <Route
                         path="/data-products/kilometer-lengths"

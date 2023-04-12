@@ -38,10 +38,11 @@ import {
 import { BoundingBox } from 'model/geometry';
 import { MapTile } from 'map/map-model';
 import { getChangeTimes } from 'common/change-time-api';
-import { TimeStamp } from 'common/common-model';
+import { PublishType, TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
+import { AlignmentHeights } from 'vertical-geometry/vertical-geometry-diagram';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
@@ -276,4 +277,30 @@ export async function getGeometryPlanLinkingSummaries(
         { [key: GeometryPlanId]: GeometryPlanLinkingSummary }
     >(`${GEOMETRY_URI}/plans/linking-summaries/`, planIds);
     return r.isOk() ? r.value : null;
+}
+
+export async function getPlanAlignmentHeights(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<AlignmentHeights> {
+    return getThrowError(
+        `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getLocationTrackHeights(
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<AlignmentHeights> {
+    return getThrowError(
+        `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    );
 }

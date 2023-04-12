@@ -296,6 +296,7 @@ type CircularCurve = StationPoint & {
 };
 
 export type VerticalGeometryItem = {
+    alignmentId: string;
     id: string;
     planId: GeometryPlanId;
     fileName: string;
