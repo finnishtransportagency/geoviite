@@ -1,13 +1,12 @@
 import { connect } from 'react-redux';
 import * as React from 'react';
 import 'i18n/config';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import styles from './main.module.scss';
 import { TrackLayoutContainer } from 'track-layout/track-layout-container';
 import { Slide, ToastContainer } from 'react-toastify';
 import { I18nDemo } from 'i18n/i18n-demo';
 import { AppBar } from 'app-bar/app-bar';
-import { HttpStatusCodeGenerator } from 'monitoring/http-status-code-generator';
 import { InfraModelMainContainerWithProvider } from 'infra-model/infra-model-main-container';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
@@ -18,7 +17,6 @@ import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
-import { useNavigate } from 'react-router-dom';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
@@ -75,7 +73,6 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                         path="/data-products/kilometer-lengths"
                         element={<KilometerLengthsContainerWithProvider />}
                     />
-                    <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>
             </div>
             <ToastContainer
