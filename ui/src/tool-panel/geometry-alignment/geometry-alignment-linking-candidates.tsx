@@ -180,9 +180,9 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     );
                 })}
                 {referenceLines?.length == 0 && (
-                    <i className={styles['geometry-alignment-infobox__no-matches']}>
+                    <span className={styles['geometry-alignment-infobox__no-matches']}>
                         {t('tool-panel.alignment.geometry.no-linkable-reference-lines')}
-                    </i>
+                    </span>
                 )}
             </ul>
         </React.Fragment>
@@ -290,9 +290,9 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                     );
                 })}
                 {locationTracks?.length == 0 && (
-                    <i className={styles['geometry-alignment-infobox__no-matches']}>
+                    <span className={styles['geometry-alignment-infobox__no-matches']}>
                         {t('tool-panel.alignment.geometry.no-linkable-location-tracks')}
-                    </i>
+                    </span>
                 )}
             </ul>
         </div>

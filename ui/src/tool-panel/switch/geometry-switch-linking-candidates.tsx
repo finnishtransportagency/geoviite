@@ -73,9 +73,9 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
                     );
                 })}
                 {switches?.length == 0 && (
-                    <i className={styles['geometry-switch-infobox__no-matches']}>
+                    <span className={styles['geometry-switch-infobox__no-matches']}>
                         {t('tool-panel.switch.geometry.no-linkable-switches')}
-                    </i>
+                    </span>
                 )}
             </ul>
         </React.Fragment>
