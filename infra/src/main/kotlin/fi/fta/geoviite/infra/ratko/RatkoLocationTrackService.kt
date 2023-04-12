@@ -183,8 +183,6 @@ class RatkoLocationTrackService @Autowired constructor(
                     else geocodingContext.cutRangeByKms(origMetaDataRange, changedKmNumbers)
 
                     val splitMetaDataAssets = splitAddressRanges
-                        // Ignore metadata where the address range is under 1m, since there are no address points for it
-                        .filter { addressRange -> !addressRange.start.isSame(addressRange.endInclusive, 0) }
                         .mapNotNull { addressRange ->
                             val startPoint = findAddressPoint(
                                 points = alignmentPoints,
@@ -203,8 +201,8 @@ class RatkoLocationTrackService @Autowired constructor(
                                 endPoint = endPoint.point.toPoint(),
                             )
 
-                            // If we only have 1 point in the interval, don't send it as it covers no length
-                            if (startPoint.address < endPoint.address) convertToRatkoMetadataAsset(
+                            // Ignore metadata where the address range is under 1m, since there are no address points for it
+                            if (startPoint.address + 1 <= endPoint.address) convertToRatkoMetadataAsset(
                                 trackNumberOid = trackNumberOid,
                                 locationTrackOid = layoutLocationTrack.externalId,
                                 segmentMetadata = splitMetaData,

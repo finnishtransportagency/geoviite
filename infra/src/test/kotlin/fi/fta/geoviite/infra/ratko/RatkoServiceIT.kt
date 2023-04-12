@@ -3,6 +3,11 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.lineFromOrigin
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublishRequestIds
@@ -33,6 +38,7 @@ class RatkoServiceIT @Autowired constructor(
     val kmPostService: LayoutKmPostService,
     val kmPostDao: LayoutKmPostDao,
     val fakeRatkoService: FakeRatkoService,
+    val geometryDao: GeometryDao,
 
     ) : ITTestBase() {
     @BeforeEach
@@ -341,6 +347,39 @@ class RatkoServiceIT @Autowired constructor(
         )
         assertEquals(listOf(""), fakeRatko.getRouteNumberPointDeletions(trackNumber.externalId!!.toString()))
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions(locationTrack.externalId!!.toString()))
+    }
+
+    @Test
+    fun avoidPushingShortMetadata() {
+        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+        val plan = plan(
+            trackNumberId,
+            LAYOUT_SRID,
+            // elements don't matter, only the names being different matters since that makes the metadatas distinct
+            geometryAlignment(trackNumberId, elements = listOf(lineFromOrigin(1.0)), name = "foo"),
+            geometryAlignment(trackNumberId, elements = listOf(lineFromOrigin(1.0)), name = "bar"),
+        )
+        val fileContent = "<a></a>"
+        val planVersion = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
+        val planAlignments = geometryDao.fetchPlan(planVersion).alignments
+
+        val locationTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, externalId = null),
+            alignment(
+                segment(Point(0.0, 0.0), Point(5.0, 0.0), sourceId = planAlignments[0].elements[0].id),
+                segment(Point(5.0, 0.0), Point(5.6, 0.0), sourceId = planAlignments[1].elements[0].id),
+            )
+        )
+
+        fakeRatko.acceptsNewLocationTrackGivingItOid("1.2.3.4.5")
+        publishAndPush(locationTracks = listOf(locationTrack.rowVersion))
+        val pushedMetadata = fakeRatko.getPushedMetadata()
+        assertEquals(1, pushedMetadata.size)
+        val pushedNodes = pushedMetadata[0].locations[0].nodecollection.nodes.toList()
+        assertEquals("0000+0000", pushedNodes[0].point.kmM.toString())
+        assertEquals("0000+0005", pushedNodes[1].point.kmM.toString())
     }
 
     private fun insertSomeOfficialReferenceLineFor(trackNumberId: IntId<TrackLayoutTrackNumber>): DaoResponse<ReferenceLine> {

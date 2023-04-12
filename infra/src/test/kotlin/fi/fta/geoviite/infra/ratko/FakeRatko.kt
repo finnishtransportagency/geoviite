@@ -7,6 +7,8 @@ import com.fasterxml.jackson.module.kotlin.kotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
+import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.mockserver.client.ForwardChainExpectation
@@ -65,6 +67,8 @@ class FakeRatko (port: Int) {
         post("/api/infra/v1.0/points/${oid}").respond(ok())
         patch("/api/infra/v1.0/points/${oid}").respond(ok())
         post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
+        post("/api/assets/v1.2/",mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
     fun acceptsNewSwitchGivingItOid(oid: String) {
@@ -115,6 +119,14 @@ class FakeRatko (port: Int) {
     fun getCreatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "POST")
 
     fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "PATCH")
+
+    fun getPushedMetadata(): List<RatkoMetadataAsset> = mockServer.retrieveRecordedRequests(
+        request().withPath("/api/assets/v1.2/")
+            .withMethod("POST")
+            .withBody(JsonBody.json(mapOf("type" to RatkoAssetType.METADATA.value)))
+    ).map { req ->
+        jsonMapper.readValue(req.bodyAsString)
+    }
 
     fun getLastPushedSwitch(oid: String): InterfaceRatkoSwitch = jsonMapper.readValue(
         mockServer.retrieveRecordedRequests(
