@@ -9,6 +9,7 @@ import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-uti
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';
 import { OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { MapViewport } from 'map/map-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 type TrackNumberInfoboxLinkingContainerProps = {
     trackNumber: LayoutTrackNumber;
@@ -17,6 +18,7 @@ type TrackNumberInfoboxLinkingContainerProps = {
     referenceLineChangeTime: TimeStamp;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
+    onHoverOverGeometryPlanId: (planId: GeometryPlanId | undefined) => void;
 };
 
 const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingContainerProps> = ({
@@ -26,6 +28,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     referenceLineChangeTime,
     onUnselect,
     viewport,
+    onHoverOverGeometryPlanId,
 }: TrackNumberInfoboxLinkingContainerProps) => {
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
@@ -52,6 +55,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
                     referenceLines: referenceLine ? [referenceLine.id] : [],
                 })
             }
+            onHoverOverGeometryPlanId={onHoverOverGeometryPlanId}
         />
     );
 };

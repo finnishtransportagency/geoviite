@@ -444,6 +444,50 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }
     }
 
+    fun <T>fetchPlanInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentPlanInfo<T>> {
+        //language=SQL
+        val sql = """
+            select
+              location_track.id,
+              segment_version.alignment_id,
+              segment_version.segment_index,
+              segment_version.start,
+              postgis.st_astext(segment_geometry.geometry) as geometry_wkt,
+              alignment.plan_id
+              from layout.location_track
+                inner join layout.segment_version on
+                    location_track.alignment_id = segment_version.alignment_id and
+                    location_track.alignment_version = segment_version.alignment_version
+                inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                inner join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
+              where postgis.st_intersects(
+                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                  segment_geometry.bounding_box
+                )
+                and location_track.draft = :is_draft
+              order by segment_version.segment_index
+        """.trimIndent()
+
+        val params = mapOf(
+            "x_min" to bbox.min.x,
+            "y_min" to bbox.min.y,
+            "x_max" to bbox.max.x,
+            "y_max" to bbox.max.y,
+            "layout_srid" to LAYOUT_SRID.code,
+            "is_draft" to (publishType == PublishType.DRAFT)
+        )
+
+        return jdbcTemplate.query(sql, params) { rs, _ ->
+            MapSegmentPlanInfo(
+                id = rs.getIntId("id"),
+                alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
+                points = getSegmentPoints(rs, "geometry_wkt"),
+                segmentStart = rs.getDouble("start"),
+                planId = rs.getIntId("plan_id")
+            )
+        }
+    }
+
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
             val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->

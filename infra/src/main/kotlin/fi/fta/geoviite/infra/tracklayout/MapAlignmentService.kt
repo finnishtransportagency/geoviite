@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
@@ -18,6 +19,16 @@ enum class AlignmentFetchType {
 data class MapAlignmentHighlight<T>(
     val id: IntId<T>,
     val ranges: List<Range<Double>>,
+)
+
+data class PlanRange(
+    val min: Double,
+    val max: Double,
+    val planId: IntId<GeometryPlan>,
+)
+data class MapAlignmentPlanHighlight<T>(
+    val id: IntId<T>,
+    val ranges: List<PlanRange>,
 )
 
 @Service
@@ -90,6 +101,37 @@ class MapAlignmentService(
                         acc
                     }.values.toList()
             ) }
+    }
+
+    fun getSectionsByPlans(
+        publishType: PublishType,
+        bbox: BoundingBox,
+    ): List<MapAlignmentPlanHighlight<LocationTrack>> {
+        logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
+        return alignmentDao.fetchPlanInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
+            .groupBy { it.id }
+            .mapNotNull {
+                val ranges = it.value.fold(mutableMapOf<Int, PlanRange?>()) { acc, info ->
+                    val prevIndex = info.alignmentId.index - 1
+                    if (!acc.contains(prevIndex) || acc.get(prevIndex)?.planId != info.planId) acc.put(
+                        info.alignmentId.index,
+                        PlanRange(info.points.first().m + info.segmentStart, info.points.last().m + info.segmentStart, info.planId)
+                    )
+                    else {
+                        val prev = acc.remove(prevIndex)
+                        prev?.let {
+                            acc.put(
+                                info.alignmentId.index,
+                                PlanRange(prev.min, info.points.last().m + info.segmentStart, info.planId)
+                            )
+                        }
+                    }
+                    acc
+                }.values.filterNotNull().toList()
+                MapAlignmentPlanHighlight(
+                    id = it.key,
+                    ranges = ranges
+                ) }
     }
 
     fun getMapReferenceLine(

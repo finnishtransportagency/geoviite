@@ -158,3 +158,8 @@ export type AlignmentHighlight = {
     id: string;
     ranges: { min: number; max: number }[];
 };
+
+export type PlanHighlight = {
+    id: string;
+    ranges: { planId: GeometryPlanId; min: number; max: number }[];
+};

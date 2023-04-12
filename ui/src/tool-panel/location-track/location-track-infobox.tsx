@@ -42,6 +42,7 @@ import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -55,6 +56,7 @@ type LocationTrackInfoboxProps = {
     onUnselect: (track: LayoutLocationTrack) => void;
     onSelect: OnSelectFunction;
     viewport: MapViewport;
+    onHoverOverGeometryPlanId: (planId: GeometryPlanId) => void;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -68,6 +70,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     locationTrackChangeTime,
     onUnselect,
     viewport,
+    onHoverOverGeometryPlanId,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
@@ -351,6 +354,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 publishType={publishType}
                 locationTrackId={locationTrack.id}
                 viewport={viewport}
+                onHoverOverGeometryPlanId={onHoverOverGeometryPlanId}
             />
             {locationTrack.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer

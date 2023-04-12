@@ -102,6 +102,7 @@ export type Selection = {
     planLayouts: GeometryPlanLayout[];
     openedPlanLayouts: OpenedPlanLayout[];
     publication: PublicationId | undefined;
+    hoveredOverPlanId: GeometryPlanId | undefined;
 };
 
 export type OpenedPlanLayout = {

@@ -7,6 +7,7 @@
         "debug": "Debug-työkalut",
         "missing-linking": "Korosta linkittämättömät",
         "missing-vertical-geometry": "Korosta puuttuva pituuskaltevuus",
+        "segments-from-plan": "Korosta valitun suunnitelman osuus",
         "duplicate-tracks": "Korosta duplikaattiraiteet"
     },
     "map-view": {

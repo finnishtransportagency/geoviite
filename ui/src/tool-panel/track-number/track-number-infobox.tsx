@@ -1,7 +1,12 @@
 import * as React from 'react';
 import styles from './track-number-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LAYOUT_SRID, LayoutReferenceLine, LayoutTrackNumber, MapAlignment } from 'track-layout/track-layout-model';
+import {
+    LAYOUT_SRID,
+    LayoutReferenceLine,
+    LayoutTrackNumber,
+    MapAlignment,
+} from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
@@ -25,12 +30,12 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatDateShort } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import TrackNumberDeleteConfirmationDialog
-    from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
+import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -43,6 +48,7 @@ type TrackNumberInfoboxProps = {
     onEndReferenceLineGeometryChange: () => void;
     viewport: MapViewport;
     referenceLineChangeTime: TimeStamp;
+    onHoverOverGeometryPlanId: (planId: GeometryPlanId | undefined) => void;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -55,6 +61,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onEndReferenceLineGeometryChange,
     viewport,
     referenceLineChangeTime,
+    onHoverOverGeometryPlanId,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
@@ -84,10 +91,12 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             updateReferenceLineGeometry(state.layoutAlignmentId, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
-            }).then(() => {
-                Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
-                onEndReferenceLineGeometryChange();
-            }).finally(() => setUpdatingLength(false));
+            })
+                .then(() => {
+                    Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
+                    onEndReferenceLineGeometryChange();
+                })
+                .finally(() => setUpdatingLength(false));
         }
     };
 
@@ -240,6 +249,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     trackNumberId={trackNumber.id}
                     publishType={publishType}
                     viewport={viewport}
+                    onHoverOverGeometryPlanId={onHoverOverGeometryPlanId}
                 />
             )}
             {trackNumber.draftType !== 'NEW_DRAFT' && (

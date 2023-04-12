@@ -14,17 +14,20 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
     locationTrackId: LocationTrackId;
     viewport: MapViewport;
+    onHoverOverGeometryPlanId: (planId: GeometryPlanId | undefined) => void;
 };
 
 export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
     publishType,
     locationTrackId,
     viewport,
+    onHoverOverGeometryPlanId,
 }) => {
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
@@ -61,7 +64,10 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                             )}
                         </p>
                     ) : (
-                        <AlignmentPlanSectionInfoboxContent sections={sections || []} />
+                        <AlignmentPlanSectionInfoboxContent
+                            sections={sections || []}
+                            onHoverOverGeometryPlan={onHoverOverGeometryPlanId}
+                        />
                     )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>

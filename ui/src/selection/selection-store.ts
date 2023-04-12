@@ -20,7 +20,7 @@ import { deduplicate, filterUniqueById } from 'utils/array-utils';
 import { SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { ValueOf } from 'utils/type-utils';
-import { GeometryPlanLayoutId } from 'geometry/geometry-model';
+import { GeometryPlanId, GeometryPlanLayoutId } from 'geometry/geometry-model';
 import { PublicationId } from 'publication/publication-model';
 
 export function createEmptyItemCollections(): ItemCollections {
@@ -51,6 +51,7 @@ export const initialSelectionState: Selection = {
     planLayouts: [],
     openedPlanLayouts: [],
     publication: undefined,
+    hoveredOverPlanId: undefined,
 };
 
 function getNewIdCollection<TId extends string>(
@@ -345,6 +346,12 @@ export const selectionReducers = {
         { payload: publication }: PayloadAction<PublicationId | undefined>,
     ) => {
         state.publication = publication;
+    },
+    onHoveredOverGeometryPlanChanged: (
+        state: Selection,
+        { payload: planId }: PayloadAction<GeometryPlanId | undefined>,
+    ) => {
+        state.hoveredOverPlanId = planId;
     },
     togglePlanVisibility: (
         state: Selection,

@@ -126,7 +126,7 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                             );
                                         }}
                                     />
-                                    {/*<LayerVisibilitySetting
+                                    <LayerVisibilitySetting
                                         name={t('map-layer-settings.segments-from-plan')}
                                         visible={layer.showSegmentsFromSelectedPlan}
                                         disabled={!layer.visible}
@@ -137,7 +137,7 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                                 visible,
                                             );
                                         }}
-                                    />*/}
+                                    />
                                     <LayerVisibilitySetting
                                         name={t('map-layer-settings.missing-linking')}
                                         visible={layer.showMissingLinking}

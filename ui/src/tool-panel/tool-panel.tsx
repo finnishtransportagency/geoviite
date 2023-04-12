@@ -60,6 +60,7 @@ type ToolPanelProps = {
     setSelectedTabId: (id: string | undefined) => void;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     viewport: MapViewport;
+    onHoverOverGeometryPlanId: (planId: GeometryPlanId | undefined) => void;
 };
 
 type ToolPanelTab = {
@@ -93,6 +94,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     setSelectedTabId,
     startSwitchPlacing,
     viewport,
+    onHoverOverGeometryPlanId,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -173,6 +175,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             onUnselect={onUnselect}
                             referenceLineChangeTime={changeTimes.layoutReferenceLine}
                             viewport={viewport}
+                            onHoverOverGeometryPlanId={onHoverOverGeometryPlanId}
                         />
                     ),
                 };
@@ -282,6 +285,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onDataChange={onDataChange}
                         onUnselect={onUnSelectLocationTracks}
                         viewport={viewport}
+                        onHoverOverGeometryPlanId={onHoverOverGeometryPlanId}
                     />
                 ),
             };

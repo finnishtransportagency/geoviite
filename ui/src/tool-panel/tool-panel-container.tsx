@@ -75,6 +75,7 @@ const ToolPanelContainer: React.FC = () => {
             selectedTabId={store.selectedToolPanelTabId}
             startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
+            onHoverOverGeometryPlanId={delegates.onHoveredOverGeometryPlanChanged}
         />
     );
 };

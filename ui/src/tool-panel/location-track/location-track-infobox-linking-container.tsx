@@ -8,6 +8,7 @@ import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { MapViewport } from 'map/map-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
 
 type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackId: LocationTrackId;
@@ -17,6 +18,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     onUnselect: (track: LayoutLocationTrack) => void;
     onDataChange: () => void;
     viewport: MapViewport;
+    onHoverOverGeometryPlanId: (planId: GeometryPlanId) => void;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
@@ -27,6 +29,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     onUnselect,
     onDataChange,
     viewport,
+    onHoverOverGeometryPlanId,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const dispatch = useTrackLayoutAppDispatch();
     const delegates = createDelegates(dispatch, TrackLayoutActions);
@@ -47,6 +50,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 onUnselect={onUnselect}
                 onSelect={delegates.onSelect}
                 viewport={viewport}
+                onHoverOverGeometryPlanId={onHoverOverGeometryPlanId}
             />
         );
 };

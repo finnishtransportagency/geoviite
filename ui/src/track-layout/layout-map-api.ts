@@ -1,5 +1,5 @@
 import { asyncCache } from 'cache/cache';
-import { AlignmentHighlight, MapTile } from 'map/map-model';
+import { AlignmentHighlight, MapTile, PlanHighlight } from 'map/map-model';
 import { AlignmentId, LocationTrackId, MapAlignment, MapAlignmentType } from './track-layout-model';
 import { API_URI, getIgnoreError, getThrowError, getWithDefault, queryParams } from 'api/api-fetch';
 import { BoundingBox, combineBoundingBoxes, Point } from 'model/geometry';
@@ -66,6 +66,17 @@ export async function getAlignmentSectionsWithoutProfile(
 ): Promise<AlignmentHighlight[] | null> {
     return await getIgnoreError(
         `${mapUri('alignments', publishType)}/without-profile${queryParams({
+            bbox: bboxString(bbox),
+        })}`,
+    );
+}
+
+export async function getAlignmentLinkedPlans(
+    publishType: PublishType,
+    bbox: BoundingBox,
+): Promise<PlanHighlight[] | null> {
+    return await getIgnoreError(
+        `${mapUri('alignments', publishType)}/plans${queryParams({
             bbox: bboxString(bbox),
         })}`,
     );
