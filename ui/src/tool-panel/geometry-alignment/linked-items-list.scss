@@ -2,7 +2,16 @@
 @import '../../vayla-design-lib/colors';
 
 .linked-items-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-column-gap: 4px;
+    grid-row-gap: 4px;
+
     &__list-item {
         padding-bottom: 4px;
+    }
+
+    .alignment-badge {
+        margin-right: 4px;
     }
 }

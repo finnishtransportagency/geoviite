@@ -71,7 +71,7 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
         <InfoboxField
             label={referenceLineName}
             value={
-                <React.Fragment>
+                <div className={styles['linked-items-list']}>
                     {referenceLinesWithoutTrackNumbers?.map((referenceLine) => {
                         const trackNumber = trackNumbers?.find(
                             (t) => t.id === referenceLine.trackNumberId,
@@ -89,7 +89,7 @@ const ReferenceLineNames: React.FC<ReferenceLineNamesProps> = ({
                             )
                         );
                     })}
-                </React.Fragment>
+                </div>
             }
         />
     );
