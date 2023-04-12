@@ -218,7 +218,7 @@ data class GeocodingContext(
         } else null
     }
 
-    fun getTrackLocation(alignment: LayoutAlignment, address: TrackMeter): AddressPoint? {
+    fun getTrackLocation(alignment: IAlignment, address: TrackMeter): AddressPoint? {
         val alignmentStart = alignment.start
         val alignmentEnd = alignment.end
         val startAddress = alignmentStart?.let(::getAddress)?.first
@@ -234,7 +234,7 @@ data class GeocodingContext(
         }
     }
 
-    fun getStartAndEnd(alignment: LayoutAlignment): AlignmentStartAndEnd {
+    fun getStartAndEnd(alignment: IAlignment): AlignmentStartAndEnd {
         val startAddress = alignment.start?.let(::toAddressPoint)
         val endAddress = alignment.end?.let(::toAddressPoint)
         return AlignmentStartAndEnd(startAddress?.first, endAddress?.first)
@@ -322,7 +322,7 @@ fun <T, R : Comparable<R>> getSublistForRangeInOrderedList(
 
 fun getProjectedAddressPoint(
     projection: ProjectionLine,
-    alignment: LayoutAlignment,
+    alignment: IAlignment,
 ): AddressPoint? {
     val segment = getCollisionSegment(projection.projection, alignment)
     val segmentEdges = segment?.let { s -> getPolyLineEdges(s, null, null) }
@@ -421,7 +421,7 @@ private fun validateProjectionLines(
     }
 }
 
-private fun getCollisionSegment(projection: Line, alignment: LayoutAlignment): LayoutSegment? {
+private fun getCollisionSegment(projection: Line, alignment: IAlignment): ISegment? {
     return alignment.segments
         .mapNotNull { s ->
             val intersection = lineIntersection(s.points.first(), s.points.last(), projection.start, projection.end)

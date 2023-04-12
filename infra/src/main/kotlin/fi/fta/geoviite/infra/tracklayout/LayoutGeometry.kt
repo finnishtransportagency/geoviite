@@ -13,7 +13,6 @@ import java.time.Instant
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.min
 
 const val POINT_SEEK_TOLERANCE = 1.0
 
@@ -88,11 +87,13 @@ interface IAlignment {
         else if (m >= length) end
         else getSegmentAtM(m)?.seekPointAtM(m, snapDistance)?.point
 
-    fun getSegmentAtM(m: Double) = segments.getOrNull(segments.binarySearch { s ->
+    fun getSegmentIndexAtM(m: Double) = segments.binarySearch { s ->
         if (m < s.startM) 1
         else if (m > s.endM) -1
         else 0
-    })
+    }
+
+    fun getSegmentAtM(m: Double) = segments.getOrNull(getSegmentIndexAtM(m))
 
     fun findClosestSegmentIndex(target: IPoint): Int? {
         return approximateClosestSegmentIndex(target)?.let { approximation ->

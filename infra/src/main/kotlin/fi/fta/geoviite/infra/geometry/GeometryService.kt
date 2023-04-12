@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
@@ -9,14 +10,13 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.time.Instant
+import kotlin.math.floor
 
 
 @Service
@@ -26,6 +26,8 @@ class GeometryService @Autowired constructor(
     private val coordinateTransformationService: CoordinateTransformationService,
     private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
+    private val planLayoutCache: PlanLayoutCache,
+    private val layoutAlignmentDao: LayoutAlignmentDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -301,6 +303,194 @@ class GeometryService @Autowired constructor(
             trackNumbersMatch(header, trackNumberIds) && freeTextMatches(header, searchTerms)
         }
     }
+
+    private fun collectSegmentSources(alignment: LayoutAlignment): List<SegmentSource> {
+        val planAlignmentIdToPlans: MutableMap<IntId<GeometryAlignment>, RowVersion<GeometryPlan>> = mutableMapOf()
+
+        return alignment.segments.map { segment ->
+            if (segment.sourceId == null || segment.sourceStart == null) {
+                return@map SegmentSource(null, null, null)
+            }
+            val sourceId = segment.sourceId
+            if (sourceId !is IndexedId) {
+                SegmentSource(null, null, null)
+            } else {
+                val planAlignmentId = IntId<GeometryAlignment>(sourceId.parentId)
+                val planVersion =
+                    planAlignmentIdToPlans.computeIfAbsent(planAlignmentId, geometryDao::fetchAlignmentPlanVersion)
+                val plan = geometryDao.fetchPlan(planVersion)
+                val planAlignment = plan.alignments.find { alignment -> alignment.id == planAlignmentId }
+                    ?: return@map SegmentSource(null, null, plan)
+                val planProfile = planAlignment.profile ?: return@map SegmentSource(null, null, plan)
+                val planElement = planAlignment.elements[sourceId.index]
+                SegmentSource(planProfile, planElement, plan)
+            }
+        }
+    }
+
+    fun getLocationTrackHeights(
+        locationTrackId: IntId<LocationTrack>,
+        startDistance: Double,
+        endDistance: Double,
+        tickLength: Int,
+    ): AlignmentHeights? {
+        val locationTrack = locationTrackService.get(OFFICIAL, locationTrackId) ?: return null
+        val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
+        val geocodingContext =
+            geocodingService.getGeocodingContext(OFFICIAL, locationTrack.trackNumberId) ?: return null
+
+        val segmentSources = collectSegmentSources(alignment)
+        val segmentIndexRangesLinkedToSamePlan =
+            rangesOfConsecutiveIndicesWhereEqual(segmentSources.map { source -> source.plan })
+        val linkingSummary = segmentIndexRangesLinkedToSamePlan.map { keyRange ->
+            val startSegment = segmentSources[keyRange.start]
+            PlanLinkingSummaryItem(alignment.segments[keyRange.start].startM,
+                alignment.segments[keyRange.endInclusive].endM,
+                startSegment.plan?.fileName)
+        }
+
+        val planBoundaryAddresses =
+            extractPlanBoundaryAddresses(segmentIndexRangesLinkedToSamePlan, alignment)
+
+        return collectTrackMeterHeights(
+            startDistance,
+            endDistance,
+            geocodingContext,
+            alignment,
+            tickLength,
+            planBoundaryAddresses = planBoundaryAddresses,
+        ) { distance, givenSegmentIndex ->
+            val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(distance)
+            val segment = alignment.segments[segmentIndex]
+            val source = segmentSources[segmentIndex]
+            val distanceInSegment = distance - segment.startM
+            val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
+            val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
+            source.profile?.getHeightAt(distanceInGeometryAlignment)
+        }?.let { trackMeterHeights ->
+            AlignmentHeights(
+                alignmentStartM = alignment.start?.m ?: return null,
+                alignmentEndM = alignment.end?.m ?: return null,
+                kmHeights = trackMeterHeights,
+                linkingSummary = linkingSummary,
+            )
+        }
+    }
+
+    fun getPlanAlignmentHeights(
+        planId: IntId<GeometryPlan>,
+        planAlignmentId: IntId<GeometryAlignment>,
+        startDistance: Double,
+        endDistance: Double,
+        tickLength: Int,
+    ): AlignmentHeights? {
+        val planVersion = geometryDao.fetchPlanVersion(planId)
+        val plan = geometryDao.fetchPlan(planVersion)
+        val geocodingContext =
+            geocodingService.getGeocodingContext(plan.trackNumberId ?: return null, planVersion) ?: return null
+        val geometryAlignment = plan.alignments.find { alignment -> alignment.id == planAlignmentId } ?: return null
+        val profile = geometryAlignment.profile ?: return null
+        val alignment =
+            planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment -> alignment.id == planAlignmentId }
+                ?: return null
+        val alignmentStartM = geometryAlignment.elements[0].staStart.toDouble()
+        val alignmentEndM =
+            (geometryAlignment.elements.last().staStart + geometryAlignment.elements.last().length).toDouble()
+        return collectTrackMeterHeights(
+            startDistance,
+            endDistance,
+            geocodingContext,
+            alignment,
+            tickLength
+        ) { distance, _ -> profile.getHeightAt(distance) }?.let { trackMeterHeights ->
+            AlignmentHeights(
+                alignmentStartM = alignmentStartM,
+                alignmentEndM = alignmentEndM,
+                kmHeights = trackMeterHeights,
+                linkingSummary = listOf(PlanLinkingSummaryItem(alignmentStartM, alignmentEndM, plan.fileName)),
+            )
+        }
+    }
+
+    private fun collectTrackMeterHeights(
+        startDistance: Double,
+        endDistance: Double,
+        geocodingContext: GeocodingContext,
+        alignment: IAlignment,
+        tickLength: Int,
+        planBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
+        getHeightAt: (distance: Double, segmentIndex: Int?) -> Double?,
+    ): List<KmHeights>? {
+        val addressOfStartDistance =
+            geocodingContext.getAddress(alignment.getPointAtM(startDistance) ?: return null)?.first ?: return null
+        val addressOfEndDistance =
+            geocodingContext.getAddress(alignment.getPointAtM(endDistance) ?: return null)?.first ?: return null
+
+        val referencePointIndices =
+            geocodingContext.referencePoints.indexOfFirst { referencePoint -> referencePoint.kmNumber == addressOfStartDistance.kmNumber }..
+                    geocodingContext.referencePoints.indexOfFirst { referencePoint -> referencePoint.kmNumber == addressOfEndDistance.kmNumber }
+
+        val planBoundaryAddressesByKm =
+            planBoundaryAddresses.mapNotNull { boundary ->
+                alignment.getPointAtM(boundary.distanceOnAlignment)?.let { point ->
+                    geocodingContext.getAddress(point)?.let { address -> address.first to boundary.segmentIndex }
+                }
+            }.groupBy(
+                { (trackMeter) -> trackMeter.kmNumber },
+                { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex }
+            )
+
+        val lastAddress = geocodingContext.getStartAndEnd(alignment).end?.address ?: return null
+
+        return referencePointIndices.map { referencePointIndex ->
+            val referencePoint = geocodingContext.referencePoints[referencePointIndex]
+            val kmNumber = referencePoint.kmNumber
+            val referenceLineKmLength = getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext)
+
+            KmHeights(referencePoint.kmNumber,
+                // pairs of (track meter, segment index); most ticks don't need segment indices, but with segment
+                // boundaries, there may be points with the exact same location on both sides, with only one of them
+                // having a height
+                ((0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
+                        + (planBoundaryAddressesByKm[kmNumber] ?: listOf())
+                        // special-case last point so front-end doesn't have to extrapolate heights at track end
+                        + (if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()))
+                    .sortedBy { (trackMeterInKm) -> trackMeterInKm }
+                    .mapNotNull { (trackMeterInKm, segmentIndex) ->
+                        val trackMeter = TrackMeter(kmNumber, trackMeterInKm)
+                        geocodingContext.getTrackLocation(alignment, trackMeter)?.let { address ->
+                            TrackMeterHeight(
+                                address.point.m,
+                                address.address.meters.toDouble(),
+                                getHeightAt(address.point.m, segmentIndex),
+                            )
+                        }
+                    }
+            )
+        }.filter { km -> km.trackMeterHeights.isNotEmpty() }
+    }
+}
+
+private fun getKmLengthAtReferencePointIndex(
+    referencePointIndex: Int,
+    geocodingContext: GeocodingContext,
+): Int = floor(
+    if (referencePointIndex == geocodingContext.referencePoints.size - 1)
+        geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
+    else
+        geocodingContext.referencePoints[referencePointIndex + 1].distance - geocodingContext.referencePoints[referencePointIndex].distance
+).toInt()
+
+private fun extractPlanBoundaryAddresses(
+    segmentIndexRangesLinkedToSamePlan: List<ClosedRange<Int>>,
+    alignment: LayoutAlignment,
+): List<PlanBoundaryPoint> = segmentIndexRangesLinkedToSamePlan.flatMap { keyRange ->
+    val startIndex = keyRange.start
+    val endIndex = keyRange.endInclusive
+    listOf(
+        PlanBoundaryPoint(alignment.segments[startIndex].startM, startIndex),
+        PlanBoundaryPoint(alignment.segments[endIndex].endM, endIndex),
+    )
 }
 
 private fun trackNumbersMatch(
@@ -322,6 +512,24 @@ private fun splitSearchTerms(freeText: FreeText?): List<String> =
         ?.filter(String::isNotBlank)
         ?: listOf()
 
+private fun <T> rangesOfConsecutiveIndicesWhereEqual(things: List<T>): List<ClosedRange<Int>> {
+    if (things.isEmpty()) { return listOf() }
+    val rv: MutableList<ClosedRange<Int>> = mutableListOf()
+    var lastThing = things[0]
+    var currentRangeStart = 0
+    things.forEachIndexed { i, thing ->
+        if (thing != lastThing) {
+            rv.add(currentRangeStart until i)
+            currentRangeStart = i
+            lastThing = thing
+        }
+    }
+    if (currentRangeStart < things.size) {
+        rv.add(currentRangeStart until things.size)
+    }
+    return rv
+}
+
 enum class GeometryPlanSortField {
     ID,
     PROJECT_NAME,
@@ -336,3 +544,14 @@ enum class GeometryPlanSortField {
     LINKED_AT,
     LINKED_BY,
 }
+
+private data class SegmentSource(
+    val profile: GeometryProfile?,
+    val element: GeometryElement?,
+    val plan: GeometryPlan?,
+)
+
+private data class PlanBoundaryPoint(
+    val distanceOnAlignment: Double,
+    val segmentIndex: Int,
+)
