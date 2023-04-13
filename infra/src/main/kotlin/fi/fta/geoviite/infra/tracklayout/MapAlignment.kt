@@ -54,14 +54,14 @@ data class MapSegment(
 
 data class MapSegmentProfileInfo<T>(
     val rowVersion: RowVersion<T>,
-    val alignmentId: IndexedId<LayoutSegment>,
+    val segmentId: IndexedId<LayoutSegment>,
     val hasProfile: Boolean,
 )
 
 data class MapSegmentPlanInfo<T>(
     val rowVersion: RowVersion<T>,
     val trackNumberRowVersion: RowVersion<T>? = null,
-    val alignmentId: IndexedId<LayoutSegment>,
+    val segmentId: IndexedId<LayoutSegment>,
     val planId: IntId<GeometryPlan>,
 )
 

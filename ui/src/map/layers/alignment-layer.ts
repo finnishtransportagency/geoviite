@@ -274,10 +274,10 @@ function createFeatures(
     }
 
     if (showSegmentsFromSelectedPlan && selected) {
-        const asd = segmentsFromPlans.find((ali) => ali.id === alignment.id);
-        if (asd) {
+        const highlights = segmentsFromPlans.find((highlight) => highlight.id === alignment.id);
+        if (highlights) {
             addHighlight(
-                asd.ranges.filter((qwe) => selectedPlan === qwe.planId),
+                highlights.ranges.filter((highlight) => selectedPlan === highlight.planId),
                 segment,
                 features,
                 alignmentBackgroundBlue,

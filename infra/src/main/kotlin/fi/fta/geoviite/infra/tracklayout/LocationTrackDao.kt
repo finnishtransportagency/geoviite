@@ -362,7 +362,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             MapSegmentProfileInfo(
                 rowVersion = rs.getRowVersion("id", "version"),
-                alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
+                segmentId = rs.getIndexedId("alignment_id", "segment_index"),
                 hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
             )
         }
@@ -401,7 +401,7 @@ class LocationTrackDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             MapSegmentPlanInfo(
                 rowVersion = rs.getRowVersion("id", "version"),
-                alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
+                segmentId = rs.getIndexedId("alignment_id", "segment_index"),
                 planId = rs.getIntId("plan_id")
             )
         }

@@ -225,7 +225,7 @@ class LocationTrackService(
                 val (track, alignment) = getWithAlignment(it.key)
                 val ranges = mutableListOf<Range<Double>?>()
                 alignment.segments.forEach { segment ->
-                    val info = it.value.find { info -> info.alignmentId == segment.id }
+                    val info = it.value.find { info -> info.segmentId == segment.id }
                     if (info == null) ranges.add(null)
                     else if (ranges.isEmpty() || ranges.last() == null) ranges.add(Range(segment.startM, segment.endM))
                     else if (ranges.last()!!.max == segment.startM) ranges.set(ranges.lastIndex, Range(ranges.last()!!.min, segment.endM))
@@ -248,7 +248,7 @@ class LocationTrackService(
                 val (track, alignment) = getWithAlignment(it.key)
                 val ranges = mutableListOf<PlanRange?>()
                 alignment.segments.forEach {segment ->
-                    val info = it.value.find { info -> info.alignmentId == segment.id }
+                    val info = it.value.find { info -> info.segmentId == segment.id }
                     if (info == null) ranges.add(null)
                     else if (ranges.isEmpty() || ranges.last() == null || ranges.last()?.planId != info.planId)
                         ranges.add(PlanRange(segment.startM, segment.endM, info.planId))
