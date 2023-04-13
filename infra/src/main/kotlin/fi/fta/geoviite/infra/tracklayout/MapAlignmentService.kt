@@ -80,57 +80,44 @@ class MapAlignmentService(
         logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
         return alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
             .filter { !it.hasProfile }
-            .groupBy { it.id }
+            .groupBy { it.rowVersion }
             .map {
+                val alignment = locationTrackService.getWithAlignment(it.key)
+                val ranges = mutableListOf<Range<Double>?>()
+                alignment.second.segments.forEach { segment ->
+                    val info = it.value.find { info -> info.alignmentId == segment.id }
+                    if (info == null) ranges.add(null)
+                    else if (ranges.isEmpty() || ranges.last() == null) ranges.add(Range(segment.startM, segment.endM))
+                    else if (ranges.last()!!.max == segment.startM) ranges.set(ranges.lastIndex, Range(ranges.last()!!.min, segment.endM))
+                }
                 MapAlignmentHighlight(
-                    id = it.key,
-                    ranges = it.value.fold(mutableMapOf<Int, Range<Double>>()) { acc, info ->
-                        if (!acc.contains(info.alignmentId.index - 1)) acc.put(
-                            info.alignmentId.index,
-                            Range(info.points.first().m + info.segmentStart, info.points.last().m + info.segmentStart)
-                        )
-                        else {
-                            val prev = acc.remove(info.alignmentId.index - 1)
-                            prev?.let {
-                                acc.put(
-                                    info.alignmentId.index,
-                                    Range(prev.min, info.points.last().m + info.segmentStart)
-                                )
-                            }
-                        }
-                        acc
-                    }.values.toList()
-            ) }
+                    id = it.key.id,
+                    ranges = ranges.filterNotNull()
+                )
+            }
     }
 
     fun getSectionsByPlans(
         publishType: PublishType,
-        bbox: BoundingBox,
+        ids: List<IntId<LocationTrack>>
     ): List<MapAlignmentPlanHighlight<LocationTrack>> {
-        logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
-        return alignmentDao.fetchPlanInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
-            .groupBy { it.id }
+        logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "ids" to ids)
+        return alignmentDao.fetchPlanInfoForSegmentsInBoundingBox<LocationTrack>(publishType, ids)
+            .groupBy { it.rowVersion }
             .mapNotNull {
-                val ranges = it.value.fold(mutableMapOf<Int, PlanRange?>()) { acc, info ->
-                    val prevIndex = info.alignmentId.index - 1
-                    if (!acc.contains(prevIndex) || acc.get(prevIndex)?.planId != info.planId) acc.put(
-                        info.alignmentId.index,
-                        PlanRange(info.points.first().m + info.segmentStart, info.points.last().m + info.segmentStart, info.planId)
-                    )
-                    else {
-                        val prev = acc.remove(prevIndex)
-                        prev?.let {
-                            acc.put(
-                                info.alignmentId.index,
-                                PlanRange(prev.min, info.points.last().m + info.segmentStart, info.planId)
-                            )
-                        }
-                    }
-                    acc
-                }.values.filterNotNull().toList()
+                val alignment = locationTrackService.getWithAlignment(it.key)
+                val ranges = mutableListOf<PlanRange?>()
+                alignment.second.segments.forEach {segment ->
+                    val info = it.value.find { info -> info.alignmentId == segment.id }
+                    if (info == null) ranges.add(null)
+                    else if (ranges.isEmpty() || ranges.last() == null || ranges.last()?.planId != info.planId)
+                        ranges.add(PlanRange(segment.startM, segment.endM, info.planId))
+                    else
+                        ranges.set(ranges.lastIndex, PlanRange(ranges.last()!!.min, segment.endM, info.planId))
+                }
                 MapAlignmentPlanHighlight(
-                    id = it.key,
-                    ranges = ranges
+                    id = it.key.id,
+                    ranges = ranges.filterNotNull()
                 ) }
     }
 

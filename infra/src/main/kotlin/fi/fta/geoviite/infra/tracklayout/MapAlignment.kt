@@ -53,18 +53,14 @@ data class MapSegment(
 ): ISegment, ISegmentGeometry by geometry
 
 data class MapSegmentProfileInfo<T>(
-    val id: IntId<T>,
+    val rowVersion: RowVersion<T>,
     val alignmentId: IndexedId<LayoutSegment>,
-    val points: List<LayoutPoint>,
-    val segmentStart: Double,
     val hasProfile: Boolean,
 )
 
 data class MapSegmentPlanInfo<T>(
-    val id: IntId<T>,
+    val rowVersion: RowVersion<T>,
     val alignmentId: IndexedId<LayoutSegment>,
-    val points: List<LayoutPoint>,
-    val segmentStart: Double,
     val planId: IntId<GeometryPlan>,
 )
 

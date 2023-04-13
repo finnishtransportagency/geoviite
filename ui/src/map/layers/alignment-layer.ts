@@ -637,10 +637,7 @@ adapterInfoRegister.add('alignment', {
                 : Promise.resolve<AlignmentHighlight[]>([]);
         const alignmentSectionsFromPlans =
             mapLayer.showSegmentsFromSelectedPlan && resolution <= Limits.ALL_ALIGNMENTS
-                ? getAlignmentLinkedPlans(
-                      publishType,
-                      combineBoundingBoxes(mapTiles.map((tile) => tile.area)),
-                  )
+                ? getAlignmentLinkedPlans(publishType, selection.selectedItems.locationTracks)
                 : Promise.resolve<PlanHighlight[]>([]);
         Promise.all([
             alignmentsFetch,

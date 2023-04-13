@@ -404,10 +404,9 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         val sql = """
             select
               location_track.id,
+              location_track.version,
               segment_version.alignment_id,
               segment_version.segment_index,
-              segment_version.start,
-              postgis.st_astext(segment_geometry.geometry) as geometry_wkt,
               plan.vertical_coordinate_system
               from layout.location_track
                 inner join layout.segment_version on
@@ -435,24 +434,23 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             MapSegmentProfileInfo(
-                id = rs.getIntId("id"),
+                rowVersion = rs.getRowVersion("id", "version"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
-                points = getSegmentPoints(rs, "geometry_wkt"),
-                segmentStart = rs.getDouble("start"),
                 hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
             )
         }
     }
 
-    fun <T>fetchPlanInfoForSegmentsInBoundingBox(publishType: PublishType, bbox: BoundingBox): List<MapSegmentPlanInfo<T>> {
+    fun <T>fetchPlanInfoForSegmentsInBoundingBox(publishType: PublishType, ids: List<IntId<LocationTrack>>): List<MapSegmentPlanInfo<T>> {
+        if (ids.isEmpty()) return emptyList()
+
         //language=SQL
         val sql = """
             select
-              location_track.id,
               segment_version.alignment_id,
               segment_version.segment_index,
-              segment_version.start,
-              postgis.st_astext(segment_geometry.geometry) as geometry_wkt,
+              location_track.id,
+              location_track.version,
               alignment.plan_id
               from layout.location_track
                 inner join layout.segment_version on
@@ -460,29 +458,20 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                     location_track.alignment_version = segment_version.alignment_version
                 inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
                 inner join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
-              where postgis.st_intersects(
-                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                  segment_geometry.bounding_box
-                )
+              where location_track.id in (:ids)
                 and location_track.draft = :is_draft
-              order by segment_version.segment_index
+              order by alignment_id, segment_index
         """.trimIndent()
 
         val params = mapOf(
-            "x_min" to bbox.min.x,
-            "y_min" to bbox.min.y,
-            "x_max" to bbox.max.x,
-            "y_max" to bbox.max.y,
-            "layout_srid" to LAYOUT_SRID.code,
+            "ids" to ids.map { it.intValue },
             "is_draft" to (publishType == PublishType.DRAFT)
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             MapSegmentPlanInfo(
-                id = rs.getIntId("id"),
+                rowVersion = rs.getRowVersion<T>("id", "version"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
-                points = getSegmentPoints(rs, "geometry_wkt"),
-                segmentStart = rs.getDouble("start"),
                 planId = rs.getIntId("plan_id")
             )
         }

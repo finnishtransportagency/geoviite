@@ -73,11 +73,11 @@ export async function getAlignmentSectionsWithoutProfile(
 
 export async function getAlignmentLinkedPlans(
     publishType: PublishType,
-    bbox: BoundingBox,
+    ids: LocationTrackId[],
 ): Promise<PlanHighlight[] | null> {
     return await getIgnoreError(
         `${mapUri('alignments', publishType)}/plans${queryParams({
-            bbox: bboxString(bbox),
+            ids,
         })}`,
     );
 }

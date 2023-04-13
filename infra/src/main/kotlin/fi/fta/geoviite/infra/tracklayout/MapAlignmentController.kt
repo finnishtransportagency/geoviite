@@ -56,14 +56,14 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     @GetMapping("/{publishType}/alignments/plans")
     fun getSectionsByPlans(
         @PathVariable("publishType") publishType: PublishType,
-        @RequestParam("bbox") bbox: BoundingBox,
+        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<MapAlignmentPlanHighlight<*>> {
         logger.apiCall(
             "getSectionsByPlans",
             "publishType" to publishType,
-            "bbox" to bbox,
+            "ids" to ids,
         )
-        return mapAlignmentService.getSectionsByPlans(publishType, bbox)
+        return mapAlignmentService.getSectionsByPlans(publishType, ids)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
