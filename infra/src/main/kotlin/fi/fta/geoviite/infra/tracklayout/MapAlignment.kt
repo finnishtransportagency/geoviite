@@ -60,6 +60,7 @@ data class MapSegmentProfileInfo<T>(
 
 data class MapSegmentPlanInfo<T>(
     val rowVersion: RowVersion<T>,
+    val trackNumberRowVersion: RowVersion<T>? = null,
     val alignmentId: IndexedId<LayoutSegment>,
     val planId: IntId<GeometryPlan>,
 )

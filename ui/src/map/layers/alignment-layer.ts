@@ -26,11 +26,7 @@ import {
     simplifySegments,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import {
-    getAlignmentLinkedPlans,
-    getAlignmentsByTiles,
-    getAlignmentSectionsWithoutProfile,
-} from 'track-layout/layout-map-api';
+import { getAlignmentsByTiles } from 'track-layout/layout-map-api';
 import {
     addBbox,
     getMatchingSegmentDatas,
@@ -53,6 +49,10 @@ import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { combineBoundingBoxes, Range } from 'model/geometry';
+import {
+    getLocationTrackPlanSections,
+    getTrackSectionsWithoutProfile,
+} from 'track-layout/layout-location-track-api';
 
 export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
 
@@ -630,14 +630,14 @@ adapterInfoRegister.add('alignment', {
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
         const alignmentSectionsWithoutProfile =
             mapLayer.showMissingVerticalGeometry && resolution <= Limits.ALL_ALIGNMENTS
-                ? getAlignmentSectionsWithoutProfile(
+                ? getTrackSectionsWithoutProfile(
                       publishType,
                       combineBoundingBoxes(mapTiles.map((tile) => tile.area)),
                   )
                 : Promise.resolve<AlignmentHighlight[]>([]);
         const alignmentSectionsFromPlans =
             mapLayer.showSegmentsFromSelectedPlan && resolution <= Limits.ALL_ALIGNMENTS
-                ? getAlignmentLinkedPlans(publishType, selection.selectedItems.locationTracks)
+                ? getLocationTrackPlanSections(publishType, selection.selectedItems.locationTracks)
                 : Promise.resolve<PlanHighlight[]>([]);
         Promise.all([
             alignmentsFetch,

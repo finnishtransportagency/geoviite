@@ -91,6 +91,34 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/without-profile")
+    fun getSectionsWithoutProfile(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<MapAlignmentHighlight<*>> {
+        logger.apiCall(
+            "getSectionsWithoutProfile",
+            "publishType" to publishType,
+            "bbox" to bbox,
+        )
+        return locationTrackService.getSectionsWithoutProfile(publishType, bbox)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/{publishType}/plan-sections")
+    fun getSectionsByPlans(
+        @PathVariable("publishType") publishType: PublishType,
+        @RequestParam("ids") ids: List<IntId<LocationTrack>>,
+    ): List<MapAlignmentPlanHighlight<*>> {
+        logger.apiCall(
+            "getSectionsByPlans",
+            "publishType" to publishType,
+            "ids" to ids,
+        )
+        return locationTrackService.getPlanSections(publishType, ids)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("{publishType}/end-points")
     fun getLocationTrackAlignmentEndpoints(
         @PathVariable("publishType") publishType: PublishType,

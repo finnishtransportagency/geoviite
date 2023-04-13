@@ -10,10 +10,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
-import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.stereotype.Service
@@ -213,6 +210,55 @@ class LocationTrackService(
             "publishType" to publishType, "bbox" to bbox
         )
         return dao.fetchVersionsNear(publishType, bbox).map(::getWithAlignmentInternal)
+    }
+
+
+    fun getSectionsWithoutProfile(
+        publishType: PublishType,
+        bbox: BoundingBox,
+    ): List<MapAlignmentHighlight<LocationTrack>> {
+        logger.serviceCall("getSectionsWithoutProfile", "publishType" to publishType, "bbox" to bbox)
+        return dao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(publishType, bbox)
+            .filter { !it.hasProfile }
+            .groupBy { it.rowVersion }
+            .map {
+                val (track, alignment) = getWithAlignment(it.key)
+                val ranges = mutableListOf<Range<Double>?>()
+                alignment.segments.forEach { segment ->
+                    val info = it.value.find { info -> info.alignmentId == segment.id }
+                    if (info == null) ranges.add(null)
+                    else if (ranges.isEmpty() || ranges.last() == null) ranges.add(Range(segment.startM, segment.endM))
+                    else if (ranges.last()!!.max == segment.startM) ranges.set(ranges.lastIndex, Range(ranges.last()!!.min, segment.endM))
+                }
+                MapAlignmentHighlight(
+                    id = track.id as IntId,
+                    ranges = ranges.filterNotNull()
+                )
+            }
+    }
+
+    fun getPlanSections(
+        publishType: PublishType,
+        ids: List<IntId<LocationTrack>>
+    ): List<MapAlignmentPlanHighlight<LocationTrack>> {
+        logger.serviceCall("getPlanSections", "publishType" to publishType, "ids" to ids)
+        return dao.fetchPlanInfo(publishType, ids)
+            .groupBy { it.rowVersion }
+            .mapNotNull {
+                val (track, alignment) = getWithAlignment(it.key)
+                val ranges = mutableListOf<PlanRange?>()
+                alignment.segments.forEach {segment ->
+                    val info = it.value.find { info -> info.alignmentId == segment.id }
+                    if (info == null) ranges.add(null)
+                    else if (ranges.isEmpty() || ranges.last() == null || ranges.last()?.planId != info.planId)
+                        ranges.add(PlanRange(segment.startM, segment.endM, info.planId))
+                    else
+                        ranges.set(ranges.lastIndex, PlanRange(ranges.last()!!.min, segment.endM, info.planId))
+                }
+                MapAlignmentPlanHighlight(
+                    id = track.id as IntId,
+                    ranges = ranges.filterNotNull()
+                ) }
     }
 
     @Transactional(readOnly = true)

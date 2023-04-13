@@ -29,7 +29,7 @@ import {
     updateAllChangeTimes,
     updateLocationTrackChangeTime,
 } from 'common/change-time-api';
-import { MapTile } from 'map/map-model';
+import { AlignmentHighlight, MapTile, PlanHighlight } from 'map/map-model';
 import { isNullOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
@@ -224,5 +224,27 @@ export async function getLocationTrackValidation(
 ): Promise<ValidatedAsset> {
     return getThrowError<ValidatedAsset>(
         `${layoutUri('location-tracks', publishType, id)}/validation`,
+    );
+}
+
+export async function getTrackSectionsWithoutProfile(
+    publishType: PublishType,
+    bbox: BoundingBox,
+): Promise<AlignmentHighlight[] | null> {
+    return await getIgnoreError(
+        `${layoutUri('location-tracks', publishType)}/without-profile${queryParams({
+            bbox: bboxString(bbox),
+        })}`,
+    );
+}
+
+export async function getLocationTrackPlanSections(
+    publishType: PublishType,
+    ids: LocationTrackId[],
+): Promise<PlanHighlight[] | null> {
+    return await getIgnoreError(
+        `${layoutUri('location-tracks', publishType)}/plan-sections${queryParams({
+            ids,
+        })}`,
     );
 }
