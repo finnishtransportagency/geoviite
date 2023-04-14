@@ -17,7 +17,7 @@ const trackLayoutPersistConfig = {
     key: 'rootTracklayout',
     storage,
 };
-// Wrap combined reducers to handle root level state
+
 const trackLayoutAppLevelReducer: typeof trackLayoutReducer = (state, action) => {
     if (action.type == RESET_STORE_ACTION.type) {
         // Reset to initial state
