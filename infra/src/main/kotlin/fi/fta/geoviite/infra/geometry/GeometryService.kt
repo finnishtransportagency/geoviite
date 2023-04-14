@@ -308,11 +308,8 @@ class GeometryService @Autowired constructor(
         val planAlignmentIdToPlans: MutableMap<IntId<GeometryAlignment>, RowVersion<GeometryPlan>> = mutableMapOf()
 
         return alignment.segments.map { segment ->
-            if (segment.sourceId == null || segment.sourceStart == null) {
-                return@map SegmentSource(null, null, null)
-            }
             val sourceId = segment.sourceId
-            if (sourceId !is IndexedId) {
+            if (sourceId == null || sourceId !is IndexedId || segment.sourceStart == null) {
                 SegmentSource(null, null, null)
             } else {
                 val planAlignmentId = IntId<GeometryAlignment>(sourceId.parentId)
