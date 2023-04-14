@@ -28,6 +28,7 @@ class GeometryService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val planLayoutCache: PlanLayoutCache,
     private val layoutAlignmentDao: LayoutAlignmentDao,
+    private val switchService: LayoutSwitchService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -161,7 +162,12 @@ class GeometryService @Autowired constructor(
         val context = plan.trackNumberId?.let { tnId ->
             geocodingService.getGeocodingContext(tnId, planVersion)
         }
-        return toElementListing(context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes)
+        return toElementListing(
+            context,
+            coordinateTransformationService::getLayoutTransformation,
+            plan,
+            elementTypes
+        ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
     }
 
     fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): Pair<FileName, ByteArray> {
@@ -193,7 +199,7 @@ class GeometryService @Autowired constructor(
             startAddress,
             endAddress,
             ::getHeaderAndAlignment,
-        )
+        ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
     }
 
     fun getElementListingCsv(

@@ -6,6 +6,7 @@ import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordina
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import styles from '../data-product-table.scss';
+import { TFunction, useTranslation } from 'react-i18next';
 
 export type ElementTableItemProps = {
     id: string;
@@ -31,7 +32,23 @@ export type ElementTableItemProps = {
     coordinateSystem: CoordinateSystem | undefined;
     planId: GeometryPlanId;
     showLocationTrackName: boolean;
+    connectedSwitchName: string | undefined;
+    isPartial: boolean;
 };
+
+const remarks = (
+    t: TFunction<'translation', undefined>,
+    connectedSwitchName: string | undefined,
+    isPartial: boolean,
+) =>
+    [
+        connectedSwitchName !== null
+            ? t('data-products.element-list.remarks.connected-to-switch', {
+                  switchName: connectedSwitchName,
+              })
+            : undefined,
+        isPartial ? t('data-products.element-list.remarks.is-partial') : undefined,
+    ].filter((remark) => remark !== undefined);
 
 export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     trackNumber,
@@ -56,7 +73,10 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     coordinateSystem,
     planId,
     showLocationTrackName,
+    connectedSwitchName,
+    isPartial,
 }) => {
+    const { t } = useTranslation();
     return (
         <React.Fragment>
             <tr>
@@ -108,6 +128,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                     <PlanNameLink planId={planId} planName={plan} />
                 </td>
                 <td>{source}</td>
+                <td>{remarks(t, connectedSwitchName, isPartial).join(', ')}</td>
             </tr>
         </React.Fragment>
     );

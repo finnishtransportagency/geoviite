@@ -276,6 +276,8 @@ export type ElementItem = {
     trackNumberId: LayoutTrackNumberId;
     trackNumberDescription: string;
     coordinateSystemName: string;
+    connectedSwitchName: string;
+    isPartial: boolean;
 };
 
 type LinearSection = {
