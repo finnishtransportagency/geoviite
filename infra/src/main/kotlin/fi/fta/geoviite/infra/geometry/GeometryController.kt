@@ -253,4 +253,26 @@ class GeometryController @Autowired constructor(
             .getVerticalGeometryListingCsv(id, startAddress, endAddress)
         return toFileDownloadResponse("${filename}.csv", content)
     }
-}
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/{planId}/plan-alignment-heights/{planAlignmentId}")
+    fun getPlanAlignmentHeights(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
+        @RequestParam("startDistance") startDistance: Double,
+        @RequestParam("endDistance") endDistance: Double,
+        @RequestParam("tickLength") tickLength: Int,
+    ): AlignmentHeights? {
+        return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/layout/location-tracks/{id}/alignment-heights")
+    fun getLayoutAlignmentHeights(
+        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
+        @RequestParam("startDistance") startDistance: Double,
+        @RequestParam("endDistance") endDistance: Double,
+        @RequestParam("tickLength") tickLength: Int,
+    ): AlignmentHeights? {
+        return geometryService.getLocationTrackHeights(locationTrackId, startDistance, endDistance, tickLength)
+    }}
