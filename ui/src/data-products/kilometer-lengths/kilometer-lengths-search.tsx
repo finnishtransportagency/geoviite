@@ -5,7 +5,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown, DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
 import { KmLengthsSearchState } from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
@@ -23,12 +23,14 @@ type KilometerLengthsSearchProps = {
         propEdit: PropEdit<KmLengthsSearchState, TKey>,
     ) => void;
     setLengths: (lengths: LayoutKmPostLengthDetails[]) => void;
+    setLoading: (isLoading: boolean) => void;
 };
 
 export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     state,
     onUpdateProp,
     setLengths,
+    setLoading,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -54,13 +56,19 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
         });
     }
 
+    const [kmLengths, fetchStatus] = useLoaderWithStatus(
+        () =>
+            state.trackNumber
+                ? getKmPostLengths('OFFICIAL', state.trackNumber.id)
+                : Promise.resolve([]),
+        [state.trackNumber],
+    );
     React.useEffect(() => {
-        if (state.trackNumber) {
-            getKmPostLengths('OFFICIAL', state.trackNumber.id).then((kmPosts) => {
-                setLengths(kmPosts);
-            });
-        } else setLengths([]);
-    }, [state.trackNumber]);
+        setLengths(kmLengths ?? []);
+    }, [kmLengths]);
+    React.useEffect(() => {
+        setLoading(fetchStatus !== LoaderStatus.Ready);
+    }, [fetchStatus]);
 
     return (
         <div className={styles['data-products__search']}>

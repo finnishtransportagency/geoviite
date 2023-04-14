@@ -306,4 +306,6 @@ export type VerticalGeometryItem = {
     linearSectionBackward: LinearSection;
     linearSectionForward: LinearSection;
     locationTrackName: string;
+    overlapsAnother: boolean;
+    verticalCoordinateSystem: VerticalCoordinateSystem | null;
 };

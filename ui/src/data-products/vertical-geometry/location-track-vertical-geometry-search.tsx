@@ -15,7 +15,7 @@ import {
     getLocationTrackVerticalGeometry,
     getLocationTrackVerticalGeometryCsv,
 } from 'geometry/geometry-api';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import {
@@ -35,13 +35,14 @@ type LocationTrackVerticalGeometrySearchProps = {
         key: TKey,
     ) => void;
     setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
+    setLoading: (loading: boolean) => void;
 };
 
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackVerticalGeometry, 250);
 
 export const LocationTrackVerticalGeometrySearch: React.FC<
     LocationTrackVerticalGeometrySearchProps
-> = ({ state, onCommitField, onUpdateProp, setVerticalGeometry }) => {
+> = ({ state, onCommitField, onUpdateProp, setVerticalGeometry, setLoading }) => {
     const { t } = useTranslation();
     const getLocationTracks = React.useCallback(
         (searchTerm) =>
@@ -62,7 +63,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         });
     }
 
-    const verticalGeometries = useLoader(() => {
+    const [verticalGeometries, fetchStatus] = useLoaderWithStatus(() => {
         if (!state.searchParameters.locationTrack) {
             return Promise.resolve([]);
         }
@@ -80,6 +81,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
         );
     }, [state.searchParameters]);
     React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
+    React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);
 
     return (
         <React.Fragment>
@@ -98,7 +100,6 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             searchable
                             onChange={(e) => updateProp('locationTrack', e)}
                             onBlur={() => onCommitField('locationTrack')}
-                            canUnselect={true}
                             unselectText={t('data-products.search.not-selected')}
                             wideList
                             wide

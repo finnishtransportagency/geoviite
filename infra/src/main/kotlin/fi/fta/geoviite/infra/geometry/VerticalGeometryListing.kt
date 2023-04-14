@@ -68,6 +68,8 @@ data class VerticalGeometryListing(
     val tangent: BigDecimal?,
     val linearSectionForward: LinearSection,
     val linearSectionBackward: LinearSection,
+    val overlapsAnother: Boolean,
+    val verticalCoordinateSystem: VerticalCoordinateSystem?,
 )
 
 fun toVerticalGeometryListing(
@@ -110,7 +112,8 @@ fun toVerticalGeometryListing(
                 curvedSegments,
                 linearSegments,
                 segmentStartAddress,
-                segmentEndAddress
+                segmentEndAddress,
+                planHeader.units.verticalCoordinateSystem
             )
         }
     }.flatten()
@@ -136,7 +139,7 @@ fun toVerticalGeometryListing(
         .distinct()
         .associateWith(getPlanHeaderAndAlignment)
 
-    return linkedElementIds.flatMap { elementId ->
+    val listing = linkedElementIds.flatMap { elementId ->
         val (planHeader, geometryAlignment) = headersAndAlignments.getValue(getAlignmentId(elementId))
         val elementRange = Range(geometryAlignment.getElementStationRangeWithinAlignment(elementId))
 
@@ -160,6 +163,17 @@ fun toVerticalGeometryListing(
             else null
         } ?: emptyList()
     }.distinctBy { it.first }.map { it.second }
+
+    return listing.map { entry ->
+        entry.copy(overlapsAnother = listing.filter { overlapCandidate ->
+            entry.start.address != null &&
+            entry.end.address != null &&
+            overlapCandidate.start.address != null &&
+            overlapCandidate.end.address != null &&
+            entry.start.address <= overlapCandidate.end.address &&
+            entry.end.address >= overlapCandidate.start.address
+        }.size > 1)
+    }
 }
 
 private fun toVerticalGeometry(
@@ -204,7 +218,8 @@ private fun toVerticalGeometry(
         curvedProfileSegments,
         linearProfileSegments,
         segmentStartAddress,
-        segmentEndAddress
+        segmentEndAddress,
+        planHeader.units.verticalCoordinateSystem
     )
 }
 
@@ -221,9 +236,15 @@ fun toVerticalGeometryListing(
     linearSegments: List<LinearProfileSegment>,
     segmentStartAddress: TrackMeter?,
     segmentEndAddress: TrackMeter?,
+    verticalCoordinateSystem: VerticalCoordinateSystem?,
     ): VerticalGeometryListing {
     val stationPoint = circCurveStationPoint(segment)
-    val stationPointAddress = if (geocodingContext != null && coordinateTransform != null) getTrackAddressAtStation(geocodingContext, coordinateTransform, alignment, stationPoint.x) else null
+    val stationPointAddress = if (geocodingContext != null && coordinateTransform != null) getTrackAddressAtStation(
+        geocodingContext,
+        coordinateTransform,
+        alignment,
+        stationPoint.x
+    ) else null
 
     return VerticalGeometryListing(
         id = StringId("${alignment.id}_${segment.start.x}"),
@@ -254,6 +275,8 @@ fun toVerticalGeometryListing(
         tangent = lineLength(segment.start, stationPoint).let(::roundTo3Decimals),
         linearSectionBackward = previousLinearSection(segment, curvedSegments, linearSegments),
         linearSectionForward = nextLinearSection(segment, curvedSegments, linearSegments),
+        verticalCoordinateSystem = verticalCoordinateSystem,
+        overlapsAnother = false,
     )
 }
 
@@ -329,6 +352,8 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_START)) { it.start.station },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_POINT)) { it.point.station },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_END)) { it.end.station },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.VERTICAL_COORDINATE_SYSTEM)) { it.verticalCoordinateSystem },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.REMARKS)) { if (it.overlapsAnother) VERTICAL_SECTIONS_OVERLAP else UNKNOWN }
 )
 
 fun previousLinearSection(

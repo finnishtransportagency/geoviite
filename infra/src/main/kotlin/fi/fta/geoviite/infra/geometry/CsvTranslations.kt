@@ -2,6 +2,8 @@ package fi.fta.geoviite.infra.geometry
 
 const val ELEMENT_LISTING = "Elementtilistaus"
 const val VERTICAL_GEOMETRY = "Pystygeometria"
+const val VERTICAL_SECTIONS_OVERLAP = "Kaltevuusjakso on limittäin toisen jakson kanssa"
+const val UNKNOWN = "Ei tiedossa"
 
 enum class ElementListingHeader {
     TRACK_NUMBER,
@@ -81,6 +83,8 @@ enum class VerticalGeometryListingHeader {
     LINEAR_SECTION_FORWARD_LINEAR_SECTION,
     LINEAR_SECTION_BACKWARD_LENGTH,
     LINEAR_SECTION_BACKWARD_LINEAR_SECTION,
+    VERTICAL_COORDINATE_SYSTEM,
+    REMARKS,
 }
 
 fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader) =
@@ -105,4 +109,6 @@ fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader
         VerticalGeometryListingHeader.LINEAR_SECTION_FORWARD_LINEAR_SECTION -> "Kaltevuusjakson eteenpäin suora osa"
         VerticalGeometryListingHeader.RADIUS -> "Pyöristyssäde"
         VerticalGeometryListingHeader.TANGENT -> "Tangentti"
+        VerticalGeometryListingHeader.VERTICAL_COORDINATE_SYSTEM -> "Korkeusjärjestelmä"
+        VerticalGeometryListingHeader.REMARKS -> "Huomiot"
     }

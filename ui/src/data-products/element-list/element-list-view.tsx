@@ -10,10 +10,11 @@ import { ElementTable } from 'data-products/element-list/element-table';
 import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
 
 const ElementListView = () => {
+    const { t } = useTranslation();
     const rootDispatch = useDataProductsAppDispatch();
     const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.dataProducts.elementList);
-    const { t } = useTranslation();
+    const [loading, setLoading] = React.useState(false);
     const continuousGeometrySelected = state.selectedSearch === 'LOCATION_TRACK';
 
     const handleRadioClick = () => {
@@ -42,12 +43,14 @@ const ElementListView = () => {
                         onUpdateProp={dataProductsDelegates.onUpdateLocationTrackSearchProp}
                         onCommitField={dataProductsDelegates.onCommitLocationTrackSearchField}
                         setElements={dataProductsDelegates.onSetLocationTrackElements}
+                        setLoading={setLoading}
                     />
                 ) : (
                     <PlanGeometryElementListingSearch
                         state={state.planSearch}
                         onUpdateProp={dataProductsDelegates.onUpdatePlanSearchProp}
                         setElements={dataProductsDelegates.onSetPlanElements}
+                        setLoading={setLoading}
                     />
                 )}
             </div>
@@ -58,6 +61,7 @@ const ElementListView = () => {
                         : state.planSearch.elements
                 }
                 showLocationTrackName={continuousGeometrySelected}
+                isLoading={loading}
             />
         </div>
     );

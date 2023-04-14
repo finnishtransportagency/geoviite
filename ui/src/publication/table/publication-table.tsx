@@ -62,7 +62,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                 </span>
             </div>
             <div className={styles['publication-table__table-container']}>
-                <Table wide>
+                <Table wide isLoading={isLoading}>
                     <thead className={styles['publication-table__table-header']}>
                         <tr>
                             {sortableTableHeader(
@@ -115,7 +115,6 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                         ))}
                     </tbody>
                 </Table>
-                {isLoading && <div className={styles['publication-table__backdrop']} />}
             </div>
         </div>
     );

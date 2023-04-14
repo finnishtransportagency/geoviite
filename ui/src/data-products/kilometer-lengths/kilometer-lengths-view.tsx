@@ -10,10 +10,11 @@ import { KmNumber } from 'common/common-model';
 import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
 
 export const KilometerLengthsView = () => {
+    const { t } = useTranslation();
     const rootDispatch = useDataProductsAppDispatch();
     const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.dataProducts.kmLenghts);
-    const { t } = useTranslation();
+    const [loading, setLoading] = React.useState(false);
 
     const startIndex = state.startKm ? findIndex(state.startKm, state.kmLengths) : 0;
     const endIndex = state.endKm
@@ -32,9 +33,10 @@ export const KilometerLengthsView = () => {
                     setLengths={dataProductsDelegates.onSetKmLengths}
                     state={state}
                     onUpdateProp={dataProductsDelegates.onUpdateKmLengthsSearchProp}
+                    setLoading={setLoading}
                 />
             </div>
-            <KilometerLengthsTable kmLengths={kmLengths} />
+            <KilometerLengthsTable kmLengths={kmLengths} isLoading={loading} />
         </div>
     );
 };

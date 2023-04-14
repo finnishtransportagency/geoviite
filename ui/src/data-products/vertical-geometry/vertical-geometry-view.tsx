@@ -13,6 +13,7 @@ const VerticalGeometryView = () => {
     const rootDispatch = useDataProductsAppDispatch();
     const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.dataProducts.verticalGeometry);
+    const [loading, setLoading] = React.useState(false);
 
     const { t } = useTranslation();
     const locationTrackSelected = state.selectedSearch === 'LOCATION_TRACK';
@@ -49,12 +50,14 @@ const VerticalGeometryView = () => {
                         setVerticalGeometry={
                             dataProductsDelegates.onSetLocationTrackVerticalGeometry
                         }
+                        setLoading={setLoading}
                     />
                 ) : (
                     <PlanVerticalGeometrySearch
                         state={state.planSearch}
                         onUpdateProp={dataProductsDelegates.onUpdatePlanVerticalGeometrySearchProp}
                         setVerticalGeometry={dataProductsDelegates.onSetPlanVerticalGeometry}
+                        setLoading={setLoading}
                     />
                 )}
             </div>
@@ -65,6 +68,7 @@ const VerticalGeometryView = () => {
                         : state.planSearch.verticalGeometry
                 }
                 showLocationTrack={state.selectedSearch === 'LOCATION_TRACK'}
+                isLoading={loading}
             />
         </div>
     );

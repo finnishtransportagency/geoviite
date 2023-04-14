@@ -5,6 +5,7 @@ import { IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
 
 export type TableProps = {
     wide?: boolean;
+    isLoading?: boolean;
 } & React.HTMLProps<HTMLTableElement>;
 
 export const Table: React.FC<TableProps> = (props: TableProps) => {
@@ -13,7 +14,12 @@ export const Table: React.FC<TableProps> = (props: TableProps) => {
         styles.table,
         props.wide && styles['table--wide'],
     );
-    return <table className={className}>{props.children}</table>;
+    return (
+        <div className={styles['table__container']}>
+            <table className={className}>{props.children}</table>
+            {props.isLoading && <div className={styles['table--loading']} />}
+        </div>
+    );
 };
 
 export enum TdVariant {

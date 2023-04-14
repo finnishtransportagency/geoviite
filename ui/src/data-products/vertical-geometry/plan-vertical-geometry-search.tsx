@@ -13,7 +13,7 @@ import {
 import { PlanVerticalGeometrySearchState } from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
 import { debounceAsync } from 'utils/async-utils';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import {
     debouncedGetGeometryPlanHeaders,
     getGeometryPlanOptions,
@@ -27,6 +27,7 @@ type PlanVerticalGeometrySearchProps = {
         propEdit: PropEdit<PlanVerticalGeometrySearchState, TKey>,
     ) => void;
     setVerticalGeometry: (verticalGeometry: VerticalGeometryItem[]) => void;
+    setLoading: (loading: boolean) => void;
 };
 
 const debouncedGetPlanVerticalGeometry = debounceAsync(getGeometryPlanVerticalGeometry, 250);
@@ -35,6 +36,7 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
     state,
     onUpdateProp,
     setVerticalGeometry,
+    setLoading,
 }) => {
     const { t } = useTranslation();
     // Use memoized function to make debouncing functionality work when re-rendering
@@ -62,10 +64,11 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
         updateProp('plan', undefined);
     };
 
-    const verticalGeometries = useLoader(() => {
+    const [verticalGeometries, fetchStatus] = useLoaderWithStatus(() => {
         return !state.plan ? Promise.resolve([]) : debouncedGetPlanVerticalGeometry(state.plan.id);
     }, [state.plan]);
     React.useEffect(() => setVerticalGeometry(verticalGeometries ?? []), [verticalGeometries]);
+    React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);
 
     return (
         <React.Fragment>
@@ -98,7 +101,6 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                                 options={geometryPlanHeaders}
                                 searchable
                                 onChange={(e) => updateProp('plan', e)}
-                                canUnselect={true}
                                 unselectText={t('data-products.search.not-selected')}
                                 wideList
                                 wide
