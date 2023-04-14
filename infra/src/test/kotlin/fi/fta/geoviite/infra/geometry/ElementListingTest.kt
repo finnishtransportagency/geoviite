@@ -283,14 +283,6 @@ class ElementListingTest {
                 minimalLine(id = IndexedId(1,2)),
             ),
         )
-        val alignment2 = geometryAlignment(
-            id = IntId(2),
-            trackNumberId = trackNumberId,
-            elements = listOf(
-                minimalLine(id = IndexedId(2,1)),
-                minimalLine(id = IndexedId(2,2)),
-            ),
-        )
         val (track, layoutAlignment) = locationTrackAndAlignment(trackNumberId,
             segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0].id),
             segment(Point(20.0, 2.0), Point(25.0, 2.5), source = PLAN, sourceId = alignment.elements[1].id, switchId = IntId(1)),
