@@ -1,7 +1,6 @@
 import { usePlanHeader } from 'track-layout/track-layout-react-utils';
 import { Link } from 'vayla-design-lib/link/link';
 import React from 'react';
-import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
@@ -13,8 +12,7 @@ export type GeometryPlanLinkProps = {
 };
 
 function createSelectAction() {
-    const dispatch = useAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
+    const delegates = createDelegates(TrackLayoutActions);
     return (planId: GeometryPlanId) =>
         delegates.onSelect({
             ...createEmptyItemCollections(),

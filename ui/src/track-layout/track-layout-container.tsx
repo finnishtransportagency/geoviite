@@ -2,13 +2,12 @@ import * as React from 'react';
 import { TrackLayoutView } from 'track-layout/track-layout-view';
 import { trackLayoutActionCreators } from './track-layout-slice';
 import { createDelegates } from 'store/store-utils';
-import { useAppDispatch, useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 
 export const TrackLayoutContainer: React.FC = () => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
-    const dispatch = useAppDispatch();
-    const delegates = createDelegates(dispatch, trackLayoutActionCreators);
+    const delegates = createDelegates(trackLayoutActionCreators);
 
     const props = {
         ...trackLayoutState,

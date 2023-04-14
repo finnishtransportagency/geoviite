@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useAppDispatch, useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import GeometryKmPostInfoboxView from 'tool-panel/km-post/geometry-km-post-infobox-view';
@@ -19,8 +19,7 @@ const GeometryKmPostInfoboxContainer: React.FC<GeometryKmPostInfoboxContainerPro
     geometryKmPost,
     showArea,
 }) => {
-    const dispatch = useAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
+    const delegates = createDelegates(TrackLayoutActions);
     const state = useTrackLayoutAppSelector((state) => state);
     const kmPostChangeTime = useCommonDataAppSelector((state) => state.changeTimes.layoutKmPost);
     const selectedLayoutKmPost = useKmPost(

@@ -5,7 +5,7 @@ import { createDelegates } from 'store/store-utils';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { infraModelActionCreators } from 'infra-model/infra-model-slice';
-import { useInfraModelAppSelector, useAppDispatch } from 'store/hooks';
+import { useInfraModelAppSelector } from 'store/hooks';
 import { useAppNavigate } from 'common/navigate';
 import { ChangeTimes } from 'common/common-slice';
 
@@ -16,8 +16,7 @@ export type InfraModelListContainerProps = {
 export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = ({
     changeTimes,
 }) => {
-    const rootDispatch = useAppDispatch();
-    const infraModelListDelegates = createDelegates(rootDispatch, infraModelActionCreators);
+    const infraModelListDelegates = createDelegates(infraModelActionCreators);
     const state = useInfraModelAppSelector((state) => state.infraModelList);
     const navigate = useAppNavigate();
 

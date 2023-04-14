@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useAppDispatch, useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import {
     LayoutTrackNumberId,
     LocationTrackId,
@@ -37,9 +37,8 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     linkingState,
     publishType,
 }: GeometryAlignmentLinkingContainerProps) => {
-    const dispatch = useAppDispatch();
     const delegates = React.useMemo(() => {
-        return createDelegates(dispatch, TrackLayoutActions);
+        return createDelegates(TrackLayoutActions);
     }, []);
 
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);

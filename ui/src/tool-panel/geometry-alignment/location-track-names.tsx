@@ -6,7 +6,6 @@ import {
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
-import { useAppDispatch } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createEmptyItemCollections } from 'selection/selection-store';
@@ -17,8 +16,7 @@ type LocationTrackNamesProps = {
 };
 
 function createSelectAction() {
-    const dispatch = useAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
+    const delegates = createDelegates(TrackLayoutActions);
     return (locationTrackId: LocationTrackId) =>
         delegates.onSelect({
             ...createEmptyItemCollections(),

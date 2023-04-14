@@ -19,7 +19,7 @@ import {
     isProcessing,
     reducer,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import {
     layoutStates,
@@ -75,7 +75,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         React.useState<boolean>(state.locationTrack?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
     const locationTrackStateOptions = layoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
@@ -197,8 +197,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationErrors
-                .filter((error) => error.field == prop)
-                .map((error) => t(`location-track-dialog.${error.reason}`))
+                  .filter((error) => error.field == prop)
+                  .map((error) => t(`location-track-dialog.${error.reason}`))
             : [];
     }
 
@@ -475,9 +475,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     value={
                                         props.locationTrack
                                             ? roundToPrecision(
-                                                props.locationTrack.length,
-                                                Precision.alignmentLengthMeters,
-                                            )
+                                                  props.locationTrack.length,
+                                                  Precision.alignmentLengthMeters,
+                                              )
                                             : '-'
                                     }
                                     wide

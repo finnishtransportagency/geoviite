@@ -10,7 +10,7 @@ import {
 import { getGeometryElementFromPlan, getGeometrySwitchFromPlan } from 'geometry/geometry-utils';
 import React from 'react';
 import { InfraModelEditLoader } from 'infra-model/view/infra-model-edit-loader';
-import { useInfraModelAppSelector, useAppDispatch, useCommonDataAppSelector } from 'store/hooks';
+import { useInfraModelAppSelector, useCommonDataAppSelector } from 'store/hooks';
 
 type InfraModelViewContainerProps = {
     viewType: InfraModelViewType;
@@ -20,10 +20,9 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
     viewType,
 }: InfraModelViewContainerProps) => {
     const infraModelState = useInfraModelAppSelector((state) => state);
-    const infraModelDispatch = useAppDispatch();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    const delegates = createDelegates(infraModelDispatch, infraModelActionCreators);
+    const delegates = createDelegates(infraModelActionCreators);
 
     const delegatesProps = {
         onInfraModelExtraParametersChange: delegates.onInfraModelExtraParametersChange,

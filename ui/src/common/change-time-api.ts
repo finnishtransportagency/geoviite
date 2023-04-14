@@ -7,7 +7,7 @@ import { ChangeTimes, commonActionCreators } from 'common/common-slice';
 
 const CHANGES_API = `${API_URI}/change-times`;
 
-const delegates = createDelegates(rootStore.dispatch, commonActionCreators);
+const delegates = createDelegates(commonActionCreators);
 
 const _intervalHandle = window.setInterval(() => {
     updateAllChangeTimes();

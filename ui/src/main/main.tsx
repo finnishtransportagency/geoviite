@@ -1,7 +1,7 @@
 import { Provider } from 'react-redux';
 import * as React from 'react';
 import 'i18n/config';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import styles from './main.module.scss';
 import { TrackLayoutContainer } from 'track-layout/track-layout-container';
 import { Slide, ToastContainer } from 'react-toastify';
@@ -10,14 +10,13 @@ import { AppBar } from 'app-bar/app-bar';
 import { HttpStatusCodeGenerator } from 'monitoring/http-status-code-generator';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
-import { useAppDispatch, useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { LayoutMode } from 'common/common-model';
 import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
 import { EnvRestricted } from 'environment/env-restricted';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
-import { useNavigate } from 'react-router-dom';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
@@ -97,8 +96,7 @@ export const MainContainer: React.FC = () => {
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
     const versionInStore = useCommonDataAppSelector((state) => state.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
-    const dispatch = useAppDispatch();
-    const delegates = createDelegates(dispatch, commonActionCreators);
+    const delegates = createDelegates(commonActionCreators);
     const [showDialog, setShowDialog] = React.useState(false);
 
     React.useEffect(() => {

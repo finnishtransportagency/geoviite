@@ -1,9 +1,9 @@
 import SelectionPanel from 'selection-panel/selection-panel';
-import { trackLayoutActionCreators, getSelectableItemTypes } from 'track-layout/track-layout-slice';
+import { getSelectableItemTypes, trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import * as React from 'react';
 import { MapContext } from 'map/map-store';
-import { useAppSelector, useAppDispatch, useCommonDataAppSelector } from 'store/hooks';
+import { useAppSelector, useCommonDataAppSelector } from 'store/hooks';
 import {
     useKmPosts,
     useLocationTracks,
@@ -12,9 +12,8 @@ import {
 } from 'track-layout/track-layout-react-utils';
 
 export const SelectionPanelContainer: React.FC = () => {
-    const dispatch = useAppDispatch();
     const delegates = React.useMemo(() => {
-        return createDelegates(dispatch, trackLayoutActionCreators);
+        return createDelegates(trackLayoutActionCreators);
     }, []);
     const context = React.useContext(MapContext);
     const state = useAppSelector((state) => state[context]);
