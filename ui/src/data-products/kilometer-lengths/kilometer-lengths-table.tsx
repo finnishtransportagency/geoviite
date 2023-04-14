@@ -12,9 +12,10 @@ import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
 
 type KilometerLengthsTableProps = {
     kmLengths: LayoutKmPostLengthDetails[];
+    isLoading: boolean;
 };
 
-export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps) => {
+export const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTableProps) => {
     const { t } = useTranslation();
     const amount = kmLengths.length;
     const headings: ElementHeading[] = [
@@ -34,7 +35,7 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
                 {t(`data-products.km-lengths.amount`, { amount })}
             </p>
             <div className={styles['data-product-table__table-container']}>
-                <Table wide>
+                <Table wide isLoading={isLoading}>
                     <thead className={styles['data-product-table__table-heading']}>
                         <tr>
                             {headings.map((heading) => (

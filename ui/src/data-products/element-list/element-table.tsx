@@ -17,9 +17,10 @@ import {
 type ElementTableProps = {
     elements: ElementItem[];
     showLocationTrackName: boolean;
+    isLoading: boolean;
 };
 
-export const ElementTable = ({ elements, showLocationTrackName }: ElementTableProps) => {
+export const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = elements.length;
@@ -60,7 +61,7 @@ export const ElementTable = ({ elements, showLocationTrackName }: ElementTablePr
                 {t(`data-products.element-list.geometry-elements`, { amount })}
             </p>
             <div className={styles['data-product-table__table-container']}>
-                <Table wide>
+                <Table wide isLoading={isLoading}>
                     <thead className={styles['data-product-table__table-heading']}>
                         <tr>
                             {tableHeadingsToShowInUI.map((heading) => (
