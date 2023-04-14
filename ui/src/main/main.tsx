@@ -7,7 +7,6 @@ import { TrackLayoutContainer } from 'track-layout/track-layout-container';
 import { Slide, ToastContainer } from 'react-toastify';
 import { I18nDemo } from 'i18n/i18n-demo';
 import { AppBar } from 'app-bar/app-bar';
-import { HttpStatusCodeGenerator } from 'monitoring/http-status-code-generator';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
