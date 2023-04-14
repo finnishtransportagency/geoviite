@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FileName
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
@@ -84,7 +85,7 @@ class ElementListingTest {
             srid = LAYOUT_SRID,
             coordinateSystemName = CoordinateSystemName("KKJ testname"),
         )
-        val listing = toElementListing(null, getTransformation, plan, allElementTypes)
+        val listing = toElementListing(null, getTransformation, plan, allElementTypes) { switchId -> SwitchName("Test") }
         listing.forEach { l ->
             assertEquals(PlanSource.GEOMETRIAPALVELU, l.planSource)
             assertEquals(plan.id, l.planId)
@@ -135,7 +136,7 @@ class ElementListingTest {
             alignments = listOf(geometryAlignment(elements = listOf(clothoid), cant = cant)),
             srid = gk27,
         )
-        val elementListing = toElementListing(geocodingContext, getTransformation, plan, GeometryElementType.values().toList())
+        val elementListing = toElementListing(geocodingContext, getTransformation, plan, GeometryElementType.values().toList()) { switchId -> SwitchName("Test") }
         assertEquals(1, elementListing.size)
         val element1 = elementListing[0]
 
@@ -260,9 +261,10 @@ class ElementListingTest {
             layoutAlignment,
             allTrackElementTypes,
             TrackMeter(KmNumber.ZERO, 25),
-            TrackMeter(KmNumber.ZERO, 35)) { id ->
-            alignments.find { a -> a.second.id == id }!!
-        }
+            TrackMeter(KmNumber.ZERO, 35),
+            { id -> alignments.find { a -> a.second.id == id }!! },
+            { switchId -> SwitchName("Test") }
+        )
 
         // Linked: alignment1 elements 1 & 2 (not 0) + alignment2 elements 0 & 1 (not 2)
         // Address range includes only alignment1 element 2 & alignment2 element 0
@@ -270,6 +272,44 @@ class ElementListingTest {
         assertEquals(expectedIds, listing.map(ElementListing::elementId))
     }
 
+    @Test
+    fun `Track element listing contains switch names`() {
+        val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
+        val alignment = geometryAlignment(
+            id = IntId(1),
+            trackNumberId = trackNumberId,
+            elements = listOf(
+                minimalLine(id = IndexedId(1,1)),
+                minimalLine(id = IndexedId(1,2)),
+            ),
+        )
+        val (track, layoutAlignment) = locationTrackAndAlignment(trackNumberId,
+            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0].id),
+            segment(Point(20.0, 2.0), Point(25.0, 2.5), source = PLAN, sourceId = alignment.elements[1].id, switchId = IntId(1)),
+        )
+
+        val planHeader = planHeader(id = IntId(1), trackNumberId = trackNumberId, srid = LAYOUT_SRID)
+        val alignments = listOf(planHeader to alignment)
+
+        val context = geocodingContext(
+            referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
+            trackNumberId = trackNumberId,
+        )
+        val listing = toElementListing(
+            context,
+            getTransformation,
+            track,
+            layoutAlignment,
+            allTrackElementTypes,
+            null,
+            null,
+            { id -> alignments.find { a -> a.second.id == id }!! },
+            { switchId -> SwitchName("Test") }
+        )
+
+        assertNull(listing[0].connectedSwitchName)
+        assertEquals(SwitchName("Test"), listing[1].connectedSwitchName)
+    }
 
 
     private fun createSegments(alignment: GeometryAlignment) =
@@ -278,7 +318,12 @@ class ElementListingTest {
         else alignment.elements.map { e -> segment(e.start, e.end, sourceId = e.id) }
 
     private fun getElementListingTypes(plan: GeometryPlan, vararg types: GeometryElementType) =
-        toElementListing(null, getTransformation, plan, types.toList()).map { e -> e.elementType }
+        toElementListing(
+            null,
+            getTransformation,
+            plan,
+            types.toList(),
+            { switchId -> SwitchName("Test") }).map { e -> e.elementType }
 
     private fun getListingTypes(
         locationTrack: LocationTrack,
@@ -303,7 +348,9 @@ class ElementListingTest {
         elementTypes,
         null,
         null,
-    ) { _ -> planHeader to geometryAlignment }
+        { _ -> planHeader to geometryAlignment },
+        { switchId -> SwitchName("Test") }
+    )
 
     private fun getElementTypes(alignment: GeometryAlignment) =
         alignment.elements.map { e -> TrackGeometryElementType.of(e.type) }

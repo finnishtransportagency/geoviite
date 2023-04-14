@@ -49,11 +49,16 @@
                 "plan": "Suunnitelma",
                 "coordinate-system": "Koordinaatisto",
                 "source": "Lähde",
+                "remarks": "Huomiot",
                 "LINE": "Suora",
                 "CURVE": "Kaari",
                 "CLOTHOID": "Siirtymäkaari",
                 "BIQUADRATIC_PARABOLA": "Siirtymäkaari (Helmert)",
                 "MISSING_SECTION": "Linkitys puuttuu"
+            },
+            "remarks": {
+                "is-partial": "Raide sisältää vain osan geometriaelementistä",
+                "connected-to-switch": "Vaihteen {{switchName}} elementti"
             }
         },
         "vertical-geometry": {

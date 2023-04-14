@@ -43,6 +43,7 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
         numericHeading('angle-end'),
         nonNumericHeading('plan'),
         nonNumericHeading('source'),
+        nonNumericHeading('remarks'),
     ];
 
     const tableHeadingsToShowInUI = showLocationTrackName
@@ -113,6 +114,8 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
                                     source={item.planSource}
                                     planId={item.planId}
                                     showLocationTrackName={showLocationTrackName}
+                                    connectedSwitchName={item.connectedSwitchName}
+                                    isPartial={item.isPartial}
                                 />
                             </React.Fragment>
                         ))}
