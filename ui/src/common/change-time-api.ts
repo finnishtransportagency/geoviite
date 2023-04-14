@@ -1,4 +1,4 @@
-import { rootStore } from 'store/store';
+import { appStore } from 'store/store';
 
 import { API_URI, getIgnoreError, getWithDefault } from 'api/api-fetch';
 import { createDelegates } from 'store/store-utils';
@@ -14,7 +14,7 @@ const _intervalHandle = window.setInterval(() => {
 }, 15000);
 
 export function getChangeTimes(): ChangeTimes {
-    return rootStore.getState().common.changeTimes;
+    return appStore.getState().common.changeTimes;
 }
 
 export function updateAllChangeTimes(): Promise<ChangeTimes> {

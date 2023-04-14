@@ -18,7 +18,7 @@ const trackLayoutPersistConfig = {
     storage,
 };
 // Wrap combined reducers to handle root level state
-const trackLayoutRootReducer: typeof trackLayoutReducer = (state, action) => {
+const trackLayoutAppLevelReducer: typeof trackLayoutReducer = (state, action) => {
     if (action.type == RESET_STORE_ACTION.type) {
         // Reset to initial state
         return trackLayoutReducer(undefined, action);
@@ -28,27 +28,30 @@ const trackLayoutRootReducer: typeof trackLayoutReducer = (state, action) => {
 
 const persistedTrackLayoutReducer = persistReducer(
     trackLayoutPersistConfig,
-    trackLayoutRootReducer,
+    trackLayoutAppLevelReducer,
 );
 
 const infraModelPersistConfig = {
     key: 'rootInfraModel',
     storage,
 };
-const infraModelRootReducer: typeof infraModelReducer = (state, action) => {
+const infraModelAppLevelReducer: typeof infraModelReducer = (state, action) => {
     if (action.type == RESET_STORE_ACTION.type) {
         // Reset to initial state
         return infraModelReducer(undefined, action);
     }
     return infraModelReducer(state, action);
 };
-const persistedInfraModelReducer = persistReducer(infraModelPersistConfig, infraModelRootReducer);
+const persistedInfraModelReducer = persistReducer(
+    infraModelPersistConfig,
+    infraModelAppLevelReducer,
+);
 
 const dataProductsPersistConfig = {
     key: 'rootDataProducts',
     storage,
 };
-const dataProductsRootReducer: typeof dataProductsReducer = (state, action) => {
+const dataProductsAppLevelReducer: typeof dataProductsReducer = (state, action) => {
     if (action.type == RESET_STORE_ACTION.type) {
         // Reset to initial state
         return dataProductsReducer(undefined, action);
@@ -58,14 +61,14 @@ const dataProductsRootReducer: typeof dataProductsReducer = (state, action) => {
 
 const persistedDataProductsReducer = persistReducer(
     dataProductsPersistConfig,
-    dataProductsRootReducer,
+    dataProductsAppLevelReducer,
 );
 
 const commonPersistConfig = {
     key: 'common',
     storage,
 };
-const commonDataReducer: typeof commonReducer = (state, action) => {
+const commonAppLevelReducer: typeof commonReducer = (state, action) => {
     if (action.type == RESET_STORE_ACTION.type) {
         // Reset to initial state
         return commonReducer(undefined, action);
@@ -73,9 +76,9 @@ const commonDataReducer: typeof commonReducer = (state, action) => {
     return commonReducer(state, action);
 };
 
-const persistedCommonReducer = persistReducer(commonPersistConfig, commonDataReducer);
+const persistedCommonReducer = persistReducer(commonPersistConfig, commonAppLevelReducer);
 
-export const rootStore = configureStore({
+export const appStore = configureStore({
     reducer: combineReducers({
         trackLayout: persistedTrackLayoutReducer,
         dataProducts: persistedDataProductsReducer,
@@ -92,5 +95,5 @@ export const rootStore = configureStore({
     ],
 });
 
-export type RootState = ReturnType<typeof rootStore.getState>;
-export type RootDispatch = typeof rootStore.dispatch;
+export type AppState = ReturnType<typeof appStore.getState>;
+export type AppDispatch = typeof appStore.dispatch;

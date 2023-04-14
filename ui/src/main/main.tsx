@@ -27,7 +27,7 @@ import { Button } from 'vayla-design-lib/button/button';
 import { InfraModelMainView } from 'infra-model/infra-model-main-view';
 import { PersistGate } from 'redux-persist/integration/react';
 import { persistStore } from 'redux-persist';
-import { rootStore } from 'store/store';
+import { appStore } from 'store/store';
 import ElementListView from 'data-products/element-list/element-list-view';
 import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
@@ -38,7 +38,7 @@ type MainProps = {
     version: string | undefined;
 };
 
-const persistorRoot = persistStore(rootStore);
+const persistorRoot = persistStore(appStore);
 
 const Main: React.VFC<MainProps> = (props: MainProps) => {
     const { t } = useTranslation();
@@ -113,7 +113,7 @@ export const MainContainer: React.FC = () => {
 
     return (
         <React.Fragment>
-            <Provider store={rootStore}>
+            <Provider store={appStore}>
                 <PersistGate loading={null} persistor={persistorRoot}>
                     <Main {...props} />
                 </PersistGate>
