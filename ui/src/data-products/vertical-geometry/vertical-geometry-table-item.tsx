@@ -4,19 +4,35 @@ import { VerticalGeometryItem } from 'geometry/geometry-model';
 import styles from 'data-products/data-product-table.scss';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
+import { useTranslation } from 'react-i18next';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 type VerticalGeometryTableItemProps = {
     verticalGeometry: VerticalGeometryItem;
     showLocationTrack: boolean;
+    overlapsAnother: boolean;
 };
 
 export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps> = ({
     verticalGeometry,
     showLocationTrack,
+    overlapsAnother,
 }) => {
+    const { t } = useTranslation();
     return (
         <tr>
-            {showLocationTrack && <td>{verticalGeometry.locationTrackName}</td>}
+            {showLocationTrack && (
+                <td>
+                    {overlapsAnother && (
+                        <span
+                            className={'data-product-table__overlaps-another'}
+                            title={t('data-products.vertical-geometry.overlaps-another')}>
+                            <Icons.Info color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
+                        </span>
+                    )}{' '}
+                    {verticalGeometry.locationTrackName}
+                </td>
+            )}
             <td>
                 <PlanNameLink
                     planId={verticalGeometry.planId}
@@ -96,6 +112,15 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
             </td>
             <td className={styles['data-product-table__column--number']}>
                 {roundToPrecision(verticalGeometry.end.station, Precision.measurementMeterDistance)}
+            </td>
+            <td>
+                {verticalGeometry.verticalCoordinateSystem ??
+                    t('data-products.vertical-geometry.unknown')}
+            </td>
+            <td>
+                {overlapsAnother
+                    ? t('data-products.vertical-geometry.overlaps-another')
+                    : undefined}
             </td>
         </tr>
     );

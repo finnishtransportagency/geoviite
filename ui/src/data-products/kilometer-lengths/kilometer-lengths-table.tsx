@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from '../data-product-table.scss';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
     ElementHeading,
     nonNumericHeading,
@@ -13,11 +12,11 @@ import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
 
 type KilometerLengthsTableProps = {
     kmLengths: LayoutKmPostLengthDetails[];
+    isLoading: boolean;
 };
 
-export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps) => {
+export const KilometerLengthsTable = ({ kmLengths, isLoading }: KilometerLengthsTableProps) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers('OFFICIAL');
     const amount = kmLengths.length;
     const headings: ElementHeading[] = [
         nonNumericHeading('track-number'),
@@ -27,6 +26,7 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
         numericHeading('length'),
         numericHeading('location-e'),
         numericHeading('location-n'),
+        nonNumericHeading('warning'),
     ];
 
     return (
@@ -35,7 +35,7 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
                 {t(`data-products.km-lengths.amount`, { amount })}
             </p>
             <div className={styles['data-product-table__table-container']}>
-                <Table wide>
+                <Table wide isLoading={isLoading}>
                     <thead className={styles['data-product-table__table-heading']}>
                         <tr>
                             {headings.map((heading) => (
@@ -55,16 +55,14 @@ export const KilometerLengthsTable = ({ kmLengths }: KilometerLengthsTableProps)
                         {kmLengths.map((item) => (
                             <React.Fragment key={`${item.kmNumber}`}>
                                 <KilometerLengthTableItem
-                                    trackNumber={
-                                        trackNumbers?.find((tn) => tn.id == item.trackNumberId)
-                                            ?.number
-                                    }
+                                    trackNumber={item.trackNumber}
                                     length={item.length}
                                     kilometer={item.kmNumber}
                                     startM={item.startM}
                                     endM={item.endM}
                                     locationE={item.location?.x}
                                     locationN={item.location?.y}
+                                    source={item.locationSource}
                                 />
                             </React.Fragment>
                         ))}

@@ -328,7 +328,7 @@ function addHighlight(
     const highlightLineStrings = highlight.ranges
         .map((range) => {
             const pointsWithinRange = segment.points.filter(
-                (segmentPoint) => segmentPoint.m >= range.start && segmentPoint.m <= range.end,
+                (segmentPoint) => segmentPoint.m >= range.min && segmentPoint.m <= range.max,
             );
             return pointsWithinRange.length > 1
                 ? new LineString(pointsWithinRange.map((point) => [point.x, point.y]))
@@ -639,8 +639,8 @@ adapterInfoRegister.add('alignment', {
                         trackNumberDrawDistance || 0,
                         mapLayer.showReferenceLines,
                         mapLayer.showMissingVerticalGeometry,
-                        mapLayer.showMissingLinking,
                         mapLayer.showSegmentsFromSelectedPlan,
+                        mapLayer.showMissingLinking,
                         mapLayer.showDuplicateTracks,
                         alignmentSectionsWithoutProfile,
                     );

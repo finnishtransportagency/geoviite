@@ -40,7 +40,7 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationT
         <InfoboxField
             label={trackName}
             value={
-                <React.Fragment>
+                <div className={styles['linked-items-list']}>
                     {sortedLocationTracks.map((locationTrack) => {
                         return (
                             <div
@@ -55,7 +55,7 @@ const LocationTrackNames: React.FC<LocationTrackNamesProps> = ({ linkedLocationT
                             </div>
                         );
                     })}
-                </React.Fragment>
+                </div>
             }
         />
     );

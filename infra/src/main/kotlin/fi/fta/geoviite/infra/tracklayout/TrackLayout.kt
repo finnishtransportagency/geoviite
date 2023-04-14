@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -191,30 +190,33 @@ data class TrackLayoutKmPost(
     val exists = !state.isRemoved()
 }
 
+enum class TrackLayoutKmPostTableColumn {
+    TRACK_NUMBER,
+    KILOMETER,
+    START_M,
+    END_M,
+    LENGTH,
+    LOCATION_E,
+    LOCATION_N,
+    WARNING
+}
+
 data class TrackLayoutKmPostLengthDetails(
-    val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val trackNumber: TrackNumber,
     val kmNumber: KmNumber,
     val startM: BigDecimal,
     val endM: BigDecimal,
     val locationSource: GeometrySource,
-    val location: IPoint? = null,
+    val location: Point?,
 ) {
     val length = endM - startM
 
     init {
-        require(startM.scale() == 3) {
-            "Invalid scale for startM. trackNumberId=$trackNumberId kmNumber=$kmNumber startM=$startM"
-        }
-
-        require(endM.scale() == 3) {
-            "Invalid scale for endM. trackNumberId=$trackNumberId kmNumber=$kmNumber endM=$endM"
-        }
-
         require(endM >= startM) {
-            "Km post is wrong way around (endM is smaller than startM), trackNumberId=$trackNumberId kmNumber=$kmNumber startM=$startM endM=$endM"
+            "Km post is wrong way around (endM is smaller than startM), trackNumber=$trackNumber kmNumber=$kmNumber startM=$startM endM=$endM"
         }
         require(length >= BigDecimal.ZERO) {
-            "Km post cannot have negative length, trackNumberId=$trackNumberId kmNumber=$kmNumber length=$length"
+            "Km post cannot have negative length, trackNumber=$trackNumber kmNumber=$kmNumber length=$length"
         }
     }
 }
@@ -254,4 +256,19 @@ data class ChangeTimes(
     val changed: Instant,
     val officialChanged: Instant?,
     val draftChanged: Instant?,
+)
+
+fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""
+
+private val kmLengthTranslations = mapOf(
+    "projected-location-warning" to "Sijainti on raiteen keskilinjalle projisoitu sijainti.",
+    "start-address-location-warning" to "Sijainti on pituusmittauslinjan alun sijainti.",
+    "TRACK_NUMBER-header" to "Ratanumero",
+    "KILOMETER-header" to "Kilometri",
+    "START_M-header" to "Alkupaalu",
+    "END_M-header" to "Loppupaalu",
+    "LENGTH-header" to "Pituus (m)",
+    "LOCATION_E-header" to "Koordinaatti E",
+    "LOCATION_N-header" to "Koordinaatti N",
+    "WARNING-header" to "Huomiot"
 )

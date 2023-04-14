@@ -78,6 +78,11 @@
             margin-right: 12px;
         }
     }
+
+    &__no-matches {
+        @include typography-caption;
+        color: $color-black-lighter;
+    }
 }
 
 .geometry-switch-infobox__switch-type-warning-msg {
@@ -148,8 +153,12 @@
     }
 
     &__location-tracks {
-        padding: 6px 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-column-gap: 4px;
+        grid-row-gap: 4px;
 
+        padding: 6px 0;
         .alignment-badge {
             margin: 0 4px 4px 0;
         }

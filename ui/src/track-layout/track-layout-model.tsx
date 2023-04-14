@@ -230,7 +230,7 @@ export type LayoutKmPost = {
 };
 
 export type LayoutKmPostLengthDetails = {
-    trackNumberId: LayoutTrackNumberId;
+    trackNumber: TrackNumber;
     kmNumber: KmNumber;
     length: number;
     startM: number;

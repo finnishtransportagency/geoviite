@@ -2,6 +2,7 @@
 
 .data-product-table {
     &__table-container {
+        position: relative;
         overflow: auto;
         padding-left: 32px;
         flex-grow: 1;
@@ -9,6 +10,10 @@
 
     &__element-count {
         padding-left: 32px;
+    }
+
+    &__overlaps-another {
+        fill: $color-lemon-dark;
     }
 
     &__table-heading {

@@ -54,7 +54,7 @@ import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import {
     GeometryAlignmentLinkingLocationTrackCandidates,
     GeometryAlignmentLinkingReferenceLineCandidates,
-} from 'tool-panel/geometry-alignment/geometry-alignment-linking-reference-line-candidates';
+} from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,

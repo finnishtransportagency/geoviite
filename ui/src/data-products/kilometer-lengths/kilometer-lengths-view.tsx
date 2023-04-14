@@ -12,13 +12,13 @@ import { dataProductsActions } from 'data-products/data-products-slice';
 export const KilometerLengthsView = () => {
     const dataProductsDelegates = createDelegates(dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.kmLenghts);
-
     const { t } = useTranslation();
+    const [loading, setLoading] = React.useState(false);
 
     const startIndex = state.startKm ? findIndex(state.startKm, state.kmLengths) : 0;
     const endIndex = state.endKm
         ? findIndex(state.endKm, state.kmLengths) + 1
-        : state.kmLengths.length - 1;
+        : state.kmLengths.length;
     const kmLengths = state.kmLengths.slice(startIndex, endIndex);
 
     return (
@@ -32,9 +32,10 @@ export const KilometerLengthsView = () => {
                     setLengths={dataProductsDelegates.onSetKmLengths}
                     state={state}
                     onUpdateProp={dataProductsDelegates.onUpdateKmLengthsSearchProp}
+                    setLoading={setLoading}
                 />
             </div>
-            <KilometerLengthsTable kmLengths={kmLengths} />
+            <KilometerLengthsTable kmLengths={kmLengths} isLoading={loading} />
         </div>
     );
 };

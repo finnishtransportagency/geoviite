@@ -73,7 +73,6 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                         path="/data-products/kilometer-lengths"
                         element={<KilometerLengthsView />}
                     />
-                    <Route path="/monitoring" element={<HttpStatusCodeGenerator />} />
                 </Routes>
             </div>
             <ToastContainer

@@ -7,7 +7,7 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getLocationTrackElements, getLocationTrackElementsCsv } from 'geometry/geometry-api';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
@@ -32,6 +32,7 @@ type LocationTrackElementListingSearchProps = {
         propEdit: PropEdit<ContinuousSearchParameters, TKey>,
     ) => void;
     onCommitField: <TKey extends keyof ContinuousSearchParameters>(key: TKey) => void;
+    setLoading: (isLoading: boolean) => void;
 };
 
 const debouncedTrackElementsFetch = debounceAsync(getLocationTrackElements, 250);
@@ -41,6 +42,7 @@ const LocationTrackElementListingSearch = ({
     onUpdateProp,
     onCommitField,
     setElements,
+    setLoading,
 }: LocationTrackElementListingSearchProps) => {
     const { t } = useTranslation();
 
@@ -64,7 +66,7 @@ const LocationTrackElementListingSearch = ({
         });
     }
 
-    const elementList = useLoader(() => {
+    const [elementList, fetchStatus] = useLoaderWithStatus(() => {
         return !state.searchParameters.locationTrack ||
             hasErrors(state.committedFields, state.validationErrors, 'searchGeometries') ||
             hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
@@ -79,6 +81,7 @@ const LocationTrackElementListingSearch = ({
     }, [state.searchParameters]);
 
     React.useEffect(() => setElements(elementList ?? []), [elementList]);
+    React.useEffect(() => setLoading(fetchStatus !== LoaderStatus.Ready), [fetchStatus]);
 
     return (
         <React.Fragment>

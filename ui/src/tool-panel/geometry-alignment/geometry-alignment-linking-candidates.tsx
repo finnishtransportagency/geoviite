@@ -179,6 +179,11 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                         </li>
                     );
                 })}
+                {referenceLines?.length == 0 && (
+                    <span className={styles['geometry-alignment-infobox__no-matches']}>
+                        {t('tool-panel.alignment.geometry.no-linkable-reference-lines')}
+                    </span>
+                )}
             </ul>
         </React.Fragment>
     );
@@ -284,6 +289,11 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                         </li>
                     );
                 })}
+                {locationTracks?.length == 0 && (
+                    <span className={styles['geometry-alignment-infobox__no-matches']}>
+                        {t('tool-panel.alignment.geometry.no-linkable-location-tracks')}
+                    </span>
+                )}
             </ul>
         </div>
     );

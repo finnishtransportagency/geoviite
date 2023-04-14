@@ -57,11 +57,14 @@
             }
         },
         "vertical-geometry": {
+            "pvi-points": "Taitepisteet ({{amount}} kpl)",
             "vertical-geometry-title": "Pystygeometria",
             "location-track-vertical-geometry": "Raiteen pystygeometria",
             "plan-vertical-geometry": "Suunnitelman pystygeometria",
             "location-track-search-legend": "Raiteen pystygeometria näyttää luettelossa paikannuspohjan raiteeseen liityvät taitepisteet. Paikannuspohjan raide voi olla koostettu useasta suunnitelmasta, eikä täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "plan-search-legend": "Suunnitelman pystygeometria näyttää luettelossa suunnitelman sisältämät taitepisteet. Rataosoiteet on laskettu paikannuspohjan pituusmittauksen mukaan, joten rataosoitteiden tarkkuutta on syytä pitää epäluotettavana. Myös  paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
+            "overlaps-another": "Kaltevuusjakso on limittäin toisen jakson kanssa",
+            "unknown": "Ei tiedossa",
             "table": {
                 "location-track": "Sijaintiraide",
                 "plan": "Suunnitelma",
@@ -81,7 +84,9 @@
                 "linear-section-backward": "Kaltevuusjakso taaksepäin",
                 "curve-start": "Pyöristyksen alku",
                 "curve-end": "Pyöristyksen loppu",
-                "point-of-vertical-intersection": "Taite"
+                "point-of-vertical-intersection": "Taite",
+                "vertical-coordinate-system": "Korkeusjärjestelmä",
+                "remarks": "Huomiot"
             }
         },
         "km-lengths": {
@@ -95,7 +100,10 @@
                 "station-end": "Loppupaalu",
                 "length": "Pituus (m)",
                 "location-e": "Koordinaatti E",
-                "location-n": "Koordinaatti N"
+                "location-n": "Koordinaatti N",
+                "warning": "Huomiot",
+                "generated-warning": "Sijainti on pituusmittauslinjan alun sijainti.",
+                "imported-warning": "Sijainti on raiteen keskilinjalle projisoitu sijainti."
             }
         }
     }
