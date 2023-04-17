@@ -209,8 +209,8 @@ const HeightTooltip: React.FC<{
     coordinates: Coordinates;
 }> = ({ point, elementPosition, coordinates }) => {
     const displayedAddress =
-        (point.didSnap && point.mouseCursorOverArea == 'chart') ||
-        coordinates.mMeterLengthPxOverM > 20
+        point.mouseCursorOverArea == 'chart' &&
+        (point.didSnap || coordinates.mMeterLengthPxOverM > 20)
             ? formatTrackMeter(point.address)
             : formatTrackMeterWithoutMeters(point.address);
     return (
