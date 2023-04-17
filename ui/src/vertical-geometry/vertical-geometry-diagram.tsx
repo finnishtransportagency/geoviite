@@ -74,25 +74,42 @@ function chooseHorizontalTickLengthMeters(distanceMeters: number): number {
 }
 
 function closestGeometryM(m: number, geometry: VerticalGeometryItem[]) {
-    const allGeometryMs = geometry.flatMap((geom) => [
-        geom.point.station,
-        geom.start.station,
-        geom.end.station,
-    ]);
-    const minIndex = minimumIndexBy(allGeometryMs, (geometryM) => Math.abs(m - geometryM));
+    const allGeometryMs = geometry.flatMap((geom) =>
+        geom.point.address == null || geom.start.address == null || geom.end.address == null
+            ? []
+            : ([
+                  [geom.point.station, geom.point.address],
+                  [geom.start.station, geom.start.address],
+                  [geom.end.station, geom.end.address],
+              ] as const),
+    );
+    const minIndex = minimumIndexBy(allGeometryMs, (geometryM) => Math.abs(m - geometryM[0]));
     return minIndex == null ? null : allGeometryMs[minIndex];
 }
 
-function closestRulerTickM(m: number, trackKmHeights: TrackKmHeights[]): number | null {
+function closestRulerTickM(
+    m: number,
+    trackKmHeights: TrackKmHeights[],
+): [number, TrackMeter] | null {
     const index = findTrackMeterIndexContainingM(m, trackKmHeights);
     if (index == null) {
         return null;
     }
     const [left, right] = getTrackMeterPairAroundIndex(index, trackKmHeights);
-    if (right == null) {
-        return left.m;
+    const leftTrackMeter = {
+        kmNumber: trackKmHeights[index.left.kmIndex].kmNumber,
+        meters: left.meter,
+    };
+    if (right == null || index.right == null) {
+        return [left.m, leftTrackMeter];
     } else {
-        return Math.abs(m - left.m) < Math.abs(m - right.m) ? left.m : right.m;
+        const rightTrackMeter = {
+            kmNumber: trackKmHeights[index.right.kmIndex].kmNumber,
+            meters: right.meter,
+        };
+        return Math.abs(m - left.m) < Math.abs(m - right.m)
+            ? [left.m, leftTrackMeter]
+            : [right.m, rightTrackMeter];
     }
 }
 
@@ -120,18 +137,29 @@ function getSnappedPoint(
     const xCoordinateM = xToM(coordinates, mouseX);
     const maxSnapDistanceM = coordinates.horizontalTickLengthMeters / 2;
 
-    const snappedM =
+    const snappedAddress =
         mouseCursorOverArea === 'ruler'
             ? closestRulerTickM(xCoordinateM, trackKmHeights)
             : closestGeometryM(xCoordinateM, geometry);
-    if (snappedM == null) {
+    if (snappedAddress == null) {
         return null;
     }
 
-    const [m, didSnap] =
-        Math.abs(snappedM - xCoordinateM) > maxSnapDistanceM
-            ? [xCoordinateM, false]
-            : [snappedM, true];
+    const [[m, address], didSnap] =
+        Math.abs(snappedAddress[0] - xCoordinateM) > maxSnapDistanceM
+            ? ([
+                  [
+                      xCoordinateM,
+                      approximateTrackAddressAt(
+                          xCoordinateM,
+                          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                          findTrackMeterIndexContainingM(xCoordinateM, trackKmHeights)!,
+                          trackKmHeights,
+                      ),
+                  ] as const,
+                  false,
+              ] as const)
+            : ([snappedAddress, true] as const);
 
     const kmIndex = findTrackMeterIndexContainingM(m, trackKmHeights);
     if (kmIndex == null) {
@@ -139,7 +167,6 @@ function getSnappedPoint(
     }
 
     const height = approximateHeightAt(m, kmIndex, trackKmHeights);
-    const address = approximateTrackAddressAt(m, kmIndex, trackKmHeights);
 
     if (height == null || address == null) {
         return null;
