@@ -43,6 +43,7 @@ import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'comm
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -114,6 +115,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
     const [project, setProject] = React.useState<Project>();
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     const planSourceOptions = [
         {
@@ -237,23 +239,25 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            <Formgroup>
-                <FieldLayout
-                    label={t('im-form.observations-field')}
-                    value={
-                        <TextArea
-                            value={extraInframodelParameters.message}
-                            wide
-                            readOnly={false}
-                            maxlength={250}
-                            onChange={(e) =>
-                                changeInExtraParametersField(e.currentTarget.value, 'message')
-                            }
-                        />
-                    }
-                    help={t('im-form.observations-help')}
-                />
-            </Formgroup>
+            {userHasWriteRole && (
+                <Formgroup>
+                    <FieldLayout
+                        label={t('im-form.observations-field')}
+                        value={
+                            <TextArea
+                                value={extraInframodelParameters.message}
+                                wide
+                                readOnly={false}
+                                maxlength={250}
+                                onChange={(e) =>
+                                    changeInExtraParametersField(e.currentTarget.value, 'message')
+                                }
+                            />
+                        }
+                        help={t('im-form.observations-help')}
+                    />
+                </Formgroup>
+            )}
 
             <Formgroup qa-id="im-form-project">
                 <FormgroupContent title={t('im-form.project-information')}>
