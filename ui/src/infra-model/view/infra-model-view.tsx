@@ -324,7 +324,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.cancel')}
                         </Button>
                     )}
-                    {props.viewType === InfraModelViewType.EDIT && userHasWriteRole && (
+                    {props.viewType === InfraModelViewType.EDIT && (
                         <Button
                             onClick={navigateToList}
                             variant={ButtonVariant.SECONDARY}
