@@ -55,6 +55,7 @@ import {
     GeometryAlignmentLinkingLocationTrackCandidates,
     GeometryAlignmentLinkingReferenceLineCandidates,
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -170,6 +171,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     }, [planStatus, geometryAlignment]);
 
     const canLockAlignment = !!(selectedLayoutReferenceLine || selectedLayoutLocationTrack);
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     React.useEffect(() => {
         getLinkedAlignmentIdsInPlan(planId, publishType).then((linkedIds) => {
@@ -325,7 +327,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         </React.Fragment>
                     )}
 
-                    {linkingState === undefined && (
+                    {linkingState === undefined && userHasWriteRole && (
                         <InfoboxButtons>
                             <Button size={ButtonSize.SMALL} onClick={startLinking}>
                                 {t(
