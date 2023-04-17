@@ -1,4 +1,4 @@
-import { TrackLayoutState } from 'track-layout/track-layout-store';
+import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
 import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
 import {
@@ -71,7 +71,7 @@ export const linkingReducers = {
             };
         }
     },
-    stopLinking: function(state: TrackLayoutState): void {
+    stopLinking: function (state: TrackLayoutState): void {
         state.linkingState = undefined;
         state.selection.selectedItems.clusterPoints = [];
         state.selection.selectedItems.suggestedSwitches = [];
@@ -83,7 +83,7 @@ export const linkingReducers = {
             }
         });
     },
-    setLayoutLinkPoint: function(
+    setLayoutLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -99,7 +99,7 @@ export const linkingReducers = {
             state.linkingState = validateLinkingState(state.linkingState);
         }
     },
-    setGeometryLinkPoint: function(
+    setGeometryLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -115,7 +115,7 @@ export const linkingReducers = {
             state.linkingState = validateLinkingState(state.linkingState);
         }
     },
-    setLayoutClusterLinkPoint: function(
+    setLayoutClusterLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -132,7 +132,7 @@ export const linkingReducers = {
             state.selection.selectedItems.clusterPoints = [];
         }
     },
-    setGeometryClusterLinkPoint: function(
+    setGeometryClusterLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -149,7 +149,7 @@ export const linkingReducers = {
             state.selection.selectedItems.clusterPoints = [];
         }
     },
-    removeGeometryLinkPoint: function(
+    removeGeometryLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {
@@ -167,7 +167,7 @@ export const linkingReducers = {
             state.selection.selectedItems.clusterPoints = [];
         }
     },
-    removeLayoutLinkPoint: function(
+    removeLayoutLinkPoint: function (
         state: TrackLayoutState,
         { payload: linkPoint }: PayloadAction<LinkPoint>,
     ): void {

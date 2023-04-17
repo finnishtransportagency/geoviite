@@ -1,9 +1,9 @@
 import * as React from 'react';
 import GeometrySwitchLinkingInfobox from 'tool-panel/switch/geometry-switch-linking-infobox';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { TimeStamp } from 'common/common-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
@@ -27,9 +27,8 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
     layoutSwitch,
     planId,
 }) => {
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, TrackLayoutActions);
-    const store = useTrackLayoutAppSelector((state) => state.trackLayout);
+    const delegates = createDelegates(TrackLayoutActions);
+    const store = useTrackLayoutAppSelector((state) => state);
 
     return (
         <GeometrySwitchLinkingInfobox

@@ -1,6 +1,6 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { ChangeTimes, TrackLayoutState } from 'track-layout/track-layout-store';
+import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { MapContext } from 'map/map-store';
 import { MapViewport, OptionalShownItems } from 'map/map-model';
 import MapView from 'map/map-view';
@@ -18,6 +18,7 @@ import ToolPanelContainer from 'tool-panel/tool-panel-container';
 import { BoundingBox } from 'model/geometry';
 import { PublishType } from 'common/common-model';
 import { LinkPoint } from 'linking/linking-model';
+import { ChangeTimes } from 'common/common-slice';
 
 // For now use whole state and some extras as params
 export type TrackLayoutParams = TrackLayoutState & {

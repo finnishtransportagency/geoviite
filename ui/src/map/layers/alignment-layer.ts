@@ -41,7 +41,6 @@ import {
     getTrackNumberDrawDistance,
     MAP_RESOLUTION_MULTIPLIER,
 } from 'map/layers/layer-visibility-limits';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import { deduplicate, fieldComparator, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -51,6 +50,7 @@ import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { combineBoundingBoxes } from 'model/geometry';
+import { ChangeTimes } from 'common/common-slice';
 
 export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
 

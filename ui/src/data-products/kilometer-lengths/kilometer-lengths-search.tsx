@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import styles from 'data-products/data-product-view.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown, DropdownSize } from 'vayla-design-lib/dropdown/dropdown';
-import { KmLengthsSearchState } from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -16,6 +15,7 @@ import {
     getKmPostsOnTrackNumber,
 } from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
+import { KmLengthsSearchState } from 'data-products/data-products-slice';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;

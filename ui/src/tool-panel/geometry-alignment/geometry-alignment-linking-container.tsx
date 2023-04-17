@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import {
     LayoutTrackNumberId,
     LocationTrackId,
@@ -8,7 +8,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators as TrackLayoutActions } from 'track-layout/track-layout-store';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType } from 'common/common-model';
 import GeometryAlignmentInfobox from 'tool-panel/geometry-alignment/geometry-alignment-infobox';
@@ -37,13 +37,12 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     linkingState,
     publishType,
 }: GeometryAlignmentLinkingContainerProps) => {
-    const dispatch = useTrackLayoutAppDispatch();
     const delegates = React.useMemo(() => {
-        return createDelegates(dispatch, TrackLayoutActions);
+        return createDelegates(TrackLayoutActions);
     }, []);
 
-    const store = useTrackLayoutAppSelector((state) => state.trackLayout);
-    const changeTimes = store.changeTimes;
+    const trackLayoutState = useTrackLayoutAppSelector((state) => state);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const locationTrack = useLocationTrack(
         selectedLocationTrackId,
         publishType,
@@ -72,7 +71,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             onLinkingStart={delegates.startAlignmentLinking}
             onLockAlignment={delegates.lockAlignmentSelection}
             onStopLinking={delegates.stopLinking}
-            resolution={store.map.viewport.resolution}
+            resolution={trackLayoutState.map.viewport.resolution}
             publishType={publishType}
             showArea={delegates.showArea}
         />

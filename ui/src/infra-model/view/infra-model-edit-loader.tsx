@@ -4,7 +4,7 @@ import { getGeometryPlan } from 'geometry/geometry-api';
 import { GeometryPlan } from 'geometry/geometry-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { InfraModelView, InfraModelViewProps } from 'infra-model/view/infra-model-view';
-import { GeometryPlanWithParameters } from 'infra-model/infra-model-store';
+import { GeometryPlanWithParameters } from 'infra-model/infra-model-slice';
 
 export type InfraModelLoaderProps = {
     setExistingInfraModel: (plan: GeometryPlanWithParameters) => void;

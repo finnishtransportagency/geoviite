@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { TrackLayoutView } from 'track-layout/track-layout-view';
-import { actionCreators } from './track-layout-store';
+import { trackLayoutActionCreators } from './track-layout-slice';
 import { createDelegates } from 'store/store-utils';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 
 export const TrackLayoutContainer: React.FC = () => {
-    const trackLayoutState = useTrackLayoutAppSelector((state) => state.trackLayout);
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, actionCreators);
+    const trackLayoutState = useTrackLayoutAppSelector((state) => state);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+    const delegates = createDelegates(trackLayoutActionCreators);
 
     const props = {
         ...trackLayoutState,
@@ -54,7 +54,7 @@ export const TrackLayoutContainer: React.FC = () => {
                 layerId: id,
                 visible: visible,
             }),
-        changeTimes: trackLayoutState.changeTimes,
+        changeTimes: changeTimes,
         onShownItemsChange: delegates.onShownItemsChange,
         showArea: delegates.showArea,
         onSetLayoutClusterLinkPoint: delegates.setLayoutClusterLinkPoint,

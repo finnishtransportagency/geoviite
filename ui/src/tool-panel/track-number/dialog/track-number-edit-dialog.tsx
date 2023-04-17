@@ -20,7 +20,7 @@ import {
     reducer,
     TrackNumberSaveRequest,
 } from './track-number-edit-store';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import {
     LayoutReferenceLine,
@@ -91,7 +91,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         reducer,
         initialTrackNumberEditState(inEditTrackNumber, inEditReferenceLine, trackNumbers),
     );
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const startAndEndPoints = inEditReferenceLine
         ? useReferenceLineStartAndEnd(inEditReferenceLine.id, 'DRAFT')
         : undefined;

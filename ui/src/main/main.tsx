@@ -1,4 +1,4 @@
-import { connect } from 'react-redux';
+import { Provider } from 'react-redux';
 import * as React from 'react';
 import 'i18n/config';
 import { Route, Routes, useNavigate } from 'react-router-dom';
@@ -7,10 +7,9 @@ import { TrackLayoutContainer } from 'track-layout/track-layout-container';
 import { Slide, ToastContainer } from 'react-toastify';
 import { I18nDemo } from 'i18n/i18n-demo';
 import { AppBar } from 'app-bar/app-bar';
-import { InfraModelMainContainerWithProvider } from 'infra-model/infra-model-main-container';
 import { GeoviiteLibDemo } from 'geoviite-design-lib/demo/demo';
 import { VersionHolderView } from 'version-holder/version-holder-view';
-import { useTrackLayoutAppDispatch, useTrackLayoutAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { LayoutMode } from 'common/common-model';
 import { PreviewContainer } from 'preview/preview-container';
 import { FrontpageContainer } from 'frontpage/frontpage-container';
@@ -20,19 +19,25 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 // fontsource requires fonts to be imported somewhere in code
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/600.css';
-import { ElementListContainerWithProvider } from 'data-products/element-list/element-list-container-with-provider';
-import { VerticalGeometryContainerWithProvider } from 'data-products/vertical-geometry/vertical-geometry-container-with-provider';
 import { getEnvironmentInfo } from 'environment/environment-info';
 import { createDelegates } from 'store/store-utils';
-import { actionCreators } from 'track-layout/track-layout-store';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
 import { Button } from 'vayla-design-lib/button/button';
-import { KilometerLengthsContainerWithProvider } from 'data-products/kilometer-lengths/kilometer-lengths-container-with-provider';
+import { InfraModelMainView } from 'infra-model/infra-model-main-view';
+import { PersistGate } from 'redux-persist/integration/react';
+import { persistStore } from 'redux-persist';
+import { appStore } from 'store/store';
+import ElementListView from 'data-products/element-list/element-list-view';
+import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
+import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
+import { commonActionCreators } from 'common/common-slice';
 
 type MainProps = {
     layoutMode: LayoutMode;
     version: string | undefined;
 };
+
+const persistorRoot = persistStore(appStore);
 
 const Main: React.VFC<MainProps> = (props: MainProps) => {
     const { t } = useTranslation();
@@ -55,23 +60,17 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                             )
                         }
                     />
-                    <Route
-                        path="/infra-model/*"
-                        element={<InfraModelMainContainerWithProvider />}
-                    />
+                    <Route path="/infra-model/*" element={<InfraModelMainView />} />
                     <Route path="/design-lib-demo" element={<GeoviiteLibDemo />} />
                     <Route path="/localization-demo" element={<I18nDemo />} />
-                    <Route
-                        path="/data-products/element-list"
-                        element={<ElementListContainerWithProvider />}
-                    />
+                    <Route path="/data-products/element-list" element={<ElementListView />} />
                     <Route
                         path="/data-products/vertical-geometry"
-                        element={<VerticalGeometryContainerWithProvider />}
+                        element={<VerticalGeometryView />}
                     />
                     <Route
                         path="/data-products/kilometer-lengths"
-                        element={<KilometerLengthsContainerWithProvider />}
+                        element={<KilometerLengthsView />}
                     />
                 </Routes>
             </div>
@@ -92,11 +91,10 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
 export const MainContainer: React.FC = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const layoutMode = useTrackLayoutAppSelector((state) => state.trackLayout.layoutMode);
-    const versionInStore = useTrackLayoutAppSelector((state) => state.trackLayout.version);
+    const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
+    const versionInStore = useCommonDataAppSelector((state) => state.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
-    const dispatch = useTrackLayoutAppDispatch();
-    const delegates = createDelegates(dispatch, actionCreators);
+    const delegates = createDelegates(commonActionCreators);
     const [showDialog, setShowDialog] = React.useState(false);
 
     React.useEffect(() => {
@@ -113,7 +111,11 @@ export const MainContainer: React.FC = () => {
 
     return (
         <React.Fragment>
-            <Main {...props} />{' '}
+            <Provider store={appStore}>
+                <PersistGate loading={null} persistor={persistorRoot}>
+                    <Main {...props} />
+                </PersistGate>
+            </Provider>{' '}
             {showDialog && (
                 <Dialog
                     allowClose={false}
@@ -136,4 +138,4 @@ export const MainContainer: React.FC = () => {
     );
 };
 
-export default connect()(MainContainer);
+export default MainContainer;

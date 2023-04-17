@@ -1,20 +1,20 @@
-import { trackLayoutStore } from 'store/store';
+import { appStore } from 'store/store';
 
 import { API_URI, getIgnoreError, getWithDefault } from 'api/api-fetch';
-import { actionCreators, ChangeTimes } from 'track-layout/track-layout-store';
 import { createDelegates } from 'store/store-utils';
 import { TimeStamp } from 'common/common-model';
+import { ChangeTimes, commonActionCreators } from 'common/common-slice';
 
 const CHANGES_API = `${API_URI}/change-times`;
 
-const delegates = createDelegates(trackLayoutStore.dispatch, actionCreators);
+const delegates = createDelegates(commonActionCreators);
 
 const _intervalHandle = window.setInterval(() => {
     updateAllChangeTimes();
 }, 15000);
 
 export function getChangeTimes(): ChangeTimes {
-    return trackLayoutStore.getState().trackLayout.changeTimes;
+    return appStore.getState().common.changeTimes;
 }
 
 export function updateAllChangeTimes(): Promise<ChangeTimes> {

@@ -28,12 +28,12 @@ import {
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import { PublishType } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/location-track-panel/location-tracks-panel';
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
+import { ChangeTimes } from 'common/common-slice';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;

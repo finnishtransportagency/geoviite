@@ -1,19 +1,18 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from 'data-products/data-product-view.scss';
-import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
+import { useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { dataProductsActions } from 'data-products/data-products-store';
 import KilometerLengthsSearch from 'data-products/kilometer-lengths/kilometer-lengths-search';
 import { KilometerLengthsTable } from 'data-products/kilometer-lengths/kilometer-lengths-table';
 import { KmNumber } from 'common/common-model';
 import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
+import { dataProductsActions } from 'data-products/data-products-slice';
 
 export const KilometerLengthsView = () => {
+    const dataProductsDelegates = createDelegates(dataProductsActions);
+    const state = useDataProductsAppSelector((state) => state.kmLenghts);
     const { t } = useTranslation();
-    const rootDispatch = useDataProductsAppDispatch();
-    const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
-    const state = useDataProductsAppSelector((state) => state.dataProducts.kmLenghts);
     const [loading, setLoading] = React.useState(false);
 
     const startIndex = state.startKm ? findIndex(state.startKm, state.kmLengths) : 0;

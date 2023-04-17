@@ -4,15 +4,14 @@ import { Radio } from 'vayla-design-lib/radio/radio';
 import styles from 'data-products/data-product-view.scss';
 import PlanVerticalGeometrySearch from 'data-products/vertical-geometry/plan-vertical-geometry-search';
 import LocationTrackVerticalGeometrySearch from 'data-products/vertical-geometry/location-track-vertical-geometry-search';
-import { useDataProductsAppDispatch, useDataProductsAppSelector } from 'store/hooks';
+import { useDataProductsAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { dataProductsActions } from 'data-products/data-products-store';
 import { VerticalGeometryTable } from 'data-products/vertical-geometry/vertical-geometry-table';
+import { dataProductsActions } from 'data-products/data-products-slice';
 
 const VerticalGeometryView = () => {
-    const rootDispatch = useDataProductsAppDispatch();
-    const dataProductsDelegates = createDelegates(rootDispatch, dataProductsActions);
-    const state = useDataProductsAppSelector((state) => state.dataProducts.verticalGeometry);
+    const dataProductsDelegates = createDelegates(dataProductsActions);
+    const state = useDataProductsAppSelector((state) => state.verticalGeometry);
     const [loading, setLoading] = React.useState(false);
 
     const { t } = useTranslation();

@@ -10,7 +10,6 @@ import {
     getGeometryPlanVerticalGeometry,
     getGeometryPlanVerticalGeometryCsv,
 } from 'geometry/geometry-api';
-import { PlanVerticalGeometrySearchState } from 'data-products/data-products-store';
 import { PropEdit } from 'utils/validation-utils';
 import { debounceAsync } from 'utils/async-utils';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
@@ -20,6 +19,7 @@ import {
 } from 'data-products/data-products-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
+import { PlanVerticalGeometrySearchState } from 'data-products/data-products-slice';
 
 type PlanVerticalGeometrySearchProps = {
     state: PlanVerticalGeometrySearchState;

@@ -454,7 +454,7 @@ export const kmLengthsSearchSlice = createSlice({
 
 type SelectedSearch = 'PLAN' | 'LOCATION_TRACK';
 
-type DataProductsState = {
+export type DataProductsState = {
     elementList: {
         selectedSearch: SelectedSearch;
         planSearch: PlanGeometrySearchState;

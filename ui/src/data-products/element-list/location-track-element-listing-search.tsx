@@ -5,12 +5,6 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import {
-    ContinuousSearchParameters,
-    ElementListContinuousGeometrySearchState,
-    selectedElementTypes,
-    validTrackMeterOrUndefined,
-} from 'data-products/data-products-store';
 import { debounceAsync } from 'utils/async-utils';
 import { PropEdit } from 'utils/validation-utils';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
@@ -24,6 +18,12 @@ import {
     getVisibleErrorsByProp,
     hasErrors,
 } from 'data-products/data-products-utils';
+import {
+    ContinuousSearchParameters,
+    ElementListContinuousGeometrySearchState,
+    selectedElementTypes,
+    validTrackMeterOrUndefined,
+} from 'data-products/data-products-slice';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;

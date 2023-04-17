@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './location-holder-view.scss';
 import { formatToTM35FINString } from 'utils/geography-utils';
-import { trackLayoutStore } from 'store/store';
+import { appStore } from 'store/store';
 import { Point } from 'model/geometry';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { PublishType, TrackMeter as TrackMeterModel } from 'common/common-model';
@@ -70,11 +70,9 @@ export async function getHoverLocation(
 }
 
 async function getHoverLocationBySelection(coordinate: Point | null): Promise<HoverLocation> {
-    const trackNumberIds =
-        trackLayoutStore.getState().trackLayout.selection.selectedItems.trackNumbers;
-    const locationTracks =
-        trackLayoutStore.getState().trackLayout.selection.selectedItems.locationTracks;
-    const publishType = trackLayoutStore.getState().trackLayout.publishType;
+    const trackNumberIds = appStore.getState().trackLayout.selection.selectedItems.trackNumbers;
+    const locationTracks = appStore.getState().trackLayout.selection.selectedItems.locationTracks;
+    const publishType = appStore.getState().trackLayout.publishType;
     if (trackNumberIds.length == 1 && coordinate != null) {
         return getReferenceLineHoverLocation(trackNumberIds[0], publishType, coordinate);
     } else if (locationTracks.length == 1 && coordinate != null) {

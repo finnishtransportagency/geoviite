@@ -11,8 +11,7 @@ import { wrapReducers } from 'store/store-utils';
 import { initialSelectionState, selectionReducers } from 'selection/selection-store';
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
-import { LayoutMode, PublishType, TimeStamp } from 'common/common-model';
-import { toDate } from 'utils/date-utils';
+import { LayoutMode, PublishType } from 'common/common-model';
 import {
     GeometryPlanLayout,
     LayoutKmPostId,
@@ -33,16 +32,6 @@ export type SelectedPublishChange = {
     kmPost: LayoutKmPostId | undefined;
 };
 
-export type ChangeTimes = {
-    layoutTrackNumber: TimeStamp;
-    layoutLocationTrack: TimeStamp;
-    layoutReferenceLine: TimeStamp;
-    layoutSwitch: TimeStamp;
-    layoutKmPost: TimeStamp;
-    geometryPlan: TimeStamp;
-    publication: TimeStamp;
-};
-
 export const initialPublicationRequestIds: PublishRequestIds = {
     trackNumbers: [],
     referenceLines: [],
@@ -51,39 +40,24 @@ export const initialPublicationRequestIds: PublishRequestIds = {
     kmPosts: [],
 };
 
-export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
-export const initialChangeTimes: ChangeTimes = {
-    layoutTrackNumber: initialChangeTime,
-    layoutLocationTrack: initialChangeTime,
-    layoutReferenceLine: initialChangeTime,
-    layoutSwitch: initialChangeTime,
-    layoutKmPost: initialChangeTime,
-    geometryPlan: initialChangeTime,
-    publication: initialChangeTime,
-};
-
 export type TrackLayoutState = {
-    version: string | undefined;
     publishType: PublishType;
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
     stagedPublicationRequestIds: PublishRequestIds;
     linkingState?: LinkingState;
-    changeTimes: ChangeTimes;
     linkingIssuesSelectedBeforeLinking: boolean;
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTabId: string | undefined;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
-    version: undefined,
     publishType: 'OFFICIAL',
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
     stagedPublicationRequestIds: initialPublicationRequestIds,
-    changeTimes: initialChangeTimes,
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTabId: undefined,
@@ -275,81 +249,6 @@ const trackLayoutSlice = createSlice({
                 selectionReducers.togglePlanVisibility(state.selection, action);
             }
         },
-        setChangeTimes: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<ChangeTimes>,
-        ) {
-            if (toDate(changeTimes.layoutTrackNumber) < toDate(payload.layoutTrackNumber)) {
-                changeTimes.layoutTrackNumber = payload.layoutTrackNumber;
-            }
-            if (toDate(changeTimes.layoutLocationTrack) < toDate(payload.layoutLocationTrack)) {
-                changeTimes.layoutLocationTrack = payload.layoutLocationTrack;
-            }
-            if (toDate(changeTimes.layoutReferenceLine) < toDate(payload.layoutReferenceLine)) {
-                changeTimes.layoutReferenceLine = payload.layoutReferenceLine;
-            }
-            if (toDate(changeTimes.layoutSwitch) < toDate(payload.layoutSwitch)) {
-                changeTimes.layoutSwitch = payload.layoutSwitch;
-            }
-            if (toDate(changeTimes.layoutKmPost) < toDate(payload.layoutKmPost)) {
-                changeTimes.layoutKmPost = payload.layoutKmPost;
-            }
-            if (toDate(changeTimes.geometryPlan) < toDate(payload.geometryPlan)) {
-                changeTimes.geometryPlan = payload.geometryPlan;
-            }
-            if (toDate(changeTimes.publication) < toDate(payload.publication)) {
-                changeTimes.publication = payload.publication;
-            }
-        },
-        setLayoutTrackNumberChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            if (toDate(changeTimes.layoutTrackNumber) < toDate(payload))
-                changeTimes.layoutTrackNumber = payload;
-        },
-        setLayoutLocationTrackChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            if (toDate(changeTimes.layoutLocationTrack) < toDate(payload))
-                changeTimes.layoutLocationTrack = payload;
-        },
-        setLayoutReferenceLineChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            if (toDate(changeTimes.layoutReferenceLine) < toDate(payload))
-                changeTimes.layoutReferenceLine = payload;
-        },
-        setLayoutSwitchChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            if (toDate(changeTimes.layoutSwitch) < toDate(payload))
-                changeTimes.layoutSwitch = payload;
-        },
-        setLayoutKmPostChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            if (toDate(changeTimes.layoutKmPost) < toDate(payload))
-                changeTimes.layoutKmPost = payload;
-        },
-        setGeometryPlanChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            if (toDate(changeTimes.geometryPlan) < toDate(payload))
-                changeTimes.geometryPlan = payload;
-        },
-        setPublicationChangeTime: function (
-            { changeTimes }: TrackLayoutState,
-            { payload }: PayloadAction<TimeStamp>,
-        ) {
-            if (toDate(changeTimes.publication) < toDate(payload))
-                changeTimes.publication = payload;
-        },
         onPublishTypeChange: (
             state: TrackLayoutState,
             { payload: publishType }: PayloadAction<PublishType>,
@@ -373,14 +272,8 @@ const trackLayoutSlice = createSlice({
         ): void => {
             state.selectedToolPanelTabId = payload;
         },
-        setVersion: (
-            state: TrackLayoutState,
-            { payload: version }: PayloadAction<string>,
-        ): void => {
-            state.version = version;
-        },
     },
 });
 
 export const trackLayoutReducer = trackLayoutSlice.reducer;
-export const actionCreators = trackLayoutSlice.actions;
+export const trackLayoutActionCreators = trackLayoutSlice.actions;

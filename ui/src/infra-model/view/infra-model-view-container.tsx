@@ -1,8 +1,6 @@
-import { connect } from 'react-redux';
-import { InfraModelRootState, TrackLayoutAppDispatch } from 'store/store';
-import { actionCreators, InfraModelViewType } from '../infra-model-store';
+import { infraModelActionCreators, InfraModelViewType } from '../infra-model-slice';
 import { createDelegates } from 'store/store-utils';
-import { InfraModelView, InfraModelViewProps } from 'infra-model/view/infra-model-view';
+import { InfraModelView } from 'infra-model/view/infra-model-view';
 import {
     GeometryElement,
     GeometryElementId,
@@ -11,33 +9,22 @@ import {
 } from 'geometry/geometry-model';
 import { getGeometryElementFromPlan, getGeometrySwitchFromPlan } from 'geometry/geometry-utils';
 import React from 'react';
-import {
-    InfraModelEditLoader,
-    InfraModelLoaderProps,
-} from 'infra-model/view/infra-model-edit-loader';
+import { InfraModelEditLoader } from 'infra-model/view/infra-model-edit-loader';
+import { useInfraModelAppSelector, useCommonDataAppSelector } from 'store/hooks';
 
-function mapStateToProps({ infraModel }: InfraModelRootState) {
-    return {
-        ...infraModel,
-        getGeometryElement: async (
-            geomElemId: GeometryElementId,
-        ): Promise<GeometryElement | null> => {
-            return infraModel.plan ? getGeometryElementFromPlan(infraModel.plan, geomElemId) : null;
-        },
-        getGeometrySwitch: async (
-            geometrySwitchId: GeometrySwitchId,
-        ): Promise<GeometrySwitch | null> => {
-            return infraModel.plan
-                ? getGeometrySwitchFromPlan(infraModel.plan, geometrySwitchId)
-                : null;
-        },
-    };
-}
+type InfraModelViewContainerProps = {
+    viewType: InfraModelViewType;
+};
 
-function mapDispatchToProps(dispatch: TrackLayoutAppDispatch) {
-    const delegates = createDelegates(dispatch, actionCreators);
+export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = ({
+    viewType,
+}: InfraModelViewContainerProps) => {
+    const infraModelState = useInfraModelAppSelector((state) => state);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    return {
+    const delegates = createDelegates(infraModelActionCreators);
+
+    const delegatesProps = {
         onInfraModelExtraParametersChange: delegates.onInfraModelExtraParametersChange,
         onInfraModelOverrideParametersChange: delegates.onInfraModelOverrideParametersChange,
         onPlanUpdate: delegates.onPlanUpdate,
@@ -50,20 +37,35 @@ function mapDispatchToProps(dispatch: TrackLayoutAppDispatch) {
         onCommitField: delegates.onCommitField,
         showArea: delegates.showArea,
         setExistingInfraModel: delegates.setExistingInfraModel,
+        getGeometryElement: async (
+            geomElemId: GeometryElementId,
+        ): Promise<GeometryElement | null> => {
+            return infraModelState.plan
+                ? getGeometryElementFromPlan(infraModelState.plan, geomElemId)
+                : null;
+        },
+        getGeometrySwitch: async (
+            geometrySwitchId: GeometrySwitchId,
+        ): Promise<GeometrySwitch | null> => {
+            return infraModelState.plan
+                ? getGeometrySwitchFromPlan(infraModelState.plan, geometrySwitchId)
+                : null;
+        },
     };
-}
 
-const InfraModelLoadingInfraModelView: React.FC<InfraModelViewProps> = (
-    props: InfraModelLoaderProps,
-) => {
-    return props.viewType == InfraModelViewType.UPLOAD ? (
-        <InfraModelView {...props} />
+    return viewType == InfraModelViewType.UPLOAD ? (
+        <InfraModelView
+            {...infraModelState}
+            {...delegatesProps}
+            changeTimes={changeTimes}
+            viewType={viewType}
+        />
     ) : (
-        <InfraModelEditLoader {...props} />
+        <InfraModelEditLoader
+            {...infraModelState}
+            {...delegatesProps}
+            changeTimes={changeTimes}
+            viewType={viewType}
+        />
     );
 };
-
-export const InfraModelViewContainer = connect(
-    mapStateToProps,
-    mapDispatchToProps,
-)(InfraModelLoadingInfraModelView);

@@ -18,7 +18,7 @@ import {
     OnPlanFetchReady,
     OverrideInfraModelParameters,
     XmlCharset,
-} from 'infra-model/infra-model-store';
+} from 'infra-model/infra-model-slice';
 import {
     GeometryElement,
     GeometryElementId,
@@ -38,7 +38,6 @@ import { convertToNativeFile } from 'utils/file-utils';
 import { Title } from 'vayla-design-lib/title/title';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import { Prop } from 'utils/type-utils';
 import { ValidationErrorType } from 'utils/validation-utils';
 import { useTranslation } from 'react-i18next';
@@ -49,6 +48,7 @@ import { Menu } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { useAppNavigate } from 'common/navigate';
+import { ChangeTimes } from 'common/common-slice';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -168,8 +168,8 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             : props.overrideInfraModelParameters;
 
         const extraParams = {
-            ...props.extraInframodelParameters,
-            oid: props.extraInframodelParameters.oid || undefined,
+            ...props.extraInfraModelParameters,
+            oid: props.extraInfraModelParameters.oid || undefined,
         };
         const formData = getFormFile(file, extraParams, overrideParameters);
 
@@ -298,7 +298,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 props.onInfraModelExtraParametersChange
                             }
                             overrideInfraModelParameters={props.overrideInfraModelParameters}
-                            extraInframodelParameters={props.extraInframodelParameters}
+                            extraInframodelParameters={props.extraInfraModelParameters}
                             onCommitField={props.onCommitField}
                             committedFields={props.committedFields}
                             onSelect={props.onSelect}

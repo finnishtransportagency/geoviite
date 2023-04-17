@@ -8,7 +8,7 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { layoutStates } from 'utils/enum-localization-utils';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import {
     actions,
     canSaveKmPost,
@@ -47,7 +47,7 @@ export type KmPostDialogProps = {
 export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialogProps) => {
     const { t } = useTranslation();
     const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const kmPostStateOptions = layoutStates.filter(
         (ls) => !state.isNewKmPost || ls.value != 'DELETED',
     );
@@ -224,18 +224,19 @@ export const KmPostEditDialog: React.FC<KmPostDialogProps> = (props: KmPostDialo
                     <React.Fragment>
                         <div className={styles['dialog-footer__content-area']}>
                             <div className={styles['dialog-footer__content--shrink']}>
-                                {officialKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
-                                    <Button
-                                        onClick={() =>
-                                            props.kmPostId
-                                                ? confirmNonDraftDraftDelete()
-                                                : undefined
-                                        }
-                                        icon={Icons.Delete}
-                                        variant={ButtonVariant.WARNING}>
-                                        {t('km-post-dialog.delete-draft')}
-                                    </Button>
-                                )}
+                                {officialKmPost?.draftType === 'NEW_DRAFT' &&
+                                    !state.isNewKmPost && (
+                                        <Button
+                                            onClick={() =>
+                                                props.kmPostId
+                                                    ? confirmNonDraftDraftDelete()
+                                                    : undefined
+                                            }
+                                            icon={Icons.Delete}
+                                            variant={ButtonVariant.WARNING}>
+                                            {t('km-post-dialog.delete-draft')}
+                                        </Button>
+                                    )}
                             </div>
                             <div
                                 className={createClassName(

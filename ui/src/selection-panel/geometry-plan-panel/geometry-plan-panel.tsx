@@ -22,12 +22,12 @@ import {
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { useTranslation } from 'react-i18next';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { PublishType } from 'common/common-model';
+import { ChangeTimes } from 'common/common-slice';
 
 type GeometryPlanProps = {
     planHeader: GeometryPlanHeader;

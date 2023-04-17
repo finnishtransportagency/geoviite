@@ -26,7 +26,6 @@ import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
 import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
 import SwitchDeleteDialog from 'tool-panel/switch/dialog/switch-delete-dialog';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import { Point } from 'model/geometry';
 import { PlacingSwitch } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
@@ -39,6 +38,7 @@ import { getTrackMeter } from 'track-layout/layout-map-api';
 import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch-api';
 import { asyncCache } from 'cache/cache';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { ChangeTimes } from 'common/common-slice';
 
 const switchJointTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 

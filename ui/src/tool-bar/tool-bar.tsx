@@ -29,7 +29,6 @@ import { useTranslation } from 'react-i18next';
 import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
 import { LocationTrackEditDialog } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
-import { ChangeTimes } from 'track-layout/track-layout-store';
 import {
     updateKmPostChangeTime,
     updateLocationTrackChangeTime,
@@ -40,6 +39,7 @@ import { SwitchEditDialog } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
+import { ChangeTimes } from 'common/common-slice';
 
 export type ToolbarParams = {
     selection: Selection;

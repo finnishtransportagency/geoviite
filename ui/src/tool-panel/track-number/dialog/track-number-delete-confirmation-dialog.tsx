@@ -8,7 +8,7 @@ import {
     initialLocationTrackEditState,
     reducer,
 } from 'tool-panel/location-track/dialog/location-track-edit-store';
-import { createDelegates } from 'store/store-utils';
+import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import { deleteTrackNumber } from 'track-layout/layout-track-number-api';
@@ -26,7 +26,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
 }: TrackNumberDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
     const [, dispatcher] = React.useReducer(reducer, initialLocationTrackEditState);
-    const stateActions = createDelegates(dispatcher, actions);
+    const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
 
     const deleteDraftLocationTrack = (id: LocationTrackId) => {
         deleteTrackNumber(id)

@@ -1,18 +1,10 @@
-import { connect } from 'react-redux';
+import React from 'react';
 import InfraModelLoadButton from 'infra-model/list/infra-model-load-button';
-import { TrackLayoutAppDispatch } from 'store/store';
-import { actionCreators } from 'infra-model/infra-model-store';
+import { infraModelActionCreators } from 'infra-model/infra-model-slice';
 import { createDelegates } from 'store/store-utils';
 
-function mapDispatchToProps(dispatch: TrackLayoutAppDispatch) {
-    const delegates = createDelegates(dispatch, actionCreators);
+export const InfraModelLoadButtonContainer = () => {
+    const delegates = createDelegates(infraModelActionCreators);
 
-    return {
-        onFileSelected: delegates.setInfraModelFile,
-    };
-}
-
-export const InfraModelLoadButtonContainer = connect(
-    undefined,
-    mapDispatchToProps,
-)(InfraModelLoadButton);
+    return <InfraModelLoadButton onFileSelected={delegates.setInfraModelFile} />;
+};
