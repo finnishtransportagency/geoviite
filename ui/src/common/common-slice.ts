@@ -26,11 +26,13 @@ export const initialChangeTimes: ChangeTimes = {
 export type CommonState = {
     version: string | undefined;
     changeTimes: ChangeTimes;
+    userHasWriteRole: boolean;
 };
 
 export const initialCommonState = {
     version: undefined,
     changeTimes: initialChangeTimes,
+    userHasWriteRole: false,
 };
 
 const commonSlice = createSlice({
@@ -114,6 +116,12 @@ const commonSlice = createSlice({
         ) {
             if (toDate(changeTimes.publication) < toDate(payload))
                 changeTimes.publication = payload;
+        },
+        setUserHasWriteRole: (
+            state: CommonState,
+            { payload: writeRole }: PayloadAction<boolean>,
+        ): void => {
+            state.userHasWriteRole = writeRole;
         },
     },
 });

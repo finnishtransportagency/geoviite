@@ -31,6 +31,8 @@ import ElementListView from 'data-products/element-list/element-list-view';
 import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
+import { getOwnUser } from 'user/user-api';
+import { useLoader } from 'utils/react-utils';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -94,8 +96,16 @@ export const MainContainer: React.FC = () => {
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
     const versionInStore = useCommonDataAppSelector((state) => state.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
+    const userFromBackend = useLoader(getOwnUser, []);
     const delegates = createDelegates(commonActionCreators);
     const [showDialog, setShowDialog] = React.useState(false);
+
+    React.useEffect(() => {
+        const userHasWriteAccess = userFromBackend?.role.privileges.some(
+            (privilege) => privilege.code === 'blaa', // VAIHDA TÄHÄN: 'all-write'
+        );
+        userFromBackend && delegates.setUserHasWriteRole(!!userHasWriteAccess);
+    }, [userFromBackend]);
 
     React.useEffect(() => {
         setShowDialog(
