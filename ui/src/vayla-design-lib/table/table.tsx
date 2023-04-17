@@ -14,8 +14,12 @@ export const Table: React.FC<TableProps> = (props: TableProps) => {
         styles.table,
         props.wide && styles['table--wide'],
     );
+
+    const containerClassName = createClassName(
+        props.isLoading && styles['table__container--loading'],
+    );
     return (
-        <div className={styles['table__container']}>
+        <div className={containerClassName}>
             <table className={className}>{props.children}</table>
             {props.isLoading && <div className={styles['table--loading']} />}
         </div>

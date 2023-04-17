@@ -85,7 +85,7 @@ $table-cell-padding: 10px 16px;
     }
 }
 
-.table__container {
+.table__container--loading {
     // For showing the backdrop when loading
     position: relative;
 }
