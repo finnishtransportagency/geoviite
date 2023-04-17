@@ -49,6 +49,7 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { useAppNavigate } from 'common/navigate';
 import { ChangeTimes } from 'common/common-slice';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -150,6 +151,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
     const [showCharsetPicker, setShowCharsetPicker] = React.useState(false);
     const [charsetOverride, setCharsetOverride] = React.useState<XmlCharset | undefined>(undefined);
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     const fileMenuItems = [
         { value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') },
@@ -322,7 +324,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.cancel')}
                         </Button>
                     )}
-                    {props.viewType === InfraModelViewType.EDIT && (
+                    {props.viewType === InfraModelViewType.EDIT && userHasWriteRole && (
                         <Button
                             onClick={navigateToList}
                             variant={ButtonVariant.SECONDARY}
@@ -330,24 +332,25 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.return')}
                         </Button>
                     )}
-
-                    <Button
-                        title={getVisibleErrors()}
-                        onClick={() => onProgressClick()}
-                        disabled={
-                            loadingInProgress ||
-                            infraModelValidationResponse == null ||
-                            fileHandlingFailedErrors.length > 0 ||
-                            getFieldValidationErrors().length > 0
-                        }
-                        icon={Icons.Tick}
-                        isProcessing={loadingInProgress}>
-                        {t(
-                            props.viewType === InfraModelViewType.EDIT
-                                ? 'im-form.save-changes'
-                                : 'button.save',
-                        )}
-                    </Button>
+                    {userHasWriteRole && (
+                        <Button
+                            title={getVisibleErrors()}
+                            onClick={() => onProgressClick()}
+                            disabled={
+                                loadingInProgress ||
+                                infraModelValidationResponse == null ||
+                                fileHandlingFailedErrors.length > 0 ||
+                                getFieldValidationErrors().length > 0
+                            }
+                            icon={Icons.Tick}
+                            isProcessing={loadingInProgress}>
+                            {t(
+                                props.viewType === InfraModelViewType.EDIT
+                                    ? 'im-form.save-changes'
+                                    : 'button.save',
+                            )}
+                        </Button>
+                    )}
                 </div>
             </div>
             <div className={styles['infra-model-upload__map-container']}>
