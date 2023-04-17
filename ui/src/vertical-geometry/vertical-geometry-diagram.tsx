@@ -2,7 +2,12 @@ import React, { MouseEvent, useRef, useState, WheelEvent } from 'react';
 import { KmNumber, PublishType, TrackMeter } from 'common/common-model';
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import { useLoader } from 'utils/react-utils';
-import { GeometryAlignmentId, GeometryPlanId, VerticalGeometryItem } from 'geometry/geometry-model';
+import {
+    GeometryAlignmentId,
+    GeometryPlanId,
+    StationPoint,
+    VerticalGeometryItem,
+} from 'geometry/geometry-model';
 import {
     getGeometryPlanVerticalGeometry,
     getLocationTrackHeights,
@@ -10,7 +15,7 @@ import {
     getPlanAlignmentHeights,
 } from 'geometry/geometry-api';
 import styles from './vertical-geometry-diagram.scss';
-import { minimumIndexBy } from 'utils/array-utils';
+import { filterNotEmpty, minimumIndexBy } from 'utils/array-utils';
 import {
     findTrackMeterIndexContainingM,
     getTrackMeterPairAroundIndex,
@@ -73,43 +78,38 @@ function chooseHorizontalTickLengthMeters(distanceMeters: number): number {
         : horizontalTickLengthsMeters[Math.max(0, firstTooDenseIndex - 1)];
 }
 
-function closestGeometryM(m: number, geometry: VerticalGeometryItem[]) {
-    const allGeometryMs = geometry.flatMap((geom) =>
-        geom.point.address == null || geom.start.address == null || geom.end.address == null
-            ? []
-            : ([
-                  [geom.point.station, geom.point.address],
-                  [geom.start.station, geom.start.address],
-                  [geom.end.station, geom.end.address],
-              ] as const),
+function toGeometrySnapPoint(stationPoint: StationPoint, type: 'intersectionPoint' | 'endPoint') {
+    return stationPoint.address == null
+        ? null
+        : {
+              m: stationPoint.station,
+              height: stationPoint.height,
+              address: stationPoint.address,
+              type,
+          };
+}
+function closestGeometrySnapPoint(m: number, geometry: VerticalGeometryItem[]) {
+    const allGeometryPoints = geometry.flatMap((geom) =>
+        [
+            toGeometrySnapPoint(geom.point, 'intersectionPoint'),
+            toGeometrySnapPoint(geom.start, 'endPoint'),
+            toGeometrySnapPoint(geom.end, 'endPoint'),
+        ].filter(filterNotEmpty),
     );
-    const minIndex = minimumIndexBy(allGeometryMs, (geometryM) => Math.abs(m - geometryM[0]));
-    return minIndex == null ? null : allGeometryMs[minIndex];
+    const minIndex = minimumIndexBy(allGeometryPoints, (snapPoint) => Math.abs(m - snapPoint.m));
+    return minIndex == null ? null : allGeometryPoints[minIndex];
 }
 
-function closestRulerTickM(
-    m: number,
-    trackKmHeights: TrackKmHeights[],
-): [number, TrackMeter] | null {
+function closestRulerTickM(m: number, trackKmHeights: TrackKmHeights[]): number | null {
     const index = findTrackMeterIndexContainingM(m, trackKmHeights);
     if (index == null) {
         return null;
     }
     const [left, right] = getTrackMeterPairAroundIndex(index, trackKmHeights);
-    const leftTrackMeter = {
-        kmNumber: trackKmHeights[index.left.kmIndex].kmNumber,
-        meters: left.meter,
-    };
     if (right == null || index.right == null) {
-        return [left.m, leftTrackMeter];
+        return left.m;
     } else {
-        const rightTrackMeter = {
-            kmNumber: trackKmHeights[index.right.kmIndex].kmNumber,
-            meters: right.meter,
-        };
-        return Math.abs(m - left.m) < Math.abs(m - right.m)
-            ? [left.m, leftTrackMeter]
-            : [right.m, rightTrackMeter];
+        return Math.abs(m - left.m) < Math.abs(m - right.m) ? left.m : right.m;
     }
 }
 
@@ -137,40 +137,46 @@ function getSnappedPoint(
     const xCoordinateM = xToM(coordinates, mouseX);
     const maxSnapDistanceM = coordinates.horizontalTickLengthMeters / 2;
 
-    const snappedAddress =
+    const approximatedPoint = (maybeApproximateM: number) => {
+        const kmIndex = findTrackMeterIndexContainingM(maybeApproximateM, trackKmHeights);
+        if (kmIndex == null) {
+            return null;
+        }
+        const height = approximateHeightAt(maybeApproximateM, kmIndex, trackKmHeights);
+        const address = approximateTrackAddressAt(maybeApproximateM, kmIndex, trackKmHeights);
+
+        return { height, address };
+    };
+
+    const { didSnap, height, address, m } =
         mouseCursorOverArea === 'ruler'
-            ? closestRulerTickM(xCoordinateM, trackKmHeights)
-            : closestGeometryM(xCoordinateM, geometry);
-    if (snappedAddress == null) {
-        return null;
-    }
+            ? (() => {
+                  const closest = closestRulerTickM(xCoordinateM, trackKmHeights);
+                  return closest == null
+                      ? { didSnap: false, m: xCoordinateM, ...approximatedPoint(xCoordinateM) }
+                      : { didSnap: true, m: closest, ...approximatedPoint(closest) };
+              })()
+            : (() => {
+                  const closest = closestGeometrySnapPoint(xCoordinateM, geometry);
+                  if (closest == null || Math.abs(closest.m - xCoordinateM) > maxSnapDistanceM) {
+                      return {
+                          didSnap: false,
+                          m: xCoordinateM,
+                          ...approximatedPoint(xCoordinateM),
+                      };
+                  }
 
-    const [[m, address], didSnap] =
-        Math.abs(snappedAddress[0] - xCoordinateM) > maxSnapDistanceM
-            ? ([
-                  [
-                      xCoordinateM,
-                      approximateTrackAddressAt(
-                          xCoordinateM,
-                          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                          findTrackMeterIndexContainingM(xCoordinateM, trackKmHeights)!,
-                          trackKmHeights,
-                      ),
-                  ] as const,
-                  false,
-              ] as const)
-            : ([snappedAddress, true] as const);
-
-    const kmIndex = findTrackMeterIndexContainingM(m, trackKmHeights);
-    if (kmIndex == null) {
-        return null;
-    }
-
-    const height = approximateHeightAt(m, kmIndex, trackKmHeights);
+                  const height =
+                      closest.type === 'intersectionPoint'
+                          ? approximatedPoint(closest.m)?.height ?? closest.height
+                          : closest.height;
+                  return { didSnap: true, height, address: closest.address, m: closest.m };
+              })();
 
     if (height == null || address == null) {
         return null;
     }
+
     const x = mToX(coordinates, m);
     const y = heightToY(coordinates, height);
 
@@ -293,6 +299,27 @@ const loadAlignmentHeights: (
     250,
 );
 
+// we don't really need the station values in the plan geometry for anything in this entire diagram
+function substituteLayoutStationsForGeometryStations(
+    geometryItem: VerticalGeometryItem,
+): VerticalGeometryItem {
+    return {
+        ...geometryItem,
+        start: {
+            ...geometryItem.start,
+            station: geometryItem.layoutStartStation ?? geometryItem.start.station,
+        },
+        point: {
+            ...geometryItem.point,
+            station: geometryItem.layoutPointStation ?? geometryItem.point.station,
+        },
+        end: {
+            ...geometryItem.end,
+            station: geometryItem.layoutEndStation ?? geometryItem.end.station,
+        },
+    };
+}
+
 export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = ({
     initialStartM,
     initialEndM,
@@ -321,7 +348,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
 
     const geometry = useLoader(
         () =>
-            ('planId' in alignmentId
+            'planId' in alignmentId
                 ? getGeometryPlanVerticalGeometry(alignmentId.planId).then((allPlanGeometries) =>
                       allPlanGeometries?.filter(
                           (vgl) => vgl.alignmentId == alignmentId.alignmentId,
@@ -331,10 +358,11 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                       alignmentId.locationTrackId,
                       undefined,
                       undefined,
-                  )
-            ).then(
-                (geometry) => (geometry == null ? null : geometry), //.sort((a, b) => b.point.station - a.point.station),
-            ),
+                  ).then((geometry) =>
+                      geometry == null
+                          ? null
+                          : geometry.map(substituteLayoutStationsForGeometryStations),
+                  ),
         [alignmentId],
     );
 
