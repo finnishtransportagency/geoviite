@@ -1,4 +1,4 @@
-import React, { MouseEvent, useRef, useState, WheelEvent } from 'react';
+import React, { MouseEvent, useMemo, useRef, useState, WheelEvent } from 'react';
 import { KmNumber, PublishType, TrackMeter } from 'common/common-model';
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 import { useLoader } from 'utils/react-utils';
@@ -269,36 +269,6 @@ function makeHeightGraph(coordinates: Coordinates, kmHeights: TrackKmHeights[]):
     return <>{lines}</>;
 }
 
-const loadAlignmentHeights: (
-    alignmentId: VerticalGeometryDiagramAlignmentId,
-    startM: number,
-    endM: number,
-    horizontalTickLengthMeters: number,
-) => Promise<AlignmentHeights> = debounceAsync(
-    (
-        alignmentId: VerticalGeometryDiagramAlignmentId,
-        startM: number,
-        endM: number,
-        horizontalTickLengthMeters: number,
-    ) =>
-        'planId' in alignmentId
-            ? getPlanAlignmentHeights(
-                  alignmentId.planId,
-                  alignmentId.alignmentId,
-                  startM,
-                  endM,
-                  horizontalTickLengthMeters,
-              )
-            : getLocationTrackHeights(
-                  alignmentId.locationTrackId,
-                  alignmentId.publishType,
-                  startM,
-                  endM,
-                  horizontalTickLengthMeters,
-              ),
-    250,
-);
-
 // we don't really need the station values in the plan geometry for anything in this entire diagram
 function substituteLayoutStationsForGeometryStations(
     geometryItem: VerticalGeometryItem,
@@ -341,8 +311,37 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
     );
     const horizontalTickLengthMeters = chooseHorizontalTickLengthMeters(endM - startM);
 
+    const debouncedLoadAlignmentHeights = useMemo(
+        () =>
+            debounceAsync(
+                (
+                    alignmentId: VerticalGeometryDiagramAlignmentId,
+                    startM: number,
+                    endM: number,
+                    horizontalTickLengthMeters: number,
+                ) =>
+                    'planId' in alignmentId
+                        ? getPlanAlignmentHeights(
+                              alignmentId.planId,
+                              alignmentId.alignmentId,
+                              startM,
+                              endM,
+                              horizontalTickLengthMeters,
+                          )
+                        : getLocationTrackHeights(
+                              alignmentId.locationTrackId,
+                              alignmentId.publishType,
+                              startM,
+                              endM,
+                              horizontalTickLengthMeters,
+                          ),
+                250,
+            ),
+        [alignmentId],
+    );
+
     const alignmentHeights = useLoader(
-        () => loadAlignmentHeights(alignmentId, startM, endM, horizontalTickLengthMeters),
+        () => debouncedLoadAlignmentHeights(alignmentId, startM, endM, horizontalTickLengthMeters),
         [alignmentId, startM, endM, horizontalTickLengthMeters],
     );
 
