@@ -12,12 +12,15 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
 import java.math.BigDecimal
+import kotlin.math.abs
 
 const val COORDINATE_DECIMALS = 3
 const val ADDRESS_DECIMALS = 3
 const val LENGTH_DECIMALS = 3
 const val DIRECTION_DECIMALS = 6
 const val CANT_DECIMALS = 6
+
+const val SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA = 1.0
 
 data class ElementListing(
     val id: StringId<ElementListing>,
@@ -83,11 +86,15 @@ fun toElementListing(
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
 ): List<ElementListing> {
     val linkedElementIds = collectLinkedElements(layoutAlignment.segments, context, startAddress, endAddress)
-    val linkedAlignmentIds = linkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
+    val lengthOfSegmentsConnectedToSameElement = linkedElementIds.groupBy { it.second }.map {
+        it.key to it.value.map { (segment, _) -> segment.length }.sum()
+    }
+    val distinctLinkedElementIds = linkedElementIds.distinctBy { (segment, elementId) -> elementId ?: segment.id }
+    val linkedAlignmentIds = distinctLinkedElementIds.mapNotNull { (_, id) -> id?.let(::getAlignmentId) }.distinct()
     val headersAndAlignments = linkedAlignmentIds.associateWith { id -> getPlanHeaderAndAlignment(id) }
-    return linkedElementIds.mapNotNull { (segment, elementId) ->
+    return distinctLinkedElementIds.mapNotNull { (segment, elementId) ->
         if (elementId == null) {
-            if (elementTypes.contains(MISSING_SECTION)) segment to toMissingElementListing(context, track.trackNumberId, segment, track, getSwitchName)
+            if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(context, track.trackNumberId, segment, track, getSwitchName)
             else null
         }
         else {
@@ -97,30 +104,28 @@ fun toElementListing(
                 "Geometry element not found on its parent alignment: alignment=${alignment.id} element=$elementId"
             )
             if (elementTypes.contains(TrackGeometryElementType.of(element.type))) {
-                segment to toElementListing(context, getTransformation, track, planHeader, alignment, element, segment, getSwitchName)
+                toElementListing(
+                    context,
+                    getTransformation,
+                    track,
+                    planHeader,
+                    alignment,
+                    element,
+                    segment,
+                    getSwitchName
+                )
             } else {
                 null
             }
         }
-    }.let { elementList ->
-        elementList.mapIndexed { index, (segment, listing) ->
-            val next = elementList.getOrNull(index + 1)?.second
-            val prev = elementList.getOrNull(index - 1)?.second
-            listing.copy(
-                isPartial =
-                if (index == 0
-                    || listing.planId != next?.planId
-                    || index == elementList.lastIndex
-                    || listing.planId != prev?.planId
-                    ) calculateIsPartial(
-                        context,
-                        segment,
-                        listing.start,
-                        listing.end
-                    )
-                else false
-            )
-        }
+    }.map { listing ->
+        val calculatedSegmentLength =
+            lengthOfSegmentsConnectedToSameElement.find { (elementId, _) -> elementId == listing.elementId }?.second
+        listing.copy(
+            isPartial = if (calculatedSegmentLength != null && listing.planId != null)
+                abs(calculatedSegmentLength - listing.lengthMeters.toDouble()) > SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA
+            else false
+        )
     }
 }
 
@@ -267,6 +272,7 @@ private val commonElementListingCsvEntries = arrayOf(
     CsvEntry(translateElementListingHeader(ElementListingHeader.DIRECTION_END)) { it.end.directionGrads.toPlainString() },
     CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_NAME)) { it.fileName },
     CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_SOURCE)) { it.planSource },
+    CsvEntry(translateElementListingHeader(ElementListingHeader.REMARKS)) { remarks(it) }
 )
 
 fun locationTrackCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
@@ -279,6 +285,12 @@ fun planCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
     trackNumberCsvEntry(trackNumbers),
     *commonElementListingCsvEntries
 )
+
+private fun remarks(elementListing: ElementListing) =
+    listOf(
+        if (elementListing.isPartial) IS_PARTIAL else null,
+        if (elementListing.connectedSwitchName != null) connectedToSwitch(elementListing.connectedSwitchName) else null
+    ).filterNotNull().joinToString(separator = ", ")
 
 private fun elementListing(
     context: GeocodingContext?,
@@ -317,18 +329,6 @@ private fun elementListing(
         connectedSwitchName = segment?.switchId?.let { getSwitchName(segment.switchId as IntId) },
         isPartial = false,
     )
-}
-
-private fun calculateIsPartial(context: GeocodingContext?, segment: LayoutSegment?, start: ElementLocation, end: ElementLocation): Boolean {
-    return if (context != null && segment != null) {
-        val segmentStartAddress = context.getAddress(segment.points.first())?.first
-        val segmentEndAddress = context.getAddress(segment.points.last())?.first
-
-        val startIsBefore = if (start.address != null && segmentStartAddress != null) start.address < segmentStartAddress else false
-        val endIsAfter = if (end.address != null && segmentEndAddress != null) end.address > segmentEndAddress else false
-
-        return startIsBefore || endIsAfter
-    } else false
 }
 
 private fun getLocation(

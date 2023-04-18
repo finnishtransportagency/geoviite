@@ -13,7 +13,6 @@ fun collectLinkedElements(
 ) = segments
     .filter { segment -> overlapsAddressInterval(segment, context, startAddress, endAddress) }
     .map { s -> if (s.sourceId is IndexedId) s to s.sourceId else s to null }
-    .distinctBy { (segment, elementId) -> elementId ?: segment.id }
 
 private fun overlapsAddressInterval(
     segment: LayoutSegment,
