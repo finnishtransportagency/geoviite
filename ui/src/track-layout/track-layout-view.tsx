@@ -19,6 +19,8 @@ import { BoundingBox } from 'model/geometry';
 import { PublishType } from 'common/common-model';
 import { LinkPoint } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
+import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
+import { createClassName } from 'vayla-design-lib/utils';
 
 // For now use whole state and some extras as params
 export type TrackLayoutParams = TrackLayoutState & {
@@ -47,8 +49,14 @@ export type TrackLayoutParams = TrackLayoutState & {
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutParams) => {
+    const verticalDiagramLocationTrackId = props.selection.selectedItems.locationTracks[0];
+    const showDiagram = verticalDiagramLocationTrackId != undefined;
+    const className = createClassName(
+        styles['track-layout'],
+        showDiagram && styles['track-layout--show-diagram'],
+    );
     return (
-        <div className={styles['track-layout']} qa-id="track-layout-content">
+        <div className={className} qa-id="track-layout-content">
             <ToolBar
                 settingsVisible={props.map.settingsVisible}
                 publishType={props.publishType}
@@ -89,6 +97,17 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                         <SelectionPanelContainer />
                     </MapContext.Provider>
                 </div>
+
+                {verticalDiagramLocationTrackId && (
+                    <div className={styles['track-layout__diagram']}>
+                        <VerticalGeometryDiagram
+                            alignmentId={{
+                                locationTrackId: verticalDiagramLocationTrackId,
+                                publishType: props.publishType,
+                            }}
+                        />
+                    </div>
+                )}
 
                 <div className={styles['track-layout__map']}>
                     {props.map.settingsVisible && (

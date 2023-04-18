@@ -255,7 +255,7 @@ const VerticalGeometryDiagram: React.FC<{
     const elementPosition = ref.current?.getBoundingClientRect();
 
     if (alignmentHeights == undefined || geometry == undefined || elementPosition == undefined) {
-        return <div ref={ref} />;
+        return <svg width={diagramWidthPx} height={fullDiagramHeightPx} />;
     }
     if (
         geometry.length == 0 &&
