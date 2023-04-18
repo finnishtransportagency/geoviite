@@ -256,13 +256,11 @@ data class SegmentSwitch(
     val segments: List<LayoutSegment>,
 )
 
-fun validateSwitchLocationTrackReferences(locationTracks: List<LocationTrack>
-): List<PublishValidationError> =
-    locationTracks.mapNotNull { l ->
-        validateWithParams(l.draft == null) {
-            "$VALIDATION_SWITCH.location-track.not-published" to listOf(l.name.toString())
-        }
+fun validateSwitchLocationTrackReferences(locationTracks: List<LocationTrack>) = locationTracks.mapNotNull { l ->
+    validateWithParams(l.draft == null) {
+        "$VALIDATION_SWITCH.location-track.not-published" to listOf(l.name.toString())
     }
+}
 
 fun validateSegmentSwitchReferences(
     locationTrack: LocationTrack,
