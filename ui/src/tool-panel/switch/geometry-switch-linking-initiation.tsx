@@ -5,6 +5,7 @@ import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { LinkingState } from 'linking/linking-model';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
@@ -18,9 +19,11 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
     onStartLinking,
 }) => {
     const { t } = useTranslation();
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
     return (
         <React.Fragment>
             {linkingState === undefined &&
+                userHasWriteRole &&
                 (hasSuggestedSwitch ? (
                     <InfoboxButtons>
                         <Button size={ButtonSize.SMALL} onClick={onStartLinking}>

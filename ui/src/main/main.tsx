@@ -102,7 +102,7 @@ export const MainContainer: React.FC = () => {
 
     React.useEffect(() => {
         const userHasWriteAccess = userFromBackend?.role.privileges.some(
-            (privilege) => privilege.code === 'blaa', // VAIHDA TÄHÄN: 'all-write'
+            (privilege) => privilege.code === 'all-write',
         );
         userFromBackend && delegates.setUserHasWriteRole(!!userHasWriteAccess);
     }, [userFromBackend]);
