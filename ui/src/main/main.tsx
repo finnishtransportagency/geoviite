@@ -1,4 +1,3 @@
-import { Provider } from 'react-redux';
 import * as React from 'react';
 import 'i18n/config';
 import { Route, Routes, useNavigate } from 'react-router-dom';
@@ -24,9 +23,6 @@ import { createDelegates } from 'store/store-utils';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
 import { Button } from 'vayla-design-lib/button/button';
 import { InfraModelMainView } from 'infra-model/infra-model-main-view';
-import { PersistGate } from 'redux-persist/integration/react';
-import { persistStore } from 'redux-persist';
-import { appStore } from 'store/store';
 import ElementListView from 'data-products/element-list/element-list-view';
 import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
@@ -38,8 +34,6 @@ type MainProps = {
     layoutMode: LayoutMode;
     version: string | undefined;
 };
-
-const persistorRoot = persistStore(appStore);
 
 const Main: React.VFC<MainProps> = (props: MainProps) => {
     const { t } = useTranslation();
@@ -121,11 +115,7 @@ export const MainContainer: React.FC = () => {
 
     return (
         <React.Fragment>
-            <Provider store={appStore}>
-                <PersistGate loading={null} persistor={persistorRoot}>
-                    <Main {...props} />
-                </PersistGate>
-            </Provider>{' '}
+            <Main {...props} />{' '}
             {showDialog && (
                 <Dialog
                     allowClose={false}
