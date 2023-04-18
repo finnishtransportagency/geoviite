@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
@@ -267,12 +268,13 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/layout/location-tracks/{id}/alignment-heights")
+    @GetMapping("/{publishType}/layout/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
+        @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") locationTrackId: IntId<LocationTrack>,
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
     ): AlignmentHeights? {
-        return geometryService.getLocationTrackHeights(locationTrackId, startDistance, endDistance, tickLength)
+        return geometryService.getLocationTrackHeights(locationTrackId, publishType, startDistance, endDistance, tickLength)
     }}

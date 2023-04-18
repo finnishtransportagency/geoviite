@@ -333,27 +333,39 @@ class GeometryService @Autowired constructor(
 
     fun getLocationTrackHeights(
         locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType,
         startDistance: Double,
         endDistance: Double,
         tickLength: Int,
     ): AlignmentHeights? {
-        val locationTrack = locationTrackService.get(OFFICIAL, locationTrackId) ?: return null
+        val locationTrack = locationTrackService.get(publishType, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
         val geocodingContext =
-            geocodingService.getGeocodingContext(OFFICIAL, locationTrack.trackNumberId) ?: return null
+            geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId) ?: return null
 
         val segmentSources = collectSegmentSources(alignment)
-        val segmentIndexRangesLinkedToSamePlan =
-            rangesOfConsecutiveIndicesWhereEqual(segmentSources.map { source -> source.plan })
-        val linkingSummary = segmentIndexRangesLinkedToSamePlan.map { keyRange ->
-            val startSegment = segmentSources[keyRange.start]
-            PlanLinkingSummaryItem(alignment.segments[keyRange.start].startM,
-                alignment.segments[keyRange.endInclusive].endM,
-                startSegment.plan?.fileName)
-        }
+        val planLinkEndSegmentIndices = segmentSources
+            .zipWithNext { a, b -> a.plan == b.plan }
+            .mapIndexedNotNull { i, equals -> if (equals) null else i }
+
+        val linkingSummary =
+            (listOf(-1) + planLinkEndSegmentIndices + listOf(alignment.segments.lastIndex))
+            .windowed(2, 1)
+            .map { (lastPlanEndIndex, thisPlanEndIndex) ->
+                PlanLinkingSummaryItem(
+                    alignment.segments[lastPlanEndIndex + 1].startM,
+                    alignment.segments[thisPlanEndIndex].endM,
+                    segmentSources[thisPlanEndIndex].plan?.fileName,
+                )
+            }
 
         val planBoundaryAddresses =
-            extractPlanBoundaryAddresses(segmentIndexRangesLinkedToSamePlan, alignment)
+            planLinkEndSegmentIndices.flatMap { i ->
+                listOf(
+                    PlanBoundaryPoint(alignment.segments[i].endM, i),
+                    PlanBoundaryPoint(alignment.segments[i + 1].startM, i + 1),
+                )
+            }
 
         return collectTrackMeterHeights(
             startDistance,
@@ -451,11 +463,13 @@ class GeometryService @Autowired constructor(
             val referenceLineKmLength = getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext)
 
             KmHeights(referencePoint.kmNumber,
-                // pairs of (track meter, segment index); most ticks don't need segment indices, but with segment
-                // boundaries, there may be points with the exact same location on both sides, with only one of them
-                // having a height
-                ((0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
-                        + (planBoundaryAddressesByKm[kmNumber] ?: listOf())
+                // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
+                // hit a specific segment; but points on different sides of a segment boundary are often the exact same
+                // point, but potentially have different heights (or more often null/not-null heights). If an ordinary
+                // tick hits a segment boundary exactly, we do grab its height, but then let the distinct() at the end
+                // throw it out.
+                ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
+                        + (0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
                         // special-case last point so front-end doesn't have to extrapolate heights at track end
                         + (if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()))
                     .sortedBy { (trackMeterInKm) -> trackMeterInKm }
@@ -468,7 +482,7 @@ class GeometryService @Autowired constructor(
                                 getHeightAt(address.point.m, segmentIndex),
                             )
                         }
-                    }
+                    }.distinct()
             )
         }.filter { km -> km.trackMeterHeights.isNotEmpty() }
     }
@@ -483,18 +497,6 @@ private fun getKmLengthAtReferencePointIndex(
     else
         geocodingContext.referencePoints[referencePointIndex + 1].distance - geocodingContext.referencePoints[referencePointIndex].distance
 ).toInt()
-
-private fun extractPlanBoundaryAddresses(
-    segmentIndexRangesLinkedToSamePlan: List<ClosedRange<Int>>,
-    alignment: LayoutAlignment,
-): List<PlanBoundaryPoint> = segmentIndexRangesLinkedToSamePlan.flatMap { keyRange ->
-    val startIndex = keyRange.start
-    val endIndex = keyRange.endInclusive
-    listOf(
-        PlanBoundaryPoint(alignment.segments[startIndex].startM, startIndex),
-        PlanBoundaryPoint(alignment.segments[endIndex].endM, endIndex),
-    )
-}
 
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,
@@ -514,24 +516,6 @@ private fun splitSearchTerms(freeText: FreeText?): List<String> =
         ?.map { s -> s.lowercase().trim() }
         ?.filter(String::isNotBlank)
         ?: listOf()
-
-private fun <T> rangesOfConsecutiveIndicesWhereEqual(things: List<T>): List<ClosedRange<Int>> {
-    if (things.isEmpty()) { return listOf() }
-    val rv: MutableList<ClosedRange<Int>> = mutableListOf()
-    var lastThing = things[0]
-    var currentRangeStart = 0
-    things.forEachIndexed { i, thing ->
-        if (thing != lastThing) {
-            rv.add(currentRangeStart until i)
-            currentRangeStart = i
-            lastThing = thing
-        }
-    }
-    if (currentRangeStart < things.size) {
-        rv.add(currentRangeStart until things.size)
-    }
-    return rv
-}
 
 enum class GeometryPlanSortField {
     ID,
