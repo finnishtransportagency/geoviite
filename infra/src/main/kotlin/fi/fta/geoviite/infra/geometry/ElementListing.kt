@@ -121,9 +121,11 @@ fun toElementListing(
     }.map { listing ->
         val calculatedSegmentLength =
             lengthOfSegmentsConnectedToSameElement.find { (elementId, _) -> elementId == listing.elementId }?.second
-        listing.copy(isPartial = calculatedSegmentLength?.let {
-            abs(calculatedSegmentLength - listing.lengthMeters.toDouble()) > SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA
-        } ?: false)
+        listing.copy(
+            isPartial = if (calculatedSegmentLength != null && listing.planId != null)
+                abs(calculatedSegmentLength - listing.lengthMeters.toDouble()) > SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA
+            else false
+        )
     }
 }
 
