@@ -184,26 +184,34 @@ function getSnappedPoint(
 }
 
 const PointIndicator: React.FC<{ point: SnappedPoint }> = ({ point }) => {
+    const roundedPoint = {
+        xPositionPx: Math.floor(point.xPositionPx) + 1,
+        yPositionPx: Math.floor(point.yPositionPx),
+    };
+    const strokeWidth = 2;
+    const strokeColor = '#004d99';
     const crossLength = 4;
     return (
         <>
             <line
                 fill="none"
-                stroke="blue"
-                strokeWidth={2}
-                x1={point.xPositionPx - crossLength}
-                x2={point.xPositionPx + crossLength}
-                y1={point.yPositionPx - crossLength}
-                y2={point.yPositionPx + crossLength}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                shapeRendering="crispEdges"
+                x1={roundedPoint.xPositionPx - crossLength}
+                x2={roundedPoint.xPositionPx + crossLength}
+                y1={roundedPoint.yPositionPx - crossLength}
+                y2={roundedPoint.yPositionPx + crossLength}
             />
             <line
                 fill="none"
-                stroke="blue"
-                strokeWidth={2}
-                x1={point.xPositionPx - crossLength}
-                x2={point.xPositionPx + crossLength}
-                y1={point.yPositionPx + crossLength}
-                y2={point.yPositionPx - crossLength}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                shapeRendering="crispEdges"
+                x1={roundedPoint.xPositionPx - crossLength}
+                x2={roundedPoint.xPositionPx + crossLength}
+                y1={roundedPoint.yPositionPx + crossLength}
+                y2={roundedPoint.yPositionPx - crossLength}
             />
         </>
     );
@@ -221,12 +229,11 @@ const HeightTooltip: React.FC<{
             : formatTrackMeterWithoutMeters(point.address);
     return (
         <div
+            className="vertical-geometry-diagram__tooltip"
             style={{
                 position: 'absolute',
                 left: elementPosition.left + point.xPositionPx + 20,
                 top: elementPosition.top + point.yPositionPx + 20,
-                background: 'grey',
-                padding: '2px',
             }}>
             {displayedAddress}
             <br />
