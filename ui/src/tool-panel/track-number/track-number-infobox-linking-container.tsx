@@ -2,7 +2,10 @@ import * as React from 'react';
 import { LayoutTrackNumber } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import {
+    trackLayoutActionCreators as TrackLayoutActions,
+    TrackNumberInfoboxVisibilities,
+} from 'track-layout/track-layout-slice';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-utils';
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';
@@ -16,6 +19,8 @@ type TrackNumberInfoboxLinkingContainerProps = {
     referenceLineChangeTime: TimeStamp;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
+    visibilities: TrackNumberInfoboxVisibilities;
+    onVisibilityChange: (state: TrackNumberInfoboxVisibilities) => void;
 };
 
 const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingContainerProps> = ({
@@ -25,6 +30,8 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     referenceLineChangeTime,
     onUnselect,
     viewport,
+    visibilities,
+    onVisibilityChange,
 }: TrackNumberInfoboxLinkingContainerProps) => {
     const delegates = createDelegates(TrackLayoutActions);
     const referenceLine = useTrackNumberReferenceLine(
@@ -44,6 +51,8 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             publishType={publishType}
             viewport={viewport}
             referenceLineChangeTime={referenceLineChangeTime}
+            visibilities={visibilities}
+            onVisibilityChange={onVisibilityChange}
             onUnselect={() =>
                 onUnselect({
                     trackNumbers: [trackNumber.id],

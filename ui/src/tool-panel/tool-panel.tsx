@@ -38,6 +38,7 @@ import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
 import { getGeometryPlanHeaders } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
+import { InfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -60,6 +61,8 @@ type ToolPanelProps = {
     setSelectedTabId: (id: string | undefined) => void;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     viewport: MapViewport;
+    infoboxVisibilities: InfoboxVisibilities;
+    onInfoboxVisibilityChange: (state: InfoboxVisibilities) => void;
 };
 
 type ToolPanelTab = {
@@ -93,6 +96,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     setSelectedTabId,
     startSwitchPlacing,
     viewport,
+    infoboxVisibilities,
+    onInfoboxVisibilityChange,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -167,6 +172,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     title: t.number,
                     element: (
                         <TrackNumberInfoboxLinkingContainer
+                            visibilities={infoboxVisibilities.trackNumber}
+                            onVisibilityChange={(state) => {
+                                onInfoboxVisibilityChange({
+                                    ...infoboxVisibilities,
+                                    trackNumber: state,
+                                });
+                            }}
                             trackNumber={t}
                             publishType={publishType}
                             linkingState={linkingState}
@@ -331,6 +343,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         publishType,
         viewport,
         changeTimes,
+        infoboxVisibilities,
     ]);
 
     React.useEffect(() => {

@@ -35,6 +35,7 @@ import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
 
 type TrackNumberInfoboxProps = {
@@ -48,6 +49,8 @@ type TrackNumberInfoboxProps = {
     onEndReferenceLineGeometryChange: () => void;
     viewport: MapViewport;
     referenceLineChangeTime: TimeStamp;
+    visibilities: TrackNumberInfoboxVisibilities;
+    onVisibilityChange: (state: TrackNumberInfoboxVisibilities) => void;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -60,6 +63,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     onEndReferenceLineGeometryChange,
     viewport,
     referenceLineChangeTime,
+    visibilities,
+    onVisibilityChange,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
@@ -111,9 +116,15 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         closeLocationTrackDeleteConfirmation();
     };
 
+    const visibilityChange = (key: keyof TrackNumberInfoboxVisibilities) => {
+        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+    };
+
     return (
         <React.Fragment>
             <Infobox
+                contentVisible={visibilities.basic}
+                onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.track-number.general-title')}
                 qa-id="track-number-infobox">
                 <InfoboxContent>
@@ -143,6 +154,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             </Infobox>
             {startAndEndPoints && coordinateSystem && (
                 <Infobox
+                    contentVisible={visibilities.referenceLine}
+                    onContentVisibilityChange={() => visibilityChange('referenceLine')}
                     title={t('tool-panel.reference-line.basic-info-heading')}
                     qa-id="reference-line-location-infobox">
                     <InfoboxContent>
@@ -245,6 +258,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             )}
             {referenceLine && (
                 <TrackNumberGeometryInfobox
+                    contentVisible={visibilities.geometry}
+                    onContentVisibilityChange={() => visibilityChange('geometry')}
                     trackNumberId={trackNumber.id}
                     publishType={publishType}
                     viewport={viewport}
@@ -260,6 +275,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             )}
             {changeTimes && (
                 <Infobox
+                    contentVisible={visibilities.log}
+                    onContentVisibilityChange={() => visibilityChange('log')}
                     title={t('tool-panel.reference-line.change-info-heading')}
                     qa-id="track-number-log-infobox">
                     <InfoboxContent>

@@ -19,34 +19,41 @@ type TrackNumberGeometryInfoboxProps = {
     publishType: PublishType;
     trackNumberId: LayoutTrackNumberId;
     viewport: MapViewport;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
     publishType,
     trackNumberId,
     viewport,
+    contentVisible,
+    onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
-    const [useBoungingBox, setUseBoundingBox] = React.useState(true);
-    const viewportDep = useBoungingBox && viewport;
+    const [useBoundingBox, setUseBoundingBox] = React.useState(true);
+    const viewportDep = useBoundingBox && viewport;
     const [sections, elementFetchStatus] = useLoaderWithStatus(
         () =>
             getTrackNumberReferenceLineSectionsByPlan(
                 publishType,
                 trackNumberId,
-                useBoungingBox ? viewport.area : undefined,
+                useBoundingBox ? viewport.area : undefined,
             ),
         [trackNumberId, publishType, viewportDep],
     );
 
     return (
-        <Infobox title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}>
+        <Infobox
+            title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}>
             <InfoboxContent>
                 <InfoboxField
                     label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}
                     value={
                         <Checkbox
-                            checked={useBoungingBox}
+                            checked={useBoundingBox}
                             onChange={(e) => setUseBoundingBox(e.target.checked)}
                         />
                     }

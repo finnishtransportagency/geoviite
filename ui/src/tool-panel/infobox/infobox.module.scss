@@ -8,11 +8,25 @@
 
     &__title {
         @include typography-sub-heading;
+        display: flex;
+        align-items: center;
+
         color: $color-black-default;
         background-color: $color-white-dark;
         box-shadow: 0 1px 1px rgba($color-black-default, 0.12);
         margin-bottom: 8px;
         padding: 12px 0 8px 20px;
+        user-select: none;
+        cursor: pointer;
+
+        .icon {
+            margin-right: 12px;
+            transition: transform 254ms;
+        }
+
+        &--visible .icon {
+            transform: rotate(90deg);
+        }
     }
 
     &__content {
