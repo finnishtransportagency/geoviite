@@ -356,6 +356,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             />
             {locationTrack.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
+                    visibility={true}
+                    onVisibilityChange={() => ''}
                     id={locationTrack.id}
                     type={'LOCATION_TRACK'}
                     publishType={publishType}

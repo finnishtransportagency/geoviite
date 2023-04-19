@@ -6,12 +6,6 @@ import { getLocationTrackValidation } from 'track-layout/layout-location-track-a
 import { getKmPostValidation } from 'track-layout/layout-km-post-api';
 import { getSwitchValidation } from 'track-layout/layout-switch-api';
 import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
-import { useTrackLayoutAppSelector } from 'store/hooks';
-import { createDelegates } from 'store/store-utils';
-import {
-    InfoboxVisibilities,
-    trackLayoutActionCreators as TrackLayoutActions,
-} from 'track-layout/track-layout-slice';
 
 type AssetType = 'TRACK_NUMBER' | 'LOCATION_TRACK' | 'SWITCH' | 'KM_POST';
 
@@ -20,6 +14,8 @@ type AssetValidationInfoboxProps = {
     type: AssetType;
     publishType: PublishType;
     changeTime: TimeStamp;
+    visibility: boolean;
+    onVisibilityChange: () => void;
 };
 
 export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxProps> = ({
@@ -27,6 +23,8 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
     type,
     publishType,
     changeTime,
+    visibility,
+    onVisibilityChange,
 }) => {
     const [validation, validationLoaderStatus] = useLoaderWithStatus(() => {
         switch (type) {
@@ -45,35 +43,10 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
     const warnings = validation?.errors.filter((err) => err.type === 'WARNING') || [];
 
-    const visibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
-    const visibilityKey = ((): keyof InfoboxVisibilities => {
-        switch (type) {
-            case 'LOCATION_TRACK':
-                return 'trackNumber';
-            case 'TRACK_NUMBER':
-                return 'trackNumber';
-            case 'KM_POST':
-                return 'trackNumber';
-            case 'SWITCH':
-                return 'trackNumber';
-        }
-    })();
-    const infoboxVisibility = visibilities[visibilityKey];
-
-    const delegates = createDelegates(TrackLayoutActions);
-
     return (
         <AssetValidationInfobox
-            contentVisible={infoboxVisibility.validation}
-            onContentVisibilityChange={() =>
-                delegates.onInfoboxVisibilityChange({
-                    ...visibilities,
-                    [visibilityKey]: {
-                        ...infoboxVisibility,
-                        validation: !infoboxVisibility.validation,
-                    },
-                })
-            }
+            contentVisible={visibility}
+            onContentVisibilityChange={onVisibilityChange}
             type={type}
             errors={errors}
             warnings={warnings}

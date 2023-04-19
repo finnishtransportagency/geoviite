@@ -147,6 +147,16 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     const trackNumbers = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[3]) || [];
     const planHeaders = (tracksSwitchesKmPostsPlans && tracksSwitchesKmPostsPlans[4]) || [];
 
+    const infoboxVisibilityChange = (
+        key: keyof InfoboxVisibilities,
+        state: InfoboxVisibilities[keyof InfoboxVisibilities],
+    ) => {
+        onInfoboxVisibilityChange({
+            ...infoboxVisibilities,
+            [key]: state,
+        });
+    };
+
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
     const visibleByTypeAndPublishType = ({ draftType }: { draftType: DraftType }) =>
         publishType === 'DRAFT' || draftType !== 'NEW_DRAFT';
@@ -173,12 +183,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     element: (
                         <TrackNumberInfoboxLinkingContainer
                             visibilities={infoboxVisibilities.trackNumber}
-                            onVisibilityChange={(state) => {
-                                onInfoboxVisibilityChange({
-                                    ...infoboxVisibilities,
-                                    trackNumber: state,
-                                });
-                            }}
+                            onVisibilityChange={(state) =>
+                                infoboxVisibilityChange('trackNumber', state)
+                            }
                             trackNumber={t}
                             publishType={publishType}
                             linkingState={linkingState}
@@ -228,6 +235,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: s.name,
                 element: (
                     <SwitchInfobox
+                        visibilities={infoboxVisibilities.switch}
+                        onVisibilityChange={(state) => infoboxVisibilityChange('switch', state)}
                         switchId={s.id}
                         onShowOnMap={onShowMapLocation}
                         publishType={publishType}
