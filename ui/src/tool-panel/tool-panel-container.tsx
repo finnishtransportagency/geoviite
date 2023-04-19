@@ -1,7 +1,7 @@
 import * as React from 'react';
 import ToolPanel from 'tool-panel/tool-panel';
 import { MapContext } from 'map/map-store';
-import { useAppSelector, useCommonDataAppSelector } from 'store/hooks';
+import { useAppSelector, useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
@@ -38,6 +38,8 @@ const ToolPanelContainer: React.FC = () => {
         delegates.startSwitchPlacing(layoutSwitch);
     }, []);
 
+    const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
+
     React.useEffect(() => {
         const linkingState = store.linkingState;
         if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
@@ -55,6 +57,8 @@ const ToolPanelContainer: React.FC = () => {
 
     return (
         <ToolPanel
+            infoboxVisibilities={infoboxVisibilities}
+            onInfoboxVisibilityChange={delegates.onInfoboxVisibilityChange}
             planIds={store.selection.selectedItems.geometryPlans}
             trackNumberIds={store.selection.selectedItems.trackNumbers}
             kmPostIds={kmPostIds}

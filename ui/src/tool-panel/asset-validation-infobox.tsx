@@ -19,6 +19,8 @@ type AssetValidationInfoboxProps = {
     errors: PublishValidationError[];
     warnings: PublishValidationError[];
     validationLoaderStatus: LoaderStatus;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 const typePrefix = (type: AssetType) => {
@@ -41,6 +43,8 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
     warnings,
     validationLoaderStatus,
     type,
+    contentVisible,
+    onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
 
@@ -55,6 +59,8 @@ export const AssetValidationInfobox: React.FC<AssetValidationInfoboxProps> = ({
 
     return (
         <Infobox
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}
             title={`${t(typePrefix(type))} ${t('tool-panel.validation.integrity')}`}
             qa-id="location-track-log-infobox">
             <InfoboxContent>

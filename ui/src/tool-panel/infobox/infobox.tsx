@@ -12,21 +12,31 @@ export type InfoboxProps = {
     children?: React.ReactNode;
     variant?: InfoBoxVariant;
     className?: string;
+    contentVisible?: boolean;
+    onContentVisibilityChange?: () => void;
 };
 
-const Infobox: React.FC<InfoboxProps> = ({ title, variant, className, ...props }: InfoboxProps) => {
-    const [visible, setVisible] = React.useState(false);
-
+const Infobox: React.FC<InfoboxProps> = ({
+    title,
+    variant,
+    className,
+    contentVisible = true,
+    onContentVisibilityChange,
+    ...props
+}: InfoboxProps) => {
     const classes = createClassName(styles.infobox, variant && styles[variant], className);
-    const titleClasses = createClassName('infobox__title', visible && 'infobox__title--visible');
+    const titleClasses = createClassName(
+        'infobox__title',
+        contentVisible && 'infobox__title--visible',
+    );
 
     return (
         <div className={classes} {...props}>
-            <div className={titleClasses} onClick={() => setVisible(!visible)}>
+            <div className={titleClasses} onClick={onContentVisibilityChange}>
                 <Icons.Chevron size={IconSize.SMALL}></Icons.Chevron>
                 {title}
             </div>
-            {visible && props.children}
+            {contentVisible && props.children}
         </div>
     );
 };

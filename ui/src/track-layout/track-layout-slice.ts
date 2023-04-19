@@ -32,6 +32,28 @@ export type SelectedPublishChange = {
     kmPost: LayoutKmPostId | undefined;
 };
 
+export type InfoboxVisibilities = {
+    trackNumber: TrackNumberInfoboxVisibilities;
+};
+
+export type TrackNumberInfoboxVisibilities = {
+    basic: boolean;
+    referenceLine: boolean;
+    log: boolean;
+    validation: boolean;
+    geometry: boolean;
+};
+
+const initialInfoboxVisibilities: InfoboxVisibilities = {
+    trackNumber: {
+        basic: true,
+        referenceLine: true,
+        log: false,
+        validation: false,
+        geometry: false,
+    },
+};
+
 export const initialPublicationRequestIds: PublishRequestIds = {
     trackNumbers: [],
     referenceLines: [],
@@ -50,6 +72,7 @@ export type TrackLayoutState = {
     linkingIssuesSelectedBeforeLinking: boolean;
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTabId: string | undefined;
+    infoboxVisibilities: InfoboxVisibilities;
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
@@ -61,6 +84,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTabId: undefined,
+    infoboxVisibilities: initialInfoboxVisibilities,
 };
 
 export function getSelectableItemTypes(
@@ -118,6 +142,13 @@ const trackLayoutSlice = createSlice({
         ...wrapReducers((state: TrackLayoutState) => state.map, mapReducers),
         ...wrapReducers((state: TrackLayoutState) => state.selection, selectionReducers),
         ...wrapReducers((state: TrackLayoutState) => state, linkingReducers),
+
+        onInfoboxVisibilityChange: (
+            state: TrackLayoutState,
+            action: PayloadAction<InfoboxVisibilities>,
+        ): void => {
+            state.infoboxVisibilities = action.payload;
+        },
 
         onClickLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
             if (state.linkingState?.type == LinkingType.PlacingSwitch) {
