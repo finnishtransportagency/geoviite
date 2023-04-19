@@ -267,6 +267,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             )}
             {trackNumber.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
+                    visibility={visibilities.validation}
+                    onVisibilityChange={() => visibilityChange('validation')}
                     id={trackNumber.id}
                     type={'TRACK_NUMBER'}
                     publishType={publishType}
