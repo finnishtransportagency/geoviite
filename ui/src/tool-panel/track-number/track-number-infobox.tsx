@@ -1,7 +1,12 @@
 import * as React from 'react';
 import styles from './track-number-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LAYOUT_SRID, LayoutReferenceLine, LayoutTrackNumber, MapAlignment } from 'track-layout/track-layout-model';
+import {
+    LAYOUT_SRID,
+    LayoutReferenceLine,
+    LayoutTrackNumber,
+    MapAlignment,
+} from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
@@ -25,12 +30,12 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { formatDateShort } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import TrackNumberDeleteConfirmationDialog
-    from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
+import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -71,6 +76,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         !officialTrackNumbers.find(
             (officialTrackNumber) => officialTrackNumber.id === trackNumber.id,
         );
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     React.useEffect(() => {
         setCanUpdate(
@@ -84,10 +90,12 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             updateReferenceLineGeometry(state.layoutAlignmentId, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
-            }).then(() => {
-                Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
-                onEndReferenceLineGeometryChange();
-            }).finally(() => setUpdatingLength(false));
+            })
+                .then(() => {
+                    Snackbar.success(t('tool-panel.reference-line.end-points-updated'));
+                    onEndReferenceLineGeometryChange();
+                })
+                .finally(() => setUpdatingLength(false));
         }
     };
 
@@ -148,7 +156,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={t('tool-panel.reference-line.end-location')}
                             value={<TrackMeter value={startAndEndPoints?.end?.address} />}
                         />
-                        {linkingState === undefined && referenceLine && (
+                        {linkingState === undefined && referenceLine && userHasWriteRole && (
                             <InfoboxButtons>
                                 <Button
                                     variant={ButtonVariant.SECONDARY}

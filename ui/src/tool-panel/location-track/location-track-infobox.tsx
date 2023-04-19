@@ -42,6 +42,7 @@ import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -88,6 +89,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -271,7 +273,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             <TrackMeter value={startAndEndPoints?.end?.address} />
                         </InfoboxField>
 
-                        {linkingState === undefined && (
+                        {linkingState === undefined && userHasWriteRole && (
                             <InfoboxButtons>
                                 <Button
                                     variant={ButtonVariant.SECONDARY}
