@@ -19,12 +19,16 @@ type LocationTrackGeometryInfoboxProps = {
     publishType: PublishType;
     locationTrackId: LocationTrackId;
     viewport: MapViewport;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
     publishType,
     locationTrackId,
     viewport,
+    contentVisible,
+    onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
@@ -40,7 +44,10 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     );
 
     return (
-        <Infobox title={t('tool-panel.alignment-plan-sections.location-track-geometries')}>
+        <Infobox
+            title={t('tool-panel.alignment-plan-sections.location-track-geometries')}
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}>
             <InfoboxContent>
                 <InfoboxField
                     label={t('tool-panel.alignment-plan-sections.bounding-box-geometries')}

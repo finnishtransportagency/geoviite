@@ -316,8 +316,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
             </Infobox>
             {layoutSwitch && layoutSwitch.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
-                    visibility={visibilities.validation}
-                    onVisibilityChange={() => visibilityChange('validation')}
+                    contentVisible={visibilities.validation}
+                    onContentVisibilityChange={() => visibilityChange('validation')}
                     id={layoutSwitch.id}
                     type={'SWITCH'}
                     publishType={publishType}

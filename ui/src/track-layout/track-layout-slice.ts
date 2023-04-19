@@ -35,6 +35,7 @@ export type SelectedPublishChange = {
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
     switch: SwitchInfoboxVisibilities;
+    locationTrack: LocationTrackInfoboxVisibilities;
 };
 
 export type TrackNumberInfoboxVisibilities = {
@@ -54,6 +55,15 @@ export type SwitchInfoboxVisibilities = {
     validation: boolean;
 };
 
+export type LocationTrackInfoboxVisibilities = {
+    basic: boolean;
+    location: boolean;
+    log: boolean;
+    validation: boolean;
+    ratkoPush: boolean;
+    geometry: boolean;
+};
+
 const initialInfoboxVisibilities: InfoboxVisibilities = {
     trackNumber: {
         basic: true,
@@ -69,6 +79,14 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         additionalInfo: true,
         log: true,
         validation: true,
+    },
+    locationTrack: {
+        basic: true,
+        location: true,
+        log: true,
+        validation: true,
+        ratkoPush: true,
+        geometry: true,
     },
 };
 

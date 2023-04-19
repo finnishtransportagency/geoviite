@@ -3,7 +3,10 @@ import LocationTrackInfobox from 'tool-panel/location-track/location-track-infob
 import { LayoutLocationTrack, LocationTrackId } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import {
+    LocationTrackInfoboxVisibilities,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { MapViewport } from 'map/map-model';
@@ -16,6 +19,8 @@ type LocationTrackInfoboxLinkingContainerProps = {
     onUnselect: (track: LayoutLocationTrack) => void;
     onDataChange: () => void;
     viewport: MapViewport;
+    visibilities: LocationTrackInfoboxVisibilities;
+    onVisibilityChange: (state: LocationTrackInfoboxVisibilities) => void;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
@@ -26,6 +31,8 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     onUnselect,
     onDataChange,
     viewport,
+    visibilities,
+    onVisibilityChange,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const delegates = createDelegates(TrackLayoutActions);
     const locationTrack = useLocationTrack(locationTrackId, publishType, locationTrackChangeTime);
@@ -34,6 +41,8 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     else
         return (
             <LocationTrackInfobox
+                visibilities={visibilities}
+                onVisibilityChange={onVisibilityChange}
                 locationTrack={locationTrack}
                 linkingState={linkingState}
                 onDataChange={onDataChange}

@@ -118,8 +118,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             </Infobox>
             {kmPost.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
-                    visibility={true}
-                    onVisibilityChange={() => ''}
+                    contentVisible={true}
+                    onContentVisibilityChange={() => ''}
                     id={kmPost.id}
                     type={'KM_POST'}
                     publishType={publishType}
