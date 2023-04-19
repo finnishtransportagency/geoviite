@@ -203,6 +203,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: k.kmNumber,
                 element: (
                     <KmPostInfobox
+                        visibilities={infoboxVisibilities.kmPost}
+                        onVisibilityChange={(state) => infoboxVisibilityChange('kmPost', state)}
                         publishType={publishType}
                         kmPostChangeTime={changeTimes.layoutKmPost}
                         onDataChange={onDataChange}

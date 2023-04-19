@@ -15,6 +15,7 @@ import { getKmPost } from 'track-layout/layout-km-post-api';
 import { useLoader } from 'utils/react-utils';
 import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { KmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type KmPostInfoboxProps = {
     publishType: PublishType;
@@ -23,6 +24,8 @@ type KmPostInfoboxProps = {
     onShowOnMap: () => void;
     onUnselect: () => void;
     onDataChange: () => void;
+    visibilities: KmPostInfoboxVisibilities;
+    onVisibilityChange: (state: KmPostInfoboxVisibilities) => void;
 };
 
 const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
@@ -32,6 +35,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     onShowOnMap,
     onUnselect,
     onDataChange,
+    visibilities,
+    onVisibilityChange,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -68,9 +73,17 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onUnselect();
     };
 
+    const visibilityChange = (key: keyof KmPostInfoboxVisibilities) => {
+        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+    };
+
     return (
         <React.Fragment>
-            <Infobox title={t('tool-panel.km-post.layout.general-title')} qa-id="km-post-infobox">
+            <Infobox
+                title={t('tool-panel.km-post.layout.general-title')}
+                qa-id="km-post-infobox"
+                contentVisible={visibilities.basic}
+                onContentVisibilityChange={() => visibilityChange('basic')}>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.km-post')}
@@ -100,7 +113,9 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             </Infobox>
             <Infobox
                 title={t('tool-panel.km-post.layout.location-title')}
-                qa-id="layout-km-post-location-infobox">
+                qa-id="layout-km-post-location-infobox"
+                contentVisible={visibilities.location}
+                onContentVisibilityChange={() => visibilityChange('location')}>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.location')}
@@ -118,15 +133,18 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             </Infobox>
             {kmPost.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
-                    contentVisible={true}
-                    onContentVisibilityChange={() => ''}
+                    contentVisible={visibilities.validation}
+                    onContentVisibilityChange={() => visibilityChange('validation')}
                     id={kmPost.id}
                     type={'KM_POST'}
                     publishType={publishType}
                     changeTime={kmPostChangeTime}
                 />
             )}
-            <Infobox title={t('tool-panel.km-post.layout.change-info-heading')}>
+            <Infobox
+                title={t('tool-panel.km-post.layout.change-info-heading')}
+                contentVisible={visibilities.log}
+                onContentVisibilityChange={() => visibilityChange('log')}>
                 <InfoboxContent>
                     {kmPost?.draftType === 'NEW_DRAFT' && (
                         <InfoboxButtons>
