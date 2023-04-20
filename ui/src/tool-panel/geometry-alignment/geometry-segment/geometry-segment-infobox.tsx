@@ -25,11 +25,15 @@ import { useTranslation } from 'react-i18next';
 type SelectedGeometryItemInfoBoxProps = {
     chosenSegment: MapSegment;
     planHeader: GeometryPlanHeader;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 const GeometrySegmentInfobox: React.FC<SelectedGeometryItemInfoBoxProps> = ({
     chosenSegment,
     planHeader,
+    contentVisible,
+    onContentVisibilityChange,
 }: SelectedGeometryItemInfoBoxProps) => {
     const { t } = useTranslation();
 
@@ -39,52 +43,52 @@ const GeometrySegmentInfobox: React.FC<SelectedGeometryItemInfoBoxProps> = ({
     );
 
     return (
-        <React.Fragment>
-            <Infobox
-                title={t('tool-panel.alignment.geometry-segment.title')}
-                qa-id="geometry-segment-horizontal-geometry-infobox">
-                {chosenGeometryElement && (
-                    <React.Fragment>
-                        <InfoboxContent>
-                            {chosenGeometryElement.type === GeometryType.LINE && (
-                                <LineInfoBox geometryLine={chosenGeometryElement as GeometryLine} />
-                            )}
-                            {chosenGeometryElement.type === GeometryType.CURVE && (
-                                <CurveInfobox
-                                    chosenSegment={chosenSegment}
-                                    geometryCurve={chosenGeometryElement as GeometryCurve}
-                                />
-                            )}
-                            {chosenGeometryElement.type === GeometryType.CLOTHOID && (
-                                <ClothoidInfobox
-                                    chosenSegment={chosenSegment}
-                                    geometryClothoid={chosenGeometryElement as GeometryClothoid}
-                                />
-                            )}
-                            {chosenGeometryElement.type === GeometryType.BIQUADRATIC_PARABOLA && (
-                                <BiquadraticParabolaInfobox
-                                    chosenSegment={chosenSegment}
-                                    geometryBiquadraticParabola={
-                                        chosenGeometryElement as GeometryBiquadraticParabola
-                                    }
-                                />
-                            )}
-                        </InfoboxContent>
-                        <InfoboxContent>
-                            <GeometryProfileInfobox
+        <Infobox
+            title={t('tool-panel.alignment.geometry-segment.title')}
+            qa-id="geometry-segment-horizontal-geometry-infobox"
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}>
+            {chosenGeometryElement && (
+                <React.Fragment>
+                    <InfoboxContent>
+                        {chosenGeometryElement.type === GeometryType.LINE && (
+                            <LineInfoBox geometryLine={chosenGeometryElement as GeometryLine} />
+                        )}
+                        {chosenGeometryElement.type === GeometryType.CURVE && (
+                            <CurveInfobox
                                 chosenSegment={chosenSegment}
-                                planHeader={planHeader}
+                                geometryCurve={chosenGeometryElement as GeometryCurve}
                             />
-                        </InfoboxContent>
-                    </React.Fragment>
-                )}
-                {typeof chosenGeometryElement === 'undefined' && (
-                    <p className={styles['geometry-segment__no-data-text']}>
-                        <i>{t('tool-panel.alignment.geometry-segment.no-geometry-information')}</i>
-                    </p>
-                )}
-            </Infobox>
-        </React.Fragment>
+                        )}
+                        {chosenGeometryElement.type === GeometryType.CLOTHOID && (
+                            <ClothoidInfobox
+                                chosenSegment={chosenSegment}
+                                geometryClothoid={chosenGeometryElement as GeometryClothoid}
+                            />
+                        )}
+                        {chosenGeometryElement.type === GeometryType.BIQUADRATIC_PARABOLA && (
+                            <BiquadraticParabolaInfobox
+                                chosenSegment={chosenSegment}
+                                geometryBiquadraticParabola={
+                                    chosenGeometryElement as GeometryBiquadraticParabola
+                                }
+                            />
+                        )}
+                    </InfoboxContent>
+                    <InfoboxContent>
+                        <GeometryProfileInfobox
+                            chosenSegment={chosenSegment}
+                            planHeader={planHeader}
+                        />
+                    </InfoboxContent>
+                </React.Fragment>
+            )}
+            {typeof chosenGeometryElement === 'undefined' && (
+                <p className={styles['geometry-segment__no-data-text']}>
+                    <i>{t('tool-panel.alignment.geometry-segment.no-geometry-information')}</i>
+                </p>
+            )}
+        </Infobox>
     );
 };
 

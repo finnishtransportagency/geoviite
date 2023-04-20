@@ -62,7 +62,7 @@ type ToolPanelProps = {
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     viewport: MapViewport;
     infoboxVisibilities: InfoboxVisibilities;
-    onInfoboxVisibilityChange: (state: InfoboxVisibilities) => void;
+    onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
 };
 
 type ToolPanelTab = {
@@ -149,11 +149,11 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
     const infoboxVisibilityChange = (
         key: keyof InfoboxVisibilities,
-        state: InfoboxVisibilities[keyof InfoboxVisibilities],
+        visibilities: InfoboxVisibilities[keyof InfoboxVisibilities],
     ) => {
         onInfoboxVisibilityChange({
             ...infoboxVisibilities,
-            [key]: state,
+            [key]: visibilities,
         });
     };
 
@@ -169,7 +169,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             return {
                 id: toolPanelPlanTabId(p.id),
                 title: p.fileName,
-                element: <GeometryPlanInfobox planHeader={p} />,
+                element: (
+                    <GeometryPlanInfobox
+                        planHeader={p}
+                        visibilities={infoboxVisibilities.geometryPlan}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometryPlan', visibilities)
+                        }
+                    />
+                ),
             };
         });
 
@@ -183,8 +191,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     element: (
                         <TrackNumberInfoboxLinkingContainer
                             visibilities={infoboxVisibilities.trackNumber}
-                            onVisibilityChange={(state) =>
-                                infoboxVisibilityChange('trackNumber', state)
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('trackNumber', visibilities)
                             }
                             trackNumber={t}
                             publishType={publishType}
@@ -204,7 +212,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 element: (
                     <KmPostInfobox
                         visibilities={infoboxVisibilities.kmPost}
-                        onVisibilityChange={(state) => infoboxVisibilityChange('kmPost', state)}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('kmPost', visibilities)
+                        }
                         publishType={publishType}
                         kmPostChangeTime={changeTimes.layoutKmPost}
                         onDataChange={onDataChange}
@@ -238,7 +248,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 element: (
                     <SwitchInfobox
                         visibilities={infoboxVisibilities.switch}
-                        onVisibilityChange={(state) => infoboxVisibilityChange('switch', state)}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('switch', visibilities)
+                        }
                         switchId={s.id}
                         onShowOnMap={onShowMapLocation}
                         publishType={publishType}
@@ -299,8 +311,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 element: (
                     <LocationTrackInfoboxLinkingContainer
                         visibilities={infoboxVisibilities.locationTrack}
-                        onVisibilityChange={(state) =>
-                            infoboxVisibilityChange('locationTrack', state)
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('locationTrack', visibilities)
                         }
                         locationTrackId={track.id}
                         linkingState={linkingState}
@@ -320,6 +332,10 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: a.geometryItem.name,
                 element: (
                     <GeometryAlignmentLinkingContainer
+                        visibilities={infoboxVisibilities.geometryAlignment}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometryAlignment', visibilities)
+                        }
                         geometryAlignment={a.geometryItem}
                         selectedLocationTrackId={locationTrackIds[0]}
                         selectedTrackNumberId={trackNumberIds[0]}

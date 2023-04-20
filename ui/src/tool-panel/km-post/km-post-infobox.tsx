@@ -25,7 +25,7 @@ type KmPostInfoboxProps = {
     onUnselect: () => void;
     onDataChange: () => void;
     visibilities: KmPostInfoboxVisibilities;
-    onVisibilityChange: (state: KmPostInfoboxVisibilities) => void;
+    onVisibilityChange: (visibilities: KmPostInfoboxVisibilities) => void;
 };
 
 const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({

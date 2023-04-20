@@ -58,7 +58,7 @@ type LocationTrackInfoboxProps = {
     onSelect: OnSelectFunction;
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
-    onVisibilityChange: (state: LocationTrackInfoboxVisibilities) => void;
+    onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({

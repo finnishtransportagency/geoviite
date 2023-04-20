@@ -75,7 +75,13 @@ const GeometryKmPostInfoboxView: React.FC<GeometryKmPostInfoboxProps> = ({
                 publishType={publishType}
             />
 
-            {plan && <GeometryPlanInfobox planHeader={plan} />}
+            {plan && (
+                <GeometryPlanInfobox
+                    planHeader={plan}
+                    visibilities={{ plan: true, planQuality: true }}
+                    onVisibilityChange={() => ''}
+                />
+            )}
         </React.Fragment>
     );
 };

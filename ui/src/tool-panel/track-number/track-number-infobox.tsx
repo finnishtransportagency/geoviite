@@ -50,7 +50,7 @@ type TrackNumberInfoboxProps = {
     viewport: MapViewport;
     referenceLineChangeTime: TimeStamp;
     visibilities: TrackNumberInfoboxVisibilities;
-    onVisibilityChange: (state: TrackNumberInfoboxVisibilities) => void;
+    onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({

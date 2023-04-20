@@ -53,7 +53,7 @@ type SwitchInfoboxProps = {
     placingSwitchLinkingState?: PlacingSwitch;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     visibilities: SwitchInfoboxVisibilities;
-    onVisibilityChange: (state: SwitchInfoboxVisibilities) => void;
+    onVisibilityChange: (visibilities: SwitchInfoboxVisibilities) => void;
 };
 
 const mapToSwitchJointTrackMeter = (
