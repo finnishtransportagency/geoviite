@@ -118,6 +118,8 @@ type GeometryAlignmentLinkingInfoboxProps = {
     onStopLinking: () => void;
     resolution: number;
     publishType: PublishType;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxProps> = ({
@@ -134,6 +136,8 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     onStopLinking,
     resolution,
     publishType,
+    contentVisible,
+    onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
     const [linkedAlignmentIds, setLinkedAlignmentIds] = React.useState<LocationTrackId[]>([]);
@@ -252,7 +256,9 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         <React.Fragment>
             <Infobox
                 title={t('tool-panel.alignment.geometry.linking-title')}
-                qa-id="geometry-alignment-linking-infobox">
+                qa-id="geometry-alignment-linking-infobox"
+                contentVisible={contentVisible}
+                onContentVisibilityChange={onContentVisibilityChange}>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.alignment.geometry.is-linked')}

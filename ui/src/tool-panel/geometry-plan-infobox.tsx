@@ -22,9 +22,12 @@ import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordina
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
 import { TimeStamp } from 'common/common-model';
 import { UnreliableInfraModelDownloadConfirmDialog } from 'infra-model/list/unreliable-infra-model-download-confirm-dialog';
+import { GeometryPlanInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
+    visibilities: GeometryPlanInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometryPlanInfoboxVisibilities) => void;
 };
 
 interface AgeProps {
@@ -50,6 +53,8 @@ const Age: React.FC<AgeProps> = ({ timeStamp }) => {
 
 const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
     planHeader,
+    visibilities,
+    onVisibilityChange,
 }: GeometryPlanInfoboxProps) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -66,7 +71,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
     const generalInfobox = (
         <Infobox
             title={t('tool-panel.geometry-plan.general-title')}
-            qa-id="geometry-plan-general-infobox">
+            qa-id="geometry-plan-general-infobox"
+            contentVisible={visibilities.plan}
+            onContentVisibilityChange={() =>
+                onVisibilityChange({ ...visibilities, plan: !visibilities.plan })
+            }>
             <InfoboxContent>
                 <InfoboxField
                     label={t('tool-panel.geometry-plan.message')}
@@ -121,7 +130,11 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
         <React.Fragment>
             <Infobox
                 title={t('tool-panel.geometry-plan.quality-title')}
-                qa-id="geometry-plan-quality-infobox">
+                qa-id="geometry-plan-quality-infobox"
+                contentVisible={visibilities.planQuality}
+                onContentVisibilityChange={() =>
+                    onVisibilityChange({ ...visibilities, planQuality: !visibilities.planQuality })
+                }>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.geometry-plan.source')}

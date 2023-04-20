@@ -106,7 +106,13 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                     planId={planId ?? undefined}
                 />
             )}
-            {planHeader && <GeometryPlanInfobox planHeader={planHeader} />}
+            {planHeader && (
+                <GeometryPlanInfobox
+                    planHeader={planHeader}
+                    visibilities={{ plan: true, planQuality: true }}
+                    onVisibilityChange={() => ''}
+                />
+            )}
         </React.Fragment>
     );
 };

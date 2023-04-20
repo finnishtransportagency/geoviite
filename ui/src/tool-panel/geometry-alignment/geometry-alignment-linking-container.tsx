@@ -8,7 +8,10 @@ import {
 } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import {
+    GeometryAlignmentInfoboxVisibilities,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType } from 'common/common-model';
 import GeometryAlignmentInfobox from 'tool-panel/geometry-alignment/geometry-alignment-infobox';
@@ -26,6 +29,8 @@ type GeometryAlignmentLinkingContainerProps = {
     planId: GeometryPlanId;
     linkingState?: LinkingState;
     publishType: PublishType;
+    visibilities: GeometryAlignmentInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometryAlignmentInfoboxVisibilities) => void;
 };
 
 const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContainerProps> = ({
@@ -36,6 +41,8 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     planId,
     linkingState,
     publishType,
+    visibilities,
+    onVisibilityChange,
 }: GeometryAlignmentLinkingContainerProps) => {
     const delegates = React.useMemo(() => {
         return createDelegates(TrackLayoutActions);
@@ -74,6 +81,8 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             resolution={trackLayoutState.map.viewport.resolution}
             publishType={publishType}
             showArea={delegates.showArea}
+            visibilities={visibilities}
+            onVisibilityChange={onVisibilityChange}
         />
     );
 };

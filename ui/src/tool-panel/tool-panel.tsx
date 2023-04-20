@@ -169,7 +169,15 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             return {
                 id: toolPanelPlanTabId(p.id),
                 title: p.fileName,
-                element: <GeometryPlanInfobox planHeader={p} />,
+                element: (
+                    <GeometryPlanInfobox
+                        planHeader={p}
+                        visibilities={infoboxVisibilities.geometryPlan}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometryPlan', visibilities)
+                        }
+                    />
+                ),
             };
         });
 
@@ -320,6 +328,10 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: a.geometryItem.name,
                 element: (
                     <GeometryAlignmentLinkingContainer
+                        visibilities={infoboxVisibilities.geometryAlignment}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometryAlignment', visibilities)
+                        }
                         geometryAlignment={a.geometryItem}
                         selectedLocationTrackId={locationTrackIds[0]}
                         selectedTrackNumberId={trackNumberIds[0]}
