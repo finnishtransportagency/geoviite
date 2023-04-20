@@ -20,7 +20,7 @@ type TrackNumberInfoboxLinkingContainerProps = {
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     viewport: MapViewport;
     visibilities: TrackNumberInfoboxVisibilities;
-    onVisibilityChange: (state: TrackNumberInfoboxVisibilities) => void;
+    onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
 };
 
 const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingContainerProps> = ({

@@ -20,7 +20,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     onDataChange: () => void;
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
-    onVisibilityChange: (state: LocationTrackInfoboxVisibilities) => void;
+    onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
