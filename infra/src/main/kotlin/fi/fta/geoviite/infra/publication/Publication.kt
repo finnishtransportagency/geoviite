@@ -177,6 +177,7 @@ data class ValidationVersions(
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
+    fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
 }
 
 data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
@@ -305,4 +306,23 @@ data class RemovedTrackNumberReferenceIds(
     val kmPostIds: List<IntId<GeometryKmPost>>,
     val alignmentIds: List<IntId<GeometryAlignment>>,
     val planIds: List<IntId<GeometryPlan>>,
+)
+
+fun <T : Draftable<T>> mapToValidationVersion(draftableObject: T) = ValidationVersion(
+    officialId = draftableObject.id as IntId<T>,
+    validatedAssetVersion = draftableObject.version as RowVersion<T>
+)
+
+fun mapToValidationVersions(
+    trackNumbers: List<TrackLayoutTrackNumber> = emptyList(),
+    referenceLines: List<ReferenceLine> = emptyList(),
+    kmPosts: List<TrackLayoutKmPost> = emptyList(),
+    locationTracks: List<LocationTrack> = emptyList(),
+    switches: List<TrackLayoutSwitch> = emptyList(),
+) = ValidationVersions(
+    trackNumbers = trackNumbers.map(::mapToValidationVersion),
+    referenceLines = referenceLines.map(::mapToValidationVersion),
+    kmPosts = kmPosts.map(::mapToValidationVersion),
+    locationTracks = locationTracks.map(::mapToValidationVersion),
+    switches = switches.map(::mapToValidationVersion)
 )

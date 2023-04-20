@@ -633,7 +633,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `Validating official track number should work`() {
         val trackNumber = insertOfficialTrackNumber()
 
-        val validation = publicationService.validateTrackNumberAndReferenceLine(trackNumber, null, OFFICIAL)
+        val validation = publicationService.validateTrackNumberAndReferenceLine(trackNumber, OFFICIAL)
         assertEquals(validation.errors.size, 1)
     }
 

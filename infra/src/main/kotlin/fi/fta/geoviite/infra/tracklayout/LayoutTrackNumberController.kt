@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.*
 class LayoutTrackNumberController(
     private val trackNumberService: LayoutTrackNumberService,
     private val publicationService: PublicationService,
-    private val referenceLineService: ReferenceLineService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -56,12 +55,7 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ValidatedAsset<TrackLayoutTrackNumber> {
         logger.apiCall("validateTrackNumberAndReferenceLine", "publishType" to publishType, "id" to id)
-        val referenceLine = referenceLineService.getByTrackNumber(publishType, id)
-        return publicationService.validateTrackNumberAndReferenceLine(
-            id,
-            referenceLine?.id as IntId<ReferenceLine>,
-            publishType
-        )
+        return publicationService.validateTrackNumberAndReferenceLine(id, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

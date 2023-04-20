@@ -75,165 +75,160 @@ class PublicationService @Autowired constructor(
 
     fun validateTrackNumberAndReferenceLine(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        referenceLineId: IntId<ReferenceLine>?,
         publishType: PublishType
     ): ValidatedAsset<TrackLayoutTrackNumber> {
         logger.serviceCall(
             "validateTrackNumberAndReferenceLine",
             "trackNumberId" to trackNumberId,
-            "referenceLineId" to referenceLineId,
             "publishType" to publishType
         )
-        val locationTrack = trackNumberService.getOrThrow(publishType, trackNumberId)
-        val referenceLine =
-            if (referenceLineId != null) referenceLineService.getOrThrow(publishType, referenceLineId) else null
 
-        require(locationTrack.version != null) { "Asset validation requires version" }
-        val includingDeps = getRevertRequestDependencies(
-            PublishRequestIds(
-                listOf(trackNumberId),
-                emptyList(),
-                if (referenceLine != null) listOf(referenceLine.id as IntId<ReferenceLine>) else emptyList(),
-                emptyList(),
-                emptyList()
-            )
+        val trackNumber = trackNumberService.getOrThrow(publishType, trackNumberId)
+        val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
+
+        val locationTracks = locationTrackDao.fetchVersions(
+            publicationState = publishType,
+            includeDeleted = false,
+            trackNumberId = trackNumberId
+        ).map(locationTrackDao::fetch)
+
+        val kmPosts = kmPostDao.fetchVersions(
+            publicationState = publishType,
+            includeDeleted = false,
+            trackNumberId = trackNumberId
+        ).map(kmPostDao::fetch)
+
+        val versions = mapToValidationVersions(
+            trackNumbers = listOf(trackNumber),
+            referenceLines = listOfNotNull(referenceLine),
+            kmPosts = kmPosts,
+            locationTracks = locationTracks,
         )
-        val versions = validationVersionsForAsset(includingDeps, publishType)
+
         val cacheKeys = collectCacheKeys(versions)
 
         val trackNumberValidation = validateTrackNumber(
-            ValidationVersion(trackNumberId, locationTrack.version),
-            versions,
-            cacheKeys
+            version = mapToValidationVersion(trackNumber),
+            validationVersions = versions,
+            cacheKeys = cacheKeys
         )
-        val referenceLineValidation = if (referenceLine?.version != null) validateReferenceLine(
-            ValidationVersion(
-                referenceLine.id as IntId<ReferenceLine>,
-                referenceLine.version
-            ), versions, cacheKeys
-        ) else emptyList()
-        return ValidatedAsset(
-            trackNumberValidation + referenceLineValidation, trackNumberId
-        )
-    }
 
-    fun validateLocationTrack(id: IntId<LocationTrack>, publishType: PublishType): ValidatedAsset<LocationTrack> {
-        logger.serviceCall(
-            "validateLocationTrack",
-            "id" to id,
-            "publishType" to publishType
-        )
-        val locationTrack = locationTrackService.getOrThrow(publishType, id)
-        require(locationTrack.version != null) { "Asset validation requires version" }
-        val includingDeps = getRevertRequestDependencies(
-            PublishRequestIds(
-                emptyList(),
-                listOf(id),
-                emptyList(),
-                emptyList(),
-                emptyList()
-            )
-        )
-        val versions = validationVersionsForAsset(includingDeps, publishType)
-        val cacheKeys = collectCacheKeys(versions)
-        return ValidatedAsset(
-            validateLocationTrack(
-                ValidationVersion(id, locationTrack.version),
-                versions,
-                cacheKeys
-            ), id
-        )
-    }
-
-    fun validateSwitch(id: IntId<TrackLayoutSwitch>, publishType: PublishType): ValidatedAsset<TrackLayoutSwitch> {
-        logger.serviceCall(
-            "validateSwitch",
-            "id" to id,
-            "publishType" to publishType
-        )
-        val layoutSwitch = switchService.getOrThrow(publishType, id)
-        require(layoutSwitch.version != null) { "Asset validation requires version" }
-        val includingDeps = getRevertRequestDependencies(
-            PublishRequestIds(
-                emptyList(),
-                emptyList(),
-                emptyList(),
-                listOf(id),
-                emptyList()
-            )
-        )
-        val versions = validationVersionsForAsset(includingDeps, publishType)
-        return ValidatedAsset(
-            validateSwitch(
-                ValidationVersion(id, layoutSwitch.version),
-                versions,
-            ), id
-        )
-    }
-
-    fun validateKmPost(id: IntId<TrackLayoutKmPost>, publishType: PublishType): ValidatedAsset<TrackLayoutKmPost> {
-        logger.serviceCall(
-            "validateKmPost",
-            "id" to id,
-            "publishType" to publishType
-        )
-        val kmPost = kmPostService.getOrThrow(publishType, id)
-        require(kmPost.version != null) { "Asset validation requires version" }
-        val includingDeps = getRevertRequestDependencies(
-            PublishRequestIds(
-                emptyList(),
-                emptyList(),
-                emptyList(),
-                emptyList(),
-                listOf(id),
-            )
-        )
-        val versions = validationVersionsForAsset(includingDeps, publishType)
-        val cacheKeys = collectCacheKeys(versions)
-        return ValidatedAsset(
-            validateKmPost(
-                ValidationVersion(id, kmPost.version),
-                versions,
-                cacheKeys
-            ), id
-        )
-    }
-
-    private fun validationVersionsForAsset(
-        requestAndDependencies: PublishRequestIds,
-        publishType: PublishType,
-    ) = ValidationVersions(
-        trackNumbers = requestAndDependencies.trackNumbers.map {
-            ValidationVersion(
-                officialId = it,
-                validatedAssetVersion = trackNumberDao.fetchVersionOrThrow(it, publishType)
-            )
-        },
-        referenceLines = requestAndDependencies.referenceLines.map {
-            ValidationVersion(
-                officialId = it,
-                validatedAssetVersion = referenceLineDao.fetchVersionOrThrow(it, publishType)
-            )
-        },
-        locationTracks = requestAndDependencies.locationTracks.map {
-            ValidationVersion(
-                officialId = it,
-                validatedAssetVersion = locationTrackDao.fetchVersionOrThrow(it, publishType)
-            )
-        },
-        switches = requestAndDependencies.switches.map {
-            ValidationVersion(
-                officialId = it,
-                validatedAssetVersion = switchDao.fetchVersionOrThrow(it, publishType)
-            )
-        },
-        kmPosts = requestAndDependencies.kmPosts.map {
-            ValidationVersion(
-                officialId = it,
-                validatedAssetVersion = kmPostDao.fetchVersionOrThrow(it, publishType)
+        val referenceLineValidation = versions.referenceLines.flatMap { rl ->
+            validateReferenceLine(
+                version = rl,
+                validationVersions = versions,
+                cacheKeys = cacheKeys,
             )
         }
-    )
+
+        return ValidatedAsset(
+            errors = trackNumberValidation + referenceLineValidation,
+            id = trackNumberId,
+        )
+    }
+
+    fun validateLocationTrack(
+        locationTrackId: IntId<LocationTrack>,
+        publishType: PublishType,
+    ): ValidatedAsset<LocationTrack> {
+        logger.serviceCall(
+            "validateLocationTrack",
+            "locationTrackId" to locationTrackId,
+            "publishType" to publishType
+        )
+
+        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(publishType, locationTrackId)
+
+        val duplicateTrack = locationTrack.duplicateOf?.let { duplicateId ->
+            locationTrackService.getOrThrow(publishType, duplicateId)
+        }
+
+        val trackNumber = trackNumberService.getOrThrow(publishType, locationTrack.trackNumberId)
+        val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumber.id as IntId)
+
+        val switches = getConnectedSwitchIds(locationTrack, alignment).map { switchId ->
+            switchService.getOrThrow(publishType, switchId)
+        }
+
+        val versions = mapToValidationVersions(
+            locationTracks = listOfNotNull(locationTrack, duplicateTrack),
+            switches = switches,
+            trackNumbers = listOf(trackNumber),
+            referenceLines = listOfNotNull(referenceLine)
+        )
+
+        val cacheKeys = collectCacheKeys(versions)
+
+        return ValidatedAsset(
+            validateLocationTrack(
+                version = mapToValidationVersion(locationTrack),
+                validationVersions = versions,
+                cacheKeys = cacheKeys
+            ),
+            locationTrackId,
+        )
+    }
+
+    fun validateSwitch(
+        switchId: IntId<TrackLayoutSwitch>,
+        publishType: PublishType,
+    ): ValidatedAsset<TrackLayoutSwitch> {
+        logger.serviceCall(
+            "validateSwitch",
+            "switchId" to switchId,
+            "publishType" to publishType
+        )
+        val layoutSwitch = switchService.getOrThrow(publishType, switchId)
+        val locationTracks = switchDao.findLocationTracksLinkedToSwitch(publishType, switchId).map {
+            locationTrackDao.fetch(it.rowVersion)
+        }
+
+        val versions = mapToValidationVersions(
+            switches = listOf(layoutSwitch),
+            locationTracks = locationTracks
+        )
+
+        return ValidatedAsset(
+            validateSwitch(mapToValidationVersion(layoutSwitch), versions),
+            switchId,
+        )
+    }
+
+    fun validateKmPost(
+        kmPostId: IntId<TrackLayoutKmPost>,
+        publishType: PublishType,
+    ): ValidatedAsset<TrackLayoutKmPost> {
+        logger.serviceCall(
+            "validateKmPost",
+            "kmPostId" to kmPostId,
+            "publishType" to publishType
+        )
+        val kmPost = kmPostService.getOrThrow(publishType, kmPostId)
+        val trackNumber = kmPost.trackNumberId?.let { trackNumberId ->
+            trackNumberService.getOrThrow(publishType, trackNumberId)
+        }
+
+        val referenceLine = trackNumber?.let {
+            referenceLineService.getByTrackNumber(publishType, trackNumber.id as IntId)
+        }
+
+        val versions = mapToValidationVersions(
+            trackNumbers = listOfNotNull(trackNumber),
+            referenceLines = listOfNotNull(referenceLine),
+            kmPosts = listOf(kmPost)
+        )
+
+        val cacheKeys = collectCacheKeys(versions)
+
+        return ValidatedAsset(
+            validateKmPost(
+                version = mapToValidationVersion(kmPost),
+                validationVersions = versions,
+                cacheKeys = cacheKeys
+            ),
+            kmPostId
+        )
+    }
 
     fun getChangeTime(): Instant {
         logger.serviceCall("getChangeTime")
@@ -581,7 +576,7 @@ class PublicationService @Autowired constructor(
         )
         val switchErrors = validateSegmentSwitchReferences(
             locationTrack,
-            getSegmentSwitches(alignment),
+            getSegmentSwitches(alignment, validationVersions),
             validationVersions.switches.map { it.officialId },
         )
         val duplicateErrors = validateDuplicateOfState(
@@ -648,33 +643,36 @@ class PublicationService @Autowired constructor(
     private fun getReferenceLineByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
-    ): ReferenceLine? {
-        val officialVersion = referenceLineDao.fetchVersion(OFFICIAL, trackNumberId)
-        val publicationLine = versions.referenceLines
-            .map { v -> referenceLineDao.fetch(v.validatedAssetVersion) }
-            .find { line -> line.trackNumberId == trackNumberId }
-        return publicationLine ?: officialVersion?.let { version -> referenceLineDao.fetch(version) }
-    }
+    ) = versions.referenceLines
+        .map { v -> referenceLineDao.fetch(v.validatedAssetVersion) }
+        .find { line -> line.trackNumberId == trackNumberId }
+        ?: referenceLineDao.fetchVersion(OFFICIAL, trackNumberId)?.let(referenceLineDao::fetch)
 
     private fun getKmPostsByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
     ) = combineVersions(
-        official = kmPostDao.fetchVersions(OFFICIAL, false, trackNumberId),
-        draft = versions.kmPosts,
+        officials = kmPostDao.fetchVersions(OFFICIAL, false, trackNumberId),
+        validations = versions.kmPosts,
     ).map(kmPostDao::fetch).filter { km -> km.trackNumberId == trackNumberId }
 
     private fun getLocationTracksByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
     ) = combineVersions(
-        official = locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId),
-        draft = versions.locationTracks,
+        officials = locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId),
+        validations = versions.locationTracks
     ).map(locationTrackDao::fetch).filter { lt -> lt.trackNumberId == trackNumberId }
 
     private fun <T> combineVersions(
-        official: List<RowVersion<T>>, draft: List<ValidationVersion<T>>,
-    ) = (official.associateBy { it.id } + draft.associate { it.officialId to it.validatedAssetVersion }).values
+        officials: List<RowVersion<T>>,
+        validations: List<ValidationVersion<T>>,
+    ): Collection<RowVersion<T>> {
+        val officialVersions = officials.filterNot { officialId -> validations.any { v -> v.officialId == officialId } }
+        val validationVersions = validations.map { it.validatedAssetVersion }
+
+        return (officialVersions + validationVersions).distinct()
+    }
 
     private fun getReferenceLineAndAlignment(version: RowVersion<ReferenceLine>) =
         referenceLineWithAlignment(referenceLineDao, alignmentDao, version)
@@ -799,11 +797,21 @@ class PublicationService @Autowired constructor(
         }
     }
 
-    private fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> {
-        val segmentsBySwitch: Map<TrackLayoutSwitch, List<LayoutSegment>> =
-            alignment.segments.mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
-                .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
-                .mapKeys { (switchId, _) -> switchDao.fetchDraftVersionOrThrow(switchId).let(switchDao::fetch) }
+    private fun getSegmentSwitches(alignment: LayoutAlignment, versions: ValidationVersions): List<SegmentSwitch> {
+        val segmentsBySwitch = alignment.segments
+            .mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
+            .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
+            .mapKeys { (switchId, _) ->
+                val version = versions.findSwitch(switchId)?.validatedAssetVersion
+                    ?: switchDao.fetchVersionPair(switchId).let { (o, d) ->
+                        o ?: checkNotNull(d) {
+                            "Fetched switch is neither official nor draft, switchId=$switchId"
+                        }
+                    }
+
+                switchDao.fetch(version)
+            }
+
         return segmentsBySwitch.entries.map { (switch, segments) ->
             SegmentSwitch(
                 switch = switch,
