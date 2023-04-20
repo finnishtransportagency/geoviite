@@ -13,11 +13,19 @@ type GeometrySwitchLinkingSuggestedInfoboxProps = {
     suggestedSwitch: SuggestedSwitch;
     alignmentEndPoint: LocationTrackEndpoint;
     onSuggestedSwitchChange: (suggestedSwitch: SuggestedSwitch) => void;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
     GeometrySwitchLinkingSuggestedInfoboxProps
-> = ({ suggestedSwitch, alignmentEndPoint, onSuggestedSwitchChange }) => {
+> = ({
+    suggestedSwitch,
+    alignmentEndPoint,
+    onSuggestedSwitchChange,
+    contentVisible,
+    onContentVisibilityChange,
+}) => {
     const { t } = useTranslation();
     const [location, setLocation] = React.useState<string>();
     const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -35,7 +43,10 @@ export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
 
     return (
         <React.Fragment>
-            <Infobox title={t('tool-panel.switch.geometry.suggested-switch-title')}>
+            <Infobox
+                contentVisible={contentVisible}
+                onContentVisibilityChange={onContentVisibilityChange}
+                title={t('tool-panel.switch.geometry.suggested-switch-title')}>
                 <InfoboxContent>
                     <InfoboxField
                         label={t('tool-panel.switch.geometry.location')}

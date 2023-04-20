@@ -40,6 +40,7 @@ export type InfoboxVisibilities = {
     geometryAlignment: GeometryAlignmentInfoboxVisibilities;
     geometryPlan: GeometryPlanInfoboxVisibilities;
     geometryKmPost: GeometryKmPostInfoboxVisibilities;
+    geometrySwitch: GeometrySwitchInfoboxVisibilities;
 };
 
 export type TrackNumberInfoboxVisibilities = {
@@ -85,6 +86,16 @@ export type GeometryKmPostInfoboxVisibilities = {
     basic: boolean;
     linking: boolean;
 } & GeometryPlanInfoboxVisibilities;
+
+export type GeometrySwitchInfoboxVisibilities = {
+    basic: boolean;
+} & GeometryPlanInfoboxVisibilities &
+    GeometrySwitchLinkingInfoboxVisibilities;
+
+export type GeometrySwitchLinkingInfoboxVisibilities = {
+    linking: boolean;
+    suggestedSwitch: boolean;
+};
 
 export type GeometryPlanInfoboxVisibilities = {
     plan: boolean;
@@ -136,6 +147,13 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         plan: true,
         planQuality: true,
         basic: true,
+        linking: true,
+    },
+    geometrySwitch: {
+        plan: true,
+        planQuality: true,
+        basic: true,
+        suggestedSwitch: true,
         linking: true,
     },
 };

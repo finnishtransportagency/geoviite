@@ -27,6 +27,7 @@ import { GeometrySwitchLinkingCandidates } from 'tool-panel/switch/geometry-swit
 import { SwitchJointInfoboxContainer } from 'tool-panel/switch/switch-joint-infobox-container';
 import { GeometrySwitchLinkingErrors } from 'tool-panel/switch/geometry-switch-linking-errors';
 import { SwitchTypeMatch } from 'linking/linking-utils';
+import { GeometrySwitchLinkingInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type GeometrySwitchLinkingInfoboxProps = {
     geometrySwitchId?: GeometrySwitchId;
@@ -43,6 +44,8 @@ type GeometrySwitchLinkingInfoboxProps = {
     onSuggestedSwitchChange?: (suggestedSwitch: SuggestedSwitch) => void;
     planId?: GeometryPlanId;
     publishType: PublishType;
+    visibilities: GeometrySwitchLinkingInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometrySwitchLinkingInfoboxVisibilities) => void;
 };
 
 const isLinkingStarted = (linkingState: LinkingState) =>
@@ -63,6 +66,8 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     onSuggestedSwitchChange,
     planId,
     publishType,
+    visibilities,
+    onVisibilityChange,
 }) => {
     const { t } = useTranslation();
     const geometrySwitch = useLoader(
@@ -170,12 +175,26 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         <React.Fragment>
             {selectedSuggestedSwitch?.alignmentEndPoint && onSuggestedSwitchChange && (
                 <GeometrySwitchLinkingSuggestedInfobox
+                    contentVisible={visibilities.suggestedSwitch}
+                    onContentVisibilityChange={() =>
+                        onVisibilityChange({
+                            ...visibilities,
+                            suggestedSwitch: !visibilities.suggestedSwitch,
+                        })
+                    }
                     suggestedSwitch={selectedSuggestedSwitch}
                     alignmentEndPoint={selectedSuggestedSwitch.alignmentEndPoint}
                     onSuggestedSwitchChange={onSuggestedSwitchChange}
                 />
             )}
             <Infobox
+                contentVisible={visibilities.linking}
+                onContentVisibilityChange={() =>
+                    onVisibilityChange({
+                        ...visibilities,
+                        linking: !visibilities.linking,
+                    })
+                }
                 title={t('tool-panel.switch.geometry.linking-header')}
                 qa-id="geometry-switch-linking-infobox">
                 <InfoboxContent>

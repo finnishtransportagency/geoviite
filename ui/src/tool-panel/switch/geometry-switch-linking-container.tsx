@@ -3,7 +3,10 @@ import GeometrySwitchLinkingInfobox from 'tool-panel/switch/geometry-switch-link
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
-import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
+import {
+    GeometrySwitchLinkingInfoboxVisibilities,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import { TimeStamp } from 'common/common-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
@@ -16,6 +19,8 @@ type GeometrySwitchLinkingContainerProps = {
     locationTrackChangeTime: TimeStamp;
     layoutSwitch?: LayoutSwitch;
     planId?: GeometryPlanId;
+    visibilities: GeometrySwitchLinkingInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometrySwitchLinkingInfoboxVisibilities) => void;
 };
 
 const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerProps> = ({
@@ -26,12 +31,16 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
     locationTrackChangeTime,
     layoutSwitch,
     planId,
+    visibilities,
+    onVisibilityChange,
 }) => {
     const delegates = createDelegates(TrackLayoutActions);
     const store = useTrackLayoutAppSelector((state) => state);
 
     return (
         <GeometrySwitchLinkingInfobox
+            visibilities={visibilities}
+            onVisibilityChange={onVisibilityChange}
             linkingState={linkingState}
             switchId={switchId}
             onLinkingStart={delegates.startSwitchLinking}
