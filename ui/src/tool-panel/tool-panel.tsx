@@ -296,6 +296,10 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: track.name,
                 element: (
                     <LocationTrackInfoboxLinkingContainer
+                        visibilities={infoboxVisibilities.locationTrack}
+                        onVisibilityChange={(state) =>
+                            infoboxVisibilityChange('locationTrack', state)
+                        }
                         locationTrackId={track.id}
                         linkingState={linkingState}
                         publishType={publishType}

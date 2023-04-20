@@ -14,8 +14,8 @@ type AssetValidationInfoboxProps = {
     type: AssetType;
     publishType: PublishType;
     changeTime: TimeStamp;
-    visibility: boolean;
-    onVisibilityChange: () => void;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxProps> = ({
@@ -23,8 +23,8 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
     type,
     publishType,
     changeTime,
-    visibility,
-    onVisibilityChange,
+    contentVisible,
+    onContentVisibilityChange,
 }) => {
     const [validation, validationLoaderStatus] = useLoaderWithStatus(() => {
         switch (type) {
@@ -45,8 +45,8 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
 
     return (
         <AssetValidationInfobox
-            contentVisible={visibility}
-            onContentVisibilityChange={onVisibilityChange}
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}
             type={type}
             errors={errors}
             warnings={warnings}

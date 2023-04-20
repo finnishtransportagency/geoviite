@@ -43,6 +43,7 @@ import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -56,6 +57,8 @@ type LocationTrackInfoboxProps = {
     onUnselect: (track: LayoutLocationTrack) => void;
     onSelect: OnSelectFunction;
     viewport: MapViewport;
+    visibilities: LocationTrackInfoboxVisibilities;
+    onVisibilityChange: (state: LocationTrackInfoboxVisibilities) => void;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -69,6 +72,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     locationTrackChangeTime,
     onUnselect,
     viewport,
+    visibilities,
+    onVisibilityChange,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
@@ -165,9 +170,15 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const existingDuplicate = existingDuplicateOfList && existingDuplicateOfList[0];
     const duplicatesOfLocationTrack = useLocationTrackDuplicates(locationTrack.id, publishType);
 
+    const visibilityChange = (key: keyof LocationTrackInfoboxVisibilities) => {
+        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+    };
+
     return (
         <React.Fragment>
             <Infobox
+                contentVisible={visibilities.basic}
+                onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.location-track.basic-info-heading')}
                 qa-id="location-track-infobox">
                 <InfoboxContent>
@@ -263,6 +274,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             </Infobox>
             {startAndEndPoints && coordinateSystem && (
                 <Infobox
+                    contentVisible={visibilities.location}
+                    onContentVisibilityChange={() => visibilityChange('location')}
                     title={t('tool-panel.location-track.track-location-heading')}
                     qa-id="location-track-location-infobox">
                     <InfoboxContent>
@@ -350,14 +363,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 </Infobox>
             )}
             <LocationTrackGeometryInfobox
+                contentVisible={visibilities.geometry}
+                onContentVisibilityChange={() => visibilityChange('geometry')}
                 publishType={publishType}
                 locationTrackId={locationTrack.id}
                 viewport={viewport}
             />
             {locationTrack.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
-                    visibility={true}
-                    onVisibilityChange={() => ''}
+                    contentVisible={visibilities.validation}
+                    onContentVisibilityChange={() => visibilityChange('validation')}
                     id={locationTrack.id}
                     type={'LOCATION_TRACK'}
                     publishType={publishType}
@@ -366,6 +381,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             )}
             {changeTimes && (
                 <Infobox
+                    contentVisible={visibilities.log}
+                    onContentVisibilityChange={() => visibilityChange('log')}
                     title={t('tool-panel.location-track.change-info-heading')}
                     qa-id="location-track-log-infobox">
                     <InfoboxContent>
@@ -394,6 +411,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
             {officialLocationTrack && (
                 <Infobox
+                    contentVisible={visibilities.ratkoPush}
+                    onContentVisibilityChange={() => visibilityChange('ratkoPush')}
                     title={t('tool-panel.location-track.ratko-info-heading')}
                     qa-id="location-track-ratko-infobox">
                     <InfoboxContent>
