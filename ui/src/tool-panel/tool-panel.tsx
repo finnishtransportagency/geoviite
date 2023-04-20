@@ -26,7 +26,6 @@ import { BoundingBox, Point } from 'model/geometry';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
-import GeometryKmPostInfoboxContainer from 'tool-panel/km-post/geometry-km-post-infobox-container';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
@@ -38,7 +37,11 @@ import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { MapViewport } from 'map/map-model';
 import { getGeometryPlanHeaders } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
-import { InfoboxVisibilities } from 'track-layout/track-layout-slice';
+import {
+    GeometryKmPostInfoboxVisibilities,
+    InfoboxVisibilities,
+} from 'track-layout/track-layout-slice';
+import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -237,7 +240,22 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             return {
                 id: 'geometry-km-post_' + k.geometryItem.id,
                 title: k.geometryItem.kmNumber,
-                element: <GeometryKmPostInfoboxContainer geometryKmPost={k} showArea={showArea} />,
+                element: (
+                    <GeometryKmPostInfobox
+                        geometryKmPost={k.geometryItem}
+                        planId={k.planId}
+                        onShowOnMap={() =>
+                            k.geometryItem.location &&
+                            showArea(
+                                calculateBoundingBoxToShowAroundLocation(k.geometryItem.location),
+                            )
+                        }
+                        visibilities={infoboxVisibilities.geometryKmPost}
+                        onVisibilityChange={(visibilities: GeometryKmPostInfoboxVisibilities) =>
+                            infoboxVisibilityChange('geometryKmPost', visibilities)
+                        }
+                    />
+                ),
             };
         });
 

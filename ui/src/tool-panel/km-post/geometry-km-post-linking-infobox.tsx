@@ -34,6 +34,8 @@ type GeometryKmPostLinkingInfoboxProps = {
     stopLinking: () => void;
     onKmPostSelect: (kmPost: LayoutKmPost) => void;
     publishType: PublishType;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> = ({
@@ -46,6 +48,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     stopLinking,
     onKmPostSelect,
     publishType,
+    contentVisible,
+    onContentVisibilityChange,
 }: GeometryKmPostLinkingInfoboxProps) => {
     const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -115,6 +119,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     return (
         <React.Fragment>
             <Infobox
+                contentVisible={contentVisible}
+                onContentVisibilityChange={onContentVisibilityChange}
                 className={styles['geometry-km-post-linking-infobox']}
                 title={t('tool-panel.km-post.geometry.linking.title')}
                 qa-id="geometry-km-post-linking-infobox">

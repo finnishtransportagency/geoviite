@@ -4,46 +4,41 @@ import { LayoutKmPost } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
-import { GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
 import { usePlanHeader } from 'track-layout/track-layout-react-utils';
 import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
-import { PublishType, TimeStamp } from 'common/common-model';
-import GeometryKmPostLinkingInfobox from 'tool-panel/km-post/geometry-km-post-linking-infobox';
-import { LinkingKmPost } from 'linking/linking-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
+import { GeometryKmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import GeometryKmPostLinkingContainer from 'tool-panel/km-post/geometry-km-post-infobox-linking-container';
 
 type GeometryKmPostInfoboxProps = {
     geometryKmPost: LayoutKmPost;
     planId: GeometryPlanId;
-    layoutKmPost?: LayoutKmPost;
-    kmPostChangeTime: TimeStamp;
-    linkingState: LinkingKmPost | undefined;
-    startLinking: (geometryKmPostId: GeometryKmPostId) => void;
-    stopLinking: () => void;
-    onKmPostSelect: (kmPost: LayoutKmPost) => void;
-    publishType: PublishType;
     onShowOnMap: () => void;
+    visibilities: GeometryKmPostInfoboxVisibilities;
+    onVisibilityChange: (visibilities: GeometryKmPostInfoboxVisibilities) => void;
 };
 
-const GeometryKmPostInfoboxView: React.FC<GeometryKmPostInfoboxProps> = ({
+const GeometryKmPostInfobox: React.FC<GeometryKmPostInfoboxProps> = ({
     geometryKmPost,
     planId,
-    layoutKmPost,
-    kmPostChangeTime,
-    linkingState,
-    startLinking,
-    stopLinking,
-    onKmPostSelect,
-    publishType,
     onShowOnMap,
+    visibilities,
+    onVisibilityChange,
 }: GeometryKmPostInfoboxProps) => {
     const { t } = useTranslation();
     const plan = usePlanHeader(planId);
 
+    const visibilityChange = (key: keyof GeometryKmPostInfoboxVisibilities) => {
+        onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
+    };
+
     return (
         <React.Fragment>
             <Infobox
+                contentVisible={visibilities.basic}
+                onContentVisibilityChange={() => visibilityChange('basic')}
                 title={t('tool-panel.km-post.geometry.general-title')}
                 qa-id="geometry-km-post-infobox">
                 <InfoboxContent>
@@ -62,28 +57,26 @@ const GeometryKmPostInfoboxView: React.FC<GeometryKmPostInfoboxProps> = ({
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-
-            <GeometryKmPostLinkingInfobox
+            <GeometryKmPostLinkingContainer
                 geometryKmPost={geometryKmPost}
                 planId={planId}
-                layoutKmPost={layoutKmPost}
-                kmPostChangeTime={kmPostChangeTime}
-                linkingState={linkingState}
-                startLinking={startLinking}
-                stopLinking={stopLinking}
-                onKmPostSelect={onKmPostSelect}
-                publishType={publishType}
+                contentVisible={visibilities.linking}
+                onContentVisibilityChange={() => visibilityChange('linking')}
             />
-
             {plan && (
                 <GeometryPlanInfobox
                     planHeader={plan}
-                    visibilities={{ plan: true, planQuality: true }}
-                    onVisibilityChange={() => ''}
+                    visibilities={{
+                        plan: visibilities.plan,
+                        planQuality: visibilities.planQuality,
+                    }}
+                    onVisibilityChange={(v) => {
+                        onVisibilityChange({ ...visibilities, ...v });
+                    }}
                 />
             )}
         </React.Fragment>
     );
 };
 
-export default GeometryKmPostInfoboxView;
+export default GeometryKmPostInfobox;
