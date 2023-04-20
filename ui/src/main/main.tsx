@@ -28,7 +28,6 @@ import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
 import { getOwnUser } from 'user/user-api';
-import { useLoader } from 'utils/react-utils';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -90,22 +89,29 @@ export const MainContainer: React.FC = () => {
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
     const versionInStore = useCommonDataAppSelector((state) => state.version);
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
-    const userFromBackend = useLoader(getOwnUser, []);
+    const [versionStatus, setVersionStatus] = React.useState<'loading' | 'reload' | 'ok'>(
+        'loading',
+    );
     const delegates = createDelegates(commonActionCreators);
-    const [showDialog, setShowDialog] = React.useState(false);
 
     React.useEffect(() => {
-        const userHasWriteAccess = userFromBackend?.role.privileges.some(
-            (privilege) => privilege.code === 'all-write',
-        );
-        userFromBackend && delegates.setUserHasWriteRole(!!userHasWriteAccess);
-    }, [userFromBackend]);
+        getOwnUser().then((user) => {
+            const userHasWriteAccess = user.role.privileges.some(
+                (privilege) => privilege.code === 'all-write',
+            );
+
+            delegates.setUserHasWriteRole(userHasWriteAccess);
+        });
+    }, []);
 
     React.useEffect(() => {
-        setShowDialog(
-            !!versionFromBackend && !!versionInStore && versionInStore !== versionFromBackend,
-        );
-        if (versionFromBackend && !versionInStore) delegates.setVersion(versionFromBackend || '');
+        if (typeof versionFromBackend == 'string') {
+            setVersionStatus(versionInStore === versionFromBackend ? 'ok' : 'reload');
+
+            if (!versionInStore) {
+                delegates.setVersion(versionFromBackend);
+            }
+        }
     }, [versionFromBackend]);
 
     const props = {
@@ -115,8 +121,7 @@ export const MainContainer: React.FC = () => {
 
     return (
         <React.Fragment>
-            <Main {...props} />{' '}
-            {showDialog && (
+            {versionStatus == 'reload' && (
                 <Dialog
                     allowClose={false}
                     className={dialogStyles['dialog--wide']}
@@ -134,6 +139,8 @@ export const MainContainer: React.FC = () => {
                     {t('version.cache-needs-clearing')}
                 </Dialog>
             )}
+
+            {versionStatus == 'ok' && <Main {...props} />}
         </React.Fragment>
     );
 };
