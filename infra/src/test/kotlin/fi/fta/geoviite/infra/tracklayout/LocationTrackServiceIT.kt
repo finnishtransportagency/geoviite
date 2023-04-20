@@ -257,19 +257,23 @@ class LocationTrackServiceIT @Autowired constructor(
         val trackNumberId = getUnusedTrackNumberId()
         val switchId = insertAndFetch(switch()).id as IntId
 
-        val (_, _) = insertAndFetch(locationTrack(trackNumberId), alignment(
-            segment(Point(0.0, 0.0), Point(10.0, 0.0)),
-            segment(Point(10.0, 0.0), Point(20.0, 0.0)).copy(
-                switchId = switchId,
-                startJointNumber = JointNumber(1),
-                endJointNumber = JointNumber(2),
-            ),
-            segment(Point(20.0, 0.0), Point(30.0, 0.0)),
-        ))
+        val (_, _) = insertAndFetch(
+            locationTrack(trackNumberId), alignment(
+                segment(Point(1000.0, 1000.0), Point(1010.0, 1000.0)),
+                segment(Point(1010.0, 1000.0), Point(1020.0, 1000.0)).copy(
+                    switchId = switchId,
+                    startJointNumber = JointNumber(1),
+                    endJointNumber = JointNumber(2),
+                ),
+                segment(Point(1020.0, 1000.0), Point(1030.0, 1000.0)),
+            )
+        )
 
-        val (track, alignment) = insertAndFetch(locationTrack(trackNumberId), alignment(
-            segment(Point(10.0, -10.0), Point(10.0, 0.0), Point(10.0, 10.0))
-        ))
+        val (track, alignment) = insertAndFetch(
+            locationTrack(trackNumberId), alignment(
+                segment(Point(1010.0, 990.0), Point(1010.0, 1000.0), Point(1010.0, 1010.0))
+            )
+        )
         assertEquals(null, track.topologyStartSwitch)
         assertEquals(null, track.topologyEndSwitch)
         val updatedTrack = locationTrackService.updateTopology(track, alignment)
@@ -313,11 +317,11 @@ class LocationTrackServiceIT @Autowired constructor(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchId1, JointNumber(3)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(switchId2, JointNumber(5)),
             ),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            alignment(segment(Point(2000.0, 2000.0), Point(2010.0, 2010.0))),
         )
 
         val (track1, alignment1) = insertAndFetch(locationTrack(trackNumberId), alignment(
-            segment(Point(0.0, 0.0), Point(22.0, 0.0))
+            segment(Point(2000.0, 2000.0), Point(2022.0, 2000.0))
         ))
         assertEquals(null, track1.topologyStartSwitch)
         assertEquals(null, track1.topologyEndSwitch)
@@ -327,7 +331,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(null, updatedTrack1.topologyEndSwitch)
 
         val (track2, alignment2) = insertAndFetch(locationTrack(trackNumberId), alignment(
-            segment(Point(9.9, 10.0), Point(-10.0, -10.0))
+            segment(Point(2009.9, 2010.0), Point(1990.0, 1990.0))
         ))
         assertEquals(null, track2.topologyStartSwitch)
         assertEquals(null, track2.topologyEndSwitch)
@@ -337,7 +341,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(null, updatedTrack2.topologyEndSwitch)
 
         val (track3, alignment3) = insertAndFetch(locationTrack(trackNumberId), alignment(
-            segment(Point(-10.0, -10.0), Point(-0.1, 0.0))
+            segment(Point(1990.0, 1990.0), Point(1999.9, 2000.0))
         ))
         assertEquals(null, track3.topologyStartSwitch)
         assertEquals(null, track3.topologyEndSwitch)
@@ -347,7 +351,7 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(TopologyLocationTrackSwitch(switchId1, JointNumber(3)), updatedTrack3.topologyEndSwitch)
 
         val (track4, alignment4) = insertAndFetch(locationTrack(trackNumberId), alignment(
-            segment(Point(20.0, 20.0), Point(10.1, 9.9))
+            segment(Point(2020.0, 2020.0), Point(2010.1, 2009.9))
         ))
         assertEquals(null, track4.topologyStartSwitch)
         assertEquals(null, track4.topologyEndSwitch)
