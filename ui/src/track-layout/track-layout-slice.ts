@@ -36,6 +36,7 @@ export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
     switch: SwitchInfoboxVisibilities;
     locationTrack: LocationTrackInfoboxVisibilities;
+    kmPost: KmPostInfoboxVisibilities;
 };
 
 export type TrackNumberInfoboxVisibilities = {
@@ -64,6 +65,13 @@ export type LocationTrackInfoboxVisibilities = {
     geometry: boolean;
 };
 
+export type KmPostInfoboxVisibilities = {
+    basic: boolean;
+    location: boolean;
+    log: boolean;
+    validation: boolean;
+};
+
 const initialInfoboxVisibilities: InfoboxVisibilities = {
     trackNumber: {
         basic: true,
@@ -87,6 +95,12 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
         validation: true,
         ratkoPush: true,
         geometry: true,
+    },
+    kmPost: {
+        basic: true,
+        location: true,
+        log: true,
+        validation: true,
     },
 };
 
