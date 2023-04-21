@@ -285,7 +285,7 @@ type LinearSection = {
     linearSegmentLength: number | null;
 };
 
-type StationPoint = {
+export type StationPoint = {
     address: TrackMeter | null;
     height: number;
     station: number;
@@ -296,6 +296,7 @@ type CircularCurve = StationPoint & {
 };
 
 export type VerticalGeometryItem = {
+    alignmentId: string;
     id: string;
     planId: GeometryPlanId;
     fileName: string;
@@ -310,4 +311,8 @@ export type VerticalGeometryItem = {
     locationTrackName: string;
     overlapsAnother: boolean;
     verticalCoordinateSystem: VerticalCoordinateSystem | null;
+
+    layoutStartStation: number | null;
+    layoutPointStation: number | null;
+    layoutEndStation: number | null;
 };
