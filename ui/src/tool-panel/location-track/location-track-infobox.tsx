@@ -409,7 +409,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 </Infobox>
             )}
 
-            {officialLocationTrack && (
+            {officialLocationTrack && userHasWriteRole && (
                 <Infobox
                     contentVisible={visibilities.ratkoPush}
                     onContentVisibilityChange={() => visibilityChange('ratkoPush')}
