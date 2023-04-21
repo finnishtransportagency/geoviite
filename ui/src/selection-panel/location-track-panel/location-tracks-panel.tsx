@@ -30,34 +30,49 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
 }: LocationTracksPanelProps) => {
     const { t } = useTranslation();
     const [showMore, setShowMore] = React.useState(false);
-    const [trackCount, setTrackCount] = React.useState(0);
     const [visibleTracks, setVisibleTracks] = React.useState<LayoutLocationTrack[]>([]);
+    const [showMoreButton, setShowMoreButton] = React.useState(false);
+    const locationTrackCount = locationTracks.length;
 
     React.useEffect(() => {
-        if (trackCount != locationTracks.length) {
+        const sortedLocationTracks = [...locationTracks].sort((a, b) => {
+            if (a.type === 'MAIN' && b.type !== 'MAIN') {
+                return -1;
+            } else if (b.type === 'MAIN' && a.type !== 'MAIN') {
+                return 1;
+            }
+
+            return compareByField(a, b, (lt) => lt.id);
+        });
+
+        if (sortedLocationTracks.length <= max) {
+            //Just show everything since there aren't that many location tracks
+            //Hide show more button because there's no need for it
             setShowMore(false);
-        }
-    }, [locationTracks]);
+            setShowMoreButton(false);
+            setVisibleTracks(sortedLocationTracks);
+        } else if (sortedLocationTracks.length <= showMoreMax) {
+            const indexes =
+                selectedLocationTracks?.map((selectedId) =>
+                    sortedLocationTracks.findIndex((lt) => lt.id == selectedId),
+                ) || [];
 
-    React.useEffect(() => {
-        if (locationTracks) {
-            const sortedLocationTracks = [...locationTracks].sort((a, b) => {
-                if (a.type === 'MAIN' && b.type !== 'MAIN') {
-                    return -1;
-                } else if (b.type === 'MAIN' && a.type !== 'MAIN') {
-                    return 1;
-                }
-
-                return compareByField(a, b, (lt) => lt.id);
-            });
-
-            const visibleTracks = sortedLocationTracks.slice(0, showMore ? showMoreMax : max);
-
-            setVisibleTracks(sortedLocationTracks.length <= showMoreMax ? visibleTracks : []);
-            setTrackCount(sortedLocationTracks.length);
+            if (Math.max(...indexes) >= max) {
+                //Forcefully show more because otherwise selected location tracks would be hidden
+                setShowMore(true);
+                setShowMoreButton(false);
+                setVisibleTracks(sortedLocationTracks);
+            } else {
+                //Normal use case, let the user decide whether to show more or less
+                setShowMoreButton(true);
+                setVisibleTracks(sortedLocationTracks.splice(0, showMore ? showMoreMax : max));
+            }
         } else {
+            //Way too many location tracks
+            //Show nothing and hide show more button
             setVisibleTracks([]);
-            setTrackCount(0);
+            setShowMore(false);
+            setShowMoreButton(false);
         }
     }, [locationTracks, showMore]);
 
@@ -94,19 +109,19 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
                 })}
             </ol>
 
-            {trackCount > showMoreMax && (
+            {locationTrackCount > showMoreMax && (
                 <span className={styles['location-tracks-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',
                 )}`}</span>
             )}
 
-            {trackCount === 0 && (
+            {locationTrackCount === 0 && (
                 <span className={styles['location-tracks-panel__subtitle']}>{`${t(
                     'selection-panel.no-results',
                 )}`}</span>
             )}
 
-            {max < trackCount && trackCount <= showMoreMax && (
+            {showMoreButton && (
                 <div className={styles['location-tracks-panel__show-more']}>
                     <ShowMoreButton onShowMore={() => setShowMore(!showMore)} expanded={showMore} />
                 </div>
