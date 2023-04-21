@@ -6,7 +6,7 @@ import org.locationtech.jts.geom.Coordinate
 import org.opengis.referencing.crs.CoordinateReferenceSystem
 
 val KKJ0 = Srid(3386)
-val KKJ1 = Srid(2931)
+val KKJ1 = Srid(2391)
 val KKJ2 = Srid(2392)
 val KKJ3_YKJ = Srid(2393)
 val KKJ4 = Srid(2394)
