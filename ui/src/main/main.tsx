@@ -106,7 +106,9 @@ export const MainContainer: React.FC = () => {
 
     React.useEffect(() => {
         if (typeof versionFromBackend == 'string') {
-            setVersionStatus(versionInStore === versionFromBackend ? 'ok' : 'reload');
+            setVersionStatus(
+                !versionInStore || versionInStore === versionFromBackend ? 'ok' : 'reload',
+            );
 
             if (!versionInStore) {
                 delegates.setVersion(versionFromBackend);
