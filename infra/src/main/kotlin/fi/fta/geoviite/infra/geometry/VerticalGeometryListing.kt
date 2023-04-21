@@ -353,7 +353,7 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_POINT)) { it.point.station },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.STATION_END)) { it.end.station },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.VERTICAL_COORDINATE_SYSTEM)) { it.verticalCoordinateSystem },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.REMARKS)) { if (it.overlapsAnother) VERTICAL_SECTIONS_OVERLAP else UNKNOWN }
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.REMARKS)) { if (it.overlapsAnother) VERTICAL_SECTIONS_OVERLAP else "" }
 )
 
 fun previousLinearSection(
