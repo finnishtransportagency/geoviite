@@ -2,7 +2,7 @@
     "publication-table": {
         "name": "Muutoskohde",
         "track-number": "Ratanro",
-        "km-number": "Kilometrit",
+        "km-number": "Ratakilometrit",
         "operation": "Muutos",
         "publication-time": "Aika",
         "publication-user": "Käyttäjä",

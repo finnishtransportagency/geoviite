@@ -55,7 +55,7 @@ export const initialMapState: Map = {
         },
         {
             type: 'kmPosts',
-            name: 'Kilometripylväät',
+            name: 'Tasakilometripisteet',
             id: 'kmposts-1',
             visible: true,
         },
@@ -79,7 +79,7 @@ export const initialMapState: Map = {
         },
         {
             type: 'geometryKmPosts',
-            name: 'Suunnitelman kilometripylväät',
+            name: 'Suunnitelman tasakilometripisteet',
             id: 'geom-kmposts-1',
             visible: true,
         },

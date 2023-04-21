@@ -154,7 +154,7 @@ private val publicationTranslations = mapOf(
     "restore" to "Palautus",
     "NAME-header" to "Muutoskohde",
     "TRACK-NUMBERS-header" to "Ratanro",
-    "CHANGED_KM_NUMBERS-header" to "Kilometrit",
+    "CHANGED_KM_NUMBERS-header" to "Ratakilometrit",
     "OPERATION-header" to "Muutos",
     "PUBLICATION_TIME-header" to "Aika",
     "PUBLICATION_USER-header" to "Käyttäjä",
