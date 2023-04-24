@@ -236,7 +236,7 @@ const MapView: React.FC<MapViewProps> = ({
             element: popupElement,
         });
         olMap.addOverlay(popup);
-    }, [olMap, selection.selectedItems.clusterPoints]);
+    }, [olMap, selection.selectedItems.clusterPoints[0]]);
 
     // Update the view"port" of the map
     React.useEffect(() => {
@@ -248,11 +248,11 @@ const MapView: React.FC<MapViewProps> = ({
         // Without this check the map can get into invalid state if it is
         // quickly panned (moved) back and forth, and surprisingly this
         // happens quite easily in real life.
-        if (olMap && map.viewport.source != 'Map') {
+        if (map.viewport.source != 'Map') {
             olMap.setView(getOlViewByDomainViewport(map.viewport));
         }
 
-        if (olMap && props.onShownLayerItemsChange) {
+        if (props.onShownLayerItemsChange) {
             // Get items from whole visible map
             const area = olMap.getView().calculateExtent();
             const pol = fromExtent(area);
@@ -266,13 +266,13 @@ const MapView: React.FC<MapViewProps> = ({
         if (!olMap) return;
 
         const existingOlLayersByName = getLayersByName(olMap);
+        const olView = olMap.getView();
 
         // Create OpenLayers objects by domain layers
         const layerAdapters = map.mapLayers
             .filter((mapLayer) => mapLayer.visible)
             .map((mapLayer) => {
                 const adapterInfo = adapterInfoRegister.get(mapLayer);
-                const olView = olMap.getView();
 
                 // Step 1. calculate tiles for the layer
                 let tileSize = adapterInfo?.mapTileSizePx;
@@ -334,6 +334,7 @@ const MapView: React.FC<MapViewProps> = ({
                                 `Cannot create ${mapLayer.type} layer, adapter is not defined!`,
                             );
                         }
+
                         layerAdapter = adapterInfo.createAdapter(
                             mapTiles,
                             existingOlLayer,
@@ -355,8 +356,7 @@ const MapView: React.FC<MapViewProps> = ({
 
         // Set converted layers into map object
         const olLayers = layerAdapters.map((layerAdapter) => layerAdapter.layer);
-        olMap.getLayers().clear();
-        olLayers.forEach((layer) => olMap && olMap.getLayers().push(layer));
+        olMap.setLayers(olLayers);
 
         // Activate current tool
         const toolActivateOptions: MapToolActivateOptions = {
