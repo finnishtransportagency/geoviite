@@ -12,6 +12,7 @@ import styles from './publication-card.scss';
 import { RatkoStatus } from 'ratko/ratko-api';
 import i18n from 'i18next';
 import { Link } from 'vayla-design-lib/link/link';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type PublishListProps = {
     onPublicationSelect: (pub: PublicationDetails) => void;
@@ -70,6 +71,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
     const allPublications = publications.sort(
         (i1, i2) => -compareTimestamps(i1.publicationTime, i2.publicationTime),
     );
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     const failures = allPublications
         .filter((publication) => ratkoPushFailed(publication.ratkoPushStatus))
@@ -102,12 +104,17 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             {failures.length > 0 && (
                                 <React.Fragment>
                                     <RatkoPushErrorDetails latestFailure={failures[0]} />
-                                    <div className={styles['publication-card__ratko-push-button']}>
-                                        <RatkoPublishButton
-                                            size={ButtonSize.SMALL}
-                                            disabled={ratkoConnectionError}
-                                        />
-                                    </div>
+                                    {userHasWriteRole && (
+                                        <div
+                                            className={
+                                                styles['publication-card__ratko-push-button']
+                                            }>
+                                            <RatkoPublishButton
+                                                size={ButtonSize.SMALL}
+                                                disabled={ratkoConnectionError}
+                                            />
+                                        </div>
+                                    )}
                                     <PublicationList
                                         publications={failures}
                                         onPublicationSelect={onPublicationSelect}
