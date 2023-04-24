@@ -27,7 +27,6 @@ import ElementListView from 'data-products/element-list/element-list-view';
 import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-lengths-view';
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
-import { getOwnUser } from 'user/user-api';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -93,16 +92,6 @@ export const MainContainer: React.FC = () => {
         'loading',
     );
     const delegates = createDelegates(commonActionCreators);
-
-    React.useEffect(() => {
-        getOwnUser().then((user) => {
-            const userHasWriteAccess = user.role.privileges.some(
-                (privilege) => privilege.code === 'all-write',
-            );
-
-            delegates.setUserHasWriteRole(userHasWriteAccess);
-        });
-    }, []);
 
     React.useEffect(() => {
         if (typeof versionFromBackend == 'string') {
