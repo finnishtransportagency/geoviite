@@ -6,6 +6,10 @@ export const lineGridStrokeColor = '#999';
 const maxVerticalTickCount = 5;
 const verticalTickLengthsMeter = [1.0, 2.0, 5.0, 10.0, 25.0];
 
+const heightLabelsBackgroundWidthPx = 18;
+// essentially, the amount of room we give the plan linking label
+const heightLabelsBackgroundStartYPx = 20;
+
 function chooseVerticalTickLength(bottomTickHeight: number, topTickHeight: number): number | null {
     // we want to find the tick height giving the maximum number of vertical ticks that's at most the max count
     const tickHeightIndexR = verticalTickLengthsMeter.findIndex((tickLength) => {
@@ -52,9 +56,12 @@ export const HeightLabels: React.FC<HeightLinesProps> = ({ coordinates }) => (
     <>
         <rect
             x={0}
-            y={20}
-            width={18}
-            height={heightToY(coordinates, coordinates.bottomHeightTick) - 20}
+            y={heightLabelsBackgroundStartYPx}
+            width={heightLabelsBackgroundWidthPx}
+            height={
+                heightToY(coordinates, coordinates.bottomHeightTick) -
+                heightLabelsBackgroundStartYPx
+            }
             stroke="none"
             fill="white"
             opacity={0.9}
@@ -66,7 +73,7 @@ export const HeightLabels: React.FC<HeightLinesProps> = ({ coordinates }) => (
                     <line
                         key={i}
                         x1={0}
-                        x2={20}
+                        x2={heightLabelsBackgroundWidthPx}
                         y1={heightPx}
                         y2={heightPx}
                         stroke={lineGridStrokeColor}
