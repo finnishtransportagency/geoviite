@@ -137,7 +137,7 @@ class LayoutTrackNumberController(
 
         val trackNumber = trackNumberService.getOrThrow(publishType, id)
 
-        val fileName = FileName("${trackNumber.number}.csv")
+        val fileName = FileName("ratakilometrien-pituudet_${trackNumber.number}.csv")
         return getCsvResponseEntity(csv, fileName)
     }
 }

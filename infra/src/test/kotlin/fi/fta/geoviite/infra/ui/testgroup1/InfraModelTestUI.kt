@@ -6,11 +6,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.openGeoviite
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
@@ -85,7 +81,7 @@ class InfraModelTestUI @Autowired constructor(
 
         val sijaintitiedot = uploadForm.sijaintitiedot()
         assertEquals("", sijaintitiedot.ratanumero())
-        assertEquals("", sijaintitiedot.kilometrivali())
+        assertEquals("", sijaintitiedot.ratakilometrivali())
         assertEquals("KKJ2 EPSG:2392", sijaintitiedot.koordinaattijarjestelma())
         assertEquals("Ei tiedossa", sijaintitiedot.korkeusjarjestelma())
 

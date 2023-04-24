@@ -264,7 +264,7 @@ private val kmLengthTranslations = mapOf(
     "projected-location-warning" to "Sijainti on raiteen keskilinjalle projisoitu sijainti.",
     "start-address-location-warning" to "Sijainti on pituusmittauslinjan alun sijainti.",
     "TRACK_NUMBER-header" to "Ratanumero",
-    "KILOMETER-header" to "Kilometri",
+    "KILOMETER-header" to "Ratakilometri",
     "START_M-header" to "Alkupaalu",
     "END_M-header" to "Loppupaalu",
     "LENGTH-header" to "Pituus (m)",
