@@ -70,6 +70,10 @@ data class VerticalGeometryListing(
     val linearSectionBackward: LinearSection,
     val overlapsAnother: Boolean,
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
+
+    val layoutStartStation: Double? = null,
+    val layoutPointStation: Double? = null,
+    val layoutEndStation: Double? = null,
 )
 
 fun toVerticalGeometryListing(
@@ -164,15 +168,23 @@ fun toVerticalGeometryListing(
         } ?: emptyList()
     }.distinctBy { it.first }.map { it.second }
 
+    fun getAlignmentStation(maybeAddress: TrackMeter?) =
+        maybeAddress?.let { address -> geocodingContext?.getTrackLocation(layoutAlignment, address)?.point?.m }
+
     return listing.map { entry ->
-        entry.copy(overlapsAnother = listing.filter { overlapCandidate ->
-            entry.start.address != null &&
-            entry.end.address != null &&
-            overlapCandidate.start.address != null &&
-            overlapCandidate.end.address != null &&
-            entry.start.address <= overlapCandidate.end.address &&
-            entry.end.address >= overlapCandidate.start.address
-        }.size > 1)
+        entry.copy(
+            overlapsAnother = listing.filter { overlapCandidate ->
+                entry.start.address != null &&
+                        entry.end.address != null &&
+                        overlapCandidate.start.address != null &&
+                        overlapCandidate.end.address != null &&
+                        entry.start.address <= overlapCandidate.end.address &&
+                        entry.end.address >= overlapCandidate.start.address
+            }.size > 1,
+            layoutStartStation = getAlignmentStation(entry.start.address),
+            layoutPointStation = getAlignmentStation(entry.point.address),
+            layoutEndStation = getAlignmentStation(entry.end.address),
+        )
     }
 }
 
