@@ -16,3 +16,7 @@ function normalizeRads(rads: number): number {
 function normalizeToRangeNonInclusive(value: number, range: number): number {
     return value < 0 || value >= range ? value - range * Math.floor(value / range) : value;
 }
+
+export function radsToDegrees(rads: number): number {
+    return (180 / Math.PI) * rads;
+}

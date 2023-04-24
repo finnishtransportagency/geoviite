@@ -38,7 +38,7 @@ import {
 import { BoundingBox } from 'model/geometry';
 import { MapTile } from 'map/map-model';
 import { getChangeTimes } from 'common/change-time-api';
-import { TimeStamp } from 'common/common-model';
+import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
@@ -276,4 +276,55 @@ export async function getGeometryPlanLinkingSummaries(
         { [key: GeometryPlanId]: GeometryPlanLinkingSummary }
     >(`${GEOMETRY_URI}/plans/linking-summaries/`, planIds);
     return r.isOk() ? r.value : null;
+}
+
+export interface AlignmentHeights {
+    kmHeights: TrackKmHeights[];
+    alignmentStartM: number;
+    alignmentEndM: number;
+    linkingSummary: PlanLinkingSummaryItem[];
+}
+
+export interface TrackMeterHeight {
+    /** m-value in entire alignment */
+    m: number;
+    meter: number;
+    height: number | null;
+}
+
+export interface PlanLinkingSummaryItem {
+    startM: number;
+    endM: number;
+    filename: string | null;
+}
+
+export interface TrackKmHeights {
+    kmNumber: KmNumber;
+    trackMeterHeights: TrackMeterHeight[];
+}
+
+export async function getPlanAlignmentHeights(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<AlignmentHeights> {
+    return getThrowError(
+        `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getLocationTrackHeights(
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<AlignmentHeights> {
+    return getThrowError(
+        `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    );
 }
