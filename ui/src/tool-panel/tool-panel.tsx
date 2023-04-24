@@ -309,6 +309,10 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 title: s.name || '-',
                 element: (
                     <GeometrySwitchInfobox
+                        visibilities={infoboxVisibilities.geometrySwitch}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('geometrySwitch', visibilities)
+                        }
                         switchId={s.switchId ?? undefined}
                         layoutSwitch={switches ? switches[0] : undefined}
                         suggestedSwitch={s.suggestedSwitch}
