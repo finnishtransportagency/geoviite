@@ -6,6 +6,7 @@ import { Coordinates, heightToY, mToX } from 'vertical-geometry/coordinates';
 import { TrackKmHeights } from 'geometry/geometry-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
+import { radsToDegrees } from 'utils/math-utils';
 
 const minimumSpacePxForTangentSideLabels = 10;
 const minimumSpacePxForTangentTopLabel = 8;
@@ -152,10 +153,9 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
             const textStartX = mToX(coordinates, angleTextStartM);
             const textStartY =
                 heightToY(coordinates, angleTextStartHeight) - pviAssistLineHeightPx - 2;
-            const radToDeg = 180 / Math.PI;
             const aspectRatio = coordinates.meterHeightPx / coordinates.mMeterLengthPxOverM;
             const angle =
-                geo.end.angle == null ? 0 : -Math.atan(geo.end.angle) * radToDeg * aspectRatio;
+                geo.end.angle == null ? 0 : radsToDegrees(-Math.atan(geo.end.angle) * aspectRatio);
             pvis.push(
                 <text
                     key={pviKey++}
