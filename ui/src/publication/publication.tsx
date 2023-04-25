@@ -10,7 +10,6 @@ import { formatDateFull } from 'utils/date-utils';
 import { ratkoPushFailed } from 'ratko/ratko-model';
 import { getPublicationAsTableItems } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
-import { useCommonDataAppSelector } from 'store/hooks';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
@@ -30,7 +29,6 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     const waitingAfterFail = publication.ratkoPushStatus === null && anyFailed;
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     React.useEffect(() => {
         setIsLoading(true);
@@ -94,7 +92,7 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                             </span>
                         </div>
                     )}
-                    {userHasWriteRole && <RatkoPublishButton />}
+                    <RatkoPublishButton />
                 </footer>
             )}
         </div>

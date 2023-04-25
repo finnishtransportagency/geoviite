@@ -40,7 +40,7 @@ import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog'
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import { ChangeTimes } from 'common/common-slice';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 export type ToolbarParams = {
     selection: Selection;
@@ -117,7 +117,6 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     enum NewMenuItems {
         'trackNumber' = 1,
@@ -246,14 +245,14 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     qa-id="map-layers-button"
                 />
                 <div className={styles['tool-bar__new-menu-button']}>
-                    {userHasWriteRole && (
+                    <WriteRoleRequired>
                         <Button
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
                             disabled={props.publishType !== 'DRAFT'}
                             onClick={() => setShowAddMenu(!showAddMenu)}
                         />
-                    )}
+                    </WriteRoleRequired>
                     {showAddMenu && (
                         <div className={styles['tool-bar__new-menu']}>
                             <Menu
@@ -270,12 +269,14 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
             </div>
 
             <div className={styles['tool-bar__right-section']}>
-                {props.publishType === 'OFFICIAL' && userHasWriteRole && (
-                    <Button
-                        variant={ButtonVariant.PRIMARY}
-                        onClick={() => props.onPublishTypeChange('DRAFT')}>
-                        {t('tool-bar.draft-mode.enable')}
-                    </Button>
+                {props.publishType === 'OFFICIAL' && (
+                    <WriteRoleRequired>
+                        <Button
+                            variant={ButtonVariant.PRIMARY}
+                            onClick={() => props.onPublishTypeChange('DRAFT')}>
+                            {t('tool-bar.draft-mode.enable')}
+                        </Button>
+                    </WriteRoleRequired>
                 )}
                 {props.publishType === 'DRAFT' && (
                     <React.Fragment>

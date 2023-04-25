@@ -43,7 +43,7 @@ import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'comm
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -115,7 +115,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
     const [project, setProject] = React.useState<Project>();
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     const planSourceOptions = [
         {
@@ -239,7 +238,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            {userHasWriteRole && (
+            <WriteRoleRequired>
                 <Formgroup>
                     <FieldLayout
                         label={t('im-form.observations-field')}
@@ -257,8 +256,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         help={t('im-form.observations-help')}
                     />
                 </Formgroup>
-            )}
-
+            </WriteRoleRequired>
             <Formgroup qa-id="im-form-project">
                 <FormgroupContent title={t('im-form.project-information')}>
                     <FormgroupField

@@ -12,17 +12,18 @@ export const WriteRoleRequired: React.FC<WriteRoleRequiredProps> = ({
     children,
 }: WriteRoleRequiredProps) => {
     const delegates = createDelegates(commonActionCreators);
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     React.useEffect(() => {
         getOwnUser().then((user) => {
-            const userHasWriteAccess = user.role.privileges.some(
+            const userHasWriteRoleFromBackend = user.role.privileges.some(
                 (privilege) => privilege.code === 'all-write',
             );
 
-            delegates.setUserHasWriteRole(userHasWriteAccess);
+            delegates.setUserHasWriteRole(userHasWriteRoleFromBackend);
         });
     }, []);
 
-    return <React.Fragment>{userHasWriteRole && children}</React.Fragment>;
+    const userHasWriteRoleFromStore = useCommonDataAppSelector((state) => state.userHasWriteRole);
+
+    return <React.Fragment>{userHasWriteRoleFromStore && children}</React.Fragment>;
 };

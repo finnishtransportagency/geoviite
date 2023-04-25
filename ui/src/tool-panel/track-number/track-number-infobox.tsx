@@ -36,7 +36,7 @@ import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -81,7 +81,6 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         !officialTrackNumbers.find(
             (officialTrackNumber) => officialTrackNumber.id === trackNumber.id,
         );
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     React.useEffect(() => {
         setCanUpdate(
@@ -169,19 +168,21 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             label={t('tool-panel.reference-line.end-location')}
                             value={<TrackMeter value={startAndEndPoints?.end?.address} />}
                         />
-                        {linkingState === undefined && referenceLine && userHasWriteRole && (
+                        {linkingState === undefined && referenceLine && (
                             <InfoboxButtons>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    size={ButtonSize.SMALL}
-                                    onClick={() => {
-                                        getReferenceLineSegmentEnds(
-                                            referenceLine.id,
-                                            publishType,
-                                        ).then(onStartReferenceLineGeometryChange);
-                                    }}>
-                                    {t('tool-panel.location-track.modify-start-or-end')}
-                                </Button>
+                                <WriteRoleRequired>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        onClick={() => {
+                                            getReferenceLineSegmentEnds(
+                                                referenceLine.id,
+                                                publishType,
+                                            ).then(onStartReferenceLineGeometryChange);
+                                        }}>
+                                        {t('tool-panel.location-track.modify-start-or-end')}
+                                    </Button>
+                                </WriteRoleRequired>
                             </InfoboxButtons>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (

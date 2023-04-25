@@ -49,7 +49,7 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { useAppNavigate } from 'common/navigate';
 import { ChangeTimes } from 'common/common-slice';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -151,7 +151,6 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
     const [showCharsetPicker, setShowCharsetPicker] = React.useState(false);
     const [charsetOverride, setCharsetOverride] = React.useState<XmlCharset | undefined>(undefined);
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     const fileMenuItems = [
         { value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') },
@@ -332,7 +331,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.return')}
                         </Button>
                     )}
-                    {userHasWriteRole && (
+                    <WriteRoleRequired>
                         <Button
                             title={getVisibleErrors()}
                             onClick={() => onProgressClick()}
@@ -350,7 +349,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                     : 'button.save',
                             )}
                         </Button>
-                    )}
+                    </WriteRoleRequired>
                 </div>
             </div>
             <div className={styles['infra-model-upload__map-container']}>
