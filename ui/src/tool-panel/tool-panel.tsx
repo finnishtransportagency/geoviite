@@ -66,6 +66,7 @@ type ToolPanelProps = {
     viewport: MapViewport;
     infoboxVisibilities: InfoboxVisibilities;
     onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
+    stopLinking: () => void;
 };
 
 type ToolPanelTab = {
@@ -101,6 +102,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     viewport,
     infoboxVisibilities,
     onInfoboxVisibilityChange,
+    stopLinking,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -281,6 +283,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                                 : undefined
                         }
                         startSwitchPlacing={startSwitchPlacing}
+                        stopLinking={stopLinking}
                     />
                 ),
             };

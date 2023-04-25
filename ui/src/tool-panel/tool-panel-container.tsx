@@ -79,6 +79,7 @@ const ToolPanelContainer: React.FC = () => {
             selectedTabId={store.selectedToolPanelTabId}
             startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
+            stopLinking={delegates.stopLinking}
         />
     );
 };
