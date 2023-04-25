@@ -403,16 +403,16 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         //language=SQL
         val sql = """
             select
-              location_track.id,
+              location_track_v.official_id,
               segment_version.alignment_id,
               segment_version.segment_index,
               segment_version.start,
               postgis.st_astext(segment_geometry.geometry) as geometry_wkt,
               plan.vertical_coordinate_system
-              from layout.location_track
+              from layout.location_track_publication_view location_track_v
                 inner join layout.segment_version on
-                    location_track.alignment_id = segment_version.alignment_id and
-                    location_track.alignment_version = segment_version.alignment_version
+                    location_track_v.alignment_id = segment_version.alignment_id and
+                    location_track_v.alignment_version = segment_version.alignment_version
                 inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
                 left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
                 left join geometry.plan on alignment.plan_id = plan.id
@@ -420,7 +420,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
                   postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                   segment_geometry.bounding_box
                 )
-                and location_track.draft = :is_draft
+                and :publication_state = any(location_track_v.publication_states)
               order by segment_version.segment_index
         """.trimIndent()
 
@@ -430,12 +430,12 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "is_draft" to (publishType == PublishType.DRAFT)
+            "publication_state" to publishType.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             MapSegmentProfileInfo(
-                id = rs.getIntId("id"),
+                id = rs.getIntId("official_id"),
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
                 points = getSegmentPoints(rs, "geometry_wkt"),
                 segmentStart = rs.getDouble("start"),
