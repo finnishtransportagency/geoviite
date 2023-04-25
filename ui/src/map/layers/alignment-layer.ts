@@ -27,7 +27,7 @@ import {
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import {
     getAlignmentsByTiles,
-    getAlignmentSectionsWithoutProfile,
+    getAlignmentSectionsWithoutProfileByTiles,
 } from 'track-layout/layout-map-api';
 import {
     addBbox,
@@ -49,7 +49,6 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { combineBoundingBoxes } from 'model/geometry';
 import { ChangeTimes } from 'common/common-slice';
 
 export const FEATURE_PROPERTY_SEGMENT_DATA = 'segment-data';
@@ -611,9 +610,10 @@ adapterInfoRegister.add('alignment', {
         );
         const trackNumbersFetch = getTrackNumbers(publishType, changeTimes.layoutTrackNumber);
         const alignmentSectionsWithoutProfile = mapLayer.showMissingVerticalGeometry
-            ? getAlignmentSectionsWithoutProfile(
+            ? getAlignmentSectionsWithoutProfileByTiles(
+                  changeTimes.layoutLocationTrack,
                   publishType,
-                  combineBoundingBoxes(mapTiles.map((tile) => tile.area)),
+                  mapTiles,
               )
             : Promise.resolve<AlignmentHighlight[] | null>(null);
         Promise.all([alignmentsFetch, trackNumbersFetch, alignmentSectionsWithoutProfile])
