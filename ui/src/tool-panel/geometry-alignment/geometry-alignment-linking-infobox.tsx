@@ -338,7 +338,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             <Button size={ButtonSize.SMALL} onClick={startLinking}>
                                 {t(
                                     `tool-panel.alignment.geometry.${
-                                        isLinked ? 'add-linking' : 'start-setupbb'
+                                        isLinked ? 'add-linking' : 'start-setup'
                                     }`,
                                 )}
                             </Button>
