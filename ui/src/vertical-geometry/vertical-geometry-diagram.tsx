@@ -24,9 +24,10 @@ import { Coordinates } from 'vertical-geometry/coordinates';
 import { PointIndicator } from 'vertical-geometry/point-indicator';
 import { HeightGraph } from 'vertical-geometry/height-graph';
 import { HeightTooltip } from 'vertical-geometry/height-tooltip';
+import useResizeObserver from 'use-resize-observer';
 
-const maxHorizontalTickDensity = 100;
-const diagramWidthPx = 1200;
+// this is a rough approximation using the assumption that 1 track meter = 1 m-value meter
+const minimumApproximateHorizontalTickWidthPx = 15;
 const chartHeightPx = 240;
 const topHeightPaddingPx = 120;
 const bottomHeightPaddingPx = 0;
@@ -50,9 +51,10 @@ interface VerticalGeometryDiagramProps {
     initialEndM: number;
 }
 
-function chooseHorizontalTickLengthMeters(distanceMeters: number): number {
+function chooseHorizontalTickLengthMeters(distanceMeters: number, diagramWidthPx: number): number {
+    const meterWidthPx = diagramWidthPx / distanceMeters;
     const firstTooDenseIndex = horizontalTickLengthsMeters.findIndex(
-        (widthM) => distanceMeters / widthM > maxHorizontalTickDensity,
+        (widthM) => meterWidthPx * widthM < minimumApproximateHorizontalTickWidthPx,
     );
     return firstTooDenseIndex == -1
         ? horizontalTickLengthsMeters[horizontalTickLengthsMeters.length - 1]
@@ -146,7 +148,7 @@ function loadGeometry(
           );
 }
 
-const VerticalGeometryDiagramBase: React.FC<VerticalGeometryDiagramProps> = ({
+const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> = ({
     initialStartM,
     initialEndM,
     alignmentId,
@@ -158,6 +160,43 @@ const VerticalGeometryDiagramBase: React.FC<VerticalGeometryDiagramProps> = ({
      */
     const [startM, setStartM] = useState(initialStartM);
     const [endM, setEndM] = useState(initialEndM);
+    const [oldWidth, setOldWidth] = useState<number>();
+    useResizeObserver({
+        ref,
+        onResize: ({ width }) => {
+            setOldWidth(ref.current?.clientWidth);
+            if (width === undefined || oldWidth === undefined) {
+                return;
+            }
+            setEndM((oldEndM) => startM + (oldEndM - startM) * (width / oldWidth));
+        },
+    });
+
+    return (
+        <div ref={ref}>
+            {ref.current && (
+                <VerticalGeometryDiagram
+                    diagramWidthPx={ref.current.clientWidth}
+                    alignmentId={alignmentId}
+                    startM={startM}
+                    setStartM={setStartM}
+                    endM={endM}
+                    setEndM={setEndM}
+                />
+            )}
+        </div>
+    );
+};
+
+const VerticalGeometryDiagram: React.FC<{
+    alignmentId: VerticalGeometryDiagramAlignmentId;
+    diagramWidthPx: number;
+    startM: number;
+    endM: number;
+    setStartM: React.Dispatch<React.SetStateAction<number>>;
+    setEndM: React.Dispatch<React.SetStateAction<number>>;
+}> = ({ alignmentId, diagramWidthPx, startM, endM, setStartM, setEndM }) => {
+    const ref = useRef<HTMLDivElement>(null);
     /**
      panning is the X pixel value where our last panning movement started, or null if we're not currently panning
      */
@@ -165,7 +204,10 @@ const VerticalGeometryDiagramBase: React.FC<VerticalGeometryDiagramProps> = ({
     const [mousePositionInElement, setMousePositionInElement] = useState<null | [number, number]>(
         null,
     );
-    const horizontalTickLengthMeters = chooseHorizontalTickLengthMeters(endM - startM);
+    const horizontalTickLengthMeters = chooseHorizontalTickLengthMeters(
+        endM - startM,
+        diagramWidthPx,
+    );
 
     const debouncedLoadAlignmentHeights = useMemo(
         () => debounceAsync(loadAlignmentHeights, 250),
@@ -178,9 +220,10 @@ const VerticalGeometryDiagramBase: React.FC<VerticalGeometryDiagramProps> = ({
     );
 
     const geometry = useLoader(() => loadGeometry(alignmentId), [alignmentId]);
+    const elementPosition = ref.current?.getBoundingClientRect();
 
-    if (alignmentHeights == undefined || geometry == undefined) {
-        return <svg width={diagramWidthPx} height={fullDiagramHeightPx} />;
+    if (alignmentHeights == undefined || geometry == undefined || elementPosition == undefined) {
+        return <div ref={ref} />;
     }
     if (
         geometry.length == 0 &&
@@ -265,11 +308,9 @@ const VerticalGeometryDiagramBase: React.FC<VerticalGeometryDiagramProps> = ({
         drawTangentArrows,
     );
 
-    const elementPosition = ref.current?.getBoundingClientRect();
-
     return (
         <div
-            style={{ width: diagramWidthPx, height: fullDiagramHeightPx }}
+            style={{ height: fullDiagramHeightPx }}
             ref={ref}
             onMouseDown={(e) => {
                 e.preventDefault();
@@ -293,8 +334,6 @@ const VerticalGeometryDiagramBase: React.FC<VerticalGeometryDiagramProps> = ({
                 className={`${styles['vertical-geometry-diagram']} ${
                     panning != null && styles['vertical-geometry-diagram__panning']
                 }`}
-                viewBox="0 0 1200 300"
-                width={diagramWidthPx}
                 height={fullDiagramHeightPx}>
                 <HeightLines coordinates={coordinates} />
                 <LabeledTicks trackKmHeights={kmHeights} coordinates={coordinates} />
@@ -322,4 +361,4 @@ const VerticalGeometryDiagramBase: React.FC<VerticalGeometryDiagramProps> = ({
     );
 };
 
-export const VerticalGeometryDiagram = React.memo(VerticalGeometryDiagramBase);
+export default React.memo(VerticalGeometryDiagramSizeHolder);
