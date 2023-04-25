@@ -153,7 +153,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     const isSelected = line.id == selectedLayoutReferenceLine?.id;
                     const ref = referenceLineRefs.find((r) => r.id == line.id);
                     const trackNumber = trackNumbers?.find((tn) => tn.id === line.trackNumberId);
-                    if (!ref || !trackNumber) return <></>;
+                    if (!ref || !trackNumber) return <React.Fragment key={line.id} />;
                     return (
                         <li
                             key={ref.id}
@@ -260,7 +260,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                 {locationTracks?.map((track) => {
                     const isSelected = track.id == selectedLayoutLocationTrack?.id;
                     const ref = locationTrackRefs.find((r) => r.id == track.id);
-                    if (!ref) return <></>;
+                    if (!ref) return <React.Fragment key={track.id} />;
                     return (
                         <li
                             key={ref.id}
