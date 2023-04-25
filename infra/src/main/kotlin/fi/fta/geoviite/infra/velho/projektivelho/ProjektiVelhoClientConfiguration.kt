@@ -1,9 +1,10 @@
-package fi.fta.geoviite.infra.ratko
+package fi.fta.geoviite.infra.velho.projektivelho
 
 import fi.fta.geoviite.infra.logging.integrationCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
@@ -19,31 +21,42 @@ import reactor.netty.http.client.HttpClient
 import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
-
 @Configuration
-@ConditionalOnProperty(prefix = "geoviite.ratko", name = ["enabled"], havingValue = "true")
-class RatkoClientConfiguration @Autowired constructor(
-    @Value("\${geoviite.ratko.url:}") private val ratkoBaseUrl: String,
-    @Value("\${geoviite.ratko.username:}") private val basicAuthUsername: String,
-    @Value("\${geoviite.ratko.password:}") private val basicAuthPassword: String,
+@ConditionalOnProperty(prefix = "geoviite.projektivelho", name = ["enabled"], havingValue = "true")
+class ProjektiVelhoClientConfiguration @Autowired constructor(
+    @Value("\${geoviite.projektivelho.url:}") private val projektiVelhoBaseUrl: String,
+    @Value("\${geoviite.projektivelho.login_url:}") private val projektiVelhoLoginUrl: String,
+    @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
+    @Value("\${geoviite.projektivelho.client_secret:}") private val projektiVelhoPassword: String,
 ) {
 
-    private val logger: Logger = LoggerFactory.getLogger(RatkoClient::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
 
-    @Bean("ratkoClient")
-    fun webClient(): WebClient {
+    @Bean("loginClient")
+    fun loginClient(): WebClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
         val webClientBuilder = WebClient.builder()
             .clientConnector(ReactorClientHttpConnector(httpClient))
-            .baseUrl(ratkoBaseUrl)
+            .baseUrl(projektiVelhoLoginUrl)
+            .filter(logRequest())
+            .filter(logResponse())
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            .defaultHeaders { header -> header.setBasicAuth(projektiVelhoUsername, projektiVelhoPassword) }
+
+        return webClientBuilder.build()
+    }
+
+    @Bean("projVelhoClient")
+    fun projVelhoClient(): WebClient {
+        val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
+
+        val webClientBuilder = WebClient.builder()
+            .clientConnector(ReactorClientHttpConnector(httpClient.followRedirect(true)))
+            .baseUrl(projektiVelhoBaseUrl)
             .filter(logRequest())
             .filter(logResponse())
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-
-        if (basicAuthUsername.isNotBlank() && basicAuthPassword.isNotBlank()) {
-            webClientBuilder.defaultHeaders { header -> header.setBasicAuth(basicAuthUsername, basicAuthPassword) }
-        }
 
         return webClientBuilder.build()
     }
@@ -62,3 +75,4 @@ class RatkoClientConfiguration @Autowired constructor(
         }
     }
 }
+

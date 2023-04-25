@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.ratko.model.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -31,7 +32,7 @@ val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
 @Component
 @ConditionalOnBean(RatkoClientConfiguration::class)
-class RatkoClient @Autowired constructor(private val client: WebClient) {
+class RatkoClient constructor(@Qualifier("ratkoClient") private val client: WebClient) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
