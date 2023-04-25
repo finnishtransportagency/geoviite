@@ -28,7 +28,6 @@ import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
 import VerticalGeometryDiagramDemoPage from 'vertical-geometry/demo-page';
-import { getOwnUser } from 'user/user-api';
 
 type MainProps = {
     layoutMode: LayoutMode;
