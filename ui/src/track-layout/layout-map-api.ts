@@ -12,7 +12,6 @@ import { getGeometryAlignmentLayout } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { createLinkPoints } from 'linking/linking-store';
-import { filterNotEmpty } from 'utils/array-utils';
 
 const locationTrackEndsCache = asyncCache<string, MapAlignment>();
 const referenceLineEndsCache = asyncCache<string, MapAlignment>();
@@ -66,7 +65,7 @@ export async function getAlignmentSectionsWithoutProfileByTile(
     changeTime: TimeStamp,
     publishType: PublishType,
     mapTile: MapTile,
-): Promise<AlignmentHighlight[] | null> {
+): Promise<AlignmentHighlight[]> {
     const tileKey = `${mapTile.id}_${publishType}}`;
     return sectionsWithoutProfileCache.get(changeTime, tileKey, () =>
         getWithDefault<AlignmentHighlight[]>(
@@ -82,12 +81,14 @@ export async function getAlignmentSectionsWithoutProfileByTiles(
     changeTime: TimeStamp,
     publishType: PublishType,
     mapTiles: MapTile[],
-): Promise<AlignmentHighlight[] | null> {
-    return await Promise.all(
-        mapTiles.map((tile) =>
-            getAlignmentSectionsWithoutProfileByTile(changeTime, publishType, tile),
-        ),
-    ).then((res) => res.filter(filterNotEmpty).flat());
+): Promise<AlignmentHighlight[]> {
+    return (
+        await Promise.all(
+            mapTiles.map((tile) =>
+                getAlignmentSectionsWithoutProfileByTile(changeTime, publishType, tile),
+            ),
+        )
+    ).flat();
 }
 
 export async function getReferenceLineSegmentEnds(
