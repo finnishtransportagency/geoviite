@@ -291,9 +291,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             publishType={publishType}
                         />
                     )}
-                    <InfoboxButtons>
-                        <WriteRoleRequired>
-                    {(
+                    <WriteRoleRequired>
                         <InfoboxButtons>
                             {!canStartPlacing && (
                                 <Button
@@ -303,6 +301,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                     {t('button.cancel')}
                                 </Button>
                             )}
+
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
@@ -310,9 +309,8 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 onClick={tryToStartSwitchPlacing}>
                                 {t('tool-panel.switch.layout.start-switch-placing')}
                             </Button>
-                        </WriteRoleRequired>
-                    </InfoboxButtons>
-
+                        </InfoboxButtons>
+                    </WriteRoleRequired>
                     {placingSwitchLinkingState && (
                         <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
                     )}
