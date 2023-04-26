@@ -86,17 +86,15 @@ class PublicationService @Autowired constructor(
         val trackNumber = trackNumberService.getOrThrow(publishType, trackNumberId)
         val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
 
-        val locationTracks = locationTrackDao.fetchVersions(
-            publicationState = publishType,
-            includeDeleted = false,
-            trackNumberId = trackNumberId
-        ).map(locationTrackDao::fetch)
+        val locationTracks =
+            if (publishType == DRAFT)
+                locationTrackDao.fetchVersions(DRAFT, false, trackNumberId).map(locationTrackDao::fetch)
+            else emptyList()
 
-        val kmPosts = kmPostDao.fetchVersions(
-            publicationState = publishType,
-            includeDeleted = false,
-            trackNumberId = trackNumberId
-        ).map(kmPostDao::fetch)
+        val kmPosts =
+            if (publishType == DRAFT)
+                kmPostDao.fetchVersions(DRAFT, false, trackNumberId).map(kmPostDao::fetch)
+            else emptyList()
 
         val versions = mapToValidationVersions(
             trackNumbers = listOf(trackNumber),
