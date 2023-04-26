@@ -40,7 +40,7 @@ import { asyncCache } from 'cache/cache';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 const switchJointTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
@@ -164,7 +164,6 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
     const canStartPlacing = placingSwitchLinkingState == undefined && layoutSwitch != undefined;
-    const userHarWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -292,7 +291,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             publishType={publishType}
                         />
                     )}
-                    {userHarWriteRole && (
+                    <WriteRoleRequired>
                         <InfoboxButtons>
                             {!canStartPlacing && (
                                 <Button
@@ -302,6 +301,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                     {t('button.cancel')}
                                 </Button>
                             )}
+
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
@@ -310,7 +310,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 {t('tool-panel.switch.layout.start-switch-placing')}
                             </Button>
                         </InfoboxButtons>
-                    )}
+                    </WriteRoleRequired>
                     {placingSwitchLinkingState && (
                         <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
                     )}

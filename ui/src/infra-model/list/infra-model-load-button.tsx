@@ -4,8 +4,8 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { convertToSerializableFile, SerializableFile } from 'utils/file-utils';
 import { useAppNavigate } from 'common/navigate';
-import { useCommonDataAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 export type InframodelLoadButtonProps = {
     onFileSelected: (file: SerializableFile) => void;
@@ -16,7 +16,6 @@ const InfraModelLoadButton: React.FC<InframodelLoadButtonProps> = ({
 }: InframodelLoadButtonProps) => {
     const navigate = useAppNavigate();
     const { t } = useTranslation();
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
     async function handleFileInputEvent(e: React.ChangeEvent<HTMLInputElement>) {
         if (e.target.files) {
             const serializableFile = await convertToSerializableFile(e.target.files[0]);
@@ -28,9 +27,9 @@ const InfraModelLoadButton: React.FC<InframodelLoadButtonProps> = ({
     return (
         <React.Fragment>
             <FileInput onChange={(e) => handleFileInputEvent(e)} accept=".xml">
-                {userHasWriteRole && (
+                <WriteRoleRequired>
                     <Button icon={Icons.Append}>{t('im-form.toolbar.upload')}</Button>
-                )}
+                </WriteRoleRequired>
             </FileInput>
         </React.Fragment>
     );

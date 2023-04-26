@@ -55,7 +55,7 @@ import {
     GeometryAlignmentLinkingLocationTrackCandidates,
     GeometryAlignmentLinkingReferenceLineCandidates,
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -175,7 +175,6 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     }, [planStatus, geometryAlignment]);
 
     const canLockAlignment = !!(selectedLayoutReferenceLine || selectedLayoutLocationTrack);
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     React.useEffect(() => {
         getLinkedAlignmentIdsInPlan(planId, publishType).then((linkedIds) => {
@@ -333,15 +332,17 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                         </React.Fragment>
                     )}
 
-                    {linkingState === undefined && userHasWriteRole && (
+                    {linkingState === undefined && (
                         <InfoboxButtons>
-                            <Button size={ButtonSize.SMALL} onClick={startLinking}>
-                                {t(
-                                    `tool-panel.alignment.geometry.${
-                                        isLinked ? 'add-linking' : 'start-setup'
-                                    }`,
-                                )}
-                            </Button>
+                            <WriteRoleRequired>
+                                <Button size={ButtonSize.SMALL} onClick={startLinking}>
+                                    {t(
+                                        `tool-panel.alignment.geometry.${
+                                            isLinked ? 'add-linking' : 'start-setup'
+                                        }`,
+                                    )}
+                                </Button>
+                            </WriteRoleRequired>
                         </InfoboxButtons>
                     )}
                     {linkingState?.state === 'preliminary' && (

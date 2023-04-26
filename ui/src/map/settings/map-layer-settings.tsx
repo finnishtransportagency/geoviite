@@ -44,7 +44,7 @@ function showManualSwitchLinkingForWriteRoleOnly(
     layer: MapLayer,
     userHasWriteRole: boolean,
 ): boolean {
-    return userHasWriteRole ? true : layer.type != 'manualSwitchLinking';
+    return userHasWriteRole || layer.type != 'manualSwitchLinking';
 }
 
 const debugLayers = ['debug', 'debug1mPoints'];

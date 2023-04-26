@@ -3,7 +3,7 @@ import styles from './infobox.module.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { useTranslation } from 'react-i18next';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 type InfoboxFieldProps = {
     label: React.ReactNode;
@@ -26,7 +26,6 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
 }: InfoboxFieldProps) => {
     const classes = createClassName(styles['infobox__field'], className);
     const { t } = useTranslation();
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     return (
         <div className={classes}>
@@ -39,15 +38,18 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                     <Icons.Edit size={IconSize.SMALL} />
                 </div>
             )}
-            <div>
-                {userHasWriteRole && iconDisabled && (
-                    <div className={styles['infobox__edit-icon']}>
-                        <span title={t('tool-panel.disabled.activity-disabled-in-official-mode')}>
-                            <Icons.Edit size={IconSize.SMALL} color={IconColor.DISABLED} />
-                        </span>
-                    </div>
-                )}
-            </div>
+            <WriteRoleRequired>
+                <div>
+                    {iconDisabled && (
+                        <div className={styles['infobox__edit-icon']}>
+                            <span
+                                title={t('tool-panel.disabled.activity-disabled-in-official-mode')}>
+                                <Icons.Edit size={IconSize.SMALL} color={IconColor.DISABLED} />
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </WriteRoleRequired>
         </div>
     );
 };
