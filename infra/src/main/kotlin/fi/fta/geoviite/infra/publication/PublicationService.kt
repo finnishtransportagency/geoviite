@@ -178,14 +178,19 @@ class PublicationService @Autowired constructor(
             "switchId" to switchId,
             "publishType" to publishType
         )
+
         val layoutSwitch = switchService.getOrThrow(publishType, switchId)
-        val locationTracks = switchDao.findLocationTracksLinkedToSwitch(publishType, switchId).map {
-            locationTrackDao.fetch(it.rowVersion)
-        }
+        val locationTracks = switchDao.findLocationTracksLinkedToSwitch(publishType, switchId).map { it.rowVersion }
+
+        val previouslyLinkedTracks = if (publishType == DRAFT)
+            switchDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId)
+                .mapNotNull { lt -> locationTrackDao.fetchDraftVersion(lt.rowVersion.id) }
+                .filterNot(locationTracks::contains)
+        else emptyList()
 
         val versions = mapToValidationVersions(
             switches = listOf(layoutSwitch),
-            locationTracks = locationTracks
+            locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
 
         return ValidatedAsset(
