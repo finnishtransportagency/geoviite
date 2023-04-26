@@ -53,6 +53,7 @@ type SwitchInfoboxProps = {
     onUnselect: (switchId: LayoutSwitchId) => void;
     placingSwitchLinkingState?: PlacingSwitch;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
+    stopLinking: () => void;
     visibilities: SwitchInfoboxVisibilities;
     onVisibilityChange: (visibilities: SwitchInfoboxVisibilities) => void;
 };
@@ -130,6 +131,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     startSwitchPlacing,
     visibilities,
     onVisibilityChange,
+    stopLinking,
 }: SwitchInfoboxProps) => {
     const { t } = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
@@ -291,6 +293,16 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     )}
                     <InfoboxButtons>
                         <WriteRoleRequired>
+                    {(
+                        <InfoboxButtons>
+                            {!canStartPlacing && (
+                                <Button
+                                    size={ButtonSize.SMALL}
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={stopLinking}>
+                                    {t('button.cancel')}
+                                </Button>
+                            )}
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}
