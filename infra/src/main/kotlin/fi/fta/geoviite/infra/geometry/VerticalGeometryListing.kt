@@ -148,7 +148,7 @@ fun toVerticalGeometryListing(
         val elementRange = Range(geometryAlignment.getElementStationRangeWithinAlignment(elementId))
 
         val (curvedProfileSegments, linearProfileSegments) = separateCurvedAndLinearProfileSegments(geometryAlignment.profile?.segments ?: emptyList())
-        geometryAlignment.profile?.segments?.mapIndexedNotNull { index, segment ->
+        geometryAlignment.profile?.segments?.mapNotNull { segment ->
             val segmentRange = Range(geometryAlignment.stationValueNormalized(segment.start.x)..geometryAlignment.stationValueNormalized(segment.end.x))
             if (segment is CurvedProfileSegment && segmentRange.overlaps(elementRange)) {
                 toVerticalGeometry(

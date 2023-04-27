@@ -9,7 +9,6 @@ import {
     LayoutReferenceLine,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
 } from 'track-layout/track-layout-model';
 import {
     getLinkedAlignmentIdsInPlan,
@@ -56,6 +55,7 @@ import {
     GeometryAlignmentLinkingReferenceLineCandidates,
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
 import { WriteRoleRequired } from 'user/write-role-required';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -103,16 +103,16 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
 
 type GeometryAlignmentLinkingInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
-    geometryAlignment: MapAlignment;
+    geometryAlignment: AlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     planId: GeometryPlanId;
     locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?:
-        | LinkingGeometryWithAlignment
-        | LinkingGeometryWithEmptyAlignment
-        | PreliminaryLinkingGeometry;
+    | LinkingGeometryWithAlignment
+    | LinkingGeometryWithEmptyAlignment
+    | PreliminaryLinkingGeometry;
     onLockAlignment: (lockParameters: GeometryLinkingAlignmentLockParameters) => void;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
     onStopLinking: () => void;
@@ -145,8 +145,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
-    const isLinked =
-        geometryAlignment.sourceId && linkedAlignmentIds.includes(geometryAlignment.sourceId);
+    const isLinked = geometryAlignment.id && linkedAlignmentIds.includes(geometryAlignment.id);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
     const canLink = !linkingCallInProgress && linkingState?.state == 'allSet';
 
@@ -158,7 +157,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const linkedReferenceLines = useLoader(() => {
         if (!planStatus) return undefined;
         const referenceLineIds = planStatus.alignments
-            .filter((linkStatus) => linkStatus.id === geometryAlignment.sourceId)
+            .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedReferenceLineIds);
         const referenceLinePromises = referenceLineIds.map((referenceLineId) =>
             getReferenceLine(referenceLineId, publishType),
@@ -169,7 +168,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const linkedLocationTracks = useLoader(() => {
         if (!planStatus) return undefined;
         const locationTrackIds = planStatus.alignments
-            .filter((linkStatus) => linkStatus.id === geometryAlignment.sourceId)
+            .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedLocationTrackIds);
         return getLocationTracks(locationTrackIds, publishType);
     }, [planStatus, geometryAlignment]);
@@ -337,8 +336,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             <WriteRoleRequired>
                                 <Button size={ButtonSize.SMALL} onClick={startLinking}>
                                     {t(
-                                        `tool-panel.alignment.geometry.${
-                                            isLinked ? 'add-linking' : 'start-setup'
+                                        `tool-panel.alignment.geometry.${isLinked ? 'add-linking' : 'start-setup'
                                         }`,
                                     )}
                                 </Button>

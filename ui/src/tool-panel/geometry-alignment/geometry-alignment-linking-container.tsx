@@ -1,11 +1,6 @@
 import * as React from 'react';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
-import {
-    LayoutTrackNumberId,
-    LocationTrackId,
-    MapAlignment,
-    MapSegment,
-} from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 import { LinkingState } from 'linking/linking-model';
 import { createDelegates } from 'store/store-utils';
 import {
@@ -20,10 +15,10 @@ import {
     useTrackNumberReferenceLine,
 } from 'track-layout/track-layout-react-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 type GeometryAlignmentLinkingContainerProps = {
-    geometryAlignment: MapAlignment;
-    segment?: MapSegment;
+    geometryAlignment: AlignmentHeader;
     selectedLocationTrackId?: LocationTrackId;
     selectedTrackNumberId?: LayoutTrackNumberId;
     planId: GeometryPlanId;
@@ -35,7 +30,6 @@ type GeometryAlignmentLinkingContainerProps = {
 
 const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContainerProps> = ({
     geometryAlignment,
-    segment,
     selectedLocationTrackId,
     selectedTrackNumberId,
     planId,
@@ -67,7 +61,6 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             geometryAlignment={geometryAlignment}
             selectedLayoutLocationTrack={selectedLocationTrackId ? locationTrack : undefined}
             selectedLayoutReferenceLine={selectedLocationTrackId ? undefined : referenceLine}
-            segment={segment}
             planId={planId}
             locationTrackChangeTime={getMaxTimestamp(
                 changeTimes.layoutReferenceLine,

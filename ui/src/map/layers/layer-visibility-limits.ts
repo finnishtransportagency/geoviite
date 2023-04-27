@@ -1,5 +1,5 @@
 // Alignments
-export const ALL_ALIGNMENTS = 5.0;
+export const ALL_ALIGNMENTS = 10.0;
 export const SEPARATE_SEGMENTS = 60.0;
 export const LINKING_DOTS = 0.19;
 export const DEBUG_1M_POINTS = 0.06;

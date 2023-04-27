@@ -1,17 +1,14 @@
 import * as React from 'react';
 import { GeometryClothoid } from 'geometry/geometry-model';
-import { MapSegment } from 'track-layout/track-layout-model';
 import { CantRange } from 'tool-panel/geometry-alignment/geometry-segment/cant-range';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 
 type ClothoidInfoBoxProps = {
-    chosenSegment: MapSegment;
+    points: LayoutPoint[];
     geometryClothoid: GeometryClothoid;
 };
 
@@ -20,7 +17,7 @@ function formatClothoidRadius(radius: number | null): string {
 }
 
 const ClothoidInfobox: React.FC<ClothoidInfoBoxProps> = ({
-    chosenSegment,
+    points,
     geometryClothoid,
 }: ClothoidInfoBoxProps) => {
     const { t } = useTranslation();
@@ -40,7 +37,7 @@ const ClothoidInfobox: React.FC<ClothoidInfoBoxProps> = ({
                 value={`${formatClothoidRadius(
                     geometryClothoid.radiusStart,
                 )} - ${formatClothoidRadius(geometryClothoid.radiusEnd)}`}></InfoboxField>
-            <CantRange chosenSegment={chosenSegment} />
+            <CantRange points={points} />
         </React.Fragment>
     );
 };

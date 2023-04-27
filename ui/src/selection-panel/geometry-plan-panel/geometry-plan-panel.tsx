@@ -1,11 +1,6 @@
 import * as React from 'react';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
-import {
-    GeometryPlanLayout,
-    LayoutKmPost,
-    LayoutSwitch,
-    MapAlignment,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LayoutKmPost, LayoutSwitch } from 'track-layout/track-layout-model';
 import {
     LocationTrackBadge,
     LocationTrackBadgeStatus,
@@ -27,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { PublishType } from 'common/common-model';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 
 type GeometryPlanProps = {
@@ -36,7 +32,7 @@ type GeometryPlanProps = {
     changeTimes: ChangeTimes;
     onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
-    onToggleAlignmentSelection: (alignment: MapAlignment) => void;
+    onToggleAlignmentSelection: (alignment: AlignmentHeader) => void;
     onToggleSwitchSelection: (switchItem: LayoutSwitch) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
@@ -101,7 +97,9 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         const planHeaderSelected = !!selectedPlanLayouts?.some((p) => p.planId == planHeader.id);
 
         const allAlignmentsSelected = !!planLayout?.alignments.every((a) =>
-            selectedPlanLayouts?.some((p) => p.alignments.some((pa) => pa.id === a.id)),
+            selectedPlanLayouts?.some((p) =>
+                p.alignments.some((pa) => pa.header.id === a.header.id),
+            ),
         );
 
         const allSwitchesSelected = !!planLayout?.switches.every((s) =>
@@ -156,7 +154,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
     };
 
     const onAlignmentSelect = (
-        alignment: MapAlignment,
+        alignment: AlignmentHeader,
         alignmentStatus: LocationTrackBadgeStatus,
     ) => {
         if (planLayout) {
@@ -310,22 +308,24 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                 {planLayout.alignments.length > 0 &&
                                     planLayout.alignments.map((alignment) => {
                                         const alignmentStatus = linkStatus?.alignments?.some(
-                                            (s) => s.id == alignment.sourceId && s.isLinked,
+                                            (s) => s.id == alignment.header.id && s.isLinked,
                                         )
                                             ? LocationTrackBadgeStatus.LINKED
                                             : LocationTrackBadgeStatus.UNLINKED;
 
                                         const isAlignmentSelected =
                                             selectedItems?.geometryAlignments?.some(
-                                                (a) => a.geometryItem.id === alignment.id,
+                                                (a) => a.geometryItem.id === alignment.header.id,
                                             );
                                         const isAlignmentVisible = selectedPlanLayouts?.some((p) =>
-                                            p.alignments.some((a) => a.id === alignment.id),
+                                            p.alignments.some(
+                                                (a) => a.header.id === alignment.header.id,
+                                            ),
                                         );
 
                                         return (
                                             <li
-                                                key={alignment.id}
+                                                key={alignment.header.id}
                                                 className={createClassName(
                                                     styles['geometry-plan-panel__alignment'],
                                                     isAlignmentSelected &&
@@ -341,12 +341,12 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                                     }
                                                     onClick={() =>
                                                         onAlignmentSelect(
-                                                            alignment,
+                                                            alignment.header,
                                                             alignmentStatus,
                                                         )
                                                     }>
                                                     <LocationTrackBadge
-                                                        locationTrack={alignment}
+                                                        locationTrack={alignment.header}
                                                         status={alignmentStatus}
                                                     />
                                                 </span>
@@ -365,7 +365,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                                         color={IconColor.INHERIT}
                                                         onClick={() =>
                                                             onToggleAlignmentVisibility({
-                                                                alignment: alignment,
+                                                                alignment: alignment.header,
                                                                 status: alignmentStatus,
                                                                 planLayout: planLayout,
                                                             })

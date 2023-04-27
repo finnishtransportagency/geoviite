@@ -28,12 +28,7 @@ import { createUpdatedInterval } from 'linking/linking-store';
 import { PublishType } from 'common/common-model';
 import { filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
-import {
-    createGeometryLinkPointsByTiles,
-    getLinkPointsByTiles,
-    getLocationTrackSegmentEnds,
-    getReferenceLineSegmentEnds,
-} from 'track-layout/layout-map-api';
+import { createGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 
 const linkPointRadius = 4;
@@ -322,9 +317,6 @@ export const endPointStyle = [
 export const FEATURE_PROPERTY_LINK_POINT = 'linkPoint';
 export const FEATURE_PROPERTY_CLUSTER_POINT = 'clusterPoint';
 export const FEATURE_PROPERTY_TYPE = 'type';
-
-let _featureCache: Map<string, Feature<Point | LineString>> = new Map();
-const newFeatureCache: Map<string, Feature<Point | LineString>> = new Map();
 
 function createLineFeature(startPoint: LinkPoint, endPoint: LinkPoint, segmentStyle: Style) {
     const segmentFeature = new Feature<LineString>({
@@ -738,7 +730,7 @@ adapterInfoRegister.add('linking', {
         existingOlLayer: VectorLayer<VectorSource<Point | LineString>> | undefined,
         mapLayer: LinkingLayer,
         selection: Selection,
-        publishType: PublishType,
+        _publishType: PublishType,
         linkingState: LinkingState | undefined,
         changeTimes: ChangeTimes,
         olView: OlView,
@@ -766,28 +758,19 @@ adapterInfoRegister.add('linking', {
                     changeTimes.layoutReferenceLine,
                     changeTimes.layoutLocationTrack,
                 );
-                Promise.all([
-                    getLinkPointsByTiles(
-                        changeTime,
-                        mapTiles,
-                        linkingState.layoutAlignmentId,
-                        linkingState.layoutAlignmentType,
-                    ),
-                    linkingState.layoutAlignmentType == 'LOCATION_TRACK'
-                        ? getLocationTrackSegmentEnds(linkingState.layoutAlignmentId, publishType)
-                        : getReferenceLineSegmentEnds(linkingState.layoutAlignmentId, publishType),
-                ]).then(([points, _]) => {
+                getLinkPointsByTiles(
+                    changeTime,
+                    mapTiles,
+                    linkingState.layoutAlignmentId,
+                    linkingState.layoutAlignmentType,
+                ).then((points) => {
                     if (adapterId != newestLinkingAdapterId) return;
-
                     const allFeatures = createFeaturesWhenUpdatingLayoutAlignment(
                         selection,
                         points,
                         linkingState.layoutAlignmentInterval,
                         resolution,
                     );
-
-                    _featureCache = new Map(newFeatureCache);
-                    newFeatureCache.clear();
 
                     vectorSource.clear();
                     vectorSource.addFeatures(allFeatures.flat());
@@ -824,13 +807,7 @@ adapterInfoRegister.add('linking', {
                         ),
                     )
                     .then((features) => {
-                        if (adapterId != newestLinkingAdapterId) {
-                            return;
-                        }
-
-                        // All features ready, clear old ones and add new ones
-                        _featureCache = new Map(newFeatureCache);
-                        newFeatureCache.clear();
+                        if (adapterId != newestLinkingAdapterId) return;
 
                         vectorSource.clear();
                         vectorSource.addFeatures(features.flat());
@@ -876,10 +853,6 @@ adapterInfoRegister.add('linking', {
                     })
                     .then((features) => {
                         if (adapterId != newestLinkingAdapterId) return;
-
-                        //All features ready, clear old ones and add new ones
-                        _featureCache = new Map(newFeatureCache);
-                        newFeatureCache.clear();
 
                         vectorSource.clear();
                         vectorSource.addFeatures(features.flat());

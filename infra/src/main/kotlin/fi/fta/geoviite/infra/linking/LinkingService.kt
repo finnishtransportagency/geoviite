@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -161,10 +162,7 @@ class LinkingService @Autowired constructor(
         return locationTrackService.saveDraft(newLocationTrack, newAlignment).id
     }
 
-    private fun getAlignmentLayout(
-        planId: IntId<GeometryPlan>,
-        alignmentId: IntId<GeometryAlignment>,
-    ): MapAlignment<GeometryAlignment> {
+    private fun getAlignmentLayout(planId: IntId<GeometryPlan>, alignmentId: IntId<GeometryAlignment>): PlanLayoutAlignment {
         val (geometryPlan, transformationError) = planLayoutService.getLayoutPlan(planId)
         if (geometryPlan == null) {
             throw LinkingFailureException("Could not create plan layout: plan=$planId error=$transformationError")

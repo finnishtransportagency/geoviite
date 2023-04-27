@@ -8,8 +8,17 @@ import { Stroke, Style } from 'ol/style';
 import { GeometryLayer, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { adapterInfoRegister } from './register';
-import { GeometryPlanLayout, MapAlignment, simplifySegment } from 'track-layout/track-layout-model';
-import { getMatchingSegmentDatas, getTickStyles, MatchOptions } from 'map/layers/layer-utils';
+import {
+    filterLayoutPoints,
+    GeometryPlanLayout,
+    LayoutPoint,
+} from 'track-layout/track-layout-model';
+import {
+    getMatchingAlignmentDatas,
+    getTickStyles,
+    MatchOptions,
+    setAlignmentData,
+} from 'map/layers/layer-utils';
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
 import { LinkingState } from 'linking/linking-model';
@@ -18,9 +27,8 @@ import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { filterUniqueById } from 'utils/array-utils';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { toMapAlignmentResolution } from 'track-layout/layout-map-api';
+import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-map-api';
 import { getMaxTimestamp } from 'utils/date-utils';
-import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
 import { ChangeTimes } from 'common/common-slice';
 
 const unlinkedAlignmentStyle = new Style({
@@ -70,57 +78,51 @@ function createFeatures(
     resolution: number,
 ): Feature<LineString>[] {
     const isAlignmentSelected = selection.selectedItems.geometryAlignments.find(
-        (alignmentToCheck) => alignmentToCheck.geometryItem.id == alignment.id,
+        (alignmentToCheck) => alignmentToCheck.geometryItem.id == alignment.header.id,
     );
 
-    return alignment.segments
-        .filter((segment) => segment.points.length >= 2)
-        .flatMap((segment) => {
-            const lineString = new LineString(segment.points.map((point) => [point.x, point.y]));
-            const feature = new Feature<LineString>({
-                geometry: lineString,
-            });
+    const lineString = new LineString(alignment.points.map((point) => [point.x, point.y]));
+    const feature = new Feature<LineString>({
+        geometry: lineString,
+    });
 
-            const isSelected =
-                isAlignmentSelected ||
-                selection.selectedItems.geometrySegments.find(
-                    (segmentToCheck) => segmentToCheck.geometryItem.id == segment.id,
-                );
+    feature.setStyle(function (feature: Feature<LineString>) {
+        let alignmentStyle = isAlignmentSelected
+            ? selectedUnlinkedAlignmentStyle
+            : unlinkedAlignmentStyle;
 
-            feature.setStyle(function (feature: Feature<LineString>) {
-                let alignmentStyle = isSelected
-                    ? selectedUnlinkedAlignmentStyle
-                    : unlinkedAlignmentStyle;
+        if (alignment.linked) {
+            alignmentStyle = isAlignmentSelected
+                ? selectedLinkedAlignmentStyle
+                : linkedAlignmentStyle;
+        }
 
-                if (alignment.linked) {
-                    alignmentStyle = isSelected
-                        ? selectedLinkedAlignmentStyle
-                        : linkedAlignmentStyle;
-                }
+        const styles = [alignmentStyle];
 
-                const styles = [alignmentStyle];
+        const geom = feature.getGeometry();
+        if (geom instanceof LineString && resolution <= Limits.GEOMETRY_TICKS) {
+            styles.push(
+                ...getTickStyles(alignment.points, alignment.segmentMValues, 10, alignmentStyle),
+            );
+        }
 
-                const geom = feature.getGeometry();
-                if (geom instanceof LineString && resolution <= Limits.GEOMETRY_TICKS) {
-                    const coordinates = geom.getCoordinates();
-                    styles.push(...getTickStyles(coordinates, 10, alignmentStyle));
-                }
+        return styles;
+    });
 
-                return styles;
-            });
+    setAlignmentData(feature, {
+        trackNumber: null,
+        header: alignment.header,
+        points: alignment.points,
+        planId: planLayout.planId,
+    });
 
-            feature.set(FEATURE_PROPERTY_SEGMENT_DATA, {
-                trackNumber: null,
-                segment: segment,
-                alignment: alignment,
-                planId: planLayout.planId,
-            });
-
-            return feature;
-        });
+    return [feature];
 }
 
-type AlignmentWithLinking = MapAlignment & {
+type AlignmentWithLinking = {
+    header: AlignmentHeader;
+    points: LayoutPoint[];
+    segmentMValues: number[];
     linked: boolean;
 };
 
@@ -147,18 +149,22 @@ async function getPlanLayoutAlignmentsWithLinking(
     return (
         planLayoutWithGeometry.alignments
             // Include alignments from original layout only
-            .filter((alignmentWithGeom) =>
-                planLayout.alignments.some((alignment2) => alignmentWithGeom.id == alignment2.id),
-            )
-            .map((alignment) => ({
-                ...alignment,
-                segments: alignment.segments.map((s) =>
-                    simplifySegment(s, toMapAlignmentResolution(resolution)),
+            .filter((alignment) =>
+                planLayout.alignments.some(
+                    (alignment2) => alignment.header.id == alignment2.header.id,
                 ),
-                linked: alignment.sourceId
-                    ? linkedAlignmentIds.includes(alignment.sourceId)
-                    : false,
-            }))
+            )
+            .map((alignment) => {
+                const points = alignment.polyLine?.points || [];
+                return {
+                    header: alignment.header,
+                    points: filterLayoutPoints(toMapAlignmentResolution(resolution), points),
+                    segmentMValues: alignment.segmentMValues,
+                    linked: alignment.header.id
+                        ? linkedAlignmentIds.includes(alignment.header.id)
+                        : false,
+                };
+            })
     );
 }
 
@@ -225,25 +231,19 @@ adapterInfoRegister.add('geometry', {
                 };
                 const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
                 const holders =
-                    features && getMatchingSegmentDatas(hitArea, features, matchOptions);
+                    features && getMatchingAlignmentDatas(hitArea, features, matchOptions);
                 const alignments = holders
-                    .filter(filterUniqueById((data) => data.alignment.id)) // pick unique alignments
+                    .filter(filterUniqueById((data) => data.header.id)) // pick unique alignments
                     .slice(0, options.limit)
                     .map((data) => {
                         return {
                             planId: data.planId as GeometryPlanId,
-                            geometryItem: { ...data.alignment, segments: [] },
+                            geometryItem: { ...data.header },
                         };
                     });
 
-                const segments = holders.slice(0, options.limit).map((data) => ({
-                    planId: data.planId as GeometryPlanId,
-                    geometryItem: data.segment,
-                }));
-
                 return {
                     geometryAlignments: alignments,
-                    geometrySegments: segments,
                 };
             },
         };

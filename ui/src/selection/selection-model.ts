@@ -7,8 +7,6 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
-    MapSegment,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryPlanId, GeometryPlanLayoutId } from 'geometry/geometry-model';
@@ -23,19 +21,18 @@ import {
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
 import { PublicationId } from 'publication/publication-model';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trackNumber';
 
 export type ItemCollections = {
-    segments: MapSegment[];
     locationTracks: LocationTrackId[];
     kmPosts: LayoutKmPostId[];
     geometryKmPosts: SelectedGeometryItem<LayoutKmPost>[];
     switches: LayoutSwitchId[];
     geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
     trackNumbers: LayoutTrackNumberId[];
-    geometryAlignments: SelectedGeometryItem<MapAlignment>[];
-    geometrySegments: SelectedGeometryItem<MapSegment>[];
+    geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
     layoutLinkPoints: LinkPoint[];
     geometryLinkPoints: LinkPoint[];
     clusterPoints: ClusterPoint[];
@@ -72,7 +69,6 @@ export type SelectedGeometryItem<T> = {
 export type SelectableItemType = keyof ItemCollections;
 
 export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<SelectableItemType>()([
-    'segments',
     'locationTracks',
     'kmPosts',
     'geometryKmPosts',
@@ -80,7 +76,6 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
     'geometrySwitches',
     'trackNumbers',
     'geometryAlignments',
-    'geometrySegments',
     'layoutLinkPoints',
     'geometryLinkPoints',
     'clusterPoints',

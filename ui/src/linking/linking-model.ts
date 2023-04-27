@@ -1,6 +1,5 @@
 import {
     LayoutKmPostId,
-    LayoutSegmentId,
     LayoutState,
     LayoutStateCategory,
     LayoutSwitch,
@@ -69,7 +68,6 @@ export type LinkPoint = {
     id: LinkPointId;
     alignmentType: MapAlignmentType;
     alignmentId: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
-    segmentId: LayoutSegmentId;
     x: number;
     y: number;
     m: number;

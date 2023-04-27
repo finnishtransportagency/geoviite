@@ -1,4 +1,4 @@
-import Feature from 'ol/Feature';
+import Feature, { FeatureLike } from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { Geometry, LineString, Point, Polygon } from 'ol/geom';
 import { RegularShape, Style } from 'ol/style';
@@ -7,9 +7,7 @@ import {
     LayoutKmPost,
     LayoutSwitch,
     LayoutSwitchJoint,
-    LayoutTrackNumber,
-    MapAlignment,
-    MapSegment,
+    LayoutPoint,
 } from 'track-layout/track-layout-model';
 import * as turf from '@turf/turf';
 import { OptionalItemCollections } from 'selection/selection-model';
@@ -28,7 +26,9 @@ import {
     coordsToPoint,
     createLine,
 } from 'model/geometry';
-import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
+import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-api';
+import { interpolateXY } from 'utils/math-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 
 const layoutToWgs84 = proj4(LAYOUT_SRID, 'WGS84');
 
@@ -218,7 +218,7 @@ export function addBbox(feature: Feature<Polygon | LineString>): void {
     let points = null;
     if (geom instanceof Polygon) points = geom.getCoordinates().flat();
     if (geom instanceof LineString) points = geom.getCoordinates();
-    if (points) {
+    if (points && points.length >= 2) {
         const turfLine = turf.lineString(toWgs84Multi(points));
         feature.set('bboxTurfPolygon', turf.bboxPolygon(turf.bbox(turfLine)).geometry);
     }
@@ -288,27 +288,37 @@ function findEntities<TVal>(
     return Object.values(match).map((match) => match.entity);
 }
 
-export type SegmentDataHolder = {
-    trackNumber: LayoutTrackNumber | null;
-    alignment: MapAlignment;
-    segment: MapSegment;
-    planId: GeometryPlanId | null;
-};
+// Don't export this: use getAlignmentData / setAlignmentData instead for type safety
+const FEATURE_PROPERTY_ALIGNMENT_DATA = 'segment-data';
 
-export function getMatchingSegmentDatas(
+export function setAlignmentData(feature: Feature<LineString>, dataHolder: AlignmentDataHolder) {
+    feature.set(FEATURE_PROPERTY_ALIGNMENT_DATA, dataHolder);
+}
+
+export function getAlignmentData(feature: FeatureLike): AlignmentDataHolder | undefined {
+    return feature.get(FEATURE_PROPERTY_ALIGNMENT_DATA) as AlignmentDataHolder;
+}
+
+export function getMatchingAlignmentDatas(
     shape: Polygon,
     features: Feature<Geometry>[],
     options?: MatchOptions,
-): SegmentDataHolder[] {
+): AlignmentDataHolder[] {
     return findEntities(
         shape,
         features,
         (feature) => {
-            const segmentData = feature.get(FEATURE_PROPERTY_SEGMENT_DATA) as SegmentDataHolder;
-            return segmentData ? [segmentData.segment.id, segmentData] : undefined;
+            const data = getAlignmentData(feature);
+            return data ? [alignmentId(data.header), data] : undefined;
         },
         options,
     );
+}
+
+// Match by type+id so that tracks and reference lines won't get mixed
+export function alignmentId(header: AlignmentHeader): string {
+    const typeId = header.alignmentType === 'LOCATION_TRACK' ? 'LT_' : 'RL_';
+    return `${typeId}${header.id}`;
 }
 
 export function getMatchingLinkPoints(
@@ -442,20 +452,44 @@ export function getTickStyle(
     });
 }
 
-export function getTickStyles(coordinates: Coordinate[], length: number, style: Style): Style[] {
-    if (coordinates.length < 2) {
+export function getTickStyles(
+    points: LayoutPoint[],
+    mValues: number[],
+    length: number,
+    style: Style,
+): Style[] {
+    if (points.length < 2) {
         return [];
     }
-    return [
-        getTickStyle(coordinates[0], coordinates[1], length, 'start', style),
-        getTickStyle(
-            coordinates[coordinates.length - 2],
-            coordinates[coordinates.length - 1],
-            length,
-            'end',
-            style,
-        ),
-    ];
+    return mValues
+        .map((m) => {
+            const coordinate = getCoordinate(points, m);
+            if (!coordinate) {
+                return undefined;
+            } else if (m >= points[points.length - 1].m) {
+                const prev = points[points.length - 2];
+                return getTickStyle([prev.x, prev.y], coordinate, length, 'end', style);
+            } else {
+                const next = points.find((p) => p.m > m);
+                return next
+                    ? getTickStyle(coordinate, [next.x, next.y], length, 'start', style)
+                    : undefined;
+            }
+        })
+        .filter(filterNotEmpty);
+}
+
+function getCoordinate(points: LayoutPoint[], m: number): number[] | undefined {
+    const nextIndex = points.findIndex((p) => p.m >= m);
+    if (nextIndex < 0 || nextIndex >= points.length) {
+        return undefined;
+    } else if (points[nextIndex].m === m) {
+        return [points[nextIndex].x, points[nextIndex].y];
+    } else if (nextIndex === 0) {
+        return undefined;
+    } else {
+        return interpolateXY(points[nextIndex - 1], points[nextIndex], m);
+    }
 }
 
 function mergeOptionalArrays<T>(a1: T[] | undefined, a2: T[] | undefined): T[] | undefined {
@@ -470,7 +504,6 @@ export function mergePartialItemSearchResults(
     return searchResults.reduce<OptionalItemCollections>((merged, searchResult) => {
         return {
             locationTracks: mergeOptionalArrays(merged.locationTracks, searchResult.locationTracks),
-            segments: mergeOptionalArrays(merged.segments, searchResult.segments),
             kmPosts: mergeOptionalArrays(merged.kmPosts, searchResult.kmPosts),
             geometryKmPosts: mergeOptionalArrays(
                 merged.geometryKmPosts,
@@ -485,10 +518,6 @@ export function mergePartialItemSearchResults(
             geometryAlignments: mergeOptionalArrays(
                 merged.geometryAlignments,
                 searchResult.geometryAlignments,
-            ),
-            geometrySegments: mergeOptionalArrays(
-                merged.geometrySegments,
-                searchResult.geometrySegments,
             ),
             layoutLinkPoints: mergeOptionalArrays(
                 merged.layoutLinkPoints,

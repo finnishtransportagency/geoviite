@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GeometryBiquadraticParabola } from 'geometry/geometry-model';
-import { MapSegment } from 'track-layout/track-layout-model';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 import { CantRange } from 'tool-panel/geometry-alignment/geometry-segment/cant-range';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -8,7 +8,7 @@ import 'i18n/config';
 import { useTranslation } from 'react-i18next';
 
 type BiquadraticParabolaInfoBoxProps = {
-    chosenSegment: MapSegment;
+    points: LayoutPoint[];
     geometryBiquadraticParabola: GeometryBiquadraticParabola;
 };
 
@@ -17,7 +17,7 @@ function formatParabolaRadius(radius: number | null): string {
 }
 
 const BiquadraticParabolaInfobox: React.FC<BiquadraticParabolaInfoBoxProps> = ({
-    chosenSegment,
+    points,
     geometryBiquadraticParabola: parabola,
 }: BiquadraticParabolaInfoBoxProps) => {
     const { t } = useTranslation();
@@ -37,7 +37,7 @@ const BiquadraticParabolaInfobox: React.FC<BiquadraticParabolaInfoBoxProps> = ({
                 value={`${formatParabolaRadius(parabola.radiusStart)} - ${formatParabolaRadius(
                     parabola.radiusEnd,
                 )}`}></InfoboxField>
-            <CantRange chosenSegment={chosenSegment} />
+            <CantRange points={points} />
         </React.Fragment>
     );
 };

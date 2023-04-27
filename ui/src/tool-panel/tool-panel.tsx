@@ -11,8 +11,6 @@ import {
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
-    MapSegment,
 } from 'track-layout/track-layout-model';
 import KmPostInfobox from 'tool-panel/km-post/km-post-infobox';
 import SwitchInfobox from 'tool-panel/switch/switch-infobox';
@@ -42,6 +40,7 @@ import {
     InfoboxVisibilities,
 } from 'track-layout/track-layout-slice';
 import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -51,8 +50,7 @@ type ToolPanelProps = {
     switchIds: LayoutSwitchId[];
     geometrySwitches: SelectedGeometryItem<LayoutSwitch>[];
     locationTrackIds: LocationTrackId[];
-    geometryAlignments: SelectedGeometryItem<MapAlignment>[];
-    geometrySegments: SelectedGeometryItem<MapSegment>[];
+    geometryAlignments: SelectedGeometryItem<AlignmentHeader>[];
     suggestedSwitches: SuggestedSwitch[];
     linkingState?: LinkingState;
     showArea: (bbox: BoundingBox) => void;
@@ -88,7 +86,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     geometrySwitches,
     locationTrackIds,
     geometryAlignments,
-    geometrySegments,
     suggestedSwitches,
     linkingState,
     showArea,
@@ -364,7 +361,6 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         geometryAlignment={a.geometryItem}
                         selectedLocationTrackId={locationTrackIds[0]}
                         selectedTrackNumberId={trackNumberIds[0]}
-                        segment={geometrySegments[0]?.geometryItem}
                         planId={a.planId}
                         linkingState={linkingState}
                         publishType={publishType}

@@ -18,7 +18,6 @@ import {
     LayoutLocationTrack,
     LayoutReferenceLine,
     LocationTrackId,
-    MapAlignment,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
@@ -38,9 +37,10 @@ import {
     PreliminaryLinkingGeometry,
 } from 'linking/linking-model';
 import { OnSelectOptions } from 'selection/selection-model';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
-    geometryAlignment: MapAlignment;
+    geometryAlignment: AlignmentHeader;
     publishType: PublishType;
     trackNumberChangeTime: TimeStamp;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
@@ -53,7 +53,7 @@ type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
 };
 
 type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
-    geometryAlignment: MapAlignment;
+    geometryAlignment: AlignmentHeader;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
     selectedLayoutLocationTrack?: LayoutLocationTrack;

@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.configuration.CACHE_PLAN_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
+import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
-import java.math.BigDecimal
 
 
 sealed interface GeocodingContextCacheKey
@@ -87,8 +86,10 @@ class GeocodingCacheService(
         return GeocodingContext.create(trackNumber, startAddress, referenceLine, plan.kmPosts)
     }
 
-    private fun getGeometryGeocodingContextReferenceLine(plan: GeometryPlanLayout): MapAlignment<GeometryAlignment>? {
-        val referenceLines = plan.alignments.filter { alignment -> alignment.alignmentType == MapAlignmentType.REFERENCE_LINE }
+    private fun getGeometryGeocodingContextReferenceLine(plan: GeometryPlanLayout): PlanLayoutAlignment? {
+        val referenceLines = plan.alignments.filter { alignment ->
+            alignment.header.alignmentType == MapAlignmentType.REFERENCE_LINE
+        }
         return if (referenceLines.size == 1) referenceLines[0] else null
     }
 }
