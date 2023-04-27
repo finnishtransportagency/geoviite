@@ -52,7 +52,7 @@ class GeometryServiceIT @Autowired constructor(
         // the profile is at exactly 50 meters height at every point where it's linked
         val expected = listOf(
             0 to 50,
-            5 to 50,
+            // 5 to 50, // should be filtered due to being less than a half-tick distance from nearest
             6 to 50,
             6 to null,
             10 to null,
