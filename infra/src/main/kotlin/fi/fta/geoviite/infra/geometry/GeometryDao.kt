@@ -1552,7 +1552,7 @@ class GeometryDao @Autowired constructor(
     /**
      * If planIds is null, returns all plans' linking summaries
      */
-    fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>?): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
+    fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>? = null): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         if (planIds?.isEmpty() == true) {
             return mapOf()
         }
