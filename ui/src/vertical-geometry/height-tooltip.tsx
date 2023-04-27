@@ -34,6 +34,12 @@ export const HeightTooltip: React.FC<HeightTooltipProps> = ({
             {point.height.toLocaleString(undefined, {
                 maximumFractionDigits: 2,
             })}
+            {point.fileName && (
+                <>
+                    <br />
+                    {point.fileName}
+                </>
+            )}
         </div>
     );
 };

@@ -24,6 +24,7 @@ export interface SnappedPoint {
     yPositionPx: number;
     height: number;
     address: TrackMeter;
+    fileName: string | null;
 }
 
 function getSnapOverRuler(
@@ -33,7 +34,13 @@ function getSnapOverRuler(
     approximatedPoint: (
         maybeApproximateM: number,
     ) => null | { address: TrackMeter | null; height: number | null },
-): { address: TrackMeter | null; m: number; snapTarget: SnapTarget; height: number | null } {
+): {
+    address: TrackMeter | null;
+    m: number;
+    snapTarget: SnapTarget;
+    height: number | null;
+    fileName?: string;
+} {
     const closest = closestRulerTickM(xCoordinateM, trackKmHeights);
     if (closest == null || !onScreen(closest.m)) {
         const approximated = approximatedPoint(xCoordinateM);
@@ -65,7 +72,13 @@ function getSnapOverChart(
         maybeApproximateM: number,
     ) => null | { address: TrackMeter | null; height: number | null },
     drawTangents: boolean,
-): { address: TrackMeter | null; m: number; snapTarget: SnapTarget; height: number | null } {
+): {
+    address: TrackMeter | null;
+    m: number;
+    snapTarget: SnapTarget;
+    height: number | null;
+    fileName?: string;
+} {
     const closest = closestGeometrySnapPoint(xCoordinateM, geometry, drawTangents);
     if (closest == null || !withinSnapDistance(closest.m)) {
         const approximated = approximatedPoint(xCoordinateM);
@@ -86,6 +99,7 @@ function getSnapOverChart(
         height,
         address: closest.address,
         m: closest.m,
+        fileName: closest.fileName,
     };
 }
 
@@ -120,18 +134,16 @@ export function getSnappedPoint(
     const withinSnapDistance = (snappedM: number) =>
         Math.abs(snappedM - xCoordinateM) <= maxSnapDistanceOnChartM && onScreen(snappedM);
 
-    const { snapTarget, height, address, m } =
+    const { snapTarget, height, address, m, fileName } =
         mouseCursorOverArea === 'ruler'
             ? getSnapOverRuler(xCoordinateM, trackKmHeights, onScreen, approximatedPoint)
-            : (() => {
-                  return getSnapOverChart(
-                      xCoordinateM,
-                      geometry,
-                      withinSnapDistance,
-                      approximatedPoint,
-                      drawTangentArrows,
-                  );
-              })();
+            : getSnapOverChart(
+                  xCoordinateM,
+                  geometry,
+                  withinSnapDistance,
+                  approximatedPoint,
+                  drawTangentArrows,
+              );
 
     if (height == null || address == null) {
         return null;
@@ -140,16 +152,29 @@ export function getSnappedPoint(
     const x = mToX(coordinates, m);
     const y = heightToY(coordinates, height);
 
-    return { snapTarget, m, xPositionPx: x, yPositionPx: y, height, address };
+    return {
+        snapTarget,
+        m,
+        xPositionPx: x,
+        yPositionPx: y,
+        height,
+        address,
+        fileName: fileName ?? null,
+    };
 }
 
-function toGeometrySnapPoint(stationPoint: StationPoint, type: 'intersectionPoint' | 'endPoint') {
+function toGeometrySnapPoint(
+    fileName: string,
+    stationPoint: StationPoint,
+    type: 'intersectionPoint' | 'endPoint',
+) {
     return stationPoint.address == null
         ? null
         : {
               m: stationPoint.station,
               height: stationPoint.height,
               address: stationPoint.address,
+              fileName,
               type,
           };
 }
@@ -160,9 +185,9 @@ function closestGeometrySnapPoint(
 ) {
     const allGeometryPoints = geometry.flatMap((geom) =>
         [
-            toGeometrySnapPoint(geom.point, 'intersectionPoint'),
-            drawTangents ? toGeometrySnapPoint(geom.start, 'endPoint') : null,
-            drawTangents ? toGeometrySnapPoint(geom.end, 'endPoint') : null,
+            toGeometrySnapPoint(geom.fileName, geom.point, 'intersectionPoint'),
+            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.start, 'endPoint') : null,
+            drawTangents ? toGeometrySnapPoint(geom.fileName, geom.end, 'endPoint') : null,
         ].filter(filterNotEmpty),
     );
     const minIndex = minimumIndexBy(allGeometryPoints, (snapPoint) => Math.abs(m - snapPoint.m));
