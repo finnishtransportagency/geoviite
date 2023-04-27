@@ -165,7 +165,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                 heightToY(coordinates, angleTextStartHeight) - pviAssistLineHeightPx - 2;
             const aspectRatio = coordinates.meterHeightPx / coordinates.mMeterLengthPxOverM;
             const angle =
-                geo.end.angle == null ? 0 : radsToDegrees(-Math.atan(geo.end.angle) * aspectRatio);
+                geo.end.angle == null ? 0 : radsToDegrees(-Math.atan(geo.end.angle * aspectRatio));
             pvis.push(
                 <text
                     key={pviKey++}
