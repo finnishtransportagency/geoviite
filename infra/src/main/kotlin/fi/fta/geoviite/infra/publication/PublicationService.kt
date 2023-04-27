@@ -86,17 +86,15 @@ class PublicationService @Autowired constructor(
         val trackNumber = trackNumberService.getOrThrow(publishType, trackNumberId)
         val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
 
-        val locationTracks = locationTrackDao.fetchVersions(
-            publicationState = publishType,
-            includeDeleted = false,
-            trackNumberId = trackNumberId
-        ).map(locationTrackDao::fetch)
+        val locationTracks =
+            if (publishType == DRAFT)
+                locationTrackDao.fetchVersions(DRAFT, false, trackNumberId).map(locationTrackDao::fetch)
+            else emptyList()
 
-        val kmPosts = kmPostDao.fetchVersions(
-            publicationState = publishType,
-            includeDeleted = false,
-            trackNumberId = trackNumberId
-        ).map(kmPostDao::fetch)
+        val kmPosts =
+            if (publishType == DRAFT)
+                kmPostDao.fetchVersions(DRAFT, false, trackNumberId).map(kmPostDao::fetch)
+            else emptyList()
 
         val versions = mapToValidationVersions(
             trackNumbers = listOf(trackNumber),
@@ -178,14 +176,19 @@ class PublicationService @Autowired constructor(
             "switchId" to switchId,
             "publishType" to publishType
         )
+
         val layoutSwitch = switchService.getOrThrow(publishType, switchId)
-        val locationTracks = switchDao.findLocationTracksLinkedToSwitch(publishType, switchId).map {
-            locationTrackDao.fetch(it.rowVersion)
-        }
+        val locationTracks = switchDao.findLocationTracksLinkedToSwitch(publishType, switchId).map { it.rowVersion }
+
+        val previouslyLinkedTracks = if (publishType == DRAFT)
+            switchDao.findLocationTracksLinkedToSwitch(OFFICIAL, switchId)
+                .mapNotNull { lt -> locationTrackDao.fetchDraftVersion(lt.rowVersion.id) }
+                .filterNot(locationTracks::contains)
+        else emptyList()
 
         val versions = mapToValidationVersions(
             switches = listOf(layoutSwitch),
-            locationTracks = locationTracks
+            locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
 
         return ValidatedAsset(

@@ -8,14 +8,14 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, groupBy } from 'utils/array-utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { getTrackNumberById } from 'track-layout/layout-track-number-api';
+import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { CalculatedChanges } from 'publication/publication-model';
 
-const calculatedChangesIsEmpty = (calculatedChanges: TrackNumberCalculatedChanges) => {
+const calculatedChangesIsEmpty = (calculatedChanges: GroupedCalculatedChanges) => {
     return calculatedChanges.switches.length == 0 && calculatedChanges.locationTracks.length == 0;
 };
 
@@ -23,7 +23,7 @@ type CalculatedChangesProps = {
     calculatedChanges: CalculatedChanges;
 };
 
-type TrackNumberCalculatedChanges = {
+type GroupedCalculatedChanges = {
     trackNumber: LayoutTrackNumber;
     switches: LayoutSwitch[];
     locationTracks: LayoutLocationTrack[];
@@ -34,8 +34,8 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
 }: CalculatedChangesProps) => {
     const { t } = useTranslation();
     const [isFetching, setIsFetching] = React.useState(true);
-    const [trackNumberCalculatedChanges, setTrackNumberCalculatedChanges] = React.useState<
-        TrackNumberCalculatedChanges[]
+    const [groupedCalculatedChanges, setGroupedCalculatedChanges] = React.useState<
+        GroupedCalculatedChanges[]
     >([]);
 
     const [openTrackNumbers, setOpenTrackNumbers] = React.useState<{
@@ -52,44 +52,71 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
     React.useEffect(() => {
         setIsFetching(true);
 
-        const trackNumberPromises = Promise.all(
-            calculatedChanges.indirectChanges.trackNumberChanges.map((trackNumberChange) => {
-                return getTrackNumberById(trackNumberChange.trackNumberId, 'DRAFT');
-            }),
-        );
+        const trackNumberChanges = calculatedChanges.indirectChanges.trackNumberChanges;
+        const locationTrackChanges = calculatedChanges.indirectChanges.locationTrackChanges;
+        const switchChanges = calculatedChanges.indirectChanges.switchChanges;
 
-        const locationTrackPromises = getLocationTracks(
-            calculatedChanges.indirectChanges.locationTrackChanges.map((t) => t.locationTrackId),
+        const trackNumbersPromise = getTrackNumbers('DRAFT');
+        const locationTracksPromise = getLocationTracks(
+            locationTrackChanges.map((lt) => lt.locationTrackId),
+            'DRAFT',
+        );
+        const switchesPromise = getSwitches(
+            switchChanges.map((s) => s.switchId),
             'DRAFT',
         );
 
-        const layoutSwitchPromises = getSwitches(
-            calculatedChanges.indirectChanges.switchChanges.map((t) => t.switchId),
-            'DRAFT',
-        );
+        Promise.all([trackNumbersPromise, locationTracksPromise, switchesPromise]).then(
+            ([trackNumbers, locationTracks, switches]) => {
+                type Change = {
+                    trackNumberId: LayoutTrackNumberId;
+                    locationTrack?: LayoutLocationTrack;
+                    switch?: LayoutSwitch;
+                };
 
-        Promise.all([trackNumberPromises, locationTrackPromises, layoutSwitchPromises]).then(
-            ([changedTrackNumbers, changedLocationTracks, changedLayoutSwitches]) => {
-                const result = changedTrackNumbers.filter(filterNotEmpty).map((trackNumber) => {
-                    const locationTracks = changedLocationTracks.filter(
-                        (lt) => lt.trackNumberId == trackNumber.id,
-                    );
-                    const switches = changedLayoutSwitches.filter((layoutSwitch) =>
-                        locationTracks.some((locationTrack) =>
-                            calculatedChanges.indirectChanges.switchChanges
-                                .find((change) => change.switchId == layoutSwitch.id)
-                                ?.changedJoints.some((j) => j.locationTrackId == locationTrack.id),
-                        ),
-                    );
+                const tnChanges: Change[] = trackNumberChanges.map((tnc) => ({
+                    trackNumberId: tnc.trackNumberId,
+                }));
 
-                    return {
-                        trackNumber,
-                        locationTracks,
-                        switches,
-                    };
+                const ltChanges: Change[] = locationTrackChanges
+                    .map((ltc) => locationTracks.find((lt) => lt.id == ltc.locationTrackId))
+                    .filter(filterNotEmpty)
+                    .map((lt) => ({
+                        trackNumberId: lt.trackNumberId,
+                        locationTrack: lt,
+                    }));
+
+                const sChanges: Change[] = switchChanges.flatMap((sc) => {
+                    return sc.changedJoints
+                        .map((cj) => cj.trackNumberId)
+                        .filter(filterUnique)
+                        .map((tn) => ({
+                            trackNumberId: tn,
+                            switch: switches.find((s) => s.id == sc.switchId),
+                        }));
                 });
 
-                setTrackNumberCalculatedChanges(result);
+                const groupedChanges = groupBy(
+                    [...tnChanges, ...ltChanges, ...sChanges],
+                    (o) => o.trackNumberId,
+                );
+
+                const calculatedChanges = Object.entries(groupedChanges)
+                    .map(([key, changes]) => {
+                        const trackNumber = trackNumbers.find((tn) => tn.id == key);
+                        if (trackNumber) {
+                            return {
+                                trackNumber: trackNumber,
+                                locationTracks: changes
+                                    .map((c) => c.locationTrack)
+                                    .filter(filterNotEmpty),
+                                switches: changes.map((c) => c.switch).filter(filterNotEmpty),
+                            };
+                        }
+                    })
+                    .filter(filterNotEmpty);
+
+                setGroupedCalculatedChanges(calculatedChanges);
                 setIsFetching(false);
             },
         );
@@ -99,73 +126,60 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
         <section className={styles['calculated-changes-view']}>
             <h3>{t('preview-view.track-address-changes')}</h3>
             <div className={styles['calculated-changes-view__changes-list']}>
-                {trackNumberCalculatedChanges.length > 0 &&
-                    trackNumberCalculatedChanges.map(
-                        (trackNumberChange: TrackNumberCalculatedChanges) => {
-                            const hasCalculatedChanges =
-                                !calculatedChangesIsEmpty(trackNumberChange);
-                            const trackNumber = trackNumberChange.trackNumber.number;
-                            const trackNumberId = trackNumberChange.trackNumber.id;
-                            const disabledMessage = hasCalculatedChanges
-                                ? ''
-                                : t('preview-view.disabled-message');
+                {groupedCalculatedChanges.map((changes: GroupedCalculatedChanges) => {
+                    const hasCalculatedChanges = !calculatedChangesIsEmpty(changes);
+                    const trackNumber = changes.trackNumber.number;
+                    const trackNumberId = changes.trackNumber.id;
+                    const disabledMessage = hasCalculatedChanges
+                        ? ''
+                        : t('preview-view.disabled-message');
 
-                            return (
-                                <Accordion
-                                    key={trackNumberId}
-                                    header={t('preview-view.track-number', {
-                                        number: trackNumber,
-                                        disabled: disabledMessage,
-                                    })}
-                                    onToggle={() => toggle(trackNumberId)}
-                                    open={openTrackNumbers[trackNumberId]}
-                                    disabled={!hasCalculatedChanges}>
-                                    <React.Fragment>
-                                        <p>
-                                            {t('preview-view.calculated-changes-text', {
-                                                number: trackNumber,
-                                            })}
-                                        </p>
-                                        <ul>
-                                            {trackNumberChange.locationTracks.length > 0 && (
-                                                <li
-                                                    className={
-                                                        styles[
-                                                            'calculated-changes-view__location_tracks'
-                                                        ]
-                                                    }>
-                                                    {t('preview-view.location-tracks')}
-                                                    <ul>
-                                                        {trackNumberChange.locationTracks.map(
-                                                            (lt) => (
-                                                                <li key={lt.id}>{lt.name}</li>
-                                                            ),
-                                                        )}
-                                                    </ul>
-                                                </li>
-                                            )}
+                    return (
+                        <Accordion
+                            key={trackNumberId}
+                            header={t('preview-view.track-number', {
+                                number: trackNumber,
+                                disabled: disabledMessage,
+                            })}
+                            onToggle={() => toggle(trackNumberId)}
+                            open={openTrackNumbers[trackNumberId]}
+                            disabled={!hasCalculatedChanges}>
+                            <React.Fragment>
+                                <ul
+                                    className={
+                                        styles['calculated-changes-view__track-number-changes']
+                                    }>
+                                    {changes.locationTracks.length > 0 && (
+                                        <li
+                                            className={
+                                                styles['calculated-changes-view__location_tracks']
+                                            }>
+                                            {t('preview-view.location-tracks')}
+                                            <ul>
+                                                {changes.locationTracks.map((lt) => (
+                                                    <li key={lt.id}>{lt.name}</li>
+                                                ))}
+                                            </ul>
+                                        </li>
+                                    )}
 
-                                            {trackNumberChange.switches.length > 0 && (
-                                                <li
-                                                    className={
-                                                        styles['calculated-changes-view__switches']
-                                                    }>
-                                                    {t('preview-view.switches')}
-                                                    <ul>
-                                                        {trackNumberChange.switches.map((s) => (
-                                                            <li key={s.id}>{s.name}</li>
-                                                        ))}
-                                                    </ul>
-                                                </li>
-                                            )}
-                                        </ul>
-                                    </React.Fragment>
-                                </Accordion>
-                            );
-                        },
-                    )}
-                {trackNumberCalculatedChanges.length == 0 && (
-                    <>{t('preview-view.no-calculated-changes-text')}</>
+                                    {changes.switches.length > 0 && (
+                                        <li className={styles['calculated-changes-view__switches']}>
+                                            {t('preview-view.switches')}
+                                            <ul>
+                                                {changes.switches.map((s) => (
+                                                    <li key={s.id}>{s.name}</li>
+                                                ))}
+                                            </ul>
+                                        </li>
+                                    )}
+                                </ul>
+                            </React.Fragment>
+                        </Accordion>
+                    );
+                })}
+                {groupedCalculatedChanges.length == 0 && (
+                    <React.Fragment>{t('preview-view.no-calculated-changes-text')}</React.Fragment>
                 )}
             </div>
         </section>
