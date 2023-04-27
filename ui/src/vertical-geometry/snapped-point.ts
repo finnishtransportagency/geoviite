@@ -194,7 +194,7 @@ function approximateTrackAddressAt(
             index.left.kmIndex === index.right.kmIndex
                 ? leftMeter.meter + proportion * (rightMeter.meter - leftMeter.meter)
                 : // we can't accurately know the length of the last track meter in track address space, so let's just
-                  // extrapolate based on assuming we're parallel with the reference line
-                  leftMeter.meter + proportion,
+                  // assume it doesn't turn very hard here
+                  leftMeter.meter + proportion * (rightMeter.m - leftMeter.m),
     };
 }

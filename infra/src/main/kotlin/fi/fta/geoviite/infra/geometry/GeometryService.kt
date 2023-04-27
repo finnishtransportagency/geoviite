@@ -15,6 +15,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import kotlin.math.floor
 
@@ -460,19 +462,29 @@ class GeometryService @Autowired constructor(
         return referencePointIndices.map { referencePointIndex ->
             val referencePoint = geocodingContext.referencePoints[referencePointIndex]
             val kmNumber = referencePoint.kmNumber
-            val referenceLineKmLength = getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext)
+            // The choice of a half-tick-length minimum is totally arbitrary
+            val minTickSpace = BigDecimal(tickLength).setScale(1) / BigDecimal(2)
+            val referenceLineKmLength =
+                getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext) - minTickSpace.toInt()
 
-            KmHeights(referencePoint.kmNumber,
-                // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
-                // hit a specific segment; but points on different sides of a segment boundary are often the exact same
-                // point, but potentially have different heights (or more often null/not-null heights). If an ordinary
-                // tick hits a segment boundary exactly, we do grab its height, but then let the distinct() at the end
-                // throw it out.
-                ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
-                        + (0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
-                        // special-case last point so front-end doesn't have to extrapolate heights at track end
-                        + (if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()))
-                    .sortedBy { (trackMeterInKm) -> trackMeterInKm }
+            // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
+            // hit a specific segment; but points on different sides of a segment boundary are often the exact same
+            // point, but potentially have different heights (or more often null/not-null heights).
+            val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
+                    + (0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
+                    // special-case last point so front-end doesn't have to extrapolate heights at track end
+                    ).sortedBy { (trackMeterInKm) -> trackMeterInKm }
+
+            val ticksToSend = allTicks.filterIndexed { i, (trackMeterInKm, segmentIndex) ->
+                segmentIndex != null ||
+                        (i == 0                  || trackMeterInKm - allTicks[i - 1].first >= minTickSpace) &&
+                        (i == allTicks.lastIndex || allTicks[i + 1].first - trackMeterInKm >= minTickSpace)
+            } + if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()
+
+
+            KmHeights(
+                referencePoint.kmNumber,
+                ticksToSend
                     .mapNotNull { (trackMeterInKm, segmentIndex) ->
                         val trackMeter = TrackMeter(kmNumber, trackMeterInKm)
                         geocodingContext.getTrackLocation(alignment, trackMeter)?.let { address ->
@@ -482,7 +494,7 @@ class GeometryService @Autowired constructor(
                                 getHeightAt(address.point.m, segmentIndex),
                             )
                         }
-                    }.distinct()
+                    }.distinct() // don't bother sending segment boundary sides with the same location and height
             )
         }.filter { km -> km.trackMeterHeights.isNotEmpty() }
     }
