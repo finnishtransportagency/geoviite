@@ -122,7 +122,7 @@ class PublicationService @Autowired constructor(
         }
 
         return ValidatedAsset(
-            errors = trackNumberValidation + referenceLineValidation,
+            errors = (trackNumberValidation + referenceLineValidation).distinct(),
             id = trackNumberId,
         )
     }
