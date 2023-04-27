@@ -8,11 +8,13 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
 
-const minimumSpacePxForTangentSideLabels = 10;
-const minimumSpacePxForTangentTopLabel = 8;
+const minimumSpacePxForPviPointSideLabels = 10;
+const minimumSpacePxForPviPointTopLabel = 8;
+const minimumSpaceForTangentArrowLabel = 14;
 
 function tangentArrow(
     left: boolean,
+    pointStation: number,
     tangentStation: number,
     tangentHeight: number,
     tangent: number,
@@ -33,6 +35,12 @@ function tangentArrow(
         [tangentX + arrowWidth, tangentTopPx + arrowHeight],
     ]);
 
+    const hasSpaceForText =
+        coordinates.mMeterLengthPxOverM * Math.abs(tangentStation - pointStation) >
+        (left
+            ? minimumSpaceForTangentArrowLabel
+            : minimumSpaceForTangentArrowLabel + minimumSpacePxForPviPointSideLabels);
+
     return (
         <React.Fragment key={pviKey}>
             <line
@@ -44,12 +52,14 @@ function tangentArrow(
                 fill="none"
             />
             <polyline points={arrowPoints} stroke="black" fill="none" />,
-            <text
-                transform={`translate (${tangentX + (left ? 10 : -4)},${
-                    tangentBottomPx - 2
-                }) rotate(-90) scale(0.7)`}>
-                {tangent.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-            </text>
+            {hasSpaceForText && (
+                <text
+                    transform={`translate (${tangentX + (left ? 10 : -4)},${
+                        tangentBottomPx - 2
+                    }) rotate(-90) scale(0.7)`}>
+                    {tangent.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </text>
+            )}
         </React.Fragment>
     );
 }
@@ -203,7 +213,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                 ].filter(filterNotEmpty),
             ) * coordinates.mMeterLengthPxOverM;
 
-        if (minimumSpaceAroundPointPx > minimumSpacePxForTangentSideLabels) {
+        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointSideLabels) {
             if (geo.point.address != null) {
                 pvis.push(
                     <text
@@ -221,7 +231,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                 </text>,
             );
         }
-        if (minimumSpaceAroundPointPx > minimumSpacePxForTangentTopLabel) {
+        if (minimumSpaceAroundPointPx > minimumSpacePxForPviPointTopLabel) {
             pvis.push(
                 <text
                     key={pviKey++}
@@ -236,6 +246,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
             pvis.push(
                 tangentArrow(
                     true,
+                    geo.point.station,
                     geo.start.station,
                     geo.start.height,
                     geo.tangent,
@@ -247,6 +258,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
             pvis.push(
                 tangentArrow(
                     false,
+                    geo.point.station,
                     geo.end.station,
                     geo.end.height,
                     geo.tangent,
