@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useLoader } from 'utils/react-utils';
-import { MapSegment } from 'track-layout/track-layout-model';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 import styles from './geometry-segment-infobox.scss';
 import {
     GeometryBiquadraticParabola,
@@ -23,24 +23,23 @@ import 'i18n/config';
 import { useTranslation } from 'react-i18next';
 
 type SelectedGeometryItemInfoBoxProps = {
-    chosenSegment: MapSegment;
+    sourceId: GeometryElementId;
+    points: LayoutPoint[];
     planHeader: GeometryPlanHeader;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
 };
 
 const GeometrySegmentInfobox: React.FC<SelectedGeometryItemInfoBoxProps> = ({
-    chosenSegment,
+    sourceId,
+    points,
     planHeader,
     contentVisible,
     onContentVisibilityChange,
 }: SelectedGeometryItemInfoBoxProps) => {
     const { t } = useTranslation();
 
-    const chosenGeometryElement = useLoader(
-        () => getGeometryElement(chosenSegment.sourceId as GeometryElementId),
-        [chosenSegment],
-    );
+    const chosenGeometryElement = useLoader(() => getGeometryElement(sourceId), [sourceId]);
 
     return (
         <Infobox
@@ -56,19 +55,19 @@ const GeometrySegmentInfobox: React.FC<SelectedGeometryItemInfoBoxProps> = ({
                         )}
                         {chosenGeometryElement.type === GeometryType.CURVE && (
                             <CurveInfobox
-                                chosenSegment={chosenSegment}
+                                points={points}
                                 geometryCurve={chosenGeometryElement as GeometryCurve}
                             />
                         )}
                         {chosenGeometryElement.type === GeometryType.CLOTHOID && (
                             <ClothoidInfobox
-                                chosenSegment={chosenSegment}
+                                points={points}
                                 geometryClothoid={chosenGeometryElement as GeometryClothoid}
                             />
                         )}
                         {chosenGeometryElement.type === GeometryType.BIQUADRATIC_PARABOLA && (
                             <BiquadraticParabolaInfobox
-                                chosenSegment={chosenSegment}
+                                points={points}
                                 geometryBiquadraticParabola={
                                     chosenGeometryElement as GeometryBiquadraticParabola
                                 }
@@ -76,10 +75,7 @@ const GeometrySegmentInfobox: React.FC<SelectedGeometryItemInfoBoxProps> = ({
                         )}
                     </InfoboxContent>
                     <InfoboxContent>
-                        <GeometryProfileInfobox
-                            chosenSegment={chosenSegment}
-                            planHeader={planHeader}
-                        />
+                        <GeometryProfileInfobox points={points} planHeader={planHeader} />
                     </InfoboxContent>
                 </React.Fragment>
             )}

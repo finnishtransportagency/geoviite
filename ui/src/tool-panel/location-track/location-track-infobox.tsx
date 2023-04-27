@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styles from './location-track-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LAYOUT_SRID, LayoutLocationTrack, MapAlignment } from 'track-layout/track-layout-model';
+import { LAYOUT_SRID, LayoutLocationTrack } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LinkingAlignment, LinkingState, LinkingType } from 'linking/linking-model';
+import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { updateLocationTrackGeometry } from 'linking/linking-api';
 import {
@@ -38,16 +38,16 @@ import { OnSelectFunction } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
-import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
+import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteRoleRequired } from 'user/write-role-required';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
-    onStartLocationTrackGeometryChange: (alignment: MapAlignment) => void;
+    onStartLocationTrackGeometryChange: (linkInterval: LinkInterval) => void;
     onEndLocationTrackGeometryChange: () => void;
     linkingState?: LinkingState;
     showArea: (area: BoundingBox) => void;
@@ -230,8 +230,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                 duplicatesOfLocationTrack.length > 0
                                     ? t('tool-panel.location-track.has-duplicates')
                                     : existingDuplicate
-                                    ? t('tool-panel.location-track.duplicate-of')
-                                    : t('tool-panel.location-track.not-a-duplicate')
+                                        ? t('tool-panel.location-track.duplicate-of')
+                                        : t('tool-panel.location-track.not-a-duplicate')
                             }
                             value={
                                 <LocationTrackInfoboxDuplicateOf
@@ -292,9 +292,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
                                         onClick={() => {
-                                            getLocationTrackSegmentEnds(
+                                            getEndLinkPoints(
                                                 locationTrack.id,
                                                 publishType,
+                                                'LOCATION_TRACK',
+                                                locationTrackChangeTime,
                                             ).then(onStartLocationTrackGeometryChange);
                                         }}>
                                         {t('tool-panel.location-track.modify-start-or-end')}
@@ -341,9 +343,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.location-track.start-coordinates')} ${
-                                coordinateSystem.name
-                            }`}
+                            label={`${t('tool-panel.location-track.start-coordinates')} ${coordinateSystem.name
+                                }`}
                             value={
                                 startAndEndPoints?.start
                                     ? formatToTM35FINString(startAndEndPoints.start.point)
@@ -351,9 +352,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.location-track.end-coordinates')} ${
-                                coordinateSystem.name
-                            }`}
+                            label={`${t('tool-panel.location-track.end-coordinates')} ${coordinateSystem.name
+                                }`}
                             value={
                                 startAndEndPoints?.end
                                     ? formatToTM35FINString(startAndEndPoints?.end.point)

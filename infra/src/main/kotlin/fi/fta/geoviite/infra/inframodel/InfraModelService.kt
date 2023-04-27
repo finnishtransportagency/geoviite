@@ -21,6 +21,8 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 
+const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
+
 @Service
 class InfraModelService @Autowired constructor(
     private val geometryService: GeometryService,
@@ -126,10 +128,10 @@ class InfraModelService @Autowired constructor(
         val (planLayout: GeometryPlanLayout?, layoutCreationError: TransformationError?) = layoutCache.transformToLayoutPlan(
             geometryPlan = plan,
             includeGeometryData = true,
-            pointListStepLength = 10,
+            pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
         )
         val validationErrors = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
-        return ValidationResponse(validationErrors, plan, planLayout, plan.source)
+        return ValidationResponse(validationErrors, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
     fun updateInfraModel(

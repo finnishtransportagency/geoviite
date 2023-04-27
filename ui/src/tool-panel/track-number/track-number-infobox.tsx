@@ -5,7 +5,6 @@ import {
     LAYOUT_SRID,
     LayoutReferenceLine,
     LayoutTrackNumber,
-    MapAlignment,
 } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
@@ -20,7 +19,7 @@ import {
     useTrackNumbers,
 } from 'track-layout/track-layout-react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
-import { LinkingAlignment, LinkingState, LinkingType } from 'linking/linking-model';
+import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import { BoundingBox } from 'model/geometry';
 import { updateReferenceLineGeometry } from 'linking/linking-api';
 import TrackMeter from 'geoviite-design-lib/track-meter/track-meter';
@@ -31,12 +30,12 @@ import { formatDateShort } from 'utils/date-utils';
 import { TrackNumberEditDialogContainer } from './dialog/track-number-edit-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
-import { getReferenceLineSegmentEnds } from 'track-layout/layout-map-api';
 import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteRoleRequired } from 'user/write-role-required';
+import { getEndLinkPoints } from 'track-layout/layout-map-api';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -45,7 +44,7 @@ type TrackNumberInfoboxProps = {
     linkingState?: LinkingState;
     showArea: (area: BoundingBox) => void;
     onUnselect: () => void;
-    onStartReferenceLineGeometryChange: (alignment: MapAlignment) => void;
+    onStartReferenceLineGeometryChange: (alignment: LinkInterval) => void;
     onEndReferenceLineGeometryChange: () => void;
     viewport: MapViewport;
     referenceLineChangeTime: TimeStamp;
@@ -175,9 +174,11 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
                                         onClick={() => {
-                                            getReferenceLineSegmentEnds(
+                                            getEndLinkPoints(
                                                 referenceLine.id,
                                                 publishType,
+                                                'REFERENCE_LINE',
+                                                referenceLineChangeTime,
                                             ).then(onStartReferenceLineGeometryChange);
                                         }}>
                                         {t('tool-panel.location-track.modify-start-or-end')}
@@ -224,9 +225,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.reference-line.start-coordinates')} ${
-                                coordinateSystem.name
-                            }`}
+                            label={`${t('tool-panel.reference-line.start-coordinates')} ${coordinateSystem.name
+                                }`}
                             value={
                                 startAndEndPoints?.start
                                     ? formatToTM35FINString(startAndEndPoints.start.point)
@@ -234,9 +234,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.reference-line.end-coordinates')} ${
-                                coordinateSystem.name
-                            }`}
+                            label={`${t('tool-panel.reference-line.end-coordinates')} ${coordinateSystem.name
+                                }`}
                             value={
                                 startAndEndPoints?.end
                                     ? formatToTM35FINString(startAndEndPoints.end.point)

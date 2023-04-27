@@ -23,6 +23,14 @@ import kotlin.math.abs
 
 const val GEOMETRY_CACHE_SIZE = 500000L
 
+data class MapSegmentProfileInfo<T>(
+    val id: IntId<T>,
+    val alignmentId: IndexedId<LayoutSegment>,
+    val points: List<LayoutPoint>,
+    val segmentStart: Double,
+    val hasProfile: Boolean,
+)
+
 @Transactional(readOnly = true)
 @Component
 class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
@@ -187,7 +195,7 @@ class LayoutAlignmentDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
 
         var start = 0.0
-        return segmentResults.mapIndexed { index, (data, geometryId) ->
+        return segmentResults.map { (data, geometryId) ->
             require(abs(start - data.start) < LAYOUT_M_DELTA) {
                 "Segment start value does not match the calculated one: stored=${data.start} calc=$start"
             }

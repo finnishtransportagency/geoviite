@@ -1,10 +1,7 @@
 import * as React from 'react';
-import { LayoutPoint, MapSegment } from 'track-layout/track-layout-model';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 import { filterNotEmpty } from 'utils/array-utils';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { GeometryPlanHeader } from 'geometry/geometry-model';
 import 'i18n/config';
@@ -22,12 +19,12 @@ const getProfileRange = (trackLayoutPoints: LayoutPoint[]): string => {
 };
 
 type CantRangeComponentProps = {
-    chosenSegment: MapSegment;
+    points: LayoutPoint[];
     planHeader: GeometryPlanHeader;
 };
 
 export const GeometryProfileRange: React.FC<CantRangeComponentProps> = ({
-    chosenSegment,
+    points,
     planHeader,
 }: CantRangeComponentProps) => {
     const { t } = useTranslation();
@@ -35,7 +32,7 @@ export const GeometryProfileRange: React.FC<CantRangeComponentProps> = ({
         <React.Fragment>
             <InfoboxField
                 label={t('tool-panel.alignment.geometry-segment.height')}
-                value={getProfileRange(chosenSegment.points)}></InfoboxField>
+                value={getProfileRange(points)}></InfoboxField>
             <InfoboxField
                 label={t('tool-panel.alignment.geometry-segment.vertical-coordinate-system')}
                 value={planHeader.units.verticalCoordinateSystem}

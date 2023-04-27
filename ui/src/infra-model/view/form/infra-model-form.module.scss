@@ -92,7 +92,7 @@
     @include typography-sub-heading;
 
     padding: 4px 32px;
-    background-color: $color-red-lighter
+    background-color: $color-red-lighter;
 }
 
 .infra-model-upload__date-selection {
@@ -118,7 +118,7 @@
     display: grid;
     grid-template-columns: auto auto;
     column-gap: 16px;
-    justify-content: start
+    justify-content: start;
 }
 
 .infra-model-upload__title-menu {

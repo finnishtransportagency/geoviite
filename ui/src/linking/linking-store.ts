@@ -20,13 +20,10 @@ import {
     LayoutPoint,
     LayoutSwitch,
     LayoutSwitchId,
-    MapAlignment,
     MapAlignmentType,
-    MapSegment,
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
-import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
-import { BoundingBox, boundingBoxContains } from 'model/geometry';
+import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -188,21 +185,22 @@ export const linkingReducers = {
 
     startAlignmentGeometryChange: (
         state: TrackLayoutState,
-        { payload: alignment }: PayloadAction<MapAlignment>,
+        { payload: interval }: PayloadAction<LinkInterval>,
     ): void => {
-        state.publishType = 'DRAFT';
-        state.linkingState = validateLinkingState({
-            layoutAlignmentId: alignment.id,
-            layoutAlignmentType: alignment.alignmentType,
-            layoutAlignmentInterval: createEndLinkPoints(
-                alignment.alignmentType,
-                alignment.id,
-                alignment.segments,
-            ),
-            type: LinkingType.LinkingAlignment,
-            state: 'setup',
-            errors: [],
-        });
+        const alignmentId = interval.start?.alignmentId || interval.end?.alignmentId;
+        const alignmentType = interval.start?.alignmentType || interval.end?.alignmentType;
+
+        if (alignmentId && alignmentType) {
+            state.publishType = 'DRAFT';
+            state.linkingState = validateLinkingState({
+                layoutAlignmentId: alignmentId,
+                layoutAlignmentType: alignmentType,
+                layoutAlignmentInterval: interval,
+                type: LinkingType.LinkingAlignment,
+                state: 'setup',
+                errors: [],
+            });
+        }
     },
     startSwitchPlacing: (
         state: TrackLayoutState,
@@ -464,104 +462,102 @@ function validateLinkingSwitch(state: LinkingSwitch): LinkingSwitch {
     };
 }
 
-export function createEndLinkPoints(
-    alignmentType: MapAlignmentType,
-    alignmentId: AlignmentId,
-    segments: MapSegment[],
-): LinkInterval {
-    if (segments.length == 0) {
-        return {
-            start: undefined,
-            end: undefined,
-        };
-    }
-    const firstSegment = segments[0];
-    const lastSegment = segments[segments.length - 1];
-    return {
-        start: createLinkPoint(
-            alignmentType,
-            alignmentId,
-            firstSegment,
-            0,
-            firstSegment.points[0],
-            directionBetweenPoints(firstSegment.points[0], firstSegment.points[1]),
-            true,
-        ),
-        end: createLinkPoint(
-            alignmentType,
-            alignmentId,
-            lastSegment,
-            // use full segment point-count as the points might be simplified
-            lastSegment.pointCount - 1,
-            lastSegment.points[lastSegment.points.length - 1],
-            directionBetweenPoints(
-                lastSegment.points[lastSegment.points.length - 2],
-                lastSegment.points[lastSegment.points.length - 1],
-            ),
-            true,
-        ),
-    };
+export function createLinkPoints(
+    type: MapAlignmentType,
+    id: AlignmentId,
+    alignmentLength: number,
+    segmentEndMs: number[],
+    points: LayoutPoint[],
+): LinkPoint[] {
+    let segmentMIndex = 0;
+    return points.flatMap((point, pIdx) => {
+        const linkPoints: LinkPoint[] = [];
+
+        // Generate points for segment start/end markers if needed
+        while (segmentMIndex < segmentEndMs.length && segmentEndMs[segmentMIndex] <= point.m) {
+            const newM = segmentEndMs[segmentMIndex];
+            segmentMIndex++;
+            // Only do the interpolated point if it's not in the actual points already
+            if (pIdx > 0 && newM < point.m) {
+                linkPoints.push(
+                    interpolateSegmentEndLinkPoint(type, id, points[pIdx - 1], point, newM),
+                );
+            }
+        }
+
+        // Create the linkpoint from layout point
+        const direction =
+            pIdx === 0
+                ? directionBetweenPoints(point, points[pIdx + 1])
+                : directionBetweenPoints(points[pIdx - 1], point);
+        const segmentEnd = segmentEndMs.includes(point.m);
+        const alignmentEnd = point.m === 0 || point.m === alignmentLength;
+        linkPoints.push(
+            layoutPointToLinkPoint(type, id, point, direction, segmentEnd, alignmentEnd),
+        );
+
+        return linkPoints;
+    });
 }
 
-export function createLinkPoints(
+function interpolateSegmentEndLinkPoint(
     alignmentType: MapAlignmentType,
     alignmentId: AlignmentId,
-    segments: MapSegment[],
-    bounds?: BoundingBox,
-    filter: ((linkPoint: LinkPoint, isSegmentEndPoint: boolean) => boolean) | undefined = undefined,
-): LinkPoint[] {
-    return segments.flatMap((segment, sIdx) => {
-        const isFirstSegment = sIdx === 0;
-        const isLastSegment = sIdx === segments.length - 1;
+    previous: LayoutPoint,
+    next: LayoutPoint,
+    newM: number,
+): LinkPoint {
+    const [x, y] = interpolateXY(previous, next, newM);
+    return createLinkPoint(
+        alignmentType,
+        alignmentId,
+        x,
+        y,
+        newM,
+        directionBetweenPoints(previous, next),
+        true,
+        false,
+    );
+}
 
-        return segment.points
-            .flatMap((point, pIdx) => {
-                const isFirstPoint = pIdx === 0;
-                const isLastPoint = pIdx === segment.points.length - 1;
-                const isSegmentEndPoint = isFirstPoint || isLastPoint;
-
-                if (!isLastSegment && isLastPoint) return null;
-                if (bounds != undefined && !boundingBoxContains(bounds, point)) return null;
-
-                const direction = isLastPoint
-                    ? directionBetweenPoints(segment.points[pIdx - 1], point)
-                    : directionBetweenPoints(point, segment.points[pIdx + 1]);
-
-                const linkPoint = createLinkPoint(
-                    alignmentType,
-                    alignmentId,
-                    segment,
-                    pIdx,
-                    point,
-                    direction,
-                    (isFirstSegment && isFirstPoint) || (isLastSegment && isLastPoint),
-                );
-
-                if (filter && !filter(linkPoint, isSegmentEndPoint)) return null;
-                return linkPoint;
-            })
-            .filter(filterNotEmpty);
-    });
+export function layoutPointToLinkPoint(
+    alignmentType: MapAlignmentType,
+    alignmentId: AlignmentId,
+    point: LayoutPoint,
+    direction: number | undefined,
+    isSegmentEndPoint: boolean,
+    isEndPoint: boolean,
+): LinkPoint {
+    return createLinkPoint(
+        alignmentType,
+        alignmentId,
+        point.x,
+        point.y,
+        point.m,
+        direction,
+        isSegmentEndPoint,
+        isEndPoint,
+    );
 }
 
 function createLinkPoint(
     alignmentType: MapAlignmentType,
     alignmentId: AlignmentId,
-    segment: MapSegment,
-    pointIndex: number,
-    point: LayoutPoint,
+    x: number,
+    y: number,
+    m: number,
     direction: number | undefined,
+    isSegmentEndPoint: boolean,
     isEndPoint: boolean,
 ): LinkPoint {
     return {
-        id: `${segment.id}_${pointIndex}`,
+        id: `${alignmentId}_${m}`,
         alignmentType: alignmentType,
         alignmentId: alignmentId,
-        segmentId: segment.id,
-        x: point.x,
-        y: point.y,
-        m: point.m,
-        isSegmentEndPoint: pointIndex === 0 || pointIndex == segment.points.length - 1,
+        x: x,
+        y: y,
+        m: m,
+        isSegmentEndPoint: isSegmentEndPoint,
         isEndPoint: isEndPoint,
         direction: direction,
     };

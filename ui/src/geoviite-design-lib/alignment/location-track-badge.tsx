@@ -1,10 +1,11 @@
 import * as React from 'react';
 import styles from './alignment-badge.scss';
-import { LayoutLocationTrack, MapAlignment } from 'track-layout/track-layout-model';
+import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { createClassName } from 'vayla-design-lib/utils';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 type LocationTrackBadgeProps = {
-    locationTrack: MapAlignment | LayoutLocationTrack;
+    locationTrack: AlignmentHeader | LayoutLocationTrack;
     onClick?: React.MouseEventHandler;
     status?: LocationTrackBadgeStatus;
 };

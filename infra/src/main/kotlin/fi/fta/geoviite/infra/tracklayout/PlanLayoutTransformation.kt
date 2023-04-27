@@ -6,29 +6,14 @@ import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.geometry.PlanState.*
+import fi.fta.geoviite.infra.map.*
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState.*
-import fi.fta.geoviite.infra.util.FileName
 import java.math.BigDecimal
 import kotlin.math.max
 
 val REFERENCE_LINE_TYPE_CODE = FeatureTypeCode("111")
 const val MIN_POINT_DISTANCE = 0.01
-
-data class GeometryPlanLayout(
-    val fileName: FileName,
-    val alignments: List<MapAlignment<GeometryAlignment>>,
-    val switches: List<TrackLayoutSwitch>,
-    val kmPosts: List<TrackLayoutKmPost>,
-    val boundingBox: BoundingBox? = boundingBoxCombining(alignments.mapNotNull { a -> a.boundingBox }),
-    val planId: DomainId<GeometryPlan>,
-    val planDataType: DataType,
-    val startAddress: TrackMeter?,
-)
-
-fun simplifyPlanLayout(layout: GeometryPlanLayout, resolution: Int) = layout.copy(
-    alignments = layout.alignments.map { mapAlignment -> simplify(mapAlignment, resolution) }
-)
 
 fun toTrackLayout(
     geometryPlan: GeometryPlan,
@@ -39,7 +24,7 @@ fun toTrackLayout(
 ): GeometryPlanLayout {
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
-    val alignments: List<MapAlignment<GeometryAlignment>> = toMapAlignments(
+    val alignments: List<PlanLayoutAlignment> = toMapAlignments(
         geometryPlan.alignments,
         planToLayout,
         pointListStepLength,
@@ -115,7 +100,7 @@ fun toMapAlignments(
     heightTriangles: List<HeightTriangle>,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
     includeGeometryData: Boolean = true,
-): List<MapAlignment<GeometryAlignment>> {
+): List<PlanLayoutAlignment> {
     return geometryAlignments
         .map { alignment ->
             val mapSegments = toMapSegments(
@@ -133,22 +118,22 @@ fun toMapAlignments(
                 boundingBoxAroundPoints(cornersInLayoutSpace)
             }
 
-            MapAlignment(
-                name = alignment.name,
-                description = null,
-                alignmentSource = MapAlignmentSource.GEOMETRY,
-                alignmentType = getAlignmentType(alignment.featureTypeCode),
-                type = null,
-                state = state,
+            PlanLayoutAlignment(
+                header = AlignmentHeader(
+                    id = alignment.id,
+                    name = alignment.name,
+                    alignmentSource = MapAlignmentSource.GEOMETRY,
+                    alignmentType = getAlignmentType(alignment.featureTypeCode),
+                    state = state,
+                    trackNumberId = alignment.trackNumberId,
+                    boundingBox = boundingBoxInLayoutSpace,
+                    length = alignment.elements.sumOf(GeometryElement::calculatedLength),
+                    segmentCount = alignment.elements.size,
+                    version = null,
+                    duplicateOf = null,
+                    trackType = null,
+                ),
                 segments = mapSegments,
-                trackNumberId = alignment.trackNumberId,
-                sourceId = alignment.id,
-                id = alignment.id,
-                boundingBox = boundingBoxInLayoutSpace,
-                length = alignment.elements.sumOf(GeometryElement::calculatedLength),
-                segmentCount = alignment.elements.size,
-                version = null,
-                duplicateOf = null
             )
         }
 }
@@ -160,7 +145,7 @@ private fun toMapSegments(
     heightTriangles: List<HeightTriangle>,
     verticalCoordinateSystem: VerticalCoordinateSystem?,
     includeGeometryData: Boolean = true,
-): List<MapSegment> {
+): List<PlanLayoutSegment> {
     val alignmentStationStart = alignment.staStart.toDouble()
     var segmentStartLength = 0.0
     val elements = alignment.elements
@@ -186,7 +171,7 @@ private fun toMapSegments(
                 )
             }
 
-            MapSegment(
+            PlanLayoutSegment(
                 id = deriveFromSourceId("AS", element.id),
                 geometry = SegmentGeometry(
                     resolution = pointListStepLength,

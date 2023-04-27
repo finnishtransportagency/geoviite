@@ -9,12 +9,7 @@ import {
     Selection,
     UnselectableItemCollections,
 } from 'selection/selection-model';
-import {
-    GeometryPlanLayout,
-    LayoutKmPost,
-    LayoutSwitch,
-    MapAlignment,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LayoutKmPost, LayoutSwitch } from 'track-layout/track-layout-model';
 import { LocationTrackBadgeStatus } from 'geoviite-design-lib/alignment/location-track-badge';
 import { deduplicate, filterUniqueById } from 'utils/array-utils';
 import { SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
@@ -22,19 +17,17 @@ import { KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
 import { ValueOf } from 'utils/type-utils';
 import { GeometryPlanLayoutId } from 'geometry/geometry-model';
 import { PublicationId } from 'publication/publication-model';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export function createEmptyItemCollections(): ItemCollections {
     return {
-        segments: [],
         locationTracks: [],
-        // referenceLines: [],
         kmPosts: [],
         geometryKmPosts: [],
         switches: [],
         geometrySwitches: [],
         trackNumbers: [],
         geometryAlignments: [],
-        geometrySegments: [],
         layoutLinkPoints: [],
         geometryLinkPoints: [],
         clusterPoints: [],
@@ -150,11 +143,6 @@ function updateItemCollectionsByOptions(
 ) {
     // Repetitive code, but seems that there is no way do make typescript to accept this in a loop
     const flags = options as OnSelectFlags;
-    itemCollections['segments'] = getNewItemCollection(
-        itemCollections['segments'],
-        options['segments'],
-        flags,
-    );
     itemCollections['locationTracks'] = getNewIdCollection(
         itemCollections['locationTracks'],
         options['locationTracks'],
@@ -188,11 +176,6 @@ function updateItemCollectionsByOptions(
     itemCollections['geometryAlignments'] = getNewGeometryItemCollection(
         itemCollections['geometryAlignments'],
         options['geometryAlignments'],
-        flags,
-    );
-    itemCollections['geometrySegments'] = getNewGeometryItemCollection(
-        itemCollections['geometrySegments'],
-        options['geometrySegments'],
         flags,
     );
     itemCollections['layoutLinkPoints'] = getNewItemCollection(
@@ -231,10 +214,6 @@ function updateItemCollectionsByUnselecting(
     itemCollections: ItemCollections,
     unselectItemCollections: OptionalUnselectableItemCollections,
 ) {
-    itemCollections['segments'] = filterItemCollection(
-        itemCollections['segments'],
-        unselectItemCollections['segments'],
-    );
     itemCollections['locationTracks'] = filterIdCollection(
         itemCollections['locationTracks'],
         unselectItemCollections['locationTracks'],
@@ -263,10 +242,6 @@ function updateItemCollectionsByUnselecting(
         itemCollections['geometryAlignments'],
         unselectItemCollections['geometryAlignments'],
     );
-    itemCollections['geometrySegments'] = filterGeometryItemCollection(
-        itemCollections['geometrySegments'],
-        unselectItemCollections['geometrySegments'],
-    );
     itemCollections['layoutLinkPoints'] = filterItemCollection(
         itemCollections['layoutLinkPoints'],
         unselectItemCollections['layoutLinkPoints'],
@@ -290,7 +265,7 @@ function updateItemCollectionsByUnselecting(
 }
 
 export type ToggleAlignmentPayload = {
-    alignment: MapAlignment;
+    alignment: AlignmentHeader;
     status: LocationTrackBadgeStatus;
     planLayout: GeometryPlanLayout;
     keepAlignmentVisible?: boolean;
@@ -357,14 +332,6 @@ export const selectionReducers = {
                 ...state.planLayouts.filter((p) => p.planId !== planLayout?.planId),
             ];
 
-            state.selectedItems.geometrySegments = [
-                ...state.selectedItems.geometrySegments.filter(
-                    (gs) =>
-                        !planLayout?.alignments.some((a) =>
-                            a.segments.some((s) => s.id === gs.geometryItem.id),
-                        ),
-                ),
-            ];
             state.selectedItems.geometryKmPosts = [
                 ...state.selectedItems.geometryKmPosts.filter(
                     (gKmPost) =>
@@ -380,7 +347,7 @@ export const selectionReducers = {
             ];
             state.selectedItems.geometryAlignments = [
                 ...state.selectedItems.geometryAlignments.filter(
-                    (ga) => !planLayout?.alignments.some((a) => a.id === ga.geometryItem.id),
+                    (ga) => !planLayout?.alignments.some((a) => a.header.id === ga.geometryItem.id),
                 ),
             ];
         } else {
@@ -395,7 +362,9 @@ export const selectionReducers = {
 
         const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
         if (storePlanLayout) {
-            const alignmentVisible = storePlanLayout.alignments.some((a) => a.id === alignment.id);
+            const alignmentVisible = storePlanLayout.alignments.some(
+                (a) => a.header.id === alignment.id,
+            );
 
             if (alignmentVisible) {
                 if (!payload.keepAlignmentVisible) {
@@ -404,7 +373,7 @@ export const selectionReducers = {
                         {
                             ...storePlanLayout,
                             alignments: storePlanLayout.alignments.filter(
-                                (a) => a.id !== alignment.id,
+                                (a) => a.header.id !== alignment.id,
                             ),
                         },
                     ];
@@ -414,7 +383,14 @@ export const selectionReducers = {
                     ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
                     {
                         ...storePlanLayout,
-                        alignments: [...storePlanLayout.alignments, alignment],
+                        alignments: [
+                            ...storePlanLayout.alignments,
+                            {
+                                header: alignment,
+                                polyLine: null,
+                                segmentMValues: [],
+                            },
+                        ],
                     },
                 ];
             }
@@ -423,7 +399,13 @@ export const selectionReducers = {
                 ...state.planLayouts,
                 {
                     ...planLayout,
-                    alignments: [alignment],
+                    alignments: [
+                        {
+                            header: alignment,
+                            polyLine: null,
+                            segmentMValues: [],
+                        },
+                    ],
                     switches: [],
                     kmPosts: [],
                 },

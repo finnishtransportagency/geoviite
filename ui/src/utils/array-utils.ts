@@ -110,7 +110,10 @@ export function compare<T>(f1: T, f2: T): number {
     else return 0;
 }
 
-export function groupBy<T, K extends string | number>(array: T[], getKey: (item: T) => K) {
+export function groupBy<T, K extends string | number>(
+    array: T[],
+    getKey: (item: T) => K,
+): Record<K, T[]> {
     return array.reduce((acc, item) => {
         (acc[getKey(item)] ||= []).push(item);
         return acc;

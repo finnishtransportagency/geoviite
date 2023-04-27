@@ -1,9 +1,6 @@
 import * as React from 'react';
 import { GeometryLine } from 'geometry/geometry-model';
-import {
-    Precision,
-    roundToPrecision,
-} from 'utils/rounding';
+import { Precision, roundToPrecision } from 'utils/rounding';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import 'i18n/config';
 import { useTranslation } from 'react-i18next';

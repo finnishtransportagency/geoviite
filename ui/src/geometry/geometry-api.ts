@@ -2,7 +2,6 @@ import { asyncCache } from 'cache/cache';
 import {
     Author,
     ElementItem,
-    GeometryAlignmentId,
     GeometryElement,
     GeometryElementId,
     GeometryPlan,
@@ -16,13 +15,13 @@ import {
     SortOrderValue,
     ProjectId,
     VerticalGeometryItem,
+    GeometryAlignmentId,
 } from 'geometry/geometry-model';
 import {
     GeometryPlanLayout,
     LayoutSwitch,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
     PlanArea,
 } from 'track-layout/track-layout-model';
 import {
@@ -233,17 +232,6 @@ export async function getTrackLayoutPlans(
     ).then((plans) => plans.filter(filterNotEmpty));
 }
 
-export async function getGeometryAlignmentLayout(
-    planId: GeometryPlanId,
-    geometryAlignmentId: GeometryAlignmentId,
-    includeGeometryData = true,
-    changeTime: TimeStamp = getChangeTimes().geometryPlan,
-): Promise<MapAlignment | undefined> {
-    return getTrackLayoutPlan(planId, changeTime, includeGeometryData).then((plan) => {
-        return plan?.alignments.find((alignment) => alignment.id === geometryAlignmentId);
-    });
-}
-
 export async function fetchProjects(): Promise<Project[]> {
     return await getThrowError<Project[]>(`${GEOMETRY_URI}/projects`);
 }
@@ -312,7 +300,7 @@ export async function getPlanAlignmentHeights(
 ): Promise<AlignmentHeights> {
     return getThrowError(
         `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
-            queryParams({ startDistance, endDistance, tickLength }),
+        queryParams({ startDistance, endDistance, tickLength }),
     );
 }
 
@@ -325,6 +313,6 @@ export async function getLocationTrackHeights(
 ): Promise<AlignmentHeights> {
     return getThrowError(
         `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
-            queryParams({ startDistance, endDistance, tickLength }),
+        queryParams({ startDistance, endDistance, tickLength }),
     );
 }

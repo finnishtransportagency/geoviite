@@ -8,6 +8,9 @@ import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.SwitchLinkingSegment
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.map.AlignmentHeader
+import fi.fta.geoviite.infra.map.MapAlignmentSource
+import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
@@ -247,24 +250,24 @@ fun alignment(segments: List<LayoutSegment>) = LayoutAlignment(
     sourceId = null,
 )
 
-fun <T> mapAlignment(vararg segments: MapSegment) = mapAlignment<T>(segments.toList())
+fun mapAlignment(vararg segments: PlanLayoutSegment) = mapAlignment(segments.toList())
 
-fun <T> mapAlignment(segments: List<MapSegment>) = MapAlignment<T>(
-    name = AlignmentName("test-alignment"),
-    description = FreeText("test alignment description"),
-    alignmentSource = MapAlignmentSource.GEOMETRY,
-    alignmentType = MapAlignmentType.LOCATION_TRACK,
-    type = LocationTrackType.MAIN,
-    state = LayoutState.IN_USE,
-    segmentCount = segments.size,
+fun mapAlignment(segments: List<PlanLayoutSegment>) = PlanLayoutAlignment(
+    header = AlignmentHeader(
+        id = StringId(),
+        name = AlignmentName("test-alignment"),
+        alignmentSource = MapAlignmentSource.GEOMETRY,
+        alignmentType = MapAlignmentType.LOCATION_TRACK,
+        trackType = LocationTrackType.MAIN,
+        state = LayoutState.IN_USE,
+        segmentCount = segments.size,
+        trackNumberId = IntId(1),
+        version = null,
+        duplicateOf = null,
+        length = segments.map(PlanLayoutSegment::length).sum(),
+        boundingBox = boundingBoxCombining(segments.mapNotNull(PlanLayoutSegment::boundingBox)),
+    ),
     segments = segments,
-    trackNumberId = IntId(1),
-    sourceId = StringId(),
-    id = StringId(),
-    boundingBox = boundingBoxCombining(segments.mapNotNull(MapSegment::boundingBox)),
-    length = segments.map(MapSegment::length).sum(),
-    version = null,
-    duplicateOf = null,
 )
 
 fun locationTrackWithTwoSwitches(
@@ -540,7 +543,7 @@ fun mapSegment(
     sourceStart: Double? = null,
     source: GeometrySource = PLAN,
     id: DomainId<LayoutSegment> = StringId(),
-) = MapSegment(
+) = PlanLayoutSegment(
     geometry = SegmentGeometry(
         points = points,
         resolution = resolution,

@@ -5,6 +5,7 @@ import {
     LayoutSwitchId,
     LocationTrackId,
     ReferenceLineId,
+    MapAlignmentType,
 } from 'track-layout/track-layout-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { DebugLayerData } from 'map/layers/debug-layer';
@@ -156,5 +157,6 @@ export type MapTile = {
 
 export type AlignmentHighlight = {
     id: string;
+    type: MapAlignmentType;
     ranges: { min: number; max: number }[];
 };

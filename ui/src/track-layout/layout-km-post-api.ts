@@ -54,12 +54,12 @@ export async function getKmPosts(
             (fetchIds) =>
                 getThrowError<LayoutKmPost[]>(
                     `${layoutUri('km-posts', publishType)}?ids=${fetchIds}`,
-                ).then((tracks) => {
-                    const kmPostMap = indexIntoMap(tracks);
+                ).then((kmPosts) => {
+                    const kmPostMap = indexIntoMap(kmPosts);
                     return (id) => kmPostMap.get(id) ?? null;
                 }),
         )
-        .then((tracks) => tracks.filter(filterNotEmpty));
+        .then((kmPosts) => kmPosts.filter(filterNotEmpty));
 }
 
 export async function getKmPostByNumber(
