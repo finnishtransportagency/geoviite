@@ -146,15 +146,15 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         }
                     />
                     {!linkingState && (
-                        <InfoboxButtons>
-                            <WriteRoleRequired>
+                        <WriteRoleRequired>
+                            <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}
                                     onClick={() => startLinking(geometryKmPost.id)}>
                                     {t('tool-panel.km-post.geometry.linking.start-linking-command')}
                                 </Button>
-                            </WriteRoleRequired>
-                        </InfoboxButtons>
+                            </InfoboxButtons>
+                        </WriteRoleRequired>
                     )}
 
                     {linkingState && (
