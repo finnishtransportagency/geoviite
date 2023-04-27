@@ -53,7 +53,7 @@ function createFeatures(planArea: PlanArea): Feature<Polygon> {
     feature.set('planArea', planArea);
     return feature;
 }
-
+let newestPlanAdapterId = 0;
 const areaFeatureCache: Map<string, Feature<Polygon>> = new Map();
 adapterInfoRegister.add('planAreas', {
     createAdapter: function (
@@ -65,6 +65,7 @@ adapterInfoRegister.add('planAreas', {
         _linkingState: LinkingState,
         changeTimes: ChangeTimes,
     ): OlLayerAdapter {
+        const adapterId = ++newestPlanAdapterId;
         const vectorSource = existingOlLayer?.getSource() || new VectorSource();
         // Use an existing layer or create a new one. Old layer is "recycled" to
         // prevent features to disappear while moving the map.
@@ -74,12 +75,8 @@ adapterInfoRegister.add('planAreas', {
                 source: vectorSource,
             });
 
-        function clearFeatures() {
-            vectorSource.clear();
-        }
-
         function updateFeatures(features: Feature<Polygon>[]) {
-            clearFeatures();
+            vectorSource.clear();
             vectorSource.addFeatures(features);
         }
 
@@ -89,7 +86,7 @@ adapterInfoRegister.add('planAreas', {
         const planAreaPromises = mapTiles.map((tile) =>
             getPlanAreasByTile(tile, changeTimes.geometryPlan),
         );
-        const updateFeaturesPromise = Promise.all(planAreaPromises)
+        Promise.all(planAreaPromises)
             .then((planAreas) =>
                 deduplicatePlanAreas(planAreas.flat()).flatMap((planArea) => {
                     const previous = areaFeatureCache.get(planArea.id);
@@ -98,13 +95,12 @@ adapterInfoRegister.add('planAreas', {
             )
             .then((features) => {
                 // Handle the latest fetch only
-                if (layer.get('updateFeaturesPromise') === updateFeaturesPromise) {
+                if (adapterId === newestPlanAdapterId) {
                     areaFeatureCache.clear();
                     features.forEach((f) => areaFeatureCache.set(f.get('planArea').id, f));
-                    return updateFeatures(features);
+                    updateFeatures(features);
                 }
             });
-        layer.set('updateFeaturesPromise', updateFeaturesPromise);
 
         return {
             layer: layer,

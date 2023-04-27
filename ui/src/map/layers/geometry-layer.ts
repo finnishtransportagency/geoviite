@@ -162,6 +162,8 @@ async function getPlanLayoutAlignmentsWithLinking(
     );
 }
 
+let newestGeometryAdapterId = 0;
+
 adapterInfoRegister.add('geometry', {
     createAdapter: function (
         _mapTiles: MapTile[],
@@ -173,6 +175,8 @@ adapterInfoRegister.add('geometry', {
         changeTimes: ChangeTimes,
         olView: OlView,
     ): OlLayerAdapter {
+        const adapterId = ++newestGeometryAdapterId;
+
         const vectorSource = existingOlLayer?.getSource() || new VectorSource();
         // Use an existing layer or create a new one. Old layer is "recycled" to
         // prevent features to disappear while moving the map.
@@ -206,8 +210,10 @@ adapterInfoRegister.add('geometry', {
         );
 
         features.then((f) => {
-            vectorSource.clear();
-            vectorSource.addFeatures(f.flat());
+            if (adapterId == newestGeometryAdapterId) {
+                vectorSource.clear();
+                vectorSource.addFeatures(f.flat());
+            }
         });
 
         return {

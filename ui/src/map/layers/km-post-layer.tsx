@@ -101,6 +101,7 @@ function getStepByResolution(resolution: number): number {
 
 let kmPostIdCompare = '';
 let kmPostChangeTimeCompare: TimeStamp | undefined = undefined;
+let newestKmPostsAdapterId = 0;
 
 adapterInfoRegister.add('kmPosts', {
     createAdapter: function (
@@ -114,6 +115,7 @@ adapterInfoRegister.add('kmPosts', {
         olView: OlView,
         onViewContentChanged?: (items: OptionalShownItems) => void,
     ): OlLayerAdapter {
+        const adapterId = ++newestKmPostsAdapterId;
         const resolution = olView.getResolution() || 0;
         const getKmPostFromApi = (step: number) =>
             Promise.all(
@@ -129,8 +131,8 @@ adapterInfoRegister.add('kmPosts', {
             (existingOlLayer as VectorLayer<VectorSource<OlPoint | Polygon>>) ||
             new VectorLayer({
                 source: vectorSource,
+                style: null,
             });
-        layer.setStyle(null); // No default styling for features
 
         const searchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
             const kmPosts = getMatchingKmPosts(
@@ -176,19 +178,19 @@ adapterInfoRegister.add('kmPosts', {
             const isSelected = (kmPost: LayoutKmPost) => {
                 return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
             };
-            const updateFeaturesPromise = getKmPostFromApi(step).then((kmPosts) => {
+
+            getKmPostFromApi(step).then((kmPosts) => {
                 // Handle latest fetch only
-                if (layer.get('updateFeaturesPromise') === updateFeaturesPromise) {
+                if (adapterId == newestKmPostsAdapterId) {
                     const features = createFeatures(
                         kmPosts,
                         isSelected,
                         'layoutKmPost',
                         resolution,
                     );
-                    return updateFeatures(kmPosts, features);
+                    updateFeatures(kmPosts, features);
                 }
             });
-            layer.set('updateFeaturesPromise', updateFeaturesPromise);
         }
 
         return {
@@ -202,6 +204,7 @@ adapterInfoRegister.add('kmPosts', {
     mapTileSizePx: calculateTileSize(2),
 });
 
+let newestGeometryKmPostAdapterId = 0;
 adapterInfoRegister.add('geometryKmPosts', {
     createAdapter: function (
         mapTiles: MapTile[],
@@ -213,6 +216,7 @@ adapterInfoRegister.add('geometryKmPosts', {
         _changeTimes: ChangeTimes,
         olView: OlView,
     ): OlLayerAdapter {
+        const adapterId = ++newestGeometryKmPostAdapterId;
         const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
         // Use an existing layer or create a new one. Old layer is "recycled" to
@@ -221,8 +225,8 @@ adapterInfoRegister.add('geometryKmPosts', {
             existingOlLayer ||
             new VectorLayer({
                 source: vectorSource,
+                style: null,
             });
-        layer.setStyle(null); // No default styling for features
         layer.setVisible(mapLayer.visible);
 
         const step = getStepByResolution(mapTiles[0].resolution);
@@ -272,8 +276,10 @@ adapterInfoRegister.add('geometryKmPosts', {
                     );
                 });
 
-                vectorSource.clear();
-                vectorSource.addFeatures(features);
+                if (adapterId == newestGeometryKmPostAdapterId) {
+                    vectorSource.clear();
+                    vectorSource.addFeatures(features);
+                }
             });
         }
 

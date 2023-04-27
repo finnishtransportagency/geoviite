@@ -730,6 +730,8 @@ function createFeaturesWhenLinkingGeometryWithLayoutAlignment(
     return allFeatures;
 }
 
+let newestLinkingAdapterId = 0;
+
 adapterInfoRegister.add('linking', {
     createAdapter: function (
         mapTiles: MapTile[],
@@ -741,6 +743,8 @@ adapterInfoRegister.add('linking', {
         changeTimes: ChangeTimes,
         olView: OlView,
     ): OlLayerAdapter {
+        const adapterId = ++newestLinkingAdapterId;
+
         const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
         // Use an existing layer or create a new one. Old layer is "recycled" to
@@ -773,6 +777,8 @@ adapterInfoRegister.add('linking', {
                         ? getLocationTrackSegmentEnds(linkingState.layoutAlignmentId, publishType)
                         : getReferenceLineSegmentEnds(linkingState.layoutAlignmentId, publishType),
                 ]).then(([points, _]) => {
+                    if (adapterId != newestLinkingAdapterId) return;
+
                     const allFeatures = createFeaturesWhenUpdatingLayoutAlignment(
                         selection,
                         points,
@@ -818,6 +824,10 @@ adapterInfoRegister.add('linking', {
                         ),
                     )
                     .then((features) => {
+                        if (adapterId != newestLinkingAdapterId) {
+                            return;
+                        }
+
                         // All features ready, clear old ones and add new ones
                         _featureCache = new Map(newFeatureCache);
                         newFeatureCache.clear();
@@ -865,6 +875,8 @@ adapterInfoRegister.add('linking', {
                         );
                     })
                     .then((features) => {
+                        if (adapterId != newestLinkingAdapterId) return;
+
                         //All features ready, clear old ones and add new ones
                         _featureCache = new Map(newFeatureCache);
                         newFeatureCache.clear();

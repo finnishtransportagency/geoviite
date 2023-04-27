@@ -519,7 +519,7 @@ function createFeaturesCached(
 
 let alignmentCompare = '';
 let alignmentChangeTimeCompare: TimeStamp | undefined = undefined;
-
+let newestAlignmentAdapterId = 0;
 adapterInfoRegister.add('alignment', {
     createAdapter: function (
         mapTiles: MapTile[],
@@ -532,6 +532,7 @@ adapterInfoRegister.add('alignment', {
         olView: OlView,
         onViewContentChanged?: (items: OptionalShownItems) => void,
     ): OlLayerAdapter {
+        const adapterId = ++newestAlignmentAdapterId;
         const vectorSource = existingOlLayer?.getSource() || new VectorSource();
         // Use an existing layer or create a new one. Old layer is "recycled" to
         // prevent features to disappear while moving the map.
@@ -631,6 +632,8 @@ adapterInfoRegister.add('alignment', {
                     DataCollection,
                     AlignmentHighlight[] | null,
                 ]) => {
+                    if (adapterId != newestAlignmentAdapterId) return;
+
                     const features = createFeaturesCached(
                         dataCollection.dataHolders,
                         selection,
