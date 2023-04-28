@@ -2,6 +2,7 @@
 @import '../vayla-design-lib/shadows';
 
 .vertical-geometry-diagram {
+    width: 100%;
     cursor: grab;
     &__panning {
         cursor: grabbing;

@@ -9,7 +9,7 @@ import {
 } from 'data-products/data-products-utils';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
-import { VerticalGeometryDiagram } from 'vertical-geometry/vertical-geometry-diagram';
+import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
 import { GeometryAlignment, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
@@ -72,7 +72,7 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
     );
 
     return (
-        <div>
+        <div style={{ width: '100%' }}>
             Sijaintiraide:
             <Dropdown
                 value={locationTrack}
