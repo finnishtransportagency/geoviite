@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -253,6 +254,16 @@ class GeometryController @Autowired constructor(
         val (filename, content) = geometryService
             .getVerticalGeometryListingCsv(id, startAddress, endAddress)
         return toFileDownloadResponse("${filename}.csv", content)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/{planId}/start-and-end/{planAlignmentId}")
+    fun getPlanAlignmentStartAndEnd(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
+    ): AlignmentStartAndEnd? {
+        logger.apiCall("getPlanAlignmentStartAndEnd", "planId" to planId, "planAlignmentId" to planAlignmentId)
+        return geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

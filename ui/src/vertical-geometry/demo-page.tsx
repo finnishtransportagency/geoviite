@@ -86,12 +86,7 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
                 wide
             />
             {locationTrackAlignmentId && (
-                <VerticalGeometryDiagram
-                    key={locationTrackAlignmentId.locationTrackId}
-                    alignmentId={locationTrackAlignmentId}
-                    initialStartM={0}
-                    initialEndM={10000}
-                />
+                <VerticalGeometryDiagram alignmentId={locationTrackAlignmentId} />
             )}
             <br />
             Suunnitelma:
@@ -123,14 +118,7 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
                 options={geometryAlignments.map((a) => ({ name: a.name, value: a }))}
                 onChange={setSelectedAlignment}
             />
-            {planAlignmentId && (
-                <VerticalGeometryDiagram
-                    key={`${planAlignmentId.planId}_${planAlignmentId.alignmentId}`}
-                    alignmentId={planAlignmentId}
-                    initialStartM={0}
-                    initialEndM={10000}
-                />
-            )}
+            {planAlignmentId && <VerticalGeometryDiagram alignmentId={planAlignmentId} />}
         </div>
     );
 };

@@ -18,6 +18,7 @@ import {
     VerticalGeometryItem,
 } from 'geometry/geometry-model';
 import {
+    AlignmentStartAndEnd,
     GeometryPlanLayout,
     LayoutSwitch,
     LayoutTrackNumberId,
@@ -304,6 +305,15 @@ export async function getPlanAlignmentHeights(
     return getThrowError(
         `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
             queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getPlanAlignmentStartAndEnd(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getThrowError<AlignmentStartAndEnd>(
+        `${GEOMETRY_URI}/plans/${planId}/start-and-end/${alignmentId}`,
     );
 }
 

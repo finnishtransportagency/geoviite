@@ -77,6 +77,27 @@ export function useLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
+/**
+ * Load/fetch something asynchronously and, if the load finishes, call the given onceOnFulfilled callback with its
+ * result.
+ */
+export function useTwoPartEffect<TEntity>(
+    loadFunc: () => Promise<TEntity> | undefined,
+    onceOnFulfilled: (result: TEntity) => void,
+    deps: unknown[],
+): void {
+    const promise = useRef<Promise<void>>();
+    let cancelled = false;
+    useEffect(() => {
+        promise.current = loadFunc()
+            ?.then((r) => (cancelled ? Promise.reject('dependencies changed') : Promise.resolve(r)))
+            .then(onceOnFulfilled);
+        return () => {
+            cancelled = true;
+        };
+    }, deps);
+}
+
 export function useLoaderWithTimer<TEntity>(
     setEntity: (entity: TEntity | undefined) => void,
     loadFunc: () => Promise<TEntity> | undefined,
@@ -150,11 +171,11 @@ export function useCloneRef<T>(
 export function useMapState<K, V>(
     initial?: Map<K, V> | (() => Map<K, V>),
 ): [
-        map: Map<K, V>,
-        setValue: (key: K, value: V) => void,
-        removeKey: (key: K) => void,
-        setMap: React.Dispatch<React.SetStateAction<Map<K, V>>>,
-    ] {
+    map: Map<K, V>,
+    setValue: (key: K, value: V) => void,
+    removeKey: (key: K) => void,
+    setMap: React.Dispatch<React.SetStateAction<Map<K, V>>>,
+] {
     const [map, setMap] = useState<Map<K, V>>(initial ?? (() => new Map()));
     const setValue = (key: K, value: V) => setMap((prevMap) => new Map(prevMap).set(key, value));
     const removeKey = (key: K) =>
@@ -168,11 +189,11 @@ export function useMapState<K, V>(
 export function useSetState<T>(
     initial?: Set<T> | (() => Set<T>),
 ): [
-        set: Set<T>,
-        addToSet: (member: T) => void,
-        deleteFromSet: (member: T) => void,
-        setSet: React.Dispatch<React.SetStateAction<Set<T>>>,
-    ] {
+    set: Set<T>,
+    addToSet: (member: T) => void,
+    deleteFromSet: (member: T) => void,
+    setSet: React.Dispatch<React.SetStateAction<Set<T>>>,
+] {
     const [set, setSet] = useState<Set<T>>(initial ?? (() => new Set()));
     const addToSet = (member: T) => setSet((prevSet) => new Set(prevSet).add(member));
     const deleteFromSet = (member: T) =>

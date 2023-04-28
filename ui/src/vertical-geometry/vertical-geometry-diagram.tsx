@@ -1,6 +1,6 @@
 import React, { MouseEvent, useMemo, useRef, useState, WheelEvent } from 'react';
 import { PublishType } from 'common/common-model';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoader, useLoaderWithStatus, useTwoPartEffect } from 'utils/react-utils';
 import { GeometryAlignmentId, GeometryPlanId, VerticalGeometryItem } from 'geometry/geometry-model';
 import {
     AlignmentHeights,
@@ -9,6 +9,7 @@ import {
     getLocationTrackVerticalGeometry,
     getPlanAlignmentHeights,
     PlanLinkingSummaryItem,
+    getPlanAlignmentStartAndEnd,
     TrackKmHeights,
 } from 'geometry/geometry-api';
 import styles from './vertical-geometry-diagram.scss';
@@ -26,6 +27,7 @@ import { PointIndicator } from 'vertical-geometry/point-indicator';
 import { HeightGraph } from 'vertical-geometry/height-graph';
 import { HeightTooltip } from 'vertical-geometry/height-tooltip';
 import useResizeObserver from 'use-resize-observer';
+import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 
 // this is a rough approximation using the assumption that 1 track meter = 1 m-value meter
 const minimumApproximateHorizontalTickWidthPx = 15;
@@ -48,8 +50,6 @@ type VerticalGeometryDiagramAlignmentId =
 
 interface VerticalGeometryDiagramProps {
     alignmentId: VerticalGeometryDiagramAlignmentId;
-    initialStartM: number;
-    initialEndM: number;
 }
 
 function chooseHorizontalTickLengthMeters(distanceMeters: number, diagramWidthPx: number): number {
@@ -161,8 +161,6 @@ function loadGeometry(
 }
 
 const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> = ({
-    initialStartM,
-    initialEndM,
     alignmentId,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
@@ -170,23 +168,40 @@ const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> 
      startM and endM are the endpoints of the visible parts of the diagram, in m-values (not necessarily hitting the
      m-values of actual points on the alignment)
      */
-    const [startM, setStartM] = useState(initialStartM);
-    const [endM, setEndM] = useState(initialEndM);
+    const [startM, setStartM] = useState<number>();
+    const [endM, setEndM] = useState<number>();
     const [oldWidth, setOldWidth] = useState<number>();
     useResizeObserver({
         ref,
         onResize: ({ width }) => {
             setOldWidth(ref.current?.clientWidth);
-            if (width === undefined || oldWidth === undefined) {
+            if (
+                width === undefined ||
+                oldWidth === undefined ||
+                startM === undefined ||
+                endM === undefined
+            ) {
                 return;
             }
-            setEndM((oldEndM) => startM + (oldEndM - startM) * (width / oldWidth));
+            setEndM(startM + (endM - startM) * (width / oldWidth));
         },
     });
 
+    useTwoPartEffect(
+        () =>
+            'planId' in alignmentId
+                ? getPlanAlignmentStartAndEnd(alignmentId.planId, alignmentId.alignmentId)
+                : getLocationTrackStartAndEnd(alignmentId.locationTrackId, alignmentId.publishType),
+        (startAndEnd) => {
+            setStartM(startAndEnd?.start?.point?.m);
+            setEndM(startAndEnd?.end?.point?.m);
+        },
+        [alignmentId],
+    );
+
     return (
         <div ref={ref}>
-            {ref.current && (
+            {ref.current && startM !== undefined && endM !== undefined && (
                 <VerticalGeometryDiagram
                     diagramWidthPx={ref.current.clientWidth}
                     alignmentId={alignmentId}
@@ -226,12 +241,23 @@ const VerticalGeometryDiagram: React.FC<{
         [alignmentId],
     );
 
-    const alignmentHeights = useLoader(
-        () => debouncedLoadAlignmentHeights(alignmentId, startM, endM, horizontalTickLengthMeters),
+    const [alignmentHeights, alignmentHeightsLoadedForAlignmentId] = useLoader(
+        () =>
+            debouncedLoadAlignmentHeights(
+                alignmentId,
+                startM,
+                endM,
+                horizontalTickLengthMeters,
+            ).then((r) => {
+                return Promise.resolve([r, alignmentId]);
+            }),
         [alignmentId, startM, endM, horizontalTickLengthMeters],
-    );
+    ) ?? [undefined, undefined];
 
-    const rawGeometry = useLoader(() => loadGeometry(alignmentId), [alignmentId]);
+    const [rawGeometry, geometryLoaderStatus] = useLoaderWithStatus(
+        () => loadGeometry(alignmentId),
+        [alignmentId],
+    );
     const geometry = useMemo(
         () =>
             alignmentHeights == undefined || rawGeometry == undefined
@@ -377,6 +403,17 @@ const VerticalGeometryDiagram: React.FC<{
                     />
                 </Translate>
                 {snap && <PointIndicator point={snap} />}
+                {(geometryLoaderStatus === LoaderStatus.Ready &&
+                    alignmentHeightsLoadedForAlignmentId === alignmentId) || (
+                    <rect
+                        x={0}
+                        y={0}
+                        width={diagramWidthPx}
+                        height={fullDiagramHeightPx}
+                        fill="grey"
+                        opacity={0.8}
+                    />
+                )}
             </svg>
         </div>
     );

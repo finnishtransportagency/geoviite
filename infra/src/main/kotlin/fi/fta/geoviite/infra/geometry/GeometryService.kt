@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -391,6 +392,20 @@ class GeometryService @Autowired constructor(
                 linkingSummary = linkingSummary,
             )
         }
+    }
+
+    fun getPlanAlignmentStartAndEnd(
+        planId: IntId<GeometryPlan>,
+        planAlignmentId: IntId<GeometryAlignment>,
+    ): AlignmentStartAndEnd? {
+        val planVersion = geometryDao.fetchPlanVersion(planId)
+        val plan = geometryDao.fetchPlan(planVersion)
+        val geocodingContext =
+            geocodingService.getGeocodingContext(plan.trackNumberId ?: return null, planVersion) ?: return null
+        val alignment =
+            planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment -> alignment.id == planAlignmentId }
+                ?: return null
+        return geocodingContext.getStartAndEnd(alignment)
     }
 
     fun getPlanAlignmentHeights(

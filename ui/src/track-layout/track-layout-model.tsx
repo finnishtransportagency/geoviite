@@ -209,7 +209,6 @@ export type LayoutTrackNumber = {
 export type AddressPoint = {
     point: LayoutPoint;
     address: TrackMeter;
-    distance: number;
 };
 
 export type AlignmentStartAndEnd = {
