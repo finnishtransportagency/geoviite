@@ -110,9 +110,9 @@ type GeometryAlignmentLinkingInfoboxProps = {
     locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
     linkingState?:
-    | LinkingGeometryWithAlignment
-    | LinkingGeometryWithEmptyAlignment
-    | PreliminaryLinkingGeometry;
+        | LinkingGeometryWithAlignment
+        | LinkingGeometryWithEmptyAlignment
+        | PreliminaryLinkingGeometry;
     onLockAlignment: (lockParameters: GeometryLinkingAlignmentLockParameters) => void;
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
     onStopLinking: () => void;
@@ -332,16 +332,17 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     )}
 
                     {linkingState === undefined && (
-                        <InfoboxButtons>
-                            <WriteRoleRequired>
+                        <WriteRoleRequired>
+                            <InfoboxButtons>
                                 <Button size={ButtonSize.SMALL} onClick={startLinking}>
                                     {t(
-                                        `tool-panel.alignment.geometry.${isLinked ? 'add-linking' : 'start-setup'
+                                        `tool-panel.alignment.geometry.${
+                                            isLinked ? 'add-linking' : 'start-setup'
                                         }`,
                                     )}
                                 </Button>
-                            </WriteRoleRequired>
-                        </InfoboxButtons>
+                            </InfoboxButtons>
+                        </WriteRoleRequired>
                     )}
                     {linkingState?.state === 'preliminary' && (
                         <InfoboxButtons>

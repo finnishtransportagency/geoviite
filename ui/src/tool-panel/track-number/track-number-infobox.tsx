@@ -168,8 +168,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             value={<TrackMeter value={startAndEndPoints?.end?.address} />}
                         />
                         {linkingState === undefined && referenceLine && (
-                            <InfoboxButtons>
-                                <WriteRoleRequired>
+                            <WriteRoleRequired>
+                                <InfoboxButtons>
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
@@ -183,8 +183,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                         }}>
                                         {t('tool-panel.location-track.modify-start-or-end')}
                                     </Button>
-                                </WriteRoleRequired>
-                            </InfoboxButtons>
+                                </InfoboxButtons>
+                            </WriteRoleRequired>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (
                             <React.Fragment>
@@ -225,8 +225,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.reference-line.start-coordinates')} ${coordinateSystem.name
-                                }`}
+                            label={`${t('tool-panel.reference-line.start-coordinates')} ${
+                                coordinateSystem.name
+                            }`}
                             value={
                                 startAndEndPoints?.start
                                     ? formatToTM35FINString(startAndEndPoints.start.point)
@@ -234,8 +235,9 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.reference-line.end-coordinates')} ${coordinateSystem.name
-                                }`}
+                            label={`${t('tool-panel.reference-line.end-coordinates')} ${
+                                coordinateSystem.name
+                            }`}
                             value={
                                 startAndEndPoints?.end
                                     ? formatToTM35FINString(startAndEndPoints.end.point)

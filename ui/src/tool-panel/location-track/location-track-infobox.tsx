@@ -230,8 +230,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                 duplicatesOfLocationTrack.length > 0
                                     ? t('tool-panel.location-track.has-duplicates')
                                     : existingDuplicate
-                                        ? t('tool-panel.location-track.duplicate-of')
-                                        : t('tool-panel.location-track.not-a-duplicate')
+                                    ? t('tool-panel.location-track.duplicate-of')
+                                    : t('tool-panel.location-track.not-a-duplicate')
                             }
                             value={
                                 <LocationTrackInfoboxDuplicateOf
@@ -286,8 +286,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         </InfoboxField>
 
                         {linkingState === undefined && (
-                            <InfoboxButtons>
-                                <WriteRoleRequired>
+                            <WriteRoleRequired>
+                                <InfoboxButtons>
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
                                         size={ButtonSize.SMALL}
@@ -301,8 +301,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         }}>
                                         {t('tool-panel.location-track.modify-start-or-end')}
                                     </Button>
-                                </WriteRoleRequired>
-                            </InfoboxButtons>
+                                </InfoboxButtons>
+                            </WriteRoleRequired>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (
                             <React.Fragment>
@@ -343,8 +343,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.location-track.start-coordinates')} ${coordinateSystem.name
-                                }`}
+                            label={`${t('tool-panel.location-track.start-coordinates')} ${
+                                coordinateSystem.name
+                            }`}
                             value={
                                 startAndEndPoints?.start
                                     ? formatToTM35FINString(startAndEndPoints.start.point)
@@ -352,8 +353,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             }
                         />
                         <InfoboxField
-                            label={`${t('tool-panel.location-track.end-coordinates')} ${coordinateSystem.name
-                                }`}
+                            label={`${t('tool-panel.location-track.end-coordinates')} ${
+                                coordinateSystem.name
+                            }`}
                             value={
                                 startAndEndPoints?.end
                                     ? formatToTM35FINString(startAndEndPoints?.end.point)
@@ -417,16 +419,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     title={t('tool-panel.location-track.ratko-info-heading')}
                     qa-id="location-track-ratko-infobox">
                     <InfoboxContent>
-                        <InfoboxButtons>
-                            <WriteRoleRequired>
+                        <WriteRoleRequired>
+                            <InfoboxButtons>
                                 <Button
                                     onClick={() => showLocationTrackPushDialog()}
                                     variant={ButtonVariant.SECONDARY}
                                     size={ButtonSize.SMALL}>
                                     {t('tool-panel.location-track.push-to-ratko')}
                                 </Button>
-                            </WriteRoleRequired>
-                        </InfoboxButtons>
+                            </InfoboxButtons>
+                        </WriteRoleRequired>
                     </InfoboxContent>
                 </Infobox>
             )}
