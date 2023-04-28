@@ -8,6 +8,7 @@ import {
     getLocationTrackHeights,
     getLocationTrackVerticalGeometry,
     getPlanAlignmentHeights,
+    PlanLinkingSummaryItem,
     TrackKmHeights,
 } from 'geometry/geometry-api';
 import styles from './vertical-geometry-diagram.scss';
@@ -82,6 +83,22 @@ function substituteLayoutStationsForGeometryStations(
     };
 }
 
+function processGeometries(
+    geometry: VerticalGeometryItem[],
+    linkingSummary: PlanLinkingSummaryItem[],
+) {
+    const linkedAreaSourceFile = (layoutM: number) =>
+        linkingSummary.find((linkingSummaryItem) => linkingSummaryItem.endM >= layoutM)?.filename;
+    return geometry
+        .map(substituteLayoutStationsForGeometryStations)
+        .filter(
+            (geom) =>
+                geom.fileName === linkedAreaSourceFile(geom.start.station) ||
+                geom.fileName === linkedAreaSourceFile(geom.end.station) ||
+                geom.fileName === linkedAreaSourceFile(geom.point.station),
+        );
+}
+
 function minAndMaxHeights(
     kmHeights: TrackKmHeights[],
     geometry: VerticalGeometryItem[],
@@ -140,12 +157,7 @@ function loadGeometry(
         ? getGeometryPlanVerticalGeometry(alignmentId.planId).then((allPlanGeometries) =>
               allPlanGeometries?.filter((vgl) => vgl.alignmentId == alignmentId.alignmentId),
           )
-        : getLocationTrackVerticalGeometry(alignmentId.locationTrackId, undefined, undefined).then(
-              (geometry) =>
-                  geometry == null
-                      ? null
-                      : geometry.map(substituteLayoutStationsForGeometryStations),
-          );
+        : getLocationTrackVerticalGeometry(alignmentId.locationTrackId, undefined, undefined);
 }
 
 const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> = ({
@@ -219,7 +231,16 @@ const VerticalGeometryDiagram: React.FC<{
         [alignmentId, startM, endM, horizontalTickLengthMeters],
     );
 
-    const geometry = useLoader(() => loadGeometry(alignmentId), [alignmentId]);
+    const rawGeometry = useLoader(() => loadGeometry(alignmentId), [alignmentId]);
+    const geometry = useMemo(
+        () =>
+            alignmentHeights == undefined || rawGeometry == undefined
+                ? undefined
+                : // the linking summary is currently only loaded as part of alignmentHeights for convenience; it doesn't
+                  // actually change with startM/endM/tickLength
+                  processGeometries(rawGeometry, alignmentHeights.linkingSummary),
+        [alignmentHeights === undefined, rawGeometry, alignmentId],
+    );
     const elementPosition = ref.current?.getBoundingClientRect();
 
     if (alignmentHeights == undefined || geometry == undefined || elementPosition == undefined) {
