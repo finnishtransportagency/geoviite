@@ -31,7 +31,7 @@ import java.util.logging.Level
 open class SeleniumTest (
     private val jdbcTemplate: NamedParameterJdbcTemplate
 ) {
-    val DEV_DEBUG = false;
+    val DEV_DEBUG = false
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
     val uiTestUser = UserName("UI_TEST")
