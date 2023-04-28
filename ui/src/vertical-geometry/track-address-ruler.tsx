@@ -1,12 +1,24 @@
 import React from 'react';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
 import { TrackKmHeights } from 'geometry/geometry-api';
+import { Translate } from 'vertical-geometry/translate';
 
 export interface TrackAddressRulerProps {
     kmHeights: TrackKmHeights[];
     heightPx: number;
     coordinates: Coordinates;
 }
+
+const KmPostMarker: React.FC<{ x: number; heightPx: number }> = ({ x, heightPx }) => (
+    <Translate x={x} y={heightPx}>
+        <circle r={5} stroke="black" fill="white" />
+        <circle
+            r={5}
+            fill="black"
+            clipPath="polygon(0 50%, 100% 50%, 100% 100%, 50% 100%, 50% 0, 0 0)"
+        />
+    </Translate>
+);
 
 export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
     kmHeights,
@@ -17,12 +29,10 @@ export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
         return <React.Fragment />;
     }
     const kmPostMarkers = kmHeights.map(({ trackMeterHeights }, kmIndex) => (
-        <circle
+        <KmPostMarker
             key={kmIndex}
-            cx={mToX(coordinates, trackMeterHeights[0].m)}
-            cy={heightPx}
-            r={5}
-            stroke={'black'}
+            x={mToX(coordinates, trackMeterHeights[0].m)}
+            heightPx={heightPx}
         />
     ));
 
