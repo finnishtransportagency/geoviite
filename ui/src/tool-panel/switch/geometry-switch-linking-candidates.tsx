@@ -2,13 +2,14 @@ import * as React from 'react';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import styles from 'tool-panel/switch/switch-infobox.scss';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchesByBoundingBox } from 'track-layout/layout-switch-api';
 import { SuggestedSwitch } from 'linking/linking-model';
 import { TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type GeometrySwitchLinkingCandidatesProps = {
     suggestedSwitch: SuggestedSwitch | null | undefined;
@@ -27,11 +28,11 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
 }) => {
     const { t } = useTranslation();
 
-    const switches = useLoader(() => {
+    const [switches, loadingStatus] = useLoaderWithStatus(() => {
         const point = suggestedSwitch?.joints.find((joint) => joint.location)?.location;
         if (point) {
             // This is a simple way to select nearby layout switches,
-            // can be fine tuned later
+            // can be fine-tuned later
             const bboxSize = 100;
             const bbox = {
                 x: { min: point.x - bboxSize, max: point.x + bboxSize },
@@ -72,7 +73,9 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
                         </li>
                     );
                 })}
-                {switches?.length == 0 && (
+
+                {loadingStatus == LoaderStatus.Loading && <Spinner />}
+                {loadingStatus == LoaderStatus.Ready && switches?.length == 0 && (
                     <span className={styles['geometry-switch-infobox__no-matches']}>
                         {t('tool-panel.switch.geometry.no-linkable-switches')}
                     </span>
