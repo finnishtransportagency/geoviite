@@ -54,6 +54,12 @@ export const initialMapState: Map = {
             planLayout: null,
         },
         {
+            type: 'trackNumberDiagram',
+            name: 'Pituusmittausraidekaavio',
+            id: 'trackNumberDiagram',
+            visible: false,
+        },
+        {
             type: 'kmPosts',
             name: 'Tasakilometripisteet',
             id: 'kmposts-1',
