@@ -10,13 +10,14 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.Instant
 import kotlin.math.floor
 
@@ -239,7 +240,7 @@ class GeometryService @Autowired constructor(
         val verticalGeometryListing = getVerticalGeometryListing(planId)
 
         val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("${VERTICAL_GEOMETRY} ${plan.fileName}") to csvFileContent.toByteArray()
+        return FileName("$VERTICAL_GEOMETRY ${plan.fileName}") to csvFileContent.toByteArray()
     }
 
     fun getVerticalGeometryListing(
@@ -265,7 +266,7 @@ class GeometryService @Autowired constructor(
         val verticalGeometryListing = getVerticalGeometryListing(locationTrackId, startAddress, endAddress)
 
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("${VERTICAL_GEOMETRY} ${locationTrack.name}") to csvFileContent.toByteArray()
+        return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
@@ -278,12 +279,10 @@ class GeometryService @Autowired constructor(
         if (sortOrder == SortOrder.ASCENDING) getComparator(sortField)
         else getComparator(sortField).reversed()
 
-    val plannedGeometryFirstComparator: Comparator<GeometryPlanHeader> =
-        Comparator.comparing { h -> if (h.source == PAIKANNUSPALVELU) 1 else 0 }
     private fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> {
         val trackNumbers by lazy { trackNumberService.mapById(PublishType.DRAFT) }
-        val linkingSummaries by lazy { geometryDao.getLinkingSummaries(null) }
-        return plannedGeometryFirstComparator.then(when (sortField) {
+        val linkingSummaries by lazy { geometryDao.getLinkingSummaries() }
+        return when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
             GeometryPlanSortField.PROJECT_NAME -> stringComparator { h -> h.project.name }
             GeometryPlanSortField.TRACK_NUMBER -> stringComparator { h -> trackNumbers[h.trackNumberId]?.number }
@@ -296,7 +295,7 @@ class GeometryService @Autowired constructor(
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
             GeometryPlanSortField.LINKED_AT -> Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
             GeometryPlanSortField.LINKED_BY -> stringComparator { h -> linkingSummaries[h.id]?.linkedByUsers }
-        })
+        }
     }
 
     private inline fun <reified T> stringComparator(crossinline getValue: (T) -> CharSequence?) =
