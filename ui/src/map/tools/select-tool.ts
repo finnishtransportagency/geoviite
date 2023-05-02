@@ -3,7 +3,7 @@ import { MapTool, MapToolActivateOptions } from './tool-model';
 import { OlLayerAdapter } from 'map/layers/layer-model';
 import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
 
-export const selectToolBasic: MapTool = {
+export const selectTool: MapTool = {
     activate: (map: OlMap, layerAdapters: OlLayerAdapter[], options: MapToolActivateOptions) => {
         const clickEvent = map.on('click', (e) => {
             const hitArea = getDefaultHitArea(map, e.coordinate);

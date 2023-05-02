@@ -26,7 +26,7 @@ import {
     SwitchLinkingFeatureType,
 } from './layers/switch-linking-layer'; // Load module to initialize adapter
 import styles from './map.module.scss';
-import { selectToolBasic } from './tools/select-tool-basic';
+import { selectTool } from './tools/select-tool';
 import { MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles, calculateTileSize } from 'map/map-utils';
 import { adapterInfoRegister } from 'map/layers/register';
@@ -372,7 +372,7 @@ const MapView: React.FC<MapViewProps> = ({
 
         if (!measurementToolActive) {
             deactivateCallbacks.push(
-                selectToolBasic.activate(olMap, layerAdapters, toolActivateOptions),
+                selectTool.activate(olMap, layerAdapters, toolActivateOptions),
             );
 
             deactivateCallbacks.push(
