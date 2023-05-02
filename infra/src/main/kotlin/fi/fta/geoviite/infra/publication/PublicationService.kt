@@ -191,8 +191,11 @@ class PublicationService @Autowired constructor(
             locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
 
+        val linkedTracks = publicationDao
+            .fetchLinkedLocationTracks(listOf(switchId), DRAFT)
+            .getOrDefault(switchId, setOf())
         return ValidatedAsset(
-            validateSwitch(mapToValidationVersion(layoutSwitch), versions),
+            validateSwitch(mapToValidationVersion(layoutSwitch), versions, linkedTracks),
             switchId,
         )
     }
@@ -241,6 +244,11 @@ class PublicationService @Autowired constructor(
     private fun validateAsPublicationUnit(candidates: PublishCandidates): PublishCandidates {
         val versions = candidates.getValidationVersions()
         val cacheKeys = collectCacheKeys(versions)
+        // TODO: This does not respect the candidate versions
+        val switchTrackLinks = publicationDao.fetchLinkedLocationTracks(
+            candidates.switches.map { s -> s.id },
+            DRAFT,
+        )
         return PublishCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
                 candidate.copy(errors = validateTrackNumber(candidate.getPublicationVersion(), versions, cacheKeys))
@@ -252,7 +260,11 @@ class PublicationService @Autowired constructor(
                 candidate.copy(errors = validateLocationTrack(candidate.getPublicationVersion(), versions, cacheKeys))
             },
             switches = candidates.switches.map { candidate ->
-                candidate.copy(errors = validateSwitch(candidate.getPublicationVersion(), versions))
+                candidate.copy(errors = validateSwitch(
+                    candidate.getPublicationVersion(),
+                    versions,
+                    switchTrackLinks.getOrDefault(candidate.id, setOf()),
+                ))
             },
             kmPosts = candidates.kmPosts.map { candidate ->
                 candidate.copy(errors = validateKmPost(candidate.getPublicationVersion(), versions, cacheKeys))
@@ -275,8 +287,13 @@ class PublicationService @Autowired constructor(
         versions.locationTracks.forEach { version ->
             assertNoErrors(version, validateLocationTrack(version, versions, cacheKeys))
         }
+        // TODO: This does not respect the validation versions
+        val switchTrackLinks = publicationDao.fetchLinkedLocationTracks(versions.switches.map { v -> v.officialId }, DRAFT)
         versions.switches.forEach { version ->
-            assertNoErrors(version, validateSwitch(version, versions))
+            assertNoErrors(
+                version,
+                validateSwitch(version, versions, switchTrackLinks.getOrDefault(version.officialId, setOf())),
+            )
         }
     }
 
@@ -515,10 +532,11 @@ class PublicationService @Autowired constructor(
     private fun validateSwitch(
         version: ValidationVersion<TrackLayoutSwitch>,
         validationVersions: ValidationVersions,
+        linkedTracks: Set<RowVersion<LocationTrack>>,
     ): List<PublishValidationError> {
         val switch = switchDao.fetch(version.validatedAssetVersion)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
-        val linkedTracksAndAlignments = getLinkedTracksAndAlignments(version.officialId, validationVersions)
+        val linkedTracksAndAlignments = linkedTracks.map(locationTrackService::getWithAlignment)
         val fieldErrors = validateDraftSwitchFields(switch)
         val referenceErrors = validateSwitchLocationTrackLinkReferences(
             switch,
@@ -527,7 +545,8 @@ class PublicationService @Autowired constructor(
         )
         val locationTrackErrors = validateSwitchLocationTrackReferences(
             getLinkedTrackDraftsNotIncludedInPublication(
-                version.officialId, validationVersions
+                validationVersions,
+                linkedTracksAndAlignments.map { (t, _) -> t },
             )
         )
         val structureErrors = validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
@@ -597,36 +616,11 @@ class PublicationService @Autowired constructor(
         return fieldErrors + referenceErrors + switchErrors + duplicateErrors + alignmentErrors + geocodingErrors
     }
 
-    private fun getLinkedTracksAndAlignments(
-        switchId: IntId<TrackLayoutSwitch>,
-        versions: ValidationVersions,
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        // Include official tracks that are connected and not overridden in the publication
-        val linkedOfficial = publicationDao.fetchLinkedLocationTracks(switchId, OFFICIAL)
-            .filter { version -> !versions.containsLocationTrack(version.id) }.map(::getLocationTrackAndAlignment)
-        // Include publication tracks that are connected
-        val linkedDraft = versions.locationTracks.map { plt -> getLocationTrackAndAlignment(plt.validatedAssetVersion) }
-            .filter { (track, alignment) -> isLinkedToSwitch(track, alignment, switchId) }
-        return linkedOfficial + linkedDraft
-    }
-
-    private fun isLinkedToSwitch(
-        locationTrack: LocationTrack,
-        alignment: LayoutAlignment,
-        switchId: IntId<TrackLayoutSwitch>,
-    ): Boolean =
-        locationTrack.topologyStartSwitch?.switchId == switchId ||
-                locationTrack.topologyEndSwitch?.switchId == switchId ||
-                alignment.segments.any { seg -> seg.switchId == switchId }
-
-
     private fun getLinkedTrackDraftsNotIncludedInPublication(
-        switchId: IntId<TrackLayoutSwitch>,
         versions: ValidationVersions,
-    ): List<LocationTrack> {
-        return publicationDao.fetchLinkedLocationTracks(switchId, DRAFT)
-            .map(locationTrackDao::fetch)
-            .filter { track -> track.draft != null && !versions.containsLocationTrack(track.id as IntId) }
+        linkedTracks: List<LocationTrack>,
+    ): List<LocationTrack> = linkedTracks.filter { track ->
+        track.draft != null && !versions.containsLocationTrack(track.id as IntId)
     }
 
     private fun getTrackNumber(
@@ -716,26 +710,31 @@ class PublicationService @Autowired constructor(
         )
     }
 
+    @Transactional(readOnly = true)
     fun getPublicationDetailsAsTableItems(id: IntId<Publication>): List<PublicationTableItem> {
         logger.serviceCall("getPublicationDetailsAsTableRows", "id" to id)
         return getPublicationDetails(id).let(::mapToPublicationTableItems)
     }
 
+    @Transactional(readOnly = true)
     fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
         logger.serviceCall("fetchPublications", "from" to from, "to" to to)
         return publicationDao.fetchPublicationsBetween(from, to)
     }
 
+    @Transactional(readOnly = true)
     fun fetchPublicationDetailsBetweenInstants(from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
         logger.serviceCall("fetchPublicationDetailsBetweenInstants", "from" to from, "to" to to)
         return publicationDao.fetchPublicationsBetween(from, to).map { getPublicationDetails(it.id) }
     }
 
+    @Transactional(readOnly = true)
     fun fetchLatestPublicationDetails(count: Int): List<PublicationDetails> {
         logger.serviceCall("fetchLatestPublicationDetails", "count" to count)
         return publicationDao.fetchLatestPublications(count).map { getPublicationDetails(it.id) }
     }
 
+    @Transactional(readOnly = true)
     fun fetchPublicationDetails(
         from: Instant? = null,
         to: Instant? = null,
@@ -758,6 +757,7 @@ class PublicationService @Autowired constructor(
             }
     }
 
+    @Transactional(readOnly = true)
     fun fetchPublicationsAsCsv(
         from: Instant? = null,
         to: Instant? = null,
