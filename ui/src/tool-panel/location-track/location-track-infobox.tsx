@@ -413,13 +413,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             )}
 
             {officialLocationTrack && (
-                <Infobox
-                    contentVisible={visibilities.ratkoPush}
-                    onContentVisibilityChange={() => visibilityChange('ratkoPush')}
-                    title={t('tool-panel.location-track.ratko-info-heading')}
-                    qa-id="location-track-ratko-infobox">
-                    <InfoboxContent>
-                        <WriteRoleRequired>
+                <WriteRoleRequired>
+                    <Infobox
+                        contentVisible={visibilities.ratkoPush}
+                        onContentVisibilityChange={() => visibilityChange('ratkoPush')}
+                        title={t('tool-panel.location-track.ratko-info-heading')}
+                        qa-id="location-track-ratko-infobox">
+                        <InfoboxContent>
                             <InfoboxButtons>
                                 <Button
                                     onClick={() => showLocationTrackPushDialog()}
@@ -428,9 +428,9 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                     {t('tool-panel.location-track.push-to-ratko')}
                                 </Button>
                             </InfoboxButtons>
-                        </WriteRoleRequired>
-                    </InfoboxContent>
-                </Infobox>
+                        </InfoboxContent>
+                    </Infobox>
+                </WriteRoleRequired>
             )}
 
             {showRatkoPushDialog && (
