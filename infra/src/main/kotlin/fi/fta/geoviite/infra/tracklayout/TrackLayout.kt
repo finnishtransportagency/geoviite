@@ -201,7 +201,7 @@ enum class TrackLayoutKmPostTableColumn {
     WARNING
 }
 
-data class TrackLayoutKmPostLengthDetails(
+data class TrackLayoutKmLengthDetails(
     val trackNumber: TrackNumber,
     val kmNumber: KmNumber,
     val startM: BigDecimal,

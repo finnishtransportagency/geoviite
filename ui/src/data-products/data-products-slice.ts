@@ -16,7 +16,7 @@ import {
 } from 'geometry/geometry-model';
 import { compareTrackMeterStrings, KmNumber, trackMeterIsValid } from 'common/common-model';
 import {
-    LayoutKmPostLengthDetails,
+    LayoutKmLengthDetails,
     LayoutLocationTrack,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
@@ -70,7 +70,7 @@ export type KmLengthsSearchState = {
 
     validationErrors: ValidationError<KmLengthsSearchState>[];
     committedFields: (keyof KmLengthsSearchState)[];
-    kmLengths: LayoutKmPostLengthDetails[];
+    kmLengths: LayoutKmLengthDetails[];
 };
 
 enum MissingSection {
@@ -445,7 +445,7 @@ export const kmLengthsSearchSlice = createSlice({
         },
         onSetKmLengths: function (
             state: KmLengthsSearchState,
-            { payload: kmLengths }: PayloadAction<LayoutKmPostLengthDetails[]>,
+            { payload: kmLengths }: PayloadAction<LayoutKmLengthDetails[]>,
         ) {
             state.kmLengths = kmLengths;
         },

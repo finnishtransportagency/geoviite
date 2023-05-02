@@ -161,7 +161,7 @@ export type LayoutKmPost = {
     draftType: DraftType;
 };
 
-export type LayoutKmPostLengthDetails = {
+export type LayoutKmLengthDetails = {
     trackNumber: TrackNumber;
     kmNumber: KmNumber;
     length: number;

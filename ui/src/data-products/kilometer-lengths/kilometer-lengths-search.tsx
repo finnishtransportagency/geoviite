@@ -8,10 +8,10 @@ import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils'
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { LayoutKmPostLengthDetails, LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { LayoutKmLengthDetails, LayoutTrackNumber } from 'track-layout/track-layout-model';
 import {
-    getKmPostLengths,
-    getKmPostLengthsAsCsv,
+    getKmLengths,
+    getKmLengthsAsCsv,
     getKmPostsOnTrackNumber,
 } from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
@@ -22,7 +22,7 @@ type KilometerLengthsSearchProps = {
     onUpdateProp: <TKey extends keyof KmLengthsSearchState>(
         propEdit: PropEdit<KmLengthsSearchState, TKey>,
     ) => void;
-    setLengths: (lengths: LayoutKmPostLengthDetails[]) => void;
+    setLengths: (lengths: LayoutKmLengthDetails[]) => void;
     setLoading: (isLoading: boolean) => void;
 };
 
@@ -59,7 +59,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     const [kmLengths, fetchStatus] = useLoaderWithStatus(
         () =>
             state.trackNumber
-                ? getKmPostLengths('OFFICIAL', state.trackNumber.id)
+                ? getKmLengths('OFFICIAL', state.trackNumber.id)
                 : Promise.resolve([]),
         [state.trackNumber],
     );
@@ -126,7 +126,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                 disabled={!state.kmLengths || state.kmLengths.length === 0}
                 onClick={() => {
                     if (state.trackNumber) {
-                        location.href = getKmPostLengthsAsCsv(
+                        location.href = getKmLengthsAsCsv(
                             'OFFICIAL',
                             state.trackNumber?.id,
                             state.startKm,

@@ -38,15 +38,15 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                     <Icons.Edit size={IconSize.SMALL} />
                 </div>
             )}
-            <WriteRoleRequired>
-                {iconDisabled && (
+            {iconDisabled && (
+                <WriteRoleRequired>
                     <div className={styles['infobox__edit-icon']}>
                         <span title={t('tool-panel.disabled.activity-disabled-in-official-mode')}>
                             <Icons.Edit size={IconSize.SMALL} color={IconColor.DISABLED} />
                         </span>
                     </div>
-                )}
-            </WriteRoleRequired>
+                </WriteRoleRequired>
+            )}
         </div>
     );
 };

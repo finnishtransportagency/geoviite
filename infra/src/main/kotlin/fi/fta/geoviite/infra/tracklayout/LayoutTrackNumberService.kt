@@ -103,12 +103,12 @@ class LayoutTrackNumberService(
         return dao.fetchVersions(publishType, false, trackNumber).map(dao::fetch)
     }
 
-    fun getKmPostLengths(
+    fun getKmLengths(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmPostLengthDetails> {
+    ): List<TrackLayoutKmLengthDetails> {
         logger.serviceCall(
-            "getKmPostLengths",
+            "getKmLengths",
             "trackNumberId" to trackNumberId,
             "publishType" to publishType,
         )
@@ -121,7 +121,7 @@ class LayoutTrackNumberService(
 
             //First km post is usually on another reference line, and therefore it has to be generated here
             listOf(
-                TrackLayoutKmPostLengthDetails(
+                TrackLayoutKmLengthDetails(
                     trackNumber = trackNumber.number,
                     kmNumber = startPoint.address.kmNumber,
                     startM = roundTo3Decimals(context.startAddress.meters.negate()),
@@ -132,7 +132,7 @@ class LayoutTrackNumberService(
             ) + distances.sortedBy { it.second }.mapIndexed { index, (kmPost, startM) ->
                 val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
 
-                TrackLayoutKmPostLengthDetails(
+                TrackLayoutKmLengthDetails(
                     trackNumber = trackNumber.number,
                     kmNumber = kmPost.kmNumber,
                     startM = roundTo3Decimals(startM),
@@ -148,21 +148,21 @@ class LayoutTrackNumberService(
         }
     }
 
-    fun getKmPostLengthsAsCsv(
+    fun getKmLengthsAsCsv(
         publishType: PublishType,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startKmNumber: KmNumber? = null,
         endKmNumber: KmNumber? = null,
     ): String {
         logger.serviceCall(
-            "getKmPostLengthsAsCsv",
+            "getKmLengthsAsCsv",
             "trackNumberId" to trackNumberId,
             "publishType" to publishType,
             "startKmNumber" to startKmNumber,
             "endKmNumber" to endKmNumber,
         )
 
-        val kmLengths = getKmPostLengths(publishType, trackNumberId)
+        val kmLengths = getKmLengths(publishType, trackNumberId)
         val filteredKmLengths = kmLengths
             .filter { kmPost ->
                 val start = startKmNumber ?: kmLengths.first().kmNumber
@@ -210,8 +210,8 @@ class LayoutTrackNumberService(
     }
 }
 
-private fun asCsvFile(items: List<TrackLayoutKmPostLengthDetails>): String {
-    val columns = mapOf<TrackLayoutKmPostTableColumn, (item: TrackLayoutKmPostLengthDetails) -> Any?>(
+private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>): String {
+    val columns = mapOf<TrackLayoutKmPostTableColumn, (item: TrackLayoutKmLengthDetails) -> Any?>(
         TrackLayoutKmPostTableColumn.TRACK_NUMBER to { it.trackNumber },
         TrackLayoutKmPostTableColumn.KILOMETER to { it.kmNumber },
         TrackLayoutKmPostTableColumn.START_M to { it.startM },

@@ -8,10 +8,10 @@ import {
     numericHeading,
 } from 'data-products/data-products-utils';
 import { KilometerLengthTableItem } from 'data-products/kilometer-lengths/kilometer-lengths-table-item';
-import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
+import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
 
 type KilometerLengthsTableProps = {
-    kmLengths: LayoutKmPostLengthDetails[];
+    kmLengths: LayoutKmLengthDetails[];
     isLoading: boolean;
 };
 
