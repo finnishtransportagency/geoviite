@@ -44,6 +44,7 @@ import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
 import { ChangeTimes } from 'common/common-slice';
+import { debounceAsync } from 'utils/async-utils';
 
 type Candidate = {
     id: AssetId;
@@ -266,6 +267,15 @@ const previewCandidatesByUser = (
     kmPosts: filterPreviewCandidateArrayByUser(user, publishCandidates.kmPosts),
 });
 
+const validateDebounced = debounceAsync(
+    (request: PublishRequestIds) => validatePublishCandidates(request),
+    1000,
+);
+const getCalculatedChangesDebounced = debounceAsync(
+    (request: PublishRequestIds) => getCalculatedChanges(request),
+    1000,
+);
+
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
 
@@ -284,7 +294,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const entireChangeset = useLoader(() => getPublishCandidates(), [props.changeTimes]);
     const validatedChangeset = useLoader(
         () =>
-            validatePublishCandidates(props.selectedPublishCandidateIds).then(
+            validateDebounced(props.selectedPublishCandidateIds).then(
                 (validatedPublishCandidates) => {
                     updateChangeTables();
                     return validatedPublishCandidates;
@@ -333,7 +343,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
 
     const calculatedChanges = useLoader(
-        () => getCalculatedChanges(props.selectedPublishCandidateIds),
+        () => getCalculatedChangesDebounced(props.selectedPublishCandidateIds),
         [props.selectedPublishCandidateIds],
     );
     const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
