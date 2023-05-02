@@ -6,7 +6,7 @@ import { createDelegates } from 'store/store-utils';
 import KilometerLengthsSearch from 'data-products/kilometer-lengths/kilometer-lengths-search';
 import { KilometerLengthsTable } from 'data-products/kilometer-lengths/kilometer-lengths-table';
 import { KmNumber } from 'common/common-model';
-import { LayoutKmPostLengthDetails } from 'track-layout/track-layout-model';
+import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
 import { dataProductsActions } from 'data-products/data-products-slice';
 
 export const KilometerLengthsView = () => {
@@ -40,6 +40,6 @@ export const KilometerLengthsView = () => {
     );
 };
 
-const findIndex = (kmNumber: KmNumber, kmLengths: LayoutKmPostLengthDetails[]): number => {
+const findIndex = (kmNumber: KmNumber, kmLengths: LayoutKmLengthDetails[]): number => {
     return kmLengths.findIndex((km) => km.kmNumber >= kmNumber);
 };

@@ -1,12 +1,11 @@
 import * as React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import styles from './app-bar.scss';
 import geoviiteLogo from 'geoviite-design-lib/geoviite-logo.svg';
 import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
 
 type Link = {
     link: string;
@@ -17,7 +16,7 @@ type Link = {
 const links: Link[] = [
     { link: '/', name: 'app-bar.frontpage', type: 'prod' },
     { link: '/track-layout', name: 'app-bar.track-layout', type: 'prod' },
-    { link: '/rekisteri', name: 'app-bar.register', type: 'prod' },
+    { link: '/registry', name: 'app-bar.register', type: 'test' },
     { link: '/infra-model', name: 'app-bar.infra-model', type: 'prod' },
     { link: '/design-lib-demo', name: 'app-bar.components', type: 'dev' },
     { link: '/localization-demo', name: 'app-bar.localization', type: 'dev' },
@@ -83,15 +82,13 @@ export const AppBar: React.FC = () => {
                                         {t('app-bar.data-products.vertical-geometry')}
                                     </NavLink>
                                 </div>
-                                <EnvRestricted restrictTo={'dev'}>
-                                    <div>
-                                        <NavLink
-                                            className={styles['menu__item']}
-                                            to={'data-products/kilometer-lengths'}>
-                                            {t('app-bar.data-products.km-lengths')}
-                                        </NavLink>
-                                    </div>
-                                </EnvRestricted>
+                                <div>
+                                    <NavLink
+                                        className={styles['menu__item']}
+                                        to={'data-products/kilometer-lengths'}>
+                                        {t('app-bar.data-products.km-lengths')}
+                                    </NavLink>
+                                </div>
                             </div>
                         )}
                     </div>

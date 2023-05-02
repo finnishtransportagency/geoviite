@@ -96,7 +96,7 @@ class PublicationService @Autowired constructor(
                 kmPostDao.fetchVersions(DRAFT, false, trackNumberId).map(kmPostDao::fetch)
             else emptyList()
 
-        val versions = mapToValidationVersions(
+        val versions = toValidationVersions(
             trackNumbers = listOf(trackNumber),
             referenceLines = listOfNotNull(referenceLine),
             kmPosts = kmPosts,
@@ -106,7 +106,7 @@ class PublicationService @Autowired constructor(
         val cacheKeys = collectCacheKeys(versions)
 
         val trackNumberValidation = validateTrackNumber(
-            version = mapToValidationVersion(trackNumber),
+            version = toValidationVersion(trackNumber),
             validationVersions = versions,
             cacheKeys = cacheKeys
         )
@@ -148,7 +148,7 @@ class PublicationService @Autowired constructor(
             switchService.getOrThrow(publishType, switchId)
         }
 
-        val versions = mapToValidationVersions(
+        val versions = toValidationVersions(
             locationTracks = listOfNotNull(locationTrack, duplicateTrack),
             switches = switches,
             trackNumbers = listOf(trackNumber),
@@ -159,7 +159,7 @@ class PublicationService @Autowired constructor(
 
         return ValidatedAsset(
             validateLocationTrack(
-                version = mapToValidationVersion(locationTrack),
+                version = toValidationVersion(locationTrack),
                 validationVersions = versions,
                 cacheKeys = cacheKeys
             ),
@@ -186,7 +186,7 @@ class PublicationService @Autowired constructor(
                 .filterNot(locationTracks::contains)
         else emptyList()
 
-        val versions = mapToValidationVersions(
+        val versions = toValidationVersions(
             switches = listOf(layoutSwitch),
             locationTracks = (locationTracks + previouslyLinkedTracks).map(locationTrackDao::fetch)
         )
@@ -195,7 +195,7 @@ class PublicationService @Autowired constructor(
             .fetchLinkedLocationTracks(listOf(switchId), DRAFT)
             .getOrDefault(switchId, setOf())
         return ValidatedAsset(
-            validateSwitch(mapToValidationVersion(layoutSwitch), versions, linkedTracks),
+            validateSwitch(toValidationVersion(layoutSwitch), versions, linkedTracks),
             switchId,
         )
     }
@@ -218,7 +218,7 @@ class PublicationService @Autowired constructor(
             referenceLineService.getByTrackNumber(publishType, trackNumber.id as IntId)
         }
 
-        val versions = mapToValidationVersions(
+        val versions = toValidationVersions(
             trackNumbers = listOfNotNull(trackNumber),
             referenceLines = listOfNotNull(referenceLine),
             kmPosts = listOf(kmPost)
@@ -228,7 +228,7 @@ class PublicationService @Autowired constructor(
 
         return ValidatedAsset(
             validateKmPost(
-                version = mapToValidationVersion(kmPost),
+                version = toValidationVersion(kmPost),
                 validationVersions = versions,
                 cacheKeys = cacheKeys
             ),

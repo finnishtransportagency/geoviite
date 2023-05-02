@@ -1,8 +1,8 @@
 import { asyncCache } from 'cache/cache';
 import {
+    LayoutKmLengthDetails,
     LayoutKmPost,
     LayoutKmPostId,
-    LayoutKmPostLengthDetails,
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
@@ -171,11 +171,11 @@ export async function getKmPostsOnTrackNumber(
     );
 }
 
-export async function getKmPostLengths(
+export async function getKmLengths(
     publishType: PublishType,
     id: LayoutTrackNumberId,
-): Promise<LayoutKmPostLengthDetails[]> {
-    return getAdt<LayoutKmPostLengthDetails[]>(
+): Promise<LayoutKmLengthDetails[]> {
+    return getAdt<LayoutKmLengthDetails[]>(
         `${layoutUri('track-numbers', publishType, id)}/km-lengths`,
     ).then((response) => {
         if (response.isOk()) {
@@ -186,7 +186,7 @@ export async function getKmPostLengths(
     });
 }
 
-export const getKmPostLengthsAsCsv = (
+export const getKmLengthsAsCsv = (
     publishType: PublishType,
     trackNumberId: LayoutTrackNumberId,
     startKmNumber: KmNumber | undefined,
