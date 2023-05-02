@@ -8,8 +8,8 @@ import {
     getLocationTrackHeights,
     getLocationTrackVerticalGeometry,
     getPlanAlignmentHeights,
-    PlanLinkingSummaryItem,
     getPlanAlignmentStartAndEnd,
+    PlanLinkingSummaryItem,
     TrackKmHeights,
 } from 'geometry/geometry-api';
 import styles from './vertical-geometry-diagram.scss';
@@ -28,21 +28,16 @@ import { HeightGraph } from 'vertical-geometry/height-graph';
 import { HeightTooltip } from 'vertical-geometry/height-tooltip';
 import useResizeObserver from 'use-resize-observer';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
+import {
+    minimumApproximateHorizontalTickWidthPx,
+    minimumIntervalOrLongest,
+} from 'vertical-geometry/ticks-at-intervals';
 
-// this is a rough approximation using the assumption that 1 track meter = 1 m-value meter
-const minimumApproximateHorizontalTickWidthPx = 15;
 const chartHeightPx = 240;
 const topHeightPaddingPx = 120;
 const bottomHeightPaddingPx = 0;
 const fullDiagramHeightPx = 300;
 const minimumPixelWidthToDrawTangentArrows = 0.05;
-
-// units of track meter distance; but the tick length is chosen based on m-value distances, so curved side tracks can
-// stretch or shrink on the diagram
-// values beyond 1000 don't make much sense, as the backend returns at least a starting tick for each track kilometer
-// in order to keep in sync with track addressing
-// values have to be integers for backend implementation simplicity
-const horizontalTickLengthsMeters = [1000, 500, 250, 100, 50, 25, 10, 5, 2, 1];
 
 type VerticalGeometryDiagramAlignmentId =
     | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
@@ -50,16 +45,6 @@ type VerticalGeometryDiagramAlignmentId =
 
 interface VerticalGeometryDiagramProps {
     alignmentId: VerticalGeometryDiagramAlignmentId;
-}
-
-function chooseHorizontalTickLengthMeters(distanceMeters: number, diagramWidthPx: number): number {
-    const meterWidthPx = diagramWidthPx / distanceMeters;
-    const firstTooDenseIndex = horizontalTickLengthsMeters.findIndex(
-        (widthM) => meterWidthPx * widthM < minimumApproximateHorizontalTickWidthPx,
-    );
-    return firstTooDenseIndex == -1
-        ? horizontalTickLengthsMeters[horizontalTickLengthsMeters.length - 1]
-        : horizontalTickLengthsMeters[Math.max(0, firstTooDenseIndex - 1)];
 }
 
 // we don't really need the station values in the plan geometry for anything in this entire diagram
@@ -231,9 +216,9 @@ const VerticalGeometryDiagram: React.FC<{
     const [mousePositionInElement, setMousePositionInElement] = useState<null | [number, number]>(
         null,
     );
-    const horizontalTickLengthMeters = chooseHorizontalTickLengthMeters(
-        endM - startM,
-        diagramWidthPx,
+    const horizontalTickLengthMeters = minimumIntervalOrLongest(
+        diagramWidthPx / (endM - startM),
+        minimumApproximateHorizontalTickWidthPx,
     );
 
     const debouncedLoadAlignmentHeights = useMemo(

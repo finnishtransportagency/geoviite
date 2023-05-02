@@ -2,6 +2,10 @@ import React from 'react';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
 import { TrackKmHeights } from 'geometry/geometry-api';
 import { Translate } from 'vertical-geometry/translate';
+import {
+    minimumIntervalOrLongest,
+    minimumRulerHeightLabelDistancePx,
+} from 'vertical-geometry/ticks-at-intervals';
 
 export interface TrackAddressRulerProps {
     kmHeights: TrackKmHeights[];
@@ -40,22 +44,34 @@ export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
     const startM = coordinates.startM - 5 / coordinates.mMeterLengthPxOverM;
     const endM = coordinates.endM + 5 / coordinates.mMeterLengthPxOverM;
 
-    const ticks = kmHeights.map((kmHeight, i) => {
-        return kmHeight.trackMeterHeights
-            .filter(({ m }) => m > startM && m < endM)
-            .map(({ m, height }, mi) => {
-                const tickX = mToX(coordinates, m);
-                return (
-                    <g transform={`translate(${tickX} ${heightPx})`} key={`tick_${i}_${mi}`}>
-                        <line y2={-5} stroke={'black'} />
-                        {height && (
-                            <text transform={`translate(3 -6) scale(0.7) rotate(-90)`}>
-                                {height.toLocaleString('fi', { maximumFractionDigits: 2 })}
-                            </text>
-                        )}
-                    </g>
-                );
-            });
+    const kilometerTickLabelInterval = minimumIntervalOrLongest(
+        coordinates.mMeterLengthPxOverM * coordinates.horizontalTickLengthMeters,
+        minimumRulerHeightLabelDistancePx,
+    );
+
+    const initialRenderableTicks = kmHeights
+        .filter(
+            ({ kmNumber }) =>
+                kilometerTickLabelInterval === 1 ||
+                parseInt(kmNumber) % kilometerTickLabelInterval === 1,
+        )
+        .flatMap(({ kmNumber, trackMeterHeights }) =>
+            trackMeterHeights
+                .filter(({ m }) => m > startM && m < endM)
+                .map((tm) => ({ kmNumber, ...tm, x: mToX(coordinates, tm.m) })),
+        );
+
+    const ticks = initialRenderableTicks.map(({ height, x }, i) => {
+        return (
+            <g transform={`translate(${x} ${heightPx})`} key={`${i}`}>
+                <line y2={-5} stroke={'black'} />
+                {height && (
+                    <text transform={`translate(3 -6) scale(0.7) rotate(-90)`}>
+                        {height.toLocaleString('fi', { maximumFractionDigits: 2 })}
+                    </text>
+                )}
+            </g>
+        );
     });
 
     return (
