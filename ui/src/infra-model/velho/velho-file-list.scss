@@ -1,0 +1,32 @@
+.velho-file-list__expanded {
+    display: flex;
+    flex-direction: row;
+
+    .infobox__content {
+        width: 390px;
+    }
+}
+
+.velho-file-list__table {
+    padding: 1;
+
+    > thead {
+        > tr {
+            > th {
+                width: 10px;
+                background: red;
+                // table > tbody > tr:nth-child(1) > td:nth-child(3)
+            }
+        }
+    }
+    > tbody {
+        > tr {
+            > td {
+                width: 10px;
+                background: red;
+                // table > tbody > tr:nth-child(1) > td:nth-child(3)
+            }
+        }
+    }
+    // #root > div > div.main__content > div > div.design-demo > div:nth-child(11) > div:nth-child(5) > div > table > tbody > tr:nth-child(2) > td:nth-child(1)
+}
