@@ -19,23 +19,9 @@ class ProjektiVelhoController(private val projektiVelhoService: ProjektiVelhoSer
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/login")
-    fun login(): ResponseEntity<AccessToken> {
-        logger.apiCall("login")
-        return toResponse(projektiVelhoService.login())
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/ookkonää")
     fun fetchFilesFromVelho(): ResponseEntity<Any> {
         logger.apiCall("fetchFilesFromVelho")
         return toResponse(projektiVelhoService.fetch())
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/veleho")
-    fun fetchLatestResult(): ResponseEntity<Any> {
-        logger.apiCall("fetchLatestResult")
-        return toResponse(projektiVelhoService.latest())
     }
 }

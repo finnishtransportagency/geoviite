@@ -57,6 +57,10 @@ class ProjektiVelhoClientConfiguration @Autowired constructor(
             .filter(logRequest())
             .filter(logResponse())
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .codecs { codecs ->
+                codecs.defaultCodecs()
+                    .maxInMemorySize(1024*1024*1024)
+            }
 
         return webClientBuilder.build()
     }
