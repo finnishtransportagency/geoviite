@@ -296,6 +296,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapLayer,
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            olView,
                             changeTimes,
                             publishType,
                         );
