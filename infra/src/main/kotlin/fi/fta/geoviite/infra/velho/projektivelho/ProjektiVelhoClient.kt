@@ -1,9 +1,5 @@
 package fi.fta.geoviite.infra.velho.projektivelho
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.jsonMapper
-import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.logging.integrationCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -18,7 +14,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
-val reloginoffsetSeconds: Long = 3590
+val reloginoffsetSeconds: Long = 60
 
 data class AccessTokenHolder(
     val token: String,
@@ -38,10 +34,10 @@ class ProjektiVelhoClient constructor(
     @Qualifier("loginClient") private val loginClient: WebClient
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val accessToken: AtomicReference<AccessTokenHolder?> = AtomicReference(null) // Atomic variable would be nice
+    private val accessToken: AtomicReference<AccessTokenHolder?> = AtomicReference(null)
 
-    fun logIn(): AccessTokenHolder {
-        logger.integrationCall("logIn")
+    fun login(): AccessTokenHolder {
+        logger.integrationCall("login")
         return loginClient
             .post()
             .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
@@ -61,17 +57,17 @@ class ProjektiVelhoClient constructor(
             .bodyToMono<List<SearchStatus>>()
             .block(defaultBlockTimeout)
 
-    fun fetchMatchesResponse(searchId: String) =
+    fun fetchSearchResults(searchId: String) =
             client
                 .get()
                 .uri("/hakupalvelu/api/v1/taustahaku/tulokset/$searchId")
                 .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
                 .retrieve()
-                .bodyToMono<MatchesResponse>()
+                .bodyToMono<SearchResult>()
                 .block(defaultBlockTimeout)
 
 
-    fun postSearch(fetchStartTime: Instant, startOid: String): SearchStatus {
+    fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): SearchStatus {
         val json = searchJson( fetchStartTime, startOid, 100)
         return client
                 .post()
@@ -83,31 +79,28 @@ class ProjektiVelhoClient constructor(
                 .block(defaultBlockTimeout) ?: throw IllegalStateException("Projektivelho search failed")
     }
 
-    fun fetchMatchMetadata(oid: String) =
+    fun fetchFileMetadata(oid: String) =
             client
                 .get()
                 .uri("/aineistopalvelu/api/v1/aineisto/$oid")
                 .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
                 .retrieve()
-                .bodyToMono<FileMetadata>()
+                .bodyToMono<File>()
                 .block(defaultBlockTimeout)
 
-    fun fetchFileContent(oid: String, version: String, filename: String, changeTime: Instant) =
+    fun fetchFileContent(oid: String, version: String) =
             client
                 .get()
                 .uri("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti?versio=${version}")
                 .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
                 .retrieve()
                 .bodyToMono<String>()
-                .block(defaultBlockTimeout)
-                ?.let { content -> ProjektiVelhoFile(filename, oid, content, changeTime) }
+                .block(defaultBlockTimeout) ?: throw IllegalStateException("Fetching file failed")
 
     private fun fetchAccessToken(currentTime: Instant): String {
         val token = accessToken.get()
-        if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginoffsetSeconds)))
-        {
-            println("(Re)login")
-            accessToken.set(logIn())
+        if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginoffsetSeconds))) {
+            accessToken.set(login())
         }
         return accessToken.get()?.token ?: throw IllegalStateException("Projektivelho login token can't be null after login")
     }

@@ -19,6 +19,7 @@ import reactor.netty.http.client.HttpClient
 import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
+val maxFileSize: Int = 1024*1024*1024
 @Configuration
 @ConditionalOnProperty(prefix = "geoviite.projektivelho", name = ["enabled"], havingValue = "true")
 class ProjektiVelhoClientConfiguration @Autowired constructor(
@@ -57,7 +58,7 @@ class ProjektiVelhoClientConfiguration @Autowired constructor(
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .codecs { codecs ->
                 codecs.defaultCodecs()
-                    .maxInMemorySize(1024*1024*1024)
+                    .maxInMemorySize(maxFileSize)
             }
 
         return webClientBuilder.build()

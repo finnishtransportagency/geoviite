@@ -12,8 +12,14 @@ create table integrations.projektivelho_search
 create table integrations.projektivelho_file_metadata
 (
   id          int primary key generated always as identity,
-  oid         varchar(50),
+  oid         varchar(50) not null,
   filename    varchar(100) not null,
+  version     varchar(50) not null,
+  description varchar(150),
+  file_state  varchar(50),
+  category    varchar(50),
+  doc_type    varchar(50),
+  asset_group varchar(50),
   change_time timestamp with time zone not null,
   status      integrations.projektivelho_file_status not null
 );

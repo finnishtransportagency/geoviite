@@ -12,25 +12,43 @@ import java.time.Instant
 @Transactional
 @Component
 class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?): DaoBase(jdbcTemplateParam) {
-    fun insertFileMetadata(username: UserName, oid: String, filename: String, timestamp: Instant, status: FileStatus): IntId<ProjektiVelhoFile> {
+    fun insertFileMetadata(username: UserName, oid: String, metadata: Metadata, latestVersion: LatestVersion, status: FileStatus): IntId<ProjektiVelhoFile> {
         val sql = """
             insert into integrations.projektivelho_file_metadata(
                 oid,
                 filename,
+                version,
                 change_time,
+                description,
+                file_state,
+                category,
+                doc_type,
+                asset_group,
                 status
             ) values (
                 :oid,
                 :filename,
+                :version,
                 :change_time,
+                :description,
+                :file_state,
+                :category,
+                :doc_type,
+                :asset_group,
                 :status::integrations.projektivelho_file_status
             ) returning id
         """.trimIndent()
         jdbcTemplate.setUser(username)
         return jdbcTemplate.query(sql, mapOf<String, Any?>(
-            "filename" to filename,
+            "filename" to latestVersion.name,
             "oid" to oid,
-            "change_time" to Timestamp.from(timestamp),
+            "version" to latestVersion.version,
+            "description" to metadata.description,
+            "file_state" to metadata.state,
+            "category" to metadata.category,
+            "doc_type" to metadata.documentType,
+            "asset_group" to metadata.group,
+            "change_time" to Timestamp.from(latestVersion.changeTime),
             "status" to status.name)
         ) { rs, _ ->
             rs.getIntId<ProjektiVelhoFile>("id")

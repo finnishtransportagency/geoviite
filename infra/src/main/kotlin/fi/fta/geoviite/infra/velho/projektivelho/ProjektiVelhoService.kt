@@ -28,7 +28,7 @@ class ProjektiVelhoService @Autowired constructor(
     fun fetch() {
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
             val latest = projektiVelhoDao.fetchLatestFile(PROJEKTIVELHO_DB_USERNAME)
-            val searchStatus = projektiVelhoClient.postSearch(
+            val searchStatus = projektiVelhoClient.postXmlFileSearch(
                 latest?.second
                     ?: LocalDate.of(2022, 1, 1).atTime(0, 0).toInstant(ZoneOffset.UTC),
                 latest?.first ?: ""
@@ -46,14 +46,17 @@ class ProjektiVelhoService @Autowired constructor(
                     val search = searchStatus.find { search -> search.searchId == latest.token }
                     if (search != null && search.state == "valmis") {
                         projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FETCHING)
-                        val projektivelhoFiles = projektiVelhoClient.fetchMatchesResponse(search.searchId)?.let { matchesResponse ->
+                        val projektivelhoFiles = projektiVelhoClient.fetchSearchResults(search.searchId)?.let { matchesResponse ->
                             matchesResponse.matches.mapNotNull { match ->
-                                projektiVelhoClient.fetchMatchMetadata(match.oid)?.let { matchMeta ->
-                                    projektiVelhoClient.fetchFileContent(
-                                        match.oid,
-                                        matchMeta.tuoreinVersio.version,
-                                        matchMeta.tuoreinVersio.name,
-                                        matchMeta.tuoreinVersio.changeTime
+                                projektiVelhoClient.fetchFileMetadata(match.oid)?.let { (latestVersion, metadata) ->
+                                    ProjektiVelhoFile(
+                                        oid = match.oid,
+                                        content = projektiVelhoClient.fetchFileContent(
+                                            match.oid,
+                                            latestVersion.version,
+                                        ),
+                                        metadata = metadata,
+                                        latestVersion = latestVersion
                                     )
                                 }
                             }
@@ -61,7 +64,7 @@ class ProjektiVelhoService @Autowired constructor(
 
                         projektivelhoFiles.forEach { file ->
                             val shouldBeSavedToDb = isRailroadXml(file.content)
-                            val metadataId = projektiVelhoDao.insertFileMetadata(PROJEKTIVELHO_DB_USERNAME, file.oid, file.filename, file.timestamp, if (shouldBeSavedToDb) FileStatus.IMPORTED else FileStatus.NOT_IM)
+                            val metadataId = projektiVelhoDao.insertFileMetadata(PROJEKTIVELHO_DB_USERNAME, file.oid, file.metadata, file.latestVersion, if (shouldBeSavedToDb) FileStatus.IMPORTED else FileStatus.NOT_IM)
                             if (shouldBeSavedToDb) projektiVelhoDao.insertFileContent(PROJEKTIVELHO_DB_USERNAME, file.content, metadataId)
                         }
                         projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FINISHED)

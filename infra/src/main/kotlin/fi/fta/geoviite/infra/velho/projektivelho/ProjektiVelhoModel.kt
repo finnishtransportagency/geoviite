@@ -112,12 +112,43 @@ data class SearchStatus(
     @JsonProperty("alkuaika") val startTime: Instant,
     @JsonProperty("hakutunniste-voimassa") val validFor: Long
 )
-data class MatchesResponse(@JsonProperty("osumat") val matches: List<Match>)
+
+data class SearchResult(@JsonProperty("osumat") val matches: List<Match>)
 data class Match(val oid: String)
-data class LatestVersion(@JsonProperty("versio") val version: String, @JsonProperty("nimi") val name: String, @JsonProperty("muokattu") val changeTime: Instant)
-data class FileMetadata(@JsonProperty("tuorein-versio") val tuoreinVersio: LatestVersion)
-data class ProjektiVelhoFile(val filename: String, val oid: String, val content: String, val timestamp: Instant)
-data class ProjektiVelhoSearch(val id: IntId<ProjektiVelhoSearch>, val token: String, val state: FetchStatus, val validUntil: Instant)
+data class LatestVersion(
+    @JsonProperty("versio") val version: String,
+    @JsonProperty("nimi") val name: String,
+    @JsonProperty("muokattu") val changeTime: Instant
+)
+
+data class Metadata(
+    @JsonProperty("tila") val state: String?,
+    @JsonProperty("kuvaus") val description: String?,
+    @JsonProperty("laji") val category: String?,
+    @JsonProperty("dokumenttityyppi") val documentType: String?,
+    @JsonProperty("ryhma") val group: String?,
+    @JsonProperty("tekniikka-alat") val technicalGroups: List<String>?,
+    @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?
+)
+
+data class File(
+    @JsonProperty("tuorein-versio") val tuoreinVersio: LatestVersion,
+    @JsonProperty("metatiedot") val metadata: Metadata
+)
+
+data class ProjektiVelhoFile(
+    val oid: String,
+    val content: String,
+    val metadata: Metadata,
+    val latestVersion: LatestVersion
+)
+
+data class ProjektiVelhoSearch(
+    val id: IntId<ProjektiVelhoSearch>,
+    val token: String,
+    val state: FetchStatus,
+    val validUntil: Instant
+)
 
 enum class FetchStatus {
     WAITING,
