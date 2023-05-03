@@ -34,6 +34,7 @@ function isTrackLayoutLayer(layer: MapLayer): boolean {
         case 'tile':
         case 'kmPosts':
         case 'switches':
+        case 'trackNumberDiagram':
             return true;
         default:
             return false;

@@ -56,6 +56,8 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
+import { createTrackNumberSchemaLayerAdapter } from 'map/layers/track-number-layer';
+import { LineString } from 'ol/geom';
 
 declare global {
     interface Window {
@@ -289,6 +291,16 @@ const MapView: React.FC<MapViewProps> = ({
                 const existingOlLayer = existingOlLayersByName[mapLayer.id];
                 let layerAdapter;
                 switch (mapLayer.type) {
+                    case 'trackNumberDiagram':
+                        layerAdapter = createTrackNumberSchemaLayerAdapter(
+                            mapLayer,
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            changeTimes,
+                            publishType,
+                        );
+
+                        break;
                     case 'switchLinking':
                         layerAdapter = createSwitchLinkingLayerAdapter(
                             mapLayer,
