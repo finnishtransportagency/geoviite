@@ -132,7 +132,7 @@ data class Metadata(
 )
 
 data class File(
-    @JsonProperty("tuorein-versio") val tuoreinVersio: LatestVersion,
+    @JsonProperty("tuorein-versio") val latestVersion: LatestVersion,
     @JsonProperty("metatiedot") val metadata: Metadata
 )
 
@@ -153,7 +153,8 @@ data class ProjektiVelhoSearch(
 enum class FetchStatus {
     WAITING,
     FETCHING,
-    FINISHED
+    FINISHED,
+    ERROR
 }
 
 enum class FileStatus {
@@ -162,3 +163,5 @@ enum class FileStatus {
     REJECTED,
     ACCEPTED,
 }
+
+const val READY = "valmis"

@@ -1,5 +1,5 @@
 create type integrations.projektivelho_file_status as enum ('NOT_IM', 'IMPORTED', 'REJECTED', 'ACCEPTED');
-create type integrations.projektivelho_search_status as enum ('WAITING', 'FETCHING', 'FINISHED');
+create type integrations.projektivelho_search_status as enum ('WAITING', 'FETCHING', 'FINISHED', 'ERROR');
 
 create table integrations.projektivelho_search
 (

@@ -22,6 +22,6 @@ class ProjektiVelhoController(private val projektiVelhoService: ProjektiVelhoSer
     @GetMapping("/ookkonää")
     fun fetchFilesFromVelho(): ResponseEntity<Any> {
         logger.apiCall("fetchFilesFromVelho")
-        return toResponse(projektiVelhoService.fetch())
+        return toResponse(projektiVelhoService.search())
     }
 }

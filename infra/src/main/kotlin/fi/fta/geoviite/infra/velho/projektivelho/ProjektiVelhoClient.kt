@@ -48,14 +48,14 @@ class ProjektiVelhoClient constructor(
             ?: throw IllegalStateException("Projektivelho login failed")
     }
 
-    fun fetchVelhoSearches(fetchToken: String) =
+    fun fetchVelhoSearches() =
         client
             .get()
             .uri("/hakupalvelu/api/v1/taustahaku/tila?tagit=aineisto")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<List<SearchStatus>>()
-            .block(defaultBlockTimeout)
+            .block(defaultBlockTimeout) ?: throw IllegalStateException("Fetching running searches from ProjektiVelho failed")
 
     fun fetchSearchResults(searchId: String) =
             client
@@ -64,11 +64,11 @@ class ProjektiVelhoClient constructor(
                 .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
                 .retrieve()
                 .bodyToMono<SearchResult>()
-                .block(defaultBlockTimeout)
+                .block(defaultBlockTimeout) ?: throw IllegalStateException("Fetching search results failed. searchId=$searchId")
 
 
     fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): SearchStatus {
-        val json = searchJson( fetchStartTime, startOid, 100)
+        val json = searchJson(fetchStartTime, startOid, 100)
         return client
                 .post()
                 .uri("/hakupalvelu/api/v1/taustahaku/kohdeluokat?tagi=aineisto")
@@ -86,7 +86,7 @@ class ProjektiVelhoClient constructor(
                 .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
                 .retrieve()
                 .bodyToMono<File>()
-                .block(defaultBlockTimeout)
+                .block(defaultBlockTimeout) ?: throw IllegalStateException("Metadata fetch failed. oid=$oid")
 
     fun fetchFileContent(oid: String, version: String) =
             client
@@ -95,7 +95,7 @@ class ProjektiVelhoClient constructor(
                 .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
                 .retrieve()
                 .bodyToMono<String>()
-                .block(defaultBlockTimeout) ?: throw IllegalStateException("Fetching file failed")
+                .block(defaultBlockTimeout) ?: throw IllegalStateException("File fetch failed. oid=$oid version=$version")
 
     private fun fetchAccessToken(currentTime: Instant): String {
         val token = accessToken.get()

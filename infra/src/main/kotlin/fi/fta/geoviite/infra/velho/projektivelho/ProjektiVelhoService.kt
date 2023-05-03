@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.velho.projektivelho
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.logging.serviceCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -21,11 +22,12 @@ class ProjektiVelhoService @Autowired constructor(
     private val lockDao: LockDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val databaseLockDuration = Duration.ofMinutes(120)
+    private val databaseLockDuration = Duration.ofMinutes(15)
     private val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
     private val alignmentsTagRegex = Regex("<alignments[^>]*>")
 
-    fun fetch() {
+    fun search() {
+        logger.serviceCall("search")
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
             val latest = projektiVelhoDao.fetchLatestFile(PROJEKTIVELHO_DB_USERNAME)
             val searchStatus = projektiVelhoClient.postXmlFileSearch(
@@ -38,40 +40,64 @@ class ProjektiVelhoService @Autowired constructor(
     }
 
     @Scheduled(fixedRate = 60000)
-    fun fetchVelhoFiles() {
+    fun pollAndFetchIfWaiting() {
+        logger.serviceCall("pollAndFetchIfWaiting")
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
-            val latest = projektiVelhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
-            if (latest != null && latest.state == FetchStatus.WAITING) {
-                projektiVelhoClient.fetchVelhoSearches(latest.token)?.let { searchStatus ->
-                    val search = searchStatus.find { search -> search.searchId == latest.token }
-                    if (search != null && search.state == "valmis") {
-                        projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FETCHING)
-                        val projektivelhoFiles = projektiVelhoClient.fetchSearchResults(search.searchId)?.let { matchesResponse ->
-                            matchesResponse.matches.mapNotNull { match ->
-                                projektiVelhoClient.fetchFileMetadata(match.oid)?.let { (latestVersion, metadata) ->
-                                    ProjektiVelhoFile(
-                                        oid = match.oid,
-                                        content = projektiVelhoClient.fetchFileContent(
-                                            match.oid,
-                                            latestVersion.version,
-                                        ),
-                                        metadata = metadata,
-                                        latestVersion = latestVersion
-                                    )
-                                }
-                            }
-                        } ?: emptyList()
-
-                        projektivelhoFiles.forEach { file ->
-                            val shouldBeSavedToDb = isRailroadXml(file.content)
-                            val metadataId = projektiVelhoDao.insertFileMetadata(PROJEKTIVELHO_DB_USERNAME, file.oid, file.metadata, file.latestVersion, if (shouldBeSavedToDb) FileStatus.IMPORTED else FileStatus.NOT_IM)
-                            if (shouldBeSavedToDb) projektiVelhoDao.insertFileContent(PROJEKTIVELHO_DB_USERNAME, file.content, metadataId)
-                        }
-                        projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FINISHED)
-                    }
-                }
-            }
+            val potentiallyWaitingSearch = projektiVelhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
+            if (potentiallyWaitingSearch != null && potentiallyWaitingSearch.state == FetchStatus.WAITING)
+                projektiVelhoClient
+                    .fetchVelhoSearches()
+                    .find { search -> search.searchId == potentiallyWaitingSearch.token && search.state == READY }
+                    ?.let { results -> importFilesFromProjektiVelho(potentiallyWaitingSearch, results) }
         }
+    }
+
+    private fun importFilesFromProjektiVelho(
+        latest: ProjektiVelhoSearch,
+        searchResults: SearchStatus
+    ) =
+        try {
+            projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FETCHING)
+            projektiVelhoClient.fetchSearchResults(searchResults.searchId)
+                .matches.map(::fetchFileAndInsertToDb)
+            projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FINISHED)
+        } catch (e: Exception) {
+            projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.ERROR)
+            throw e
+        }
+
+    private fun fetchFileAndInsertToDb(match: Match) =
+        fetchFileMetadataAndContent(match).let(::insertFileToDatabase)
+
+    private fun fetchFileMetadataAndContent(match: Match): ProjektiVelhoFile {
+        val metadataResponse = projektiVelhoClient.fetchFileMetadata(match.oid)
+        val content = projektiVelhoClient.fetchFileContent(
+            match.oid,
+            metadataResponse.latestVersion.version,
+        )
+
+        return ProjektiVelhoFile(
+            oid = match.oid,
+            content = content,
+            metadata = metadataResponse.metadata,
+            latestVersion = metadataResponse.latestVersion
+        )
+    }
+
+    private fun insertFileToDatabase(file: ProjektiVelhoFile) {
+        val shouldBeSavedToDb = isRailroadXml(file.content)
+        val metadataId = projektiVelhoDao.insertFileMetadata(
+            PROJEKTIVELHO_DB_USERNAME,
+            file.oid,
+            file.metadata,
+            file.latestVersion,
+            if (shouldBeSavedToDb) FileStatus.IMPORTED else FileStatus.NOT_IM
+        )
+        if (shouldBeSavedToDb) projektiVelhoDao.insertFileContent(
+            PROJEKTIVELHO_DB_USERNAME,
+            file.content,
+            metadataId
+        )
     }
 
     fun isRailroadXml(xml: String) =
