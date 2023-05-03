@@ -24,6 +24,7 @@ import {
     addBbox,
     alignmentId,
     getMatchingAlignmentDatas,
+    getTickStyle,
     MatchOptions,
     setAlignmentData,
 } from 'map/layers/layer-utils';
@@ -111,6 +112,14 @@ const alignmentBackgroundBlue = new Style({
         width: 12,
     }),
     zIndex: 1,
+});
+
+const endPointTickStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentColor,
+        width: 2,
+    }),
+    zIndex: 0,
 });
 
 enum DisplayMode {
@@ -330,6 +339,10 @@ function createAlignmentFeatures(
             selected || highlighted,
         );
         features.push(...referenceLineBadgeFeatures);
+    }
+
+    if (!isReferenceLine && badgeDisplayMode === DisplayMode.ALL) {
+        features.push(...getStartEndTicks(dataHolder));
     }
 
     setAlignmentData(alignmentFeature, dataHolder);
@@ -564,4 +577,40 @@ export function calculateBadgeRotation(start: Coordinate, end: Coordinate) {
         drawFromEnd,
         rotation,
     };
+}
+
+function getStartEndTicks(data: AlignmentDataHolder) {
+    const ticks = [];
+    const points = data.points;
+
+    if (points.length >= 2) {
+        if (points[0].m === 0) {
+            const fP = [points[0].x, points[0].y];
+            const sP = [points[1].x, points[1].y];
+
+            const startF = new Feature({
+                geometry: new Point(fP),
+            });
+
+            startF.setStyle(getTickStyle(fP, sP, 6, 'start', endPointTickStyle));
+
+            ticks.push(startF);
+        }
+
+        const lastIdx = points.length - 1;
+        if (points[lastIdx].m === data.header.length) {
+            const lP = [points[lastIdx].x, points[lastIdx].y];
+            const sLP = [points[lastIdx - 1].x, points[lastIdx - 1].y];
+
+            const endF = new Feature({
+                geometry: new Point(lP),
+            });
+
+            endF.setStyle(getTickStyle(sLP, lP, 6, 'end', endPointTickStyle));
+
+            ticks.push(endF);
+        }
+    }
+
+    return ticks;
 }
