@@ -28,6 +28,7 @@ import { KilometerLengthsView } from 'data-products/kilometer-lengths/kilometer-
 import VerticalGeometryView from 'data-products/vertical-geometry/vertical-geometry-view';
 import { commonActionCreators } from 'common/common-slice';
 import VerticalGeometryDiagramDemoPage from 'vertical-geometry/demo-page';
+import TabContainer from 'infra-model/tabs/tab-container';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -71,6 +72,7 @@ const Main: React.VFC<MainProps> = (props: MainProps) => {
                         path="/data-products/kilometer-lengths"
                         element={<KilometerLengthsView />}
                     />
+                    <Route path="/tab-demo" element={<TabContainer />} />
                 </Routes>
             </div>
             <ToastContainer
