@@ -92,6 +92,7 @@ const alignmentBackgroundStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.alignmentBackground,
         width: 12,
+        lineCap: 'butt',
     }),
     zIndex: 0,
 });
@@ -117,7 +118,7 @@ enum DisplayMode {
     ALL,
 }
 
-enum BadgeColor {
+export enum BadgeColor {
     LIGHT,
     DARK,
 }
@@ -127,7 +128,7 @@ type MapAlignmentBadgePoint = {
     nextPoint: number[];
 };
 
-function createMapAlignmentBadgeFeature(
+export function createMapAlignmentBadgeFeature(
     name: string,
     points: MapAlignmentBadgePoint[],
     color: BadgeColor,
@@ -237,9 +238,12 @@ function createFeatures(
         .flat();
 }
 
-function createBadgePoints(points: LayoutPoint[], drawDistance: number): MapAlignmentBadgePoint[] {
-    if (points.length < 2) return [];
-    const start = Math.ceil(points[0].m / drawDistance);
+export function createBadgePoints(
+    points: LayoutPoint[],
+    drawDistance: number,
+): MapAlignmentBadgePoint[] {
+    if (points.length < 3) return [];
+    const start = Math.ceil(points[1].m / drawDistance);
     const end = Math.floor(points[points.length - 1].m / drawDistance);
     if (start > end) return [];
     return Array.from({ length: 1 + end - start }, (_, i) => {
