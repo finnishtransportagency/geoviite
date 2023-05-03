@@ -60,8 +60,9 @@ class ProjektiVelhoService @Autowired constructor(
                         } ?: emptyList()
 
                         projektivelhoFiles.forEach { file ->
-                            val fileId = if (isRailroadXml(file.content)) projektiVelhoDao.insertFileContent(PROJEKTIVELHO_DB_USERNAME, file.content, file.filename) else null
-                            projektiVelhoDao.insertFile(PROJEKTIVELHO_DB_USERNAME, file.oid, fileId, file.timestamp)
+                            val shouldBeSavedToDb = isRailroadXml(file.content)
+                            val metadataId = projektiVelhoDao.insertFileMetadata(PROJEKTIVELHO_DB_USERNAME, file.oid, file.filename, file.timestamp, if (shouldBeSavedToDb) FileStatus.IMPORTED else FileStatus.NOT_IM)
+                            if (shouldBeSavedToDb) projektiVelhoDao.insertFileContent(PROJEKTIVELHO_DB_USERNAME, file.content, metadataId)
                         }
                         projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FINISHED)
                     }

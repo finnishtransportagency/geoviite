@@ -15,9 +15,10 @@ import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicReference
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
-val reloginoffsetSeconds: Long = 100
+val reloginoffsetSeconds: Long = 3590
 
 data class AccessTokenHolder(
     val token: String,
@@ -30,8 +31,6 @@ data class AccessToken(
     val token_type: String,
 )
 
-data class ProjektiVelhoStatus(val isOnline: Boolean)
-
 @Component
 @ConditionalOnBean(ProjektiVelhoClientConfiguration::class)
 class ProjektiVelhoClient constructor(
@@ -39,11 +38,7 @@ class ProjektiVelhoClient constructor(
     @Qualifier("loginClient") private val loginClient: WebClient
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private var accessToken: AccessTokenHolder? = null
-
-    private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    private val accessToken: AtomicReference<AccessTokenHolder?> = AtomicReference(null) // Atomic variable would be nice
 
     fun logIn(): AccessTokenHolder {
         logger.integrationCall("logIn")
@@ -108,10 +103,12 @@ class ProjektiVelhoClient constructor(
                 ?.let { content -> ProjektiVelhoFile(filename, oid, content, changeTime) }
 
     private fun fetchAccessToken(currentTime: Instant): String {
-        if (accessToken == null || accessToken?.expireTime?.isAfter(currentTime.plusSeconds(reloginoffsetSeconds)) ?: false)
+        val token = accessToken.get()
+        if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginoffsetSeconds)))
         {
-            accessToken = logIn()
+            println("(Re)login")
+            accessToken.set(logIn())
         }
-        return accessToken?.token ?: throw IllegalStateException("Projektivelho login token can't null after login")
+        return accessToken.get()?.token ?: throw IllegalStateException("Projektivelho login token can't be null after login")
     }
 }

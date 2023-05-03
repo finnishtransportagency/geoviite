@@ -124,3 +124,10 @@ enum class FetchStatus {
     FETCHING,
     FINISHED
 }
+
+enum class FileStatus {
+    NOT_IM,
+    IMPORTED,
+    REJECTED,
+    ACCEPTED,
+}

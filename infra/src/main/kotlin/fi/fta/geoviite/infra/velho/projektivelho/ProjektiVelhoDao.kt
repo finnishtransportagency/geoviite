@@ -12,44 +12,44 @@ import java.time.Instant
 @Transactional
 @Component
 class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?): DaoBase(jdbcTemplateParam) {
-    fun insertFile(username: UserName, oid: String, fileId: Int?, timestamp: Instant) {
+    fun insertFileMetadata(username: UserName, oid: String, filename: String, timestamp: Instant, status: FileStatus): IntId<ProjektiVelhoFile> {
         val sql = """
-            insert into integrations.projektivelho_file(
+            insert into integrations.projektivelho_file_metadata(
                 oid,
-                file_id,
+                filename,
                 change_time,
                 status
             ) values (
                 :oid,
-                :file_id,
+                :filename,
                 :change_time,
                 :status::integrations.projektivelho_file_status
             ) returning id
         """.trimIndent()
         jdbcTemplate.setUser(username)
-        jdbcTemplate.query(sql, mapOf<String, Any?>(
-            "file_id" to fileId,
+        return jdbcTemplate.query(sql, mapOf<String, Any?>(
+            "filename" to filename,
             "oid" to oid,
             "change_time" to Timestamp.from(timestamp),
-            "status" to if (fileId != null) "IMPORTED" else "NOT_IM")
+            "status" to status.name)
         ) { rs, _ ->
-            rs.getInt("id")
-        }
+            rs.getIntId<ProjektiVelhoFile>("id")
+        }.single()
     }
 
-    fun insertFileContent(username: UserName, content: String, filename: String): Int {
+    fun insertFileContent(username: UserName, content: String, metadataId: IntId<ProjektiVelhoFile>): Int {
         val sql = """
-            insert into integrations.projektivelho_file_content(
+            insert into integrations.projektivelho_file(
                 content,
-                filename
+                metadata_id
             ) values (
                 xmlparse(document :content),
-                :filename
-            ) returning id
+                :metadata_id
+            ) returning metadata_id
         """.trimIndent()
         jdbcTemplate.setUser(username)
-        return jdbcTemplate.query(sql, mapOf<String, Any>("filename" to filename, "content" to content)) { rs, _ ->
-            rs.getInt("id")
+        return jdbcTemplate.query(sql, mapOf<String, Any>("metadata_id" to metadataId.intValue, "content" to content)) { rs, _ ->
+            rs.getInt("metadata_id")
         }.single()
     }
 
@@ -86,7 +86,7 @@ class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?): DaoBase(
 
     fun fetchLatestFile(username: UserName): Pair<String, Instant>? {
         val sql = """
-            select change_time, oid from integrations.projektivelho_file order by change_time desc limit 1
+            select change_time, oid from integrations.projektivelho_file_metadata order by change_time desc, oid desc limit 1
         """.trimIndent()
         jdbcTemplate.setUser(username)
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
