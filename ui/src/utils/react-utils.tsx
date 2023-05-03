@@ -89,9 +89,7 @@ export function useTwoPartEffect<TEntity>(
     const promise = useRef<Promise<void>>();
     let cancelled = false;
     useEffect(() => {
-        promise.current = loadFunc()
-            ?.then((r) => (cancelled ? Promise.reject('dependencies changed') : Promise.resolve(r)))
-            .then(onceOnFulfilled);
+        promise.current = loadFunc()?.then((r) => void (cancelled || onceOnFulfilled(r)));
         return () => {
             cancelled = true;
         };

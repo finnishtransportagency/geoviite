@@ -112,31 +112,36 @@ fun toMapAlignments(
                 includeGeometryData = includeGeometryData,
             )
 
-            val state = getLayoutStateOrDefault(alignment.state)
             val boundingBoxInLayoutSpace = alignment.bounds?.let {
                 val cornersInLayoutSpace = it.corners.map { corner -> planToLayout.transform(corner) }
                 boundingBoxAroundPoints(cornersInLayoutSpace)
             }
 
             PlanLayoutAlignment(
-                header = AlignmentHeader(
-                    id = alignment.id,
-                    name = alignment.name,
-                    alignmentSource = MapAlignmentSource.GEOMETRY,
-                    alignmentType = getAlignmentType(alignment.featureTypeCode),
-                    state = state,
-                    trackNumberId = alignment.trackNumberId,
-                    boundingBox = boundingBoxInLayoutSpace,
-                    length = alignment.elements.sumOf(GeometryElement::calculatedLength),
-                    segmentCount = alignment.elements.size,
-                    version = null,
-                    duplicateOf = null,
-                    trackType = null,
-                ),
+                header = toAlignmentHeader(alignment, boundingBoxInLayoutSpace),
                 segments = mapSegments,
             )
         }
 }
+
+fun toAlignmentHeader(
+    alignment: GeometryAlignment,
+    boundingBoxInLayoutSpace: BoundingBox? = null,
+) = AlignmentHeader(
+    id = alignment.id,
+    name = alignment.name,
+    alignmentSource = MapAlignmentSource.GEOMETRY,
+    alignmentType = getAlignmentType(alignment.featureTypeCode),
+    state = getLayoutStateOrDefault(alignment.state),
+    trackNumberId = alignment.trackNumberId,
+    boundingBox = boundingBoxInLayoutSpace,
+    length = alignment.elements.sumOf(GeometryElement::calculatedLength),
+    segmentCount = alignment.elements.size,
+    version = null,
+    duplicateOf = null,
+    trackType = null,
+)
+
 
 private fun toMapSegments(
     alignment: GeometryAlignment,

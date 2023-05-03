@@ -44,6 +44,7 @@ import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-inf
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteRoleRequired } from 'user/write-role-required';
+import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -59,6 +60,8 @@ type LocationTrackInfoboxProps = {
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
+    onVerticalGeometryDiagramVisibilityChange: (visibility: boolean) => void;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -74,6 +77,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     viewport,
     visibilities,
     onVisibilityChange,
+    verticalGeometryDiagramVisible,
+    onVerticalGeometryDiagramVisibilityChange,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
@@ -371,6 +376,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 publishType={publishType}
                 locationTrackId={locationTrack.id}
                 viewport={viewport}
+            />
+            <LocationTrackVerticalGeometryInfobox
+                contentVisible={visibilities.verticalGeometry}
+                onContentVisibilityChange={() => visibilityChange('verticalGeometry')}
+                onVerticalGeometryDiagramVisibilityChange={
+                    onVerticalGeometryDiagramVisibilityChange
+                }
+                verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
             />
             {locationTrack.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer

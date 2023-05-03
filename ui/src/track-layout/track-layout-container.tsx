@@ -57,6 +57,7 @@ export const TrackLayoutContainer: React.FC = () => {
         onRemoveGeometryLinkPoint: delegates.removeGeometryLinkPoint,
         onRemoveLayoutLinkPoint: delegates.removeLayoutLinkPoint,
         onStopLinking: delegates.stopLinking,
+        onShowOnMap: delegates.showArea,
     };
 
     return <TrackLayoutView {...props} />;

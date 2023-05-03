@@ -131,6 +131,7 @@ export const initialMapState: Map = {
     settingsVisible: false,
     hoveredLocation: null,
     clickLocation: null,
+    verticalGeometryDiagramVisible: false,
 };
 
 export const mapReducers = {
@@ -223,6 +224,12 @@ export const mapReducers = {
     },
     onClickLocation: (state: Map, { payload: clickLocation }: PayloadAction<Point>): void => {
         state.clickLocation = clickLocation;
+    },
+    onVerticalGeometryDiagramVisibilityChange: (
+        state: Map,
+        { payload: visibilitySetting }: PayloadAction<boolean>,
+    ): void => {
+        state.verticalGeometryDiagramVisible = visibilitySetting;
     },
 };
 

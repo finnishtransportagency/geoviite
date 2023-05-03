@@ -1,5 +1,6 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
+import { useMemo } from 'react';
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { MapContext } from 'map/map-store';
 import { MapViewport, OptionalShownItems } from 'map/map-model';
@@ -49,11 +50,20 @@ export type TrackLayoutParams = TrackLayoutState & {
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutParams) => {
-    const verticalDiagramLocationTrackId = props.selection.selectedItems.locationTracks[0];
-    const showDiagram = verticalDiagramLocationTrackId != undefined;
+    const verticalDiagramAlignmentId = useMemo(
+        () =>
+            props.selection.selectedItems.locationTracks[0] && {
+                locationTrackId: props.selection.selectedItems.locationTracks[0],
+                publishType: props.publishType,
+            },
+        [props.selection.selectedItems.locationTracks[0], props.publishType],
+    );
+
+    const showVerticalGeometryDiagram =
+        props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;
     const className = createClassName(
         styles['track-layout'],
-        showDiagram && styles['track-layout--show-diagram'],
+        showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
     return (
         <div className={className} qa-id="track-layout-content">
@@ -98,13 +108,12 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                     </MapContext.Provider>
                 </div>
 
-                {verticalDiagramLocationTrackId && (
+                {showVerticalGeometryDiagram && verticalDiagramAlignmentId && (
                     <div className={styles['track-layout__diagram']}>
                         <VerticalGeometryDiagram
-                            alignmentId={{
-                                locationTrackId: verticalDiagramLocationTrackId,
-                                publishType: props.publishType,
-                            }}
+                            alignmentId={verticalDiagramAlignmentId}
+                            onSelect={props.onSelect}
+                            changeTimes={props.changeTimes}
                         />
                     </div>
                 )}

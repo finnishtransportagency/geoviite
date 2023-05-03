@@ -274,18 +274,44 @@ class GeometryController @Autowired constructor(
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): AlignmentHeights? {
+    ): List<KmHeights>? {
+        logger.apiCall(
+            "getPlanAlignmentHeights",
+            "planId" to planId,
+            "planAlignmentId" to planAlignmentId,
+            "startDistance" to startDistance,
+            "endDistance" to endDistance,
+            "tickLength" to tickLength
+        )
         return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/layout/location-tracks/{id}/linking-summary")
+    fun getLocationTrackLinkingSummary(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<PlanLinkingSummaryItem>? {
+        logger.apiCall("getLocationTrackLinkingSummary", "publishType" to publishType, "id" to id)
+        return geometryService.getLocationTrackGeometryLinkingSummary(id, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/layout/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
+        @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): AlignmentHeights? {
-        return geometryService.getLocationTrackHeights(locationTrackId, publishType, startDistance, endDistance, tickLength)
+    ): List<KmHeights>? {
+        logger.apiCall(
+            "getLayoutAlignmentHeights",
+            "publishType" to publishType,
+            "id" to id,
+            "startDistance" to startDistance,
+            "endDistance" to endDistance,
+            "tickLength" to tickLength
+        )
+        return geometryService.getLocationTrackHeights(id, publishType, startDistance, endDistance, tickLength)
     }}

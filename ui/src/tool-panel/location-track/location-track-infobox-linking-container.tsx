@@ -21,6 +21,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
@@ -33,6 +34,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     viewport,
     visibilities,
     onVisibilityChange,
+    verticalGeometryDiagramVisible,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const delegates = createDelegates(TrackLayoutActions);
     const locationTrack = useLocationTrack(locationTrackId, publishType, locationTrackChangeTime);
@@ -54,6 +56,10 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 onUnselect={onUnselect}
                 onSelect={delegates.onSelect}
                 viewport={viewport}
+                onVerticalGeometryDiagramVisibilityChange={
+                    delegates.onVerticalGeometryDiagramVisibilityChange
+                }
+                verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
             />
         );
 };

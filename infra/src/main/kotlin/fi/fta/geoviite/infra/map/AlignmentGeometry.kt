@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.map
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
 

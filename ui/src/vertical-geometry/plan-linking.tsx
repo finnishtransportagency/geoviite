@@ -1,18 +1,25 @@
 import React from 'react';
 import { Coordinates, mToX } from 'vertical-geometry/coordinates';
 import { PlanLinkingSummaryItem } from 'geometry/geometry-api';
+import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
+import { OnSelectOptions } from 'selection/selection-model';
 
 export interface PlanLinkingProps {
     coordinates: Coordinates;
     planLinkingSummary: PlanLinkingSummaryItem[];
+    onSelect: (options: OnSelectOptions) => void;
 }
 
-export const PlanLinking: React.FC<PlanLinkingProps> = ({ coordinates, planLinkingSummary }) => {
+export const PlanLinking: React.FC<PlanLinkingProps> = ({
+    coordinates,
+    planLinkingSummary,
+    onSelect,
+}) => {
     const textBottomYPx = 10;
     const textDropAreaPx = 3;
     return (
         <>
-            {planLinkingSummary.map(({ startM, endM, filename }, i) => {
+            {planLinkingSummary.map(({ startM, endM, filename, planId, alignmentHeader }, i) => {
                 if (endM < coordinates.startM || startM > coordinates.endM) {
                     return <React.Fragment key={i} />;
                 }
@@ -40,6 +47,19 @@ export const PlanLinking: React.FC<PlanLinkingProps> = ({ coordinates, planLinki
                             shapeRendering="crispEdges"
                         />
                         <svg
+                            onClick={() =>
+                                planId &&
+                                alignmentHeader &&
+                                onSelect({
+                                    geometryAlignments: [
+                                        {
+                                            geometryItem: alignmentHeader,
+                                            planId: planId,
+                                        },
+                                    ],
+                                })
+                            }
+                            className={styles['vertical-geometry-diagram__plan-link']}
                             x={textStartX}
                             y={0}
                             width={endX - textStartX}
