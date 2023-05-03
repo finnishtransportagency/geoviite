@@ -11,7 +11,6 @@ import { useCommonDataAppSelector } from 'store/hooks';
 export type MapLayersSettingsProps = {
     map: Map;
     onLayerVisibilityChange: (layerId: string, visible: boolean) => void;
-    onTrackNumberVisibilityChange: (layerId: string, visible: boolean) => void;
     onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
     onMissingVerticalGeometryVisibilityChange: (layerId: string, visible: boolean) => void;
     onSegmentsFromSelectedPlanVisibilityChange: (layerId: string, visible: boolean) => void;
@@ -106,15 +105,6 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
 
                             {layer.type === 'alignment' && (
                                 <>
-                                    <LayerVisibilitySetting
-                                        name={t('map-layer-settings.track-numbers')}
-                                        visible={layer.showTrackNumbers}
-                                        disabled={!layer.visible}
-                                        indented={true}
-                                        onVisibilityChange={(visible) =>
-                                            props.onTrackNumberVisibilityChange(layer.id, visible)
-                                        }
-                                    />
                                     <LayerVisibilitySetting
                                         name={t('map-layer-settings.reference-lines')}
                                         visible={layer.showReferenceLines}

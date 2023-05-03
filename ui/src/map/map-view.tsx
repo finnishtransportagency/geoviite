@@ -45,8 +45,6 @@ import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { createDebugLayerAdapter, DebugLayerFeatureType } from 'map/layers/debug-layer';
 import {
     createDebug1mPointsLayerAdapter,
@@ -56,8 +54,11 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
-import { createTrackNumberSchemaLayerAdapter } from 'map/layers/track-number-layer';
+import { createTrackNumberSchemaLayerAdapter } from 'map/layers/track-number-schema-layer';
 import { LineString } from 'ol/geom';
+import { createAlignmentLayerAdapter } from 'map/layers/alignment-layer';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 declare global {
     interface Window {
@@ -301,6 +302,19 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                         );
 
+                        break;
+                    case 'alignment':
+                        layerAdapter = createAlignmentLayerAdapter(
+                            mapTiles,
+                            existingOlLayer as never,
+                            mapLayer,
+                            selection,
+                            publishType,
+                            linkingState,
+                            changeTimes,
+                            olView,
+                            props.onShownLayerItemsChange,
+                        );
                         break;
                     case 'switchLinking':
                         layerAdapter = createSwitchLinkingLayerAdapter(

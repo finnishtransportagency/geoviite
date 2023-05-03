@@ -1,6 +1,5 @@
 // Alignments
 export const ALL_ALIGNMENTS = 10.0;
-export const SEPARATE_SEGMENTS = 60.0;
 export const LINKING_DOTS = 0.19;
 export const DEBUG_1M_POINTS = 0.06;
 
@@ -8,22 +7,22 @@ export const DEBUG_1M_POINTS = 0.06;
 export const GEOMETRY_TICKS = 5.0;
 
 // Track numbers
-export const TRACK_NUMER_NAMES = 0.4;
-const TRACK_NUMBER_DRAW_DISTANCES = [
-    [0.1, 30],
-    [0.15, 60],
-    [0.25, 120],
-    [TRACK_NUMER_NAMES, 160],
+export const SHOW_LOCATION_TRACK_BADGES = 0.4;
+const BADGE_DRAW_DISTANCES = [
+    [0.1, 20],
+    [0.15, 40],
+    [0.25, 80],
     [1, 160],
     [2, 320],
     [4, 640],
     [7, 1280],
     [11, 2560],
     [16, 5120],
+    [24, 10240],
 ];
 
-export function getTrackNumberDrawDistance(resolution: number): number | null {
-    const distance = TRACK_NUMBER_DRAW_DISTANCES.find((d) => resolution < d[0]);
+export function getBadgeDrawDistance(resolution: number): number | null {
+    const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < d[0]);
     return distance ? distance[1] : null;
 }
 
