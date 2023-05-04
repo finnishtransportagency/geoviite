@@ -47,7 +47,7 @@ class ProjektiVelhoService @Autowired constructor(
             if (potentiallyWaitingSearch != null && potentiallyWaitingSearch.state == FetchStatus.WAITING)
                 projektiVelhoClient
                     .fetchVelhoSearches()
-                    .find { search -> search.searchId == potentiallyWaitingSearch.token && search.state == READY }
+                    .find { search -> search.searchId == potentiallyWaitingSearch.token && search.state == PROJEKTIVELHO_SEARCH_STATE_READY }
                     ?.let { results -> importFilesFromProjektiVelho(potentiallyWaitingSearch, results) }
         }
     }

@@ -11,8 +11,14 @@ import java.time.Instant
 
 @Transactional
 @Component
-class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?): DaoBase(jdbcTemplateParam) {
-    fun insertFileMetadata(username: UserName, oid: String, metadata: Metadata, latestVersion: LatestVersion, status: FileStatus): IntId<ProjektiVelhoFile> {
+class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+    fun insertFileMetadata(
+        username: UserName,
+        oid: String,
+        metadata: Metadata,
+        latestVersion: LatestVersion,
+        status: FileStatus
+    ): IntId<Metadata> {
         val sql = """
             insert into integrations.projektivelho_file_metadata(
                 oid,
@@ -39,23 +45,25 @@ class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?): DaoBase(
             ) returning id
         """.trimIndent()
         jdbcTemplate.setUser(username)
-        return jdbcTemplate.query(sql, mapOf<String, Any?>(
-            "filename" to latestVersion.name,
-            "oid" to oid,
-            "version" to latestVersion.version,
-            "description" to metadata.description,
-            "file_state" to metadata.state,
-            "category" to metadata.category,
-            "doc_type" to metadata.documentType,
-            "asset_group" to metadata.group,
-            "change_time" to Timestamp.from(latestVersion.changeTime),
-            "status" to status.name)
+        return jdbcTemplate.query(
+            sql, mapOf<String, Any?>(
+                "filename" to latestVersion.name,
+                "oid" to oid,
+                "version" to latestVersion.version,
+                "description" to metadata.description,
+                "file_state" to metadata.state,
+                "category" to metadata.category,
+                "doc_type" to metadata.documentType,
+                "asset_group" to metadata.group,
+                "change_time" to Timestamp.from(latestVersion.changeTime),
+                "status" to status.name
+            )
         ) { rs, _ ->
-            rs.getIntId<ProjektiVelhoFile>("id")
+            rs.getIntId<Metadata>("id")
         }.single()
     }
 
-    fun insertFileContent(username: UserName, content: String, metadataId: IntId<ProjektiVelhoFile>): Int {
+    fun insertFileContent(username: UserName, content: String, metadataId: IntId<Metadata>): IntId<ProjektiVelhoFile> {
         val sql = """
             insert into integrations.projektivelho_file(
                 content,
@@ -66,12 +74,15 @@ class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?): DaoBase(
             ) returning metadata_id
         """.trimIndent()
         jdbcTemplate.setUser(username)
-        return jdbcTemplate.query(sql, mapOf<String, Any>("metadata_id" to metadataId.intValue, "content" to content)) { rs, _ ->
-            rs.getInt("metadata_id")
+        return jdbcTemplate.query(
+            sql,
+            mapOf<String, Any>("metadata_id" to metadataId.intValue, "content" to content)
+        ) { rs, _ ->
+            rs.getIntId<ProjektiVelhoFile>("metadata_id")
         }.single()
     }
 
-    fun insertFetchInfo(username: UserName, searchToken: String, validUntil: Instant): Int {
+    fun insertFetchInfo(username: UserName, searchToken: String, validUntil: Instant): IntId<ProjektiVelhoSearch> {
         val sql = """
             insert into integrations.projektivelho_search(
                 status,
@@ -84,12 +95,23 @@ class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?): DaoBase(
             ) returning id
         """.trimIndent()
         jdbcTemplate.setUser(username)
-        return jdbcTemplate.query(sql, mapOf<String, Any>("token" to searchToken, "status" to FetchStatus.WAITING.name, "valid_until" to Timestamp.from(validUntil))) { rs, _ ->
-            rs.getInt("id")
+        return jdbcTemplate.query(
+            sql,
+            mapOf<String, Any>(
+                "token" to searchToken,
+                "status" to FetchStatus.WAITING.name,
+                "valid_until" to Timestamp.from(validUntil)
+            )
+        ) { rs, _ ->
+            rs.getIntId<ProjektiVelhoSearch>("id")
         }.single()
     }
 
-    fun updateFetchState(username: UserName, id: IntId<ProjektiVelhoSearch>, status: FetchStatus): IntId<ProjektiVelhoSearch> {
+    fun updateFetchState(
+        username: UserName,
+        id: IntId<ProjektiVelhoSearch>,
+        status: FetchStatus
+    ): IntId<ProjektiVelhoSearch> {
         val sql = """
             update integrations.projektivelho_search set 
             status = :status::integrations.projektivelho_search_status
