@@ -3,84 +3,12 @@ import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from './velho-file-list.scss';
 import { useEffect } from 'react';
-import { TimeStamp } from 'common/common-model';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { formatDateFull } from 'utils/date-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-
-const dummyData: VelhoFileHeader[] = [
-    {
-        id: '1',
-        project: {
-            name: 'test project',
-            group: 'test group',
-        },
-        assignment: 'Rakentamissuunnittelu',
-        materialGroup: 'Suunnitelma / suunnitelmakokonaisuus',
-        document: {
-            name: 'test1',
-            description: 'asdf/zxcv/test1',
-            type: 'Suunnitelmamalli',
-            modified: '2023-03-05T10:53:00.000Z',
-            status: 'PENDING',
-        },
-    },
-    {
-        id: '2',
-        project: {
-            name: 'test project',
-            group: 'test group',
-        },
-        assignment: 'Rakentamissuunnittelu',
-        materialGroup: 'Suunnitelma / suunnitelmakokonaisuus',
-        document: {
-            name: 'test2',
-            description: 'asdf/zxcv/test2',
-            type: 'Suunnitelmamalli',
-            modified: '2023-03-05T11:53:00.000Z',
-            status: 'PENDING',
-        },
-    },
-    {
-        id: '3',
-        project: {
-            name: 'test project',
-            group: 'test group',
-        },
-        assignment: 'Rakentamissuunnittelu',
-        materialGroup: 'Suunnitelma / suunnitelmakokonaisuus',
-        document: {
-            name: 'test3',
-            description: 'asdf/zxcv/test3',
-            type: 'Suunnitelmamalli',
-            modified: '2023-03-05T12:53:00.000Z',
-            status: 'PENDING',
-        },
-    },
-];
-
-export type VelhoDocumentType = 'Suunnitelmamalli';
-export type VelhoFileStatus = 'REJECTED' | 'ACCEPTED' | 'PENDING';
-export type VelhoProject = {
-    group: string;
-    name: string;
-};
-export type VelhoDocument = {
-    name: string;
-    description: string;
-    type: VelhoDocumentType;
-    modified: TimeStamp;
-    status: VelhoFileStatus;
-};
-export type VelhoFileHeader = {
-    id: string;
-    project: VelhoProject;
-    assignment: string;
-    materialGroup: string;
-    document: VelhoDocument;
-};
+import { getVelhoDocuments, VelhoDocumentHeader } from './velho-api';
 
 type VelhoFileListProps = {
     _asdf: string;
@@ -90,19 +18,16 @@ export const VelhoFileList = ({ _asdf }: VelhoFileListProps) => {
     const { t } = useTranslation();
 
     const [isLoading, setIsLoading] = React.useState(false);
-    const [fileHeaders, _setFileHeaders] = React.useState<VelhoFileHeader[]>(dummyData);
+    const [documentHeaders, setDocumentHeaders] = React.useState<VelhoDocumentHeader[]>([]);
     const [openItemId, setOpenItemId] = React.useState<string | null>(null);
 
+    // TODO: hook to a change-time (new one for velho documents fetch)
     useEffect(() => {
-        const fakeLoad = setTimeout(
-            () => {
-                console.log('Toggle loading');
-                setIsLoading(!isLoading);
-            },
-            isLoading ? 1000 : 10000,
-        );
-        return () => clearTimeout(fakeLoad);
-    }, [isLoading]);
+        setIsLoading(true);
+        getVelhoDocuments('PENDING')
+            .then((docs) => setDocumentHeaders(docs))
+            .finally(() => setIsLoading(false));
+    }, []);
 
     return (
         <>
@@ -120,7 +45,7 @@ export const VelhoFileList = ({ _asdf }: VelhoFileListProps) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {fileHeaders.map((item) => {
+                        {documentHeaders.map((item) => {
                             return (
                                 <VelhoFileListRow
                                     key={item.id}
@@ -142,7 +67,7 @@ export const VelhoFileList = ({ _asdf }: VelhoFileListProps) => {
 };
 
 type VelhoFileListRowProps = {
-    item: VelhoFileHeader;
+    item: VelhoDocumentHeader;
     isOpen: boolean;
     onToggleOpen: () => void;
 };
@@ -160,8 +85,14 @@ const VelhoFileListRow = ({ item, isOpen, onToggleOpen }: VelhoFileListRowProps)
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>
                 <td>
-                    <Button variant={ButtonVariant.SECONDARY}>{t('velho.file-list.reject')}</Button>
-                    <Button variant={ButtonVariant.SECONDARY}>{t('velho.file-list.upload')}</Button>
+                    <div className={styles['velho-file-list__buttons']}>
+                        <Button variant={ButtonVariant.SECONDARY}>
+                            {t('velho.file-list.reject')}
+                        </Button>
+                        <Button variant={ButtonVariant.SECONDARY}>
+                            {t('velho.file-list.upload')}
+                        </Button>
+                    </div>
                 </td>
             </tr>
             {isOpen ? (
@@ -179,7 +110,7 @@ const VelhoFileListRow = ({ item, isOpen, onToggleOpen }: VelhoFileListRowProps)
 };
 
 type VelhoFileListExpandedItemProps = {
-    item: VelhoFileHeader;
+    item: VelhoDocumentHeader;
 };
 
 const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => {
@@ -207,7 +138,7 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                 />
                 <InfoboxField
                     label={t('velho.file-list.field.document-type')}
-                    value={item.document.type}
+                    value={item.document.type.name}
                 />
             </InfoboxContent>
         </div>

@@ -10,23 +10,24 @@
 .velho-file-list__table {
     padding: 1;
 
-    > thead {
-        > tr {
-            > th {
-                width: 10px;
-                background: red;
-                // table > tbody > tr:nth-child(1) > td:nth-child(3)
-            }
+    > thead > tr > th,
+    > tbody > tr > td {
+        align-content: center;
+        text-align: left;
+        // padding: 10px 10px 10px 10px;
+        &:first-of-type {
+            width: 8px;
+        }
+        &:last-of-type {
+            width: 250px;
         }
     }
-    > tbody {
-        > tr {
-            > td {
-                width: 10px;
-                background: red;
-                // table > tbody > tr:nth-child(1) > td:nth-child(3)
-            }
-        }
-    }
-    // #root > div > div.main__content > div > div.design-demo > div:nth-child(11) > div:nth-child(5) > div > table > tbody > tr:nth-child(2) > td:nth-child(1)
+}
+
+.velho-file-list__buttons {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-content: center;
+    justify-content: space-between;
 }
