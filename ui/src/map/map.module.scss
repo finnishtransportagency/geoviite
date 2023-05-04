@@ -53,11 +53,11 @@ $font-family: 'Open Sans';
         @include typography-body-strong;
     }
     alignment-badge-background: $color-black-default;
-    alignment-badge-background-near: $color-white-default;
+    alignment-badge-background-white: $color-white-default;
     alignment-badge-background-selected: $color-geoviite-blue;
     alignment-badge-background-border: $color-black-lighter;
-    alignment-badge-color: $color-white-default;
-    alignment-badge-color-near: $color-black-default;
+    alignment-badge-color-white: $color-white-default;
+    alignment-badge-color: $color-black-default;
 }
 
 // Km post styling

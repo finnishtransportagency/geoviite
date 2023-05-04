@@ -24,11 +24,6 @@ export const TrackLayoutContainer: React.FC = () => {
                 layerId: id,
                 visible: visible,
             }),
-        onTrackNumberVisibilityChange: (id: string, visible: boolean) =>
-            delegates.onTrackNumberVisibilityChange({
-                layerId: id,
-                visible: visible,
-            }),
         onReferenceLineVisibilityChange: (id: string, visible: boolean) =>
             delegates.onReferencelineVisibilityChange({
                 layerId: id,

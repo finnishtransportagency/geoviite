@@ -1,4 +1,4 @@
-import { LineString, Point } from 'ol/geom';
+import { LineString } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { MapTile, TrackNumberDiagramLayer } from 'map/map-model';
@@ -43,7 +43,7 @@ const getNextColor = (id: LayoutTrackNumberId) => {
 export function createTrackNumberSchemaLayerAdapter(
     mapLayer: TrackNumberDiagramLayer,
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     olView: OlView,
     changeTimes: ChangeTimes,
     publishType: PublishType,
@@ -51,7 +51,7 @@ export function createTrackNumberSchemaLayerAdapter(
     const adapterId = ++newestTrackNumberDiagramAdapterId;
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
-    const layer: VectorLayer<VectorSource<LineString | Point>> =
+    const layer =
         existingOlLayer ||
         new VectorLayer({
             source: vectorSource,
@@ -77,6 +77,7 @@ export function createTrackNumberSchemaLayerAdapter(
                 stroke: new Stroke({
                     color: getNextColor(trackNumberId),
                     width: 20,
+                    lineCap: 'butt',
                 }),
             });
 
