@@ -320,7 +320,7 @@ function createAlignmentFeatures(
     alignmentFeature.setStyle(styles);
 
     const badgePoints = createBadgePoints(dataHolder.points, badgeDrawDistance);
-    const badgeColor = badgeDisplayMode === DisplayMode.ALL ? BadgeColor.LIGHT : BadgeColor.DARK;
+    const badgeColor = isReferenceLine ? BadgeColor.DARK : BadgeColor.LIGHT;
 
     if (badgeDisplayMode === DisplayMode.ALL) {
         const alignmentBadgeFeatures = createMapAlignmentBadgeFeature(

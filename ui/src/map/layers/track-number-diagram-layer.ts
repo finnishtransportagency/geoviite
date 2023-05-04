@@ -38,7 +38,7 @@ const colors = [
     '#e50083',
 ];
 
-const getNextColor = (id: LayoutTrackNumberId) => {
+const getColorForTrackNumber = (id: LayoutTrackNumberId) => {
     const c = colors[parseInt(id.replace(/^\D+/g, '')) % colors.length];
 
     return c + '55'; //55 ~ 33 % opacity
@@ -96,7 +96,7 @@ function getReferenceLineBadges(alignments: AlignmentDataHolder[], resolution: n
             return createMapAlignmentBadgeFeature(
                 a.trackNumber?.number || '', //Ensured by filter
                 badgePoints,
-                BadgeColor.LIGHT,
+                BadgeColor.DARK,
                 false,
             );
         });
@@ -111,7 +111,7 @@ function getDiagramFeatures(alignments: AlignmentDataHolder[]) {
     return Object.entries(perTrackNumber).flatMap(([trackNumberId, alignments]) => {
         const style = new Style({
             stroke: new Stroke({
-                color: getNextColor(trackNumberId),
+                color: getColorForTrackNumber(trackNumberId),
                 width: 20,
                 lineCap: 'butt',
             }),
