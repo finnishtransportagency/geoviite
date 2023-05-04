@@ -28,8 +28,8 @@ val dummyData = listOf(
     VelhoDocumentHeader(
         id = IntId(1),
         project = VelhoProject(
-            name = VelhoName("test project"),
-            group = VelhoName("test group"),
+            name = VelhoName("test project 1"),
+            group = VelhoName("test group A"),
         ),
         assignment = VelhoName("Rakentamissuunnittelu"),
         materialGroup = VelhoName("Suunnitelma / suunnitelmakokonaisuus"),
@@ -48,8 +48,8 @@ val dummyData = listOf(
     VelhoDocumentHeader(
         id = IntId(2),
         project = VelhoProject(
-            name = VelhoName("test project"),
-            group = VelhoName("test group"),
+            name = VelhoName("test project 1"),
+            group = VelhoName("test group A"),
         ),
         assignment = VelhoName("Rakentamissuunnittelu"),
         materialGroup = VelhoName("Suunnitelma / suunnitelmakokonaisuus"),
@@ -68,8 +68,8 @@ val dummyData = listOf(
     VelhoDocumentHeader(
         id = IntId(3),
         project = VelhoProject(
-            name = VelhoName("test project"),
-            group = VelhoName("test group"),
+            name = VelhoName("test project 2"),
+            group = VelhoName("test group B"),
         ),
         assignment = VelhoName("Rakentamissuunnittelu"),
         materialGroup = VelhoName("Suunnitelma / suunnitelmakokonaisuus"),
@@ -105,7 +105,7 @@ class VelhoController {
         @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
     ): ValidationResponse {
         logger.apiCall("override-parameters", "overrideParameters" to overrideParameters)
-        TODO("Not implemented yet")
+        TODO("Not implemented yet") // GVT-1797
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -118,6 +118,6 @@ class VelhoController {
             "overrideParameters" to overrideParameters,
             "extraInfoParameters" to extraInfoParameters,
         )
-        TODO("Not implemented yet")
+        TODO("Not implemented yet") // GVT-1797
     }
 }

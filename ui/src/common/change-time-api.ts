@@ -84,6 +84,14 @@ export function updatePublicationChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updateVelhoDocumentsChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/velho-documents`,
+        delegates.setVelhoDocumentChangeTime,
+        getChangeTimes().velhoDocument,
+    );
+}
+
 function updateChangeTime(
     url: string,
     storeUpdate: (ts: TimeStamp) => void,

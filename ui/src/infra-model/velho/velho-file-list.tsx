@@ -2,67 +2,69 @@ import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from './velho-file-list.scss';
-import { useEffect } from 'react';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { formatDateFull } from 'utils/date-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { getVelhoDocuments, VelhoDocumentHeader } from './velho-api';
+import { TimeStamp } from 'common/common-model';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { useLoader } from 'utils/react-utils';
 
 type VelhoFileListProps = {
-    _asdf: string;
+    velhoDocumentsChangeTime: TimeStamp;
 };
 
-export const VelhoFileList = ({ _asdf }: VelhoFileListProps) => {
+export const VelhoFileListContainer: React.FC = () => {
+    const changeTime = useCommonDataAppSelector((state) => state.changeTimes.velhoDocument);
+    return <VelhoFileList velhoDocumentsChangeTime={changeTime} />;
+};
+
+export const VelhoFileList = ({ velhoDocumentsChangeTime }: VelhoFileListProps) => {
     const { t } = useTranslation();
 
     const [isLoading, setIsLoading] = React.useState(false);
-    const [documentHeaders, setDocumentHeaders] = React.useState<VelhoDocumentHeader[]>([]);
     const [openItemId, setOpenItemId] = React.useState<string | null>(null);
 
-    // TODO: hook to a change-time (new one for velho documents fetch)
-    useEffect(() => {
-        setIsLoading(true);
-        getVelhoDocuments('PENDING')
-            .then((docs) => setDocumentHeaders(docs))
-            .finally(() => setIsLoading(false));
-    }, []);
+    const documentHeaders =
+        useLoader(() => {
+            setIsLoading(true);
+            return getVelhoDocuments(velhoDocumentsChangeTime, 'PENDING').finally(() =>
+                setIsLoading(false),
+            );
+        }, [velhoDocumentsChangeTime]) || [];
 
     return (
-        <>
-            <div>
-                <p>{isLoading ? 'LOADING' : 'DONE'}</p>
-                <Table className={styles['velho-file-list__table']} wide isLoading={isLoading}>
-                    <thead>
-                        <tr>
-                            <Th></Th>
-                            <Th>{t('velho.file-list.header.project-name')}</Th>
-                            <Th>{t('velho.file-list.header.document-name')}</Th>
-                            <Th>{t('velho.file-list.header.document-description')}</Th>
-                            <Th>{t('velho.file-list.header.document-modified')}</Th>
-                            <Th></Th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {documentHeaders.map((item) => {
-                            return (
-                                <VelhoFileListRow
-                                    key={item.id}
-                                    item={item}
-                                    isOpen={item.id === openItemId}
-                                    onToggleOpen={() =>
-                                        item.id === openItemId
-                                            ? setOpenItemId(null)
-                                            : setOpenItemId(item.id)
-                                    }
-                                />
-                            );
-                        })}
-                    </tbody>
-                </Table>
-            </div>
-        </>
+        <div>
+            <p>{isLoading ? 'LOADING' : 'DONE'}</p>
+            <Table className={styles['velho-file-list__table']} wide isLoading={isLoading}>
+                <thead>
+                    <tr>
+                        <Th></Th>
+                        <Th>{t('velho.file-list.header.project-name')}</Th>
+                        <Th>{t('velho.file-list.header.document-name')}</Th>
+                        <Th>{t('velho.file-list.header.document-description')}</Th>
+                        <Th>{t('velho.file-list.header.document-modified')}</Th>
+                        <Th></Th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {documentHeaders.map((item) => (
+                        <VelhoFileListRow
+                            key={item.id}
+                            item={item}
+                            isOpen={item.id === openItemId}
+                            onToggleOpen={() =>
+                                item.id === openItemId
+                                    ? setOpenItemId(null)
+                                    : setOpenItemId(item.id)
+                            }
+                        />
+                    ))}
+                </tbody>
+            </Table>
+        </div>
     );
 };
 
