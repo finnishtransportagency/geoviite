@@ -20,6 +20,10 @@ import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 
+class RatkoWebClient(
+    val client: WebClient
+)
+
 @Configuration
 @ConditionalOnProperty(prefix = "geoviite.ratko", name = ["enabled"], havingValue = "true")
 class RatkoClientConfiguration @Autowired constructor(
@@ -30,8 +34,8 @@ class RatkoClientConfiguration @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(RatkoClient::class.java)
 
-    @Bean("ratkoClient")
-    fun webClient(): WebClient {
+    @Bean
+    fun webClient(): RatkoWebClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
         val webClientBuilder = WebClient.builder()
@@ -45,7 +49,7 @@ class RatkoClientConfiguration @Autowired constructor(
             webClientBuilder.defaultHeaders { header -> header.setBasicAuth(basicAuthUsername, basicAuthPassword) }
         }
 
-        return webClientBuilder.build()
+        return RatkoWebClient(webClientBuilder.build())
     }
 
     private fun logRequest(): ExchangeFilterFunction {

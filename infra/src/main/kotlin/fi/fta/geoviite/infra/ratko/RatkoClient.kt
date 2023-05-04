@@ -32,8 +32,8 @@ val defaultBlockTimeout: Duration = defaultResponseTimeout.plusMinutes(1L)
 
 @Component
 @ConditionalOnBean(RatkoClientConfiguration::class)
-class RatkoClient constructor(@Qualifier("ratkoClient") private val client: WebClient) {
-
+class RatkoClient @Autowired constructor(clientHolder: RatkoWebClient) {
+    private val client = clientHolder.client
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private val ratkoJsonMapper =

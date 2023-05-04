@@ -1,14 +1,12 @@
 package fi.fta.geoviite.infra.velho.projektivelho
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.logging.integrationCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
-import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.Duration
 import java.time.Instant
@@ -19,10 +17,12 @@ val reloginoffsetSeconds: Long = 60
 
 @Component
 @ConditionalOnBean(ProjektiVelhoClientConfiguration::class)
-class ProjektiVelhoClient constructor(
-    @Qualifier("projVelhoClient") private val client: WebClient,
-    @Qualifier("loginClient") private val loginClient: WebClient
+class ProjektiVelhoClient @Autowired constructor(
+    webClientHolder: ProjektiVelhoWebClient,
+    loginClientHolder: ProjektiVelhoLoginClient
 ) {
+    private val client = webClientHolder.client
+    private val loginClient = loginClientHolder.client
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val accessToken: AtomicReference<AccessTokenHolder?> = AtomicReference(null)
 
