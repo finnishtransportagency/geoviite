@@ -43,6 +43,18 @@ class ProjektiVelhoClient @Autowired constructor(
             ?: throw IllegalStateException("Projektivelho login failed")
     }
 
+    fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): SearchStatus {
+        val json = searchJson(fetchStartTime, startOid, 100)
+        return client
+            .post()
+            .uri("/hakupalvelu/api/v1/taustahaku/kohdeluokat?tagi=aineisto")
+            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
+            .body(BodyInserters.fromValue(json))
+            .retrieve()
+            .bodyToMono<SearchStatus>()
+            .block(defaultBlockTimeout) ?: throw IllegalStateException("Projektivelho search failed")
+    }
+
     fun fetchVelhoSearches() =
         client
             .get()
@@ -62,19 +74,6 @@ class ProjektiVelhoClient @Autowired constructor(
             .bodyToMono<SearchResult>()
             .block(defaultBlockTimeout)
             ?: throw IllegalStateException("Fetching search results failed. searchId=$searchId")
-
-
-    fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): SearchStatus {
-        val json = searchJson(fetchStartTime, startOid, 100)
-        return client
-            .post()
-            .uri("/hakupalvelu/api/v1/taustahaku/kohdeluokat?tagi=aineisto")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .body(BodyInserters.fromValue(json))
-            .retrieve()
-            .bodyToMono<SearchStatus>()
-            .block(defaultBlockTimeout) ?: throw IllegalStateException("Projektivelho search failed")
-    }
 
     fun fetchFileMetadata(oid: String) =
         client

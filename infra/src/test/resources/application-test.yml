@@ -18,3 +18,7 @@ geoviite:
     enabled: true
     url: http://localhost:12345
     test-port: 12345
+  projektivelho:
+    enabled: true
+    url: http://localhost:12346
+    test-port: 12346

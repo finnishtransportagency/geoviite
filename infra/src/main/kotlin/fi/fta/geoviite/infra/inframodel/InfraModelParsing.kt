@@ -113,14 +113,15 @@ fun parseGeometryPlan(
 
 fun parseGeometryPlan(
     source: PlanSource,
-    file: MultipartFile,
+    file: ByteArray,
+    filename: String,
     fileEncodingOverride: Charset?,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(file, fileEncodingOverride)
+    val imFile = toInfraModelFile(file, filename, fileEncodingOverride)
     return parseInfraModelFile(
         source,
         imFile,
@@ -150,8 +151,8 @@ fun parseFromClasspath(
     ) to imFile
 }
 
-fun toInfraModelFile(file: MultipartFile, fileEncodingOverride: Charset?) =
-    toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
+fun toInfraModelFile(file: ByteArray, filename: String, fileEncodingOverride: Charset?) =
+    toInfraModelFile(filename, fileToString(file, fileEncodingOverride))
 
 fun toInfraModelFile(fileName: String, fileContent: String) =
     InfraModelFile(name = FileName(fileName), content = censorAuthorIdentifyingInfo(fileContent))
@@ -193,24 +194,24 @@ fun classpathResourceToString(fileName: String): String {
     return xmlBytesToString(resource.readBytes())
 }
 
-fun fileToString(file: MultipartFile, encodingOverride: Charset?): String {
-    return xmlBytesToString(file.bytes, encodingOverride)
+fun fileToString(file: ByteArray, encodingOverride: Charset?): String {
+    return xmlBytesToString(file, encodingOverride)
 }
 
 fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
 }
 
-fun checkForEmptyFileAndIncorrectFileType(file: MultipartFile, vararg fileContentTypes: MediaType) {
-    if (file.isEmpty) {
+fun checkForEmptyFileAndIncorrectFileType(file: ByteArray, contentType: String?, filename: String, vararg fileContentTypes: MediaType) {
+    if (file.isEmpty()) {
         throw InframodelParsingException(
-            message = "File \"${file.name}\" is empty",
+            message = "File \"${filename}\" is empty",
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
         )
     }
-    if (file.contentType?.let { !fileContentTypes.contains(MediaType.valueOf(it)) } == true) {
+    if (contentType?.let { !fileContentTypes.contains(MediaType.valueOf(it)) } == true) {
         throw InframodelParsingException(
-            message = "File's ${file.name} type is incorrect: ${file.contentType}",
+            message = "File's ${filename} type is incorrect: ${contentType}",
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type",
         )
     }

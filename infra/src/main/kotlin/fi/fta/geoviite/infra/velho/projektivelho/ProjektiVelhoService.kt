@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.velho.projektivelho
 
 import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.inframodel.InfraModelService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -8,11 +9,15 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import org.springframework.http.client.MultipartBodyBuilder
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneOffset
+
+val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
 
 @Service
 @ConditionalOnBean(ProjektiVelhoClientConfiguration::class)
@@ -20,15 +25,14 @@ class ProjektiVelhoService @Autowired constructor(
     private val projektiVelhoClient: ProjektiVelhoClient,
     private val projektiVelhoDao: ProjektiVelhoDao,
     private val lockDao: LockDao,
+    private val infraModelService: InfraModelService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(15)
-    private val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
-    private val alignmentsTagRegex = Regex("<alignments[^>]*>")
 
-    fun search() {
+    fun search(): SearchStatus? {
         logger.serviceCall("search")
-        lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
+        return lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
             val latest = projektiVelhoDao.fetchLatestFile(PROJEKTIVELHO_DB_USERNAME)
             val searchStatus = projektiVelhoClient.postXmlFileSearch(
                 latest?.second
@@ -36,6 +40,7 @@ class ProjektiVelhoService @Autowired constructor(
                 latest?.first ?: ""
             )
             projektiVelhoDao.insertFetchInfo(PROJEKTIVELHO_DB_USERNAME, searchStatus.searchId, searchStatus.startTime.plusSeconds(searchStatus.validFor))
+            return@runWithLock searchStatus
         }
     }
 
@@ -43,16 +48,22 @@ class ProjektiVelhoService @Autowired constructor(
     fun pollAndFetchIfWaiting() {
         logger.serviceCall("pollAndFetchIfWaiting")
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
-            val potentiallyWaitingSearch = projektiVelhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
-            if (potentiallyWaitingSearch != null && potentiallyWaitingSearch.state == FetchStatus.WAITING)
-                projektiVelhoClient
-                    .fetchVelhoSearches()
-                    .find { search -> search.searchId == potentiallyWaitingSearch.token && search.state == PROJEKTIVELHO_SEARCH_STATE_READY }
-                    ?.let { results -> importFilesFromProjektiVelho(potentiallyWaitingSearch, results) }
+            val latestSearch = projektiVelhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
+            val searchResults =
+                if (latestSearch != null && latestSearch.state == FetchStatus.WAITING)
+                    fetchSearchResults(latestSearch.token)
+                else null
+
+            if (latestSearch != null && searchResults != null) importFilesFromProjektiVelho(latestSearch, searchResults)
         }
     }
 
-    private fun importFilesFromProjektiVelho(
+    fun fetchSearchResults(searchId: String) =
+        projektiVelhoClient
+            .fetchVelhoSearches()
+            .find { search -> search.searchId == searchId && search.state == PROJEKTIVELHO_SEARCH_STATE_READY }
+
+    fun importFilesFromProjektiVelho(
         latest: ProjektiVelhoSearch,
         searchResults: SearchStatus
     ) =
@@ -85,7 +96,7 @@ class ProjektiVelhoService @Autowired constructor(
     }
 
     private fun insertFileToDatabase(file: ProjektiVelhoFile) {
-        val shouldBeSavedToDb = isRailroadXml(file.content)
+        val shouldBeSavedToDb = isRailroadXml(file.content, file.latestVersion.name)
         val metadataId = projektiVelhoDao.insertFileMetadata(
             PROJEKTIVELHO_DB_USERNAME,
             file.oid,
@@ -100,11 +111,18 @@ class ProjektiVelhoService @Autowired constructor(
         )
     }
 
-    fun isRailroadXml(xml: String) =
-        xml.lowercase().let {
-            alignmentsTagRegex.matches(it)
-                && it.indexOf("xmlns=\"http://www.inframodel.fi/inframodel\"") >= 0
-                && (it.indexOf("label=\"infraCoding\"")  == -1
-                    || it.indexOf("label=\"infraCoding\" value=\"281\"") >= 0)
+    fun isRailroadXml(xml: String, filename: String) =
+        try {
+            infraModelService.parseInfraModel(xml.toByteArray(), filename, null)
+            true
+        } catch (e: Exception) {
+            false
         }
+        // TODO: Or this?
+        /*xml.lowercase().let {
+            it.indexOf("<alignments") >= 0
+                && it.indexOf("xmlns=\"http://www.inframodel.fi/inframodel\"") >= 0
+                && (it.indexOf("label=\"infracoding\"")  == -1
+                    || it.indexOf("label=\"infracoding\" value=\"281\"") >= 0)
+        }*/
 }

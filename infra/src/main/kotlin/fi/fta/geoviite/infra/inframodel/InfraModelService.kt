@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import java.io.File
 
 @Service
 class InfraModelService @Autowired constructor(
@@ -46,7 +47,7 @@ class InfraModelService @Autowired constructor(
             "extraInfoParameters" to extraInfoParameters,
         )
 
-        val (geometryPlan, imFile) = parseInfraModel(file, overrideParameters, extraInfoParameters)
+        val (geometryPlan, imFile) = parseInfraModel(file.bytes, file.originalFilename ?: file.name, file.contentType, overrideParameters, extraInfoParameters)
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
             ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
@@ -57,23 +58,26 @@ class InfraModelService @Autowired constructor(
     }
 
     fun parseInfraModel(
-        file: MultipartFile,
+        file: ByteArray,
+        filename: String,
+        contentType: String?,
         overrideParameters: OverrideParameters? = null,
         extraInfoParameters: ExtraInfoParameters? = null,
     ): Pair<GeometryPlan, InfraModelFile> {
         logger.serviceCall(
             "parseInfraModel",
-            "file.originalFilename" to file.originalFilename,
+            "filename" to filename,
             "overrideParameters" to overrideParameters,
             "extraInfoParameters" to extraInfoParameters,
         )
-        checkForEmptyFileAndIncorrectFileType(file, MediaType.APPLICATION_XML, MediaType.TEXT_XML)
+        checkForEmptyFileAndIncorrectFileType(file, contentType, filename, MediaType.APPLICATION_XML, MediaType.TEXT_XML)
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
         val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
 
         val (parsed, imFile) = parseGeometryPlan(
             PlanSource.GEOMETRIAPALVELU,
             file,
+            filename,
             overrideParameters?.encoding?.charset,
             geographyService.getCoordinateSystemNameToSridMapping(),
             switchStructuresByType,
@@ -90,7 +94,7 @@ class InfraModelService @Autowired constructor(
         logger.serviceCall("validateInfraModelFile", "overrideParameters" to overrideParameters)
 
         val geometryPlan = try {
-            parseInfraModel(file, overrideParameters).first
+            parseInfraModel(file.bytes, file.originalFilename ?: file.name, file.contentType, overrideParameters).first
         } catch (e: Exception) {
             logger.warn("Failed to parse InfraModel", e)
             return ValidationResponse(
