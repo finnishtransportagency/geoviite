@@ -1,44 +1,50 @@
-import React, { useState } from 'react';
+import React from 'react';
 import TabNavItem from 'infra-model/tabs/tab-nav-item';
 import TabContent from 'infra-model/tabs/tab-content';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { InfraModelListContainer } from 'infra-model/list/infra-model-list-container';
+import { useTranslation } from 'react-i18next';
+import { commonActionCreators, InfraModelTabType } from 'common/common-slice';
+import { createDelegates } from 'store/store-utils';
 
 const Tabs = () => {
-    const [activeTab, setActiveTab] = useState('tab1');
+    const { t } = useTranslation();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+    const activeTab = useCommonDataAppSelector((state) => state.infraModelActiveTab);
+    const delegates = createDelegates(commonActionCreators);
 
+    //erottele omiin komponentteihin 1) tab-navigointi 2) tabeja vastaavat sisällöt?
     return (
         <div className="Tabs">
             <ul className="nav">
                 <TabNavItem
-                    title="Tab 1"
-                    id="tab1"
+                    title={t('im-form.tabs.plans')}
+                    id={InfraModelTabType.PLAN}
                     activeTab={activeTab}
-                    setActiveTab={setActiveTab}
+                    setActiveTab={delegates.setInfraModelActiveTab}
                 />
                 <TabNavItem
-                    title="Tab 2"
-                    id="tab2"
+                    title={t('im-form.tabs.velho-files-waiting')}
+                    id={InfraModelTabType.WAITING}
                     activeTab={activeTab}
-                    setActiveTab={setActiveTab}
+                    setActiveTab={delegates.setInfraModelActiveTab}
                 />
                 <TabNavItem
-                    title="Tab 3"
-                    id="tab3"
+                    title={t('im-form.tabs.velho-files-rejected')}
+                    id={InfraModelTabType.REJECTED}
                     activeTab={activeTab}
-                    setActiveTab={setActiveTab}
+                    setActiveTab={delegates.setInfraModelActiveTab}
                 />
             </ul>
 
             <div className="outlet">
-                <TabContent id="tab1" activeTab={activeTab}>
+                <TabContent id={InfraModelTabType.PLAN} activeTab={activeTab}>
                     <InfraModelListContainer changeTimes={changeTimes} />
                 </TabContent>
-                <TabContent id="tab2" activeTab={activeTab}>
+                <TabContent id={InfraModelTabType.WAITING} activeTab={activeTab}>
                     <p>Tab 2 works!</p>
                 </TabContent>
-                <TabContent id="tab3" activeTab={activeTab}>
+                <TabContent id={InfraModelTabType.REJECTED} activeTab={activeTab}>
                     <p>Tab 3 works!</p>
                 </TabContent>
             </div>

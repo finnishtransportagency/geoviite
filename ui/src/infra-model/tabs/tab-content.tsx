@@ -1,8 +1,9 @@
 import React from 'react';
+import { InfraModelTabType } from 'common/common-slice';
 
 export type TabContentProps = {
-    id: string;
-    activeTab: string;
+    id: InfraModelTabType;
+    activeTab: InfraModelTabType;
     children: React.ReactNode;
 };
 

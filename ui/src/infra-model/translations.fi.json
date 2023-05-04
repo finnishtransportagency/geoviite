@@ -81,6 +81,11 @@
             "verticalCoordinateSystem": "Korkeusjärjestelmä",
             "error-message": "Tiedostossa on virheitä"
         },
+        "tabs": {
+            "plans": "Suunnitelmat X kpl",
+            "velho-files-waiting": "Velhon aineistot, odottaa käsittelyä X kpl",
+            "velho-files-rejected": "Velhon aineistot, hylätty X kpl"
+        },
         "download-file": "Lataa tiedosto"
     },
     "infra-model": {
