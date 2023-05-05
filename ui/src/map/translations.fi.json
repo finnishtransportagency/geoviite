@@ -5,8 +5,8 @@
         "reference-lines": "Pituusmittauslinjat",
         "geometry": "Geometriat",
         "debug": "Debug-työkalut",
-        "missing-linking": "Korosta linkittämättömät",
-        "missing-vertical-geometry": "Korosta puuttuva pituuskaltevuus",
+        "missing-linking": "Korosta puuttuva linkitys",
+        "missing-vertical-geometry": "Korosta puuttuva pystygeometria",
         "duplicate-tracks": "Korosta duplikaattiraiteet"
     },
     "map-view": {
