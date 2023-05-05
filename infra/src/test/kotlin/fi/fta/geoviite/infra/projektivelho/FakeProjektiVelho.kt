@@ -98,14 +98,9 @@ class FakeProjektiVelho (port: Int) {
             )
         )))
     }
-    fun fileContent(oid: String, version: String) {
+    fun fileContent(oid: String) {
         get("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti").respond(HttpResponse.response().withBody(
             classpathResourceToString(TESTFILE_CLOTHOID_AND_PARABOLA)))
-    }
-
-    fun nonImFileContent(oid: String, version: String) {
-        get("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti").respond(HttpResponse.response().withBody(
-            classpathResourceToString(TESTFILE_SIMPLE)))
     }
 
     fun login() {
