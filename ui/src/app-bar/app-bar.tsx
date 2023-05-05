@@ -16,7 +16,7 @@ type Link = {
 const links: Link[] = [
     { link: '/', name: 'app-bar.frontpage', type: 'prod' },
     { link: '/track-layout', name: 'app-bar.track-layout', type: 'prod' },
-    { link: '/rekisteri', name: 'app-bar.register', type: 'dev' },
+    { link: '/registry', name: 'app-bar.register', type: 'test' },
     { link: '/infra-model', name: 'app-bar.infra-model', type: 'prod' },
     { link: '/design-lib-demo', name: 'app-bar.components', type: 'dev' },
     { link: '/localization-demo', name: 'app-bar.localization', type: 'dev' },

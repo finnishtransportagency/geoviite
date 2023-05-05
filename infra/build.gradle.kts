@@ -7,11 +7,11 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id("org.springframework.boot") version "2.7.9"
+    id("org.springframework.boot") version "2.7.11"
     id("io.spring.dependency-management") version "1.0.15.RELEASE"
     id("com.github.jk1.dependency-license-report") version "2.0"
-    kotlin("jvm") version "1.7.20"
-    kotlin("plugin.spring") version "1.7.20"
+    kotlin("jvm") version "1.7.22"
+    kotlin("plugin.spring") version "1.7.22"
 }
 
 group = "fi.fta.geoviite"
@@ -43,7 +43,7 @@ dependencies {
     }
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.415")
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.459")
     implementation("org.bouncycastle:bcpkix-jdk15on:1.70")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -58,7 +58,7 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
     implementation("com.zaxxer:HikariCP")
     implementation("org.flywaydb:flyway-core")
-    implementation("com.github.ben-manes.caffeine:caffeine:3.1.4")
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.6")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
         exclude("javax.media", "jai_core")
@@ -74,18 +74,18 @@ dependencies {
     implementation("org.apache.commons:commons-csv:1.10.0")
     implementation("commons-io:commons-io:2.11.0")
     implementation("com.auth0:jwks-rsa:0.22.0")
-    implementation("com.auth0:java-jwt:4.3.0")
-    implementation("io.netty:netty-resolver-dns-native-macos:4.1.89.Final:osx-aarch_64")
+    implementation("com.auth0:java-jwt:4.4.0")
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.92.Final:osx-aarch_64")
     implementation("org.postgresql:postgresql:42.5.4")
-    implementation("jakarta.activation:jakarta.activation-api:2.1.1")
+    implementation("jakarta.activation:jakarta.activation-api:2.1.2")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
     implementation("com.github.davidmoten:rtree2:0.9.3")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.sun.xml.bind:jaxb-impl:4.0.2")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.10")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.8.1")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.21")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.9.0")
     testImplementation("io.github.bonigarcia:webdrivermanager:5.3.2")
     testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.2.1")
