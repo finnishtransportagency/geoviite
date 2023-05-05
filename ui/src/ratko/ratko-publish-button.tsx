@@ -5,6 +5,7 @@ import { pushToRatko } from 'ratko/ratko-api';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from 'vayla-design-lib/dialog/dialog';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 type RatkoPublishButtonProps = {
     size?: ButtonSize;
@@ -24,15 +25,17 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
 
     return (
         <React.Fragment>
-            <Button
-                onClick={() => setShowingConfirmation(true)}
-                disabled={isPublishing || disabled}
-                isProcessing={isPublishing}
-                variant={ButtonVariant.PRIMARY}
-                size={size}
-                icon={Icons.Redo}>
-                {t('publishing.publish-to-ratko')}
-            </Button>
+            <WriteRoleRequired>
+                <Button
+                    onClick={() => setShowingConfirmation(true)}
+                    disabled={isPublishing || disabled}
+                    isProcessing={isPublishing}
+                    variant={ButtonVariant.PRIMARY}
+                    size={size}
+                    icon={Icons.Redo}>
+                    {t('publishing.publish-to-ratko')}
+                </Button>
+            </WriteRoleRequired>
             {showingConfirmation && (
                 <Dialog
                     title={t('publishing.publish-to-ratko')}

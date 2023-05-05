@@ -22,7 +22,7 @@
         "search": "Hae...",
         "km-start-field": "Alkukm",
         "km-end-field": "Loppukm",
-        "km-interval-field": "Kilometriväli",
+        "km-interval-field": "Ratakilometriväli",
         "coordinate-system-field": "Koordinaattijärjestelmä",
         "coordinate-system-dropdown": "Valitse",
         "phase-measurement-method-formgroup-title": "Tilanne- ja laatutiedot",
@@ -93,7 +93,7 @@
                 "plan-time-missing": "Suunnitelman luontiaika puuttuu",
                 "author-missing": "Suunnitelman luojan tiedot puuttuu",
                 "reference-line-missing": "Pituusmittauslinja puuttuu",
-                "km-posts-missing": "KM-pylväät puuttuvat"
+                "km-posts-missing": "Tasakilometripisteet puuttuvat"
             },
             "alignment": {
                 "duplicate-name": "Suunnitelmassa on useampi raide samalla nimellä \"{{alignmentName}}\"",
@@ -160,8 +160,8 @@
                 "alignment-joint-inaccurate": "Vaihteen {{switchName}} pääosat ({{jointNumber}}) raiteella {{alignmentName}} ovat sijainniltaan epätarkat suhteessa muihin raiteisiin"
             },
             "km-post": {
-                "multiple-start-km-posts": "Kilometripylväs {{value}} esiintyy suunnitelmassa useammin kuin kerran",
-                "sta-ahead-not-negative": "Suunnitelman ensimmäisen kilometripylvään staAhead-arvo on suurempi kuin 0.0"
+                "multiple-start-km-posts": "Tasakilometripiste {{value}} esiintyy suunnitelmassa useammin kuin kerran",
+                "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0"
             }
         }
     }

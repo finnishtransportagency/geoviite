@@ -117,11 +117,7 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
                 {verticalGeometry.verticalCoordinateSystem ??
                     t('data-products.vertical-geometry.unknown')}
             </td>
-            <td>
-                {overlapsAnother
-                    ? t('data-products.vertical-geometry.overlaps-another')
-                    : undefined}
-            </td>
+            <td>{overlapsAnother ? t('data-products.vertical-geometry.overlaps-another') : ''}</td>
         </tr>
     );
 };

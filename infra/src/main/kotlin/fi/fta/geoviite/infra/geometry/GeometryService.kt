@@ -10,11 +10,14 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.math.BigDecimal
 import java.time.Instant
 import kotlin.math.floor
 
@@ -237,7 +240,7 @@ class GeometryService @Autowired constructor(
         val verticalGeometryListing = getVerticalGeometryListing(planId)
 
         val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("${VERTICAL_GEOMETRY} ${plan.fileName}") to csvFileContent.toByteArray()
+        return FileName("$VERTICAL_GEOMETRY ${plan.fileName}") to csvFileContent.toByteArray()
     }
 
     fun getVerticalGeometryListing(
@@ -263,7 +266,7 @@ class GeometryService @Autowired constructor(
         val verticalGeometryListing = getVerticalGeometryListing(locationTrackId, startAddress, endAddress)
 
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("${VERTICAL_GEOMETRY} ${locationTrack.name}") to csvFileContent.toByteArray()
+        return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
     }
 
     private fun getHeaderAndAlignment(id: IntId<GeometryAlignment>): Pair<GeometryPlanHeader, GeometryAlignment> {
@@ -276,12 +279,10 @@ class GeometryService @Autowired constructor(
         if (sortOrder == SortOrder.ASCENDING) getComparator(sortField)
         else getComparator(sortField).reversed()
 
-    val plannedGeometryFirstComparator: Comparator<GeometryPlanHeader> =
-        Comparator.comparing { h -> if (h.source == PAIKANNUSPALVELU) 1 else 0 }
     private fun getComparator(sortField: GeometryPlanSortField): Comparator<GeometryPlanHeader> {
         val trackNumbers by lazy { trackNumberService.mapById(PublishType.DRAFT) }
-        val linkingSummaries by lazy { geometryDao.getLinkingSummaries(null) }
-        return plannedGeometryFirstComparator.then(when (sortField) {
+        val linkingSummaries by lazy { geometryDao.getLinkingSummaries() }
+        return when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
             GeometryPlanSortField.PROJECT_NAME -> stringComparator { h -> h.project.name }
             GeometryPlanSortField.TRACK_NUMBER -> stringComparator { h -> trackNumbers[h.trackNumberId]?.number }
@@ -294,7 +295,7 @@ class GeometryService @Autowired constructor(
             GeometryPlanSortField.FILE_NAME -> stringComparator { h -> h.fileName }
             GeometryPlanSortField.LINKED_AT -> Comparator.comparing { h -> linkingSummaries[h.id]?.linkedAt ?: Instant.MIN }
             GeometryPlanSortField.LINKED_BY -> stringComparator { h -> linkingSummaries[h.id]?.linkedByUsers }
-        })
+        }
     }
 
     private inline fun <reified T> stringComparator(crossinline getValue: (T) -> CharSequence?) =
@@ -460,19 +461,29 @@ class GeometryService @Autowired constructor(
         return referencePointIndices.map { referencePointIndex ->
             val referencePoint = geocodingContext.referencePoints[referencePointIndex]
             val kmNumber = referencePoint.kmNumber
-            val referenceLineKmLength = getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext)
+            // The choice of a half-tick-length minimum is totally arbitrary
+            val minTickSpace = BigDecimal(tickLength).setScale(1) / BigDecimal(2)
+            val referenceLineKmLength =
+                getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext) - minTickSpace.toInt()
 
-            KmHeights(referencePoint.kmNumber,
-                // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
-                // hit a specific segment; but points on different sides of a segment boundary are often the exact same
-                // point, but potentially have different heights (or more often null/not-null heights). If an ordinary
-                // tick hits a segment boundary exactly, we do grab its height, but then let the distinct() at the end
-                // throw it out.
-                ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
-                        + (0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
-                        // special-case last point so front-end doesn't have to extrapolate heights at track end
-                        + (if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()))
-                    .sortedBy { (trackMeterInKm) -> trackMeterInKm }
+            // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
+            // hit a specific segment; but points on different sides of a segment boundary are often the exact same
+            // point, but potentially have different heights (or more often null/not-null heights).
+            val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
+                    + (0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
+                    // special-case last point so front-end doesn't have to extrapolate heights at track end
+                    ).sortedBy { (trackMeterInKm) -> trackMeterInKm }
+
+            val ticksToSend = allTicks.filterIndexed { i, (trackMeterInKm, segmentIndex) ->
+                segmentIndex != null ||
+                        (i == 0                  || trackMeterInKm - allTicks[i - 1].first >= minTickSpace) &&
+                        (i == allTicks.lastIndex || allTicks[i + 1].first - trackMeterInKm >= minTickSpace)
+            } + if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()
+
+
+            KmHeights(
+                referencePoint.kmNumber,
+                ticksToSend
                     .mapNotNull { (trackMeterInKm, segmentIndex) ->
                         val trackMeter = TrackMeter(kmNumber, trackMeterInKm)
                         geocodingContext.getTrackLocation(alignment, trackMeter)?.let { address ->
@@ -482,7 +493,7 @@ class GeometryService @Autowired constructor(
                                 getHeightAt(address.point.m, segmentIndex),
                             )
                         }
-                    }.distinct()
+                    }.distinct() // don't bother sending segment boundary sides with the same location and height
             )
         }.filter { km -> km.trackMeterHeights.isNotEmpty() }
     }

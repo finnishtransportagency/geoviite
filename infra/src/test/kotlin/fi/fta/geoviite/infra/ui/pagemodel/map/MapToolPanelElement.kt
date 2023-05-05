@@ -20,8 +20,8 @@ class GeometryPlanGeneralInfoBox(by: By) : InfoBox(by) {
     fun vaihe(): String = fieldValue("Vaihe")
     fun vaiheenTarkennus(): String = fieldValue("Vaiheen tarkennus")
     fun ratanumero(): String = fieldValue("Ratanumero")
-    fun kilometriAlku(): String = fieldValue("Kilometri alku")
-    fun kilometriLoppu(): String = fieldValue("Kilometri loppu")
+    fun rataKilometriAlku(): String = fieldValue("Ratakilometri alku")
+    fun rataKilometriLoppu(): String = fieldValue("Ratakilometri loppu")
 }
 
 class GeometryPlanQualityInfobox(by: By) : InfoBox(by) {
@@ -436,12 +436,12 @@ class MapLayerSettingsPanel(by: By) : PageModel(by) {
         TAUSTAKARTTA("Taustakartta"),
         SIJAINTIRAITEET("Sijaintairaiteet"),
         RATANUMEROT("Ratanumerot"),
-        KILOMETRIPYLVAAT("Kilometripylväät"),
+        KILOMETRIPYLVAAT("Tasakilometripisteet"),
         VAIHTEET("Vaihteet"),
         SUUNNITELMAT("Suunnitelmat"),
         SUUNNITELMAN_VAIHEET("Suunnitelman vaiheet"),
         SUUNNITELMAN_ALUEET("Suunnitelman alueet"),
-        SUUNNITELMAN_KILOMETRIPYLVAAT("Suunnitelman kilometripylväät"),
+        SUUNNITELMAN_KILOMETRIPYLVAAT("Suunnitelman tasakilometripisteet"),
         LINKITYS("Linkitys"),
         VAIHTEIDEN_LINKITYS("Vaihteiden linkitys"),
         MANUAALINEN_VAIHTEIDEN_LINKITYS("Manuaalinen vaihteiden linkitys"),

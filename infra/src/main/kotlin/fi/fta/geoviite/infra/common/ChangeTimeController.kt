@@ -21,6 +21,7 @@ data class CollectedChangeTimes(
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
     val publication: Instant,
+    val velhoDocument: Instant,
 )
 
 @RestController
@@ -49,6 +50,7 @@ class ChangeTimeController(
             layoutSwitch = switchService.getChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             publication = publicationService.getChangeTime(),
+            velhoDocument = Instant.now(), // TODO: GVT-1797
         )
     }
 
@@ -99,5 +101,12 @@ class ChangeTimeController(
     fun getPublicationChangeTime(): Instant {
         logger.apiCall("getPublicationChangeTime")
         return publicationService.getChangeTime()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/velho-document")
+    fun getVelhoDocumentChangeTime(): Instant {
+        logger.apiCall("getVelhoDocumentChangeTime")
+        return Instant.now() // TODO: GVT-1797
     }
 }

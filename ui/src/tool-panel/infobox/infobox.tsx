@@ -12,15 +12,15 @@ export type InfoboxProps = {
     children?: React.ReactNode;
     variant?: InfoBoxVariant;
     className?: string;
-    contentVisible?: boolean;
-    onContentVisibilityChange?: () => void;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
 };
 
 const Infobox: React.FC<InfoboxProps> = ({
     title,
     variant,
     className,
-    contentVisible = true,
+    contentVisible,
     onContentVisibilityChange,
     ...props
 }: InfoboxProps) => {

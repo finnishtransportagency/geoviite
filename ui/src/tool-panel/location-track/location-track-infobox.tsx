@@ -1,12 +1,12 @@
 import * as React from 'react';
 import styles from './location-track-infobox.scss';
 import Infobox from 'tool-panel/infobox/infobox';
-import { LAYOUT_SRID, LayoutLocationTrack, MapAlignment } from 'track-layout/track-layout-model';
+import { LAYOUT_SRID, LayoutLocationTrack } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Precision, roundToPrecision } from 'utils/rounding';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { LinkingAlignment, LinkingState, LinkingType } from 'linking/linking-model';
+import { LinkingAlignment, LinkingState, LinkingType, LinkInterval } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { updateLocationTrackGeometry } from 'linking/linking-api';
 import {
@@ -38,16 +38,16 @@ import { OnSelectFunction } from 'selection/selection-model';
 import { LocationTrackInfoboxDuplicateOf } from 'tool-panel/location-track/location-track-infobox-duplicate-of';
 import TopologicalConnectivityLabel from 'tool-panel/location-track/TopologicalConnectivityLabel';
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
-import { getLocationTrackSegmentEnds } from 'track-layout/layout-map-api';
 import { LocationTrackGeometryInfobox } from 'tool-panel/location-track/location-track-geometry-infobox';
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
-    onStartLocationTrackGeometryChange: (alignment: MapAlignment) => void;
+    onStartLocationTrackGeometryChange: (linkInterval: LinkInterval) => void;
     onEndLocationTrackGeometryChange: () => void;
     linkingState?: LinkingState;
     showArea: (area: BoundingBox) => void;
@@ -94,7 +94,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     function isOfficial(): boolean {
         return publishType === 'OFFICIAL';
@@ -286,20 +285,24 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             <TrackMeter value={startAndEndPoints?.end?.address} />
                         </InfoboxField>
 
-                        {linkingState === undefined && userHasWriteRole && (
-                            <InfoboxButtons>
-                                <Button
-                                    variant={ButtonVariant.SECONDARY}
-                                    size={ButtonSize.SMALL}
-                                    onClick={() => {
-                                        getLocationTrackSegmentEnds(
-                                            locationTrack.id,
-                                            publishType,
-                                        ).then(onStartLocationTrackGeometryChange);
-                                    }}>
-                                    {t('tool-panel.location-track.modify-start-or-end')}
-                                </Button>
-                            </InfoboxButtons>
+                        {linkingState === undefined && (
+                            <WriteRoleRequired>
+                                <InfoboxButtons>
+                                    <Button
+                                        variant={ButtonVariant.SECONDARY}
+                                        size={ButtonSize.SMALL}
+                                        onClick={() => {
+                                            getEndLinkPoints(
+                                                locationTrack.id,
+                                                publishType,
+                                                'LOCATION_TRACK',
+                                                locationTrackChangeTime,
+                                            ).then(onStartLocationTrackGeometryChange);
+                                        }}>
+                                        {t('tool-panel.location-track.modify-start-or-end')}
+                                    </Button>
+                                </InfoboxButtons>
+                            </WriteRoleRequired>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (
                             <React.Fragment>
@@ -410,22 +413,24 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             )}
 
             {officialLocationTrack && (
-                <Infobox
-                    contentVisible={visibilities.ratkoPush}
-                    onContentVisibilityChange={() => visibilityChange('ratkoPush')}
-                    title={t('tool-panel.location-track.ratko-info-heading')}
-                    qa-id="location-track-ratko-infobox">
-                    <InfoboxContent>
-                        <InfoboxButtons>
-                            <Button
-                                onClick={() => showLocationTrackPushDialog()}
-                                variant={ButtonVariant.SECONDARY}
-                                size={ButtonSize.SMALL}>
-                                {t('tool-panel.location-track.push-to-ratko')}
-                            </Button>
-                        </InfoboxButtons>
-                    </InfoboxContent>
-                </Infobox>
+                <WriteRoleRequired>
+                    <Infobox
+                        contentVisible={visibilities.ratkoPush}
+                        onContentVisibilityChange={() => visibilityChange('ratkoPush')}
+                        title={t('tool-panel.location-track.ratko-info-heading')}
+                        qa-id="location-track-ratko-infobox">
+                        <InfoboxContent>
+                            <InfoboxButtons>
+                                <Button
+                                    onClick={() => showLocationTrackPushDialog()}
+                                    variant={ButtonVariant.SECONDARY}
+                                    size={ButtonSize.SMALL}>
+                                    {t('tool-panel.location-track.push-to-ratko')}
+                                </Button>
+                            </InfoboxButtons>
+                        </InfoboxContent>
+                    </Infobox>
+                </WriteRoleRequired>
             )}
 
             {showRatkoPushDialog && (

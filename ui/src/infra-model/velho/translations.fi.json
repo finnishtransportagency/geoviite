@@ -1,0 +1,21 @@
+{
+    "velho": {
+        "file-list": {
+            "header": {
+                "project-name": "Projektin tiedot",
+                "document-name": "Dokumentin nimi",
+                "document-description": "Kuvaus",
+                "document-modified": "Muokattu"
+            },
+            "field": {
+                "project-name": "Projektin tiedot",
+                "project-group": "Projektijoukko",
+                "assignment": "Toimeksianto",
+                "material-group": "Aineistoryhmä ja laji",
+                "document-type": "Dokumenttityyppi"
+            },
+            "reject": "Hylkää",
+            "upload": "Tuo suunnitelma..."
+        }
+    }
+}

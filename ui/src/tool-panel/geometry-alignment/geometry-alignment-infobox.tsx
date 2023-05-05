@@ -1,10 +1,5 @@
 import * as React from 'react';
-import {
-    LayoutLocationTrack,
-    LayoutReferenceLine,
-    MapAlignment,
-    MapSegment,
-} from 'track-layout/track-layout-model';
+import { LayoutLocationTrack, LayoutReferenceLine } from 'track-layout/track-layout-model';
 import Infobox from 'tool-panel/infobox/infobox';
 import { useTranslation } from 'react-i18next';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
@@ -20,20 +15,19 @@ import {
     LinkingState,
     LinkingType,
 } from 'linking/linking-model';
-import GeometrySegmentInfobox from 'tool-panel/geometry-alignment/geometry-segment/geometry-segment-infobox';
 import { OnSelectOptions } from 'selection/selection-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { BoundingBox } from 'model/geometry';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { GeometryAlignmentInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
-    geometryAlignment: MapAlignment;
+    geometryAlignment: AlignmentHeader;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
-    segment?: MapSegment;
     planId: GeometryPlanId;
     locationTrackChangeTime: TimeStamp;
     trackNumberChangeTime: TimeStamp;
@@ -53,7 +47,6 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     geometryAlignment,
     selectedLayoutLocationTrack,
     selectedLayoutReferenceLine,
-    segment,
     planId,
     locationTrackChangeTime,
     trackNumberChangeTime,
@@ -140,28 +133,18 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     }}
                 />
             )}
-            {planHeader &&
-                (segment ? (
-                    <GeometrySegmentInfobox
-                        contentVisible={visibilities.geometry}
-                        onContentVisibilityChange={() => visibilityChange('geometry')}
-                        chosenSegment={segment}
-                        planHeader={planHeader}
-                    />
-                ) : (
-                    <Infobox
-                        title={t('tool-panel.alignment.geometry-segment.title')}
-                        contentVisible={visibilities.geometry}
-                        onContentVisibilityChange={() => visibilityChange('geometry')}>
-                        <InfoboxContent>
-                            <InfoboxText
-                                value={t(
-                                    'tool-panel.alignment.geometry-segment.no-segment-selected',
-                                )}
-                            />
-                        </InfoboxContent>
-                    </Infobox>
-                ))}
+            {planHeader && (
+                <Infobox
+                    title={t('tool-panel.alignment.geometry-segment.title')}
+                    contentVisible={visibilities.geometry}
+                    onContentVisibilityChange={() => visibilityChange('geometry')}>
+                    <InfoboxContent>
+                        <InfoboxText
+                            value={t('tool-panel.alignment.geometry-segment.no-segment-selected')}
+                        />
+                    </InfoboxContent>
+                </Infobox>
+            )}
         </React.Fragment>
     );
 };

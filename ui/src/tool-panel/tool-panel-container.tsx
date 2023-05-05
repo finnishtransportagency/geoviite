@@ -67,7 +67,6 @@ const ToolPanelContainer: React.FC = () => {
             geometrySwitches={store.selection.selectedItems.geometrySwitches}
             locationTrackIds={store.selection.selectedItems.locationTracks}
             geometryAlignments={store.selection.selectedItems.geometryAlignments}
-            geometrySegments={store.selection.selectedItems.geometrySegments}
             linkingState={store.linkingState}
             showArea={delegates.showArea}
             changeTimes={changeTimes}
@@ -79,6 +78,7 @@ const ToolPanelContainer: React.FC = () => {
             selectedTabId={store.selectedToolPanelTabId}
             startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
+            stopLinking={delegates.stopLinking}
         />
     );
 };

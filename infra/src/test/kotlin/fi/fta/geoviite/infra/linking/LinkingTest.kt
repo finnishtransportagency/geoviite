@@ -20,7 +20,7 @@ class LinkingTest {
             segment(Point(1.0, 1.0), Point(2.0, 2.0)),
             segment(Point(2.0, 2.0), Point(3.0, 3.0)),
         )
-        val geometryAlignment = mapAlignment<GeometryAlignment>(
+        val geometryAlignment = mapAlignment(
             mapSegment(Point3DM(10.0, 10.0, 0.0), Point3DM(13.0, 10.0, 3.0), Point3DM(16.0, 10.0, 6.0)),
             mapSegment(Point3DM(16.0, 10.0, 6.0), Point3DM(19.0, 10.0, 9.0), Point3DM(22.0, 10.0, 12.0)),
         )
@@ -133,7 +133,7 @@ class LinkingTest {
             ),
         )
         // Geometry alignment, offset 0.1m in x axis
-        val geometryAlignment = mapAlignment<GeometryAlignment>(
+        val geometryAlignment = mapAlignment(
             mapSegment(
                 Point3DM(0.1, 0.0, 0.0),
                 Point3DM(0.1, 1.0, 1.0),
@@ -237,7 +237,7 @@ class LinkingTest {
             segment(Point(0.0, 2.0), Point(0.0, 3.0), Point(0.0, 4.0)),
         )
         // Geometry alignment, offset 0.1m in x-axis and long enough to be linked in both ends
-        val geometryAlignment = mapAlignment<GeometryAlignment>(
+        val geometryAlignment = mapAlignment(
             // First segment before layout alignment: m 0-3
             mapSegment(
                 Point3DM(0.1, -3.0, 0.0),

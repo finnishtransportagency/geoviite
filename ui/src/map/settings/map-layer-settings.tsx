@@ -6,6 +6,7 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 export type MapLayersSettingsProps = {
     map: Map;
@@ -39,6 +40,13 @@ function isTrackLayoutLayer(layer: MapLayer): boolean {
     }
 }
 
+function showManualSwitchLinkingForWriteRoleOnly(
+    layer: MapLayer,
+    userHasWriteRole: boolean,
+): boolean {
+    return userHasWriteRole || layer.type != 'manualSwitchLinking';
+}
+
 const debugLayers = ['debug', 'debug1mPoints'];
 const isDebugLayer = (layer: MapLayer) => debugLayers.includes(layer.id);
 
@@ -68,6 +76,7 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
     props: MapLayersSettingsProps,
 ) => {
     const { t } = useTranslation();
+    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     return (
         <div className={styles['map-layer-settings']}>
@@ -171,7 +180,12 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                 {t('map-layer-settings.geometry')}
             </div>
             {props.map.mapLayers
-                .filter((layer) => !isTrackLayoutLayer(layer) && !isDebugLayer(layer))
+                .filter(
+                    (layer) =>
+                        !isTrackLayoutLayer(layer) &&
+                        !isDebugLayer(layer) &&
+                        showManualSwitchLinkingForWriteRoleOnly(layer, userHasWriteRole),
+                )
                 .map((layer) => {
                     return (
                         <LayerVisibilitySetting

@@ -106,12 +106,12 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             kmPost(trackNumberId = trackNumber.id as IntId, km = KmNumber(3), location = Point(3.0, 0.0))
         ).map(kmPostDao::insert)
 
-        val kmLengths = trackNumberService.getKmPostLengths(OFFICIAL, trackNumber.id as IntId)
+        val kmLengths = trackNumberService.getKmLengths(OFFICIAL, trackNumber.id as IntId)
         assertNotNull(kmLengths)
         assertEquals(3, kmLengths.size)
 
         assertEquals(
-            TrackLayoutKmPostLengthDetails(
+            TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
@@ -123,7 +123,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         )
 
         assertEquals(
-            TrackLayoutKmPostLengthDetails(
+            TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
@@ -135,7 +135,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         )
 
         assertEquals(
-            TrackLayoutKmPostLengthDetails(
+            TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(3),
                 startM = BigDecimal(3).setScale(3),

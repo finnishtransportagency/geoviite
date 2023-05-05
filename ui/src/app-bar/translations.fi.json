@@ -10,7 +10,8 @@
         "data-products": {
             "element-list": "Elementtiluettelo",
             "vertical-geometry": "Pystygeometria",
-            "km-lengths": "Kilometrien pituudet"
-        }
+            "km-lengths": "Ratakilometrien pituudet"
+        },
+        "vertical-geometry-diagram-demo": "Korkeuskaavio-demo"
     }
 }

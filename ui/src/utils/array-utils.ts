@@ -110,7 +110,10 @@ export function compare<T>(f1: T, f2: T): number {
     else return 0;
 }
 
-export function groupBy<T, K extends string | number>(array: T[], getKey: (item: T) => K) {
+export function groupBy<T, K extends string | number>(
+    array: T[],
+    getKey: (item: T) => K,
+): Record<K, T[]> {
     return array.reduce((acc, item) => {
         (acc[getKey(item)] ||= []).push(item);
         return acc;
@@ -183,4 +186,20 @@ export function addIfExists<T>(originalCollection: T[], newValue: T | undefined)
 
 export function indexIntoMap<Id, Obj extends { id: Id }>(objs: Obj[]): Map<Id, Obj> {
     return objs.reduce((map, obj) => map.set(obj.id, obj), new Map());
+}
+
+export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): number | null {
+    if (objs.length == 0) {
+        return null;
+    }
+    const values = objs.map((obj) => by(obj));
+    let min = values[0];
+    let minIndex = 0;
+    for (let i = 1; i < values.length; i++) {
+        if (values[i] < min) {
+            min = values[i];
+            minIndex = i;
+        }
+    }
+    return minIndex;
 }

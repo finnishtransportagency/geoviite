@@ -308,21 +308,21 @@ data class RemovedTrackNumberReferenceIds(
     val planIds: List<IntId<GeometryPlan>>,
 )
 
-fun <T : Draftable<T>> mapToValidationVersion(draftableObject: T) = ValidationVersion(
+fun <T : Draftable<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
     officialId = draftableObject.id as IntId<T>,
     validatedAssetVersion = draftableObject.version as RowVersion<T>
 )
 
-fun mapToValidationVersions(
+fun toValidationVersions(
     trackNumbers: List<TrackLayoutTrackNumber> = emptyList(),
     referenceLines: List<ReferenceLine> = emptyList(),
     kmPosts: List<TrackLayoutKmPost> = emptyList(),
     locationTracks: List<LocationTrack> = emptyList(),
     switches: List<TrackLayoutSwitch> = emptyList(),
 ) = ValidationVersions(
-    trackNumbers = trackNumbers.map(::mapToValidationVersion),
-    referenceLines = referenceLines.map(::mapToValidationVersion),
-    kmPosts = kmPosts.map(::mapToValidationVersion),
-    locationTracks = locationTracks.map(::mapToValidationVersion),
-    switches = switches.map(::mapToValidationVersion)
+    trackNumbers = trackNumbers.map(::toValidationVersion),
+    referenceLines = referenceLines.map(::toValidationVersion),
+    kmPosts = kmPosts.map(::toValidationVersion),
+    locationTracks = locationTracks.map(::toValidationVersion),
+    switches = switches.map(::toValidationVersion)
 )

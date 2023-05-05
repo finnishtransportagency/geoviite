@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.*
 import kotlin.math.PI
@@ -20,7 +20,7 @@ fun cutLayoutGeometry(alignment: LayoutAlignment, mRange: Range<Double>): Layout
 
 fun replaceLayoutGeometry(
     layoutAlignment: LayoutAlignment,
-    geometryAlignment: MapAlignment<GeometryAlignment>,
+    geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
 ): LayoutAlignment {
     val geometrySegments = createAlignmentGeometry(geometryAlignment, geometryMRange)
@@ -30,7 +30,7 @@ fun replaceLayoutGeometry(
 fun linkLayoutGeometrySection(
     layoutAlignment: LayoutAlignment,
     layoutMRange: Range<Double>,
-    geometryAlignment: MapAlignment<GeometryAlignment>,
+    geometryAlignment: PlanLayoutAlignment,
     geometryMRange: Range<Double>,
 ): LayoutAlignment {
     val segments = if (layoutMRange.min == layoutMRange.max) {
@@ -42,14 +42,14 @@ fun linkLayoutGeometrySection(
 }
 
 private fun createAlignmentGeometry(
-    geometryAlignment: MapAlignment<GeometryAlignment>,
+    geometryAlignment: PlanLayoutAlignment,
     mRange: Range<Double>,
 ): List<LayoutSegment> = sliceSegments(geometryAlignment.segments, mRange, ALIGNMENT_LINKING_SNAP)
 
 private fun extendSegmentsWithGeometry(
     layoutAlignment: LayoutAlignment,
     layoutM: Double,
-    geometryAlignment: MapAlignment<GeometryAlignment>,
+    geometryAlignment: PlanLayoutAlignment,
     geometryMInterval: Range<Double>,
 ): List<LayoutSegment> {
     val addedSegments = sliceSegments(geometryAlignment.segments, geometryMInterval, ALIGNMENT_LINKING_SNAP)
@@ -67,7 +67,7 @@ private fun extendSegmentsWithGeometry(
 private fun replaceSegmentsWithGeometry(
     layoutAlignment: LayoutAlignment,
     layoutMInterval: Range<Double>,
-    geometryAlignment: MapAlignment<GeometryAlignment>,
+    geometryAlignment: PlanLayoutAlignment,
     geometryMInterval: Range<Double>,
 ): List<LayoutSegment> {
     val startSegments = sliceSegments(layoutAlignment.segments, Range(0.0, layoutMInterval.min))

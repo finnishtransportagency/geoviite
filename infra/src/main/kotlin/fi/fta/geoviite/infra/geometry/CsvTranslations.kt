@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.SwitchName
 const val ELEMENT_LISTING = "Elementtilistaus"
 const val VERTICAL_GEOMETRY = "Pystygeometria"
 const val VERTICAL_SECTIONS_OVERLAP = "Kaltevuusjakso on limittäin toisen jakson kanssa"
-const val UNKNOWN = "Ei tiedossa"
 const val IS_PARTIAL = "Raide sisältää vain osan geometriaelementistä"
 val connectedToSwitch = { switchName: SwitchName -> "Vaihteen ${switchName} elementti" }
 

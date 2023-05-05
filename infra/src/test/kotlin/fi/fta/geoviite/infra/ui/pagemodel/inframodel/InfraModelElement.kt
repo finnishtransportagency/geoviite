@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.pagemodel.common.DialogPopUp
+import fi.fta.geoviite.infra.ui.pagemodel.common.FormGroup
+import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import fi.fta.geoviite.infra.ui.pagemodel.common.TableRow
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
 import org.apache.commons.lang3.builder.ToStringBuilder
@@ -73,7 +76,7 @@ class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
 
 class SijaintitiedotFormGroup(by: By) : FormGroup(by) {
     fun ratanumero(): String = fieldValue("Ratanumero")
-    fun kilometrivali(): String = fieldValue("Kilometriväli")
+    fun ratakilometrivali(): String = fieldValue("Ratakilometriväli")
     fun koordinaattijarjestelma(): String = fieldValue("Koordinaattijärjestelmä")
     fun korkeusjarjestelma(): String = fieldValue("Korkeusjärjestelmä")
 

@@ -18,7 +18,6 @@ import {
     LayoutLocationTrack,
     LayoutReferenceLine,
     LocationTrackId,
-    MapAlignment,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
@@ -38,9 +37,11 @@ import {
     PreliminaryLinkingGeometry,
 } from 'linking/linking-model';
 import { OnSelectOptions } from 'selection/selection-model';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
-    geometryAlignment: MapAlignment;
+    geometryAlignment: AlignmentHeader;
     publishType: PublishType;
     trackNumberChangeTime: TimeStamp;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
@@ -53,7 +54,7 @@ type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
 };
 
 type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
-    geometryAlignment: MapAlignment;
+    geometryAlignment: AlignmentHeader;
     publishType: PublishType;
     locationTrackChangeTime: TimeStamp;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
@@ -94,11 +95,14 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     const trackNumbers = useTrackNumbers(publishType, trackNumberChangeTime);
     const [referenceLineRefs, setReferenceLineRefs] = React.useState<AlignmentRef[]>([]);
     const [referenceLines, setReferenceLines] = React.useState<LayoutReferenceLine[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
 
     React.useEffect(() => {
         if (geometryAlignment.boundingBox) {
+            setIsLoading(true);
+
             Promise.all([
                 getNonLinkedReferenceLines().then((lines) =>
                     lines.sort(negComparator(fieldComparator((line) => line.id))),
@@ -107,9 +111,13 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     publishType,
                     expandBoundingBox(geometryAlignment.boundingBox, NEAR_TRACK_SEARCH_BUFFER),
                 ),
-            ]).then((lineGroups) => {
-                setReferenceLines(deduplicateById(lineGroups.flat(), (l) => l.id));
-            });
+            ])
+                .then((lineGroups) => {
+                    setReferenceLines(deduplicateById(lineGroups.flat(), (l) => l.id));
+                })
+                .finally(() => {
+                    setIsLoading(false);
+                });
         }
     }, [geometryAlignment.boundingBox, trackNumberChangeTime]);
 
@@ -153,7 +161,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                     const isSelected = line.id == selectedLayoutReferenceLine?.id;
                     const ref = referenceLineRefs.find((r) => r.id == line.id);
                     const trackNumber = trackNumbers?.find((tn) => tn.id === line.trackNumberId);
-                    if (!ref || !trackNumber) return <></>;
+                    if (!ref || !trackNumber) return <React.Fragment key={line.id} />;
                     return (
                         <li
                             key={ref.id}
@@ -179,7 +187,10 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                         </li>
                     );
                 })}
-                {referenceLines?.length == 0 && (
+
+                {isLoading && <Spinner />}
+
+                {!isLoading && referenceLines?.length == 0 && (
                     <span className={styles['geometry-alignment-infobox__no-matches']}>
                         {t('tool-panel.alignment.geometry.no-linkable-reference-lines')}
                     </span>
@@ -203,11 +214,14 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     const { t } = useTranslation();
     const [locationTrackRefs, setLocationTrackRefs] = React.useState<AlignmentRef[]>([]);
     const [locationTracks, setLocationTracks] = React.useState<LayoutLocationTrack[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
 
     const linkingInProgress = linkingState?.state === 'setup' || linkingState?.state === 'allSet';
 
     React.useEffect(() => {
         if (geometryAlignment.boundingBox) {
+            setIsLoading(true);
+
             Promise.all([
                 getNonLinkedLocationTracks().then((tracks) =>
                     tracks.sort(negComparator(fieldComparator((a) => a.id))),
@@ -216,9 +230,13 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                     publishType,
                     expandBoundingBox(geometryAlignment.boundingBox, NEAR_TRACK_SEARCH_BUFFER),
                 ),
-            ]).then((trackGroups) => {
-                setLocationTracks(deduplicateById(trackGroups.flat(), (l) => l.id));
-            });
+            ])
+                .then((trackGroups) => {
+                    setLocationTracks(deduplicateById(trackGroups.flat(), (l) => l.id));
+                })
+                .finally(() => {
+                    setIsLoading(false);
+                });
         }
     }, [geometryAlignment.boundingBox, locationTrackChangeTime]);
 
@@ -260,7 +278,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                 {locationTracks?.map((track) => {
                     const isSelected = track.id == selectedLayoutLocationTrack?.id;
                     const ref = locationTrackRefs.find((r) => r.id == track.id);
-                    if (!ref) return <></>;
+                    if (!ref) return <React.Fragment key={track.id} />;
                     return (
                         <li
                             key={ref.id}
@@ -289,7 +307,10 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                         </li>
                     );
                 })}
-                {locationTracks?.length == 0 && (
+
+                {isLoading && <Spinner />}
+
+                {!isLoading && locationTracks?.length == 0 && (
                     <span className={styles['geometry-alignment-infobox__no-matches']}>
                         {t('tool-panel.alignment.geometry.no-linkable-location-tracks')}
                     </span>

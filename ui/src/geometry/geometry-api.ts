@@ -12,9 +12,9 @@ import {
     GeometrySwitchId,
     PlanSource,
     Project,
+    ProjectId,
     SortByValue,
     SortOrderValue,
-    ProjectId,
     VerticalGeometryItem,
 } from 'geometry/geometry-model';
 import {
@@ -22,7 +22,6 @@ import {
     LayoutSwitch,
     LayoutTrackNumberId,
     LocationTrackId,
-    MapAlignment,
     PlanArea,
 } from 'track-layout/track-layout-model';
 import {
@@ -38,7 +37,7 @@ import {
 import { BoundingBox } from 'model/geometry';
 import { MapTile } from 'map/map-model';
 import { getChangeTimes } from 'common/change-time-api';
-import { TimeStamp } from 'common/common-model';
+import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
@@ -80,12 +79,15 @@ export async function getGeometryPlanHeadersBySearchTerms(
         freeText: freeText,
         trackNumberIds: trackNumberIds,
         sortField:
-            !sortField || sortField === SortByValue.NO_SORTING ? undefined : SortByValue[sortField],
+            typeof sortField === 'undefined' || sortField === SortByValue.NO_SORTING
+                ? undefined
+                : SortByValue[sortField],
         sortOrder:
-            !sortOrder || sortField === SortByValue.NO_SORTING
+            typeof sortOrder === 'undefined' || sortField === SortByValue.NO_SORTING
                 ? undefined
                 : SortOrderValue[sortOrder],
     });
+
     return getWithDefault<Page<GeometryPlanHeader>>(`${GEOMETRY_URI}/plan-headers${params}`, {
         totalCount: 0,
         items: [],
@@ -233,17 +235,6 @@ export async function getTrackLayoutPlans(
     ).then((plans) => plans.filter(filterNotEmpty));
 }
 
-export async function getGeometryAlignmentLayout(
-    planId: GeometryPlanId,
-    geometryAlignmentId: GeometryAlignmentId,
-    includeGeometryData = true,
-    changeTime: TimeStamp = getChangeTimes().geometryPlan,
-): Promise<MapAlignment | undefined> {
-    return getTrackLayoutPlan(planId, changeTime, includeGeometryData).then((plan) => {
-        return plan?.alignments.find((alignment) => alignment.id === geometryAlignmentId);
-    });
-}
-
 export async function fetchProjects(): Promise<Project[]> {
     return await getThrowError<Project[]>(`${GEOMETRY_URI}/projects`);
 }
@@ -276,4 +267,55 @@ export async function getGeometryPlanLinkingSummaries(
         { [key: GeometryPlanId]: GeometryPlanLinkingSummary }
     >(`${GEOMETRY_URI}/plans/linking-summaries/`, planIds);
     return r.isOk() ? r.value : null;
+}
+
+export interface AlignmentHeights {
+    kmHeights: TrackKmHeights[];
+    alignmentStartM: number;
+    alignmentEndM: number;
+    linkingSummary: PlanLinkingSummaryItem[];
+}
+
+export interface TrackMeterHeight {
+    /** m-value in entire alignment */
+    m: number;
+    meter: number;
+    height: number | null;
+}
+
+export interface PlanLinkingSummaryItem {
+    startM: number;
+    endM: number;
+    filename: string | null;
+}
+
+export interface TrackKmHeights {
+    kmNumber: KmNumber;
+    trackMeterHeights: TrackMeterHeight[];
+}
+
+export async function getPlanAlignmentHeights(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<AlignmentHeights> {
+    return getThrowError(
+        `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getLocationTrackHeights(
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+    startDistance: number,
+    endDistance: number,
+    tickLength: number,
+): Promise<AlignmentHeights> {
+    return getThrowError(
+        `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
+            queryParams({ startDistance, endDistance, tickLength }),
+    );
 }

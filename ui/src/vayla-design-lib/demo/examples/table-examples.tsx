@@ -4,6 +4,7 @@ import examplePersonsData from 'vayla-design-lib/demo/example-persons.json';
 import { Link } from 'vayla-design-lib/link/link';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+import { VelhoFileListContainer } from 'infra-model/velho/velho-file-list';
 
 type ExamplePerson = {
     id: number;
@@ -66,6 +67,9 @@ export const TableExamples: React.FC = () => {
                     })}
                 </tbody>
             </Table>
+
+            <h3>My table</h3>
+            <VelhoFileListContainer />
         </div>
     );
 };

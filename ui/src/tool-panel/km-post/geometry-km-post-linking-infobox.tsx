@@ -22,7 +22,7 @@ import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-fi
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { updateKmPostChangeTime } from 'common/change-time-api';
 import { filterNotEmpty } from 'utils/array-utils';
-import { useCommonDataAppSelector } from 'store/hooks';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -84,7 +84,6 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
 
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
     const canLink = !linkingCallInProgress && linkingState && geometryKmPost && layoutKmPost;
-    const userHasWriteRole = useCommonDataAppSelector((state) => state.userHasWriteRole);
 
     async function link() {
         if (!canLink) {
@@ -146,14 +145,16 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                             ))
                         }
                     />
-                    {!linkingState && userHasWriteRole && (
-                        <InfoboxButtons>
-                            <Button
-                                size={ButtonSize.SMALL}
-                                onClick={() => startLinking(geometryKmPost.id)}>
-                                {t('tool-panel.km-post.geometry.linking.start-linking-command')}
-                            </Button>
-                        </InfoboxButtons>
+                    {!linkingState && (
+                        <WriteRoleRequired>
+                            <InfoboxButtons>
+                                <Button
+                                    size={ButtonSize.SMALL}
+                                    onClick={() => startLinking(geometryKmPost.id)}>
+                                    {t('tool-panel.km-post.geometry.linking.start-linking-command')}
+                                </Button>
+                            </InfoboxButtons>
+                        </WriteRoleRequired>
                     )}
 
                     {linkingState && (

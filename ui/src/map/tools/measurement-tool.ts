@@ -8,10 +8,10 @@ import mapStyles from '../map.module.scss';
 import CircleStyle from 'ol/style/Circle';
 import { LineString } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
-import { getPlanarDistanceUnwrapped, SegmentDataHolder } from 'map/layers/layer-utils';
+import { getAlignmentData, getPlanarDistanceUnwrapped } from 'map/layers/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutPoint } from 'track-layout/track-layout-model';
-import { FEATURE_PROPERTY_SEGMENT_DATA } from 'map/layers/alignment-layer';
+import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 
 function formatMeasurement(distance: number) {
     let content;
@@ -92,16 +92,16 @@ export const measurementTool: MapTool = {
                     }),
                 }),
             }),
-            geometryFunction: function (coordinates: Coordinate[], existingGeom: LineString) {
+            geometryFunction: function(coordinates: Coordinate[], existingGeom: LineString) {
                 const cursorCoordinate = coordinates[coordinates.length - 1];
                 const cursorPixel = map.getPixelFromCoordinate(cursorCoordinate);
                 const nearbyFeatures = map.getFeaturesAtPixel(cursorPixel, { hitTolerance });
 
                 const nearbyPoints = nearbyFeatures
-                    .map((f) => f.get(FEATURE_PROPERTY_SEGMENT_DATA))
+                    .map((f) => getAlignmentData(f))
                     .filter(filterNotEmpty)
-                    .flatMap((f: SegmentDataHolder) =>
-                        getClosestPoints(f.segment.points, cursorCoordinate, 8),
+                    .flatMap((f: AlignmentDataHolder) =>
+                        getClosestPoints(f.points, cursorCoordinate, 8),
                     );
 
                 let closestPoint;
@@ -143,7 +143,7 @@ export const measurementTool: MapTool = {
             },
         });
 
-        tooltipDraw.on('drawend', function () {
+        tooltipDraw.on('drawend', function() {
             tooltip.setPosition(undefined);
         });
 

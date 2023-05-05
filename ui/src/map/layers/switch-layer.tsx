@@ -178,6 +178,7 @@ function jointStyle(joint: LayoutSwitchJoint, mainJoint: boolean) {
 
 let switchIdCompare = '';
 let switchChangeTimeCompare: TimeStamp | undefined = undefined;
+let newestSwitchAdapterId = 0;
 
 adapterInfoRegister.add('switches', {
     createAdapter: function (
@@ -191,6 +192,7 @@ adapterInfoRegister.add('switches', {
         olView: OlView,
         onViewContentChanged?: (items: OptionalShownItems) => void,
     ): OlLayerAdapter {
+        const adapterId = ++newestSwitchAdapterId;
         const getSwitchesFromApi = () => {
             return Promise.all(
                 mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
@@ -217,6 +219,7 @@ adapterInfoRegister.add('switches', {
                     limit: options.limit,
                 },
             ).map((d) => d.switch.id);
+
             return {
                 switches: switches,
             };
@@ -243,8 +246,10 @@ adapterInfoRegister.add('switches', {
         if (resolution <= Limits.SWITCH_SHOW) {
             Promise.all([getSwitchesFromApi(), getSwitchStructures()]).then(
                 ([switches, switchStructures]) => {
-                    const largeSymbols: boolean = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
-                    const labels: boolean = resolution <= Limits.SWITCH_LABELS;
+                    if (adapterId != newestSwitchAdapterId) return;
+
+                    const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
+                    const labels = resolution <= Limits.SWITCH_LABELS;
                     const isSelected = (switchItem: LayoutSwitch) => {
                         return selection.selectedItems.switches.some((s) => s === switchItem.id);
                     };
@@ -283,6 +288,7 @@ adapterInfoRegister.add('switches', {
     },
 });
 
+let newestGeometrySwitchAdapterId = 0;
 adapterInfoRegister.add('geometrySwitches', {
     createAdapter: function (
         _mapTiles: MapTile[],
@@ -294,6 +300,7 @@ adapterInfoRegister.add('geometrySwitches', {
         _changeTimes: ChangeTimes,
         olView: OlView,
     ): OlLayerAdapter {
+        const adapterId = ++newestGeometrySwitchAdapterId;
         const vectorSource = existingOlLayer?.getSource() || new VectorSource();
         // Use an existing layer or create a new one. Old layer is "recycled" to
         // prevent features to disappear while moving the map.
@@ -309,8 +316,8 @@ adapterInfoRegister.add('geometrySwitches', {
         vectorSource.clear();
 
         if (resolution <= Limits.SWITCH_SHOW) {
-            const largeSymbols: boolean = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
-            const labels: boolean = resolution <= Limits.SWITCH_LABELS;
+            const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
+            const labels = resolution <= Limits.SWITCH_LABELS;
             const isSelected = (switchItem: LayoutSwitch) => {
                 return selection.selectedItems.geometrySwitches.some(
                     (s) => s.geometryItem.id === switchItem.id,
@@ -337,6 +344,8 @@ adapterInfoRegister.add('geometrySwitches', {
 
             Promise.all([getSwitchStructures(), ...planStatusPromises]).then(
                 ([switchStructures, ...statusResults]) => {
+                    if (adapterId != newestGeometrySwitchAdapterId) return;
+
                     const features = statusResults.flatMap((statusResult) => {
                         const plan = statusResult.plan;
                         const switchLinkedStatus = statusResult.status

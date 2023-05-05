@@ -13,27 +13,32 @@
     }
 
     &__title {
-        @include typography-heading-small
+        @include typography-heading-small;
     }
 
     .accordion__header-title {
         @include typography-sub-heading;
     }
 
-    ul {
-        padding-inline-start: 1em;
+    .accordion__body {
+        margin-bottom: 16px;
     }
 
+    &__track-number-changes {
+        padding-left: 32px;
+        margin: 0;
+    }
 
-    &__location_tracks, &__switches {
+    &__location_tracks,
+    &__switches {
         margin-bottom: 6px;
 
         ul {
-            padding-top: 3px;
+            padding-left: 16px;
         }
 
         li {
-            padding: 3px 0
+            padding: 2px 0;
         }
     }
 

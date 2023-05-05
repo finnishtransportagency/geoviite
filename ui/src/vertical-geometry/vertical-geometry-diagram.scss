@@ -1,0 +1,17 @@
+@import '../vayla-design-lib/colors';
+@import '../vayla-design-lib/shadows';
+
+.vertical-geometry-diagram {
+    width: 100%;
+    cursor: grab;
+    &__panning {
+        cursor: grabbing;
+    }
+}
+
+.vertical-geometry-diagram__tooltip {
+    background: $color-white-darker;
+    color: $color-black-default;
+    border-radius: 2px;
+    padding: 4px 8px;
+}

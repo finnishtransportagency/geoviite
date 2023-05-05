@@ -102,14 +102,14 @@ class LayoutTrackNumberController(
     fun getTrackNumberKmLengths(
         @PathVariable("publishType") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-    ): List<TrackLayoutKmPostLengthDetails> {
+    ): List<TrackLayoutKmLengthDetails> {
         logger.apiCall(
             "getTrackNumberKmLengths",
             "publishType" to publishType,
             "id" to id
         )
 
-        return trackNumberService.getKmPostLengths(publishType, id)
+        return trackNumberService.getKmLengths(publishType, id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -128,7 +128,7 @@ class LayoutTrackNumberController(
             "endKmNumber" to endKmNumber
         )
 
-        val csv = trackNumberService.getKmPostLengthsAsCsv(
+        val csv = trackNumberService.getKmLengthsAsCsv(
             publishType = publishType,
             trackNumberId = id,
             startKmNumber = startKmNumber,
@@ -137,7 +137,7 @@ class LayoutTrackNumberController(
 
         val trackNumber = trackNumberService.getOrThrow(publishType, id)
 
-        val fileName = FileName("${trackNumber.number}.csv")
+        val fileName = FileName("ratakilometrien-pituudet_${trackNumber.number}.csv")
         return getCsvResponseEntity(csv, fileName)
     }
 }

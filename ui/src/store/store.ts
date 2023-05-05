@@ -19,11 +19,7 @@ const trackLayoutPersistConfig = {
 };
 
 const trackLayoutAppLevelReducer: typeof trackLayoutReducer = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return trackLayoutReducer(undefined, action);
-    }
-    return trackLayoutReducer(state, action);
+    return trackLayoutReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
 };
 
 const persistedTrackLayoutReducer = persistReducer(
@@ -36,11 +32,7 @@ const infraModelPersistConfig = {
     storage,
 };
 const infraModelAppLevelReducer: typeof infraModelReducer = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return infraModelReducer(undefined, action);
-    }
-    return infraModelReducer(state, action);
+    return infraModelReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
 };
 const persistedInfraModelReducer = persistReducer(
     infraModelPersistConfig,
@@ -52,11 +44,7 @@ const dataProductsPersistConfig = {
     storage,
 };
 const dataProductsAppLevelReducer: typeof dataProductsReducer = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return dataProductsReducer(undefined, action);
-    }
-    return dataProductsReducer(state, action);
+    return dataProductsReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
 };
 
 const persistedDataProductsReducer = persistReducer(
@@ -69,11 +57,7 @@ const commonPersistConfig = {
     storage,
 };
 const commonAppLevelReducer: typeof commonReducer = (state, action) => {
-    if (action.type == RESET_STORE_ACTION.type) {
-        // Reset to initial state
-        return commonReducer(undefined, action);
-    }
-    return commonReducer(state, action);
+    return commonReducer(action.type === RESET_STORE_ACTION.type ? undefined : state, action);
 };
 
 const persistedCommonReducer = persistReducer(commonPersistConfig, commonAppLevelReducer);

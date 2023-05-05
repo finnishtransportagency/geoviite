@@ -58,7 +58,8 @@ class MapNavigationPanel {
         //Wait until alignment panel exists then check if it contains alignments
         return try {
             DynamicList(By.xpath("//ol[@qa-id='reference-lines-list']")).listElements()
-                .map { element -> TrackLayoutAlignment(element) }.also { logger.info("Reference lines $it") }
+                .map { element -> TrackLayoutAlignment(element) }
+                .also { logger.info("Reference lines $it") }
         } catch (ex: TimeoutException) {
             emptyList()
         }
@@ -77,7 +78,8 @@ class MapNavigationPanel {
         logger.info("Get all location tracks")
         return try {
             DynamicList(By.xpath("//ol[@qa-id='location-tracks-list']")).listElements()
-                .map { element -> TrackLayoutAlignment(element) }.also { logger.info("Location tracks $it") }
+                .map { element -> TrackLayoutAlignment(element) }
+                .also { logger.info("Location tracks $it") }
         } catch (ex: TimeoutException) {
             logger.warn("No location tracks found")
             emptyList()
@@ -114,7 +116,7 @@ class MapNavigationPanel {
         }
     }
 
-    fun geometryPlanByName(planName: String): GeometryPlanAccordio {
+    fun geometryPlanByName(planName: String): GeometryPlanAccordion {
         logger.info("Select geometry plan '$planName'")
         Thread.sleep(500) //Only way to ensure the list is stable and not updating
         val plans = geometryPlans()
@@ -122,14 +124,14 @@ class MapNavigationPanel {
             ?: throw RuntimeException("Geometry plan '$planName' not found! Available plans ${plans.map { plan -> plan.header() }}")
     }
 
-    fun geometryPlans(): List<GeometryPlanAccordio> {
+    fun geometryPlans(): List<GeometryPlanAccordion> {
         logger.info("Get all geometry plans")
         getElementWhenVisible(By.cssSelector("div.geometry-plan-panel div.accordion"))
         try {
             val planNames = getElementsWhenVisible(By.cssSelector("span.accordion__header-title"))
                 .map { it.text }
             logger.info("Geometry plans: $planNames")
-            return planNames.map { GeometryPlanAccordio(By.xpath("//div[@class='accordion' and h4/span[text() = '${it}']]")) }
+            return planNames.map { GeometryPlanAccordion(By.xpath("//div[@class='accordion' and h4/span[text() = '${it}']]")) }
         } catch (ex: TimeoutException) {
             logger.warn("No geometry plans found")
             return emptyList()

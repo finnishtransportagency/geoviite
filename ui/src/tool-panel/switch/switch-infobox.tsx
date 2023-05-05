@@ -40,6 +40,7 @@ import { asyncCache } from 'cache/cache';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { WriteRoleRequired } from 'user/write-role-required';
 
 const switchJointTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
@@ -52,6 +53,7 @@ type SwitchInfoboxProps = {
     onUnselect: (switchId: LayoutSwitchId) => void;
     placingSwitchLinkingState?: PlacingSwitch;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
+    stopLinking: () => void;
     visibilities: SwitchInfoboxVisibilities;
     onVisibilityChange: (visibilities: SwitchInfoboxVisibilities) => void;
 };
@@ -129,6 +131,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     startSwitchPlacing,
     visibilities,
     onVisibilityChange,
+    stopLinking,
 }: SwitchInfoboxProps) => {
     const { t } = useTranslation();
     const switchOwners = useLoader(() => getSwitchOwners(), []);
@@ -288,15 +291,26 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             publishType={publishType}
                         />
                     )}
-                    <InfoboxButtons>
-                        <Button
-                            size={ButtonSize.SMALL}
-                            variant={ButtonVariant.SECONDARY}
-                            disabled={!canStartPlacing}
-                            onClick={tryToStartSwitchPlacing}>
-                            {t('tool-panel.switch.layout.start-switch-placing')}
-                        </Button>
-                    </InfoboxButtons>
+                    <WriteRoleRequired>
+                        <InfoboxButtons>
+                            {!canStartPlacing && (
+                                <Button
+                                    size={ButtonSize.SMALL}
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={stopLinking}>
+                                    {t('button.cancel')}
+                                </Button>
+                            )}
+
+                            <Button
+                                size={ButtonSize.SMALL}
+                                variant={ButtonVariant.SECONDARY}
+                                disabled={!canStartPlacing}
+                                onClick={tryToStartSwitchPlacing}>
+                                {t('tool-panel.switch.layout.start-switch-placing')}
+                            </Button>
+                        </InfoboxButtons>
+                    </WriteRoleRequired>
                     {placingSwitchLinkingState && (
                         <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
                     )}

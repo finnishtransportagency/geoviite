@@ -9,7 +9,6 @@
         "disabled-message": "(Rataosoitemuutoksia ei voi laskea)",
         "location-tracks": "Sijaintiraiteet",
         "switches": "Vaihteet",
-        "calculated-changes-text": "Ratanumerolle {{number}} on tullut sijaintimuutoksia. Pituusmittauslinjan muuttumisen myötä rataosoitteet päivittyvät seuraaville kohteille.",
         "no-calculated-changes-text": "Ei rataosoitemuutoksia"
     },
     "preview-table": {

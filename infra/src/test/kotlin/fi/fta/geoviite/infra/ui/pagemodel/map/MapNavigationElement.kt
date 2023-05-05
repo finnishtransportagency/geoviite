@@ -1,11 +1,13 @@
 package fi.fta.geoviite.infra.ui.pagemodel
 
+import fi.fta.geoviite.infra.findByXpath
+import fi.fta.geoviite.infra.findMandatoryByXpath
 import fi.fta.geoviite.infra.ui.pagemodel.common.Accordion
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapLayerSettingsPanel
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.util.NoSuchElementException
 
 abstract class TrackLayoutElement(val element: WebElement) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -29,12 +31,12 @@ abstract class TrackLayoutElement(val element: WebElement) {
 }
 
 class TrackLayoutSwitch(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findElement(By.xpath("./span/span")).text
+    override fun name(): String = element.findMandatoryByXpath("./span/span", "name").text
     override fun toString(): String = name()
 }
 
 class TrackLayoutKmPost(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findElement(By.xpath("./div/span")).text
+    override fun name(): String = element.findMandatoryByXpath("./div/span", "name").text
     override fun toString(): String = name()
 }
 
@@ -44,12 +46,12 @@ class TrackLayoutTrackNumber(element: WebElement): TrackLayoutElement(element) {
 }
 
 class TrackLayoutAlignment(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findElement(By.xpath("./div/span")).text
-    fun type(): String = element.findElement(By.xpath("./span")).text
+    override fun name(): String = element.findMandatoryByXpath("./div/span", "name").text
+    fun type(): String = element.findMandatoryByXpath("./span", "type").text
     override fun toString(): String = name()
 }
 
-class GeometryPlanAccordio(by: By) : Accordion(by) {
+class GeometryPlanAccordion(by: By) : Accordion(by) {
 
     private val RAITEET = "Raiteet"
     private val KMPISTEET = "Tasakilometripisteet"
