@@ -2,10 +2,15 @@ import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model
 import { State } from 'ol/render';
 import { createPointRenderer, drawCircle, drawRoundedRect } from 'map/layers/rendering';
 import styles from '../map.module.scss';
-import { RenderFunction } from 'ol/style/Style';
+import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
 import { SuggestedSwitchJoint } from 'linking/linking-model';
+import { SwitchStructure } from 'common/common-model';
+import { GeometryPlanId } from 'geometry/geometry-model';
+import { Feature } from 'ol';
+import { Point } from 'ol/geom';
+import { pointToCoords } from 'map/layers/layer-utils';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -174,14 +179,13 @@ export function createJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean
 
 export function createLinkingJointRenderer(
     joint: SuggestedSwitchJoint,
-    _mainJoint: boolean,
     isLinked = false,
 ): RenderFunction {
     const fontSize = TEXT_FONT_SMALL;
     const circleRadius = CIRCLE_RADIUS_LARGE;
     const hasMatch = joint.matches.length > 0;
 
-    return createPointRenderer<SuggestedSwitchJoint>(
+    return createPointRenderer(
         joint,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
@@ -216,4 +220,126 @@ export function createLinkingJointRenderer(
             },
         ],
     );
+}
+
+export function createFeatures(
+    layoutSwitches: LayoutSwitch[],
+    isSelected: (switchItem: LayoutSwitch) => boolean,
+    isHighlighted: (switchItem: LayoutSwitch) => boolean,
+    isLinked: (switchItem: LayoutSwitch) => boolean,
+    largeSymbols: boolean,
+    labels: boolean,
+    planId?: GeometryPlanId,
+    switchStructures?: SwitchStructure[],
+): Feature<Point>[] {
+    return layoutSwitches
+        .filter((s) => s.joints.length > 0)
+        .flatMap((layoutSwitch) => {
+            const selected = isSelected(layoutSwitch);
+            const highlighted = isHighlighted(layoutSwitch);
+            const linked = isLinked(layoutSwitch);
+            const structure = switchStructures?.find(
+                (structure) => structure.id === layoutSwitch.switchStructureId,
+            );
+            const presentationJointNumber = structure?.presentationJointNumber;
+
+            return createSwitchFeatures(
+                layoutSwitch,
+                selected,
+                highlighted,
+                linked,
+                largeSymbols,
+                labels,
+                planId,
+                presentationJointNumber,
+            );
+        });
+}
+
+function createSwitchFeatures(
+    layoutSwitch: LayoutSwitch,
+    selected: boolean,
+    highlighted: boolean,
+    linked: boolean,
+    largeSymbols: boolean,
+    labels: boolean,
+    planId?: GeometryPlanId,
+    presentationJointNumber?: string | undefined,
+) {
+    const presentationJoint = layoutSwitch.joints.find(
+        (joint) => joint.number == presentationJointNumber,
+    );
+
+    // Use presentation joint as main joint if possible, otherwise use first joint
+    const switchFeature = new Feature({
+        geometry: new Point(
+            pointToCoords(
+                presentationJoint ? presentationJoint.location : layoutSwitch.joints[0].location,
+            ),
+        ),
+    });
+
+    switchFeature.setStyle(
+        selected || highlighted
+            ? selectedStyle(layoutSwitch, largeSymbols, linked)
+            : unselectedStyle(layoutSwitch, largeSymbols, labels, linked),
+    );
+
+    switchFeature.set('switch-data', {
+        switch: layoutSwitch,
+        planId: planId,
+    });
+
+    const jointFeatures =
+        selected || highlighted
+            ? layoutSwitch.joints.map((joint, index) => {
+                  const feature = new Feature({
+                      geometry: new Point(pointToCoords(joint.location)),
+                  });
+
+                  feature.setStyle(
+                      jointStyle(
+                          joint,
+                          // Again, use presentation joint as main joint if found, otherwise use first one
+                          presentationJoint ? joint.number === presentationJointNumber : index == 0,
+                      ),
+                  );
+
+                  feature.set('switch-data', {
+                      switch: layoutSwitch,
+                      joint: joint,
+                      planId: planId,
+                  });
+
+                  return feature;
+              })
+            : [];
+
+    return [switchFeature, ...jointFeatures];
+}
+
+function unselectedStyle(
+    layoutSwitch: LayoutSwitch,
+    large: boolean,
+    textLabel: boolean,
+    linked: boolean,
+) {
+    return new Style({
+        zIndex: 0,
+        renderer: createUnselectedSwitchRenderer(layoutSwitch, large, textLabel, linked),
+    });
+}
+
+function selectedStyle(layoutSwitch: LayoutSwitch, large: boolean, linked: boolean) {
+    return new Style({
+        zIndex: 2,
+        renderer: createSelectedSwitchLabelRenderer(layoutSwitch, large, linked),
+    });
+}
+
+function jointStyle(joint: LayoutSwitchJoint, mainJoint: boolean) {
+    return new Style({
+        zIndex: mainJoint ? 2 : 1,
+        renderer: createJointRenderer(joint, mainJoint),
+    });
 }

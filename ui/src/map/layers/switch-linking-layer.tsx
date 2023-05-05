@@ -3,13 +3,13 @@ import { Style } from 'ol/style';
 import { Point, Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { MapTile, SwitchLinkingLayer } from 'map/map-model';
+import { MapTile } from 'map/map-model';
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
-import { getMatchingSuggestedSwitches, MatchOptions } from 'map/layers/layer-utils';
+import { getMatchingSuggestedSwitches, MatchOptions, pointToCoords } from 'map/layers/layer-utils';
 import { Selection } from 'selection/selection-model';
-import { createLinkingJointRenderer } from 'map/layers/switch-renderers';
+import { createLinkingJointRenderer } from 'map/layers/switch-layer-utils';
 import { endPointStyle } from 'map/layers/linking-layer';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/layer-visibility-limits';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -30,8 +30,8 @@ function createFeatures(
         );
 
         if (presentationJoint) {
-            const f = new Feature<Point>({
-                geometry: new Point([presentationJoint.location.x, presentationJoint.location.y]),
+            const f = new Feature({
+                geometry: new Point(pointToCoords(presentationJoint.location)),
             });
             f.setStyle(endPointStyle);
             f.set(FEATURE_PROPERTY_SUGGESTED_SWITCH, suggestedSwitch);
@@ -39,15 +39,13 @@ function createFeatures(
         }
     } else {
         suggestedSwitch.joints.forEach((joint) => {
-            const f = new Feature<Point>({
-                geometry: new Point([joint.location.x, joint.location.y]),
+            const f = new Feature({
+                geometry: new Point(pointToCoords(joint.location)),
             });
+
             f.setStyle(
                 new Style({
-                    renderer: createLinkingJointRenderer(
-                        joint,
-                        joint.number == suggestedSwitch.switchStructure.presentationJointNumber,
-                    ),
+                    renderer: createLinkingJointRenderer(joint),
                     zIndex: 1,
                 }),
             );
@@ -59,10 +57,7 @@ function createFeatures(
     return features;
 }
 
-const featureCache: Map<string, Feature<SwitchLinkingFeatureType>> = new Map();
-
 export function createSwitchLinkingLayerAdapter(
-    mapLayer: SwitchLinkingLayer,
     mapTiles: MapTile[],
     resolution: number | undefined,
     existingOlLayer: VectorLayer<VectorSource<SwitchLinkingFeatureType>> | undefined,
@@ -72,11 +67,7 @@ export function createSwitchLinkingLayerAdapter(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer: VectorLayer<VectorSource<SwitchLinkingFeatureType>> =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-        });
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     function clearFeatures() {
         vectorSource.clear();
@@ -87,8 +78,6 @@ export function createSwitchLinkingLayerAdapter(
         vectorSource.addFeatures(features);
     }
 
-    layer.setVisible(mapLayer.visible);
-
     if (resolution && resolution < SUGGESTED_SWITCH_SHOW) {
         const selectedSuggestedSwitch = selection.selectedItems.suggestedSwitches[0];
 
@@ -96,7 +85,8 @@ export function createSwitchLinkingLayerAdapter(
         const getSuggestedSwitchesPromises = loadSuggestedSwitches
             ? mapTiles.map((tile) => getSuggestedSwitchesByTile(tile))
             : [];
-        const updateFeaturesPromise = Promise.all(getSuggestedSwitchesPromises)
+
+        Promise.all(getSuggestedSwitchesPromises)
             .then((suggestedSwitchGoups) => suggestedSwitchGoups.flat())
             .then((suggestedSwitches) =>
                 [
@@ -116,15 +106,9 @@ export function createSwitchLinkingLayerAdapter(
             })
             .then((features) => {
                 // Handle latest fetch only
-                if (layer.get('updateFeaturesPromise') === updateFeaturesPromise) {
-                    featureCache.clear();
-                    //features.forEach(f => featureCache.set(, f));
-                    return updateFeatures(features);
-                }
+                updateFeatures(features);
             })
             .catch(() => clearFeatures());
-
-        layer.set('updateFeaturesPromise', updateFeaturesPromise);
     } else {
         clearFeatures();
     }

@@ -21,32 +21,32 @@ export const TrackLayoutContainer: React.FC = () => {
         onOpenPreview: () => delegates.onLayoutModeChange('PREVIEW'),
         onLayerVisibilityChange: (id: string, visible: boolean) =>
             delegates.onLayerVisibilityChange({
-                layerId: id,
+                type: id,
                 visible: visible,
             }),
         onReferenceLineVisibilityChange: (id: string, visible: boolean) =>
             delegates.onReferencelineVisibilityChange({
-                layerId: id,
+                type: id,
                 visible: visible,
             }),
         onMissingVerticalGeometryVisibilityChange: (id: string, visible: boolean) =>
             delegates.onMissingVerticalGeometryVisibilityChange({
-                layerId: id,
+                type: id,
                 visible: visible,
             }),
         onSegmentsFromSelectedPlanVisibilityChange: (id: string, visible: boolean) =>
             delegates.onShowSegmentsFromSelectedPlanVisibilityChange({
-                layerId: id,
+                type: id,
                 visible: visible,
             }),
         onMissingLinkingVisibilityChange: (id: string, visible: boolean) =>
             delegates.onMissingLinkingVisibilityChange({
-                layerId: id,
+                type: id,
                 visible: visible,
             }),
         onDuplicateTracksVisibilityChange: (id: string, visible: boolean) =>
             delegates.onDuplicateTracksVisibilityChange({
-                layerId: id,
+                type: id,
                 visible: visible,
             }),
         changeTimes: changeTimes,

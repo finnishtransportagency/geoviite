@@ -31,8 +31,8 @@ function isTrackLayoutLayer(layer: MapLayer): boolean {
     switch (layer.type) {
         case 'alignment':
         case 'tile':
-        case 'kmPosts':
-        case 'switches':
+        case 'kmPost':
+        case 'switch':
         case 'trackNumberDiagram':
             return true;
         default:
@@ -44,11 +44,11 @@ function showManualSwitchLinkingForWriteRoleOnly(
     layer: MapLayer,
     userHasWriteRole: boolean,
 ): boolean {
-    return userHasWriteRole || layer.type != 'manualSwitchLinking';
+    return userHasWriteRole || layer.type != 'switchManualLinking';
 }
 
 const debugLayers = ['debug', 'debug1mPoints'];
-const isDebugLayer = (layer: MapLayer) => debugLayers.includes(layer.id);
+const isDebugLayer = (layer: MapLayer) => debugLayers.includes(layer.type);
 
 const LayerVisibilitySetting: React.FC<LayerVisibilitySettingProps> = (
     props: LayerVisibilitySettingProps,
@@ -94,12 +94,12 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                 .filter((layer) => isTrackLayoutLayer(layer) && !isDebugLayer(layer))
                 .map((layer) => {
                     return (
-                        <React.Fragment key={layer.id}>
+                        <React.Fragment key={layer.type}>
                             <LayerVisibilitySetting
                                 name={layer.name}
                                 visible={layer.visible}
                                 onVisibilityChange={(visible) =>
-                                    props.onLayerVisibilityChange(layer.id, visible)
+                                    props.onLayerVisibilityChange(layer.type, visible)
                                 }
                             />
 
@@ -111,7 +111,10 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                         disabled={!layer.visible}
                                         indented={true}
                                         onVisibilityChange={(visible) =>
-                                            props.onReferenceLineVisibilityChange(layer.id, visible)
+                                            props.onReferenceLineVisibilityChange(
+                                                layer.type,
+                                                visible,
+                                            )
                                         }
                                     />
                                     <LayerVisibilitySetting
@@ -121,7 +124,7 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                         indented={true}
                                         onVisibilityChange={(visible) => {
                                             props.onMissingVerticalGeometryVisibilityChange(
-                                                layer.id,
+                                                layer.type,
                                                 visible,
                                             );
                                         }}
@@ -145,7 +148,7 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                         indented={true}
                                         onVisibilityChange={(visible) => {
                                             props.onMissingLinkingVisibilityChange(
-                                                layer.id,
+                                                layer.type,
                                                 visible,
                                             );
                                         }}
@@ -157,7 +160,7 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                                         indented={true}
                                         onVisibilityChange={(visible) => {
                                             props.onDuplicateTrackVisibilityChange(
-                                                layer.id,
+                                                layer.type,
                                                 visible,
                                             );
                                         }}
@@ -180,11 +183,11 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                 .map((layer) => {
                     return (
                         <LayerVisibilitySetting
-                            key={layer.id}
+                            key={layer.type}
                             name={layer.name}
                             visible={layer.visible}
                             onVisibilityChange={(visible) =>
-                                props.onLayerVisibilityChange(layer.id, visible)
+                                props.onLayerVisibilityChange(layer.type, visible)
                             }
                         />
                     );
@@ -198,11 +201,11 @@ export const MapLayersSettings: React.FC<MapLayersSettingsProps> = (
                     .map((layer) => {
                         return (
                             <LayerVisibilitySetting
-                                key={layer.id}
+                                key={layer.type}
                                 name={layer.name}
                                 visible={layer.visible}
                                 onVisibilityChange={(visible) =>
-                                    props.onLayerVisibilityChange(layer.id, visible)
+                                    props.onLayerVisibilityChange(layer.type, visible)
                                 }
                             />
                         );

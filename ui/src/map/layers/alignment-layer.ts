@@ -7,7 +7,7 @@ import { Stroke, Style } from 'ol/style';
 import OlView from 'ol/View';
 import {
     AlignmentHighlight,
-    LayoutAlignmentsLayer,
+    LayoutAlignmentLayer,
     MapTile,
     OptionalShownItems,
 } from 'map/map-model';
@@ -26,6 +26,7 @@ import {
     getMatchingAlignmentDatas,
     getTickStyle,
     MatchOptions,
+    pointToCoords,
     setAlignmentData,
 } from 'map/layers/layer-utils';
 import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
@@ -263,7 +264,7 @@ export function createBadgePoints(
         if (!controlPoint) return undefined;
         return {
             point: seek.point,
-            nextPoint: [controlPoint.x, controlPoint.y],
+            nextPoint: pointToCoords(controlPoint),
         };
     }).filter(filterNotEmpty);
 }
@@ -278,7 +279,7 @@ function createAlignmentFeatures(
     missingProfiles: AlignmentHighlight[],
     missingLinkings: AlignmentHighlight[],
 ): Feature<LineString | Point>[] {
-    const lineString = new LineString(dataHolder.points.map((point) => [point.x, point.y]));
+    const lineString = new LineString(dataHolder.points.map(pointToCoords));
     const features: Feature<LineString | Point>[] = [];
     const alignmentFeature = new Feature<LineString>({
         geometry: lineString,
@@ -390,7 +391,7 @@ let newestAlignmentAdapterId = 0;
 export function createAlignmentLayerAdapter(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
-    mapLayer: LayoutAlignmentsLayer,
+    mapLayer: LayoutAlignmentLayer,
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
@@ -402,13 +403,7 @@ export function createAlignmentLayerAdapter(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer: VectorLayer<VectorSource<LineString | Point>> =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-        });
-
-    layer.setVisible(mapLayer.visible);
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     const resolution = olView.getResolution() || 0;
     const badgeDrawDistance = getBadgeDrawDistance(resolution);
@@ -507,7 +502,7 @@ export function createAlignmentLayerAdapter(
             );
 
             // All features ready, clear old ones and add new ones
-            vectorSource.clear();
+            vectorSource.clear(true);
             vectorSource.addFeatures(features.flat());
 
             if (onViewContentChanged) {
@@ -583,8 +578,8 @@ function getStartEndTicks(data: AlignmentDataHolder) {
 
     if (points.length >= 2) {
         if (points[0].m === 0) {
-            const fP = [points[0].x, points[0].y];
-            const sP = [points[1].x, points[1].y];
+            const fP = pointToCoords(points[0]);
+            const sP = pointToCoords(points[1]);
 
             const startF = new Feature({
                 geometry: new Point(fP),
@@ -597,8 +592,8 @@ function getStartEndTicks(data: AlignmentDataHolder) {
 
         const lastIdx = points.length - 1;
         if (points[lastIdx].m === data.header.length) {
-            const lP = [points[lastIdx].x, points[lastIdx].y];
-            const sLP = [points[lastIdx - 1].x, points[lastIdx - 1].y];
+            const lP = pointToCoords(points[lastIdx]);
+            const sLP = pointToCoords(points[lastIdx - 1]);
 
             const endF = new Feature({
                 geometry: new Point(lP),

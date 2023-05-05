@@ -41,7 +41,7 @@ export const linkingReducers = {
             layoutAlignmentInterval: emptyLinkInterval,
         };
         state.map.mapLayers.forEach((layer) => {
-            if (layer.type === 'manualSwitchLinking') {
+            if (layer.type === 'switchManualLinking') {
                 state.linkingIssuesSelectedBeforeLinking = layer.visible;
                 layer.visible = false;
             } else if (layer.type === 'switchLinking') {
@@ -73,7 +73,7 @@ export const linkingReducers = {
         state.selection.selectedItems.clusterPoints = [];
         state.selection.selectedItems.suggestedSwitches = [];
         state.map.mapLayers.forEach((layer) => {
-            if (layer.type === 'manualSwitchLinking') {
+            if (layer.type === 'switchManualLinking') {
                 layer.visible = state.linkingIssuesSelectedBeforeLinking;
             } else if (layer.type === 'switchLinking') {
                 layer.visible = state.switchLinkingSelectedBeforeLinking;
@@ -228,7 +228,9 @@ export const linkingReducers = {
 
         // Make switch linking layer visible. In future this information
         // should be calculated, not stored into the state.
-        const switchLinkingLayer = state.map.mapLayers.find((layer) => layer.id == 'switchLinking');
+        const switchLinkingLayer = state.map.mapLayers.find(
+            (layer) => layer.type == 'switchLinking',
+        );
         if (switchLinkingLayer) {
             switchLinkingLayer.visible = true;
         }
@@ -260,7 +262,7 @@ export const linkingReducers = {
             errors: [],
         };
         state.map.mapLayers.forEach((layer) => {
-            if (layer.type === 'manualSwitchLinking') {
+            if (layer.type === 'switchManualLinking') {
                 state.linkingIssuesSelectedBeforeLinking = layer.visible;
                 layer.visible = false;
             } else if (layer.type === 'switchLinking') {

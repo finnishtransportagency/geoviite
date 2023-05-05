@@ -8,7 +8,11 @@ import mapStyles from '../map.module.scss';
 import CircleStyle from 'ol/style/Circle';
 import { LineString } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
-import { getAlignmentData, getPlanarDistanceUnwrapped } from 'map/layers/layer-utils';
+import {
+    getAlignmentData,
+    getPlanarDistanceUnwrapped,
+    pointToCoords,
+} from 'map/layers/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutPoint } from 'track-layout/track-layout-model';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
@@ -92,7 +96,7 @@ export const measurementTool: MapTool = {
                     }),
                 }),
             }),
-            geometryFunction: function(coordinates: Coordinate[], existingGeom: LineString) {
+            geometryFunction: function (coordinates: Coordinate[], existingGeom: LineString) {
                 const cursorCoordinate = coordinates[coordinates.length - 1];
                 const cursorPixel = map.getPixelFromCoordinate(cursorCoordinate);
                 const nearbyFeatures = map.getFeaturesAtPixel(cursorPixel, { hitTolerance });
@@ -107,7 +111,7 @@ export const measurementTool: MapTool = {
                 let closestPoint;
                 for (let i = 0; i < nearbyPoints.length; i++) {
                     const nearbyPoint = nearbyPoints[i];
-                    const pixelPoint = map.getPixelFromCoordinate([nearbyPoint.x, nearbyPoint.y]);
+                    const pixelPoint = map.getPixelFromCoordinate(pointToCoords(nearbyPoint));
 
                     const distance = Math.hypot(
                         cursorPixel[0] - pixelPoint[0],
@@ -124,7 +128,7 @@ export const measurementTool: MapTool = {
 
                 const newCoordinates =
                     closestPoint && closestPoint.distance < hitTolerance
-                        ? [closestPoint.point.x, closestPoint.point.y]
+                        ? pointToCoords(closestPoint.point)
                         : cursorCoordinate;
 
                 if (existingGeom) {
@@ -143,7 +147,7 @@ export const measurementTool: MapTool = {
             },
         });
 
-        tooltipDraw.on('drawend', function() {
+        tooltipDraw.on('drawend', function () {
             tooltip.setPosition(undefined);
         });
 

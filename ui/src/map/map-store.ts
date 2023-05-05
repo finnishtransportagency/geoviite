@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
-    LayoutAlignmentsLayer,
+    LayoutAlignmentLayer,
     Map,
     MapLayerType,
     MapViewport,
@@ -11,7 +11,7 @@ import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
 
 export type LayerVisibility = {
-    layerId: string;
+    type: string;
     visible: boolean;
 };
 
@@ -29,14 +29,12 @@ export const initialMapState: Map = {
         {
             type: 'tile',
             name: 'Taustakartta',
-            id: 'tile-1',
             visible: true,
             url: 'OSM',
         },
         {
             type: 'alignment',
             name: 'Sijaintiraiteet',
-            id: 'trackLayout-1',
             visible: true,
             showReferenceLines: true,
             showMissingVerticalGeometry: false,
@@ -45,9 +43,8 @@ export const initialMapState: Map = {
             showDuplicateTracks: false,
         },
         {
-            type: 'geometry',
-            name: 'Suunnitelmat',
-            id: 'geometry-1',
+            type: 'geometryAlignment',
+            name: 'Suunnitelman raiteet',
             visible: true,
             planIds: [],
             planLayout: null,
@@ -55,67 +52,56 @@ export const initialMapState: Map = {
         {
             type: 'trackNumberDiagram',
             name: 'Pituusmittausraidekaavio',
-            id: 'trackNumberDiagram',
             visible: false,
         },
         {
-            type: 'kmPosts',
+            type: 'kmPost',
             name: 'Tasakilometripisteet',
-            id: 'kmposts-1',
             visible: true,
         },
         {
-            type: 'switches',
+            type: 'switch',
             name: 'Vaihteet',
-            id: 'switches-1',
             visible: true,
         },
         {
-            type: 'geometrySwitches',
+            type: 'geometrySwitch',
             name: 'Suunnitelman vaihteet',
-            id: 'geom-switches-1',
             visible: true,
         },
         {
-            type: 'planAreas',
+            type: 'planArea',
             name: 'Suunnitelman alueet',
-            id: 'geom-plan-areas-1',
             visible: false,
         },
         {
-            type: 'geometryKmPosts',
+            type: 'geometryKmPost',
             name: 'Suunnitelman tasakilometripisteet',
-            id: 'geom-kmposts-1',
             visible: true,
         },
         {
             type: 'linking',
             name: 'Linkitys',
-            id: 'linking-1',
             visible: true,
         },
         {
             type: 'switchLinking',
             name: 'Vaihteiden linkitys',
-            id: 'switchLinking',
             visible: false,
         },
         {
-            type: 'manualSwitchLinking',
+            type: 'switchManualLinking',
             name: 'Manuaalinen vaihteiden linkitys',
-            id: 'manualSwitchLinking',
             visible: false,
         },
         {
             type: 'debug1mPoints',
             name: 'Kehittäjien työkalut: 1m-pisteet',
-            id: 'debug1mPoints',
             visible: false,
         },
         {
             type: 'debug',
             name: 'Kehittäjien työkalut',
-            id: 'debug',
             visible: true,
             data: [],
         },
@@ -171,7 +157,7 @@ export const mapReducers = {
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
     ): void => {
         state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
+            if (layer.type == visibilitySetting.type) {
                 layer.visible = visibilitySetting.visible;
                 if (!visibilitySetting.visible) {
                     const shownItemsToHide = shownItemsByLayer(layer.type);
@@ -237,17 +223,17 @@ function onAlignmentLayerVisibilityChange(
     layerVisibility: LayerVisibility,
 ) {
     state.mapLayers.forEach((layer) => {
-        if (layer.id == layerVisibility.layerId) {
-            (<LayoutAlignmentsLayer>layer)[property] = layerVisibility.visible;
+        if (layer.type == layerVisibility.type) {
+            (<LayoutAlignmentLayer>layer)[property] = layerVisibility.visible;
         }
     });
 }
 
 function shownItemsByLayer(layerType: MapLayerType): keyof ShownItems | undefined {
     switch (layerType) {
-        case 'switches':
+        case 'switch':
             return 'switches';
-        case 'kmPosts':
+        case 'kmPost':
             return 'kmPosts';
         case 'alignment':
             return 'locationTracks';

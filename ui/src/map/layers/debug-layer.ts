@@ -3,8 +3,7 @@ import { Polygon } from 'ol/geom';
 import OlPoint from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { DebugLayer } from 'map/map-model';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { OlLayerAdapter } from 'map/layers/layer-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 
@@ -22,10 +21,6 @@ type DebugLayerPoint = {
 export type DebugLayerData = DebugLayerPoint[];
 
 let debugLayerData: DebugLayerData = [];
-/* .map((p: DebugLayerPoint, i: number) => ({
-    ...p,
-    text: `${i}`,
-})); */
 
 declare global {
     function setDebugLayerData(data: DebugLayerData): void;
@@ -63,13 +58,13 @@ function createDebugFeatures(data: DebugLayerData): Feature<DebugLayerFeatureTyp
                         }),
                         text: item.text
                             ? new Text({
-                                text: item.text,
-                                scale: 1.5,
-                                fill: new Fill({
-                                    color: color,
-                                }),
-                                offsetY: -(size + 15),
-                            })
+                                  text: item.text,
+                                  scale: 1.5,
+                                  fill: new Fill({
+                                      color: color,
+                                  }),
+                                  offsetY: -(size + 15),
+                              })
                             : undefined,
                     }),
                 );
@@ -80,39 +75,30 @@ function createDebugFeatures(data: DebugLayerData): Feature<DebugLayerFeatureTyp
 }
 
 export function createDebugLayerAdapter(
-    mapLayer: DebugLayer,
     existingOlLayer: VectorLayer<VectorSource<DebugLayerFeatureType>> | undefined,
 ): OlLayerAdapter {
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer: VectorLayer<VectorSource<DebugLayerFeatureType>> =
+    const layer =
         existingOlLayer ||
         new VectorLayer({
             source: vectorSource,
         });
 
-    function clearFeatures() {
-        vectorSource.clear();
-    }
-
     function updateFeatures(features: Feature<DebugLayerFeatureType>[]) {
-        clearFeatures();
+        vectorSource.clear();
         vectorSource.addFeatures(features);
     }
-
-    layer.setVisible(mapLayer.visible);
-    updateFeatures(createDebugFeatures(debugLayerData));
 
     updateLayerFunc = () => {
         updateFeatures(createDebugFeatures(debugLayerData));
     };
 
+    updateLayerFunc();
+
     return {
         layer: layer,
-        searchItems: (_hitArea: Polygon, _options: SearchItemsOptions): LayerItemSearchResult => {
-            return {};
-        },
     };
 }
