@@ -60,7 +60,6 @@ export function createTrackNumberDiagramLayerAdapter(
         existingOlLayer ||
         new VectorLayer({
             source: vectorSource,
-            declutter: true,
         });
 
     layer.setVisible(mapLayer.visible);
@@ -112,7 +111,7 @@ function getDiagramFeatures(alignments: AlignmentDataHolder[]) {
         const style = new Style({
             stroke: new Stroke({
                 color: getColorForTrackNumber(trackNumberId),
-                width: 20,
+                width: 15,
                 lineCap: 'butt',
             }),
         });

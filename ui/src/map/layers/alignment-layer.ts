@@ -117,9 +117,8 @@ const alignmentBackgroundBlue = new Style({
 const endPointTickStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.alignmentColor,
-        width: 2,
+        width: 1,
     }),
-    zIndex: 0,
 });
 
 enum DisplayMode {
@@ -407,7 +406,6 @@ export function createAlignmentLayerAdapter(
         existingOlLayer ||
         new VectorLayer({
             source: vectorSource,
-            declutter: true,
         });
 
     layer.setVisible(mapLayer.visible);
