@@ -13,7 +13,7 @@ import DragPan from 'ol/interaction/DragPan.js';
 import { OlLayerAdapter } from 'map/layers/layer-model';
 import 'ol/ol.css';
 import OlView from 'ol/View';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import { LayoutAlignmentsLayer, Map, MapViewport, OptionalShownItems } from 'map/map-model';
 import './layers/tile-layer'; // Load module to initialize adapter
 import './layers/alignment-layer'; // Load module to initialize adapter
 import './layers/geometry-layer'; // Load module to initialize adapter
@@ -54,7 +54,7 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
-import { createTrackNumberSchemaLayerAdapter } from 'map/layers/track-number-schema-layer';
+import { createTrackNumberDiagramLayerAdapter } from 'map/layers/track-number-diagram-layer';
 import { LineString } from 'ol/geom';
 import { createAlignmentLayerAdapter } from 'map/layers/alignment-layer';
 import VectorLayer from 'ol/layer/Vector';
@@ -292,17 +292,23 @@ const MapView: React.FC<MapViewProps> = ({
                 const existingOlLayer = existingOlLayersByName[mapLayer.id];
                 let layerAdapter;
                 switch (mapLayer.type) {
-                    case 'trackNumberDiagram':
-                        layerAdapter = createTrackNumberSchemaLayerAdapter(
+                    case 'trackNumberDiagram': {
+                        const alignmentLayer = map.mapLayers.find(
+                            (l) => l.type === 'alignment',
+                        ) as LayoutAlignmentsLayer;
+
+                        layerAdapter = createTrackNumberDiagramLayerAdapter(
                             mapLayer,
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             olView,
                             changeTimes,
                             publishType,
+                            alignmentLayer.showReferenceLines,
                         );
 
                         break;
+                    }
                     case 'alignment':
                         layerAdapter = createAlignmentLayerAdapter(
                             mapTiles,

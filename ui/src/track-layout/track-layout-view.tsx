@@ -1,24 +1,24 @@
-import styles from "./track-layout.module.scss";
-import * as React from "react";
-import { TrackLayoutState } from "track-layout/track-layout-slice";
-import { MapContext } from "map/map-store";
-import { MapViewport, OptionalShownItems } from "map/map-model";
-import MapView from "map/map-view";
-import { MapLayersSettings } from "map/settings/map-layer-settings";
+import styles from './track-layout.module.scss';
+import * as React from 'react';
+import { TrackLayoutState } from 'track-layout/track-layout-slice';
+import { MapContext } from 'map/map-store';
+import { MapViewport, OptionalShownItems } from 'map/map-model';
+import MapView from 'map/map-view';
+import { MapLayersSettings } from 'map/settings/map-layer-settings';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
-    OnSelectFunction
-} from "selection/selection-model";
-import { ToolBar } from "tool-bar/tool-bar";
-import { SelectionPanelContainer } from "selection-panel/selection-panel-container";
-import { SwitchSuggestionCreatorContainer } from "linking/switch-suggestion-creator-container";
-import ToolPanelContainer from "tool-panel/tool-panel-container";
-import { BoundingBox } from "model/geometry";
-import { PublishType } from "common/common-model";
-import { LinkPoint } from "linking/linking-model";
-import { ChangeTimes } from "common/common-slice";
+    OnSelectFunction,
+} from 'selection/selection-model';
+import { ToolBar } from 'tool-bar/tool-bar';
+import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
+import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
+import ToolPanelContainer from 'tool-panel/tool-panel-container';
+import { BoundingBox } from 'model/geometry';
+import { PublishType } from 'common/common-model';
+import { LinkPoint } from 'linking/linking-model';
+import { ChangeTimes } from 'common/common-slice';
 
 // For now use whole state and some extras as params
 export type TrackLayoutParams = TrackLayoutState & {

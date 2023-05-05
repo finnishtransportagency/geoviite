@@ -24,6 +24,7 @@ import {
     addBbox,
     alignmentId,
     getMatchingAlignmentDatas,
+    getTickStyle,
     MatchOptions,
     setAlignmentData,
 } from 'map/layers/layer-utils';
@@ -92,6 +93,7 @@ const alignmentBackgroundStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.alignmentBackground,
         width: 12,
+        lineCap: 'butt',
     }),
     zIndex: 0,
 });
@@ -112,12 +114,19 @@ const alignmentBackgroundBlue = new Style({
     zIndex: 1,
 });
 
+const endPointTickStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentColor,
+        width: 1,
+    }),
+});
+
 enum DisplayMode {
     REFERENCE_LINES,
     ALL,
 }
 
-enum BadgeColor {
+export enum BadgeColor {
     LIGHT,
     DARK,
 }
@@ -127,7 +136,7 @@ type MapAlignmentBadgePoint = {
     nextPoint: number[];
 };
 
-function createMapAlignmentBadgeFeature(
+export function createMapAlignmentBadgeFeature(
     name: string,
     points: MapAlignmentBadgePoint[],
     color: BadgeColor,
@@ -237,9 +246,12 @@ function createFeatures(
         .flat();
 }
 
-function createBadgePoints(points: LayoutPoint[], drawDistance: number): MapAlignmentBadgePoint[] {
-    if (points.length < 2) return [];
-    const start = Math.ceil(points[0].m / drawDistance);
+export function createBadgePoints(
+    points: LayoutPoint[],
+    drawDistance: number,
+): MapAlignmentBadgePoint[] {
+    if (points.length < 3) return [];
+    const start = Math.ceil(points[1].m / drawDistance);
     const end = Math.floor(points[points.length - 1].m / drawDistance);
     if (start > end) return [];
     return Array.from({ length: 1 + end - start }, (_, i) => {
@@ -307,7 +319,7 @@ function createAlignmentFeatures(
     alignmentFeature.setStyle(styles);
 
     const badgePoints = createBadgePoints(dataHolder.points, badgeDrawDistance);
-    const badgeColor = badgeDisplayMode === DisplayMode.ALL ? BadgeColor.LIGHT : BadgeColor.DARK;
+    const badgeColor = isReferenceLine ? BadgeColor.DARK : BadgeColor.LIGHT;
 
     if (badgeDisplayMode === DisplayMode.ALL) {
         const alignmentBadgeFeatures = createMapAlignmentBadgeFeature(
@@ -326,6 +338,10 @@ function createAlignmentFeatures(
             selected || highlighted,
         );
         features.push(...referenceLineBadgeFeatures);
+    }
+
+    if (!isReferenceLine && badgeDisplayMode === DisplayMode.ALL) {
+        features.push(...getStartEndTicks(dataHolder));
     }
 
     setAlignmentData(alignmentFeature, dataHolder);
@@ -390,7 +406,6 @@ export function createAlignmentLayerAdapter(
         existingOlLayer ||
         new VectorLayer({
             source: vectorSource,
-            declutter: true,
         });
 
     layer.setVisible(mapLayer.visible);
@@ -560,4 +575,40 @@ export function calculateBadgeRotation(start: Coordinate, end: Coordinate) {
         drawFromEnd,
         rotation,
     };
+}
+
+function getStartEndTicks(data: AlignmentDataHolder) {
+    const ticks = [];
+    const points = data.points;
+
+    if (points.length >= 2) {
+        if (points[0].m === 0) {
+            const fP = [points[0].x, points[0].y];
+            const sP = [points[1].x, points[1].y];
+
+            const startF = new Feature({
+                geometry: new Point(fP),
+            });
+
+            startF.setStyle(getTickStyle(fP, sP, 6, 'start', endPointTickStyle));
+
+            ticks.push(startF);
+        }
+
+        const lastIdx = points.length - 1;
+        if (points[lastIdx].m === data.header.length) {
+            const lP = [points[lastIdx].x, points[lastIdx].y];
+            const sLP = [points[lastIdx - 1].x, points[lastIdx - 1].y];
+
+            const endF = new Feature({
+                geometry: new Point(lP),
+            });
+
+            endF.setStyle(getTickStyle(sLP, lP, 6, 'end', endPointTickStyle));
+
+            ticks.push(endF);
+        }
+    }
+
+    return ticks;
 }
