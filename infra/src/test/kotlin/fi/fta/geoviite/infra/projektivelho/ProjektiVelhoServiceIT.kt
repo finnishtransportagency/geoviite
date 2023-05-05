@@ -55,7 +55,7 @@ class ProjektiVelhoServiceIT @Autowired constructor(
         fakeProjektiVelho.searchStatus(searchId)
         fakeProjektiVelho.searchResults(searchId, listOf(oid))
         fakeProjektiVelho.fileMetadata(oid, version)
-        fakeProjektiVelho.fileContent(oid, version)
+        fakeProjektiVelho.fileContent(oid)
 
         projektiVelhoDao.insertFetchInfo(PROJEKTIVELHO_DB_USERNAME, searchId, Instant.now().plusSeconds(3600))
         val search = projektiVelhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)!!
