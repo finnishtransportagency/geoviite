@@ -85,7 +85,8 @@ function processGeometries(
                 geom.fileName === linkedAreaSourceFile(geom.start.station) ||
                 geom.fileName === linkedAreaSourceFile(geom.end.station) ||
                 geom.fileName === linkedAreaSourceFile(geom.point.station),
-        );
+        )
+        .sort((a, b) => a.point.station - b.point.station);
 }
 
 function minAndMaxHeights(
