@@ -31,7 +31,6 @@ export type TrackLayoutParams = TrackLayoutState & {
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
     onLayerVisibilityChange: (layerId: string, visible: boolean) => void;
-    onTrackNumberVisibilityChange: (layerId: string, visible: boolean) => void;
     onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
     onMissingVerticalGeometryVisibilityChange: (layerId: string, visible: boolean) => void;
     onSegmentsFromSelectedPlanVisibilityChange: (layerId: string, visible: boolean) => void;
@@ -96,7 +95,6 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                         <div className={styles['track-layout__map-settings']}>
                             <MapLayersSettings
                                 map={props.map}
-                                onTrackNumberVisibilityChange={props.onTrackNumberVisibilityChange}
                                 onReferenceLineVisibilityChange={
                                     props.onReferenceLineVisibilityChange
                                 }

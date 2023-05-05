@@ -12,8 +12,7 @@ import {
     OptionalShownItems,
 } from 'map/map-model';
 import { ItemCollections, Selection } from 'selection/selection-model';
-import { adapterInfoRegister } from './register';
-import { LayoutPoint, LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { LayoutPoint } from 'track-layout/track-layout-model';
 import {
     AlignmentDataHolder,
     AlignmentHeader,
@@ -25,12 +24,13 @@ import {
     addBbox,
     alignmentId,
     getMatchingAlignmentDatas,
+    getTickStyle,
     MatchOptions,
     setAlignmentData,
 } from 'map/layers/layer-utils';
 import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
-import { getTrackNumberDrawDistance } from 'map/layers/layer-visibility-limits';
+import { getBadgeDrawDistance } from 'map/layers/layer-visibility-limits';
 import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState, LinkingType } from 'linking/linking-model';
@@ -93,6 +93,7 @@ const alignmentBackgroundStyle = new Style({
     stroke: new Stroke({
         color: mapStyles.alignmentBackground,
         width: 12,
+        lineCap: 'butt',
     }),
     zIndex: 0,
 });
@@ -113,35 +114,40 @@ const alignmentBackgroundBlue = new Style({
     zIndex: 1,
 });
 
-export enum DisplayMode {
-    NONE,
-    NUMBER,
-    NAME,
+const endPointTickStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentColor,
+        width: 1,
+    }),
+});
+
+enum DisplayMode {
+    REFERENCE_LINES,
+    ALL,
 }
 
-export type MapAlignmentBadgePoint = {
+export enum BadgeColor {
+    LIGHT,
+    DARK,
+}
+
+type MapAlignmentBadgePoint = {
     point: number[];
     nextPoint: number[];
 };
 
 export function createMapAlignmentBadgeFeature(
-    alignment: AlignmentHeader,
+    name: string,
     points: MapAlignmentBadgePoint[],
-    trackNumber: LayoutTrackNumber,
+    color: BadgeColor,
     lineHighlighted: boolean,
-    displayMode: DisplayMode,
 ): Feature<Point>[] {
-    const badgeStyle = getMapAlignmentBadgeStyle(
-        trackNumber,
-        alignment,
-        displayMode,
-        lineHighlighted,
-    );
+    const badgeStyle = getMapAlignmentBadgeStyle(color, lineHighlighted);
 
     return points.map((numberPoint) => {
         const badgeRotation = calculateBadgeRotation(numberPoint.point, numberPoint.nextPoint);
 
-        const badgeFeature = new Feature<Point>({
+        const badgeFeature = new Feature({
             geometry: new Point(numberPoint.point),
         });
 
@@ -151,10 +157,10 @@ export function createMapAlignmentBadgeFeature(
                     zIndex: 5,
                     renderer: (coordinates: Coordinate, state: State) => {
                         const ctx = state.context;
-                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${state.pixelRatio * 12
-                            }px ${mapStyles['alignment-badge-font-family']}`;
-                        const backgroundWidth =
-                            ctx.measureText(badgeStyle.text).width + 16 * state.pixelRatio;
+                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${
+                            state.pixelRatio * 12
+                        }px ${mapStyles['alignment-badge-font-family']}`;
+                        const backgroundWidth = ctx.measureText(name).width + 16 * state.pixelRatio;
                         const backgroundHeight = 14 * state.pixelRatio;
 
                         ctx.save();
@@ -185,9 +191,9 @@ export function createMapAlignmentBadgeFeature(
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText(
-                            badgeStyle.text,
+                            name,
                             coordinates[0] +
-                            ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
+                                ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
                             coordinates[1] + 1 * state.pixelRatio,
                         );
 
@@ -196,7 +202,6 @@ export function createMapAlignmentBadgeFeature(
                 }),
         );
 
-        badgeFeature.set('mapAlignmentBadge', trackNumber);
         return badgeFeature;
     });
 }
@@ -205,9 +210,8 @@ function createFeatures(
     alignments: AlignmentDataHolder[],
     selection: Selection,
     linkingState: LinkingState | undefined,
-    trackNumberDisplayMode: DisplayMode,
-    trackNumberDrawDistance: number,
-    showReferenceLines: boolean,
+    badgeDisplayMode: DisplayMode,
+    badgeDrawDistance: number,
     showDuplicateTracks: boolean,
     profileInfo: AlignmentHighlight[],
     linkingInfo: AlignmentHighlight[],
@@ -232,9 +236,8 @@ function createFeatures(
                 alignment,
                 !!(selected || isLinking),
                 highlighted,
-                trackNumberDisplayMode,
-                trackNumberDrawDistance,
-                showReferenceLines,
+                badgeDisplayMode,
+                badgeDrawDistance,
                 showDuplicateTracks,
                 missingProfiles,
                 missingLinkings,
@@ -243,9 +246,12 @@ function createFeatures(
         .flat();
 }
 
-function createBadgePoints(points: LayoutPoint[], drawDistance: number): MapAlignmentBadgePoint[] {
-    if (points.length < 2) return [];
-    const start = Math.ceil(points[0].m / drawDistance);
+export function createBadgePoints(
+    points: LayoutPoint[],
+    drawDistance: number,
+): MapAlignmentBadgePoint[] {
+    if (points.length < 3) return [];
+    const start = Math.ceil(points[1].m / drawDistance);
     const end = Math.floor(points[points.length - 1].m / drawDistance);
     if (start > end) return [];
     return Array.from({ length: 1 + end - start }, (_, i) => {
@@ -266,16 +272,15 @@ function createAlignmentFeatures(
     dataHolder: AlignmentDataHolder,
     selected: boolean,
     highlighted: boolean,
-    trackNumberDisplayMode: DisplayMode,
-    drawDistance: number,
-    showReferenceLines: boolean,
+    badgeDisplayMode: DisplayMode,
+    badgeDrawDistance: number,
     showDuplicateTracks: boolean,
     missingProfiles: AlignmentHighlight[],
     missingLinkings: AlignmentHighlight[],
 ): Feature<LineString | Point>[] {
     const lineString = new LineString(dataHolder.points.map((point) => [point.x, point.y]));
     const features: Feature<LineString | Point>[] = [];
-    const alignmentFeature: Feature<LineString> = new Feature<LineString>({
+    const alignmentFeature = new Feature<LineString>({
         geometry: lineString,
     });
     addBbox(alignmentFeature);
@@ -299,6 +304,7 @@ function createAlignmentFeatures(
     missingProfiles.forEach((p) =>
         addHighlight(p, dataHolder.points, features, alignmentBackgroundRed),
     );
+
     missingLinkings.forEach((p) =>
         addHighlight(p, dataHolder.points, features, alignmentBackgroundRed),
     );
@@ -309,33 +315,33 @@ function createAlignmentFeatures(
             addHighlight(profile, dataHolder.points, features, alignmentBackgroundRed);
         }
     }
-    if (dataHolder.header.alignmentType === 'LOCATION_TRACK') {
-        const profile = missingProfiles.find((prof) => prof.id === dataHolder.header.id);
-        if (profile) {
-            addHighlight(profile, dataHolder.points, features, alignmentBackgroundRed);
-        }
-    }
 
     alignmentFeature.setStyle(styles);
 
-    if (dataHolder.trackNumber !== null && trackNumberDisplayMode !== DisplayMode.NONE) {
-        const badgePoints = createBadgePoints(dataHolder.points, drawDistance);
+    const badgePoints = createBadgePoints(dataHolder.points, badgeDrawDistance);
+    const badgeColor = isReferenceLine ? BadgeColor.DARK : BadgeColor.LIGHT;
 
-        //When zoomed out enough, show track number alignment badges only
-        if (
-            trackNumberDisplayMode != DisplayMode.NUMBER ||
-            dataHolder.header.alignmentType != 'LOCATION_TRACK' ||
-            !showReferenceLines
-        ) {
-            const alignmentBadgeFeatures: Feature<Point>[] = createMapAlignmentBadgeFeature(
-                dataHolder.header,
-                badgePoints,
-                dataHolder.trackNumber,
-                selected || highlighted,
-                trackNumberDisplayMode,
-            );
-            features.push(...alignmentBadgeFeatures);
-        }
+    if (badgeDisplayMode === DisplayMode.ALL) {
+        const alignmentBadgeFeatures = createMapAlignmentBadgeFeature(
+            dataHolder.header.name,
+            badgePoints,
+            badgeColor,
+            selected || highlighted,
+        );
+
+        features.push(...alignmentBadgeFeatures);
+    } else if (isReferenceLine && dataHolder.trackNumber) {
+        const referenceLineBadgeFeatures = createMapAlignmentBadgeFeature(
+            dataHolder.trackNumber.number,
+            badgePoints,
+            badgeColor,
+            selected || highlighted,
+        );
+        features.push(...referenceLineBadgeFeatures);
+    }
+
+    if (!isReferenceLine && badgeDisplayMode === DisplayMode.ALL) {
+        features.push(...getStartEndTicks(dataHolder));
     }
 
     setAlignmentData(alignmentFeature, dataHolder);
@@ -347,7 +353,7 @@ function addHighlight(
     points: LayoutPoint[],
     features: Feature<Point | LineString>[],
     highlightStyle: Style,
-): void {
+) {
     const highlightLineStrings = highlight.ranges
         .filter((range) => range.max > points[0].m && range.min < points[points.length - 1].m)
         .map((range) => {
@@ -381,181 +387,167 @@ function isSelected(selection: ItemCollections, alignment: AlignmentHeader): boo
 let alignmentCompare = '';
 let newestAlignmentAdapterId = 0;
 
-adapterInfoRegister.add('alignment', {
-    createAdapter: function(
-        mapTiles: MapTile[],
-        existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
-        mapLayer: LayoutAlignmentsLayer,
-        selection: Selection,
-        publishType: PublishType,
-        linkingState: LinkingState | undefined,
-        changeTimes: ChangeTimes,
-        olView: OlView,
-        onViewContentChanged?: (items: OptionalShownItems) => void,
-    ): OlLayerAdapter {
-        const adapterId = ++newestAlignmentAdapterId;
-        const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-        // Use an existing layer or create a new one. Old layer is "recycled" to
-        // prevent features to disappear while moving the map.
-        const layer: VectorLayer<VectorSource<LineString | Point>> =
-            existingOlLayer ||
-            new VectorLayer({
-                source: vectorSource,
-                declutter: true,
-            });
+export function createAlignmentLayerAdapter(
+    mapTiles: MapTile[],
+    existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
+    mapLayer: LayoutAlignmentsLayer,
+    selection: Selection,
+    publishType: PublishType,
+    linkingState: LinkingState | undefined,
+    changeTimes: ChangeTimes,
+    olView: OlView,
+    onViewContentChanged?: (items: OptionalShownItems) => void,
+): OlLayerAdapter {
+    const adapterId = ++newestAlignmentAdapterId;
+    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
+    // Use an existing layer or create a new one. Old layer is "recycled" to
+    // prevent features to disappear while moving the map.
+    const layer: VectorLayer<VectorSource<LineString | Point>> =
+        existingOlLayer ||
+        new VectorLayer({
+            source: vectorSource,
+        });
 
-        layer.setVisible(mapLayer.visible);
+    layer.setVisible(mapLayer.visible);
 
-        const resolution = olView.getResolution() || 0;
-        let trackNumberDisplayMode = DisplayMode.NONE;
-        const trackNumberDrawDistance = getTrackNumberDrawDistance(resolution);
-        if (mapLayer.showTrackNumbers && trackNumberDrawDistance != null) {
-            trackNumberDisplayMode =
-                resolution < Limits.TRACK_NUMER_NAMES ? DisplayMode.NAME : DisplayMode.NUMBER;
-        }
+    const resolution = olView.getResolution() || 0;
+    const badgeDrawDistance = getBadgeDrawDistance(resolution);
 
-        const shownItemsSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
-            const matchOptions: MatchOptions = {
-                strategy: options.limit == 1 ? 'nearest' : 'limit',
-                limit: undefined,
-            };
-            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const holders = getMatchingAlignmentDatas(hitArea, features, matchOptions);
-            const alignmentHeaders = holders
-                .map(({ header }) => header)
-                .filter(filterUniqueById((a) => `${a.alignmentType}_${a.id}`));
-            const locationTracks = alignmentHeaders
-                .map((a) => (a.alignmentType === 'LOCATION_TRACK' ? a.id : null))
-                .filter(filterNotEmpty);
+    const badgeDisplayMode =
+        resolution < Limits.SHOW_LOCATION_TRACK_BADGES
+            ? DisplayMode.ALL
+            : DisplayMode.REFERENCE_LINES;
 
-            const referenceLines = alignmentHeaders
-                .filter((a) => a.alignmentType === 'REFERENCE_LINE')
-                .slice(0, options.limit);
-            const trackNumberIds = deduplicate(
-                referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
-            );
-
-            return {
-                locationTracks: locationTracks.slice(0, options.limit),
-                trackNumbers: trackNumberIds,
-                referenceLines: referenceLines.map((a) => a.id),
-            };
+    const shownItemsSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
+        const matchOptions: MatchOptions = {
+            strategy: options.limit == 1 ? 'nearest' : 'limit',
+            limit: undefined,
         };
-        const selectionSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
-            const found = shownItemsSearchFunction(hitArea, options);
-            return {
-                locationTracks: found.locationTracks,
-                referenceLines: found.referenceLines,
-                trackNumbers: found.trackNumbers,
-            };
-        };
+        const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
+        const holders = getMatchingAlignmentDatas(hitArea, features, matchOptions);
+        const alignmentHeaders = holders
+            .map(({ header }) => header)
+            .filter(filterUniqueById((a) => `${a.alignmentType}_${a.id}`));
+        const locationTracks = alignmentHeaders
+            .map((a) => (a.alignmentType === 'LOCATION_TRACK' ? a.id : null))
+            .filter(filterNotEmpty);
 
-        const selectedAlignment = selection.selectedItems?.locationTracks[0]
-            ? selection.selectedItems?.locationTracks[0]
-            : undefined;
-        const fetchType =
-            resolution > Limits.ALL_ALIGNMENTS
-                ? 'REFERENCE_LINES'
-                : mapLayer.showReferenceLines
-                    ? 'ALL'
-                    : 'LOCATION_TRACKS';
-        // Load alignments, track numbers and create features
-        const alignmentsFetch = getMapAlignmentsByTiles(
-            changeTimes,
-            mapTiles,
-            publishType,
-            fetchType,
-            selectedAlignment,
-        );
-
-        const sectionsWithoutProfile = mapLayer.showMissingVerticalGeometry
-            ? getLocationTrackSectionsWithoutProfileByTiles(
-                changeTimes.layoutLocationTrack,
-                publishType,
-                mapTiles,
-            )
-            : Promise.resolve<AlignmentHighlight[]>([]);
-        const sectionsWithoutLinking = mapLayer.showMissingLinking
-            ? getAlignmentSectionsWithoutLinkingByTiles(
-                getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),
-                publishType,
-                fetchType,
-                mapTiles,
-            )
-            : Promise.resolve<AlignmentHighlight[]>([]);
-
-        Promise.all([alignmentsFetch, sectionsWithoutProfile, sectionsWithoutLinking]).then(
-            ([alignments, sectionsWithoutProfile, sectionsWithoutLinking]) => {
-                if (adapterId != newestAlignmentAdapterId) return;
-                const features = createFeatures(
-                    alignments,
-                    selection,
-                    linkingState,
-                    trackNumberDisplayMode,
-                    trackNumberDrawDistance || 0,
-                    mapLayer.showReferenceLines,
-                    mapLayer.showDuplicateTracks,
-                    sectionsWithoutProfile,
-                    sectionsWithoutLinking,
-                );
-                // All features ready, clear old ones and add new ones
-                vectorSource.clear();
-                vectorSource.addFeatures(features.flat());
-                if (onViewContentChanged) {
-                    const compare = `${JSON.stringify(
-                        alignments.map((a) => alignmentId(a.header)).sort(),
-                    )}`;
-                    if (compare !== alignmentCompare) {
-                        alignmentCompare = compare;
-                        const area = fromExtent(olView.calculateExtent());
-                        const result = shownItemsSearchFunction(area, {});
-                        onViewContentChanged(result);
-                    }
-                }
-            },
+        const referenceLines = alignmentHeaders
+            .filter((a) => a.alignmentType === 'REFERENCE_LINE')
+            .slice(0, options.limit);
+        const trackNumberIds = deduplicate(
+            referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
         );
 
         return {
-            layer: layer,
-            searchItems: selectionSearchFunction,
-            searchShownItems: shownItemsSearchFunction,
+            locationTracks: locationTracks.slice(0, options.limit),
+            trackNumbers: trackNumberIds,
+            referenceLines: referenceLines.map((a) => a.id),
         };
-    },
-});
+    };
+    const selectionSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
+        const found = shownItemsSearchFunction(hitArea, options);
+        return {
+            locationTracks: found.locationTracks,
+            referenceLines: found.referenceLines,
+            trackNumbers: found.trackNumbers,
+        };
+    };
 
-export function getMapAlignmentBadgeStyle(
-    trackNumber: LayoutTrackNumber | undefined,
-    alignment: AlignmentHeader,
-    displayMode: DisplayMode,
-    lineHighlighted: boolean,
-) {
-    let text: string;
-    let color: string;
-    let background: string;
-    let backgroundBorder: string | undefined = undefined;
+    const selectedAlignment = selection.selectedItems?.locationTracks[0]
+        ? selection.selectedItems?.locationTracks[0]
+        : undefined;
 
-    if (displayMode === DisplayMode.NUMBER) {
-        text = trackNumber?.number || '';
+    const fetchType =
+        resolution > Limits.ALL_ALIGNMENTS
+            ? 'REFERENCE_LINES'
+            : mapLayer.showReferenceLines
+            ? 'ALL'
+            : 'LOCATION_TRACKS';
+
+    // Load alignments, track numbers and create features
+    const alignmentsFetch = getMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        publishType,
+        fetchType,
+        selectedAlignment,
+    );
+
+    const sectionsWithoutProfile = mapLayer.showMissingVerticalGeometry
+        ? getLocationTrackSectionsWithoutProfileByTiles(
+              changeTimes.layoutLocationTrack,
+              publishType,
+              mapTiles,
+          )
+        : Promise.resolve([]);
+
+    const sectionsWithoutLinking = mapLayer.showMissingLinking
+        ? getAlignmentSectionsWithoutLinkingByTiles(
+              getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),
+              publishType,
+              fetchType,
+              mapTiles,
+          )
+        : Promise.resolve([]);
+
+    Promise.all([alignmentsFetch, sectionsWithoutProfile, sectionsWithoutLinking]).then(
+        ([alignments, sectionsWithoutProfile, sectionsWithoutLinking]) => {
+            if (adapterId != newestAlignmentAdapterId) return;
+
+            const features = createFeatures(
+                alignments,
+                selection,
+                linkingState,
+                badgeDisplayMode,
+                badgeDrawDistance || 0,
+                mapLayer.showDuplicateTracks,
+                sectionsWithoutProfile,
+                sectionsWithoutLinking,
+            );
+
+            // All features ready, clear old ones and add new ones
+            vectorSource.clear();
+            vectorSource.addFeatures(features.flat());
+
+            if (onViewContentChanged) {
+                const compare = `${JSON.stringify(
+                    alignments.map((a) => alignmentId(a.header)).sort(),
+                )}`;
+
+                if (compare !== alignmentCompare) {
+                    alignmentCompare = compare;
+                    const area = fromExtent(olView.calculateExtent());
+                    const result = shownItemsSearchFunction(area, {});
+                    onViewContentChanged(result);
+                }
+            }
+        },
+    );
+
+    return {
+        layer: layer,
+        searchItems: selectionSearchFunction,
+        searchShownItems: shownItemsSearchFunction,
+    };
+}
+
+function getMapAlignmentBadgeStyle(badgeColor: BadgeColor, lineHighlighted: boolean) {
+    const isLight = badgeColor === BadgeColor.LIGHT;
+
+    let color = mapStyles['alignment-badge-color-white'];
+    let background = mapStyles['alignment-badge-background'];
+    let backgroundBorder: string | undefined;
+
+    if (lineHighlighted) {
+        background = mapStyles['alignment-badge-background-selected'];
+    } else if (isLight) {
         color = mapStyles['alignment-badge-color'];
-
-        background = lineHighlighted
-            ? mapStyles['alignment-badge-background-selected']
-            : mapStyles['alignment-badge-background'];
-    } else {
-        text = alignment.name;
-
-        if (lineHighlighted) {
-            color = mapStyles['alignment-badge-color'];
-            background = mapStyles['alignment-badge-background-selected'];
-        } else {
-            backgroundBorder = mapStyles['alignment-badge-background-border'];
-            color = mapStyles['alignment-badge-color-near'];
-            background = mapStyles['alignment-badge-background-near'];
-        }
+        background = mapStyles['alignment-badge-background-white'];
+        backgroundBorder = mapStyles['alignment-badge-background-border'];
     }
 
     return {
-        text,
         color,
         background,
         backgroundBorder,
@@ -583,4 +575,40 @@ export function calculateBadgeRotation(start: Coordinate, end: Coordinate) {
         drawFromEnd,
         rotation,
     };
+}
+
+function getStartEndTicks(data: AlignmentDataHolder) {
+    const ticks = [];
+    const points = data.points;
+
+    if (points.length >= 2) {
+        if (points[0].m === 0) {
+            const fP = [points[0].x, points[0].y];
+            const sP = [points[1].x, points[1].y];
+
+            const startF = new Feature({
+                geometry: new Point(fP),
+            });
+
+            startF.setStyle(getTickStyle(fP, sP, 6, 'start', endPointTickStyle));
+
+            ticks.push(startF);
+        }
+
+        const lastIdx = points.length - 1;
+        if (points[lastIdx].m === data.header.length) {
+            const lP = [points[lastIdx].x, points[lastIdx].y];
+            const sLP = [points[lastIdx - 1].x, points[lastIdx - 1].y];
+
+            const endF = new Feature({
+                geometry: new Point(lP),
+            });
+
+            endF.setStyle(getTickStyle(sLP, lP, 6, 'end', endPointTickStyle));
+
+            ticks.push(endF);
+        }
+    }
+
+    return ticks;
 }

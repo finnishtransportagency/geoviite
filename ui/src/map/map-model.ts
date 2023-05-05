@@ -4,8 +4,8 @@ import {
     LayoutKmPostId,
     LayoutSwitchId,
     LocationTrackId,
-    ReferenceLineId,
     MapAlignmentType,
+    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { DebugLayerData } from 'map/layers/debug-layer';
@@ -24,7 +24,6 @@ export type TileMapLayer = MapLayerBase & {
 export type LayoutAlignmentsLayer = MapLayerBase & {
     type: 'alignment';
     showReferenceLines: boolean;
-    showTrackNumbers: boolean;
     showMissingVerticalGeometry: boolean;
     showSegmentsFromSelectedPlan: boolean;
     showMissingLinking: boolean;
@@ -90,6 +89,10 @@ export type DebugLayer = MapLayerBase & {
     data: DebugLayerData;
 };
 
+export type TrackNumberDiagramLayer = MapLayerBase & {
+    type: 'trackNumberDiagram';
+};
+
 export type MapLayer =
     | LayoutAlignmentsLayer
     | HighlightsLayer
@@ -104,7 +107,8 @@ export type MapLayer =
     | SwitchLinkingLayer
     | ManualSwitchLinkingLayer
     | Debug1mPointsLayer
-    | DebugLayer;
+    | DebugLayer
+    | TrackNumberDiagramLayer;
 export type MapLayerType = MapLayer['type'];
 
 export type MapViewportSource = 'Map';

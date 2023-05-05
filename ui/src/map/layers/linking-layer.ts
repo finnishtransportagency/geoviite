@@ -745,7 +745,6 @@ adapterInfoRegister.add('linking', {
             existingOlLayer ||
             new VectorLayer({
                 source: vectorSource,
-                declutter: false,
             });
 
         layer.setVisible(mapLayer.visible);

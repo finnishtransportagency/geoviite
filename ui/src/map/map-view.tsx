@@ -13,7 +13,7 @@ import DragPan from 'ol/interaction/DragPan.js';
 import { OlLayerAdapter } from 'map/layers/layer-model';
 import 'ol/ol.css';
 import OlView from 'ol/View';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import { LayoutAlignmentsLayer, Map, MapViewport, OptionalShownItems } from 'map/map-model';
 import './layers/tile-layer'; // Load module to initialize adapter
 import './layers/alignment-layer'; // Load module to initialize adapter
 import './layers/geometry-layer'; // Load module to initialize adapter
@@ -26,7 +26,7 @@ import {
     SwitchLinkingFeatureType,
 } from './layers/switch-linking-layer'; // Load module to initialize adapter
 import styles from './map.module.scss';
-import { selectToolBasic } from './tools/select-tool-basic';
+import { selectTool } from './tools/select-tool';
 import { MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles, calculateTileSize } from 'map/map-utils';
 import { adapterInfoRegister } from 'map/layers/register';
@@ -45,8 +45,6 @@ import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
-import { Vector as VectorLayer } from 'ol/layer';
-import { Vector as VectorSource } from 'ol/source';
 import { createDebugLayerAdapter, DebugLayerFeatureType } from 'map/layers/debug-layer';
 import {
     createDebug1mPointsLayerAdapter,
@@ -56,6 +54,11 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
+import { createTrackNumberDiagramLayerAdapter } from 'map/layers/track-number-diagram-layer';
+import { LineString } from 'ol/geom';
+import { createAlignmentLayerAdapter } from 'map/layers/alignment-layer';
+import VectorLayer from 'ol/layer/Vector';
+import VectorSource from 'ol/source/Vector';
 
 declare global {
     interface Window {
@@ -289,6 +292,36 @@ const MapView: React.FC<MapViewProps> = ({
                 const existingOlLayer = existingOlLayersByName[mapLayer.id];
                 let layerAdapter;
                 switch (mapLayer.type) {
+                    case 'trackNumberDiagram': {
+                        const alignmentLayer = map.mapLayers.find(
+                            (l) => l.type === 'alignment',
+                        ) as LayoutAlignmentsLayer;
+
+                        layerAdapter = createTrackNumberDiagramLayerAdapter(
+                            mapLayer,
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            olView,
+                            changeTimes,
+                            publishType,
+                            alignmentLayer.showReferenceLines,
+                        );
+
+                        break;
+                    }
+                    case 'alignment':
+                        layerAdapter = createAlignmentLayerAdapter(
+                            mapTiles,
+                            existingOlLayer as never,
+                            mapLayer,
+                            selection,
+                            publishType,
+                            linkingState,
+                            changeTimes,
+                            olView,
+                            props.onShownLayerItemsChange,
+                        );
+                        break;
                     case 'switchLinking':
                         layerAdapter = createSwitchLinkingLayerAdapter(
                             mapLayer,
@@ -372,7 +405,7 @@ const MapView: React.FC<MapViewProps> = ({
 
         if (!measurementToolActive) {
             deactivateCallbacks.push(
-                selectToolBasic.activate(olMap, layerAdapters, toolActivateOptions),
+                selectTool.activate(olMap, layerAdapters, toolActivateOptions),
             );
 
             deactivateCallbacks.push(

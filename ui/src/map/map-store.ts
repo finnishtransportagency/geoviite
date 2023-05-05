@@ -38,7 +38,6 @@ export const initialMapState: Map = {
             name: 'Sijaintiraiteet',
             id: 'trackLayout-1',
             visible: true,
-            showTrackNumbers: true,
             showReferenceLines: true,
             showMissingVerticalGeometry: false,
             showSegmentsFromSelectedPlan: false,
@@ -52,6 +51,12 @@ export const initialMapState: Map = {
             visible: true,
             planIds: [],
             planLayout: null,
+        },
+        {
+            type: 'trackNumberDiagram',
+            name: 'Pituusmittausraidekaavio',
+            id: 'trackNumberDiagram',
+            visible: false,
         },
         {
             type: 'kmPosts',
@@ -177,13 +182,6 @@ export const mapReducers = {
             }
         });
     },
-
-    onTrackNumberVisibilityChange: (
-        state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        onAlignmentLayerVisibilityChange(state, 'showTrackNumbers', visibilitySetting);
-    },
     onReferencelineVisibilityChange: (
         state: Map,
         { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
@@ -232,7 +230,6 @@ function onAlignmentLayerVisibilityChange(
     state: Map,
     property:
         | 'showReferenceLines'
-        | 'showTrackNumbers'
         | 'showMissingVerticalGeometry'
         | 'showSegmentsFromSelectedPlan'
         | 'showMissingLinking'
@@ -273,7 +270,6 @@ export const {
     onViewportChange,
     onHoverLocation,
     onLayerVisibilityChange,
-    onTrackNumberVisibilityChange,
     onReferencelineVisibilityChange,
     onMissingLinkingVisibilityChange,
     onShowSegmentsFromSelectedPlanVisibilityChange,
