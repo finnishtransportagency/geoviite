@@ -20,7 +20,6 @@ import kotlin.test.assertNotNull
 @SpringBootTest
 @ConditionalOnBean(ProjektiVelhoClient::class)
 class ProjektiVelhoServiceIT @Autowired constructor(
-    private val projektiVelhoClient: ProjektiVelhoClient,
     private val fakeProjektiVelhoService: FakeProjektiVelhoService,
     private val projektiVelhoService: ProjektiVelhoService,
     private val projektiVelhoDao: ProjektiVelhoDao,

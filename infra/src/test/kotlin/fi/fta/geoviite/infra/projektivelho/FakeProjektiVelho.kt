@@ -115,14 +115,6 @@ class FakeProjektiVelho (port: Int) {
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =
         expectation(url, "GET", null, null, times)
 
-    private fun put(
-        url: String,
-        body: Any? = null,
-        bodyMatchType: MatchType? = null,
-        times: Times? = null,
-    ): ForwardChainExpectation =
-        expectation(url, "PUT", body, bodyMatchType, times)
-
     private fun post(
         url: String,
         body: Any? = null,
@@ -143,9 +135,6 @@ class FakeProjektiVelho (port: Int) {
                 this.withBody(JsonBody.json(body, bodyMatchType ?: MatchType.ONLY_MATCHING_FIELDS))
             }
         }, times ?: Times.unlimited())
-
-    private fun ok() =
-        HttpResponse.response().withStatusCode(200)
 
     private fun okJson(body: Any) =
         HttpResponse.response(jsonMapper.writeValueAsString(body))

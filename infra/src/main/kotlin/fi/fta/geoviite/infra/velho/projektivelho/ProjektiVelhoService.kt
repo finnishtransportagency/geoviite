@@ -9,10 +9,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.http.client.MultipartBodyBuilder
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-import org.springframework.web.multipart.MultipartFile
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -30,6 +28,7 @@ class ProjektiVelhoService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(15)
 
+    @Scheduled(cron = "0 0 * * * *")
     fun search(): SearchStatus? {
         logger.serviceCall("search")
         return lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
@@ -118,11 +117,4 @@ class ProjektiVelhoService @Autowired constructor(
         } catch (e: Exception) {
             false
         }
-        // TODO: Or this?
-        /*xml.lowercase().let {
-            it.indexOf("<alignments") >= 0
-                && it.indexOf("xmlns=\"http://www.inframodel.fi/inframodel\"") >= 0
-                && (it.indexOf("label=\"infracoding\"")  == -1
-                    || it.indexOf("label=\"infracoding\" value=\"281\"") >= 0)
-        }*/
 }
