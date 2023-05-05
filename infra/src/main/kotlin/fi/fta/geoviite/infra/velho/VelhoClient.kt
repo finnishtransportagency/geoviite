@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho.projektivelho
+package fi.fta.geoviite.infra.velho
 
 import fi.fta.geoviite.infra.logging.integrationCall
 import org.slf4j.Logger
@@ -16,10 +16,10 @@ val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseT
 val reloginoffsetSeconds: Long = 60
 
 @Component
-@ConditionalOnBean(ProjektiVelhoClientConfiguration::class)
-class ProjektiVelhoClient @Autowired constructor(
-    webClientHolder: ProjektiVelhoWebClient,
-    loginClientHolder: ProjektiVelhoLoginClient
+@ConditionalOnBean(VelhoClientConfiguration::class)
+class VelhoClient @Autowired constructor(
+    webClientHolder: VelhoWebClient,
+    loginClientHolder: VelhoLoginClient
 ) {
     private val client = webClientHolder.client
     private val loginClient = loginClientHolder.client

@@ -1,9 +1,10 @@
-package fi.fta.geoviite.infra.velho.projektivelho
+package fi.fta.geoviite.infra.velho
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
 import java.time.Instant
 
+// TODO Turn into actual data classes etc.
 fun searchJson(date: Instant, minOid: String, maxCount: Int) = """
 {
     "asetukset": {

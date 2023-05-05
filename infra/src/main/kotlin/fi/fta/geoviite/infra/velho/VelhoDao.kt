@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho.projektivelho
+package fi.fta.geoviite.infra.velho
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
@@ -11,7 +11,7 @@ import java.time.Instant
 
 @Transactional
 @Component
-class ProjektiVelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     fun insertFileMetadata(
         username: UserName,
         oid: String,

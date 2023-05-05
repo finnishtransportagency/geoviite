@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.projektivelho
+package fi.fta.geoviite.infra.velho
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
@@ -6,7 +6,6 @@ import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
-import fi.fta.geoviite.infra.inframodel.TESTFILE_SIMPLE
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
 import fi.fta.geoviite.infra.velho.projektivelho.*
 import org.mockserver.client.ForwardChainExpectation
@@ -25,8 +24,8 @@ import java.time.Instant
 
 @ConditionalOnProperty("geoviite.projektivelho.test-port")
 @Service
-class FakeProjektiVelhoService @Autowired constructor(@Value("\${geoviite.projektivelho.test-port:}") private val testPort: Int) {
-    fun start(): FakeProjektiVelho = FakeProjektiVelho(testPort)
+class FakeVelhoService @Autowired constructor(@Value("\${geoviite.projektivelho.test-port:}") private val testPort: Int) {
+    fun start(): FakeVelho = FakeVelho(testPort)
 }
 
 data class VelhoSearchStatus(
@@ -47,7 +46,7 @@ data class VelhoLatestVersion(
     @JsonProperty("muokattu") val changeTime: String
 )
 
-class FakeProjektiVelho (port: Int) {
+class FakeVelho (port: Int) {
     private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
     private val jsonMapper =
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
@@ -87,7 +86,7 @@ class FakeProjektiVelho (port: Int) {
                 "test.xml",
                 Instant.now().toString()
             ),
-            metadata = fi.fta.geoviite.infra.velho.projektivelho.Metadata(
+            metadata = Metadata(
                 null,
                 "test",
                 null,

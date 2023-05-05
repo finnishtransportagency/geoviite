@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho.projektivelho
+package fi.fta.geoviite.infra.velho
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.inframodel.InfraModelService
@@ -18,10 +18,10 @@ import java.time.ZoneOffset
 val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
 
 @Service
-@ConditionalOnBean(ProjektiVelhoClientConfiguration::class)
-class ProjektiVelhoService @Autowired constructor(
-    private val projektiVelhoClient: ProjektiVelhoClient,
-    private val projektiVelhoDao: ProjektiVelhoDao,
+@ConditionalOnBean(VelhoClientConfiguration::class)
+class VelhoService @Autowired constructor(
+    private val velhoClient: VelhoClient,
+    private val velhoDao: VelhoDao,
     private val lockDao: LockDao,
     private val infraModelService: InfraModelService,
 ) {
@@ -32,13 +32,13 @@ class ProjektiVelhoService @Autowired constructor(
     fun search(): SearchStatus? {
         logger.serviceCall("search")
         return lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
-            val latest = projektiVelhoDao.fetchLatestFile(PROJEKTIVELHO_DB_USERNAME)
-            val searchStatus = projektiVelhoClient.postXmlFileSearch(
+            val latest = velhoDao.fetchLatestFile(PROJEKTIVELHO_DB_USERNAME)
+            val searchStatus = velhoClient.postXmlFileSearch(
                 latest?.second
                     ?: LocalDate.of(2022, 1, 1).atTime(0, 0).toInstant(ZoneOffset.UTC),
                 latest?.first ?: ""
             )
-            projektiVelhoDao.insertFetchInfo(PROJEKTIVELHO_DB_USERNAME, searchStatus.searchId, searchStatus.startTime.plusSeconds(searchStatus.validFor))
+            velhoDao.insertFetchInfo(PROJEKTIVELHO_DB_USERNAME, searchStatus.searchId, searchStatus.startTime.plusSeconds(searchStatus.validFor))
             return@runWithLock searchStatus
         }
     }
@@ -47,7 +47,7 @@ class ProjektiVelhoService @Autowired constructor(
     fun pollAndFetchIfWaiting() {
         logger.serviceCall("pollAndFetchIfWaiting")
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
-            val latestSearch = projektiVelhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
+            val latestSearch = velhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
             val searchResults =
                 if (latestSearch != null && latestSearch.state == FetchStatus.WAITING)
                     fetchSearchResults(latestSearch.token)
@@ -58,7 +58,7 @@ class ProjektiVelhoService @Autowired constructor(
     }
 
     fun fetchSearchResults(searchId: String) =
-        projektiVelhoClient
+        velhoClient
             .fetchVelhoSearches()
             .find { search -> search.searchId == searchId && search.state == PROJEKTIVELHO_SEARCH_STATE_READY }
 
@@ -67,12 +67,12 @@ class ProjektiVelhoService @Autowired constructor(
         searchResults: SearchStatus
     ) =
         try {
-            projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FETCHING)
-            projektiVelhoClient.fetchSearchResults(searchResults.searchId)
+            velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FETCHING)
+            velhoClient.fetchSearchResults(searchResults.searchId)
                 .matches.map(::fetchFileAndInsertToDb)
-            projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FINISHED)
+            velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FINISHED)
         } catch (e: Exception) {
-            projektiVelhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.ERROR)
+            velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.ERROR)
             throw e
         }
 
@@ -80,8 +80,8 @@ class ProjektiVelhoService @Autowired constructor(
         fetchFileMetadataAndContent(match).let(::insertFileToDatabase)
 
     private fun fetchFileMetadataAndContent(match: Match): ProjektiVelhoFile {
-        val metadataResponse = projektiVelhoClient.fetchFileMetadata(match.oid)
-        val content = projektiVelhoClient.fetchFileContent(
+        val metadataResponse = velhoClient.fetchFileMetadata(match.oid)
+        val content = velhoClient.fetchFileContent(
             match.oid,
             metadataResponse.latestVersion.version,
         )
@@ -96,14 +96,14 @@ class ProjektiVelhoService @Autowired constructor(
 
     private fun insertFileToDatabase(file: ProjektiVelhoFile) {
         val shouldBeSavedToDb = isRailroadXml(file.content, file.latestVersion.name)
-        val metadataId = projektiVelhoDao.insertFileMetadata(
+        val metadataId = velhoDao.insertFileMetadata(
             PROJEKTIVELHO_DB_USERNAME,
             file.oid,
             file.metadata,
             file.latestVersion,
             if (shouldBeSavedToDb) FileStatus.IMPORTED else FileStatus.NOT_IM
         )
-        if (shouldBeSavedToDb) projektiVelhoDao.insertFileContent(
+        if (shouldBeSavedToDb) velhoDao.insertFileContent(
             PROJEKTIVELHO_DB_USERNAME,
             file.content,
             metadataId

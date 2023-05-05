@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho.projektivelho
+package fi.fta.geoviite.infra.velho
 
 import fi.fta.geoviite.infra.logging.integrationCall
 import org.slf4j.Logger
@@ -21,27 +21,27 @@ import java.time.Duration
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 val maxFileSize: Int = 1024*1024*1024
 
-class ProjektiVelhoWebClient(
+class VelhoWebClient(
     val client: WebClient
 )
 
-class ProjektiVelhoLoginClient(
+class VelhoLoginClient(
     val client: WebClient
 )
 
 @Configuration
 @ConditionalOnProperty(prefix = "geoviite.projektivelho", name = ["enabled"], havingValue = "true")
-class ProjektiVelhoClientConfiguration @Autowired constructor(
+class VelhoClientConfiguration @Autowired constructor(
     @Value("\${geoviite.projektivelho.url:}") private val projektiVelhoBaseUrl: String,
     @Value("\${geoviite.projektivelho.login_url:}") private val projektiVelhoLoginUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
     @Value("\${geoviite.projektivelho.client_secret:}") private val projektiVelhoPassword: String,
 ) {
 
-    private val logger: Logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(VelhoClient::class.java)
 
     @Bean
-    fun loginClient(): ProjektiVelhoLoginClient {
+    fun loginClient(): VelhoLoginClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
         val webClientBuilder = WebClient.builder()
@@ -52,11 +52,11 @@ class ProjektiVelhoClientConfiguration @Autowired constructor(
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             .defaultHeaders { header -> header.setBasicAuth(projektiVelhoUsername, projektiVelhoPassword) }
 
-        return ProjektiVelhoLoginClient(webClientBuilder.build())
+        return VelhoLoginClient(webClientBuilder.build())
     }
 
     @Bean
-    fun projVelhoClient(): ProjektiVelhoWebClient {
+    fun projVelhoClient(): VelhoWebClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
         val webClientBuilder = WebClient.builder()
@@ -70,7 +70,7 @@ class ProjektiVelhoClientConfiguration @Autowired constructor(
                     .maxInMemorySize(maxFileSize)
             }
 
-        return ProjektiVelhoWebClient(webClientBuilder.build())
+        return VelhoWebClient(webClientBuilder.build())
     }
 
     private fun logRequest(): ExchangeFilterFunction {
