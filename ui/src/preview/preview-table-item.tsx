@@ -11,6 +11,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { PreviewSelectType } from 'preview/preview-table';
 import { ChangesBeingReverted } from 'preview/preview-view';
+import { BoundingBox } from 'model/geometry';
 
 export type PreviewTableItemProps = {
     id: PublicationId;
@@ -26,6 +27,8 @@ export type PreviewTableItemProps = {
     onRevert: () => void;
     changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
+    boundingBox: BoundingBox | null;
+    onShowOnMap: (bbox: BoundingBox) => void;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -42,6 +45,8 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     onRevert,
     publish = false,
     changesBeingReverted,
+    boundingBox,
+    onShowOnMap,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -51,7 +56,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
     const menuId = () => `contextmenu_${id}_${type}`;
-    const { show } = useContextMenu({
+    const { show, hideAll } = useContextMenu({
         id: menuId(),
     });
 
@@ -126,7 +131,16 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                             )}
                             <div>
                                 <Menu animation={false} id={menuId()}>
-                                    <Item id="1" onClick={() => onRevert()}>
+                                    <Item
+                                        id="1"
+                                        disabled={!boundingBox}
+                                        onClick={() => {
+                                            boundingBox && onShowOnMap(boundingBox);
+                                            hideAll();
+                                        }}>
+                                        {t('publish.show-on-map')}
+                                    </Item>
+                                    <Item id="2" onClick={() => onRevert()}>
                                         {t('publish.revert-change')}
                                     </Item>
                                 </Menu>

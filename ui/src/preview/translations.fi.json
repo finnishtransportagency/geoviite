@@ -64,6 +64,7 @@
             }
         },
         "revert-change": "Hylkää muutos",
+        "show-on-map": "Kohdista kartalla",
         "publish-success": "Muutokset julkaistu paikannuspohjaan",
         "revert-success": "Luonnosmuutokset peruttu",
         "track-numbers": "Ratanumeroita",
