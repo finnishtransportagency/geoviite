@@ -32,13 +32,15 @@ export const TrackAddressRuler: React.FC<TrackAddressRulerProps> = ({
     if (kmHeights.length === 0) {
         return <React.Fragment />;
     }
-    const kmPostMarkers = kmHeights.map(({ trackMeterHeights }, kmIndex) => (
-        <KmPostMarker
-            key={kmIndex}
-            x={mToX(coordinates, trackMeterHeights[0].m)}
-            heightPx={heightPx}
-        />
-    ));
+    const kmPostMarkers = kmHeights
+        .filter(({ trackMeterHeights }) => trackMeterHeights[0].meter === 0)
+        .map(({ trackMeterHeights }, kmIndex) => (
+            <KmPostMarker
+                key={kmIndex}
+                x={mToX(coordinates, trackMeterHeights[0].m)}
+                heightPx={heightPx}
+            />
+        ));
 
     // avoid rendering too far off the screen for performance
     const startM = coordinates.startM - 5 / coordinates.mMeterLengthPxOverM;
