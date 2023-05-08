@@ -1,5 +1,8 @@
 package fi.fta.geoviite.infra.inframodel
 
+import VelhoDocument
+import VelhoDocumentHeader
+import VelhoDocumentStatus
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
@@ -11,6 +14,7 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.XmlCharset
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
+import fi.fta.geoviite.infra.velho.velhoDummyData
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -97,7 +101,7 @@ class InfraModelController @Autowired constructor(
     fun validateGeometryPlan(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
-    ): ValidationResponse? {
+    ): ValidationResponse {
         logger.apiCall(
             "validateGeometryPlan",
             "planId" to planId,
@@ -106,7 +110,6 @@ class InfraModelController @Autowired constructor(
 
         return infraModelService.validateGeometryPlan(planId, overrideParameters)
     }
-
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PutMapping("/{planId}")
@@ -133,6 +136,60 @@ class InfraModelController @Autowired constructor(
             fileNameWithSuffix(infraModelFileAndSource.name),
             infraModelFileAndSource.content.toByteArray(),
         )
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/velho-import/documents")
+    fun getVelhoDocumentHeaders(@RequestParam("status") status: VelhoDocumentStatus?): List<VelhoDocumentHeader> {
+        logger.apiCall("getVelhoDocumentHeaders", "status" to status)
+        return velhoDummyData
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PutMapping("/velho-import/documents/{id}/status")
+    fun updateVelhoFileStatus(
+        @PathVariable("id") id: IntId<VelhoDocument>,
+        @RequestPart(value = "status") status: VelhoDocumentStatus,
+    ): IntId<VelhoDocument> {
+        logger.apiCall("updateVelhoFileStatus", "id" to id, "status" to status)
+//        TODO("Not implemented yet") // GVT-1797
+        return id
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @PostMapping("/velho-import/{documentId}/validate")
+    fun validateVelhoDocument(
+        @PathVariable("documentId") documentId: IntId<VelhoDocument>,
+        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
+    ): ValidationResponse {
+        logger.apiCall(
+            "validateVelhoDocument",
+            "documentId" to documentId,
+            "overrideParameters" to overrideParameters,
+        )
+
+        return ValidationResponse(
+            listOf(),
+            null,
+            null,
+            overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
+        )
+    }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PostMapping("/velho-import/{documentId}")
+    fun importVelhoDocument(
+        documentId: IntId<VelhoDocument>,
+        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
+        @RequestPart(value = "extrainfo-parameters") extraInfoParameters: ExtraInfoParameters?,
+    ): InsertResponse {
+        logger.apiCall(
+            "importVelhoDocument",
+            "documentId" to documentId,
+            "overrideParameters" to overrideParameters,
+            "extraInfoParameters" to extraInfoParameters,
+        )
+        TODO("Not implemented yet")
     }
 }
 

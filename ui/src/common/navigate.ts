@@ -1,10 +1,12 @@
 import { GeometryPlanId } from 'geometry/geometry-model';
+import { VelhoDocumentId } from 'infra-model/velho/velho-api';
 import { useNavigate } from 'react-router-dom';
 
 const appPath = {
     'inframodel-list': '/infra-model',
     'inframodel-upload': '/infra-model/upload',
     'inframodel-edit': (id: GeometryPlanId) => `/infra-model/edit/${id}`,
+    'inframodel-import': (id: VelhoDocumentId) => `/infra-model/import/${id}`,
 } as const;
 
 type AppNavigateFunction = <K extends keyof typeof appPath>(

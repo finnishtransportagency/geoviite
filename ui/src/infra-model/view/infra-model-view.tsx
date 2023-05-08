@@ -3,9 +3,10 @@ import MapView from 'map/map-view';
 import { MapViewport } from 'map/map-model';
 import styles from './form/infra-model-form.module.scss';
 import {
-    EMPTY_VALIDATION_RESPONSE,
     getValidationErrorsForGeometryPlan,
     getValidationErrorsForInfraModelFile,
+    getValidationErrorsForVelhoDocument,
+    importVelhoDocument,
     saveInfraModelFile,
     updateGeometryPlan,
     ValidationResponse,
@@ -22,8 +23,6 @@ import {
 import {
     GeometryElement,
     GeometryElementId,
-    GeometryPlan,
-    GeometryPlanId,
     GeometrySwitch,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
@@ -80,59 +79,6 @@ const xmlEncodingOptions: Item<XmlCharset>[] = [
     { name: 'US ASCII', value: 'US_ASCII' },
 ];
 
-const getFormFile = (
-    file?: Blob,
-    extraParameters?: ExtraInfraModelParameters,
-    overrideParameters?: OverrideInfraModelParameters,
-) => {
-    const formData = new FormData();
-
-    if (file) {
-        formData.set('file', file);
-    }
-
-    if (overrideParameters) {
-        const jsonOverrideBlob = new Blob([JSON.stringify(overrideParameters)], {
-            type: 'application/json',
-        });
-
-        formData.set('override-parameters', jsonOverrideBlob);
-    }
-
-    if (extraParameters) {
-        const jsonExtraBlob = new Blob([JSON.stringify(extraParameters)], {
-            type: 'application/json',
-        });
-
-        formData.set('extrainfo-parameters', jsonExtraBlob);
-    }
-
-    return formData;
-};
-
-const getValidationResponseForFile = async (
-    file?: File,
-    overrideParameters?: OverrideInfraModelParameters,
-): Promise<ValidationResponse> => {
-    if (file) {
-        const formData = getFormFile(file, undefined, overrideParameters);
-        return getValidationErrorsForInfraModelFile(formData);
-    } else {
-        return Promise.resolve({
-            ...EMPTY_VALIDATION_RESPONSE,
-            message: 'No file',
-        });
-    }
-};
-
-const getValidationResponseGeometryPlan = async (
-    planId: GeometryPlanId,
-    overrideParameters: OverrideInfraModelParameters,
-): Promise<ValidationResponse> => {
-    const formData = getFormFile(undefined, undefined, overrideParameters);
-    return getValidationErrorsForGeometryPlan(planId, formData);
-};
-
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -160,24 +106,49 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         setFileMenuVisible(false);
     };
 
-    const onSaveClick = async () => {
-        setShowCriticalWarning(false);
-        setLoadingInProgress(true);
-
-        const overrideParameters = charsetOverride
+    const doSave = async () => {
+        const overrideParams = charsetOverride
             ? { ...props.overrideInfraModelParameters, encoding: charsetOverride }
             : props.overrideInfraModelParameters;
 
         const extraParams = {
             ...props.extraInfraModelParameters,
-            oid: props.extraInfraModelParameters.oid || undefined,
+            oid: props.extraInfraModelParameters.oid || undefined, // TODO: GVT-1794 what?
         };
-        const formData = getFormFile(file, extraParams, overrideParameters);
+        const planId = props.plan?.id;
+        switch (props.viewType) {
+            case InfraModelViewType.EDIT:
+                if (!planId) throw Error('No plan to edit');
+                return (await updateGeometryPlan(planId, extraParams, overrideParams)) != null;
+            case InfraModelViewType.IMPORT:
+                return (await importVelhoDocument(velhoDocId, extraParams, overrideParams)) != null;
+            case InfraModelViewType.UPLOAD:
+                return (await saveInfraModelFile(file, extraParams, overrideParams)) != null;
+        }
+    };
 
-        const succeed =
-            props.viewType === InfraModelViewType.EDIT
-                ? (await updateGeometryPlan((props.plan as GeometryPlan).id, formData)) != null
-                : (await saveInfraModelFile(formData)) != null;
+    const doValidate = async () => {
+        const overrideParams = charsetOverride
+            ? { ...props.overrideInfraModelParameters, encoding: charsetOverride }
+            : props.overrideInfraModelParameters;
+
+        const planId = props.plan?.id;
+        switch (props.viewType) {
+            case InfraModelViewType.EDIT:
+                if (!planId) throw Error('No plan to validate');
+                return await getValidationErrorsForGeometryPlan(planId, overrideParams);
+            case InfraModelViewType.IMPORT:
+                return await getValidationErrorsForVelhoDocument(velhoDocId, overrideParams);
+            case InfraModelViewType.UPLOAD:
+                return await getValidationErrorsForInfraModelFile(file, overrideParams);
+        }
+    };
+
+    const onSaveClick = async () => {
+        setShowCriticalWarning(false);
+        setLoadingInProgress(true);
+
+        const succeed = await doSave();
 
         setLoadingInProgress(false);
 
@@ -193,17 +164,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const validateFile = async () => {
-        const overrideParameters = charsetOverride
-            ? { ...props.overrideInfraModelParameters, encoding: charsetOverride }
-            : props.overrideInfraModelParameters;
-
-        const response =
-            props.viewType === InfraModelViewType.UPLOAD
-                ? await getValidationResponseForFile(file, overrideParameters)
-                : props.plan
-                ? await getValidationResponseGeometryPlan(props.plan.id, overrideParameters)
-                : null;
-
+        const response = await doValidate();
         setInfraModelValidationResponse(response);
 
         const processingErrors =
@@ -314,7 +275,8 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 )}
 
                 <div className={styles['infra-model-upload__buttons-container']}>
-                    {props.viewType === InfraModelViewType.UPLOAD && (
+                    {(props.viewType === InfraModelViewType.UPLOAD ||
+                        props.viewType === InfraModelViewType.IMPORT) && (
                         <Button
                             onClick={navigateToList}
                             variant={ButtonVariant.WARNING}

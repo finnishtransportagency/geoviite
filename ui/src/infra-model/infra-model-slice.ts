@@ -31,6 +31,7 @@ import { Prop } from 'utils/type-utils';
 
 export enum InfraModelViewType {
     UPLOAD,
+    IMPORT,
     EDIT,
 }
 

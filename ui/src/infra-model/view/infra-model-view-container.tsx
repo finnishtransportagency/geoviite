@@ -1,6 +1,10 @@
-import { infraModelActionCreators, InfraModelViewType } from '../infra-model-slice';
+import {
+    infraModelActionCreators,
+    InfraModelState,
+    InfraModelViewType,
+} from '../infra-model-slice';
 import { createDelegates } from 'store/store-utils';
-import { InfraModelView } from 'infra-model/view/infra-model-view';
+import { InfraModelView, InfraModelViewProps } from 'infra-model/view/infra-model-view';
 import {
     GeometryElement,
     GeometryElementId,
@@ -53,19 +57,33 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         },
     };
 
-    return viewType == InfraModelViewType.UPLOAD ? (
-        <InfraModelView
-            {...infraModelState}
-            {...delegatesProps}
-            changeTimes={changeTimes}
-            viewType={viewType}
-        />
-    ) : (
-        <InfraModelEditLoader
-            {...infraModelState}
-            {...delegatesProps}
-            changeTimes={changeTimes}
-            viewType={viewType}
-        />
-    );
+    switch (viewType) {
+        case InfraModelViewType.EDIT:
+            return (
+                <InfraModelEditLoader
+                    {...infraModelState}
+                    {...delegatesProps}
+                    changeTimes={changeTimes}
+                    viewType={viewType}
+                />
+            );
+        case InfraModelViewType.IMPORT:
+            return (
+                <InfraModelView
+                    {...infraModelState}
+                    {...delegatesProps}
+                    changeTimes={changeTimes}
+                    viewType={viewType}
+                />
+            );
+        case InfraModelViewType.UPLOAD:
+            return (
+                <InfraModelView
+                    {...infraModelState}
+                    {...delegatesProps}
+                    changeTimes={changeTimes}
+                    viewType={viewType}
+                />
+            );
+    }
 };

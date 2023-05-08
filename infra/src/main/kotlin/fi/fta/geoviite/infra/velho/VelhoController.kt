@@ -11,10 +11,6 @@ import VelhoProject
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.inframodel.ExtraInfoParameters
-import fi.fta.geoviite.infra.inframodel.OverrideParameters
-import fi.fta.geoviite.infra.inframodel.ValidationResponse
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -24,7 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
 
-val dummyData = listOf(
+val velhoDummyData = listOf(
     VelhoDocumentHeader(
         id = IntId(1),
         project = VelhoProject(
@@ -85,39 +81,3 @@ val dummyData = listOf(
         ),
     )
 )
-
-@RestController
-@RequestMapping("/velho")
-class VelhoController {
-
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/document-headers")
-    fun getDocumentHeaders(@RequestParam("status") status: VelhoDocumentStatus?): List<VelhoDocumentHeader> {
-        logger.apiCall("getDocumentHeaders", "status" to status)
-        return dummyData
-    }
-
-    @PreAuthorize(AUTH_ALL_READ)
-    @PostMapping("/validate/{id}")
-    fun validateVelhoFile(
-        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
-    ): ValidationResponse {
-        logger.apiCall("override-parameters", "overrideParameters" to overrideParameters)
-        TODO("Not implemented yet") // GVT-1797
-    }
-
-    @PreAuthorize(AUTH_ALL_WRITE)
-    @PostMapping("/import/{id}")
-    fun importVelhoFile(
-        @RequestPart(value = "override-parameters") overrideParameters: OverrideParameters?,
-        @RequestPart(value = "extrainfo-parameters") extraInfoParameters: ExtraInfoParameters?,
-    ): IntId<GeometryPlan> {
-        logger.apiCall("importVelhoFile",
-            "overrideParameters" to overrideParameters,
-            "extraInfoParameters" to extraInfoParameters,
-        )
-        TODO("Not implemented yet") // GVT-1797
-    }
-}

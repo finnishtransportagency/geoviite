@@ -7,16 +7,22 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { formatDateFull } from 'utils/date-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import { getVelhoDocuments, VelhoDocumentHeader } from './velho-api';
+import { VelhoDocumentHeader, VelhoDocumentId } from './velho-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { updateVelhoDocumentsChangeTime } from 'common/change-time-api';
+import { useAppNavigate } from 'common/navigate';
+import { getVelhoDocuments, rejectVelhoDocument } from 'infra-model/infra-model-api';
 
 type VelhoFileListProps = {
     documentHeaders: VelhoDocumentHeader[];
     isLoading: boolean;
+    onReject: (id: VelhoDocumentId) => void;
+    onImport: (id: VelhoDocumentId) => void;
 };
 
 export const VelhoFileListContainer: React.FC = () => {
+    const navigate = useAppNavigate();
     const changeTime = useCommonDataAppSelector((state) => state.changeTimes.velhoDocument);
     const [documentHeaders, loadStatus] =
         useLoaderWithStatus(() => {
@@ -26,11 +32,18 @@ export const VelhoFileListContainer: React.FC = () => {
         <VelhoFileList
             documentHeaders={documentHeaders || []}
             isLoading={loadStatus != LoaderStatus.Ready}
+            onReject={(id) => rejectVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())}
+            onImport={(id) => navigate('inframodel-import', id)}
         />
     );
 };
 
-export const VelhoFileList = ({ documentHeaders, isLoading }: VelhoFileListProps) => {
+export const VelhoFileList = ({
+    documentHeaders,
+    isLoading,
+    onReject,
+    onImport,
+}: VelhoFileListProps) => {
     const { t } = useTranslation();
 
     const [openItemId, setOpenItemId] = React.useState<string | null>(null);
@@ -60,6 +73,8 @@ export const VelhoFileList = ({ documentHeaders, isLoading }: VelhoFileListProps
                                     ? setOpenItemId(null)
                                     : setOpenItemId(item.id)
                             }
+                            onReject={() => onReject(item.id)}
+                            onImport={() => onImport(item.id)}
                         />
                     ))}
                 </tbody>
@@ -72,9 +87,17 @@ type VelhoFileListRowProps = {
     item: VelhoDocumentHeader;
     isOpen: boolean;
     onToggleOpen: () => void;
+    onReject: () => void;
+    onImport: () => void;
 };
 
-const VelhoFileListRow = ({ item, isOpen, onToggleOpen }: VelhoFileListRowProps) => {
+const VelhoFileListRow = ({
+    item,
+    isOpen,
+    onToggleOpen,
+    onReject,
+    onImport,
+}: VelhoFileListRowProps) => {
     const { t } = useTranslation();
     return (
         <>
@@ -88,10 +111,10 @@ const VelhoFileListRow = ({ item, isOpen, onToggleOpen }: VelhoFileListRowProps)
                 <td>{formatDateFull(item.document.modified)}</td>
                 <td>
                     <div className={styles['velho-file-list__buttons']}>
-                        <Button variant={ButtonVariant.SECONDARY}>
+                        <Button variant={ButtonVariant.SECONDARY} onClick={onReject}>
                             {t('velho.file-list.reject')}
                         </Button>
-                        <Button variant={ButtonVariant.SECONDARY}>
+                        <Button variant={ButtonVariant.SECONDARY} onClick={onImport}>
                             {t('velho.file-list.upload')}
                         </Button>
                     </div>

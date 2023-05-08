@@ -1,5 +1,3 @@
-import { API_URI, getWithDefault, queryParams } from 'api/api-fetch';
-import { asyncCache } from 'cache/cache';
 import { TimeStamp } from 'common/common-model';
 
 export type VelhoFileStatus = 'REJECTED' | 'ACCEPTED' | 'PENDING';
@@ -31,17 +29,3 @@ export type VelhoDocumentHeader = {
     materialGroup: string;
     document: VelhoDocument;
 };
-
-const VELHO_URI = `${API_URI}/velho`;
-
-const documentHeadersCache = asyncCache<string, VelhoDocumentHeader[]>();
-
-export async function getVelhoDocuments(
-    changeTime: TimeStamp,
-    status: VelhoFileStatus,
-): Promise<VelhoDocumentHeader[]> {
-    const params = queryParams({ status: status });
-    return documentHeadersCache.get(changeTime, status, () =>
-        getWithDefault<VelhoDocumentHeader[]>(`${VELHO_URI}/document-headers${params}`, []),
-    );
-}

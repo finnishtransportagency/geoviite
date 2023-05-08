@@ -18,6 +18,10 @@ export const InfraModelMainView: React.FC = () => {
                     element={<InfraModelViewContainer viewType={InfraModelViewType.EDIT} />}
                 />
                 <Route
+                    path="/import/:id"
+                    element={<InfraModelViewContainer viewType={InfraModelViewType.IMPORT} />}
+                />
+                <Route
                     path="/upload"
                     element={<InfraModelViewContainer viewType={InfraModelViewType.UPLOAD} />}
                 />
