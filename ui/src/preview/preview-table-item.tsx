@@ -11,6 +11,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Item, Menu, useContextMenu } from 'react-contexify';
 import { PreviewSelectType } from 'preview/preview-table';
 import { ChangesBeingReverted } from 'preview/preview-view';
+import { BoundingBox } from 'model/geometry';
 
 export type PreviewTableItemProps = {
     id: PublicationId;
@@ -26,7 +27,8 @@ export type PreviewTableItemProps = {
     onRevert: () => void;
     changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
-    onShowOnMap: (id: PublicationId, type: PreviewSelectType) => void;
+    boundingBox: BoundingBox | null;
+    onShowOnMap: (bbox: BoundingBox) => void;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -43,6 +45,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     onRevert,
     publish = false,
     changesBeingReverted,
+    boundingBox,
     onShowOnMap,
 }) => {
     const { t } = useTranslation();
@@ -130,8 +133,9 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                                 <Menu animation={false} id={menuId()}>
                                     <Item
                                         id="1"
+                                        disabled={!boundingBox}
                                         onClick={() => {
-                                            onShowOnMap(id, type);
+                                            boundingBox && onShowOnMap(boundingBox);
                                             hideAll();
                                         }}>
                                         {t('publish.show-on-map')}

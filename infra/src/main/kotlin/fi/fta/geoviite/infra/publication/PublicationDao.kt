@@ -33,11 +33,18 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               layout.infer_operation_from_state_transition(
                 official_track_number.state,
                 draft_track_number.state
-              ) as operation
+              ) as operation,
+              postgis.st_astext(alignment_version.bounding_box) as bounding_box
             from layout.track_number_publication_view draft_track_number
               left join layout.track_number_publication_view official_track_number 
                 on draft_track_number.official_id = official_track_number.official_id
                   and 'OFFICIAL' = any(official_track_number.publication_states)
+              left join layout.reference_line_publication_view reference_line
+                on reference_line.track_number_id = draft_track_number.official_id
+                  and 'DRAFT' = any(reference_line.publication_states)
+              left join layout.alignment_version
+                on reference_line.alignment_id = alignment_version.id
+                  and reference_line.alignment_version = alignment_version.version
             where draft_track_number.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -47,7 +54,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
-                userName = UserName(rs.getString("change_user"))
+                userName = UserName(rs.getString("change_user")),
+                boundingBox = rs.getBboxOrNull("bounding_box")
             )
         }
         logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidate::id))
@@ -67,7 +75,8 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               layout.infer_operation_from_state_transition(
                 official_track_number.state,
                 draft_track_number.state
-              ) as operation
+              ) as operation,
+              postgis.st_astext(alignment_version.bounding_box) as bounding_box
             from layout.reference_line_publication_view draft_reference_line
               left join layout.track_number_publication_view draft_track_number
                 on draft_track_number.official_id = draft_reference_line.track_number_id
@@ -75,6 +84,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               left join layout.track_number_publication_view official_track_number
                 on official_track_number.official_id = draft_reference_line.track_number_id
                   and 'OFFICIAL' = any(official_track_number.publication_states)
+              left join layout.alignment_version alignment_version
+                on draft_reference_line.alignment_id = alignment_version.id
+                  and draft_reference_line.alignment_version = alignment_version.version
             where draft_reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -86,6 +98,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum<Operation>("operation"),
+                boundingBox = rs.getBboxOrNull("bounding_box"),
             )
         }
         logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
@@ -106,11 +119,15 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               layout.infer_operation_from_state_transition(
                 official_location_track.state,
                 draft_location_track.state
-              ) as operation
+              ) as operation,
+              postgis.st_astext(alignment_version.bounding_box) as bounding_box
             from layout.location_track_publication_view draft_location_track
               left join layout.location_track_publication_view official_location_track
                 on official_location_track.official_id = draft_location_track.official_id
                   and 'OFFICIAL' = any(official_location_track.publication_states)
+              left join layout.alignment_version alignment_version
+                on draft_location_track.alignment_id = alignment_version.id
+                  and draft_location_track.alignment_version = alignment_version.version
             where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -123,6 +140,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
+                boundingBox = rs.getBboxOrNull("bounding_box")
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
@@ -144,11 +162,19 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               layout.infer_operation_from_state_category_transition(
                 official_switch.state_category,
                 draft_switch.state_category
-              ) as operation
+              ) as operation,
+              postgis.st_x(switch_joint_version.location) as point_x, 
+              postgis.st_y(switch_joint_version.location) as point_y
             from layout.switch_publication_view draft_switch
               left join layout.switch_publication_view official_switch
                 on official_switch.official_id = draft_switch.official_id
                   and 'OFFICIAL' = any(official_switch.publication_states)
+              left join common.switch_structure
+                on draft_switch.switch_structure_id = switch_structure.id
+              left join layout.switch_joint_version 
+                on switch_joint_version.switch_id = coalesce(draft_switch.draft_id, draft_switch.official_id)
+                  and switch_joint_version.switch_version = coalesce(draft_switch.draft_version, draft_switch.official_id)
+                  and switch_joint_version.number = switch_structure.presentation_joint_number
             where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>(
@@ -162,6 +188,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
+                location = rs.getPointOrNull("point_x", "point_y"),
             )
         }
         logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
@@ -181,7 +208,9 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               layout.infer_operation_from_state_transition(
                 official_km_post.state,
                 draft_km_post.state
-              ) as operation
+              ) as operation,
+              postgis.st_x(draft_km_post.location) as point_x, 
+              postgis.st_y(draft_km_post.location) as point_y
             from layout.km_post_publication_view draft_km_post
               left join layout.km_post_publication_view official_km_post
                 on official_km_post.official_id = draft_km_post.official_id
@@ -198,6 +227,7 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
+                location = rs.getPointOrNull("point_x", "point_y"),
             )
         }
         logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))

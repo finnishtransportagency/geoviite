@@ -33,14 +33,6 @@ import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
 import { getSortDirectionIcon, SortDirection } from 'publication/table/publication-table-utils';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
-import {
-    getReferenceLine,
-    getTrackNumberReferenceLine,
-} from 'track-layout/layout-reference-line-api';
-import { getLocationTrack } from 'track-layout/layout-location-track-api';
-import { getKmPost } from 'track-layout/layout-km-post-api';
-import { getSwitch } from 'track-layout/layout-switch-api';
-import { getSwitchStructure } from 'common/common-api';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -53,6 +45,7 @@ export type PreviewTableEntry = {
     type: PreviewSelectType;
     errors: PublishValidationError[];
     pendingValidation: boolean;
+    boundingBox: BoundingBox | null;
 } & ChangeTableEntry;
 
 export enum PreviewSelectType {
@@ -128,6 +121,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 errors: trackNumberCandidate.errors,
                 type: PreviewSelectType.trackNumber,
                 pendingValidation: trackNumberCandidate.pendingValidation,
+                boundingBox: trackNumberCandidate.boundingBox,
             }))
             .concat(
                 previewChanges.referenceLines.map((referenceLineCandidate) => ({
@@ -135,6 +129,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: referenceLineCandidate.errors,
                     type: PreviewSelectType.referenceLine,
                     pendingValidation: referenceLineCandidate.pendingValidation,
+                    boundingBox: referenceLineCandidate.boundingBox,
                 })),
             )
             .concat(
@@ -143,6 +138,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: locationTrackCandidate.errors,
                     type: PreviewSelectType.locationTrack,
                     pendingValidation: locationTrackCandidate.pendingValidation,
+                    boundingBox: locationTrackCandidate.boundingBox,
                 })),
             )
             .concat(
@@ -151,6 +147,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: switchCandidate.errors,
                     type: PreviewSelectType.switch,
                     pendingValidation: switchCandidate.pendingValidation,
+                    boundingBox: switchCandidate.location
+                        ? calculateBoundingBoxToShowAroundLocation(switchCandidate.location)
+                        : null,
                 })),
             )
             .concat(
@@ -159,6 +158,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: kmPostCandidate.errors,
                     type: PreviewSelectType.kmPost,
                     pendingValidation: kmPostCandidate.pendingValidation,
+                    boundingBox: kmPostCandidate.location
+                        ? calculateBoundingBoxToShowAroundLocation(kmPostCandidate.location)
+                        : null,
                 })),
             );
 
@@ -187,51 +189,6 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             {t(translationKey)}
         </Th>
     );
-
-    const showOnMap = (id: PublicationId, type: PreviewSelectType) => {
-        if (type === PreviewSelectType.locationTrack) {
-            getLocationTrack(id as LocationTrackId, 'DRAFT').then(
-                (locationTrack) =>
-                    locationTrack &&
-                    locationTrack.boundingBox &&
-                    onShowOnMap(locationTrack.boundingBox),
-            );
-        } else if (type === PreviewSelectType.referenceLine) {
-            getReferenceLine(id as ReferenceLineId, 'DRAFT').then(
-                (referenceLine) =>
-                    referenceLine &&
-                    referenceLine.boundingBox &&
-                    onShowOnMap(referenceLine.boundingBox),
-            );
-        } else if (type === PreviewSelectType.switch) {
-            getSwitch(id as LayoutSwitchId, 'DRAFT').then((sw) => {
-                getSwitchStructure(sw?.switchStructureId).then((structure) => {
-                    const presentationJoint = sw?.joints.find(
-                        (joint) => joint.number === structure?.presentationJointNumber,
-                    );
-                    sw &&
-                        presentationJoint &&
-                        onShowOnMap(
-                            calculateBoundingBoxToShowAroundLocation(presentationJoint.location),
-                        );
-                });
-            });
-        } else if (type === PreviewSelectType.kmPost) {
-            getKmPost(id as LayoutKmPostId, 'DRAFT').then(
-                (kmPost) =>
-                    kmPost &&
-                    kmPost.location &&
-                    onShowOnMap(calculateBoundingBoxToShowAroundLocation(kmPost.location)),
-            );
-        } else if (type === PreviewSelectType.trackNumber) {
-            getTrackNumberReferenceLine(id, 'DRAFT').then(
-                (referenceLine) =>
-                    referenceLine &&
-                    referenceLine.boundingBox &&
-                    onShowOnMap(referenceLine.boundingBox),
-            );
-        }
-    };
 
     return (
         <div className={styles['preview-table__container']}>
@@ -273,7 +230,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     operation={entry.operation}
                                     publish={staged}
                                     changesBeingReverted={changesBeingReverted}
-                                    onShowOnMap={showOnMap}
+                                    boundingBox={entry.boundingBox}
+                                    onShowOnMap={onShowOnMap}
                                 />
                             }
                         </React.Fragment>
