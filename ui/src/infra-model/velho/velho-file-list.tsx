@@ -8,32 +8,32 @@ import { formatDateFull } from 'utils/date-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { getVelhoDocuments, VelhoDocumentHeader } from './velho-api';
-import { TimeStamp } from 'common/common-model';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 
 type VelhoFileListProps = {
-    velhoDocumentsChangeTime: TimeStamp;
+    documentHeaders: VelhoDocumentHeader[];
+    isLoading: boolean;
 };
 
 export const VelhoFileListContainer: React.FC = () => {
     const changeTime = useCommonDataAppSelector((state) => state.changeTimes.velhoDocument);
-    return <VelhoFileList velhoDocumentsChangeTime={changeTime} />;
+    const [documentHeaders, loadStatus] =
+        useLoaderWithStatus(() => {
+            return getVelhoDocuments(changeTime, 'PENDING');
+        }, [changeTime]) || [];
+    return (
+        <VelhoFileList
+            documentHeaders={documentHeaders || []}
+            isLoading={loadStatus != LoaderStatus.Ready}
+        />
+    );
 };
 
-export const VelhoFileList = ({ velhoDocumentsChangeTime }: VelhoFileListProps) => {
+export const VelhoFileList = ({ documentHeaders, isLoading }: VelhoFileListProps) => {
     const { t } = useTranslation();
 
-    const [isLoading, setIsLoading] = React.useState(false);
     const [openItemId, setOpenItemId] = React.useState<string | null>(null);
-
-    const documentHeaders =
-        useLoader(() => {
-            setIsLoading(true);
-            return getVelhoDocuments(velhoDocumentsChangeTime, 'PENDING').finally(() =>
-                setIsLoading(false),
-            );
-        }, [velhoDocumentsChangeTime]) || [];
 
     return (
         <div>

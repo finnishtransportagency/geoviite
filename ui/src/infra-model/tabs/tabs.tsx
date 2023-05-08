@@ -6,7 +6,7 @@ import { InfraModelListContainer } from 'infra-model/list/infra-model-list-conta
 import { useTranslation } from 'react-i18next';
 import { commonActionCreators, InfraModelTabType } from 'common/common-slice';
 import { createDelegates } from 'store/store-utils';
-import { VelhoFileList } from 'infra-model/velho/velho-file-list';
+import { VelhoFileListContainer } from 'infra-model/velho/velho-file-list';
 
 export type TabsProps = {
     activeTab: InfraModelTabType;
@@ -46,7 +46,7 @@ const Tabs: React.FC<TabsProps> = ({ activeTab }) => {
                     <InfraModelListContainer changeTimes={changeTimes} />
                 </TabContent>
                 <TabContent id={InfraModelTabType.WAITING} activeTab={activeTab}>
-                    <VelhoFileList _asdf={''} />
+                    <VelhoFileListContainer />
                 </TabContent>
                 <TabContent id={InfraModelTabType.REJECTED} activeTab={activeTab}>
                     <p>Hello from rejected tab!</p>
