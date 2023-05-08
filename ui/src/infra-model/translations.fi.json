@@ -61,12 +61,13 @@
         "missing-source": "Suunnitelman lähde puuttuu",
         "toolbar": {
             "files": "IM-tiedostot",
-            "upload": "Lataa uusi"
+            "upload": "Tuo uusi"
         },
         "file-handling-failed": {
             "title": "Tiedoston käsittely epäonnistui",
             "try-again": "Lataa uudelleen",
             "change-encoding": "Lataa toisella merkistöllä",
+            "try-change-encoding": "Jos merkistö on tiedostossa väärin, voit pakottaa sen toiseksi tässä:",
             "encoding": "Merkistö"
         },
         "critical-warnings-dialog": {

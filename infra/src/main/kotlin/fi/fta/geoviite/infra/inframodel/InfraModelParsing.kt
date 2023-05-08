@@ -20,6 +20,7 @@ import jakarta.xml.bind.Marshaller
 import jakarta.xml.bind.UnmarshalException
 import jakarta.xml.bind.Unmarshaller
 import org.springframework.http.MediaType
+import org.springframework.web.multipart.MultipartFile
 import org.xml.sax.InputSource
 import java.io.File
 import java.io.StringReader
@@ -35,9 +36,9 @@ private const val SCHEMA_LOCATION = "/xml/inframodel.xsd"
 
 const val INFRAMODEL_PARSING_KEY_PARENT = "error.infra-model.parsing"
 const val INFRAMODEL_PARSING_KEY_GENERIC = "$INFRAMODEL_PARSING_KEY_PARENT.generic"
+const val INFRAMODEL_PARSING_KEY_EMPTY = "$INFRAMODEL_PARSING_KEY_PARENT.empty"
 
 data class ParsingError(override val localizationKey: LocalizationKey) : ValidationError {
-    constructor(key: String) : this(LocalizationKey(key))
     override val errorType = ErrorType.PARSING_ERROR
 }
 
@@ -90,68 +91,19 @@ fun toSaxSource(xmlString: String) = SAXSource(
     InputSource(StringReader(xmlString)),
 )
 
-fun parseGeometryPlan(
-    source: PlanSource,
-    file: File,
-    fileName: FileName = FileName(file.name),
-    coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
-    switchStructuresByType: Map<SwitchType, SwitchStructure>,
-    switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
-): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(fileName, fileToString(file))
-    return parseInfraModelFile(
-        source,
-        imFile,
-        coordinateSystems,
-        switchStructuresByType,
-        switchTypeNameAliases,
-        trackNumberIdsByNumber
-    ) to imFile
+fun classPathToInfraModelFile(fileName: String) =
+    toInfraModelFile(FileName(fileName), classpathResourceToString(fileName))
+
+fun toInfraModelFile(file: MultipartFile, fileEncodingOverride: Charset?): InfraModelFile {
+    val name = FileName(file)
+    assertContentType(name, file.contentType, MediaType.APPLICATION_XML, MediaType.TEXT_XML)
+    return toInfraModelFile(file.bytes, name, fileEncodingOverride)
 }
 
-fun parseGeometryPlan(
-    source: PlanSource,
-    file: ByteArray,
-    fileName: FileName,
-    fileEncodingOverride: Charset?,
-    coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
-    switchStructuresByType: Map<SwitchType, SwitchStructure>,
-    switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
-): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(file, fileName, fileEncodingOverride)
-    return parseInfraModelFile(
-        source,
-        imFile,
-        coordinateSystems,
-        switchStructuresByType,
-        switchTypeNameAliases,
-        trackNumberIdsByNumber
-    ) to imFile
+fun toInfraModelFile(file: ByteArray, fileName: FileName, fileEncodingOverride: Charset?): InfraModelFile {
+    assertNotEmpty(fileName, file)
+    return toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
 }
-
-fun parseFromClasspath(
-    source: PlanSource,
-    fileName: String,
-    coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
-    switchStructuresByType: Map<SwitchType, SwitchStructure>,
-    switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
-): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(FileName(fileName), classpathResourceToString(fileName))
-    return parseInfraModelFile(
-        source,
-        imFile,
-        coordinateSystems,
-        switchStructuresByType,
-        switchTypeNameAliases,
-        trackNumberIdsByNumber
-    ) to imFile
-}
-
-fun toInfraModelFile(file: ByteArray, fileName: FileName, fileEncodingOverride: Charset?) =
-    toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
 
 fun toInfraModelFile(fileName: FileName, fileContent: String) =
     InfraModelFile(name = fileName, content = censorAuthorIdentifyingInfo(fileContent))
@@ -201,17 +153,17 @@ fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
 }
 
-fun checkForEmptyFileAndIncorrectFileType(file: ByteArray, contentType: String?, fileName: String, vararg fileContentTypes: MediaType) {
-    if (file.isEmpty()) {
-        throw InframodelParsingException(
-            message = "File \"${fileName}\" is empty",
-            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
-        )
-    }
-    if (contentType?.let { !fileContentTypes.contains(MediaType.valueOf(it)) } == true) {
-        throw InframodelParsingException(
-            message = "File's ${fileName} type is incorrect: ${contentType}",
-            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type",
-        )
-    }
+fun assertNotEmpty(fileName: FileName, file: ByteArray) {
+    if (file.isEmpty()) throw InframodelParsingException(
+        message = "File \"${fileName}\" is empty",
+        localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
+    )
+}
+
+fun assertContentType(fileName: FileName, contentType: String?, vararg fileContentTypes: MediaType) {
+    val isCorrectType = contentType?.let { fileContentTypes.contains(MediaType.valueOf(it)) }
+    if (isCorrectType == false) throw InframodelParsingException(
+        message = "File's $fileName type is incorrect: $contentType",
+        localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type",
+    )
 }

@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.util
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
+import org.springframework.web.multipart.MultipartFile
 
 /**
  * Bytes of character in canonical decomposition form differ from the default form
@@ -19,6 +20,7 @@ val fileNameLength = 1..100
 data class FileName @JsonCreator(mode = DELEGATING) constructor(private val value: String)
     : Comparable<FileName>, CharSequence by value {
     init { assertSanitized<FileName>(value, fileNameRegex, fileNameLength) }
+    constructor(file: MultipartFile) : this(file.originalFilename ?: file.name)
 
     @JsonValue
     override fun toString(): String = value

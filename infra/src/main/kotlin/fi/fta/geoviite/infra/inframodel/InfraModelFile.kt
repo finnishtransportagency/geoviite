@@ -4,12 +4,13 @@ import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.util.FileName
 import org.apache.commons.codec.digest.DigestUtils
+import org.springframework.web.multipart.MultipartFile
 
 data class InfraModelFile(
     val name: FileName,
     val content: String,
 ) {
-    val hash by lazy { DigestUtils.md5Hex(content) }
+    val hash: String by lazy { DigestUtils.md5Hex(content) }
 
     init {
         require(!containsIdentifyingInfo(content)) { "Identifying info must be censored from IM before storing" }

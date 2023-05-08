@@ -2,10 +2,13 @@ package fi.fta.geoviite.infra.velho
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.inframodel.InfraModelService
+import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
+import fi.fta.geoviite.infra.inframodel.toInfraModelFile
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.formatForLog
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -133,16 +136,17 @@ class VelhoService @Autowired constructor(
         )
         if (shouldBeSavedToDb) velhoDao.insertFileContent(
             PROJEKTIVELHO_DB_USERNAME,
-            file.content,
+            censorAuthorIdentifyingInfo(file.content),
             metadataId
         )
     }
 
     fun isRailroadXml(xml: String, filename: FileName) =
         try {
-            infraModelService.parseInfraModel(xml.toByteArray(), filename.toString(), null)
+            infraModelService.parseInfraModel(toInfraModelFile(xml.toByteArray(), filename, null))
             true
         } catch (e: Exception) {
+            logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
             false
         }
 }
