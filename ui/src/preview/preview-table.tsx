@@ -31,6 +31,16 @@ import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
 import { getSortDirectionIcon, SortDirection } from 'publication/table/publication-table-utils';
+import { BoundingBox } from 'model/geometry';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import {
+    getReferenceLine,
+    getTrackNumberReferenceLine,
+} from 'track-layout/layout-reference-line-api';
+import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { getKmPost } from 'track-layout/layout-km-post-api';
+import { getSwitch } from 'track-layout/layout-switch-api';
+import { getSwitchStructure } from 'common/common-api';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -59,6 +69,7 @@ type PreviewTableProps = {
     onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
     changesBeingReverted: ChangesBeingReverted | undefined;
+    onShowOnMap: (bbox: BoundingBox) => void;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -67,6 +78,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     onRevert,
     staged,
     changesBeingReverted,
+    onShowOnMap,
 }) => {
     const { t } = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -176,6 +188,51 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         </Th>
     );
 
+    const showOnMap = (id: PublicationId, type: PreviewSelectType) => {
+        if (type === PreviewSelectType.locationTrack) {
+            getLocationTrack(id as LocationTrackId, 'DRAFT').then(
+                (locationTrack) =>
+                    locationTrack &&
+                    locationTrack.boundingBox &&
+                    onShowOnMap(locationTrack.boundingBox),
+            );
+        } else if (type === PreviewSelectType.referenceLine) {
+            getReferenceLine(id as ReferenceLineId, 'DRAFT').then(
+                (referenceLine) =>
+                    referenceLine &&
+                    referenceLine.boundingBox &&
+                    onShowOnMap(referenceLine.boundingBox),
+            );
+        } else if (type === PreviewSelectType.switch) {
+            getSwitch(id as LayoutSwitchId, 'DRAFT').then((sw) => {
+                getSwitchStructure(sw?.switchStructureId).then((structure) => {
+                    const presentationJoint = sw?.joints.find(
+                        (joint) => joint.number === structure?.presentationJointNumber,
+                    );
+                    sw &&
+                        presentationJoint &&
+                        onShowOnMap(
+                            calculateBoundingBoxToShowAroundLocation(presentationJoint.location),
+                        );
+                });
+            });
+        } else if (type === PreviewSelectType.kmPost) {
+            getKmPost(id as LayoutKmPostId, 'DRAFT').then(
+                (kmPost) =>
+                    kmPost &&
+                    kmPost.location &&
+                    onShowOnMap(calculateBoundingBoxToShowAroundLocation(kmPost.location)),
+            );
+        } else if (type === PreviewSelectType.trackNumber) {
+            getTrackNumberReferenceLine(id, 'DRAFT').then(
+                (referenceLine) =>
+                    referenceLine &&
+                    referenceLine.boundingBox &&
+                    onShowOnMap(referenceLine.boundingBox),
+            );
+        }
+    };
+
     return (
         <div className={styles['preview-table__container']}>
             <Table wide>
@@ -216,6 +273,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     operation={entry.operation}
                                     publish={staged}
                                     changesBeingReverted={changesBeingReverted}
+                                    onShowOnMap={showOnMap}
                                 />
                             }
                         </React.Fragment>

@@ -26,6 +26,7 @@ export type PreviewTableItemProps = {
     onRevert: () => void;
     changesBeingReverted: ChangesBeingReverted | undefined;
     publish?: boolean;
+    onShowOnMap: (id: PublicationId, type: PreviewSelectType) => void;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -42,6 +43,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     onRevert,
     publish = false,
     changesBeingReverted,
+    onShowOnMap,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -51,7 +53,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
     const menuId = () => `contextmenu_${id}_${type}`;
-    const { show } = useContextMenu({
+    const { show, hideAll } = useContextMenu({
         id: menuId(),
     });
 
@@ -126,7 +128,15 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                             )}
                             <div>
                                 <Menu animation={false} id={menuId()}>
-                                    <Item id="1" onClick={() => onRevert()}>
+                                    <Item
+                                        id="1"
+                                        onClick={() => {
+                                            onShowOnMap(id, type);
+                                            hideAll();
+                                        }}>
+                                        {t('publish.show-on-map')}
+                                    </Item>
+                                    <Item id="2" onClick={() => onRevert()}>
                                         {t('publish.revert-change')}
                                     </Item>
                                 </Menu>

@@ -24,6 +24,7 @@ export const PreviewContainer: React.FC = () => {
         onPublish: delegates.onPublish,
         onPreviewSelect: delegates.onPreviewSelect,
         onPublishPreviewRemove: delegates.onPublishPreviewRemove,
+        onShowOnMap: delegates.showArea,
     };
 
     return <PreviewView {...props} />;
