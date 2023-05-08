@@ -1,4 +1,4 @@
-import { TrackKmHeights, TrackMeterHeight } from 'geometry/geometry-api';
+import { TrackKmHeights } from 'geometry/geometry-api';
 import {
     findTrackMeterIndexContainingM,
     getTrackMeterPairAroundIndex,
