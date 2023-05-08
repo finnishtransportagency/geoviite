@@ -477,7 +477,8 @@ class GeometryService @Autowired constructor(
             // hit a specific segment; but points on different sides of a segment boundary are often the exact same
             // point, but potentially have different heights (or more often null/not-null heights).
             val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
-                    + (0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
+                    + (referencePoint.meters.toInt()..(referencePoint.meters.toInt() + referenceLineKmLength) step tickLength)
+                .map { distance -> distance.toBigDecimal() to null }
                     // special-case last point so front-end doesn't have to extrapolate heights at track end
                     ).sortedBy { (trackMeterInKm) -> trackMeterInKm }
 
@@ -510,11 +511,11 @@ private fun getKmLengthAtReferencePointIndex(
     referencePointIndex: Int,
     geocodingContext: GeocodingContext,
 ): Int = floor(
-    (if (referencePointIndex == geocodingContext.referencePoints.size - 1)
+    if (referencePointIndex == geocodingContext.referencePoints.size - 1)
         geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
     else
         geocodingContext.referencePoints[referencePointIndex + 1].distance - geocodingContext.referencePoints[referencePointIndex].distance
-            ) + geocodingContext.referencePoints[referencePointIndex].meters.toDouble()).toInt()
+).toInt()
 
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,
