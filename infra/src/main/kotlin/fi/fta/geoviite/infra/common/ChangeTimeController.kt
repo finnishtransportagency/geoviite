@@ -104,7 +104,7 @@ class ChangeTimeController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/velho-document")
+    @GetMapping("/velho-documents")
     fun getVelhoDocumentChangeTime(): Instant {
         logger.apiCall("getVelhoDocumentChangeTime")
         return Instant.now() // TODO: GVT-1797

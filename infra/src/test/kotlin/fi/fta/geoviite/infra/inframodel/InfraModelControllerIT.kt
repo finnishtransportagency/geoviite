@@ -32,7 +32,7 @@ internal class InfraModelControllerIT @Autowired constructor(
         assertNull(result.geometryPlan)
         assertEquals(1, result.validationErrors.size)
         assertEquals(
-            LocalizationKey("$INFRAMODEL_PARSING_KEY_PARENT.empty"),
+            LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY),
             result.validationErrors[0].localizationKey,
         )
     }

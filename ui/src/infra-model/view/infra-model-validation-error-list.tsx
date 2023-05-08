@@ -1,8 +1,12 @@
 import React from 'react';
 import styles from './form/infra-model-form.module.scss';
-import { CustomValidationError, ErrorType, ValidationResponse } from 'infra-model/infra-model-api';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
+import {
+    CustomValidationError,
+    ErrorType,
+    ValidationResponse,
+} from 'infra-model/infra-model-slice';
 
 type InframodelValidationErrorListProps = {
     validationResponse: ValidationResponse | null;

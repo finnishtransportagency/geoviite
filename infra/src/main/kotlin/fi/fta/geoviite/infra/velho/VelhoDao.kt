@@ -1,13 +1,31 @@
 package fi.fta.geoviite.infra.velho
 
+import VelhoAssignment
+import VelhoCode
+import VelhoDocument
+import VelhoDocumentHeader
+import VelhoEncoding
+import VelhoName
+import VelhoProject
+import VelhoProjectGroup
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.logging.AccessType
+import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.velho.VelhoEncodingType.DOCUMENT_TYPE
+import fi.fta.geoviite.infra.velho.VelhoEncodingType.MATERIAL_GROUP
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
+
+enum class VelhoEncodingType {
+    DOCUMENT_TYPE,
+    MATERIAL_GROUP,
+}
 
 @Transactional
 @Component
@@ -147,6 +165,87 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 rs.getInstant("valid_until")
             )
         }.firstOrNull()
+    }
+
+    fun updateFileStatus(id: IntId<VelhoDocument>, status: FileStatus): IntId<VelhoDocument> {
+        logger.daoAccess(AccessType.UPDATE, VelhoDocument::class, id)
+        val sql = """
+            update integrations.projektivelho_file_metadata
+            set status = :status
+            where id = :id
+            returning id
+        """.trimIndent()
+        val params = mapOf("id" to id.intValue, "status" to status.name)
+        return getOne<VelhoDocument, IntId<VelhoDocument>?>(id, jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getIntId("id")
+        })
+    }
+
+    fun getDocumentHeaders(status: FileStatus?): List<VelhoDocumentHeader> {
+        logger.daoAccess(AccessType.FETCH, VelhoDocument::class)
+        val sql = """
+            select 
+              id,
+              oid,
+              filename,
+              version,
+              description,
+              file_state,
+              category,
+              doc_type,
+              asset_group,
+              change_time, 
+              status
+            from integrations.projektivelho_file_metadata
+            where (:status is null or status = :status)
+        """.trimIndent()
+        val params = mapOf("status" to status?.name)
+        return jdbcTemplate.query(sql, params) { rs, _ -> VelhoDocumentHeader(
+            project = VelhoProject(
+                oid = rs.getOid("project_oid"),
+                name = rs.getVelhoName("project_name"),
+                group = VelhoProjectGroup(
+                    oid = rs.getOid("project_group_oid"),
+                    name =  rs.getVelhoName("project_group_name"),
+                ),
+            ),
+            assignment = VelhoAssignment(
+                name = rs.getVelhoName("assignment_name"),
+                oid = rs.getOid("assignment_oid"),
+            ),
+            materialGroup = getEncoded(MATERIAL_GROUP, rs.getVelhoCode("asset_group")),
+            document = VelhoDocument(
+                id = rs.getIntId("id"),
+                oid = rs.getOid("oid"),
+                name = rs.getFileName("filename"),
+                description = rs.getFreeTextOrNull("description"),
+                type = getEncoded(DOCUMENT_TYPE, rs.getVelhoCode("doc_type")),
+                modified = rs.getInstant("change_time"),
+                status = rs.getEnum("status"),
+            ),
+        )}
+    }
+
+    fun getFileContent(id: IntId<VelhoDocument>): InfraModelFile? {
+        logger.daoAccess(AccessType.FETCH, InfraModelFile::class, id)
+        val sql = """
+            select 
+              metadata.filename,
+              xmlserialize(document content.content as varchar) as file_content
+            from integrations.projektivelho_file_metadata metadata
+              inner join integrations.projektivelho_file content on metadata.id = content.metadata_id
+            where metadata.id = :id
+        """.trimIndent()
+        val params = mapOf("id" to id.intValue)
+        return getOptional(id, jdbcTemplate.query(sql, params) { rs, _ -> InfraModelFile(
+            name = rs.getFileName("filename"),
+            content = rs.getString("file_content"),
+        ) })
+    }
+
+    private fun getEncoded(_type: VelhoEncodingType, code: VelhoCode): VelhoEncoding {
+        // TODO: GVT-1797
+        return VelhoEncoding(code, VelhoName("TBD FETCH $code"))
     }
 
     fun upsertDictionary(user: UserName, type: String, code: String, name: String) {
