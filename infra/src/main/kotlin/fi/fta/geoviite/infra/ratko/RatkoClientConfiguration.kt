@@ -22,7 +22,7 @@ val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 
 class RatkoWebClient(
     val client: WebClient
-)
+) : WebClient by client
 
 @Configuration
 @ConditionalOnProperty(prefix = "geoviite.ratko", name = ["enabled"], havingValue = "true")

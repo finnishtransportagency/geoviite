@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.inframodel.InfraModelService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.util.FileName
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,10 +13,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.temporal.TemporalAmount
 
 val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
+val SECONDS_IN_A_YEAR: Long = 31556926
 
 @Service
 @ConditionalOnBean(VelhoClientConfiguration::class)
@@ -34,11 +38,14 @@ class VelhoService @Autowired constructor(
         return lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
             val latest = velhoDao.fetchLatestFile(PROJEKTIVELHO_DB_USERNAME)
             val searchStatus = velhoClient.postXmlFileSearch(
-                latest?.second
-                    ?: LocalDate.of(2022, 1, 1).atTime(0, 0).toInstant(ZoneOffset.UTC),
+                latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR),
                 latest?.first ?: ""
             )
-            velhoDao.insertFetchInfo(PROJEKTIVELHO_DB_USERNAME, searchStatus.searchId, searchStatus.startTime.plusSeconds(searchStatus.validFor))
+            velhoDao.insertFetchInfo(
+                PROJEKTIVELHO_DB_USERNAME,
+                searchStatus.searchId,
+                searchStatus.startTime.plusSeconds(searchStatus.validFor)
+            )
             return@runWithLock searchStatus
         }
     }
@@ -48,8 +55,15 @@ class VelhoService @Autowired constructor(
         logger.serviceCall("pollAndFetchIfWaiting")
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
             val latestSearch = velhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
+            // Mark previous search as stalled if previous search is supposedly still running after
+            // having outlived its validity period
+            if (latestSearch?.state == FetchStatus.FETCHING && Instant.now() > latestSearch.validUntil) {
+                velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latestSearch.id, FetchStatus.ERROR)
+                return@runWithLock
+            }
+
             val searchResults =
-                if (latestSearch != null && latestSearch.state == FetchStatus.WAITING)
+                if (latestSearch?.state == FetchStatus.WAITING)
                     fetchSearchResults(latestSearch.token)
                 else null
 
@@ -110,9 +124,9 @@ class VelhoService @Autowired constructor(
         )
     }
 
-    fun isRailroadXml(xml: String, filename: String) =
+    fun isRailroadXml(xml: String, filename: FileName) =
         try {
-            infraModelService.parseInfraModel(xml.toByteArray(), filename, null)
+            infraModelService.parseInfraModel(xml.toByteArray(), filename.toString(), null)
             true
         } catch (e: Exception) {
             false

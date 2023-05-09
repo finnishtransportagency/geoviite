@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.velho
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.util.FileName
 import java.time.Instant
 
 // TODO Turn into actual data classes etc.
@@ -118,7 +119,7 @@ data class SearchResult(@JsonProperty("osumat") val matches: List<Match>)
 data class Match(val oid: String)
 data class LatestVersion(
     @JsonProperty("versio") val version: String,
-    @JsonProperty("nimi") val name: String,
+    @JsonProperty("nimi") val name: FileName,
     @JsonProperty("muokattu") val changeTime: Instant
 )
 
@@ -170,7 +171,9 @@ const val PROJEKTIVELHO_SEARCH_STATE_READY = "valmis"
 data class AccessTokenHolder(
     val token: String,
     val expireTime: Instant,
-)
+) {
+    constructor(token: AccessToken) : this(token.accessToken, Instant.now().plusSeconds(token.expiresIn))
+}
 
 data class AccessToken(
     @JsonProperty("access_token") val accessToken: String,

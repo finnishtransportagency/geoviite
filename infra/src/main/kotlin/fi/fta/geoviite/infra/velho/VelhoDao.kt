@@ -136,7 +136,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
 
     fun fetchLatestSearch(username: UserName): ProjektiVelhoSearch? {
         val sql = """
-            select id, token, status, valid_until from integrations.projektivelho_search order by id desc limit 1
+            select id, token, status, valid_until from integrations.projektivelho_search order by valid_until desc limit 1
         """.trimIndent()
         jdbcTemplate.setUser(username)
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->

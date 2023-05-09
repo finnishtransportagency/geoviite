@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -60,25 +61,25 @@ class InfraModelService @Autowired constructor(
 
     fun parseInfraModel(
         file: ByteArray,
-        filename: String,
+        fileName: String,
         contentType: String?,
         overrideParameters: OverrideParameters? = null,
         extraInfoParameters: ExtraInfoParameters? = null,
     ): Pair<GeometryPlan, InfraModelFile> {
         logger.serviceCall(
             "parseInfraModel",
-            "filename" to filename,
+            "filename" to fileName,
             "overrideParameters" to overrideParameters,
             "extraInfoParameters" to extraInfoParameters,
         )
-        checkForEmptyFileAndIncorrectFileType(file, contentType, filename, MediaType.APPLICATION_XML, MediaType.TEXT_XML)
+        checkForEmptyFileAndIncorrectFileType(file, contentType, fileName, MediaType.APPLICATION_XML, MediaType.TEXT_XML)
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
         val trackNumberIdsByNumber = trackNumberService.listOfficial().associate { tn -> tn.number to tn.id as IntId }
 
         val (parsed, imFile) = parseGeometryPlan(
             PlanSource.GEOMETRIAPALVELU,
             file,
-            filename,
+            FileName(fileName),
             overrideParameters?.encoding?.charset,
             geographyService.getCoordinateSystemNameToSridMapping(),
             switchStructuresByType,

@@ -19,15 +19,15 @@ import reactor.netty.http.client.HttpClient
 import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
-val maxFileSize: Int = 1024*1024*1024
+val maxFileSize: Int = 100*1024*1024
 
 class VelhoWebClient(
     val client: WebClient
-)
+): WebClient by client
 
 class VelhoLoginClient(
     val client: WebClient
-)
+): WebClient by client
 
 @Configuration
 @ConditionalOnProperty(prefix = "geoviite.projektivelho", name = ["enabled"], havingValue = "true")

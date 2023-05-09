@@ -7,7 +7,6 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
-import fi.fta.geoviite.infra.velho.projektivelho.*
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
@@ -103,7 +102,7 @@ class FakeVelho (port: Int) {
     }
 
     fun login() {
-        post("/oauth2/token").respond(okJson(AccessToken("mock-token", 3600, "ululu")))
+        post("/oauth2/token").respond(okJson(AccessToken("mock-token", 3600, "test")))
     }
 
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =

@@ -18,11 +18,9 @@ val reloginoffsetSeconds: Long = 60
 @Component
 @ConditionalOnBean(VelhoClientConfiguration::class)
 class VelhoClient @Autowired constructor(
-    webClientHolder: VelhoWebClient,
-    loginClientHolder: VelhoLoginClient
+    val velhoClient: VelhoWebClient,
+    val loginClient: VelhoLoginClient
 ) {
-    private val client = webClientHolder.client
-    private val loginClient = loginClientHolder.client
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val accessToken: AtomicReference<AccessTokenHolder?> = AtomicReference(null)
 
@@ -34,18 +32,13 @@ class VelhoClient @Autowired constructor(
             .retrieve()
             .bodyToMono<AccessToken>()
             .block(defaultBlockTimeout)
-            ?.let { tokenFromVelho ->
-                AccessTokenHolder(
-                    tokenFromVelho.accessToken,
-                    Instant.now().plusSeconds(tokenFromVelho.expiresIn)
-                )
-            }
+            ?.let(::AccessTokenHolder)
             ?: throw IllegalStateException("Projektivelho login failed")
     }
 
     fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): SearchStatus {
         val json = searchJson(fetchStartTime, startOid, 100)
-        return client
+        return velhoClient
             .post()
             .uri("/hakupalvelu/api/v1/taustahaku/kohdeluokat?tagi=aineisto")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
@@ -56,7 +49,7 @@ class VelhoClient @Autowired constructor(
     }
 
     fun fetchVelhoSearches() =
-        client
+        velhoClient
             .get()
             .uri("/hakupalvelu/api/v1/taustahaku/tila?tagit=aineisto")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
@@ -66,7 +59,7 @@ class VelhoClient @Autowired constructor(
             ?: throw IllegalStateException("Fetching running searches from ProjektiVelho failed")
 
     fun fetchSearchResults(searchId: String) =
-        client
+        velhoClient
             .get()
             .uri("/hakupalvelu/api/v1/taustahaku/tulokset/$searchId")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
@@ -76,7 +69,7 @@ class VelhoClient @Autowired constructor(
             ?: throw IllegalStateException("Fetching search results failed. searchId=$searchId")
 
     fun fetchFileMetadata(oid: String) =
-        client
+        velhoClient
             .get()
             .uri("/aineistopalvelu/api/v1/aineisto/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
@@ -85,7 +78,7 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout) ?: throw IllegalStateException("Metadata fetch failed. oid=$oid")
 
     fun fetchFileContent(oid: String, version: String) =
-        client
+        velhoClient
             .get()
             .uri("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti?versio=${version}")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
@@ -93,12 +86,10 @@ class VelhoClient @Autowired constructor(
             .bodyToMono<String>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("File fetch failed. oid=$oid version=$version")
 
-    private fun fetchAccessToken(currentTime: Instant): String {
-        val token = accessToken.get()
-        if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginoffsetSeconds))) {
-            accessToken.set(login())
-        }
-        return accessToken.get()?.token
-            ?: throw IllegalStateException("Projektivelho login token can't be null after login")
-    }
+    private fun fetchAccessToken(currentTime: Instant) =
+        accessToken.updateAndGet { token ->
+            if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginoffsetSeconds))) {
+                login()
+            } else token
+        }?.token ?: throw IllegalStateException("Projektivelho login token can't be null after login")
 }
