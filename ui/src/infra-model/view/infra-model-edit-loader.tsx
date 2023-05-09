@@ -3,23 +3,55 @@ import { useParams } from 'react-router-dom';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import { GeometryPlan } from 'geometry/geometry-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
-import { InfraModelView, InfraModelViewProps } from 'infra-model/view/infra-model-view';
+import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-model-view';
 import { GeometryPlanWithParameters } from 'infra-model/infra-model-slice';
+import {
+    getValidationErrorsForGeometryPlan,
+    updateGeometryPlan,
+    ValidationResponse,
+} from 'infra-model/infra-model-api';
 
 export type InfraModelLoaderProps = {
     setExistingInfraModel: (plan: GeometryPlanWithParameters) => void;
-} & InfraModelViewProps;
+    onValidation: (ValidationResponse: ValidationResponse) => void;
+    setLoading: (loading: boolean) => void;
+} & InfraModelBaseProps;
 
 export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
     setExistingInfraModel,
     ...props
 }) => {
-    const params = useParams<{ id: string }>();
+    const { id: planId } = useParams<{ id: string }>();
     const [isLoading, setIsLoading] = useState(true);
+
+    const extraParams = props.extraInfraModelParameters;
+    const overrideParams = props.overrideInfraModelParameters;
+
+    const onValidate: () => Promise<null> = async () => {
+        if (planId) {
+            props.setLoading(true);
+            props.onValidation(await getValidationErrorsForGeometryPlan(planId, overrideParams));
+            props.setLoading(false);
+        }
+        return null;
+    };
+    // Automatically re-validate whenever the plan or manually input data changes
+    React.useEffect(() => {
+        onValidate();
+    }, [planId, overrideParams]);
+
+    const onSave: () => Promise<boolean> = async () => {
+        if (!planId) return false;
+        props.setLoading(true);
+        const response = await updateGeometryPlan(planId, extraParams, overrideParams);
+        props.setLoading(false);
+        return response != null;
+    };
+
     useEffect(() => {
-        if (params.id !== undefined) {
+        if (planId !== undefined) {
             setIsLoading(true);
-            getGeometryPlan(params.id).then((plan: GeometryPlan | null) => {
+            getGeometryPlan(planId).then((plan: GeometryPlan | null) => {
                 if (plan) {
                     setExistingInfraModel({
                         geometryPlan: plan,
@@ -36,8 +68,14 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
                     setIsLoading(false);
                 }
             });
+            onValidate();
         }
-    }, [params.id]);
+    }, [planId]);
+    useEffect;
 
-    return isLoading ? <Spinner /> : <InfraModelView {...props} />;
+    return isLoading ? (
+        <Spinner />
+    ) : (
+        <InfraModelView {...props} onSave={onSave} onValidate={onValidate} />
+    );
 };

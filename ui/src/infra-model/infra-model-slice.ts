@@ -41,7 +41,7 @@ export type InfraModelState = {
     selection: Selection;
     plan: GeometryPlan | null;
     planLayout: GeometryPlanLayout | null;
-    file: SerializableFile | undefined;
+    file: SerializableFile | undefined; // TODO: GVT-1795 move this to localstorage, stored by uploadloader
     extraInfraModelParameters: ExtraInfraModelParameters;
     overrideInfraModelParameters: OverrideInfraModelParameters;
     validationErrors: ValidationError<InfraModelParameters>[];
@@ -183,13 +183,6 @@ const infraModelSlice = createSlice({
             { payload: key }: PayloadAction<InfraModelParametersProp>,
         ) => {
             state.committedFields = [...state.committedFields, key];
-        },
-        onPlanUpdate: (state: InfraModelState) => {
-            state.validationErrors = validateParams(
-                state.plan,
-                state.extraInfraModelParameters,
-                state.overrideInfraModelParameters,
-            );
         },
         setInfraModelFile: (
             state: InfraModelState,

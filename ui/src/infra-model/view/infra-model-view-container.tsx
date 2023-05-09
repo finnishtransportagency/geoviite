@@ -1,20 +1,12 @@
-import {
-    infraModelActionCreators,
-    InfraModelState,
-    InfraModelViewType,
-} from '../infra-model-slice';
+import { infraModelActionCreators, InfraModelViewType } from '../infra-model-slice';
 import { createDelegates } from 'store/store-utils';
-import { InfraModelView, InfraModelViewProps } from 'infra-model/view/infra-model-view';
-import {
-    GeometryElement,
-    GeometryElementId,
-    GeometrySwitch,
-    GeometrySwitchId,
-} from 'geometry/geometry-model';
-import { getGeometryElementFromPlan, getGeometrySwitchFromPlan } from 'geometry/geometry-utils';
 import React from 'react';
 import { InfraModelEditLoader } from 'infra-model/view/infra-model-edit-loader';
 import { useInfraModelAppSelector, useCommonDataAppSelector } from 'store/hooks';
+import { InfraModelImportLoader } from './infra-model-import-loader';
+import { ValidationResponse } from 'infra-model/infra-model-api';
+import { InfraModelUploadLoader } from './infra-model-upload-loader';
+import { InfraModelBaseProps } from './infra-model-view';
 
 type InfraModelViewContainerProps = {
     viewType: InfraModelViewType;
@@ -28,10 +20,22 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
 
     const delegates = createDelegates(infraModelActionCreators);
 
+    const [isLoading, setLoading] = React.useState(false);
+    // TODO: GVT-1795 this wont persist when visiting another tab. keep the whole response in redux?
+    const [validationResponse, setValidationResponse] = React.useState<ValidationResponse | null>(
+        null,
+    );
+    const onValidation = (validationResponse: ValidationResponse | null) => {
+        setValidationResponse(validationResponse);
+        delegates.onPlanFetchReady({
+            plan: validationResponse?.geometryPlan || null,
+            planLayout: validationResponse?.planLayout || null,
+        });
+    };
+
     const delegatesProps = {
-        onInfraModelExtraParametersChange: delegates.onInfraModelExtraParametersChange,
-        onInfraModelOverrideParametersChange: delegates.onInfraModelOverrideParametersChange,
-        onPlanUpdate: delegates.onPlanUpdate,
+        onExtraParametersChange: delegates.onInfraModelExtraParametersChange,
+        onOverrideParametersChange: delegates.onInfraModelOverrideParametersChange,
         onPlanFetchReady: delegates.onPlanFetchReady,
         onSelect: delegates.onSelect,
         onHighlightItems: delegates.onHighlightItems,
@@ -40,49 +44,40 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         onViewportChange: delegates.onViewportChange,
         onCommitField: delegates.onCommitField,
         showArea: delegates.showArea,
-        setExistingInfraModel: delegates.setExistingInfraModel,
-        getGeometryElement: async (
-            geomElemId: GeometryElementId,
-        ): Promise<GeometryElement | null> => {
-            return infraModelState.plan
-                ? getGeometryElementFromPlan(infraModelState.plan, geomElemId)
-                : null;
-        },
-        getGeometrySwitch: async (
-            geometrySwitchId: GeometrySwitchId,
-        ): Promise<GeometrySwitch | null> => {
-            return infraModelState.plan
-                ? getGeometrySwitchFromPlan(infraModelState.plan, geometrySwitchId)
-                : null;
-        },
+    };
+    const generalProps: InfraModelBaseProps = {
+        ...infraModelState,
+        ...delegatesProps,
+        changeTimes: changeTimes,
+        viewType: viewType,
+        isLoading: isLoading,
+        validationResponse: validationResponse,
     };
 
     switch (viewType) {
         case InfraModelViewType.EDIT:
             return (
                 <InfraModelEditLoader
-                    {...infraModelState}
-                    {...delegatesProps}
-                    changeTimes={changeTimes}
-                    viewType={viewType}
+                    {...generalProps}
+                    onValidation={onValidation}
+                    setExistingInfraModel={delegates.setExistingInfraModel}
+                    setLoading={setLoading}
                 />
             );
         case InfraModelViewType.IMPORT:
             return (
-                <InfraModelView
-                    {...infraModelState}
-                    {...delegatesProps}
-                    changeTimes={changeTimes}
-                    viewType={viewType}
+                <InfraModelImportLoader
+                    {...generalProps}
+                    onValidation={onValidation}
+                    setLoading={setLoading}
                 />
             );
         case InfraModelViewType.UPLOAD:
             return (
-                <InfraModelView
-                    {...infraModelState}
-                    {...delegatesProps}
-                    changeTimes={changeTimes}
-                    viewType={viewType}
+                <InfraModelUploadLoader
+                    {...generalProps}
+                    onValidation={onValidation}
+                    setLoading={setLoading}
                 />
             );
     }

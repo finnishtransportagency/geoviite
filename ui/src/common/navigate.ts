@@ -1,5 +1,5 @@
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { VelhoDocumentId } from 'infra-model/velho/velho-api';
+import { VelhoDocumentId } from 'infra-model/velho/velho-model';
 import { useNavigate } from 'react-router-dom';
 
 const appPath = {

@@ -126,7 +126,7 @@ export async function getVelhoDocuments(
 ): Promise<VelhoDocumentHeader[]> {
     const params = queryParams({ status: status });
     return documentHeadersCache.get(changeTime, status, () =>
-        getWithDefault<VelhoDocumentHeader[]>(`${VELHO_URI}/document-headers${params}`, []),
+        getWithDefault<VelhoDocumentHeader[]>(`${VELHO_URI}/documents${params}`, []),
     );
 }
 
