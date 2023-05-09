@@ -10,6 +10,7 @@ data class TrackMeterHeight(
     val m: Double,
     val meter: Double,
     val height: Double?,
+    val point: Point,
 )
 data class KmHeights(
     val kmNumber: KmNumber,

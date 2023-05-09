@@ -35,7 +35,7 @@ import {
     postIgnoreError,
     queryParams,
 } from 'api/api-fetch';
-import { BoundingBox } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import { MapTile } from 'map/map-model';
 import { getChangeTimes } from 'common/change-time-api';
 import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
@@ -282,6 +282,7 @@ export interface TrackMeterHeight {
     m: number;
     meter: number;
     height: number | null;
+    point: Point;
 }
 
 export interface PlanLinkingSummaryItem {

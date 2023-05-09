@@ -63,7 +63,7 @@ class GeometryServiceIT @Autowired constructor(
             13 to 50,
             15 to 50,
             17 to 50
-        ).map { (m, h) -> TrackMeterHeight(m.toDouble(), m.toDouble(), h?.toDouble()) }
+        ).map { (m, h) -> TrackMeterHeight(m.toDouble(), m.toDouble(), h?.toDouble(), Point(0.0, m.toDouble())) }
         assertEquals(expected, kmHeights[0].trackMeterHeights)
         val linkingSummary = geometryService.getLocationTrackGeometryLinkingSummary(locationTrackId, PublishType.DRAFT)!!
         assertEquals(

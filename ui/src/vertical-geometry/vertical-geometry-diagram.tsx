@@ -22,7 +22,7 @@ import { LocationTrackId } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { PlanLinking } from 'vertical-geometry/plan-linking';
 import { getSnappedPoint } from 'vertical-geometry/snapped-point';
-import { Coordinates } from 'vertical-geometry/coordinates';
+import { Coordinates, xToM } from 'vertical-geometry/coordinates';
 import { PointIndicator } from 'vertical-geometry/point-indicator';
 import { HeightGraph } from 'vertical-geometry/height-graph';
 import { HeightTooltip } from 'vertical-geometry/height-tooltip';
@@ -34,6 +34,12 @@ import {
 } from 'vertical-geometry/ticks-at-intervals';
 import { OnSelectOptions } from 'selection/selection-model';
 import { ChangeTimes } from 'common/common-slice';
+import { BoundingBox } from 'model/geometry';
+import {
+    findTrackMeterIndexContainingM,
+    getTrackMeterPairAroundIndex,
+} from 'vertical-geometry/track-meter-index';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
 const chartHeightPx = 240;
 const topHeightPaddingPx = 120;
@@ -49,6 +55,7 @@ interface VerticalGeometryDiagramProps {
     alignmentId: VerticalGeometryDiagramAlignmentId;
     onSelect: (options: OnSelectOptions) => void;
     changeTimes: ChangeTimes;
+    showArea: (area: BoundingBox) => void;
 }
 
 // we don't really need the station values in the plan geometry for anything in this entire diagram
@@ -230,6 +237,7 @@ const VerticalGeometryDiagram: React.FC<{
     alignmentEndM: number;
     onSelect: (options: OnSelectOptions) => void;
     changeTimes: ChangeTimes;
+    showArea: (area: BoundingBox) => void;
 }> = ({
     alignmentId,
     diagramWidthPx,
@@ -241,6 +249,7 @@ const VerticalGeometryDiagram: React.FC<{
     alignmentEndM,
     onSelect,
     changeTimes,
+    showArea,
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     /**
@@ -342,6 +351,25 @@ const VerticalGeometryDiagram: React.FC<{
         setPanning(e.clientX);
     };
 
+    const onDoubleClick: React.EventHandler<MouseEvent<unknown>> = (e) => {
+        const elementLeft = ref.current?.getBoundingClientRect()?.x;
+        if (elementLeft == null) {
+            return;
+        }
+        const m = xToM(coordinates, e.clientX - elementLeft);
+        const index = findTrackMeterIndexContainingM(m, kmHeights);
+        if (index == null) {
+            return;
+        }
+        const [left, right] = getTrackMeterPairAroundIndex(index, kmHeights);
+        const proportion = (m - left.m) / (right.m - left.m);
+        const point = {
+            x: (1 - proportion) * left.point.x + proportion * right.point.x,
+            y: (1 - proportion) * left.point.y + proportion * right.point.y,
+        };
+        showArea(calculateBoundingBoxToShowAroundLocation(point));
+    };
+
     const onWheel: React.EventHandler<WheelEvent<unknown>> = (e) => {
         const elementLeft = ref.current?.getBoundingClientRect()?.x;
         if (elementLeft == null) {
@@ -394,7 +422,8 @@ const VerticalGeometryDiagram: React.FC<{
                 setPanning(null);
                 setMousePositionInElement(null);
             }}
-            onWheel={onWheel}>
+            onWheel={onWheel}
+            onDoubleClick={onDoubleClick}>
             {snap && elementPosition && (
                 <HeightTooltip
                     point={snap}

@@ -114,6 +114,7 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                             alignmentId={verticalDiagramAlignmentId}
                             onSelect={props.onSelect}
                             changeTimes={props.changeTimes}
+                            showArea={props.showArea}
                         />
                     </div>
                 )}

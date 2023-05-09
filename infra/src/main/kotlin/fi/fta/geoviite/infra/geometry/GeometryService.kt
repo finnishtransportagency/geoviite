@@ -499,6 +499,7 @@ class GeometryService @Autowired constructor(
                                 address.point.m,
                                 address.address.meters.toDouble(),
                                 getHeightAt(address.point.m, segmentIndex),
+                                address.point.toPoint(),
                             )
                         }
                     }.distinct() // don't bother sending segment boundary sides with the same location and height
