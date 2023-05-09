@@ -347,7 +347,7 @@ const VerticalGeometryDiagram: React.FC<{
             {snap && elementPosition && (
                 <HeightTooltip
                     point={snap}
-                    elementPosition={elementPosition}
+                    parentElementRect={elementPosition}
                     coordinates={coordinates}
                 />
             )}
