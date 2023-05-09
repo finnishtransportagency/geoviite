@@ -19,7 +19,10 @@ import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
-class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class PublicationDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    val referenceLineDao: ReferenceLineDao,
+) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
         val sql = """
@@ -33,29 +36,26 @@ class PublicationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
               layout.infer_operation_from_state_transition(
                 official_track_number.state,
                 draft_track_number.state
-              ) as operation,
-              postgis.st_astext(alignment_version.bounding_box) as bounding_box
+              ) as operation
             from layout.track_number_publication_view draft_track_number
               left join layout.track_number_publication_view official_track_number 
                 on draft_track_number.official_id = official_track_number.official_id
                   and 'OFFICIAL' = any(official_track_number.publication_states)
-              left join layout.reference_line_publication_view reference_line
-                on reference_line.track_number_id = draft_track_number.official_id
-                  and 'DRAFT' = any(reference_line.publication_states)
-              left join layout.alignment_version
-                on reference_line.alignment_id = alignment_version.id
-                  and reference_line.alignment_version = alignment_version.version
             where draft_track_number.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            val id = rs.getIntId<TrackLayoutTrackNumber>("official_id")
             TrackNumberPublishCandidate(
-                id = rs.getIntId("official_id"),
+                id = id,
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
                 userName = UserName(rs.getString("change_user")),
-                boundingBox = rs.getBboxOrNull("bounding_box")
+                boundingBox = referenceLineDao
+                                .fetchVersion(PublishType.DRAFT, id)
+                                ?.let(referenceLineDao::fetch)
+                                ?.boundingBox
             )
         }
         logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidate::id))
