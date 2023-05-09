@@ -18,6 +18,7 @@ import {
     VerticalGeometryItem,
 } from 'geometry/geometry-model';
 import {
+    AlignmentStartAndEnd,
     GeometryPlanLayout,
     LayoutSwitch,
     LayoutTrackNumberId,
@@ -41,6 +42,7 @@ import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
@@ -273,7 +275,6 @@ export interface AlignmentHeights {
     kmHeights: TrackKmHeights[];
     alignmentStartM: number;
     alignmentEndM: number;
-    linkingSummary: PlanLinkingSummaryItem[];
 }
 
 export interface TrackMeterHeight {
@@ -287,6 +288,8 @@ export interface PlanLinkingSummaryItem {
     startM: number;
     endM: number;
     filename: string | null;
+    alignmentHeader: AlignmentHeader | null;
+    planId: GeometryPlanId | null;
 }
 
 export interface TrackKmHeights {
@@ -300,10 +303,19 @@ export async function getPlanAlignmentHeights(
     startDistance: number,
     endDistance: number,
     tickLength: number,
-): Promise<AlignmentHeights> {
+): Promise<TrackKmHeights[]> {
     return getThrowError(
         `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
             queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getPlanAlignmentStartAndEnd(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getThrowError<AlignmentStartAndEnd>(
+        `${GEOMETRY_URI}/plans/${planId}/start-and-end/${alignmentId}`,
     );
 }
 
@@ -313,9 +325,18 @@ export async function getLocationTrackHeights(
     startDistance: number,
     endDistance: number,
     tickLength: number,
-): Promise<AlignmentHeights> {
+): Promise<TrackKmHeights[]> {
     return getThrowError(
         `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
             queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getLocationTrackLinkingSummary(
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+): Promise<PlanLinkingSummaryItem[]> {
+    return getThrowError(
+        `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/linking-summary`,
     );
 }

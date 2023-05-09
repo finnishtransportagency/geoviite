@@ -1,13 +1,14 @@
 import React, { MouseEvent, useMemo, useRef, useState, WheelEvent } from 'react';
 import { PublishType } from 'common/common-model';
-import { useLoader } from 'utils/react-utils';
+import { useLoader, useTwoPartEffect } from 'utils/react-utils';
 import { GeometryAlignmentId, GeometryPlanId, VerticalGeometryItem } from 'geometry/geometry-model';
 import {
-    AlignmentHeights,
     getGeometryPlanVerticalGeometry,
     getLocationTrackHeights,
+    getLocationTrackLinkingSummary,
     getLocationTrackVerticalGeometry,
     getPlanAlignmentHeights,
+    getPlanAlignmentStartAndEnd,
     PlanLinkingSummaryItem,
     TrackKmHeights,
 } from 'geometry/geometry-api';
@@ -26,21 +27,19 @@ import { PointIndicator } from 'vertical-geometry/point-indicator';
 import { HeightGraph } from 'vertical-geometry/height-graph';
 import { HeightTooltip } from 'vertical-geometry/height-tooltip';
 import useResizeObserver from 'use-resize-observer';
+import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
+import {
+    minimumApproximateHorizontalTickWidthPx,
+    minimumIntervalOrLongest,
+} from 'vertical-geometry/ticks-at-intervals';
+import { OnSelectOptions } from 'selection/selection-model';
+import { ChangeTimes } from 'common/common-slice';
 
-// this is a rough approximation using the assumption that 1 track meter = 1 m-value meter
-const minimumApproximateHorizontalTickWidthPx = 15;
 const chartHeightPx = 240;
 const topHeightPaddingPx = 120;
 const bottomHeightPaddingPx = 0;
 const fullDiagramHeightPx = 300;
 const minimumPixelWidthToDrawTangentArrows = 0.05;
-
-// units of track meter distance; but the tick length is chosen based on m-value distances, so curved side tracks can
-// stretch or shrink on the diagram
-// values beyond 1000 don't make much sense, as the backend returns at least a starting tick for each track kilometer
-// in order to keep in sync with track addressing
-// values have to be integers for backend implementation simplicity
-const horizontalTickLengthsMeters = [1000, 500, 250, 100, 50, 25, 10, 5, 2, 1];
 
 type VerticalGeometryDiagramAlignmentId =
     | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
@@ -48,18 +47,8 @@ type VerticalGeometryDiagramAlignmentId =
 
 interface VerticalGeometryDiagramProps {
     alignmentId: VerticalGeometryDiagramAlignmentId;
-    initialStartM: number;
-    initialEndM: number;
-}
-
-function chooseHorizontalTickLengthMeters(distanceMeters: number, diagramWidthPx: number): number {
-    const meterWidthPx = diagramWidthPx / distanceMeters;
-    const firstTooDenseIndex = horizontalTickLengthsMeters.findIndex(
-        (widthM) => meterWidthPx * widthM < minimumApproximateHorizontalTickWidthPx,
-    );
-    return firstTooDenseIndex == -1
-        ? horizontalTickLengthsMeters[horizontalTickLengthsMeters.length - 1]
-        : horizontalTickLengthsMeters[Math.max(0, firstTooDenseIndex - 1)];
+    onSelect: (options: OnSelectOptions) => void;
+    changeTimes: ChangeTimes;
 }
 
 // we don't really need the station values in the plan geometry for anything in this entire diagram
@@ -96,7 +85,8 @@ function processGeometries(
                 geom.fileName === linkedAreaSourceFile(geom.start.station) ||
                 geom.fileName === linkedAreaSourceFile(geom.end.station) ||
                 geom.fileName === linkedAreaSourceFile(geom.point.station),
-        );
+        )
+        .sort((a, b) => a.point.station - b.point.station);
 }
 
 function minAndMaxHeights(
@@ -130,7 +120,7 @@ function loadAlignmentHeights(
     startM: number,
     endM: number,
     horizontalTickLengthMeters: number,
-): Promise<AlignmentHeights> {
+): Promise<TrackKmHeights[]> {
     return 'planId' in alignmentId
         ? getPlanAlignmentHeights(
               alignmentId.planId,
@@ -161,41 +151,70 @@ function loadGeometry(
 }
 
 const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> = ({
-    initialStartM,
-    initialEndM,
     alignmentId,
+    ...rest
 }) => {
     const ref = useRef<HTMLDivElement>(null);
     /**
      startM and endM are the endpoints of the visible parts of the diagram, in m-values (not necessarily hitting the
      m-values of actual points on the alignment)
      */
-    const [startM, setStartM] = useState(initialStartM);
-    const [endM, setEndM] = useState(initialEndM);
+    const [startM, setStartM] = useState<number>();
+    const [endM, setEndM] = useState<number>();
+    const [alignmentStartM, setAlignmentStartM] = useState<number>();
+    const [alignmentEndM, setAlignmentEndM] = useState<number>();
     const [oldWidth, setOldWidth] = useState<number>();
     useResizeObserver({
         ref,
         onResize: ({ width }) => {
             setOldWidth(ref.current?.clientWidth);
-            if (width === undefined || oldWidth === undefined) {
+            if (
+                width === undefined ||
+                oldWidth === undefined ||
+                startM === undefined ||
+                endM === undefined
+            ) {
                 return;
             }
-            setEndM((oldEndM) => startM + (oldEndM - startM) * (width / oldWidth));
+            setEndM(startM + (endM - startM) * (width / oldWidth));
         },
     });
 
+    useTwoPartEffect(
+        () =>
+            'planId' in alignmentId
+                ? getPlanAlignmentStartAndEnd(alignmentId.planId, alignmentId.alignmentId)
+                : getLocationTrackStartAndEnd(alignmentId.locationTrackId, alignmentId.publishType),
+        (startAndEnd) => {
+            const start = startAndEnd?.start?.point?.m;
+            const end = startAndEnd?.end?.point?.m;
+            setStartM(start);
+            setAlignmentStartM(start);
+            setEndM(end);
+            setAlignmentEndM(end);
+        },
+        [alignmentId],
+    );
+
     return (
         <div ref={ref}>
-            {ref.current && (
-                <VerticalGeometryDiagram
-                    diagramWidthPx={ref.current.clientWidth}
-                    alignmentId={alignmentId}
-                    startM={startM}
-                    setStartM={setStartM}
-                    endM={endM}
-                    setEndM={setEndM}
-                />
-            )}
+            {ref.current &&
+                startM !== undefined &&
+                endM !== undefined &&
+                alignmentStartM !== undefined &&
+                alignmentEndM !== undefined && (
+                    <VerticalGeometryDiagram
+                        diagramWidthPx={ref.current.clientWidth}
+                        alignmentId={alignmentId}
+                        startM={startM}
+                        setStartM={setStartM}
+                        endM={endM}
+                        setEndM={setEndM}
+                        alignmentStartM={alignmentStartM}
+                        alignmentEndM={alignmentEndM}
+                        {...rest}
+                    />
+                )}
         </div>
     );
 };
@@ -207,7 +226,22 @@ const VerticalGeometryDiagram: React.FC<{
     endM: number;
     setStartM: React.Dispatch<React.SetStateAction<number>>;
     setEndM: React.Dispatch<React.SetStateAction<number>>;
-}> = ({ alignmentId, diagramWidthPx, startM, endM, setStartM, setEndM }) => {
+    alignmentStartM: number;
+    alignmentEndM: number;
+    onSelect: (options: OnSelectOptions) => void;
+    changeTimes: ChangeTimes;
+}> = ({
+    alignmentId,
+    diagramWidthPx,
+    startM,
+    endM,
+    setStartM,
+    setEndM,
+    alignmentStartM,
+    alignmentEndM,
+    onSelect,
+    changeTimes,
+}) => {
     const ref = useRef<HTMLDivElement>(null);
     /**
      panning is the X pixel value where our last panning movement started, or null if we're not currently panning
@@ -216,9 +250,9 @@ const VerticalGeometryDiagram: React.FC<{
     const [mousePositionInElement, setMousePositionInElement] = useState<null | [number, number]>(
         null,
     );
-    const horizontalTickLengthMeters = chooseHorizontalTickLengthMeters(
-        endM - startM,
-        diagramWidthPx,
+    const horizontalTickLengthMeters = minimumIntervalOrLongest(
+        diagramWidthPx / (endM - startM),
+        minimumApproximateHorizontalTickWidthPx,
     );
 
     const debouncedLoadAlignmentHeights = useMemo(
@@ -226,34 +260,44 @@ const VerticalGeometryDiagram: React.FC<{
         [alignmentId],
     );
 
-    const alignmentHeights = useLoader(
-        () => debouncedLoadAlignmentHeights(alignmentId, startM, endM, horizontalTickLengthMeters),
-        [alignmentId, startM, endM, horizontalTickLengthMeters],
+    const [kmHeights, kmHeightsLoadedForAlignmentId] = useLoader(
+        () =>
+            debouncedLoadAlignmentHeights(
+                alignmentId,
+                startM,
+                endM,
+                horizontalTickLengthMeters,
+            ).then((r) => [r, alignmentId]),
+        [alignmentId, startM, endM, horizontalTickLengthMeters, changeTimes.layoutLocationTrack],
+    ) ?? [[], undefined];
+
+    const linkingSummary = useLoader(
+        () =>
+            'planId' in alignmentId
+                ? undefined
+                : getLocationTrackLinkingSummary(
+                      alignmentId.locationTrackId,
+                      alignmentId.publishType,
+                  ),
+        [alignmentId, changeTimes.layoutLocationTrack],
     );
 
-    const rawGeometry = useLoader(() => loadGeometry(alignmentId), [alignmentId]);
+    const [rawGeometry, geometryLoadedForAlignmentId] = useLoader(
+        () =>
+            loadGeometry(alignmentId).then(
+                (rawGeometry) => rawGeometry && [rawGeometry, alignmentId],
+            ),
+        [alignmentId, changeTimes.layoutLocationTrack],
+    ) ?? [[], undefined];
     const geometry = useMemo(
         () =>
-            alignmentHeights == undefined || rawGeometry == undefined
-                ? undefined
-                : // the linking summary is currently only loaded as part of alignmentHeights for convenience; it doesn't
-                  // actually change with startM/endM/tickLength
-                  processGeometries(rawGeometry, alignmentHeights.linkingSummary),
-        [alignmentHeights === undefined, rawGeometry, alignmentId],
+            linkingSummary == undefined || rawGeometry == undefined
+                ? []
+                : processGeometries(rawGeometry, linkingSummary),
+        [rawGeometry, linkingSummary],
     );
     const elementPosition = ref.current?.getBoundingClientRect();
 
-    if (alignmentHeights == undefined || geometry == undefined || elementPosition == undefined) {
-        return <div ref={ref} />;
-    }
-    if (
-        geometry.length == 0 &&
-        !alignmentHeights.kmHeights.some((km) => km.trackMeterHeights.some((h) => h.height != null))
-    ) {
-        return <>(ei korkeuksia raiteella)</>;
-    }
-
-    const { kmHeights, alignmentStartM, alignmentEndM, linkingSummary } = alignmentHeights;
     const mMeterLengthPxOverM = diagramWidthPx / (endM - startM);
 
     const [minHeight, maxHeight] = minAndMaxHeights(kmHeights, geometry);
@@ -321,13 +365,20 @@ const VerticalGeometryDiagram: React.FC<{
 
     const drawTangentArrows =
         coordinates.mMeterLengthPxOverM > minimumPixelWidthToDrawTangentArrows;
-    const snap = getSnappedPoint(
-        mousePositionInElement,
-        kmHeights,
-        geometry,
-        coordinates,
-        drawTangentArrows,
-    );
+
+    const stateIsConsistentByAlignmentId =
+        geometryLoadedForAlignmentId === alignmentId &&
+        kmHeightsLoadedForAlignmentId === alignmentId;
+
+    const snap =
+        stateIsConsistentByAlignmentId &&
+        getSnappedPoint(
+            mousePositionInElement,
+            kmHeights,
+            geometry,
+            coordinates,
+            drawTangentArrows,
+        );
 
     return (
         <div
@@ -356,27 +407,45 @@ const VerticalGeometryDiagram: React.FC<{
                     panning != null && styles['vertical-geometry-diagram__panning']
                 }`}
                 height={fullDiagramHeightPx}>
-                <HeightLines coordinates={coordinates} />
-                <LabeledTicks trackKmHeights={kmHeights} coordinates={coordinates} />
-                {'locationTrackId' in alignmentId && (
-                    <PlanLinking coordinates={coordinates} planLinkingSummary={linkingSummary} />
-                )}
-                <HeightGraph coordinates={coordinates} kmHeights={kmHeights} />
-                <PviGeometry
-                    geometry={geometry}
-                    kmHeights={kmHeights}
-                    coordinates={coordinates}
-                    drawTangentArrows={drawTangentArrows}
-                />
-                <HeightLabels coordinates={coordinates} />
-                <Translate x={0} y={240}>
-                    <TrackAddressRuler
-                        kmHeights={kmHeights}
-                        heightPx={40}
-                        coordinates={coordinates}
+                {stateIsConsistentByAlignmentId ? (
+                    <>
+                        <HeightLines coordinates={coordinates} />
+                        <LabeledTicks trackKmHeights={kmHeights} coordinates={coordinates} />
+                        {linkingSummary !== undefined && (
+                            <PlanLinking
+                                coordinates={coordinates}
+                                planLinkingSummary={linkingSummary}
+                                onSelect={onSelect}
+                            />
+                        )}
+
+                        <HeightGraph coordinates={coordinates} kmHeights={kmHeights} />
+                        <PviGeometry
+                            geometry={geometry}
+                            kmHeights={kmHeights}
+                            coordinates={coordinates}
+                            drawTangentArrows={drawTangentArrows}
+                        />
+                        <HeightLabels coordinates={coordinates} />
+                        <Translate x={0} y={240}>
+                            <TrackAddressRuler
+                                kmHeights={kmHeights}
+                                heightPx={40}
+                                coordinates={coordinates}
+                            />
+                        </Translate>
+                        {snap && <PointIndicator point={snap} />}
+                    </>
+                ) : (
+                    <rect
+                        x={0}
+                        y={0}
+                        width={diagramWidthPx}
+                        height={fullDiagramHeightPx}
+                        fill="grey"
+                        opacity={0.8}
                     />
-                </Translate>
-                {snap && <PointIndicator point={snap} />}
+                )}
             </svg>
         </div>
     );

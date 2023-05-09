@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
@@ -317,19 +318,39 @@ class GeometryService @Autowired constructor(
         return alignment.segments.map { segment ->
             val sourceId = segment.sourceId
             if (sourceId == null || sourceId !is IndexedId || segment.sourceStart == null) {
-                SegmentSource(null, null, null)
+                SegmentSource(null, null, null, null)
             } else {
                 val planAlignmentId = IntId<GeometryAlignment>(sourceId.parentId)
                 val planVersion =
                     planAlignmentIdToPlans.computeIfAbsent(planAlignmentId, geometryDao::fetchAlignmentPlanVersion)
                 val plan = geometryDao.fetchPlan(planVersion)
                 val planAlignment = plan.alignments.find { alignment -> alignment.id == planAlignmentId }
-                    ?: return@map SegmentSource(null, null, plan)
-                val planProfile = planAlignment.profile ?: return@map SegmentSource(null, null, plan)
+                    ?: return@map SegmentSource(null, null, null, plan)
+                val planProfile = planAlignment.profile ?: return@map SegmentSource(null, null, null, plan)
                 val planElement = planAlignment.elements[sourceId.index]
-                SegmentSource(planProfile, planElement, plan)
+                SegmentSource(planProfile, planElement, planAlignment, plan)
             }
         }
+    }
+
+    fun getLocationTrackGeometryLinkingSummary(locationTrackId: IntId<LocationTrack>, publishType: PublishType): List<PlanLinkingSummaryItem>? {
+        val locationTrack = locationTrackService.get(publishType, locationTrackId) ?: return null
+        val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
+        val segmentSources = collectSegmentSources(alignment)
+        val planLinkEndSegmentIndices = segmentSources
+            .zipWithNext { a, b -> a.plan == b.plan }
+            .mapIndexedNotNull { i, equals -> if (equals) null else i }
+        return (listOf(-1) + planLinkEndSegmentIndices + listOf(alignment.segments.lastIndex))
+            .windowed(2, 1)
+            .map { (lastPlanEndIndex, thisPlanEndIndex) ->
+                PlanLinkingSummaryItem(
+                    alignment.segments[lastPlanEndIndex + 1].startM,
+                    alignment.segments[thisPlanEndIndex].endM,
+                    segmentSources[thisPlanEndIndex].plan?.fileName,
+                    segmentSources[thisPlanEndIndex].alignment?.let(::toAlignmentHeader),
+                    segmentSources[thisPlanEndIndex].plan?.id,
+                )
+            }
     }
 
     fun getLocationTrackHeights(
@@ -338,7 +359,7 @@ class GeometryService @Autowired constructor(
         startDistance: Double,
         endDistance: Double,
         tickLength: Int,
-    ): AlignmentHeights? {
+    ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(publishType, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
         val geocodingContext =
@@ -348,17 +369,6 @@ class GeometryService @Autowired constructor(
         val planLinkEndSegmentIndices = segmentSources
             .zipWithNext { a, b -> a.plan == b.plan }
             .mapIndexedNotNull { i, equals -> if (equals) null else i }
-
-        val linkingSummary =
-            (listOf(-1) + planLinkEndSegmentIndices + listOf(alignment.segments.lastIndex))
-            .windowed(2, 1)
-            .map { (lastPlanEndIndex, thisPlanEndIndex) ->
-                PlanLinkingSummaryItem(
-                    alignment.segments[lastPlanEndIndex + 1].startM,
-                    alignment.segments[thisPlanEndIndex].endM,
-                    segmentSources[thisPlanEndIndex].plan?.fileName,
-                )
-            }
 
         val planBoundaryAddresses =
             planLinkEndSegmentIndices.flatMap { i ->
@@ -383,14 +393,21 @@ class GeometryService @Autowired constructor(
             val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
             val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
             source.profile?.getHeightAt(distanceInGeometryAlignment)
-        }?.let { trackMeterHeights ->
-            AlignmentHeights(
-                alignmentStartM = alignment.start?.m ?: return null,
-                alignmentEndM = alignment.end?.m ?: return null,
-                kmHeights = trackMeterHeights,
-                linkingSummary = linkingSummary,
-            )
         }
+    }
+
+    fun getPlanAlignmentStartAndEnd(
+        planId: IntId<GeometryPlan>,
+        planAlignmentId: IntId<GeometryAlignment>,
+    ): AlignmentStartAndEnd? {
+        val planVersion = geometryDao.fetchPlanVersion(planId)
+        val plan = geometryDao.fetchPlan(planVersion)
+        val geocodingContext =
+            geocodingService.getGeocodingContext(plan.trackNumberId ?: return null, planVersion) ?: return null
+        val alignment =
+            planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment -> alignment.id == planAlignmentId }
+                ?: return null
+        return geocodingContext.getStartAndEnd(alignment)
     }
 
     fun getPlanAlignmentHeights(
@@ -399,7 +416,7 @@ class GeometryService @Autowired constructor(
         startDistance: Double,
         endDistance: Double,
         tickLength: Int,
-    ): AlignmentHeights? {
+    ): List<KmHeights>? {
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
         val geocodingContext =
@@ -409,23 +426,13 @@ class GeometryService @Autowired constructor(
         val alignment =
             planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment -> alignment.id == planAlignmentId }
                 ?: return null
-        val alignmentStartM = geometryAlignment.elements[0].staStart.toDouble()
-        val alignmentEndM =
-            (geometryAlignment.elements.last().staStart + geometryAlignment.elements.last().length).toDouble()
         return collectTrackMeterHeights(
             startDistance,
             endDistance,
             geocodingContext,
             alignment,
             tickLength
-        ) { distance, _ -> profile.getHeightAt(distance) }?.let { trackMeterHeights ->
-            AlignmentHeights(
-                alignmentStartM = alignmentStartM,
-                alignmentEndM = alignmentEndM,
-                kmHeights = trackMeterHeights,
-                linkingSummary = listOf(PlanLinkingSummaryItem(alignmentStartM, alignmentEndM, plan.fileName)),
-            )
-        }
+        ) { distance, _ -> profile.getHeightAt(distance) }
     }
 
     private fun collectTrackMeterHeights(
@@ -470,7 +477,8 @@ class GeometryService @Autowired constructor(
             // hit a specific segment; but points on different sides of a segment boundary are often the exact same
             // point, but potentially have different heights (or more often null/not-null heights).
             val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
-                    + (0..referenceLineKmLength step tickLength).map { distance -> distance.toBigDecimal() to null }
+                    + (referencePoint.meters.toInt()..(referencePoint.meters.toInt() + referenceLineKmLength) step tickLength)
+                .map { distance -> distance.toBigDecimal() to null }
                     // special-case last point so front-end doesn't have to extrapolate heights at track end
                     ).sortedBy { (trackMeterInKm) -> trackMeterInKm }
 
@@ -546,6 +554,7 @@ enum class GeometryPlanSortField {
 private data class SegmentSource(
     val profile: GeometryProfile?,
     val element: GeometryElement?,
+    val alignment: GeometryAlignment?,
     val plan: GeometryPlan?,
 )
 

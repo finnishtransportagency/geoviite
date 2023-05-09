@@ -9,7 +9,7 @@ import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
 
 const minimumSpacePxForPviPointSideLabels = 10;
-const minimumSpacePxForPviPointTopLabel = 8;
+const minimumSpacePxForPviPointTopLabel = 16;
 const minimumSpaceForTangentArrowLabel = 14;
 
 function tangentArrow(

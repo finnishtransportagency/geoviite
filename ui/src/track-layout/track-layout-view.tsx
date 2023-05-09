@@ -1,5 +1,6 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
+import { useMemo } from 'react';
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { MapContext } from 'map/map-store';
 import { MapViewport, OptionalShownItems } from 'map/map-model';
@@ -19,6 +20,8 @@ import { BoundingBox } from 'model/geometry';
 import { PublishType } from 'common/common-model';
 import { LinkPoint } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
+import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
+import { createClassName } from 'vayla-design-lib/utils';
 
 // For now use whole state and some extras as params
 export type TrackLayoutParams = TrackLayoutState & {
@@ -47,8 +50,23 @@ export type TrackLayoutParams = TrackLayoutState & {
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutParams) => {
+    const verticalDiagramAlignmentId = useMemo(
+        () =>
+            props.selection.selectedItems.locationTracks[0] && {
+                locationTrackId: props.selection.selectedItems.locationTracks[0],
+                publishType: props.publishType,
+            },
+        [props.selection.selectedItems.locationTracks[0], props.publishType],
+    );
+
+    const showVerticalGeometryDiagram =
+        props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;
+    const className = createClassName(
+        styles['track-layout'],
+        showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
+    );
     return (
-        <div className={styles['track-layout']} qa-id="track-layout-content">
+        <div className={className} qa-id="track-layout-content">
             <ToolBar
                 settingsVisible={props.map.settingsVisible}
                 publishType={props.publishType}
@@ -89,6 +107,16 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                         <SelectionPanelContainer />
                     </MapContext.Provider>
                 </div>
+
+                {showVerticalGeometryDiagram && verticalDiagramAlignmentId && (
+                    <div className={styles['track-layout__diagram']}>
+                        <VerticalGeometryDiagram
+                            alignmentId={verticalDiagramAlignmentId}
+                            onSelect={props.onSelect}
+                            changeTimes={props.changeTimes}
+                        />
+                    </div>
+                )}
 
                 <div className={styles['track-layout__map']}>
                     {props.map.settingsVisible && (
