@@ -20,7 +20,6 @@ import jakarta.xml.bind.Marshaller
 import jakarta.xml.bind.UnmarshalException
 import jakarta.xml.bind.Unmarshaller
 import org.springframework.http.MediaType
-import org.springframework.web.multipart.MultipartFile
 import org.xml.sax.InputSource
 import java.io.File
 import java.io.StringReader
@@ -94,7 +93,7 @@ fun toSaxSource(xmlString: String) = SAXSource(
 fun parseGeometryPlan(
     source: PlanSource,
     file: File,
-    fileName: String = file.name,
+    fileName: FileName = FileName(file.name),
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
@@ -113,14 +112,15 @@ fun parseGeometryPlan(
 
 fun parseGeometryPlan(
     source: PlanSource,
-    file: MultipartFile,
+    file: ByteArray,
+    fileName: FileName,
     fileEncodingOverride: Charset?,
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(file, fileEncodingOverride)
+    val imFile = toInfraModelFile(file, fileName, fileEncodingOverride)
     return parseInfraModelFile(
         source,
         imFile,
@@ -139,7 +139,7 @@ fun parseFromClasspath(
     switchTypeNameAliases: Map<String, String>,
     trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): Pair<GeometryPlan, InfraModelFile> {
-    val imFile = toInfraModelFile(fileName, classpathResourceToString(fileName))
+    val imFile = toInfraModelFile(FileName(fileName), classpathResourceToString(fileName))
     return parseInfraModelFile(
         source,
         imFile,
@@ -150,11 +150,11 @@ fun parseFromClasspath(
     ) to imFile
 }
 
-fun toInfraModelFile(file: MultipartFile, fileEncodingOverride: Charset?) =
-    toInfraModelFile(file.originalFilename ?: file.name, fileToString(file, fileEncodingOverride))
+fun toInfraModelFile(file: ByteArray, fileName: FileName, fileEncodingOverride: Charset?) =
+    toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
 
-fun toInfraModelFile(fileName: String, fileContent: String) =
-    InfraModelFile(name = FileName(fileName), content = censorAuthorIdentifyingInfo(fileContent))
+fun toInfraModelFile(fileName: FileName, fileContent: String) =
+    InfraModelFile(name = fileName, content = censorAuthorIdentifyingInfo(fileContent))
 
 fun parseInfraModelFile(
     source: PlanSource,
@@ -193,24 +193,24 @@ fun classpathResourceToString(fileName: String): String {
     return xmlBytesToString(resource.readBytes())
 }
 
-fun fileToString(file: MultipartFile, encodingOverride: Charset?): String {
-    return xmlBytesToString(file.bytes, encodingOverride)
+fun fileToString(file: ByteArray, encodingOverride: Charset?): String {
+    return xmlBytesToString(file, encodingOverride)
 }
 
 fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
 }
 
-fun checkForEmptyFileAndIncorrectFileType(file: MultipartFile, vararg fileContentTypes: MediaType) {
-    if (file.isEmpty) {
+fun checkForEmptyFileAndIncorrectFileType(file: ByteArray, contentType: String?, fileName: String, vararg fileContentTypes: MediaType) {
+    if (file.isEmpty()) {
         throw InframodelParsingException(
-            message = "File \"${file.name}\" is empty",
+            message = "File \"${fileName}\" is empty",
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
         )
     }
-    if (file.contentType?.let { !fileContentTypes.contains(MediaType.valueOf(it)) } == true) {
+    if (contentType?.let { !fileContentTypes.contains(MediaType.valueOf(it)) } == true) {
         throw InframodelParsingException(
-            message = "File's ${file.name} type is incorrect: ${file.contentType}",
+            message = "File's ${fileName} type is incorrect: ${contentType}",
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type",
         )
     }

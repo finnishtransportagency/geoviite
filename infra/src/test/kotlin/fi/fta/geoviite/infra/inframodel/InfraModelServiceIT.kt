@@ -4,6 +4,7 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -30,7 +31,7 @@ class InfraModelServiceIT @Autowired constructor(
     fun simpleFileIsWrittenAndReadCorrectly() {
         val file = getMockedMultipartFile(TESTFILE_SIMPLE)
 
-        val (parsedPlan, _) = infraModelService.parseInfraModel(file)
+        val (parsedPlan, _) = infraModelService.parseInfraModel(file.bytes, file.originalFilename, file.contentType)
         val planId = infraModelService.saveInfraModel(file, null, null)
 
         assertPlansMatch(parsedPlan, geometryDao.fetchPlan(planId))
@@ -40,7 +41,7 @@ class InfraModelServiceIT @Autowired constructor(
     fun differentSpiralsAreWrittenAndReadCorrectly() {
         val file = getMockedMultipartFile(TESTFILE_CLOTHOID_AND_PARABOLA)
 
-        val (parsedPlan, _) = infraModelService.parseInfraModel(file)
+        val (parsedPlan, _) = infraModelService.parseInfraModel(file.bytes, file.originalFilename, file.contentType)
         val planId = infraModelService.saveInfraModel(file, null, null)
 
         assertPlansMatch(parsedPlan, geometryDao.fetchPlan(planId))
