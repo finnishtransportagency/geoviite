@@ -53,3 +53,9 @@ geoviite:
     url: "${RATKO_URL:}"
     username: "${RATKO_USERNAME:}"
     password: "${RATKO_PASSWORD:}"
+  projektivelho:
+    enabled: "${PROJEKTIVELHO_ENABLED:false}"
+    url: "${PROJEKTIVELHO_URL:}"
+    login_url: "${PROJEKTIVELHO_LOGIN_URL:}"
+    client_id: "${PROJEKTIVELHO_CLIENT_ID:}"
+    client_secret: "${PROJEKTIVELHO_CLIENT_SECRET:}"
