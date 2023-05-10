@@ -5,6 +5,9 @@ const appPath = {
     'inframodel-list': '/infra-model',
     'inframodel-upload': '/infra-model/upload',
     'inframodel-edit': (id: GeometryPlanId) => `/infra-model/edit/${id}`,
+    'inframodel-plans': '/infra-model/plans',
+    'inframodel-waiting': '/infra-model/waiting-for-approval',
+    'inframodel-rejected': '/infra-model/rejected',
 } as const;
 
 type AppNavigateFunction = <K extends keyof typeof appPath>(

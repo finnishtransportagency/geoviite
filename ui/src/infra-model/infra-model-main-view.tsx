@@ -2,13 +2,12 @@ import React from 'react';
 import styles from './infra-model-main.scss';
 import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-container';
 import { Route, Routes } from 'react-router-dom';
-import { InfraModelViewType } from 'infra-model/infra-model-slice';
+import { InfraModelTabType, InfraModelViewType } from 'infra-model/infra-model-slice';
 import TabContainer from 'infra-model/tabs/tab-container';
-import { useCommonDataAppSelector } from 'store/hooks';
-//import { InfraModelTabType } from 'common/common-slice';
+import { useInfraModelAppSelector } from 'store/hooks';
 
 export const InfraModelMainView: React.FC = () => {
-    const activeTab = useCommonDataAppSelector((state) => state.infraModelActiveTab);
+    const activeInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
 
     return (
         <div className={styles['infra-model-main']}>
@@ -21,9 +20,7 @@ export const InfraModelMainView: React.FC = () => {
                     path="/upload"
                     element={<InfraModelViewContainer viewType={InfraModelViewType.UPLOAD} />}
                 />
-
-                <Route path="/" element={<TabContainer activeTab={activeTab} />} />
-                {/*
+                <Route path="/" element={<TabContainer activeTab={activeInfraModelTab} />} />
                 <Route
                     path="/plans"
                     element={<TabContainer activeTab={InfraModelTabType.PLAN} />}
@@ -36,7 +33,6 @@ export const InfraModelMainView: React.FC = () => {
                     path="/rejected"
                     element={<TabContainer activeTab={InfraModelTabType.REJECTED} />}
                 />
-                */}
             </Routes>
         </div>
     );

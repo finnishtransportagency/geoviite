@@ -1,14 +1,14 @@
 import React from 'react';
-import { InfraModelTabType } from 'common/common-slice';
+import { InfraModelTabType } from 'infra-model/infra-model-slice';
 
 export type TabContentProps = {
-    id: InfraModelTabType;
+    tabId: InfraModelTabType;
     activeTab: InfraModelTabType;
     children: React.ReactNode;
 };
 
-const TabContent: React.FC<TabContentProps> = ({ id, activeTab, children }) => {
-    return activeTab === id ? <div className="TabContent">{children}</div> : null;
+const TabContent: React.FC<TabContentProps> = ({ tabId, activeTab, children }) => {
+    return activeTab === tabId ? <div className="TabContent">{children}</div> : null;
 };
 
 export default TabContent;

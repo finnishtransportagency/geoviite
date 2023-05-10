@@ -6,6 +6,8 @@ import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
+import { useInfraModelAppSelector } from 'store/hooks';
+import { InfraModelTabType } from 'infra-model/infra-model-slice';
 
 type Link = {
     link: string;
@@ -30,6 +32,17 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
+    const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
+
+    function getInfraModelLink(): string {
+        if (selectedInfraModelTab === InfraModelTabType.PLAN) {
+            return '/infra-model';
+        } else if (selectedInfraModelTab === InfraModelTabType.WAITING) {
+            return '/infra-model/waiting-for-approval';
+        } else {
+            return '/infra-model/rejected';
+        }
+    }
 
     return (
         <nav className={styles['app-bar']}>
@@ -44,7 +57,11 @@ export const AppBar: React.FC = () => {
                             <EnvRestricted restrictTo={link.type} key={link.name}>
                                 <li>
                                     <NavLink
-                                        to={link.link}
+                                        to={
+                                            link.link === '/infra-model'
+                                                ? getInfraModelLink()
+                                                : link.link
+                                        }
                                         className={({ isActive }) =>
                                             `${styles['app-bar__link']} ${
                                                 isActive ? styles['app-bar__link--active'] : ''
