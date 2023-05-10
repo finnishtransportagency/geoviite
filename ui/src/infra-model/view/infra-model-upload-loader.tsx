@@ -4,16 +4,16 @@ import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-mode
 import {
     getValidationErrorsForInfraModelFile,
     saveInfraModelFile,
-    ValidationResponse,
 } from 'infra-model/infra-model-api';
 import { convertToNativeFile, SerializableFile } from 'utils/file-utils';
 import { useTranslation } from 'react-i18next';
 import { useAppNavigate } from 'common/navigate';
 import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
+import { ValidationResponse } from 'infra-model/infra-model-slice';
 
 export type InfraModelUploadLoaderProps = InfraModelBaseProps & {
     file: SerializableFile | undefined; // TODO: GVT-1795 move this to localstorage, stored by uploadloader
-    onValidation: (ValidationResponse: ValidationResponse) => void;
+    onValidation: (validationResponse: ValidationResponse) => void;
     setLoading: (loading: boolean) => void;
 };
 

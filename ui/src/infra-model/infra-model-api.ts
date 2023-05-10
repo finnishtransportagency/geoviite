@@ -7,34 +7,17 @@ import {
     queryParams,
     getWithDefault,
 } from 'api/api-fetch';
-import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { GeometryPlan, GeometryPlanId } from 'geometry/geometry-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { updatePlanChangeTime } from 'common/change-time-api';
-import { ExtraInfraModelParameters, OverrideInfraModelParameters } from './infra-model-slice';
+import {
+    ExtraInfraModelParameters,
+    OverrideInfraModelParameters,
+    ValidationResponse,
+} from './infra-model-slice';
 import { VelhoDocumentHeader, VelhoDocumentId, VelhoFileStatus } from './velho/velho-model';
 import { asyncCache } from 'cache/cache';
 import { TimeStamp } from 'common/common-model';
-
-export type LocalizationKey = string;
-
-export type ErrorType =
-    | 'REQUEST_ERROR'
-    | 'PARSING_ERROR'
-    | 'TRANSFORMATION_ERROR'
-    | 'VALIDATION_ERROR'
-    | 'OBSERVATION_MAJOR'
-    | 'OBSERVATION_MINOR';
-export interface CustomValidationError {
-    localizationKey: LocalizationKey;
-    errorType: ErrorType;
-}
-
-export interface ValidationResponse {
-    validationErrors: CustomValidationError[];
-    geometryPlan: GeometryPlan | null;
-    planLayout: GeometryPlanLayout | null;
-}
 
 export interface InsertResponse {
     message: string;

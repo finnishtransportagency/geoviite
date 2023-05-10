@@ -4,11 +4,11 @@ import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-mode
 import {
     getValidationErrorsForVelhoDocument,
     importVelhoDocument,
-    ValidationResponse,
 } from 'infra-model/infra-model-api';
+import { ValidationResponse } from 'infra-model/infra-model-slice';
 
 export type InfraModelImportLoaderProps = InfraModelBaseProps & {
-    onValidation: (ValidationResponse: ValidationResponse) => void;
+    onValidation: (validationResponse: ValidationResponse) => void;
     setLoading: (loading: boolean) => void;
 };
 

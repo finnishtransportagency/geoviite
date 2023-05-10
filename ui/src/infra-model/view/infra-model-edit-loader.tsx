@@ -4,16 +4,15 @@ import { getGeometryPlan } from 'geometry/geometry-api';
 import { GeometryPlan } from 'geometry/geometry-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-model-view';
-import { GeometryPlanWithParameters } from 'infra-model/infra-model-slice';
+import { ValidationResponse } from 'infra-model/infra-model-slice';
 import {
     getValidationErrorsForGeometryPlan,
     updateGeometryPlan,
-    ValidationResponse,
 } from 'infra-model/infra-model-api';
 
 export type InfraModelLoaderProps = {
-    setExistingInfraModel: (plan: GeometryPlanWithParameters) => void;
-    onValidation: (ValidationResponse: ValidationResponse) => void;
+    setExistingInfraModel: (plan: GeometryPlan) => void;
+    onValidation: (validationResponse: ValidationResponse) => void;
     setLoading: (loading: boolean) => void;
 } & InfraModelBaseProps;
 
@@ -35,10 +34,10 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
         }
         return null;
     };
-    // Automatically re-validate whenever the plan or manually input data changes
+    // Automatically re-validate whenever the manually input data changes
     React.useEffect(() => {
         onValidate();
-    }, [planId, overrideParams]);
+    }, [overrideParams]);
 
     const onSave: () => Promise<boolean> = async () => {
         if (!planId) return false;
@@ -52,21 +51,8 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
         if (planId !== undefined) {
             setIsLoading(true);
             getGeometryPlan(planId).then((plan: GeometryPlan | null) => {
-                if (plan) {
-                    setExistingInfraModel({
-                        geometryPlan: plan,
-                        extraInfraModelParameters: {
-                            oid: plan.oid ? plan.oid : undefined,
-                            planPhase: plan.planPhase ? plan.planPhase : undefined,
-                            decisionPhase: plan.decisionPhase ? plan.decisionPhase : undefined,
-                            measurementMethod: plan.measurementMethod
-                                ? plan.measurementMethod
-                                : undefined,
-                            message: plan.message ? plan.message : undefined,
-                        },
-                    });
-                    setIsLoading(false);
-                }
+                if (plan) setExistingInfraModel(plan);
+                setIsLoading(false);
             });
             onValidate();
         }

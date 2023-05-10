@@ -1,8 +1,10 @@
 import React from 'react';
 import styles from './infra-model-main.scss';
-import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-container';
+import {
+    InfraModelViewContainer,
+    InfraModelViewType,
+} from 'infra-model/view/infra-model-view-container';
 import { Route, Routes } from 'react-router-dom';
-import { InfraModelViewType } from 'infra-model/infra-model-slice';
 import TabContainer from 'infra-model/tabs/tab-container';
 import { useCommonDataAppSelector } from 'store/hooks';
 //import { InfraModelTabType } from 'common/common-slice';

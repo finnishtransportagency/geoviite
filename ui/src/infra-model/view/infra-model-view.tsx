@@ -2,12 +2,10 @@ import React from 'react';
 import MapView from 'map/map-view';
 import { MapViewport } from 'map/map-model';
 import styles from './form/infra-model-form.module.scss';
-import { ValidationResponse } from 'infra-model/infra-model-api';
 import InfraModelForm from 'infra-model/view/form/infra-model-form';
 import {
     ExtraInfraModelParameters,
     InfraModelState,
-    InfraModelViewType,
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
 import {
@@ -32,7 +30,6 @@ import { Item } from 'vayla-design-lib/dropdown/dropdown';
 import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
 
 export type InfraModelBaseProps = InfraModelState & {
-    viewType: InfraModelViewType;
     onExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
         parameters: Prop<ExtraInfraModelParameters, TKey>,
     ) => void;
@@ -45,7 +42,6 @@ export type InfraModelBaseProps = InfraModelState & {
     onHighlightItems: OnHighlightItemsFunction;
     onCommitField: (fieldName: string) => void;
     isLoading: boolean;
-    validationResponse: ValidationResponse | null;
 };
 export type InfraModelViewProps = InfraModelBaseProps & {
     onSave: () => Promise<boolean>;
@@ -59,10 +55,13 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     const [showCriticalWarning, setShowCriticalWarning] = React.useState(false);
     const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
 
-    const fileMenuItems: Item<FileMenuOption>[] =
-        props.viewType === InfraModelViewType.UPLOAD
-            ? [{ value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') }]
-            : [];
+    const geometryPlan = props.validationResponse?.geometryPlan;
+    const planLayout = props.validationResponse?.planLayout;
+    const isNewPlan = geometryPlan?.dataType !== 'STORED';
+
+    const fileMenuItems: Item<FileMenuOption>[] = isNewPlan
+        ? [{ value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') }]
+        : [];
     const handleFileMenuItemChange = (item: string) => {
         if (item == 'fix-encoding') setShowChangeCharsetDialog(true);
     };
@@ -74,7 +73,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const onProgressClick = () => {
-        getFieldValidationWarnings().length || !props.planLayout
+        getFieldValidationWarnings().length || !planLayout
             ? setShowCriticalWarning(true)
             : onSaveClick();
     };
@@ -99,26 +98,27 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
         return fieldValidationErrors.length > 0 ? fieldValidationErrors.join(', ') : '';
     };
 
+    const fileName = geometryPlan?.fileName || '';
+    const toolbarName = `${isNewPlan ? `${t('im-form.toolbar.upload')}: ` : ''}${fileName}`;
     const navigateToList = () => navigate('inframodel-list');
     const showMap = props.validationResponse?.planLayout != undefined;
 
     return (
         <div className={styles['infra-model-upload']}>
             <InfraModelToolbar
-                fileName={props.plan?.fileName || ''}
-                viewType={props.viewType}
+                fileName={toolbarName}
                 navigateToList={navigateToList}
                 fileMenuItems={fileMenuItems}
                 fileMenuItemSelected={handleFileMenuItemChange}
             />
             <div className={styles['infra-model-upload__form-column']}>
                 <div className={styles['infra-model-upload__form-container']}>
-                    {props.plan && (
+                    {geometryPlan && (
                         <InfraModelForm
                             changeTimes={props.changeTimes}
                             validationErrors={props.validationErrors}
                             upLoading={props.isLoading}
-                            geometryPlan={props.plan}
+                            geometryPlan={geometryPlan}
                             onInfraModelOverrideParametersChange={props.onOverrideParametersChange}
                             onInfraModelExtraParametersChange={props.onExtraParametersChange}
                             overrideInfraModelParameters={props.overrideInfraModelParameters}
@@ -135,8 +135,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 )}
 
                 <div className={styles['infra-model-upload__buttons-container']}>
-                    {(props.viewType === InfraModelViewType.UPLOAD ||
-                        props.viewType === InfraModelViewType.IMPORT) && (
+                    {isNewPlan && (
                         <Button
                             onClick={navigateToList}
                             variant={ButtonVariant.WARNING}
@@ -145,7 +144,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.cancel')}
                         </Button>
                     )}
-                    {props.viewType === InfraModelViewType.EDIT && (
+                    {!isNewPlan && (
                         <Button
                             onClick={navigateToList}
                             variant={ButtonVariant.SECONDARY}
@@ -165,11 +164,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             }
                             icon={Icons.Tick}
                             isProcessing={props.isLoading}>
-                            {t(
-                                props.viewType === InfraModelViewType.EDIT
-                                    ? 'im-form.save-changes'
-                                    : 'button.save',
-                            )}
+                            {t(isNewPlan ? 'button.save' : 'im-form.save-changes')}
                         </Button>
                     </WriteRoleRequired>
                 </div>
@@ -219,7 +214,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 {t(`im-form.critical-warnings-dialog.${warning.field}`)}
                             </li>
                         ))}
-                        {props.planLayout != null || (
+                        {planLayout != null || (
                             <li>{t('im-form.critical-warnings-dialog.error-message')}</li>
                         )}
                     </ul>

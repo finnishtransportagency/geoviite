@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styles from './form/infra-model-form.module.scss';
 import { Breadcrumb, BreadcrumbItem } from 'geoviite-design-lib/breadcrumb/breadcrumb';
-import { InfraModelViewType } from 'infra-model/infra-model-slice';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -11,7 +10,6 @@ export type FileMenuOption = 'fix-encoding';
 export type InfraModelToolbarProps = {
     navigateToList: () => void;
     fileName: string;
-    viewType: InfraModelViewType;
     fileMenuItems: Item<FileMenuOption>[];
     fileMenuItemSelected: (item: FileMenuOption) => void;
 };
@@ -28,11 +26,7 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
                 <BreadcrumbItem onClick={props.navigateToList}>
                     {t('im-form.toolbar.files')}
                 </BreadcrumbItem>
-                <BreadcrumbItem>
-                    {props.viewType === InfraModelViewType.EDIT
-                        ? props.fileName
-                        : `${t('im-form.toolbar.upload')}: ${props.fileName}`}
-                </BreadcrumbItem>
+                <BreadcrumbItem>{props.fileName}</BreadcrumbItem>
             </Breadcrumb>
 
             {props.fileMenuItems.length > 0 && (
