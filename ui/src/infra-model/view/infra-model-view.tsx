@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next';
 import { FileMenuOption, InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
-import { useAppNavigate } from 'common/navigate';
 import { ChangeTimes } from 'common/common-slice';
 import { WriteRoleRequired } from 'user/write-role-required';
 import { Item } from 'vayla-design-lib/dropdown/dropdown';
@@ -42,15 +41,15 @@ export type InfraModelBaseProps = InfraModelState & {
     onHighlightItems: OnHighlightItemsFunction;
     onCommitField: (fieldName: string) => void;
     isLoading: boolean;
+    onClose: () => void;
 };
 export type InfraModelViewProps = InfraModelBaseProps & {
     onSave: () => Promise<boolean>;
-    onValidate: () => Promise<null>;
+    onValidate: () => void;
 };
 
 export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelViewProps) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
 
     const [showCriticalWarning, setShowCriticalWarning] = React.useState(false);
     const [showChangeCharsetDialog, setShowChangeCharsetDialog] = React.useState(false);
@@ -67,9 +66,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const onSaveClick = async () => {
-        if (await props.onSave()) {
-            navigate('inframodel-list');
-        }
+        if (await props.onSave()) props.onClose();
     };
 
     const onProgressClick = () => {
@@ -100,14 +97,12 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
 
     const fileName = geometryPlan?.fileName || '';
     const toolbarName = `${isNewPlan ? `${t('im-form.toolbar.upload')}: ` : ''}${fileName}`;
-    const navigateToList = () => navigate('inframodel-list');
     const showMap = props.validationResponse?.planLayout != undefined;
 
     return (
         <div className={styles['infra-model-upload']}>
             <InfraModelToolbar
                 fileName={toolbarName}
-                navigateToList={navigateToList}
                 fileMenuItems={fileMenuItems}
                 fileMenuItemSelected={handleFileMenuItemChange}
             />
@@ -137,7 +132,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 <div className={styles['infra-model-upload__buttons-container']}>
                     {isNewPlan && (
                         <Button
-                            onClick={navigateToList}
+                            onClick={props.onClose}
                             variant={ButtonVariant.WARNING}
                             disabled={props.isLoading}
                             icon={Icons.Delete}>
@@ -146,7 +141,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     )}
                     {!isNewPlan && (
                         <Button
-                            onClick={navigateToList}
+                            onClick={props.onClose}
                             variant={ButtonVariant.SECONDARY}
                             disabled={props.isLoading}>
                             {t('button.return')}

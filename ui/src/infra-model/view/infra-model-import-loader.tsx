@@ -17,7 +17,7 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
     const extraParams = props.extraInfraModelParameters;
     const overrideParams = props.overrideInfraModelParameters;
 
-    const onValidate: () => Promise<null> = async () => {
+    const onValidate: () => void = async () => {
         if (velhoDocId) {
             props.setLoading(true);
             props.onValidation(

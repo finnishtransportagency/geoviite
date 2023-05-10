@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Menu, Item } from 'vayla-design-lib/menu/menu';
+import { useAppNavigate } from 'common/navigate';
 
 export type FileMenuOption = 'fix-encoding';
 export type InfraModelToolbarProps = {
-    navigateToList: () => void;
     fileName: string;
     fileMenuItems: Item<FileMenuOption>[];
     fileMenuItemSelected: (item: FileMenuOption) => void;
@@ -17,13 +17,14 @@ export type InfraModelToolbarProps = {
 export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
     props: InfraModelToolbarProps,
 ) => {
+    const navigate = useAppNavigate();
     const { t } = useTranslation();
     const [fileMenuVisible, setFileMenuVisible] = React.useState(false);
 
     return (
         <div className="infra-model-upload__tool-bar">
             <Breadcrumb>
-                <BreadcrumbItem onClick={props.navigateToList}>
+                <BreadcrumbItem onClick={() => navigate('inframodel-list')}>
                     {t('im-form.toolbar.files')}
                 </BreadcrumbItem>
                 <BreadcrumbItem>{props.fileName}</BreadcrumbItem>

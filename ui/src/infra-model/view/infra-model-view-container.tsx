@@ -6,6 +6,7 @@ import { useInfraModelAppSelector, useCommonDataAppSelector } from 'store/hooks'
 import { InfraModelImportLoader } from './infra-model-import-loader';
 import { InfraModelUploadLoader } from './infra-model-upload-loader';
 import { InfraModelBaseProps } from './infra-model-view';
+import { useAppNavigate } from 'common/navigate';
 
 export enum InfraModelViewType {
     UPLOAD,
@@ -20,6 +21,8 @@ type InfraModelViewContainerProps = {
 export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = ({
     viewType,
 }: InfraModelViewContainerProps) => {
+    const navigate = useAppNavigate();
+
     const infraModelState = useInfraModelAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
@@ -39,6 +42,7 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         onCommitField: delegates.onCommitField,
         changeTimes: changeTimes,
         isLoading: isLoading,
+        onClose: () => navigate('inframodel-list'),
     };
     const loaderProps = {
         ...generalProps,

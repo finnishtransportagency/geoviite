@@ -34,7 +34,7 @@ export type InfraModelState = {
     infraModelList: InfraModelListState;
     selection: Selection;
     validationResponse: ValidationResponse | null;
-    file: SerializableFile | undefined; // TODO: GVT-1795 move this to localstorage, stored by uploadloader
+    file: SerializableFile | undefined;
     extraInfraModelParameters: ExtraInfraModelParameters;
     overrideInfraModelParameters: OverrideInfraModelParameters;
     validationErrors: ValidationError<InfraModelParameters>[];

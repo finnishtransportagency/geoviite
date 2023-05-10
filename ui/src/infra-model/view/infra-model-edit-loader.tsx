@@ -26,13 +26,12 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
     const extraParams = props.extraInfraModelParameters;
     const overrideParams = props.overrideInfraModelParameters;
 
-    const onValidate: () => Promise<null> = async () => {
+    const onValidate: () => void = async () => {
         if (planId) {
             props.setLoading(true);
             props.onValidation(await getValidationErrorsForGeometryPlan(planId, overrideParams));
             props.setLoading(false);
         }
-        return null;
     };
     // Automatically re-validate whenever the manually input data changes
     React.useEffect(() => {
@@ -57,7 +56,6 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({
             onValidate();
         }
     }, [planId]);
-    useEffect;
 
     return isLoading ? (
         <Spinner />

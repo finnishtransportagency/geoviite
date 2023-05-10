@@ -7,19 +7,17 @@ import {
 } from 'infra-model/infra-model-api';
 import { convertToNativeFile, SerializableFile } from 'utils/file-utils';
 import { useTranslation } from 'react-i18next';
-import { useAppNavigate } from 'common/navigate';
 import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
 import { ValidationResponse } from 'infra-model/infra-model-slice';
 
 export type InfraModelUploadLoaderProps = InfraModelBaseProps & {
-    file: SerializableFile | undefined; // TODO: GVT-1795 move this to localstorage, stored by uploadloader
+    file: SerializableFile | undefined;
     onValidation: (validationResponse: ValidationResponse) => void;
     setLoading: (loading: boolean) => void;
 };
 
 export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ ...props }) => {
     const { t } = useTranslation();
-    const navigate = useAppNavigate();
 
     const [file, setFile] = React.useState<File>();
 
@@ -34,11 +32,10 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
         }
     }, [props.file]);
 
-    const onValidate: () => Promise<null> = async () => {
+    const onValidate: () => void = async () => {
         props.setLoading(true);
         props.onValidation(await getValidationErrorsForInfraModelFile(file, overrideParams));
         props.setLoading(false);
-        return null;
     };
     // Automatically re-validate whenever the file or manually input data changes
     React.useEffect(() => {
@@ -66,9 +63,7 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
                 <CharsetSelectDialog
                     title={t('im-form.file-handling-failed.title')}
                     value={props.overrideInfraModelParameters.encoding}
-                    onCancel={() => {
-                        navigate('inframodel-list');
-                    }}
+                    onCancel={props.onClose}
                     onSelect={(charset) => {
                         props.onOverrideParametersChange({
                             ...props.overrideInfraModelParameters,
