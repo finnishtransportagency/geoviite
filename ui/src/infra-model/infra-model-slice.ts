@@ -34,6 +34,13 @@ export enum InfraModelViewType {
     EDIT,
 }
 
+//vai olisiko infra-model-slice luontevampi paikka?
+export enum InfraModelTabType {
+    PLAN,
+    WAITING,
+    REJECTED,
+}
+
 export type InfraModelState = {
     map: Map;
     infraModelList: InfraModelListState;
@@ -45,6 +52,7 @@ export type InfraModelState = {
     overrideInfraModelParameters: OverrideInfraModelParameters;
     validationErrors: ValidationError<InfraModelParameters>[];
     committedFields: InfraModelParametersProp[];
+    infraModelActiveTab: InfraModelTabType;
 };
 
 export type ExtraInfraModelParameters = {
@@ -117,6 +125,7 @@ export const initialInfraModelState: InfraModelState = {
     },
     validationErrors: [],
     committedFields: [],
+    infraModelActiveTab: InfraModelTabType.PLAN,
 };
 
 export type GeometryPlanWithParameters = {
@@ -223,6 +232,12 @@ const infraModelSlice = createSlice({
             state.map.viewport = initialMapState.viewport;
             state.committedFields = [];
             state.validationErrors = initialInfraModelState.validationErrors;
+        },
+        setInfraModelActiveTab: (
+            state: InfraModelState,
+            { payload: tab }: PayloadAction<InfraModelTabType>,
+        ): void => {
+            state.infraModelActiveTab = tab;
         },
         ...wrapReducers((state: InfraModelState) => state.map, mapReducers),
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),

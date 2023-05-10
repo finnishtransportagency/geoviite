@@ -25,25 +25,16 @@ export const initialChangeTimes: ChangeTimes = {
     velhoDocument: initialChangeTime,
 };
 
-//vai olisiko infra-model-slice luontevampi paikka?
-export enum InfraModelTabType {
-    PLAN,
-    WAITING,
-    REJECTED,
-}
-
 export type CommonState = {
     version: string | undefined;
     changeTimes: ChangeTimes;
     userHasWriteRole: boolean;
-    infraModelActiveTab: InfraModelTabType;
 };
 
 export const initialCommonState = {
     version: undefined,
     changeTimes: initialChangeTimes,
     userHasWriteRole: false,
-    infraModelActiveTab: InfraModelTabType.PLAN,
 };
 
 const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time: TimeStamp) => {
@@ -118,13 +109,6 @@ const commonSlice = createSlice({
             { payload: writeRole }: PayloadAction<boolean>,
         ): void => {
             state.userHasWriteRole = writeRole;
-        },
-        setInfraModelActiveTab: (
-            state: CommonState,
-            { payload: tab }: PayloadAction<InfraModelTabType>,
-        ): void => {
-            state.infraModelActiveTab = tab;
-            console.log(state.infraModelActiveTab);
         },
     },
 });
