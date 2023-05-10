@@ -34,7 +34,6 @@ export enum InfraModelViewType {
     EDIT,
 }
 
-//vai olisiko infra-model-slice luontevampi paikka?
 export enum InfraModelTabType {
     PLAN,
     WAITING,

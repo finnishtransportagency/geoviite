@@ -7,8 +7,8 @@ export type TabContentProps = {
     children: React.ReactNode;
 };
 
-const TabContent: React.FC<TabContentProps> = ({ tabId, activeTab, children }) => {
+const InfraModelTabContent: React.FC<TabContentProps> = ({ tabId, activeTab, children }) => {
     return activeTab === tabId ? <div className="TabContent">{children}</div> : null;
 };
 
-export default TabContent;
+export default InfraModelTabContent;

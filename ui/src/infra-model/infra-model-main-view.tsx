@@ -3,7 +3,7 @@ import styles from './infra-model-main.scss';
 import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-container';
 import { Route, Routes } from 'react-router-dom';
 import { InfraModelTabType, InfraModelViewType } from 'infra-model/infra-model-slice';
-import TabContainer from 'infra-model/tabs/tab-container';
+import InfraModelTabContainer from 'infra-model/tabs/infra-model-tab-container';
 import { useInfraModelAppSelector } from 'store/hooks';
 
 export const InfraModelMainView: React.FC = () => {
@@ -20,18 +20,21 @@ export const InfraModelMainView: React.FC = () => {
                     path="/upload"
                     element={<InfraModelViewContainer viewType={InfraModelViewType.UPLOAD} />}
                 />
-                <Route path="/" element={<TabContainer activeTab={activeInfraModelTab} />} />
+                <Route
+                    path="/"
+                    element={<InfraModelTabContainer activeTab={activeInfraModelTab} />}
+                />
                 <Route
                     path="/plans"
-                    element={<TabContainer activeTab={InfraModelTabType.PLAN} />}
+                    element={<InfraModelTabContainer activeTab={InfraModelTabType.PLAN} />}
                 />
                 <Route
                     path="/waiting-for-approval"
-                    element={<TabContainer activeTab={InfraModelTabType.WAITING} />}
+                    element={<InfraModelTabContainer activeTab={InfraModelTabType.WAITING} />}
                 />
                 <Route
                     path="/rejected"
-                    element={<TabContainer activeTab={InfraModelTabType.REJECTED} />}
+                    element={<InfraModelTabContainer activeTab={InfraModelTabType.REJECTED} />}
                 />
             </Routes>
         </div>

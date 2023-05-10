@@ -9,7 +9,12 @@ export type TabNavItemProps = {
     setActiveTab: (id: InfraModelTabType) => void;
 };
 
-const TabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeTab, setActiveTab }) => {
+const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
+    tabId,
+    title,
+    activeTab,
+    setActiveTab,
+}) => {
     const navigate = useAppNavigate();
 
     const handleClick = () => {
@@ -29,4 +34,4 @@ const TabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeTab, setAct
         </li>
     );
 };
-export default TabNavItem;
+export default InfraModelTabNavItem;

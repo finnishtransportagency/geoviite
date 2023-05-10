@@ -1,6 +1,6 @@
 import React from 'react';
-import TabNavItem from 'infra-model/tabs/tab-nav-item';
-import TabContent from 'infra-model/tabs/tab-content';
+import InfraModelTabNavItem from 'infra-model/tabs/infra-model-tab-nav-item';
+import InfraModelTabContent from 'infra-model/tabs/infra-model-tab-content';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { InfraModelListContainer } from 'infra-model/list/infra-model-list-container';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,7 @@ export type TabsProps = {
     activeTab: InfraModelTabType;
 };
 
-const Tabs: React.FC<TabsProps> = ({ activeTab: activeTab }) => {
+const InfraModelTabs: React.FC<TabsProps> = ({ activeTab: activeTab }) => {
     const { t } = useTranslation();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const delegates = createDelegates(infraModelActionCreators);
@@ -19,19 +19,19 @@ const Tabs: React.FC<TabsProps> = ({ activeTab: activeTab }) => {
     return (
         <div className="Tabs">
             <ul className="nav">
-                <TabNavItem
+                <InfraModelTabNavItem
                     title={t('im-form.tabs.plans')}
                     tabId={InfraModelTabType.PLAN}
                     activeTab={activeTab}
                     setActiveTab={delegates.setInfraModelActiveTab}
                 />
-                <TabNavItem
+                <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-waiting')}
                     tabId={InfraModelTabType.WAITING}
                     activeTab={activeTab}
                     setActiveTab={delegates.setInfraModelActiveTab}
                 />
-                <TabNavItem
+                <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-rejected')}
                     tabId={InfraModelTabType.REJECTED}
                     activeTab={activeTab}
@@ -40,18 +40,18 @@ const Tabs: React.FC<TabsProps> = ({ activeTab: activeTab }) => {
             </ul>
 
             <div className="outlet">
-                <TabContent tabId={InfraModelTabType.PLAN} activeTab={activeTab}>
+                <InfraModelTabContent tabId={InfraModelTabType.PLAN} activeTab={activeTab}>
                     <InfraModelListContainer changeTimes={changeTimes} />
-                </TabContent>
-                <TabContent tabId={InfraModelTabType.WAITING} activeTab={activeTab}>
+                </InfraModelTabContent>
+                <InfraModelTabContent tabId={InfraModelTabType.WAITING} activeTab={activeTab}>
                     <p>VELHO-taulukko tähän</p>
-                </TabContent>
-                <TabContent tabId={InfraModelTabType.REJECTED} activeTab={activeTab}>
+                </InfraModelTabContent>
+                <InfraModelTabContent tabId={InfraModelTabType.REJECTED} activeTab={activeTab}>
                     <p>Hello from rejected tab!</p>
-                </TabContent>
+                </InfraModelTabContent>
             </div>
         </div>
     );
 };
 
-export default Tabs;
+export default InfraModelTabs;
