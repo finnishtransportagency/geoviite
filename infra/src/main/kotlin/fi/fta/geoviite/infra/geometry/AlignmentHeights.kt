@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.FileName
@@ -23,5 +24,6 @@ data class PlanLinkingSummaryItem(
     val filename: FileName?,
     val alignmentHeader: AlignmentHeader<GeometryAlignment>?,
     val planId: DomainId<GeometryPlan>?,
+    val verticalCoordinateSystem: VerticalCoordinateSystem?,
 )
 

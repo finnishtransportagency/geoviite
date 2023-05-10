@@ -15,11 +15,21 @@ export const PlanLinking: React.FC<PlanLinkingProps> = ({
     planLinkingSummary,
     onSelect,
 }) => {
-    const textBottomYPx = 10;
+    const textLineOneYPx = 8;
+    const textLineTwoYPx = 18;
+
     const textDropAreaPx = 3;
     return (
         <>
-            {planLinkingSummary.map(({ startM, endM, filename, planId, alignmentHeader }, i) => {
+            {planLinkingSummary.map((summary, i) => {
+                const {
+                    startM,
+                    endM,
+                    filename,
+                    planId,
+                    alignmentHeader,
+                    verticalCoordinateSystem,
+                } = summary;
                 if (endM < coordinates.startM || startM > coordinates.endM) {
                     return <React.Fragment key={i} />;
                 }
@@ -63,9 +73,12 @@ export const PlanLinking: React.FC<PlanLinkingProps> = ({
                             x={textStartX}
                             y={0}
                             width={endX - textStartX}
-                            height={textBottomYPx + textDropAreaPx}>
-                            <text transform={`translate(0 ${textBottomYPx}) scale(0.7)`}>
+                            height={textLineTwoYPx + textDropAreaPx}>
+                            <text transform={`translate(0 ${textLineOneYPx}) scale(0.7)`}>
                                 {filename}
+                            </text>
+                            <text transform={`translate(0 ${textLineTwoYPx}) scale(0.7)`}>
+                                {verticalCoordinateSystem}
                             </text>
                         </svg>
                     </React.Fragment>
