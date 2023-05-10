@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.Instant
+import java.util.stream.Collectors
 import kotlin.math.floor
 
 
@@ -485,7 +486,7 @@ class GeometryService @Autowired constructor(
 
         val lastAddress = geocodingContext.getStartAndEnd(alignment).end?.address ?: return null
 
-        return referencePointIndices.map { referencePointIndex ->
+        return referencePointIndices.toList().parallelStream().map { referencePointIndex ->
             val referencePoint = geocodingContext.referencePoints[referencePointIndex]
             val kmNumber = referencePoint.kmNumber
             // The choice of a half-tick-length minimum is totally arbitrary
@@ -524,7 +525,8 @@ class GeometryService @Autowired constructor(
                         }
                     }.distinct() // don't bother sending segment boundary sides with the same location and height
             )
-        }.filter { km -> km.trackMeterHeights.isNotEmpty() }
+        }.collect(Collectors.toList())
+            .filter { km -> km.trackMeterHeights.isNotEmpty() }
     }
 }
 
