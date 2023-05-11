@@ -72,14 +72,25 @@ export const LabeledTicks: React.FC<LabeledTicksProps> = ({ trackKmHeights, coor
                 )
                 .flatMap(({ kmNumber, trackMeterHeights }, trackKmIndex) =>
                     trackMeterHeights
-                        .filter(({ m, meter }) => {
+                        .filter(({ m, meter }, meterIndex) => {
                             const ordinaryTick = Number.isInteger(meter);
                             const inRenderedRange = m > startM && m < endM;
                             const hitsMeterStep =
                                 meter === 0 ||
                                 (trackMeterDisplayStep !== undefined &&
                                     meter % trackMeterDisplayStep === 0);
-                            return ordinaryTick && inRenderedRange && hitsMeterStep;
+                            const hasSpaceBeforeNextKm =
+                                trackKmIndex === trackKmHeights.length - 1 ||
+                                meterIndex === 0 ||
+                                (trackKmHeights[trackKmIndex + 1].trackMeterHeights[0].m - m) *
+                                    coordinates.mMeterLengthPxOverM >
+                                    minimumLabeledTickDistancePx;
+                            return (
+                                ordinaryTick &&
+                                inRenderedRange &&
+                                hitsMeterStep &&
+                                hasSpaceBeforeNextKm
+                            );
                         })
                         .map(({ m, meter }, meterIndex) => (
                             <TickLabel
