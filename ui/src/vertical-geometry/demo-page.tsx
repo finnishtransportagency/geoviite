@@ -15,6 +15,7 @@ import { getGeometryPlan } from 'geometry/geometry-api';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { OnSelectOptions } from 'selection/selection-model';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { BoundingBox } from 'model/geometry';
 
 const VerticalGeometryDiagramDemoPage: React.FC = () => {
     const { t } = useTranslation();
@@ -77,6 +78,9 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
     const noopActions = {
         onSelect: (options: OnSelectOptions) => {
             console.log(options);
+        },
+        showArea: (view: BoundingBox) => {
+            console.log(view);
         },
     };
 
