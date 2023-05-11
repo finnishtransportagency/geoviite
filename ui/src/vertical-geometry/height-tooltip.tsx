@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { SnappedPoint } from 'vertical-geometry/snapped-point';
 import { Coordinates } from 'vertical-geometry/coordinates';
 import { formatTrackMeter, formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 
 interface HeightTooltipProps {
     point: SnappedPoint;
-    elementPosition: DOMRect;
+    parentElementRect: DOMRect;
     coordinates: Coordinates;
 }
 
 export const HeightTooltip: React.FC<HeightTooltipProps> = ({
     point,
-    elementPosition,
+    parentElementRect,
     coordinates,
 }) => {
     const displayedAddress =
@@ -20,13 +20,32 @@ export const HeightTooltip: React.FC<HeightTooltipProps> = ({
         (point.snapTarget === 'didNotSnap' && coordinates.mMeterLengthPxOverM > 20)
             ? formatTrackMeter(point.address)
             : formatTrackMeterWithoutMeters(point.address);
+    const ref = useRef<HTMLDivElement>(null);
+    const [width, setWidth] = useState(0);
+    const [height, setHeight] = useState(0);
+
+    useLayoutEffect(() => {
+        const boundingClientRect = ref.current?.getBoundingClientRect();
+        if (boundingClientRect) {
+            setWidth(boundingClientRect.width);
+            setHeight(boundingClientRect.height);
+        }
+    }, [coordinates, point, parentElementRect]);
+
     return (
         <div
+            ref={ref}
             className="vertical-geometry-diagram__tooltip"
             style={{
                 position: 'absolute',
-                left: elementPosition.left + point.xPositionPx + 20,
-                top: elementPosition.top + point.yPositionPx + 20,
+                left: Math.min(
+                    parentElementRect.left + point.xPositionPx + 20,
+                    parentElementRect.right - width,
+                ),
+                top: Math.min(
+                    parentElementRect.top + point.yPositionPx + 20,
+                    parentElementRect.bottom - height,
+                ),
             }}>
             {displayedAddress}
             <br />
