@@ -59,6 +59,7 @@ import { LineString } from 'ol/geom';
 import { createAlignmentLayerAdapter } from 'map/layers/alignment-layer';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import useResizeObserver from 'use-resize-observer';
 
 declare global {
     interface Window {
@@ -187,9 +188,7 @@ const MapView: React.FC<MapViewProps> = ({
         }
     };
 
-    React.useEffect(() => {
-        olMap?.updateSize();
-    }, [olMapContainer.current?.clientWidth]);
+    useResizeObserver({ onResize: () => olMap?.updateSize() });
 
     // Initialize OpenLayers map. Do this only once, in subsequent
     // renders we just want to update OpenLayers layers. In this way map
