@@ -422,7 +422,7 @@ class GeometryService @Autowired constructor(
         val geocodingContext =
             geocodingService.getGeocodingContext(plan.trackNumberId ?: return null, planVersion) ?: return null
         val geometryAlignment = plan.alignments.find { alignment -> alignment.id == planAlignmentId } ?: return null
-        val profile = geometryAlignment.profile ?: return null
+        val profile = geometryAlignment.profile
         val alignment =
             planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment -> alignment.id == planAlignmentId }
                 ?: return null
@@ -432,7 +432,7 @@ class GeometryService @Autowired constructor(
             geocodingContext,
             alignment,
             tickLength
-        ) { distance, _ -> profile.getHeightAt(distance) }
+        ) { distance, _ -> profile?.getHeightAt(distance) }
     }
 
     private fun collectTrackMeterHeights(

@@ -40,6 +40,7 @@ import {
     getTrackMeterPairAroundIndex,
 } from 'vertical-geometry/track-meter-index';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 
 const chartHeightPx = 240;
 const topHeightPaddingPx = 120;
@@ -96,30 +97,28 @@ function processGeometries(
         .sort((a, b) => a.point.station - b.point.station);
 }
 
-function minAndMaxHeights(
+function getBottomAndTopTicks(
     kmHeights: TrackKmHeights[],
     geometry: VerticalGeometryItem[],
 ): [number, number] {
-    if (kmHeights.length !== 0) {
-        return kmHeights
-            .flatMap(({ trackMeterHeights }) => trackMeterHeights.map(({ height }) => height))
-            .reduce(
-                ([min, max], height) => [
-                    Math.min(min, height ?? min),
-                    Math.max(max, height ?? max),
-                ],
-                [1 / 0, -1 / 0],
-            );
-    } else {
-        // fallback approximation for when we want to display a part of track that does have a PVI aid line going
-        // through it, but no plan linkage and hence no heights
-        return geometry
-            .flatMap((p) => [p.start.height, p.point.height, p.end.height])
-            .reduce(
-                ([min, max], height) => [Math.min(min, height), Math.max(max, height)],
-                [1 / 0, -1 / 0],
-            );
-    }
+    const heightsToBounds = (heights: number[]): [number, number] | undefined =>
+        heights.length === 0
+            ? undefined
+            : [Math.floor(Math.min(...heights)), Math.ceil(Math.max(...heights))];
+    // most of the time we have some visible heights on the track km; but sometimes there are holes in the linking
+    // reaching across a whole track km and we're zoomed into it, in which case we'll fall back to using height bounds
+    // calculated from the geometry; and sometimes there are no heights at all, in which case we don't need to worry
+    // about how tall to display them anyway and can just use a (suitably strange) fallback
+    return (
+        heightsToBounds(
+            kmHeights
+                .flatMap(({ trackMeterHeights }) => trackMeterHeights.map(({ height }) => height))
+                .filter(filterNotEmpty),
+        ) ??
+        heightsToBounds(
+            geometry.flatMap((p) => [p.start.height, p.point.height, p.end.height]),
+        ) ?? [0, 100]
+    );
 }
 
 function loadAlignmentHeights(
@@ -307,23 +306,17 @@ const VerticalGeometryDiagram: React.FC<{
     );
     const elementPosition = ref.current?.getBoundingClientRect();
 
-    const mMeterLengthPxOverM = diagramWidthPx / (endM - startM);
-
-    const [minHeight, maxHeight] = minAndMaxHeights(kmHeights, geometry);
-
-    const topHeightTick = Math.ceil(maxHeight);
-    const bottomHeightTick = Math.floor(minHeight);
-    const meterHeightPx =
-        (chartHeightPx - topHeightPaddingPx + bottomHeightPaddingPx) /
-        (topHeightTick - bottomHeightTick);
+    const [bottomHeightTick, topHeightTick] = getBottomAndTopTicks(kmHeights, geometry);
 
     const coordinates: Coordinates = {
         bottomHeightPaddingPx,
         topHeightTick,
         bottomHeightTick,
         chartHeightPx,
-        meterHeightPx,
-        mMeterLengthPxOverM,
+        meterHeightPx:
+            (chartHeightPx - topHeightPaddingPx + bottomHeightPaddingPx) /
+            (topHeightTick - bottomHeightTick),
+        mMeterLengthPxOverM: diagramWidthPx / (endM - startM),
         diagramWidthPx,
         endM,
         fullDiagramHeightPx,
@@ -340,7 +333,7 @@ const VerticalGeometryDiagram: React.FC<{
         if (!panning) {
             return;
         }
-        const requestedPanDistance = (panning - e.clientX) / mMeterLengthPxOverM;
+        const requestedPanDistance = (panning - e.clientX) / coordinates.mMeterLengthPxOverM;
         const panDistance = Math.min(
             alignmentEndM - endM,
             Math.max(alignmentStartM - startM, requestedPanDistance),
@@ -375,7 +368,7 @@ const VerticalGeometryDiagram: React.FC<{
         if (elementLeft == null) {
             return;
         }
-        const focusM = (e.clientX - elementLeft) / mMeterLengthPxOverM + startM;
+        const focusM = (e.clientX - elementLeft) / coordinates.mMeterLengthPxOverM + startM;
         // downward should zoom out (push startM/endM further out), upward should zoom in
         // upward = negative delta
         const factor = Math.pow(1.05, e.deltaY * 0.01);
