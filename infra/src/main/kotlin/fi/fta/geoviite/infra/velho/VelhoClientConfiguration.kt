@@ -59,7 +59,7 @@ class VelhoClientConfiguration @Autowired constructor(
 
     @Bean
     fun projVelhoClient(): VelhoWebClient {
-        val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout).secure().compress(true).wiretap("CLIENT", LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
+        val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout).secure().compress(true)
 
         val webClientBuilder = WebClient.builder()
             .clientConnector(ReactorClientHttpConnector(httpClient.followRedirect(true)))
