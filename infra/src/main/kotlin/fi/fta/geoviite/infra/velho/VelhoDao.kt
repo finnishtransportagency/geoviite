@@ -156,7 +156,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 code,
                 name
             ) values (
-                :type::integrations.dictionary_entry_type,
+                :type::integrations.projektivelho_dictionary_type,
                 :code,
                 :name
             ) on conflict do nothing

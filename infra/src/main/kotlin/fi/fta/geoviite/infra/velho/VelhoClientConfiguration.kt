@@ -67,7 +67,6 @@ class VelhoClientConfiguration @Autowired constructor(
             .filter(logRequest())
             .filter(logResponse())
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .defaultHeader(HttpHeaders.ACCEPT_ENCODING, "gzip")
             .codecs { codecs ->
                 codecs.defaultCodecs()
                     .maxInMemorySize(maxFileSize)
