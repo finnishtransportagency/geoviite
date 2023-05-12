@@ -1,6 +1,6 @@
 create type integrations.projektivelho_file_status as enum ('NOT_IM', 'IMPORTED', 'REJECTED', 'ACCEPTED');
 create type integrations.projektivelho_search_status as enum ('WAITING', 'FETCHING', 'FINISHED', 'ERROR');
-create type integrations.dictionary_entry_type as enum ('DOC_TYPE', 'FILE_STATE', 'CATEGORY', 'ASSET_GROUP');
+create type integrations.projektivelho_dictionary_type as enum ('DOC_TYPE', 'FILE_STATE', 'CATEGORY', 'ASSET_GROUP');
 
 create table integrations.projektivelho_search
 (
@@ -43,7 +43,7 @@ create table integrations.projektivelho_project_group
 create table integrations.projektivelho_dictionary
 (
   id          int primary key generated always as identity,
-  type        integrations.dictionary_entry_type not null,
+  type        integrations.projektivelho_dictionary_type not null,
   code        varchar(50) not null,
   name        varchar(100) not null
 );
