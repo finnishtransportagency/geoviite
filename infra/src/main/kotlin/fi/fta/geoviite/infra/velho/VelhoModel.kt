@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.velho
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.util.FileName
@@ -116,7 +117,10 @@ data class SearchStatus(
 )
 
 data class SearchResult(@JsonProperty("osumat") val matches: List<Match>)
-data class Match(val oid: String)
+data class Match(
+    @JsonProperty("luontikohdeluokan-oid") val assignmentOid: String,
+    val oid: String
+)
 data class LatestVersion(
     @JsonProperty("versio") val version: String,
     @JsonProperty("nimi") val name: FileName,
@@ -138,11 +142,46 @@ data class File(
     @JsonProperty("metatiedot") val metadata: Metadata
 )
 
+data class Redirect(
+    @JsonProperty("master-jarjestelma") val masterSystem: String,
+    @JsonProperty("kohdeluokka") val targetCategory: String,
+    @JsonProperty("kohde-url") val targetUrl: String,
+)
+
+data class Properties(
+    @JsonProperty("nimi") val name: String,
+)
+
+data class ProjectGroup(
+    @JsonProperty("ominaisuudet") val properties: Properties,
+    @JsonProperty("oid") val oid: String,
+)
+
+data class Project(
+    @JsonProperty("ominaisuudet") val properties: Properties,
+    @JsonProperty("oid") val oid: String,
+    @JsonProperty("projektijoukko") val projectGroupOid: String,
+)
+
+data class Assignment(
+    @JsonProperty("ominaisuudet") val properties: Properties,
+    @JsonProperty("oid") val oid: String,
+    @JsonProperty("projekti") val projectOid: String,
+)
+
+data class DictionaryEntry(
+    val code: String,
+    val name: String,
+)
+
 data class ProjektiVelhoFile(
     val oid: String,
     val content: String,
     val metadata: Metadata,
-    val latestVersion: LatestVersion
+    val latestVersion: LatestVersion,
+    val assignment: Assignment?,
+    val project: Project?,
+    val projectGroup: ProjectGroup?
 )
 
 data class ProjektiVelhoSearch(

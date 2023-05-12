@@ -31,6 +31,7 @@ class VelhoService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(15)
+    private var cachedMetadatas: Any? = null
 
     @Scheduled(cron = "0 0 * * * *")
     fun search(): SearchStatus? {
@@ -71,6 +72,15 @@ class VelhoService @Autowired constructor(
         }
     }
 
+    fun fetchAineisto() {
+        val dict = velhoClient.fetchAineistoMetadata()
+        dict.forEach { (type, entries) ->
+            entries.map { entry ->
+                velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entry.code, entry.name)
+            }
+        }
+    }
+
     fun fetchSearchResults(searchId: String) =
         velhoClient
             .fetchVelhoSearches()
@@ -100,11 +110,19 @@ class VelhoService @Autowired constructor(
             metadataResponse.latestVersion.version,
         )
 
+        val redir = velhoClient.fetchRedirect(match.assignmentOid)
+        /*val assignment = velhoClient.fetchAssignment(match.assignmentOid)
+        val project = assignment?.projectOid?.let(velhoClient::fetchProject)
+        val projectGroup = project?.projectGroupOid?.let(velhoClient::fetchProjectGroup)*/
+
         return ProjektiVelhoFile(
             oid = match.oid,
             content = content,
             metadata = metadataResponse.metadata,
-            latestVersion = metadataResponse.latestVersion
+            latestVersion = metadataResponse.latestVersion,
+            assignment = null,
+            project = null,
+            projectGroup = null
         )
     }
 
