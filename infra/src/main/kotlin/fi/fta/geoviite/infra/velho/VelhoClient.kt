@@ -17,10 +17,6 @@ import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
-import java.util.zip.GZIPInputStream
-
-
-
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
 val reloginoffsetSeconds: Long = 60

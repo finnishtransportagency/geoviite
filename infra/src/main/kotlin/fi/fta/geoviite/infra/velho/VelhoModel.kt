@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.velho
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.util.FileName

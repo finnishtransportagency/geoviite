@@ -14,9 +14,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.temporal.TemporalAmount
 
 val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
 val SECONDS_IN_A_YEAR: Long = 31556926
@@ -31,7 +28,6 @@ class VelhoService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(15)
-    private var cachedMetadatas: Any? = null
 
     @Scheduled(cron = "0 0 * * * *")
     fun search(): SearchStatus? {
@@ -110,7 +106,7 @@ class VelhoService @Autowired constructor(
             metadataResponse.latestVersion.version,
         )
 
-        val redir = velhoClient.fetchRedirect(match.assignmentOid)
+        // TODO Add these when fetches actually work
         /*val assignment = velhoClient.fetchAssignment(match.assignmentOid)
         val project = assignment?.projectOid?.let(velhoClient::fetchProject)
         val projectGroup = project?.projectGroupOid?.let(velhoClient::fetchProjectGroup)*/
