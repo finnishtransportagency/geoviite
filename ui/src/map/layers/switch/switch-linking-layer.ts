@@ -4,14 +4,18 @@ import { Point, Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
-import { getMatchingSuggestedSwitches, MatchOptions, pointToCoords } from 'map/layers/layer-utils';
+import {
+    getMatchingSuggestedSwitches,
+    MatchOptions,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
-import { createLinkingJointRenderer } from 'map/layers/switch-layer-utils';
+import { createLinkingJointRenderer } from 'map/layers/switch/switch-layer-utils';
 import { endPointStyle } from 'map/layers/linking-layer';
-import { SUGGESTED_SWITCH_SHOW } from 'map/layers/layer-visibility-limits';
+import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { filterNotEmpty } from 'utils/array-utils';
 
 export type SwitchLinkingFeatureType = Point;

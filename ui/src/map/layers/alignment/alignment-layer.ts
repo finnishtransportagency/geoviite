@@ -23,10 +23,10 @@ import {
     MatchOptions,
     pointToCoords,
     setAlignmentData,
-} from 'map/layers/layer-utils';
-import { MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
-import * as Limits from 'map/layers/layer-visibility-limits';
-import { getBadgeDrawDistance } from 'map/layers/layer-visibility-limits';
+} from 'map/layers/utils/layer-utils';
+import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { getBadgeDrawDistance } from 'map/layers/utils/layer-visibility-limits';
 import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState, LinkingType } from 'linking/linking-model';

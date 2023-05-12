@@ -1,6 +1,6 @@
 import OlMap from 'ol/Map';
 import { MapTool, MapToolActivateOptions } from './tool-model';
-import { MapLayer } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 import { debounce } from 'ts-debounce';
 import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
 

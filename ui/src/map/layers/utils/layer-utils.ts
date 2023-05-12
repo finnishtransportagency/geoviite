@@ -12,10 +12,10 @@ import {
 import * as turf from '@turf/turf';
 import { OptionalItemCollections } from 'selection/selection-model';
 import { FEATURE_PROPERTY_LINK_POINT, FEATURE_PROPERTY_TYPE } from 'map/layers/linking-layer';
-import { LayerItemSearchResult } from 'map/layers/layer-model';
+import { LayerItemSearchResult } from 'map/layers/utils/layer-model';
 import { LinkPoint, LinkPointType, SuggestedSwitch } from 'linking/linking-model';
 import proj4 from 'proj4';
-import { FEATURE_PROPERTY_SUGGESTED_SWITCH } from 'map/layers/switch-linking-layer';
+import { FEATURE_PROPERTY_SUGGESTED_SWITCH } from 'map/layers/switch/switch-linking-layer';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { OptionalShownItems } from 'map/map-model';
 import { Extent, getBottomRight, getTopLeft } from 'ol/extent';

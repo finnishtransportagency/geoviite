@@ -6,8 +6,8 @@ import { Selection } from 'selection/selection-model';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { AddressPoint, PublishType } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
-import { DEBUG_1M_POINTS } from './layer-visibility-limits';
-import { MapLayer } from 'map/layers/layer-model';
+import { DEBUG_1M_POINTS } from './utils/layer-visibility-limits';
+import { MapLayer } from 'map/layers/utils/layer-model';
 
 export type Debug1mPointsLayerFeatureType = OlPoint;
 

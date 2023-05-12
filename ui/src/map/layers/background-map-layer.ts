@@ -1,7 +1,7 @@
 import { Tile as OlTileLayer } from 'ol/layer';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
-import { MapLayer } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import TileSource from 'ol/source/Tile';
 

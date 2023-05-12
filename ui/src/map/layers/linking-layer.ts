@@ -13,9 +13,9 @@ import {
     getTickStyle,
     MatchOptions,
     pointToCoords,
-} from 'map/layers/layer-utils';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
-import { LINKING_DOTS } from 'map/layers/layer-visibility-limits';
+} from 'map/layers/utils/layer-utils';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
     ClusterPoint,
     LinkingState,

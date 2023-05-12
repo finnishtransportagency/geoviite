@@ -1,8 +1,11 @@
-import { Polygon } from "ol/geom";
-import OlMap from "ol/Map";
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from "map/layers/layer-model";
-import { mergePartialItemSearchResults, mergePartialShownItemSearchResults } from "map/layers/layer-utils";
-import { OptionalShownItems } from "map/map-model";
+import { Polygon } from 'ol/geom';
+import OlMap from 'ol/Map';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import {
+    mergePartialItemSearchResults,
+    mergePartialShownItemSearchResults,
+} from 'map/layers/utils/layer-utils';
+import { OptionalShownItems } from 'map/map-model';
 
 /**
  * Returns a simple shape that has consistent size in pixels and can be used to search items from layers.

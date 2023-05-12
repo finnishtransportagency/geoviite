@@ -3,17 +3,17 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { MapLayer } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { groupBy } from 'utils/array-utils';
-import * as Limits from 'map/layers/layer-visibility-limits';
-import { getBadgeDrawDistance } from 'map/layers/layer-visibility-limits';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { getBadgeDrawDistance } from 'map/layers/utils/layer-visibility-limits';
 import { Feature } from 'ol';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { BadgeColor, createMapAlignmentBadgeFeature, getBadgePoints } from './alignment-layer';
-import { pointToCoords } from 'map/layers/layer-utils';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
 
 let newestTrackNumberDiagramLayerId = 0;
 

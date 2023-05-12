@@ -5,7 +5,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
-import { MapLayer } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 
 export type DebugLayerFeatureType = OlPoint | Polygon;
 

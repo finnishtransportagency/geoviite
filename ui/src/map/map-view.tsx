@@ -12,7 +12,10 @@ import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
 import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
-import { createSwitchLinkingLayer, SwitchLinkingFeatureType } from './layers/switch-linking-layer';
+import {
+    createSwitchLinkingLayer,
+    SwitchLinkingFeatureType,
+} from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
 import { MapToolActivateOptions } from './tools/tool-model';
@@ -24,7 +27,7 @@ import { searchShownItemsFromLayers } from 'map/tools/tool-utils';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { createManualSwitchLinkingLayer } from 'map/layers/switch-manual-linking-layer';
+import { createManualSwitchLinkingLayer } from 'map/layers/switch/switch-manual-linking-layer';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
@@ -38,25 +41,25 @@ import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
-import { createTrackNumberDiagramLayer } from 'map/layers/track-number-diagram-layer';
+import { createTrackNumberDiagramLayer } from 'map/layers/alignment/track-number-diagram-layer';
 import { LineString, Point as OlPoint } from 'ol/geom';
-import { createAlignmentLayer } from 'map/layers/alignment-layer';
+import { createAlignmentLayer } from 'map/layers/alignment/alignment-layer';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { createGeometryAlignmentLayer } from 'map/layers/geometry-alignment-layer';
-import { createGeometryKmPostLayer } from 'map/layers/geometry-km-post-layer';
-import { createKmPostLayer } from 'map/layers/km-post-layer';
+import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
+import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
+import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createLinkingLayer } from 'map/layers/linking-layer';
 import { createPlanAreaLayer } from 'map/layers/plan-area-layer';
-import { pointToCoords } from 'map/layers/layer-utils';
-import { createGeometrySwitchLayer } from 'map/layers/geometry-switch-layer';
-import { createSwitchLayer } from 'map/layers/switch-layer';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
+import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import { createBackgroundMapLayer } from 'map/layers/background-map-layer';
 import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
-import { MapLayer } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty } from 'utils/array-utils';
-import { layerZIndexes } from 'map/layers/layer-visibility-limits';
+import { layerZIndexes } from 'map/layers/utils/layer-visibility-limits';
 
 declare global {
     interface Window {

@@ -10,12 +10,12 @@ import {
     drawRect,
     drawRoundedRect,
     PointRenderFunction,
-} from 'map/layers/rendering';
+} from 'map/layers/utils/rendering';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { Point } from 'model/geometry';
 import { Feature } from 'ol';
 import { Point as OlPoint, Polygon } from 'ol/geom';
-import { pointToCoords } from 'map/layers/layer-utils';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
 
 const kmPostImg: HTMLImageElement = new Image();
 kmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(KmPost)}`;

@@ -8,12 +8,15 @@ import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
-import { MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
-import { getMatchingKmPosts } from 'map/layers/layer-utils';
+import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { getMatchingKmPosts } from 'map/layers/utils/layer-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { createKmPostFeature, getKmPostStepByResolution } from 'map/layers/km-post-layer-utils';
+import {
+    createKmPostFeature,
+    getKmPostStepByResolution,
+} from 'map/layers/km-post/km-post-layer-utils';
 
 let kmPostIdCompare: string;
 let kmPostChangeTimeCompare: string;

@@ -1,7 +1,7 @@
 import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model';
 import { State } from 'ol/render';
-import { createPointRenderer, drawCircle, drawRoundedRect } from 'map/layers/rendering';
-import styles from '../map.module.scss';
+import { createPointRenderer, drawCircle, drawRoundedRect } from 'map/layers/utils/rendering';
+import styles from '../../map.module.scss';
 import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
@@ -10,7 +10,7 @@ import { SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { Feature } from 'ol';
 import { Point } from 'ol/geom';
-import { pointToCoords } from 'map/layers/layer-utils';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;

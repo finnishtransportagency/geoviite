@@ -16,9 +16,9 @@ import {
     MatchOptions,
     pointToCoords,
     setAlignmentData,
-} from 'map/layers/layer-utils';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
-import * as Limits from 'map/layers/layer-visibility-limits';
+} from 'map/layers/utils/layer-utils';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { PublishType, TimeStamp } from 'common/common-model';
