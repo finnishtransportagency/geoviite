@@ -14,9 +14,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.temporal.TemporalAmount
 
 val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
 val SECONDS_IN_A_YEAR: Long = 31556926
@@ -71,6 +68,15 @@ class VelhoService @Autowired constructor(
         }
     }
 
+    fun fetchAineisto() {
+        val dict = velhoClient.fetchAineistoMetadata()
+        dict.forEach { (type, entries) ->
+            entries.map { entry ->
+                velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entry.code, entry.name)
+            }
+        }
+    }
+
     fun fetchSearchResults(searchId: String) =
         velhoClient
             .fetchVelhoSearches()
@@ -100,11 +106,19 @@ class VelhoService @Autowired constructor(
             metadataResponse.latestVersion.version,
         )
 
+        // TODO Add these when fetches actually work
+        /*val assignment = velhoClient.fetchAssignment(match.assignmentOid)
+        val project = assignment?.projectOid?.let(velhoClient::fetchProject)
+        val projectGroup = project?.projectGroupOid?.let(velhoClient::fetchProjectGroup)*/
+
         return ProjektiVelhoFile(
             oid = match.oid,
             content = content,
             metadata = metadataResponse.metadata,
-            latestVersion = metadataResponse.latestVersion
+            latestVersion = metadataResponse.latestVersion,
+            assignment = null,
+            project = null,
+            projectGroup = null
         )
     }
 

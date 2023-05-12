@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.velho
 
 import fi.fta.geoviite.infra.logging.integrationCall
+import io.netty.handler.logging.LogLevel
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -16,6 +17,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
+import reactor.netty.transport.logging.AdvancedByteBufFormat
 import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
@@ -57,7 +59,7 @@ class VelhoClientConfiguration @Autowired constructor(
 
     @Bean
     fun projVelhoClient(): VelhoWebClient {
-        val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
+        val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout).secure().compress(true)
 
         val webClientBuilder = WebClient.builder()
             .clientConnector(ReactorClientHttpConnector(httpClient.followRedirect(true)))

@@ -23,8 +23,8 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             insert into integrations.projektivelho_file_metadata(
                 oid,
                 filename,
-                version,
-                change_time,
+                file_version,
+                file_change_time,
                 description,
                 file_state,
                 category,
@@ -34,8 +34,8 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             ) values (
                 :oid,
                 :filename,
-                :version,
-                :change_time,
+                :file_version,
+                :file_change_time,
                 :description,
                 :file_state,
                 :category,
@@ -49,13 +49,13 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             sql, mapOf<String, Any?>(
                 "filename" to latestVersion.name,
                 "oid" to oid,
-                "version" to latestVersion.version,
+                "file_version" to latestVersion.version,
                 "description" to metadata.description,
-                "file_state" to metadata.state,
-                "category" to metadata.category,
-                "doc_type" to metadata.documentType,
-                "asset_group" to metadata.group,
-                "change_time" to Timestamp.from(latestVersion.changeTime),
+                "file_state" to metadata.state?.let { fetchDictionaryEntry(username, it) },
+                "category" to metadata.category?.let { fetchDictionaryEntry(username, it) },
+                "doc_type" to metadata.documentType?.let { fetchDictionaryEntry(username, it) },
+                "asset_group" to metadata.group?.let { fetchDictionaryEntry(username, it) },
+                "file_change_time" to Timestamp.from(latestVersion.changeTime),
                 "status" to status.name
             )
         ) { rs, _ ->
@@ -147,5 +147,36 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 rs.getInstant("valid_until")
             )
         }.firstOrNull()
+    }
+
+    fun upsertDictionary(user: UserName, type: String, code: String, name: String) {
+        val sql = """
+            insert into integrations.projektivelho_dictionary(
+                type,
+                code,
+                name
+            ) values (
+                :type::integrations.projektivelho_dictionary_type,
+                :code,
+                :name
+            ) on conflict do nothing
+            returning id
+        """.trimIndent()
+        jdbcTemplate.setUser(user)
+        jdbcTemplate.query(sql, mapOf<String, Any>("type" to type, "code" to code, "name" to name)) { rs, _ ->
+
+        }
+    }
+
+    fun fetchDictionaryEntry(user: UserName, code: String): Int {
+        val sql = """
+            select id 
+            from integrations.projektivelho_dictionary
+            where code = :code
+        """.trimIndent()
+        jdbcTemplate.setUser(user)
+        return jdbcTemplate.query(sql, mapOf("code" to code)) { rs, _ ->
+            rs.getInt("id")
+        }.single()
     }
 }
