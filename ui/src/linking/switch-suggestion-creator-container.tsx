@@ -39,7 +39,7 @@ export const SwitchSuggestionCreatorContainer: React.FC = () => {
 
     function onSuggestedSwitchCreated(suggestedSwitch: SuggestedSwitch) {
         onLayerVisibilityChange({
-            layerId: 'manualSwitchLinking',
+            type: 'manualSwitchLinking',
             visible: false,
         });
         onSelect({

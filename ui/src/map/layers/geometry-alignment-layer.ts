@@ -5,9 +5,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import OlView from 'ol/View';
 import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
-import { GeometryLayer, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { adapterInfoRegister } from './register';
 import {
     filterLayoutPoints,
     GeometryPlanLayout,
@@ -17,11 +15,11 @@ import {
     getMatchingAlignmentDatas,
     getTickStyles,
     MatchOptions,
+    pointToCoords,
     setAlignmentData,
 } from 'map/layers/layer-utils';
 import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
-import { LinkingState } from 'linking/linking-model';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { PublishType, TimeStamp } from 'common/common-model';
@@ -71,17 +69,17 @@ const selectedLinkedAlignmentStyle = new Style({
  * @param selection
  * @param resolution
  */
-function createFeatures(
+function createFeature(
     planLayout: GeometryPlanLayout,
     alignment: AlignmentWithLinking,
     selection: Selection,
     resolution: number,
-): Feature<LineString>[] {
+): Feature<LineString> {
     const isAlignmentSelected = selection.selectedItems.geometryAlignments.find(
         (alignmentToCheck) => alignmentToCheck.geometryItem.id == alignment.header.id,
     );
 
-    const lineString = new LineString(alignment.points.map((point) => [point.x, point.y]));
+    const lineString = new LineString(alignment.points.map(pointToCoords));
     const feature = new Feature<LineString>({
         geometry: lineString,
     });
@@ -116,7 +114,7 @@ function createFeatures(
         planId: planLayout.planId,
     });
 
-    return [feature];
+    return feature;
 }
 
 type AlignmentWithLinking = {
@@ -170,82 +168,74 @@ async function getPlanLayoutAlignmentsWithLinking(
 
 let newestGeometryAdapterId = 0;
 
-adapterInfoRegister.add('geometry', {
-    createAdapter: function (
-        _mapTiles: MapTile[],
-        existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-        geometryLayer: GeometryLayer,
-        selection: Selection,
-        publishType: PublishType,
-        _linkingState: LinkingState | undefined,
-        changeTimes: ChangeTimes,
-        olView: OlView,
-    ): OlLayerAdapter {
-        const adapterId = ++newestGeometryAdapterId;
+export function createGeometryAlignmentLayerAdapter(
+    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    selection: Selection,
+    publishType: PublishType,
+    changeTimes: ChangeTimes,
+    olView: OlView,
+): OlLayerAdapter {
+    const adapterId = ++newestGeometryAdapterId;
 
-        const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-        // Use an existing layer or create a new one. Old layer is "recycled" to
-        // prevent features to disappear while moving the map.
-        const olLayer: VectorLayer<VectorSource<LineString>> =
-            existingOlLayer ||
-            new VectorLayer({
-                source: vectorSource,
-            });
-
-        olLayer.setVisible(geometryLayer.visible);
-
-        const resolution = olView.getResolution() || 0;
-
-        const features = Promise.all(
-            selection.planLayouts.map((planLayout) => {
-                const changeTime = getMaxTimestamp(
-                    changeTimes.layoutReferenceLine,
-                    changeTimes.layoutLocationTrack,
-                );
-                return getPlanLayoutAlignmentsWithLinking(
-                    planLayout,
-                    publishType,
-                    changeTime,
-                    resolution,
-                ).then((alignments) =>
-                    alignments.flatMap((alignment) =>
-                        createFeatures(planLayout, alignment, selection, resolution),
-                    ),
-                );
-            }),
-        );
-
-        features.then((f) => {
-            if (adapterId == newestGeometryAdapterId) {
-                vectorSource.clear();
-                vectorSource.addFeatures(f.flat());
-            }
+    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
+    // Use an existing layer or create a new one. Old layer is "recycled" to
+    // prevent features to disappear while moving the map.
+    const olLayer =
+        existingOlLayer ||
+        new VectorLayer({
+            source: vectorSource,
         });
 
-        return {
-            layer: olLayer,
-            searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
-                const matchOptions: MatchOptions = {
-                    strategy: options.limit == 1 ? 'nearest' : 'limit',
-                    limit: options.limit,
-                };
-                const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-                const holders =
-                    features && getMatchingAlignmentDatas(hitArea, features, matchOptions);
-                const alignments = holders
-                    .filter(filterUniqueById((data) => data.header.id)) // pick unique alignments
-                    .slice(0, options.limit)
-                    .map((data) => {
-                        return {
-                            planId: data.planId as GeometryPlanId,
-                            geometryItem: { ...data.header },
-                        };
-                    });
+    const resolution = olView.getResolution() || 0;
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutLocationTrack,
+    );
 
-                return {
-                    geometryAlignments: alignments,
-                };
-            },
-        };
-    },
-});
+    const features = Promise.all(
+        selection.planLayouts.map((planLayout) => {
+            return getPlanLayoutAlignmentsWithLinking(
+                planLayout,
+                publishType,
+                changeTime,
+                resolution,
+            ).then((alignments) =>
+                alignments.map((alignment) =>
+                    createFeature(planLayout, alignment, selection, resolution),
+                ),
+            );
+        }),
+    );
+
+    features.then((f) => {
+        if (adapterId == newestGeometryAdapterId) {
+            vectorSource.clear();
+            vectorSource.addFeatures(f.flat());
+        }
+    });
+
+    return {
+        layer: olLayer,
+        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+            const matchOptions: MatchOptions = {
+                strategy: options.limit == 1 ? 'nearest' : 'limit',
+                limit: options.limit,
+            };
+            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
+            const holders = features && getMatchingAlignmentDatas(hitArea, features, matchOptions);
+            const alignments = holders
+                .filter(filterUniqueById((data) => data.header.id)) // pick unique alignments
+                .slice(0, options.limit)
+                .map((data) => {
+                    return {
+                        planId: data.planId as GeometryPlanId,
+                        geometryItem: { ...data.header },
+                    };
+                });
+
+            return {
+                geometryAlignments: alignments,
+            };
+        },
+    };
+}

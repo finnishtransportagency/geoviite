@@ -1,7 +1,7 @@
 import { LineString, Point } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { MapTile, TrackNumberDiagramLayer } from 'map/map-model';
+import { MapTile } from 'map/map-model';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { OlLayerAdapter } from 'map/layers/layer-model';
 import { PublishType } from 'common/common-model';
@@ -14,6 +14,7 @@ import { Feature } from 'ol';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { BadgeColor, createBadgePoints, createMapAlignmentBadgeFeature } from './alignment-layer';
+import { pointToCoords } from 'map/layers/layer-utils';
 
 let newestTrackNumberDiagramAdapterId = 0;
 
@@ -45,7 +46,6 @@ const getColorForTrackNumber = (id: LayoutTrackNumberId) => {
 };
 
 export function createTrackNumberDiagramLayerAdapter(
-    mapLayer: TrackNumberDiagramLayer,
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
     olView: OlView,
@@ -62,23 +62,23 @@ export function createTrackNumberDiagramLayerAdapter(
             source: vectorSource,
         });
 
-    layer.setVisible(mapLayer.visible);
-
     const resolution = olView.getResolution() || 0;
     const fetchType = resolution > Limits.ALL_ALIGNMENTS ? 'REFERENCE_LINES' : 'ALL';
 
-    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType).then((alignments) => {
-        if (adapterId != newestTrackNumberDiagramAdapterId) return;
+    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType)
+        .then((alignments) => {
+            if (adapterId != newestTrackNumberDiagramAdapterId) return;
 
-        const referenceLineBadges = referenceLinesVisible
-            ? []
-            : getReferenceLineBadges(alignments, resolution);
+            const referenceLineBadges = referenceLinesVisible
+                ? []
+                : getReferenceLineBadges(alignments, resolution);
 
-        const diagramFeatures = getDiagramFeatures(alignments);
+            const diagramFeatures = getDiagramFeatures(alignments);
 
-        vectorSource.clear();
-        vectorSource.addFeatures([...diagramFeatures, ...referenceLineBadges]);
-    });
+            vectorSource.clear();
+            vectorSource.addFeatures([...diagramFeatures, ...referenceLineBadges]);
+        })
+        .catch(vectorSource.clear);
 
     return {
         layer: layer,
@@ -118,7 +118,7 @@ function getDiagramFeatures(alignments: AlignmentDataHolder[]) {
 
         return alignments.map((a) => {
             const feature = new Feature({
-                geometry: new LineString(a.points.map((p) => [p.x, p.y])),
+                geometry: new LineString(a.points.map(pointToCoords)),
             });
 
             feature.setStyle(style);

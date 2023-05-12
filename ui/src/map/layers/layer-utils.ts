@@ -1,13 +1,13 @@
 import Feature, { FeatureLike } from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
-import { Geometry, LineString, Point, Polygon } from 'ol/geom';
+import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { RegularShape, Style } from 'ol/style';
 import {
     LAYOUT_SRID,
     LayoutKmPost,
+    LayoutPoint,
     LayoutSwitch,
     LayoutSwitchJoint,
-    LayoutPoint,
 } from 'track-layout/track-layout-model';
 import * as turf from '@turf/turf';
 import { OptionalItemCollections } from 'selection/selection-model';
@@ -25,6 +25,7 @@ import {
     boundingBoxIntersectsLine,
     coordsToPoint,
     createLine,
+    Point,
 } from 'model/geometry';
 import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-api';
 import { interpolateXY } from 'utils/math-utils';
@@ -48,7 +49,7 @@ function toWgs84Polygon(polyCoordinates: number[][][]): number[][][] {
     return polyCoordinates.map((coordinates) => toWgs84Multi(coordinates));
 }
 
-function center(polygon: Polygon): Point {
+function center(polygon: Polygon): OlPoint {
     const coords = polygon.getLinearRing(0)?.getCoordinates();
     if (!coords) {
         throw 'Cannot find the center of a polygon!';
@@ -58,14 +59,14 @@ function center(polygon: Polygon): Point {
     if (!center) {
         throw 'Cannot find the center of a polygon!';
     }
-    return new Point(toMapProjection(center));
+    return new OlPoint(toMapProjection(center));
 }
 
-function hasCollisionPoints(pointA: Point, pointB: Point): boolean {
+function hasCollisionPoints(pointA: OlPoint, pointB: OlPoint): boolean {
     return pointA.intersectsCoordinate(pointB.getCoordinates());
 }
 
-function hasCollisionPolygonAndPoint(poly: Polygon, point: Point): boolean {
+function hasCollisionPolygonAndPoint(poly: Polygon, point: OlPoint): boolean {
     return turf.booleanPointInPolygon(
         turf.point(toWgs84(point.getCoordinates())),
         turf.polygon(toWgs84Polygon(poly.getCoordinates())),
@@ -108,11 +109,11 @@ function hasCollisionPolygons(polyA: Polygon, polyB: Polygon): boolean {
  * Returns true if given geometries collides.
  */
 function hasCollision(geomA: Geometry, geomB: Geometry): boolean {
-    if (geomA instanceof Point && geomB instanceof Point) {
+    if (geomA instanceof OlPoint && geomB instanceof OlPoint) {
         return hasCollisionPoints(geomA, geomB);
-    } else if (geomA instanceof Polygon && geomB instanceof Point) {
+    } else if (geomA instanceof Polygon && geomB instanceof OlPoint) {
         return hasCollisionPolygonAndPoint(geomA, geomB);
-    } else if (geomA instanceof Point && geomB instanceof Polygon) {
+    } else if (geomA instanceof OlPoint && geomB instanceof Polygon) {
         return hasCollisionPolygonAndPoint(geomB, geomA);
     } else if (geomA instanceof Polygon && geomB instanceof LineString) {
         return hasCollisionPolygonAndLine(geomA, geomB);
@@ -130,7 +131,7 @@ function hasCollision(geomA: Geometry, geomB: Geometry): boolean {
  * @param pointA
  * @param pointB
  */
-function getPlanarDistancePointAndPoint(pointA: Point, pointB: Point): number {
+function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): number {
     const pointACoords = pointA.getCoordinates();
     const pointBCoords = pointB.getCoordinates();
 
@@ -147,7 +148,7 @@ export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y
  * @param point
  * @param line
  */
-export function getDistancePointAndLine(point: Point, line: LineString): number {
+export function getDistancePointAndLine(point: OlPoint, line: LineString): number {
     return (
         turf.pointToLineDistance(
             turf.point(toWgs84(point.getCoordinates())),
@@ -157,7 +158,7 @@ export function getDistancePointAndLine(point: Point, line: LineString): number 
     );
 }
 
-export function getDistancePointAndPolygon(point: Point, polygon: Polygon): number {
+export function getDistancePointAndPolygon(point: OlPoint, polygon: Polygon): number {
     const polyCenter = center(polygon);
     return getPlanarDistancePointAndPoint(point, polyCenter);
 }
@@ -168,8 +169,8 @@ export function getDistancePointAndPolygon(point: Point, polygon: Polygon): numb
  * @param point
  * @param geom
  */
-export function getDistance(point: Point, geom: Geometry): number {
-    if (geom instanceof Point) {
+export function getDistance(point: OlPoint, geom: Geometry): number {
+    if (geom instanceof OlPoint) {
         return getPlanarDistancePointAndPoint(point, geom);
     } else if (geom instanceof LineString) {
         return getDistancePointAndLine(point, geom);
@@ -194,7 +195,7 @@ type SortedMatch<TEntity> = Match<TEntity> & {
 };
 
 function sortMatchesByDistance<TEntity>(
-    point: Point,
+    point: OlPoint,
     matches: Match<TEntity>[],
 ): SortedMatch<TEntity>[] {
     return Object.values(matches)
@@ -446,7 +447,7 @@ export function getTickStyle(
     }
 
     return new Style({
-        geometry: new Point(position == 'start' ? point1 : point2),
+        geometry: new OlPoint(position == 'start' ? point1 : point2),
         image: image,
         zIndex: style.getZIndex(),
     });
@@ -468,11 +469,11 @@ export function getTickStyles(
                 return undefined;
             } else if (m >= points[points.length - 1].m) {
                 const prev = points[points.length - 2];
-                return getTickStyle([prev.x, prev.y], coordinate, length, 'end', style);
+                return getTickStyle(pointToCoords(prev), coordinate, length, 'end', style);
             } else {
                 const next = points.find((p) => p.m > m);
                 return next
-                    ? getTickStyle(coordinate, [next.x, next.y], length, 'start', style)
+                    ? getTickStyle(coordinate, pointToCoords(next), length, 'start', style)
                     : undefined;
             }
         })
@@ -484,7 +485,7 @@ function getCoordinate(points: LayoutPoint[], m: number): number[] | undefined {
     if (nextIndex < 0 || nextIndex >= points.length) {
         return undefined;
     } else if (points[nextIndex].m === m) {
-        return [points[nextIndex].x, points[nextIndex].y];
+        return pointToCoords(points[nextIndex]);
     } else if (nextIndex === 0) {
         return undefined;
     } else {
@@ -539,6 +540,10 @@ export function mergePartialItemSearchResults(
             geometryPlans: mergeOptionalArrays(merged.geometryPlans, searchResult.geometryPlans),
         };
     }, {});
+}
+
+export function pointToCoords(point: Point): Coordinate {
+    return [point.x, point.y];
 }
 
 export function mergePartialShownItemSearchResults(

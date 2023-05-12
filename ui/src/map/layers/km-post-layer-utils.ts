@@ -2,7 +2,7 @@ import { LayoutKmPost } from 'track-layout/track-layout-model';
 import mapStyles from 'map/map.module.scss';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
-import { RenderFunction } from 'ol/style/Style';
+import Style, { RenderFunction } from 'ol/style/Style';
 import KmPost from 'vayla-design-lib/icon/glyphs/misc/kmpost.svg';
 import {
     createPointRenderer,
@@ -11,10 +11,88 @@ import {
     drawRoundedRect,
     PointRenderFunction,
 } from 'map/layers/rendering';
-import { KmPostType } from 'map/layers/km-post-layer';
+import { GeometryPlanId } from 'geometry/geometry-model';
+import { Point } from 'model/geometry';
+import { Feature } from 'ol';
+import { Point as OlPoint, Polygon } from 'ol/geom';
+import { pointToCoords } from 'map/layers/layer-utils';
 
 const kmPostImg: HTMLImageElement = new Image();
 kmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(KmPost)}`;
+
+export type KmPostType = 'layoutKmPost' | 'geometryKmPost';
+
+/**
+ * Steps of km post skip step
+ */
+const stepSteps = [1, 2, 5, 10, 20, 50, 100];
+
+export function getStepByResolution(resolution: number): number {
+    const step = Math.ceil(resolution / 10);
+    return stepSteps.find((stepStep) => step <= stepStep) || 0;
+}
+
+export function createKmPostFeature(
+    kmPosts: LayoutKmPost[],
+    isSelected: (kmPost: LayoutKmPost) => boolean,
+    kmPostType: KmPostType,
+    resolution: number,
+    planId?: GeometryPlanId,
+    isLinked: ((kmPost: LayoutKmPost) => boolean) | undefined = undefined,
+): Feature<OlPoint | Polygon>[] {
+    return kmPosts
+        .filter((kmPost) => kmPost.location != null)
+        .flatMap((kmPost) => {
+            const location = kmPost.location as Point;
+            const point = new OlPoint(pointToCoords(location));
+            const feature = new Feature<OlPoint>({
+                geometry: point,
+            });
+
+            const selected = isSelected(kmPost);
+
+            feature.setStyle(() => {
+                return new Style({
+                    zIndex: selected ? 1 : 0,
+                    renderer: selected
+                        ? getSelectedKmPostRenderer(
+                              kmPost,
+                              kmPostType,
+                              isLinked && isLinked(kmPost),
+                          )
+                        : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
+                });
+            });
+            feature.set('kmPost-data', {
+                kmPost: kmPost,
+                planId: planId,
+            });
+
+            // Create a feature to act as a clickable area
+            const width = 35 * resolution;
+            const height = 15 * resolution;
+            const clickableX = location.x - 5 * resolution; // offset x a bit
+            const polygon = new Polygon([
+                [
+                    [clickableX, location.y - height / 2],
+                    [clickableX + width, location.y - height / 2],
+                    [clickableX + width, location.y + height / 2],
+                    [clickableX, location.y + height / 2],
+                    [clickableX, location.y - height / 2],
+                ],
+            ]);
+            const hitAreaFeature = new Feature<Polygon>({
+                geometry: polygon,
+            });
+            hitAreaFeature.setStyle(undefined);
+            hitAreaFeature.set('kmPost-data', {
+                kmPost: kmPost,
+                planId: planId,
+            });
+
+            return [feature, hitAreaFeature];
+        });
+}
 
 function getRenderer(
     kmPost: LayoutKmPost,
@@ -33,7 +111,7 @@ function getRenderer(
     );
 }
 
-export function getSelectedKmPostRenderer(
+function getSelectedKmPostRenderer(
     kmPost: LayoutKmPost,
     kmPostType: KmPostType,
     isLinked = false,
@@ -127,7 +205,7 @@ export function getSelectedKmPostRenderer(
     return getRenderer(kmPost, 14, dFunctions);
 }
 
-export function getKmPostRenderer(
+function getKmPostRenderer(
     kmPost: LayoutKmPost,
     kmPostType: KmPostType,
     isLinked = false,

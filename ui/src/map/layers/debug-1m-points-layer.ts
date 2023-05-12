@@ -1,12 +1,9 @@
 import Feature from 'ol/Feature';
-import { Polygon } from 'ol/geom';
 import OlPoint from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Selection } from 'selection/selection-model';
-import { Debug1mPointsLayer } from 'map/map-model';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
-import { filterNotEmpty } from 'utils/array-utils';
+import { OlLayerAdapter } from 'map/layers/layer-model';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { AddressPoint, PublishType } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
@@ -51,9 +48,7 @@ function createAddressPointFeatures(
     return createDebugFeatures(debugData);
 }
 
-function createDebugFeature(
-    item: DebugLayerPoint,
-): Feature<Debug1mPointsLayerFeatureType> | undefined {
+function createDebugFeature(item: DebugLayerPoint): Feature<Debug1mPointsLayerFeatureType> {
     const feature: Feature<Debug1mPointsLayerFeatureType> = new Feature({
         geometry: new OlPoint([item.x, item.y]),
     });
@@ -86,11 +81,10 @@ function createDebugFeature(
 }
 
 function createDebugFeatures(data: DebugLayerData): Feature<Debug1mPointsLayerFeatureType>[] {
-    return data.flatMap((item: DebugLayerPoint) => createDebugFeature(item)).filter(filterNotEmpty);
+    return data.flatMap((item: DebugLayerPoint) => createDebugFeature(item));
 }
 
 export function createDebug1mPointsLayerAdapter(
-    mapLayer: Debug1mPointsLayer,
     existingOlLayer: VectorLayer<VectorSource<Debug1mPointsLayerFeatureType>> | undefined,
     selection: Selection,
     publishType: PublishType,
@@ -100,27 +94,18 @@ export function createDebug1mPointsLayerAdapter(
 
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer: VectorLayer<VectorSource<Debug1mPointsLayerFeatureType>> =
+    const layer =
         existingOlLayer ||
         new VectorLayer({
             source: vectorSource,
         });
 
-    function clearFeatures() {
-        vectorSource.clear();
-    }
-
     function updateFeatures(features: Feature<Debug1mPointsLayerFeatureType>[]) {
-        clearFeatures();
+        vectorSource.clear();
         vectorSource.addFeatures(features);
     }
 
-    layer.setVisible(mapLayer.visible);
-
-    const selected =
-        selection.selectedItems.locationTracks.length > 0
-            ? selection.selectedItems.locationTracks[0]
-            : undefined;
+    const selected = selection.selectedItems.locationTracks[0];
     if (selected && resolution && resolution < DEBUG_1M_POINTS) {
         getAddressPoints(selected, publishType).then((data) =>
             data ? updateFeatures(createAddressPointFeatures(data)) : updateFeatures([]),
@@ -131,8 +116,5 @@ export function createDebug1mPointsLayerAdapter(
 
     return {
         layer: layer,
-        searchItems: (_hitArea: Polygon, _options: SearchItemsOptions): LayerItemSearchResult => {
-            return {};
-        },
     };
 }

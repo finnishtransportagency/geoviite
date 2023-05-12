@@ -79,11 +79,11 @@ export type OnPlanFetchReady = {
 const visibleMapLayerTypes: MapLayerType[] = [
     'tile',
     'alignment',
-    'switches',
-    'kmPosts',
-    'geometry',
-    'geometrySwitches',
-    'geometryKmPosts',
+    'switch',
+    'kmPost',
+    'geometryAlignment',
+    'geometrySwitch',
+    'geometryKmPost',
 ];
 
 export const initialInfraModelState: InfraModelState = {

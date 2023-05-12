@@ -12,7 +12,6 @@ import { DebugLayerData } from 'map/layers/debug-layer';
 
 export type MapLayerBase = {
     name: string;
-    id: string;
     visible: boolean;
 };
 
@@ -21,7 +20,7 @@ export type TileMapLayer = MapLayerBase & {
     url: string;
 };
 
-export type LayoutAlignmentsLayer = MapLayerBase & {
+export type LayoutAlignmentLayer = MapLayerBase & {
     type: 'alignment';
     showReferenceLines: boolean;
     showMissingVerticalGeometry: boolean;
@@ -30,16 +29,8 @@ export type LayoutAlignmentsLayer = MapLayerBase & {
     showDuplicateTracks: boolean;
 };
 
-export type HighlightsLayer = MapLayerBase & {
-    type: 'highlight';
-    showMissingVerticalGeometry: boolean;
-    showSegmentsFromSelectedPlan: boolean;
-    showMissingLinking: boolean;
-    showDuplicateTracks: boolean;
-};
-
-export type GeometryLayer = MapLayerBase & {
-    type: 'geometry';
+export type GeometryAlignmentLayer = MapLayerBase & {
+    type: 'geometryAlignment';
     planIds: GeometryPlanId[];
 
     /**
@@ -53,31 +44,31 @@ export type LinkingLayer = MapLayerBase & {
 };
 
 export type KmPostLayer = MapLayerBase & {
-    type: 'kmPosts';
+    type: 'kmPost';
 };
 
 export type GeometryKmPostLayer = MapLayerBase & {
-    type: 'geometryKmPosts';
+    type: 'geometryKmPost';
 };
 
 export type SwitchLayer = MapLayerBase & {
-    type: 'switches';
+    type: 'switch';
 };
 
 export type PlanAreaLayer = MapLayerBase & {
-    type: 'planAreas';
+    type: 'planArea';
 };
 
 export type GeometrySwitchLayer = MapLayerBase & {
-    type: 'geometrySwitches';
+    type: 'geometrySwitch';
 };
 
 export type SwitchLinkingLayer = MapLayerBase & {
     type: 'switchLinking';
 };
 
-export type ManualSwitchLinkingLayer = MapLayerBase & {
-    type: 'manualSwitchLinking';
+export type SwitchManualLinkingLayer = MapLayerBase & {
+    type: 'switchManualLinking';
 };
 
 export type Debug1mPointsLayer = MapLayerBase & {
@@ -94,10 +85,9 @@ export type TrackNumberDiagramLayer = MapLayerBase & {
 };
 
 export type MapLayer =
-    | LayoutAlignmentsLayer
-    | HighlightsLayer
+    | LayoutAlignmentLayer
     | TileMapLayer
-    | GeometryLayer
+    | GeometryAlignmentLayer
     | KmPostLayer
     | GeometryKmPostLayer
     | SwitchLayer
@@ -105,7 +95,7 @@ export type MapLayer =
     | GeometrySwitchLayer
     | LinkingLayer
     | SwitchLinkingLayer
-    | ManualSwitchLinkingLayer
+    | SwitchManualLinkingLayer
     | Debug1mPointsLayer
     | DebugLayer
     | TrackNumberDiagramLayer;
