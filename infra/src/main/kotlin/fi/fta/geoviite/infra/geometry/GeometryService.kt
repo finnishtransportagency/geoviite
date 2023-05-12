@@ -6,6 +6,8 @@ import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.HeightTriangleDao
+import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -33,6 +35,7 @@ class GeometryService @Autowired constructor(
     private val planLayoutCache: PlanLayoutCache,
     private val layoutAlignmentDao: LayoutAlignmentDao,
     private val switchService: LayoutSwitchService,
+    private val heightTriangleDao: HeightTriangleDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -363,6 +366,7 @@ class GeometryService @Autowired constructor(
     ): List<KmHeights>? {
         val locationTrack = locationTrackService.get(publishType, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
+        val boundingBox = alignment.boundingBox ?: return null
         val geocodingContext =
             geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId) ?: return null
 
@@ -379,6 +383,8 @@ class GeometryService @Autowired constructor(
                 )
             }
 
+        val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
+
         return collectTrackMeterHeights(
             startDistance,
             endDistance,
@@ -386,14 +392,19 @@ class GeometryService @Autowired constructor(
             alignment,
             tickLength,
             planBoundaryAddresses = planBoundaryAddresses,
-        ) { distance, givenSegmentIndex ->
-            val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(distance)
+        ) { point, givenSegmentIndex ->
+            val segmentIndex = givenSegmentIndex ?: alignment.getSegmentIndexAtM(point.m)
             val segment = alignment.segments[segmentIndex]
             val source = segmentSources[segmentIndex]
-            val distanceInSegment = distance - segment.startM
+            val distanceInSegment = point.m - segment.startM
             val distanceInElement = distanceInSegment + (segment.sourceStart ?: 0.0)
             val distanceInGeometryAlignment = distanceInElement + (source.element?.staStart?.toDouble() ?: 0.0)
-            source.profile?.getHeightAt(distanceInGeometryAlignment)
+            val profileHeight = source.profile?.getHeightAt(distanceInGeometryAlignment)
+            profileHeight?.let { height ->
+                source.plan?.units?.verticalCoordinateSystem?.let { verticalCoordinateSystem ->
+                    transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
+                }
+            }
         }
     }
 
@@ -427,13 +438,21 @@ class GeometryService @Autowired constructor(
         val alignment =
             planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment -> alignment.id == planAlignmentId }
                 ?: return null
+        val boundingBox = alignment.boundingBox ?: return null
+        val heightTriangles = heightTriangleDao.fetchTriangles(boundingBox.polygonFromCorners)
+        val verticalCoordinateSystem = plan.units.verticalCoordinateSystem ?: return null
+
         return collectTrackMeterHeights(
             startDistance,
             endDistance,
             geocodingContext,
             alignment,
             tickLength
-        ) { distance, _ -> profile?.getHeightAt(distance) }
+        ) { point, _ ->
+            profile?.getHeightAt(point.m)?.let { height ->
+                transformHeightValue(height, point, heightTriangles, verticalCoordinateSystem)
+            }
+        }
     }
 
     private fun collectTrackMeterHeights(
@@ -443,7 +462,7 @@ class GeometryService @Autowired constructor(
         alignment: IAlignment,
         tickLength: Int,
         planBoundaryAddresses: List<PlanBoundaryPoint> = listOf(),
-        getHeightAt: (distance: Double, segmentIndex: Int?) -> Double?,
+        getHeightAt: (point: LayoutPoint, segmentIndex: Int?) -> Double?,
     ): List<KmHeights>? {
         val addressOfStartDistance =
             geocodingContext.getAddress(alignment.getPointAtM(startDistance) ?: return null)?.first ?: return null
@@ -499,7 +518,7 @@ class GeometryService @Autowired constructor(
                             TrackMeterHeight(
                                 address.point.m,
                                 address.address.meters.toDouble(),
-                                getHeightAt(address.point.m, segmentIndex),
+                                getHeightAt(address.point, segmentIndex),
                                 address.point.toPoint(),
                             )
                         }
