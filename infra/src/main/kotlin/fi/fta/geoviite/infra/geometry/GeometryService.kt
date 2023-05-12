@@ -349,6 +349,7 @@ class GeometryService @Autowired constructor(
                     segmentSources[thisPlanEndIndex].plan?.fileName,
                     segmentSources[thisPlanEndIndex].alignment?.let(::toAlignmentHeader),
                     segmentSources[thisPlanEndIndex].plan?.id,
+                    segmentSources[thisPlanEndIndex].plan?.units?.verticalCoordinateSystem,
                 )
             }
     }
