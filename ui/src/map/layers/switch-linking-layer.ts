@@ -4,7 +4,7 @@ import { Point, Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
 import { getMatchingSuggestedSwitches, MatchOptions, pointToCoords } from 'map/layers/layer-utils';
@@ -57,13 +57,13 @@ function createFeatures(
     return features;
 }
 
-export function createSwitchLinkingLayerAdapter(
+export function createSwitchLinkingLayer(
     mapTiles: MapTile[],
-    resolution: number | undefined,
+    resolution: number,
     existingOlLayer: VectorLayer<VectorSource<SwitchLinkingFeatureType>> | undefined,
     selection: Selection,
     linkingState: LinkingSwitch | undefined,
-): OlLayerAdapter {
+): MapLayer {
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
@@ -87,7 +87,7 @@ export function createSwitchLinkingLayerAdapter(
             : [];
 
         Promise.all(getSuggestedSwitchesPromises)
-            .then((suggestedSwitchGoups) => suggestedSwitchGoups.flat())
+            .then((suggestedSwitchGroups) => suggestedSwitchGroups.flat())
             .then((suggestedSwitches) =>
                 [
                     ...suggestedSwitches,
@@ -108,12 +108,13 @@ export function createSwitchLinkingLayerAdapter(
                 // Handle latest fetch only
                 updateFeatures(features);
             })
-            .catch(() => clearFeatures());
+            .catch(clearFeatures);
     } else {
         clearFeatures();
     }
 
     return {
+        name: 'linking-switch-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const matchOptions: MatchOptions = {

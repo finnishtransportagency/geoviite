@@ -1,11 +1,8 @@
-import { Polygon } from 'ol/geom';
-import OlMap from 'ol/Map';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
-import {
-    mergePartialItemSearchResults,
-    mergePartialShownItemSearchResults,
-} from 'map/layers/layer-utils';
-import { OptionalShownItems } from 'map/map-model';
+import { Polygon } from "ol/geom";
+import OlMap from "ol/Map";
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from "map/layers/layer-model";
+import { mergePartialItemSearchResults, mergePartialShownItemSearchResults } from "map/layers/layer-utils";
+import { OptionalShownItems } from "map/map-model";
 
 /**
  * Returns a simple shape that has consistent size in pixels and can be used to search items from layers.
@@ -41,14 +38,14 @@ export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 
 
 export function searchShownItemsFromLayers(
     hitArea: Polygon,
-    layerAdapters: OlLayerAdapter[],
+    layers: MapLayer[],
     searchItemsOptions: SearchItemsOptions,
 ): OptionalShownItems {
-    const searchResults = layerAdapters
-        .filter((layerAdapter) => layerAdapter.layer.getVisible() && layerAdapter.searchItems)
-        .map((layerAdapter) => {
-            return layerAdapter.searchShownItems
-                ? layerAdapter.searchShownItems(hitArea, searchItemsOptions)
+    const searchResults = layers
+        .filter((layer) => layer.searchItems)
+        .map((layer) => {
+            return layer.searchShownItems
+                ? layer.searchShownItems(hitArea, searchItemsOptions)
                 : {};
         });
     return mergePartialShownItemSearchResults(...searchResults);
@@ -56,15 +53,13 @@ export function searchShownItemsFromLayers(
 
 export function searchItemsFromLayers(
     hitArea: Polygon,
-    layerAdapters: OlLayerAdapter[],
+    layers: MapLayer[],
     searchItemsOptions: SearchItemsOptions,
 ): LayerItemSearchResult {
-    const searchResults = layerAdapters
-        .filter((layerAdapter) => layerAdapter.layer.getVisible() && layerAdapter.searchItems)
-        .map((layerAdapter) => {
-            return layerAdapter.searchItems
-                ? layerAdapter.searchItems(hitArea, searchItemsOptions)
-                : {};
+    const searchResults = layers
+        .filter((l) => l.layer.getVisible() && l.searchItems)
+        .map((layer) => {
+            return layer.searchItems ? layer.searchItems(hitArea, searchItemsOptions) : {};
         });
     return mergePartialItemSearchResults(...searchResults);
 }

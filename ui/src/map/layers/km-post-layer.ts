@@ -8,18 +8,18 @@ import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
-import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import { getMatchingKmPosts } from 'map/layers/layer-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { createKmPostFeature, getStepByResolution } from 'map/layers/km-post-layer-utils';
+import { createKmPostFeature, getKmPostStepByResolution } from 'map/layers/km-post-layer-utils';
 
 let kmPostIdCompare: string;
 let kmPostChangeTimeCompare: string;
-let newestKmPostsAdapterId = 0;
+let newestKmPostsLayerId = 0;
 
-export function createKmPostLayerAdapter(
+export function createKmPostLayer(
     mapTiles: MapTile[],
     existingOlLayer: OlLayer<VectorSource<OlPoint | Polygon>> | undefined,
     selection: Selection,
@@ -27,10 +27,10 @@ export function createKmPostLayerAdapter(
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged?: (items: OptionalShownItems) => void,
-): OlLayerAdapter {
-    const adapterId = ++newestKmPostsAdapterId;
+): MapLayer {
+    const layerId = ++newestKmPostsLayerId;
     const resolution = olView.getResolution() || 0;
-    const getKmPostFromApi = (step: number) =>
+    const getKmPostsFromApi = (step: number) =>
         Promise.all(
             mapTiles.map((tile) =>
                 getKmPostsByTile(publishType, changeTimes.layoutKmPost, tile.area, step),
@@ -40,12 +40,7 @@ export function createKmPostLayerAdapter(
 
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-            style: null,
-        });
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource, style: null });
 
     const searchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
         const kmPosts = getMatchingKmPosts(
@@ -80,19 +75,19 @@ export function createKmPostLayerAdapter(
         }
     }
 
-    const step = getStepByResolution(resolution);
+    const step = getKmPostStepByResolution(resolution);
     if (step == 0) {
         // Do not fetch
         vectorSource.clear();
     } else {
         // Fetch every nth
-        const isSelected = (kmPost: LayoutKmPost) => {
-            return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
-        };
-
-        getKmPostFromApi(step).then((kmPosts) => {
+        getKmPostsFromApi(step).then((kmPosts) => {
             // Handle latest fetch only
-            if (adapterId == newestKmPostsAdapterId) {
+            if (layerId == newestKmPostsLayerId) {
+                const isSelected = (kmPost: LayoutKmPost) => {
+                    return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
+                };
+
                 const features = createKmPostFeature(
                     kmPosts,
                     isSelected,
@@ -105,6 +100,7 @@ export function createKmPostLayerAdapter(
     }
 
     return {
+        name: 'km-post-layer',
         layer: layer,
         searchItems: searchFunction,
         searchShownItems: searchFunction,

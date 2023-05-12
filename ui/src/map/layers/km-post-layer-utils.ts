@@ -25,11 +25,9 @@ export type KmPostType = 'layoutKmPost' | 'geometryKmPost';
 /**
  * Steps of km post skip step
  */
-const stepSteps = [1, 2, 5, 10, 20, 50, 100];
-
-export function getStepByResolution(resolution: number): number {
-    const step = Math.ceil(resolution / 10);
-    return stepSteps.find((stepStep) => step <= stepStep) || 0;
+const kmPostSteps = [1, 2, 5, 10, 20, 50, 100];
+export function getKmPostStepByResolution(resolution: number): number {
+    return kmPostSteps.find((step) => step * 10 >= resolution) || 0;
 }
 
 export function createKmPostFeature(
@@ -45,9 +43,7 @@ export function createKmPostFeature(
         .flatMap((kmPost) => {
             const location = kmPost.location as Point;
             const point = new OlPoint(pointToCoords(location));
-            const feature = new Feature<OlPoint>({
-                geometry: point,
-            });
+            const feature = new Feature({ geometry: point });
 
             const selected = isSelected(kmPost);
 
@@ -81,10 +77,7 @@ export function createKmPostFeature(
                     [clickableX, location.y - height / 2],
                 ],
             ]);
-            const hitAreaFeature = new Feature<Polygon>({
-                geometry: polygon,
-            });
-            hitAreaFeature.setStyle(undefined);
+            const hitAreaFeature = new Feature({ geometry: polygon });
             hitAreaFeature.set('kmPost-data', {
                 kmPost: kmPost,
                 planId: planId,

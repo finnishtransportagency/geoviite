@@ -3,9 +3,9 @@ import { Polygon } from 'ol/geom';
 import OlPoint from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { OlLayerAdapter } from 'map/layers/layer-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
+import { MapLayer } from 'map/layers/layer-model';
 
 export type DebugLayerFeatureType = OlPoint | Polygon;
 
@@ -38,7 +38,7 @@ globalThis.setDebugLayerData = (data: DebugLayerData) => {
 function createDebugFeatures(data: DebugLayerData): Feature<DebugLayerFeatureType>[] {
     return data
         .flatMap((item) => {
-            let feature: Feature<DebugLayerFeatureType> | null = null;
+            let feature;
             if (item.type == 'point') {
                 feature = new Feature({
                     geometry: new OlPoint([item.x, item.y]),
@@ -74,18 +74,14 @@ function createDebugFeatures(data: DebugLayerData): Feature<DebugLayerFeatureTyp
         .filter(filterNotEmpty);
 }
 
-export function createDebugLayerAdapter(
+export function createDebugLayer(
     existingOlLayer: VectorLayer<VectorSource<DebugLayerFeatureType>> | undefined,
-): OlLayerAdapter {
+): MapLayer {
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-        });
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     function updateFeatures(features: Feature<DebugLayerFeatureType>[]) {
         vectorSource.clear();
@@ -99,6 +95,7 @@ export function createDebugLayerAdapter(
     updateLayerFunc();
 
     return {
+        name: 'debug-layer',
         layer: layer,
     };
 }

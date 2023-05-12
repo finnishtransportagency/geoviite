@@ -1,10 +1,10 @@
 import OlMap from 'ol/Map';
 import { MapTool, MapToolActivateOptions } from './tool-model';
-import { OlLayerAdapter } from 'map/layers/layer-model';
 import { debounce } from 'ts-debounce';
+import { MapLayer } from 'map/layers/layer-model';
 
 export const pointLocationTool: MapTool = {
-    activate: (map: OlMap, _layerAdapters: OlLayerAdapter[], options: MapToolActivateOptions) => {
+    activate: (map: OlMap, _layers: MapLayer[], options: MapToolActivateOptions) => {
         const debouncedMoveHandlerPointLocation = debounce(
             (e) => {
                 options.onHoverLocation({

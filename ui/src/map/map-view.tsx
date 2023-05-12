@@ -9,21 +9,10 @@ import {
 } from 'selection/selection-model';
 import { defaults } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
-import { OlLayerAdapter } from 'map/layers/layer-model';
 import 'ol/ol.css';
 import OlView from 'ol/View';
-import { LayoutAlignmentLayer, Map, MapViewport, OptionalShownItems } from 'map/map-model';
-import './layers/tile-layer'; // Load module to initialize adapter
-import './layers/alignment-layer'; // Load module to initialize adapter
-import './layers/geometry-alignment-layer'; // Load module to initialize adapter
-import './layers/km-post-layer'; // Load module to initialize adapter
-import './layers/switch-layer'; // Load module to initialize adapter
-import './layers/plan-area-layer'; // Load module to initialize adapter
-import './layers/linking-layer'; // Load module to initialize adapter
-import {
-    createSwitchLinkingLayerAdapter,
-    SwitchLinkingFeatureType,
-} from './layers/switch-linking-layer'; // Load module to initialize adapter
+import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import { createSwitchLinkingLayer, SwitchLinkingFeatureType } from './layers/switch-linking-layer';
 import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
 import { MapToolActivateOptions } from './tools/tool-model';
@@ -35,40 +24,39 @@ import { searchShownItemsFromLayers } from 'map/tools/tool-utils';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import {
-    createManualSwitchLinkingLayerAdapter,
-    ManualSwitchLinkingLayerFeatureType,
-} from 'map/layers/switch-manual-linking-layer';
+import { createManualSwitchLinkingLayer } from 'map/layers/switch-manual-linking-layer';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
-import { createDebugLayerAdapter, DebugLayerFeatureType } from 'map/layers/debug-layer';
+import { createDebugLayer, DebugLayerFeatureType } from 'map/layers/debug-layer';
 import {
-    createDebug1mPointsLayerAdapter,
+    createDebug1mPointsLayer,
     Debug1mPointsLayerFeatureType,
 } from './layers/debug-1m-points-layer';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
-import { createTrackNumberDiagramLayerAdapter } from 'map/layers/track-number-diagram-layer';
+import { createTrackNumberDiagramLayer } from 'map/layers/track-number-diagram-layer';
 import { LineString, Point as OlPoint } from 'ol/geom';
-import { createAlignmentLayerAdapter } from 'map/layers/alignment-layer';
+import { createAlignmentLayer } from 'map/layers/alignment-layer';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { createGeometryAlignmentLayerAdapter } from 'map/layers/geometry-alignment-layer';
-import { createGeometryKmPostLayerAdapter } from 'map/layers/geometry-km-post-layer';
-import { createKmPostLayerAdapter } from 'map/layers/km-post-layer';
-import { createLinkingLayerAdapter } from 'map/layers/linking-layer';
-import { createPlanAreaLayerAdapter } from 'map/layers/plan-area-layer';
+import { createGeometryAlignmentLayer } from 'map/layers/geometry-alignment-layer';
+import { createGeometryKmPostLayer } from 'map/layers/geometry-km-post-layer';
+import { createKmPostLayer } from 'map/layers/km-post-layer';
+import { createLinkingLayer } from 'map/layers/linking-layer';
+import { createPlanAreaLayer } from 'map/layers/plan-area-layer';
 import { pointToCoords } from 'map/layers/layer-utils';
-import { createGeometrySwitchLayerAdapter } from 'map/layers/geometry-switch-layer';
-import { createSwitchLayerAdapter } from 'map/layers/switch-layer';
-import BaseLayer from 'ol/layer/Base';
-import { createMapLayerAdapter } from 'map/layers/tile-layer';
+import { createGeometrySwitchLayer } from 'map/layers/geometry-switch-layer';
+import { createSwitchLayer } from 'map/layers/switch-layer';
+import { createBackgroundMapLayer } from 'map/layers/background-map-layer';
 import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
+import { MapLayer } from 'map/layers/layer-model';
+import { filterNotEmpty } from 'utils/array-utils';
+import { layerZIndexes } from 'map/layers/layer-visibility-limits';
 
 declare global {
     interface Window {
@@ -100,24 +88,6 @@ const defaultScaleLine: ScaleLine = new ScaleLine({
     units: 'metric',
     minWidth: 80,
 });
-
-/**
- * Returns layers of OL map in an object structure using layer names as keys
- * and layers as values, like this:
- *
- * {
- *  "layer name": layerObject
- * }
- */
-function getLayersByType(olMap: OlMap) {
-    return olMap
-        .getLayers()
-        .getArray()
-        .reduce<{ [key: string]: BaseLayer }>((hash, layer) => {
-            hash[layer.get('type') as string] = layer;
-            return hash;
-        }, {});
-}
 
 function getOlViewByDomainViewport(viewport: MapViewport): OlView {
     return new OlView({
@@ -163,8 +133,10 @@ const MapView: React.FC<MapViewProps> = ({
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
-    const [layerAdapters, setLayerAdapters] = React.useState<OlLayerAdapter[]>([]);
+    const [activeLayers, setActiveLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
+
+    const mapLayers = [...map.layers].sort().join();
 
     const handleClusterPointClick = (clickType: string) => {
         const clusterPoint = selection.selectedItems.clusterPoints[0];
@@ -269,51 +241,45 @@ const MapView: React.FC<MapViewProps> = ({
             // Get items from whole visible map
             const area = olMap.getView().calculateExtent();
             const pol = fromExtent(area);
-            const items = searchShownItemsFromLayers(pol, layerAdapters, {});
+            const items = searchShownItemsFromLayers(pol, activeLayers, {});
             props.onShownLayerItemsChange(items);
         }
-    }, [olMap, map.viewport, layerAdapters]);
+    }, [olMap, map.viewport, activeLayers]);
 
     // Convert layer domain models into OpenLayers layers
     React.useEffect(() => {
         if (!olMap) return;
 
-        const existingOlLayerByType = getLayersByType(olMap);
         const olView = olMap.getView();
+        const resolution = olView.getResolution() || 0;
 
         // Create OpenLayers objects by domain layers
-        const layerAdapters = map.mapLayers
-            .filter((mapLayer) => mapLayer.visible)
-            .map((mapLayer) => {
+        const newLayers = map.layers
+            .map((layerName) => {
                 const mapTiles = calculateMapTiles(olView, undefined);
 
                 // Step 2. create the layer
                 // In some cases an adapter wants to reuse existing OL layer,
                 // e.g. tile layers cause flickering if recreated every time
-                const existingOlLayer = existingOlLayerByType[mapLayer.type];
-                let layerAdapter;
-                switch (mapLayer.type) {
-                    case 'trackNumberDiagram': {
-                        const alignmentLayer = map.mapLayers.find(
-                            (l) => l.type === 'alignment',
-                        ) as LayoutAlignmentLayer;
+                const existingOlLayer = activeLayers.find((l) => l.name === layerName)?.layer;
 
-                        layerAdapter = createTrackNumberDiagramLayerAdapter(
+                switch (layerName) {
+                    case 'background-map-layer':
+                        return createBackgroundMapLayer(existingOlLayer as TileLayer<TileSource>);
+                    case 'track-number-diagram-layer':
+                        return createTrackNumberDiagramLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            olView,
+                            resolution,
                             changeTimes,
                             publishType,
-                            alignmentLayer.showReferenceLines,
+                            map.layers.some((l) => l === 'reference-line-alignment-layer'),
                         );
-
-                        break;
-                    }
-                    case 'alignment':
-                        layerAdapter = createAlignmentLayerAdapter(
+                    case 'location-track-alignment-layer':
+                        return createAlignmentLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            mapLayer,
+                            map.layers,
                             selection,
                             publishType,
                             linkingState,
@@ -321,131 +287,112 @@ const MapView: React.FC<MapViewProps> = ({
                             olView,
                             props.onShownLayerItemsChange,
                         );
-                        break;
-                    case 'switchLinking':
-                        layerAdapter = createSwitchLinkingLayerAdapter(
+                    case 'km-post-layer':
+                        return createKmPostLayer(
                             mapTiles,
-                            olView.getResolution(),
+                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
+                            selection,
+                            publishType,
+                            changeTimes,
+                            olView,
+                            props.onShownLayerItemsChange,
+                        );
+                    case 'switch-layer':
+                        return createSwitchLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            selection,
+                            publishType,
+                            changeTimes,
+                            olView,
+                            props.onShownLayerItemsChange,
+                        );
+                    case 'geometry-alignment-layer':
+                        return createGeometryAlignmentLayer(
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                        );
+
+                    case 'geometry-km-post-layer':
+                        return createGeometryKmPostLayer(
+                            resolution,
+                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
+                            selection,
+                            publishType,
+                        );
+
+                    case 'geometry-switch-layer':
+                        return createGeometrySwitchLayer(
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            selection,
+                            publishType,
+                            resolution,
+                        );
+                    case 'linking-layer':
+                        return createLinkingLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            linkingState,
+                            changeTimes,
+                            resolution,
+                        );
+                    case 'linking-switch-layer':
+                        return createSwitchLinkingLayer(
+                            mapTiles,
+                            resolution,
                             existingOlLayer as VectorLayer<VectorSource<SwitchLinkingFeatureType>>,
                             selection,
                             linkingState as LinkingSwitch,
                         );
 
-                        break;
-                    case 'switchManualLinking':
-                        layerAdapter = createManualSwitchLinkingLayerAdapter(
+                    case 'manual-linking-switch-layer':
+                        return createManualSwitchLinkingLayer(
                             mapTiles,
-                            olView.getResolution(),
-                            existingOlLayer as VectorLayer<
-                                VectorSource<ManualSwitchLinkingLayerFeatureType>
-                            >,
+                            resolution,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             publishType,
                         );
 
-                        break;
-                    case 'debug1mPoints':
-                        layerAdapter = createDebug1mPointsLayerAdapter(
+                    case 'plan-area-layer':
+                        return createPlanAreaLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
+                            changeTimes,
+                        );
+
+                    case 'debug-1m-points-layer':
+                        return createDebug1mPointsLayer(
                             existingOlLayer as VectorLayer<
                                 VectorSource<Debug1mPointsLayerFeatureType>
                             >,
                             selection,
                             publishType,
-                            olView.getResolution(),
+                            resolution,
                         );
 
-                        break;
-                    case 'debug':
-                        layerAdapter = createDebugLayerAdapter(
+                    case 'debug-layer':
+                        return createDebugLayer(
                             existingOlLayer as VectorLayer<VectorSource<DebugLayerFeatureType>>,
                         );
-
-                        break;
-                    case 'geometryAlignment':
-                        layerAdapter = createGeometryAlignmentLayerAdapter(
-                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            selection,
-                            publishType,
-                            changeTimes,
-                            olView,
-                        );
-
-                        break;
-                    case 'geometryKmPost':
-                        layerAdapter = createGeometryKmPostLayerAdapter(
-                            olView.getResolution() || 0,
-                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
-                            selection,
-                            publishType,
-                        );
-
-                        break;
-                    case 'kmPost':
-                        layerAdapter = createKmPostLayerAdapter(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
-                            selection,
-                            publishType,
-                            changeTimes,
-                            olView,
-                            props.onShownLayerItemsChange,
-                        );
-
-                        break;
-                    case 'linking':
-                        layerAdapter = createLinkingLayerAdapter(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            selection,
-                            linkingState,
-                            changeTimes,
-                            olView,
-                        );
-
-                        break;
-                    case 'planArea':
-                        layerAdapter = createPlanAreaLayerAdapter(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
-                            changeTimes,
-                        );
-
-                        break;
-                    case 'geometrySwitch':
-                        layerAdapter = createGeometrySwitchLayerAdapter(
-                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
-                            selection,
-                            publishType,
-                            olView.getResolution() || 0,
-                        );
-
-                        break;
-                    case 'switch':
-                        layerAdapter = createSwitchLayerAdapter(
-                            mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
-                            selection,
-                            publishType,
-                            changeTimes,
-                            olView,
-                            props.onShownLayerItemsChange,
-                        );
-
-                        break;
-                    case 'tile':
-                        layerAdapter = createMapLayerAdapter(
-                            existingOlLayer as TileLayer<TileSource>,
-                        );
                 }
+            })
+            .filter(filterNotEmpty);
 
-                // Name OL layer so that we can find it later
-                layerAdapter.layer.set('type', mapLayer.type);
-                return layerAdapter;
-            });
-        setLayerAdapters(layerAdapters);
+        newLayers.forEach((l) => l.layer.setZIndex(layerZIndexes[l.name]));
+
+        setActiveLayers(newLayers);
 
         // Set converted layers into map object
-        const olLayers = layerAdapters.map((layerAdapter) => layerAdapter.layer);
+        const olLayers = newLayers.map((l) => l.layer);
         olMap.setLayers(olLayers);
+    }, [olMap, map.viewport, mapLayers, selection, changeTimes, publishType, linkingState]);
+
+    React.useEffect(() => {
+        if (!olMap) return;
 
         // Activate current tool
         const toolActivateOptions: MapToolActivateOptions = {
@@ -456,16 +403,14 @@ const MapView: React.FC<MapViewProps> = ({
         };
 
         const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, layerAdapters, toolActivateOptions),
+            pointLocationTool.activate(olMap, activeLayers, toolActivateOptions),
         ];
 
         if (!measurementToolActive) {
-            deactivateCallbacks.push(
-                selectTool.activate(olMap, layerAdapters, toolActivateOptions),
-            );
+            deactivateCallbacks.push(selectTool.activate(olMap, activeLayers, toolActivateOptions));
 
             deactivateCallbacks.push(
-                highlightTool.activate(olMap, layerAdapters, toolActivateOptions),
+                highlightTool.activate(olMap, activeLayers, toolActivateOptions),
             );
         }
 
@@ -473,17 +418,7 @@ const MapView: React.FC<MapViewProps> = ({
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [
-        olMap,
-        map.viewport,
-        map.mapLayers,
-        map.settingsVisible,
-        selection,
-        changeTimes,
-        publishType,
-        linkingState,
-        measurementToolActive,
-    ]);
+    }, [olMap, activeLayers, measurementToolActive]);
 
     React.useEffect(() => {
         if (measurementToolActive && olMap) {
