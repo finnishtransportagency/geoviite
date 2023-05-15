@@ -1,8 +1,13 @@
 package fi.fta.geoviite.infra.velho
 
+import VelhoAssignment
+import VelhoCode
+import VelhoName
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
 // TODO Turn into actual data classes etc.
@@ -117,8 +122,8 @@ data class SearchStatus(
 
 data class SearchResult(@JsonProperty("osumat") val matches: List<Match>)
 data class Match(
-    @JsonProperty("luontikohdeluokan-oid") val assignmentOid: String,
-    val oid: String
+    @JsonProperty("luontikohdeluokan-oid") val assignmentOid: Oid<VelhoAssignment>,
+    val oid: Oid<ProjektiVelhoFile>,
 )
 data class LatestVersion(
     @JsonProperty("versio") val version: String,
@@ -127,11 +132,11 @@ data class LatestVersion(
 )
 
 data class Metadata(
-    @JsonProperty("tila") val state: String?,
-    @JsonProperty("kuvaus") val description: String?,
-    @JsonProperty("laji") val category: String?,
-    @JsonProperty("dokumenttityyppi") val documentType: String?,
-    @JsonProperty("ryhma") val group: String?,
+    @JsonProperty("tila") val materialState: VelhoCode,
+    @JsonProperty("kuvaus") val description: FreeText?,
+    @JsonProperty("laji") val materialCategory: VelhoCode,
+    @JsonProperty("dokumenttityyppi") val documentType: VelhoCode,
+    @JsonProperty("ryhma") val materialGroup: VelhoCode,
     @JsonProperty("tekniikka-alat") val technicalGroups: List<String>?,
     @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?
 )
@@ -169,13 +174,13 @@ data class Assignment(
 )
 
 data class DictionaryEntry(
-    val code: String,
-    val name: String,
+    val code: VelhoCode,
+    val name: VelhoName,
 )
 
 data class ProjektiVelhoFile(
-    val oid: String,
-    val content: String,
+    val oid: Oid<ProjektiVelhoFile>,
+    val content: String?,
     val metadata: Metadata,
     val latestVersion: LatestVersion,
     val assignment: Assignment?,
@@ -203,6 +208,14 @@ enum class FileStatus {
     REJECTED,
     ACCEPTED,
 }
+
+enum class VelhoDictionaryType {
+    DOCUMENT_TYPE,
+    MATERIAL_STATE,
+    MATERIAL_CATEGORY,
+    ASSET_GROUP,
+}
+
 
 const val PROJEKTIVELHO_SEARCH_STATE_READY = "valmis"
 

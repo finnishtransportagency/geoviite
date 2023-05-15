@@ -1,12 +1,15 @@
 package fi.fta.geoviite.infra.velho
 
+import VelhoCode
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
+import fi.fta.geoviite.infra.util.FreeText
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
@@ -73,7 +76,8 @@ class FakeVelho (port: Int) {
     fun searchResults(searchId: String, oids: List<String>) {
         get("/hakupalvelu/api/v1/taustahaku/tulokset/$searchId").respond(okJson(SearchResult(
             matches = oids.map {  (Match(
-                oid = it
+                oid = Oid(it),
+                assignmentOid = Oid(it),
             )) }
         )))
     }
@@ -86,13 +90,13 @@ class FakeVelho (port: Int) {
                 Instant.now().toString()
             ),
             metadata = Metadata(
-                null,
-                "test",
-                null,
-                null,
-                null,
-                null,
-                null,
+                description = FreeText("test"),
+                documentType = VelhoCode("dokumenttityyppi/dt01"),
+                materialState = VelhoCode("aineistotila/tila01"),
+                materialCategory = VelhoCode("aineistolaji/al00"),
+                materialGroup = VelhoCode("aineistoryhma/ar00"),
+                technicalGroups = null,
+                containsPersonalInfo = null,
             )
         )))
     }

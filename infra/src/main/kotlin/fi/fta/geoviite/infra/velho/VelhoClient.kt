@@ -1,11 +1,15 @@
 package fi.fta.geoviite.infra.velho
 
+import VelhoCode
+import VelhoName
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
+import fi.fta.geoviite.infra.velho.VelhoDictionaryType.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,7 +23,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
-val reloginoffsetSeconds: Long = 60
+val reloginOffsetSeconds: Long = 60
 
 @Component
 @ConditionalOnBean(VelhoClientConfiguration::class)
@@ -77,7 +81,7 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout)
             ?: throw IllegalStateException("Fetching search results failed. searchId=$searchId")
 
-    fun fetchFileMetadata(oid: String) =
+    fun fetchFileMetadata(oid: Oid<ProjektiVelhoFile>) =
         velhoClient
             .get()
             .uri("/aineistopalvelu/api/v1/aineisto/$oid")
@@ -86,7 +90,7 @@ class VelhoClient @Autowired constructor(
             .bodyToMono<File>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("Metadata fetch failed. oid=$oid")
 
-    fun fetchFileContent(oid: String, version: String) =
+    fun fetchFileContent(oid: Oid<ProjektiVelhoFile>, version: String) =
         velhoClient
             .get()
             .uri("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti?versio=${version}")
@@ -95,7 +99,7 @@ class VelhoClient @Autowired constructor(
             .bodyToMono<String>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("File fetch failed. oid=$oid version=$version")
 
-    fun fetchAineistoMetadata() =
+    fun fetchDictionaries(): Map<VelhoDictionaryType, List<DictionaryEntry>> =
         velhoClient
             .get()
             .uri("/metatietopalvelu/api/v2/metatiedot/kohdeluokka/aineisto/aineisto")
@@ -107,32 +111,33 @@ class VelhoClient @Autowired constructor(
                 jsonMapper.readTree(response).let { json ->
                     json.get("info").let {
                         it.get("x-velho-nimikkeistot").let { classes ->
-                            mapOf(
-                            "DOC_TYPE" to fetchDictionaryType("aineisto/dokumenttityyppi", classes),
-                                    "FILE_STATE" to fetchDictionaryType("aineisto/aineistotila", classes),
-                                    "CATEGORY" to fetchDictionaryType("aineisto/aineistolaji", classes),
-                                    "ASSET_GROUP" to fetchDictionaryType("aineisto/aineistoryhma", classes))
+                            VelhoDictionaryType.values().associateWith { type -> fetchDictionaryType(type, classes) }
                         }
                     }
                 }
             } ?: emptyMap()
 
-    private fun fetchDictionaryType(dictionaryToGet: String, classes: JsonNode) =
-        classes.get(dictionaryToGet).let { asset ->
+    private fun fetchDictionaryType(dictionaryToGet: VelhoDictionaryType, classes: JsonNode) =
+        classes.get(encodingTypeDictionary(dictionaryToGet)).let { asset ->
             val version = asset.get("uusin-nimikkeistoversio").intValue()
             asset.get("nimikkeistoversiot").get(version.toString()).let { nodes ->
                 nodes.fieldNames().asSequence().toList().map { code ->
-                    nodes.get(code).let { entry ->
-                        DictionaryEntry(
-                            code = code,
-                            name = entry.get("otsikko").textValue()
-                        )
-                    }
+                    DictionaryEntry(
+                        code = VelhoCode(code),
+                        name = VelhoName(nodes.get(code).get("otsikko").textValue()),
+                    )
                 }
             }
         }
 
-    fun fetchRedirect(oid: String) =
+    private fun encodingTypeDictionary(type: VelhoDictionaryType) = when(type) {
+        DOCUMENT_TYPE -> "aineisto/dokumenttityyppi"
+        MATERIAL_STATE -> "aineisto/aineistotila"
+        MATERIAL_CATEGORY -> "aineisto/aineistolaji"
+        ASSET_GROUP -> "aineisto/aineistoryhma"
+    }
+
+    fun fetchRedirect(oid: String): Redirect? =
         velhoClient
             .get()
             .uri("/metatietopalvelu/api/v2/ohjaa/$oid")
@@ -143,7 +148,7 @@ class VelhoClient @Autowired constructor(
             .bodyToMono<Redirect>()
             .block(defaultBlockTimeout)
 
-    fun fetchProject(oid: String) =
+    fun fetchProject(oid: String): Project? =
         velhoClient
             .get()
             .uri("/projektirekisteri/api/v1/kohde/$oid")
@@ -152,7 +157,7 @@ class VelhoClient @Autowired constructor(
             .bodyToMono<Project>()
             .block(defaultBlockTimeout)
 
-    fun fetchProjectGroup(oid: String) =
+    fun fetchProjectGroup(oid: String): ProjectGroup? =
         velhoClient
             .get()
             .uri("/projektirekisteri/api/v1/kohde/$oid")
@@ -161,7 +166,7 @@ class VelhoClient @Autowired constructor(
             .bodyToMono<ProjectGroup>()
             .block(defaultBlockTimeout)
 
-    fun fetchAssignment(oid: String) =
+    fun fetchAssignment(oid: String): Assignment? =
         velhoClient
             .get()
             .uri("/aineistopalvelu/api/v1/kohde/$oid")
@@ -172,7 +177,7 @@ class VelhoClient @Autowired constructor(
 
     private fun fetchAccessToken(currentTime: Instant) =
         accessToken.updateAndGet { token ->
-            if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginoffsetSeconds))) {
+            if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginOffsetSeconds))) {
                 login()
             } else token
         }?.token ?: throw IllegalStateException("Projektivelho login token can't be null after login")

@@ -1,8 +1,10 @@
 import { Oid, TimeStamp } from 'common/common-model';
 
+export type VelhoEncodingType = '';
 export type VelhoFileStatus = 'NOT_IM' | 'IMPORTED' | 'REJECTED' | 'ACCEPTED';
 
 export type VelhoEncoding = {
+    type: VelhoEncodingType;
     code: string;
     name: string;
 };

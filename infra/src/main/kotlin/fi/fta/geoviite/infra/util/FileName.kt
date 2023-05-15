@@ -20,7 +20,7 @@ val fileNameLength = 1..100
 data class FileName @JsonCreator(mode = DELEGATING) constructor(private val value: String)
     : Comparable<FileName>, CharSequence by value {
     init { assertSanitized<FileName>(value, fileNameRegex, fileNameLength) }
-    constructor(file: MultipartFile) : this(file.originalFilename ?: file.name)
+    constructor(file: MultipartFile) : this(file.originalFilename?.takeIf(String::isNotBlank) ?: file.name)
 
     @JsonValue
     override fun toString(): String = value

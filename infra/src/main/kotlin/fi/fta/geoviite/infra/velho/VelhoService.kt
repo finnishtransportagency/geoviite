@@ -62,6 +62,7 @@ class VelhoService @Autowired constructor(
                 return@runWithLock
             }
 
+            updateDictionaries()
             val searchResults =
                 if (latestSearch?.state == FetchStatus.WAITING)
                     fetchSearchResults(latestSearch.token)
@@ -71,12 +72,14 @@ class VelhoService @Autowired constructor(
         }
     }
 
-    fun fetchAineisto() {
-        val dict = velhoClient.fetchAineistoMetadata()
+    fun updateDictionaries() {
+        logger.serviceCall("updateDictionaries")
+        val dict = velhoClient.fetchDictionaries()
         dict.forEach { (type, entries) ->
-            entries.map { entry ->
-                velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entry.code, entry.name)
-            }
+            velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entries)
+//            entries.map { entry ->
+//                velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entry.code, entry.name)
+//            }
         }
     }
 
@@ -85,10 +88,7 @@ class VelhoService @Autowired constructor(
             .fetchVelhoSearches()
             .find { search -> search.searchId == searchId && search.state == PROJEKTIVELHO_SEARCH_STATE_READY }
 
-    fun importFilesFromProjektiVelho(
-        latest: ProjektiVelhoSearch,
-        searchResults: SearchStatus
-    ) =
+    fun importFilesFromProjektiVelho(latest: ProjektiVelhoSearch, searchResults: SearchStatus) =
         try {
             velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, FetchStatus.FETCHING)
             velhoClient.fetchSearchResults(searchResults.searchId)
@@ -104,10 +104,9 @@ class VelhoService @Autowired constructor(
 
     private fun fetchFileMetadataAndContent(match: Match): ProjektiVelhoFile {
         val metadataResponse = velhoClient.fetchFileMetadata(match.oid)
-        val content = velhoClient.fetchFileContent(
-            match.oid,
-            metadataResponse.latestVersion.version,
-        )
+        val content =
+            if (metadataResponse.metadata.containsPersonalInfo == true) null
+            else velhoClient.fetchFileContent( match.oid, metadataResponse.latestVersion.version)
 
         // TODO Add these when fetches actually work
         /*val assignment = velhoClient.fetchAssignment(match.assignmentOid)
@@ -126,19 +125,19 @@ class VelhoService @Autowired constructor(
     }
 
     private fun insertFileToDatabase(file: ProjektiVelhoFile) {
-        val shouldBeSavedToDb = isRailroadXml(file.content, file.latestVersion.name)
+        val xmlContent = file.content
+            ?.takeIf { content -> isRailroadXml(content ,file.latestVersion.name) }
+            ?.let { content -> censorAuthorIdentifyingInfo(content) }
         val metadataId = velhoDao.insertFileMetadata(
             PROJEKTIVELHO_DB_USERNAME,
             file.oid,
             file.metadata,
             file.latestVersion,
-            if (shouldBeSavedToDb) FileStatus.IMPORTED else FileStatus.NOT_IM
+            if (xmlContent != null) FileStatus.IMPORTED else FileStatus.NOT_IM
         )
-        if (shouldBeSavedToDb) velhoDao.insertFileContent(
-            PROJEKTIVELHO_DB_USERNAME,
-            censorAuthorIdentifyingInfo(file.content),
-            metadataId
-        )
+        xmlContent?.let { content ->
+            velhoDao.insertFileContent(PROJEKTIVELHO_DB_USERNAME, content, metadataId)
+        }
     }
 
     fun isRailroadXml(xml: String, filename: FileName) =

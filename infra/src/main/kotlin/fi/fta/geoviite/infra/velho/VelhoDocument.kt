@@ -8,8 +8,10 @@ import fi.fta.geoviite.infra.util.assertSanitized
 import fi.fta.geoviite.infra.velho.FileStatus
 import java.time.Instant
 
-val velhoCodeRegex = Regex("^[A-ZÄÖÅa-zäöå0-9_\\-./]+\$")
 val velhoCodeLength = 3..50
+val velhoCodeRegex = Regex("^[A-ZÄÖÅa-zäöå0-9_\\-./]+\$")
+
+val velhoNameLength = 1..100
 val velhoNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-–+().,'/*]*\$")
 
 data class VelhoCode @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
@@ -23,14 +25,14 @@ data class VelhoCode @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructo
 
 data class VelhoName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
     : Comparable<VelhoName>, CharSequence by value {
-    init { assertSanitized<VelhoName>(value, velhoNameRegex) }
+    init { assertSanitized<VelhoName>(value, velhoNameRegex, velhoNameLength) }
 
     @JsonValue
     override fun toString(): String = value
     override fun compareTo(other: VelhoName): Int = value.compareTo(other.value)
 }
 
-data class VelhoEncoding(val code: VelhoCode, val name: VelhoName)
+//data class VelhoEncoding(val type: VelhoEncodingType, val code: VelhoCode, val name: VelhoName)
 
 data class VelhoProjectGroup(val oid: Oid<VelhoProjectGroup>, val name: VelhoName)
 
@@ -43,7 +45,7 @@ data class VelhoDocument(
     val oid: Oid<VelhoDocument>,
     val name: FileName,
     val description: FreeText?,
-    val type: VelhoEncoding,
+    val type: VelhoName,
     val modified: Instant,
     val status: FileStatus,
 )
@@ -51,6 +53,6 @@ data class VelhoDocument(
 data class VelhoDocumentHeader(
     val project: VelhoProject,
     val assignment: VelhoAssignment,
-    val materialGroup: VelhoEncoding,
+    val materialGroup: VelhoName,
     val document: VelhoDocument,
 )
