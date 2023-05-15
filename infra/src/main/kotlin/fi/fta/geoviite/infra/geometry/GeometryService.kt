@@ -503,8 +503,8 @@ class GeometryService @Autowired constructor(
                     ).sortedBy { (trackMeterInKm) -> trackMeterInKm }
 
             val ticksToSend = allTicks.filterIndexed { i, (trackMeterInKm, segmentIndex) ->
-                segmentIndex != null ||
-                        (i == 0                  || trackMeterInKm - allTicks[i - 1].first >= minTickSpace) &&
+                segmentIndex != null || i == 0 ||
+                        (trackMeterInKm - allTicks[i - 1].first >= minTickSpace) &&
                         (i == allTicks.lastIndex || allTicks[i + 1].first - trackMeterInKm >= minTickSpace)
             } + if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()
 
