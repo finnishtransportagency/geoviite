@@ -47,14 +47,30 @@ export type TrackLayoutViewProps = {
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayoutViewProps) => {
-    const verticalDiagramAlignmentId = React.useMemo(
+    const verticalDiagramPlanAlignmentId = React.useMemo(
         () =>
-            props.selection.selectedItems.locationTracks[0] && {
-                locationTrackId: props.selection.selectedItems.locationTracks[0],
-                publishType: props.publishType,
-            },
+            props.selection.selectedItems.geometryAlignments[0]
+                ? {
+                      planId: props.selection.selectedItems.geometryAlignments[0].planId,
+                      alignmentId:
+                          props.selection.selectedItems.geometryAlignments[0].geometryItem.id,
+                  }
+                : undefined,
+        [props.selection.selectedItems.geometryAlignments[0]],
+    );
+    const verticalDiagramLayoutAlignmentId = React.useMemo(
+        () =>
+            props.selection.selectedItems.locationTracks[0]
+                ? {
+                      locationTrackId: props.selection.selectedItems.locationTracks[0],
+                      publishType: props.publishType,
+                  }
+                : undefined,
         [props.selection.selectedItems.locationTracks[0], props.publishType],
     );
+
+    const verticalDiagramAlignmentId =
+        verticalDiagramPlanAlignmentId ?? verticalDiagramLayoutAlignmentId;
 
     const showVerticalGeometryDiagram =
         props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;
