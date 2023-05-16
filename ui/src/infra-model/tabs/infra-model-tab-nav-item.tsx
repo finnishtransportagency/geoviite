@@ -29,7 +29,7 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
             navigate('inframodel-rejected');
         }
     };
-    //TODO huutomerkki näytetään sen mukaan onko Velho aineistoja odottamassa
+    //TODO exclamation point if there are rows in Velho list
     return (
         <li
             onClick={handleClick}
