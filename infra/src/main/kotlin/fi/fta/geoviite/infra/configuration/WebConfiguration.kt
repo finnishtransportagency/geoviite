@@ -1,5 +1,8 @@
 package fi.fta.geoviite.infra.configuration
 
+import VelhoCode
+import VelhoId
+import VelhoName
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -85,6 +88,11 @@ class WebConfig : WebMvcConfigurer {
 
         logger.info("Registering case-insensitive path variable enum converters")
         registry.addStringConstructorConverter { enumCaseInsensitive<PublishType>(it) }
+
+        logger.info("Registering Velho sanitized string converters")
+        registry.addStringConstructorConverter(::VelhoId)
+        registry.addStringConstructorConverter(::VelhoCode)
+        registry.addStringConstructorConverter(::VelhoName)
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
