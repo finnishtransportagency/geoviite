@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.velho
 
 import VelhoCode
+import VelhoId
 import VelhoName
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
@@ -71,7 +72,7 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout)
             ?: throw IllegalStateException("Fetching running searches from ProjektiVelho failed")
 
-    fun fetchSearchResults(searchId: String) =
+    fun fetchSearchResults(searchId: VelhoId) =
         velhoClient
             .get()
             .uri("/hakupalvelu/api/v1/taustahaku/tulokset/$searchId")
@@ -90,7 +91,7 @@ class VelhoClient @Autowired constructor(
             .bodyToMono<File>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("Metadata fetch failed. oid=$oid")
 
-    fun fetchFileContent(oid: Oid<ProjektiVelhoFile>, version: String) =
+    fun fetchFileContent(oid: Oid<ProjektiVelhoFile>, version: VelhoId) =
         velhoClient
             .get()
             .uri("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti?versio=${version}")
@@ -130,12 +131,13 @@ class VelhoClient @Autowired constructor(
             }
         }
 
-    private fun encodingTypeDictionary(type: VelhoDictionaryType) = when(type) {
-        DOCUMENT_TYPE -> "aineisto/dokumenttityyppi"
-        MATERIAL_STATE -> "aineisto/aineistotila"
-        MATERIAL_CATEGORY -> "aineisto/aineistolaji"
-        ASSET_GROUP -> "aineisto/aineistoryhma"
-    }
+    private fun encodingTypeDictionary(type: VelhoDictionaryType) = "aineisto/${when(type) {
+        DOCUMENT_TYPE -> "dokumenttityyppi"
+        MATERIAL_STATE -> "aineistotila"
+        MATERIAL_CATEGORY -> "aineistolaji"
+        MATERIAL_GROUP -> "aineistoryhma"
+        TECHNICS_FIELD -> "tekniikka-ala"
+    }}"
 
     fun fetchRedirect(oid: String): Redirect? =
         velhoClient

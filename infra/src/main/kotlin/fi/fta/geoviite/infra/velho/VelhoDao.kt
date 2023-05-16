@@ -4,6 +4,7 @@ import VelhoAssignment
 import VelhoCode
 import VelhoDocument
 import VelhoDocumentHeader
+import VelhoId
 import VelhoName
 import VelhoProject
 import VelhoProjectGroup
@@ -103,7 +104,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     }
 
     @Transactional
-    fun insertFetchInfo(username: UserName, searchToken: String, validUntil: Instant): IntId<ProjektiVelhoSearch> {
+    fun insertFetchInfo(username: UserName, searchToken: VelhoId, validUntil: Instant): IntId<ProjektiVelhoSearch> {
         val sql = """
             insert into integrations.projektivelho_search(
                 status,
@@ -170,7 +171,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             ProjektiVelhoSearch(
                 rs.getIntId("id"),
-                rs.getString("token"),
+                rs.getVelhoId("token"),
                 rs.getEnum<FetchStatus>("status"),
                 rs.getInstant("valid_until")
             )
@@ -274,11 +275,6 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         ) })
     }
 
-//    private fun getEncoded(_type: VelhoEncodingType, code: VelhoCode): VelhoEncoding {
-//        // TODO: GVT-1797
-//        return VelhoEncoding(code, VelhoName("TBD FETCH $code"))
-//    }
-
     @Transactional
     fun upsertDictionary(user: UserName, type: VelhoDictionaryType, entries: List<DictionaryEntry>) {
         val sql = """
@@ -286,34 +282,13 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               values (:code, :name) 
               on conflict (code) do update set name = :name where name <> :name
         """.trimIndent()
-        jdbcTemplate.setUser(user)
         val params = entries.map { entry -> mapOf(
             "code" to entry.code,
             "name" to entry.name,
         ) }.toTypedArray()
-//        val sql = """
-//            insert into integrations.projektivelho_dictionary(
-//                type,
-//                code,
-//                name
-//            ) values (
-//                :type::integrations.projektivelho_dictionary_type,
-//                :code,
-//                :name
-//            ) on conflict (code) do update set name = :name where name <> :name
-//            returning id
-//        """.trimIndent()
-//        val params = mapOf(
-//            "type" to encoding.type.name,
-//            "code" to encoding.code,
-//            "name" to encoding.name,
-//        )
         jdbcTemplate.setUser(user)
         logger.daoAccess(UPSERT, DictionaryEntry::class, entries.map(DictionaryEntry::code))
         jdbcTemplate.batchUpdate(sql, params)
-//        return requireNotNull(
-//            jdbcTemplate.batchUpdate(sql, params) { rs, _ -> rs.getIntId<VelhoEncoding>("id") }
-//        ).also { id -> logger.daoAccess(UPSERT, VelhoEncoding::class, id) }
     }
 
     fun fetchDictionary(type: VelhoDictionaryType): Map<VelhoCode, VelhoName> {
@@ -322,21 +297,12 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             rs.getVelhoCode("code") to rs.getVelhoName("name")
         }.associate { it }.also { _ -> logger.daoAccess(FETCH, VelhoDictionaryType::class) }
     }
-//    fun fetchDictionaryEntry(type: VelhoEncodingType, code: VelhoCode): IntId<VelhoEncoding> {
-//        val sql = """
-//            select id
-//            from integrations.projektivelho_dictionary
-//            where code = :code
-//        """.trimIndent()
-//        return jdbcTemplate.query(sql, mapOf("code" to code)) { rs, _ ->
-//            rs.getIntId<VelhoEncoding>("id")
-//        }.single().also { id -> logger.daoAccess(FETCH, VelhoEncoding::class, id) }
-//    }
 
     private fun tableName(type: VelhoDictionaryType) = "integrations.${when(type) {
         DOCUMENT_TYPE -> "projektivelho_doc_type"
         MATERIAL_STATE -> "projektivelho_file_state"
         MATERIAL_CATEGORY -> "projektivelho_category"
-        ASSET_GROUP -> "projektivelho_asset_group"
+        MATERIAL_GROUP -> "projektivelho_asset_group"
+        TECHNICS_FIELD -> "projektivelho_technics_field"
     }}"
 }

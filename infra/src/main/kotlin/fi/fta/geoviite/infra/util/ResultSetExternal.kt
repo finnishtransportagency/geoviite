@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.util
 
 import VelhoCode
+import VelhoId
 import VelhoName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.parse2DPolygon
@@ -271,3 +272,9 @@ fun ResultSet.getVelhoCode(name: String): VelhoCode = getVelhoCodeOrNull(name)
 
 fun ResultSet.getVelhoCodeOrNull(name: String): VelhoCode? =
     getString(name)?.let(::VelhoCode)
+
+fun ResultSet.getVelhoId(name: String): VelhoId = getVelhoIdOrNull(name)
+    ?: throw IllegalStateException("Velho code was null: column=$name")
+
+fun ResultSet.getVelhoIdOrNull(name: String): VelhoId? =
+    getString(name)?.let(::VelhoId)

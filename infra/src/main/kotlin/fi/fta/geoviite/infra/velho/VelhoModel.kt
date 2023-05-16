@@ -2,7 +2,10 @@ package fi.fta.geoviite.infra.velho
 
 import VelhoAssignment
 import VelhoCode
+import VelhoId
 import VelhoName
+import VelhoProject
+import VelhoProjectGroup
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
@@ -115,7 +118,7 @@ fun searchJson(date: Instant, minOid: String, maxCount: Int) = """
 
 data class SearchStatus(
     @JsonProperty("tila") val state: String,
-    @JsonProperty("hakutunniste") val searchId: String,
+    @JsonProperty("hakutunniste") val searchId: VelhoId,
     @JsonProperty("alkuaika") val startTime: Instant,
     @JsonProperty("hakutunniste-voimassa") val validFor: Long
 )
@@ -126,7 +129,7 @@ data class Match(
     val oid: Oid<ProjektiVelhoFile>,
 )
 data class LatestVersion(
-    @JsonProperty("versio") val version: String,
+    @JsonProperty("versio") val version: VelhoId,
     @JsonProperty("nimi") val name: FileName,
     @JsonProperty("muokattu") val changeTime: Instant
 )
@@ -134,10 +137,10 @@ data class LatestVersion(
 data class Metadata(
     @JsonProperty("tila") val materialState: VelhoCode,
     @JsonProperty("kuvaus") val description: FreeText?,
-    @JsonProperty("laji") val materialCategory: VelhoCode,
+    @JsonProperty("laji") val materialCategory: VelhoCode?,
     @JsonProperty("dokumenttityyppi") val documentType: VelhoCode,
     @JsonProperty("ryhma") val materialGroup: VelhoCode,
-    @JsonProperty("tekniikka-alat") val technicalGroups: List<String>?,
+    @JsonProperty("tekniikka-alat") val technicalFields: List<VelhoCode>,
     @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?
 )
 
@@ -158,19 +161,19 @@ data class Properties(
 
 data class ProjectGroup(
     @JsonProperty("ominaisuudet") val properties: Properties,
-    @JsonProperty("oid") val oid: String,
+    @JsonProperty("oid") val oid: Oid<VelhoProjectGroup>,
 )
 
 data class Project(
     @JsonProperty("ominaisuudet") val properties: Properties,
-    @JsonProperty("oid") val oid: String,
-    @JsonProperty("projektijoukko") val projectGroupOid: String,
+    @JsonProperty("oid") val oid: Oid<VelhoProject>,
+    @JsonProperty("projektijoukko") val projectGroupOid: Oid<VelhoProjectGroup>,
 )
 
 data class Assignment(
     @JsonProperty("ominaisuudet") val properties: Properties,
-    @JsonProperty("oid") val oid: String,
-    @JsonProperty("projekti") val projectOid: String,
+    @JsonProperty("oid") val oid: Oid<VelhoAssignment>,
+    @JsonProperty("projekti") val projectOid: Oid<VelhoAssignment>,
 )
 
 data class DictionaryEntry(
@@ -190,7 +193,7 @@ data class ProjektiVelhoFile(
 
 data class ProjektiVelhoSearch(
     val id: IntId<ProjektiVelhoSearch>,
-    val token: String,
+    val token: VelhoId,
     val state: FetchStatus,
     val validUntil: Instant
 )
@@ -210,10 +213,11 @@ enum class FileStatus {
 }
 
 enum class VelhoDictionaryType {
-    DOCUMENT_TYPE,
-    MATERIAL_STATE,
-    MATERIAL_CATEGORY,
-    ASSET_GROUP,
+    DOCUMENT_TYPE, // dokumenttityyppi
+    MATERIAL_STATE, // aineistotila
+    MATERIAL_CATEGORY, // aineistolaji
+    MATERIAL_GROUP, // ainestoryhmä
+    TECHNICS_FIELD, // teknikka-ala
 }
 
 

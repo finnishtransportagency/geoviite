@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.velho
 
+import VelhoId
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.inframodel.InfraModelService
 import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
@@ -50,7 +51,7 @@ class VelhoService @Autowired constructor(
         }
     }
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(initialDelay = 60000, fixedRate = 60000)
     fun pollAndFetchIfWaiting() {
         logger.serviceCall("pollAndFetchIfWaiting")
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
@@ -83,7 +84,7 @@ class VelhoService @Autowired constructor(
         }
     }
 
-    fun fetchSearchResults(searchId: String) =
+    fun fetchSearchResults(searchId: VelhoId)=
         velhoClient
             .fetchVelhoSearches()
             .find { search -> search.searchId == searchId && search.state == PROJEKTIVELHO_SEARCH_STATE_READY }

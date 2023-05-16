@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.velho
 
+import VelhoId
+import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.ITTestBase
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
@@ -13,27 +13,18 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
-@SpringBootTest
-@ConditionalOnBean(VelhoClient::class)
+@SpringBootTest(properties = ["geoviite.projektivelho=true"])
 class VelhoServiceIT @Autowired constructor(
-    private val fakeVelhoService: FakeVelhoService,
+    @Value("\${geoviite.projektivelho.test-port:12345}") private val velhoPort: Int,
     private val velhoService: VelhoService,
     private val velhoDao: VelhoDao,
+    private val jsonMapper: ObjectMapper,
 ) : ITTestBase() {
-    lateinit var fakeVelho: FakeVelho
 
-    @BeforeEach
-    fun startServer() {
-        fakeVelho = fakeVelhoService.start()
-    }
-
-    @AfterEach
-    fun stopServer() {
-        fakeVelho.stop()
-    }
+    fun fakeVelho() = FakeVelho(velhoPort, jsonMapper)
 
     @Test
-    fun `Spinning up search works`() {
+    fun `Spinning up search works`(): Unit = fakeVelho().use { fakeVelho ->
         fakeVelho.login()
         fakeVelho.search()
         val search = velhoService.search()
@@ -42,8 +33,8 @@ class VelhoServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Importing through search happy case works`() {
-        val searchId = "123"
+    fun `Importing through search happy case works`(): Unit = fakeVelho().use { fakeVelho ->
+        val searchId = VelhoId("123")
         val oid = "1.2.3.4.5"
         val version = "1"
 

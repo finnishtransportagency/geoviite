@@ -8,12 +8,20 @@ import fi.fta.geoviite.infra.util.assertSanitized
 import fi.fta.geoviite.infra.velho.FileStatus
 import java.time.Instant
 
-val velhoCodeLength = 3..50
+
+val velhoIdLength = 1..50
+val velhoIdRegex = Regex("^[A-Za-z0-9_\\-./]+\$")
+data class VelhoId @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
+    : Comparable<VelhoId>, CharSequence by value {
+    init { assertSanitized<VelhoId>(value, velhoIdRegex, velhoIdLength) }
+
+    @JsonValue
+    override fun toString(): String = value
+    override fun compareTo(other: VelhoId): Int = value.compareTo(other.value)
+}
+
+val velhoCodeLength = 1..50
 val velhoCodeRegex = Regex("^[A-ZÄÖÅa-zäöå0-9_\\-./]+\$")
-
-val velhoNameLength = 1..100
-val velhoNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-–+().,'/*]*\$")
-
 data class VelhoCode @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
     : Comparable<VelhoCode>, CharSequence by value {
     init { assertSanitized<VelhoCode>(value, velhoCodeRegex, velhoCodeLength) }
@@ -23,6 +31,8 @@ data class VelhoCode @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructo
     override fun compareTo(other: VelhoCode): Int = value.compareTo(other.value)
 }
 
+val velhoNameLength = 1..100
+val velhoNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-–+().,'/*]*\$")
 data class VelhoName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
     : Comparable<VelhoName>, CharSequence by value {
     init { assertSanitized<VelhoName>(value, velhoNameRegex, velhoNameLength) }

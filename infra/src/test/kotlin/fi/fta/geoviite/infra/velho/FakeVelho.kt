@@ -1,14 +1,14 @@
 package fi.fta.geoviite.infra.velho
 
 import VelhoCode
+import VelhoId
+import VelhoName
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.jsonMapper
-import com.fasterxml.jackson.module.kotlin.kotlinModule
+import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.integration.ClientAndServer
@@ -18,84 +18,63 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Service
 import java.time.Instant
 
-@ConditionalOnProperty("geoviite.projektivelho.test-port")
-@Service
-class FakeVelhoService @Autowired constructor(@Value("\${geoviite.projektivelho.test-port:}") private val testPort: Int) {
-    fun start(): FakeVelho = FakeVelho(testPort)
-}
+//data class VelhoSearchStatus(
+//    @JsonProperty("tila") val state: String,
+//    @JsonProperty("hakutunniste") val searchId: String,
+//    @JsonProperty("alkuaika") val startTime: Instant,
+//    @JsonProperty("hakutunniste-voimassa") val validFor: Long
+//)
+//
+//data class VelhoFile(
+//    @JsonProperty("tuorein-versio") val latestVersion: VelhoLatestVersion,
+//    @JsonProperty("metatiedot") val metadata: Metadata
+//)
+//
+//data class VelhoLatestVersion(
+//    @JsonProperty("versio") val version: String,
+//    @JsonProperty("nimi") val name: String,
+//    @JsonProperty("muokattu") val changeTime: Instant
+//)
 
-data class VelhoSearchStatus(
-    @JsonProperty("tila") val state: String,
-    @JsonProperty("hakutunniste") val searchId: String,
-    @JsonProperty("alkuaika") val startTime: String,
-    @JsonProperty("hakutunniste-voimassa") val validFor: Long
-)
-
-data class VelhoFile(
-    @JsonProperty("tuorein-versio") val latestVersion: VelhoLatestVersion,
-    @JsonProperty("metatiedot") val metadata: Metadata
-)
-
-data class VelhoLatestVersion(
-    @JsonProperty("versio") val version: String,
-    @JsonProperty("nimi") val name: String,
-    @JsonProperty("muokattu") val changeTime: String
-)
-
-class FakeVelho (port: Int) {
+class FakeVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
     private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
-    private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    fun stop() {
+    override fun close() {
         mockServer.stop()
     }
 
     fun search() {
-        post("/hakupalvelu/api/v1/taustahaku/kohdeluokat").respond(okJson(VelhoSearchStatus(
-            "",
-            "123",
-            Instant.now().minusSeconds(5).toString(),
-            3600
+        post("/hakupalvelu/api/v1/taustahaku/kohdeluokat").respond(okJson(
+            SearchStatus("", VelhoId("123"), Instant.now().minusSeconds(5), 3600)
+        ))
+    }
+
+    fun searchStatus(searchId: VelhoId) {
+        get("/hakupalvelu/api/v1/taustahaku/tila").respond(okJson(listOf(
+            SearchStatus("valmis", searchId, Instant.now().minusSeconds(5), 3600)
         )))
     }
 
-    fun searchStatus(searchId: String) {
-        get("/hakupalvelu/api/v1/taustahaku/tila").respond(okJson(listOf(VelhoSearchStatus(
-            "valmis", searchId, Instant.now().minusSeconds(5).toString(), 3600
-        ))))
-    }
-
-    fun searchResults(searchId: String, oids: List<String>) {
+    fun searchResults(searchId: VelhoId, oids: List<String>) {
         get("/hakupalvelu/api/v1/taustahaku/tulokset/$searchId").respond(okJson(SearchResult(
-            matches = oids.map {  (Match(
-                oid = Oid(it),
-                assignmentOid = Oid(it),
-            )) }
+            matches = oids.map { oid ->
+                Match(oid = Oid(oid), assignmentOid = Oid(oid))
+            }
         )))
     }
 
     fun fileMetadata(oid: String, version: String) {
-        get("/aineistopalvelu/api/v1/aineisto/$oid").respond(okJson(VelhoFile(
-            latestVersion = VelhoLatestVersion(
-                version,
-                "test.xml",
-                Instant.now().toString()
-            ),
+        get("/aineistopalvelu/api/v1/aineisto/$oid").respond(okJson(File(
+            latestVersion = LatestVersion(VelhoId(version), FileName("test.xml"), Instant.now()),
             metadata = Metadata(
                 description = FreeText("test"),
                 documentType = VelhoCode("dokumenttityyppi/dt01"),
                 materialState = VelhoCode("aineistotila/tila01"),
                 materialCategory = VelhoCode("aineistolaji/al00"),
                 materialGroup = VelhoCode("aineistoryhma/ar00"),
-                technicalGroups = null,
+                technicalFields = listOf(),
                 containsPersonalInfo = null,
             )
         )))
