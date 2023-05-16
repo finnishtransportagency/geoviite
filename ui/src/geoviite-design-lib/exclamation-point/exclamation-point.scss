@@ -1,0 +1,14 @@
+@import '../../vayla-design-lib/colors';
+
+.exclamation-point {
+    height: 15px;
+    width: 15px;
+    background-color: $color-red-default;
+    border-radius: 50%;
+    display: inline-block;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 10px;
+    color: $color-white-default;
+    font-weight: bold;
+    line-height: 1.5;
+}

@@ -52,6 +52,7 @@ export type InfraModelState = {
     validationErrors: ValidationError<InfraModelParameters>[];
     committedFields: InfraModelParametersProp[];
     infraModelActiveTab: InfraModelTabType;
+    infraModelTabSelectedFromUrl: boolean;
 };
 
 export type ExtraInfraModelParameters = {
@@ -125,6 +126,7 @@ export const initialInfraModelState: InfraModelState = {
     validationErrors: [],
     committedFields: [],
     infraModelActiveTab: InfraModelTabType.PLAN,
+    infraModelTabSelectedFromUrl: true,
 };
 
 export type GeometryPlanWithParameters = {
@@ -237,6 +239,12 @@ const infraModelSlice = createSlice({
             { payload: tab }: PayloadAction<InfraModelTabType>,
         ): void => {
             state.infraModelActiveTab = tab;
+        },
+        setInfraModelTabSelectedFromUrl: (
+            state: InfraModelState,
+            { payload: value }: PayloadAction<boolean>,
+        ): void => {
+            state.infraModelTabSelectedFromUrl = value;
         },
         ...wrapReducers((state: InfraModelState) => state.map, mapReducers),
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),

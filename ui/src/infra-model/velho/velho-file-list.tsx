@@ -23,10 +23,12 @@ export const VelhoFileListContainer: React.FC = () => {
             return getVelhoDocuments(changeTime, 'PENDING');
         }, [changeTime]) || [];
     return (
-        <VelhoFileList
-            documentHeaders={documentHeaders || []}
-            isLoading={loadStatus != LoaderStatus.Ready}
-        />
+        <div className="velho-file-list">
+            <VelhoFileList
+                documentHeaders={documentHeaders || []}
+                isLoading={loadStatus != LoaderStatus.Ready}
+            />
+        </div>
     );
 };
 

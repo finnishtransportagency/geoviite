@@ -82,9 +82,9 @@
             "error-message": "Tiedostossa on virheitä"
         },
         "tabs": {
-            "plans": "Suunnitelmat X kpl",
-            "velho-files-waiting": "Velhon aineistot, odottaa käsittelyä X kpl",
-            "velho-files-rejected": "Velhon aineistot, hylätty X kpl"
+            "plans": "Suunnitelmat {{number}} kpl",
+            "velho-files-waiting": "Velhon aineistot, odottaa käsittelyä {{number}} kpl",
+            "velho-files-rejected": "Velhon aineistot, hylätty {{number}} kpl"
         },
         "download-file": "Lataa tiedosto"
     },
