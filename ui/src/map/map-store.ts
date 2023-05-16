@@ -10,7 +10,7 @@ import {
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
-import { deduplicate, filterNotEmpty } from 'utils/array-utils';
+import { deduplicate } from 'utils/array-utils';
 
 export function createEmptyShownItems(): ShownItems {
     return {
@@ -146,19 +146,21 @@ export const mapReducers = {
         state.settingsMenu.layout = updateSettings(state.settingsMenu.layout, payload);
         state.settingsMenu.geometry = updateSettings(state.settingsMenu.geometry, payload);
         state.settingsMenu.debug = updateSettings(state.settingsMenu.debug, payload);
-        const changedLayers = collectChangedLayers(
-            [
-                ...state.settingsMenu.layout,
-                ...state.settingsMenu.geometry,
-                ...state.settingsMenu.debug,
-            ],
-            payload,
-        );
+        const allSettings = [
+            ...state.settingsMenu.layout,
+            ...state.settingsMenu.geometry,
+            ...state.settingsMenu.debug,
+        ];
+
+        const changedLayers = collectChangedLayers(allSettings, payload);
 
         if (payload.visible) {
             this.showLayers(state, { payload: changedLayers, type: 'showLayers' });
         } else {
-            this.hideLayers(state, { payload: changedLayers, type: 'hideLayers' });
+            const visibleLayers = collectVisibleLayers(allSettings, payload);
+            const hiddenLayers = changedLayers.filter((l) => !visibleLayers.some((v) => v === l));
+
+            this.hideLayers(state, { payload: hiddenLayers, type: 'hideLayers' });
         }
     },
     onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>): void => {
@@ -169,37 +171,51 @@ export const mapReducers = {
     },
 };
 
+function collectVisibleLayers(
+    settings: MapLayerSetting[],
+    change: MapLayerSettingChange,
+): MapLayerName[] {
+    return settings.flatMap((s) => {
+        if (s.visible && s.name !== change.name) {
+            return [
+                ...layerSettingMapLayers[s.name],
+                ...collectVisibleLayers(s.subSettings ?? [], change),
+            ];
+        }
+
+        return [];
+    });
+}
+
 function collectChangedLayers(
     settings: MapLayerSetting[],
     change: MapLayerSettingChange,
     isChild = false,
 ): MapLayerName[] {
-    return settings
-        .flatMap(({ name, subSettings }) => {
-            if (name === change.name) {
-                if (change.visible) {
-                    return [
-                        ...layerSettingMapLayers[name],
-                        ...collectChangedLayers(
-                            subSettings?.filter((s) => s.visible) ?? [],
-                            change,
-                            true,
-                        ),
-                    ];
-                } else {
-                    return [
-                        ...layerSettingMapLayers[name],
-                        ...collectChangedLayers(subSettings ?? [], change, true),
-                    ];
-                }
+    return settings.flatMap(({ name, subSettings }) => {
+        if (name === change.name) {
+            if (change.visible) {
+                return [
+                    ...layerSettingMapLayers[name],
+                    ...collectChangedLayers(
+                        subSettings?.filter((s) => s.visible) ?? [],
+                        change,
+                        true,
+                    ),
+                ];
             } else {
                 return [
-                    ...(isChild ? layerSettingMapLayers[name] : []),
-                    ...collectChangedLayers(subSettings ?? [], change, isChild),
+                    ...layerSettingMapLayers[name],
+                    ...collectChangedLayers(subSettings ?? [], change, true),
                 ];
             }
-        })
-        .filter(filterNotEmpty);
+        } else {
+            return [
+                ...(isChild ? layerSettingMapLayers[name] : []),
+                ...collectChangedLayers(subSettings ?? [], change, isChild),
+            ];
+        }
+    });
 }
 
 function updateSettings(
