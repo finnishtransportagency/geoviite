@@ -14,7 +14,7 @@ export type MapLayerName =
     | 'track-number-diagram-layer'
     | 'location-track-alignment-layer'
     | 'reference-line-alignment-layer'
-    | 'missing-vertical-geometry-highlight-layer'
+    | 'missing-profile-highlight-layer'
     | 'missing-linking-highlight-layer'
     | 'duplicate-tracks-highlight-layer'
     | 'location-track-badge-layer'

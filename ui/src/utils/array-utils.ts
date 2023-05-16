@@ -44,6 +44,22 @@ export function fieldComparator<T, S>(getter: (obj: T) => S): (v1: T, v2: T) => 
     return (v1: T, v2: T) => compareByField(v1, v2, getter);
 }
 
+export function chunk<T>(arr: T[], chunkSize: number): T[][] {
+    if (chunkSize <= 0) return [arr];
+
+    return arr.reduce((acc, item, index) => {
+        const chunkIndex = Math.floor(index / chunkSize);
+
+        if (!acc[chunkIndex]) {
+            acc[chunkIndex] = [];
+        }
+
+        acc[chunkIndex].push(item);
+
+        return acc;
+    }, [] as T[][]);
+}
+
 //Null and undefined values are considered "max"
 export function timeStampComparator<T>(
     getter: (obj: T) => TimeStamp | undefined | null,

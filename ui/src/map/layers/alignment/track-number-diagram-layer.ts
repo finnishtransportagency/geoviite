@@ -1,4 +1,4 @@
-import { LineString, Point } from 'ol/geom';
+import { LineString } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
@@ -8,14 +8,12 @@ import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { groupBy } from 'utils/array-utils';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { getBadgeDrawDistance } from 'map/layers/utils/layer-visibility-limits';
 import { Feature } from 'ol';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { BadgeColor, createMapAlignmentBadgeFeature, getBadgePoints } from './alignment-layer';
-import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 
-let newestTrackNumberDiagramLayerId = 0;
+let newestLayerId = 0;
 
 const colors = [
     '#858585',
@@ -44,59 +42,7 @@ const getColorForTrackNumber = (id: LayoutTrackNumberId) => {
     return c + '55'; //55 ~ 33 % opacity
 };
 
-export function createTrackNumberDiagramLayer(
-    mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
-    resolution: number,
-    changeTimes: ChangeTimes,
-    publishType: PublishType,
-    referenceLinesVisible: boolean,
-): MapLayer {
-    const layerId = ++newestTrackNumberDiagramLayerId;
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
-
-    const fetchType = resolution > Limits.ALL_ALIGNMENTS ? 'REFERENCE_LINES' : 'ALL';
-
-    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType)
-        .then((alignments) => {
-            if (layerId != newestTrackNumberDiagramLayerId) return;
-
-            const referenceLineBadges = referenceLinesVisible
-                ? []
-                : getReferenceLineBadges(alignments, resolution);
-
-            const diagramFeatures = getDiagramFeatures(alignments);
-
-            vectorSource.clear();
-            vectorSource.addFeatures([...diagramFeatures, ...referenceLineBadges]);
-        })
-        .catch(vectorSource.clear);
-
-    return {
-        name: 'track-number-diagram-layer',
-        layer: layer,
-    };
-}
-
-function getReferenceLineBadges(alignments: AlignmentDataHolder[], resolution: number) {
-    return alignments
-        .filter((a) => a.header.alignmentType === 'REFERENCE_LINE')
-        .filter((a) => a.trackNumber)
-        .flatMap((a) => {
-            const badgePoints = getBadgePoints(a.points, getBadgeDrawDistance(resolution) || 0);
-
-            return createMapAlignmentBadgeFeature(
-                a.trackNumber?.number || '', //Ensured by filter
-                badgePoints,
-                BadgeColor.DARK,
-                false,
-            );
-        });
-}
-
-function getDiagramFeatures(alignments: AlignmentDataHolder[]) {
+function createDiagramFeatures(alignments: AlignmentDataHolder[]) {
     const perTrackNumber = groupBy(
         alignments,
         (a) => a.header.trackNumberId || a.trackNumber?.id || '',
@@ -121,4 +67,34 @@ function getDiagramFeatures(alignments: AlignmentDataHolder[]) {
             return feature;
         });
     });
+}
+
+export function createTrackNumberDiagramLayer(
+    mapTiles: MapTile[],
+    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    changeTimes: ChangeTimes,
+    publishType: PublishType,
+    resolution: number,
+): MapLayer {
+    const layerId = ++newestLayerId;
+    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
+
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const fetchType = resolution > Limits.ALL_ALIGNMENTS ? 'REFERENCE_LINES' : 'ALL';
+
+    getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType)
+        .then((alignments) => {
+            if (layerId != newestLayerId) return;
+
+            const features = createDiagramFeatures(alignments);
+
+            clearFeatures(vectorSource);
+            vectorSource.addFeatures(features);
+        })
+        .catch(() => clearFeatures(vectorSource));
+
+    return {
+        name: 'track-number-diagram-layer',
+        layer: layer,
+    };
 }

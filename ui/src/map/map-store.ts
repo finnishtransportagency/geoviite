@@ -28,10 +28,18 @@ export type MapLayerSettingChange = {
 
 const layerSettingMapLayers: Record<MapLayerSettingName, MapLayerName[]> = {
     'map': ['background-map-layer'],
-    'location-track': ['location-track-alignment-layer'],
-    'reference-line': ['reference-line-alignment-layer'],
-    'track-number-diagram': ['track-number-diagram-layer'],
-    'missing-vertical-geometry': ['missing-vertical-geometry-highlight-layer'],
+    'location-track': [
+        'location-track-alignment-layer',
+        'location-track-background-layer',
+        'location-track-badge-layer',
+    ],
+    'reference-line': [
+        'reference-line-alignment-layer',
+        'reference-line-background-layer',
+        'reference-line-badge-layer',
+    ],
+    'track-number-diagram': ['track-number-diagram-layer', 'reference-line-badge-layer'],
+    'missing-vertical-geometry': ['missing-profile-highlight-layer'],
     'missing-linking': ['missing-linking-highlight-layer'],
     'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
     'km-post': ['km-post-layer'],
@@ -54,7 +62,6 @@ export const initialMapState: Map = {
         'geometry-alignment-layer',
         'geometry-switch-layer',
         'geometry-km-post-layer',
-        'linking-layer',
     ],
     settingsMenu: {
         layout: [
@@ -168,25 +175,27 @@ function collectChangedLayers(
     isChild = false,
 ): MapLayerName[] {
     return settings
-        .flatMap((s) => {
-            if (s.name === s.name) {
+        .flatMap(({ name, subSettings }) => {
+            if (name === change.name) {
                 if (change.visible) {
                     return [
-                        ...layerSettingMapLayers[s.name],
-                        ...collectChangedLayers(s.subSettings ?? [], change, true),
+                        ...layerSettingMapLayers[name],
+                        ...collectChangedLayers(
+                            subSettings?.filter((s) => s.visible) ?? [],
+                            change,
+                            true,
+                        ),
                     ];
                 } else {
                     return [
-                        ...layerSettingMapLayers[s.name],
-                        ...(s.subSettings?.flatMap(
-                            (subSetting) => layerSettingMapLayers[subSetting.name],
-                        ) ?? []),
+                        ...layerSettingMapLayers[name],
+                        ...collectChangedLayers(subSettings ?? [], change, true),
                     ];
                 }
             } else {
                 return [
-                    ...(isChild && s.visible ? layerSettingMapLayers[s.name] : []),
-                    ...collectChangedLayers(s.subSettings ?? [], change, isChild),
+                    ...(isChild ? layerSettingMapLayers[name] : []),
+                    ...collectChangedLayers(subSettings ?? [], change, isChild),
                 ];
             }
         })

@@ -43,7 +43,6 @@ import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
 import { createTrackNumberDiagramLayer } from 'map/layers/alignment/track-number-diagram-layer';
 import { LineString, Point as OlPoint } from 'ol/geom';
-import { createAlignmentLayer } from 'map/layers/alignment/alignment-layer';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
@@ -60,6 +59,15 @@ import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import { layerZIndexes } from 'map/layers/utils/layer-visibility-limits';
+import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
+import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
+import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/location-track-background-layer';
+import { createReferenceLineBackgroundLayer } from 'map/layers/alignment/reference-line-background-layer';
+import { createReferenceLineBadgeLayer } from 'map/layers/alignment/reference-line-badge-layer';
+import { createLocationTrackBadgeLayer } from 'map/layers/alignment/location-track-badge-layer';
+import { createDuplicateTrackHighlightLayer } from 'map/layers/alignment/duplicate-tracks-highlight-layer';
+import { createMissingLinkingHighlightLayer } from 'map/layers/alignment/missing-linking-highlight-layer';
+import { createMissingLocationTrackProfileHighlightLayer } from 'map/layers/alignment/missing-profile-highlight-layer';
 
 declare global {
     interface Window {
@@ -273,22 +281,91 @@ const MapView: React.FC<MapViewProps> = ({
                         return createTrackNumberDiagramLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            resolution,
                             changeTimes,
                             publishType,
-                            map.layers.some((l) => l === 'reference-line-alignment-layer'),
+                            resolution,
                         );
-                    case 'location-track-alignment-layer':
-                        return createAlignmentLayer(
+                    case 'reference-line-alignment-layer':
+                        return createReferenceLineAlignmentLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            map.layers,
                             selection,
                             publishType,
                             linkingState,
                             changeTimes,
                             olView,
                             props.onShownLayerItemsChange,
+                        );
+                    case 'reference-line-background-layer':
+                        return createReferenceLineBackgroundLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                        );
+                    case 'reference-line-badge-layer':
+                        return createReferenceLineBadgeLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            selection,
+                            publishType,
+                            linkingState,
+                            changeTimes,
+                            resolution,
+                        );
+                    case 'location-track-alignment-layer':
+                        return createLocationTrackAlignmentLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            publishType,
+                            linkingState,
+                            changeTimes,
+                            olView,
+                            props.onShownLayerItemsChange,
+                        );
+                    case 'location-track-background-layer':
+                        return createLocationTrackBackgroundLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            selection,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                        );
+                    case 'location-track-badge-layer':
+                        return createLocationTrackBadgeLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            selection,
+                            publishType,
+                            linkingState,
+                            changeTimes,
+                            resolution,
+                        );
+                    case 'missing-linking-highlight-layer':
+                        return createMissingLinkingHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                        );
+                    case 'duplicate-tracks-highlight-layer':
+                        return createDuplicateTrackHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                        );
+                    case 'missing-profile-highlight-layer':
+                        return createMissingLocationTrackProfileHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
                         );
                     case 'km-post-layer':
                         return createKmPostLayer(
@@ -318,7 +395,6 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                         );
-
                     case 'geometry-km-post-layer':
                         return createGeometryKmPostLayer(
                             resolution,
@@ -326,7 +402,6 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             publishType,
                         );
-
                     case 'geometry-switch-layer':
                         return createGeometrySwitchLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
@@ -351,7 +426,6 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             linkingState as LinkingSwitch,
                         );
-
                     case 'manual-linking-switch-layer':
                         return createManualSwitchLinkingLayer(
                             mapTiles,
@@ -359,14 +433,12 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             publishType,
                         );
-
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<Polygon>>,
                             changeTimes,
                         );
-
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(
                             existingOlLayer as VectorLayer<
@@ -376,7 +448,6 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             resolution,
                         );
-
                     case 'debug-layer':
                         return createDebugLayer(
                             existingOlLayer as VectorLayer<VectorSource<DebugLayerFeatureType>>,

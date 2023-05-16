@@ -1,24 +1,24 @@
-import styles from "./track-layout.module.scss";
-import * as React from "react";
-import { MapContext, MapLayerSettingChange } from "map/map-store";
-import { Map, MapViewport, OptionalShownItems } from "map/map-model";
-import MapView from "map/map-view";
-import { MapLayerSettingsMenu } from "map/settings/map-layer-menu";
+import styles from './track-layout.module.scss';
+import * as React from 'react';
+import { MapContext, MapLayerSettingChange } from 'map/map-store';
+import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import MapView from 'map/map-view';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
-    Selection
-} from "selection/selection-model";
-import { ToolBar } from "tool-bar/tool-bar";
-import { SelectionPanelContainer } from "selection-panel/selection-panel-container";
-import { SwitchSuggestionCreatorContainer } from "linking/switch-suggestion-creator-container";
-import ToolPanelContainer from "tool-panel/tool-panel-container";
-import { BoundingBox } from "model/geometry";
-import { PublishType } from "common/common-model";
-import { LinkingState, LinkPoint } from "linking/linking-model";
-import { ChangeTimes } from "common/common-slice";
+    Selection,
+} from 'selection/selection-model';
+import { ToolBar } from 'tool-bar/tool-bar';
+import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
+import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
+import ToolPanelContainer from 'tool-panel/tool-panel-container';
+import { BoundingBox } from 'model/geometry';
+import { PublishType } from 'common/common-model';
+import { LinkingState, LinkPoint } from 'linking/linking-model';
+import { ChangeTimes } from 'common/common-slice';
+import { MapLayerSettingsMenu } from 'map/settings-menu/map-layer-menu';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
