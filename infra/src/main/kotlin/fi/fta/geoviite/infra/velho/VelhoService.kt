@@ -2,10 +2,13 @@ package fi.fta.geoviite.infra.velho
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.inframodel.InfraModelService
+import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
+import fi.fta.geoviite.infra.inframodel.toInfraModelFile
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.formatForLog
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,9 +17,6 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.temporal.TemporalAmount
 
 val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
 val SECONDS_IN_A_YEAR: Long = 31556926
@@ -71,6 +71,15 @@ class VelhoService @Autowired constructor(
         }
     }
 
+    fun fetchAineisto() {
+        val dict = velhoClient.fetchAineistoMetadata()
+        dict.forEach { (type, entries) ->
+            entries.map { entry ->
+                velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entry.code, entry.name)
+            }
+        }
+    }
+
     fun fetchSearchResults(searchId: String) =
         velhoClient
             .fetchVelhoSearches()
@@ -100,11 +109,19 @@ class VelhoService @Autowired constructor(
             metadataResponse.latestVersion.version,
         )
 
+        // TODO Add these when fetches actually work
+        /*val assignment = velhoClient.fetchAssignment(match.assignmentOid)
+        val project = assignment?.projectOid?.let(velhoClient::fetchProject)
+        val projectGroup = project?.projectGroupOid?.let(velhoClient::fetchProjectGroup)*/
+
         return ProjektiVelhoFile(
             oid = match.oid,
             content = content,
             metadata = metadataResponse.metadata,
-            latestVersion = metadataResponse.latestVersion
+            latestVersion = metadataResponse.latestVersion,
+            assignment = null,
+            project = null,
+            projectGroup = null
         )
     }
 
@@ -119,16 +136,17 @@ class VelhoService @Autowired constructor(
         )
         if (shouldBeSavedToDb) velhoDao.insertFileContent(
             PROJEKTIVELHO_DB_USERNAME,
-            file.content,
+            censorAuthorIdentifyingInfo(file.content),
             metadataId
         )
     }
 
     fun isRailroadXml(xml: String, filename: FileName) =
         try {
-            infraModelService.parseInfraModel(xml.toByteArray(), filename.toString(), null)
+            infraModelService.parseInfraModel(toInfraModelFile(xml.toByteArray(), filename, null))
             true
         } catch (e: Exception) {
+            logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
             false
         }
 }

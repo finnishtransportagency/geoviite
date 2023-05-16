@@ -31,7 +31,7 @@ class InfraModelServiceIT @Autowired constructor(
     fun simpleFileIsWrittenAndReadCorrectly() {
         val file = getMockedMultipartFile(TESTFILE_SIMPLE)
 
-        val (parsedPlan, _) = infraModelService.parseInfraModel(file.bytes, file.originalFilename, file.contentType)
+        val parsedPlan = infraModelService.parseInfraModel(toInfraModelFile(file, null))
         val planId = infraModelService.saveInfraModel(file, null, null)
 
         assertPlansMatch(parsedPlan, geometryDao.fetchPlan(planId))
@@ -41,7 +41,7 @@ class InfraModelServiceIT @Autowired constructor(
     fun differentSpiralsAreWrittenAndReadCorrectly() {
         val file = getMockedMultipartFile(TESTFILE_CLOTHOID_AND_PARABOLA)
 
-        val (parsedPlan, _) = infraModelService.parseInfraModel(file.bytes, file.originalFilename, file.contentType)
+        val parsedPlan = infraModelService.parseInfraModel(toInfraModelFile(file, null))
         val planId = infraModelService.saveInfraModel(file, null, null)
 
         assertPlansMatch(parsedPlan, geometryDao.fetchPlan(planId))

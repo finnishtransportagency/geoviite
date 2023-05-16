@@ -67,9 +67,10 @@ class InfraModelParsingIT @Autowired constructor(
 
     @Test
     fun differentSpiralsCanBeParsed() {
-        val (parsed, _) = parseFromClasspath(
+        val imFile = classPathToInfraModelFile(TESTFILE_CLOTHOID_AND_PARABOLA)
+        val parsed = parseInfraModelFile(
             PlanSource.GEOMETRIAPALVELU,
-            TESTFILE_CLOTHOID_AND_PARABOLA,
+            imFile,
             coordinateSystemNameToSrid,
             switchStructuresByType,
             switchTypeNameAliases,

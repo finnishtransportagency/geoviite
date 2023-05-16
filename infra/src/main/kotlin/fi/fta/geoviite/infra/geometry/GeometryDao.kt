@@ -254,6 +254,7 @@ class GeometryDao @Autowired constructor(
 
         logger.daoAccess(UPDATE, GeometryPlan::class, planId)
 
+        // TODO: GVT-1794 This appears unused -> just return rowversion/id
         return geometryPlan
     }
 

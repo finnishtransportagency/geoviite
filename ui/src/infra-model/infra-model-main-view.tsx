@@ -1,8 +1,11 @@
 import React from 'react';
 import styles from './infra-model-main.scss';
-import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-container';
+import {
+    InfraModelViewContainer,
+    InfraModelViewType,
+} from 'infra-model/view/infra-model-view-container';
 import { Route, Routes } from 'react-router-dom';
-import { InfraModelTabType, InfraModelViewType } from 'infra-model/infra-model-slice';
+import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { useInfraModelAppSelector } from 'store/hooks';
 import InfraModelTabs from 'infra-model/tabs/infra-model-tabs';
 
@@ -15,6 +18,10 @@ export const InfraModelMainView: React.FC = () => {
                 <Route
                     path="/edit/:id"
                     element={<InfraModelViewContainer viewType={InfraModelViewType.EDIT} />}
+                />
+                <Route
+                    path="/import/:id"
+                    element={<InfraModelViewContainer viewType={InfraModelViewType.IMPORT} />}
                 />
                 <Route
                     path="/upload"
