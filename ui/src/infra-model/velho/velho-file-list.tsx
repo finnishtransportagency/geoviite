@@ -29,12 +29,14 @@ export const VelhoFileListContainer: React.FC = () => {
             return getVelhoDocuments(changeTime, 'IMPORTED');
         }, [changeTime]) || [];
     return (
+        <div className="velho-file-list">
         <VelhoFileList
             documentHeaders={documentHeaders || []}
             isLoading={loadStatus != LoaderStatus.Ready}
             onReject={(id) => rejectVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())}
             onImport={(id) => navigate('inframodel-import', id)}
         />
+        </div>
     );
 };
 

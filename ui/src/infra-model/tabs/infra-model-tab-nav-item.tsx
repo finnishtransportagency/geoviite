@@ -1,6 +1,8 @@
 import React from 'react';
 import { useAppNavigate } from 'common/navigate';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
+import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamation-point';
+import styles from './infra-model-tabs.scss';
 
 export type TabNavItemProps = {
     tabId: InfraModelTabType;
@@ -9,7 +11,12 @@ export type TabNavItemProps = {
     setActiveTab: (id: InfraModelTabType) => void;
 };
 
-const TabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeTab, setActiveTab }) => {
+const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
+    tabId,
+    title,
+    activeTab,
+    setActiveTab,
+}) => {
     const navigate = useAppNavigate();
 
     const handleClick = () => {
@@ -22,11 +29,18 @@ const TabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeTab, setAct
             navigate('inframodel-rejected');
         }
     };
-
+    //TODO exclamation point if there are rows in Velho list
     return (
-        <li onClick={handleClick} className={activeTab === tabId ? 'active' : ''}>
+        <li
+            onClick={handleClick}
+            className={activeTab === tabId ? styles['active'] : styles['inactive']}>
             {title}
+            {tabId === InfraModelTabType.WAITING && (
+                <span className={styles['exclamation-point-container']}>
+                    <ExclamationPoint />
+                </span>
+            )}
         </li>
     );
 };
-export default TabNavItem;
+export default InfraModelTabNavItem;

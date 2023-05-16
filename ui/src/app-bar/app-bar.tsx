@@ -36,7 +36,7 @@ export const AppBar: React.FC = () => {
 
     function getInfraModelLink(): string {
         if (selectedInfraModelTab === InfraModelTabType.PLAN) {
-            return '/infra-model';
+            return '/infra-model/plans';
         } else if (selectedInfraModelTab === InfraModelTabType.WAITING) {
             return '/infra-model/waiting-for-approval';
         } else {

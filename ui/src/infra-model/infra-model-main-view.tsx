@@ -6,8 +6,8 @@ import {
 } from 'infra-model/view/infra-model-view-container';
 import { Route, Routes } from 'react-router-dom';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
-import TabContainer from 'infra-model/tabs/tab-container';
 import { useInfraModelAppSelector } from 'store/hooks';
+import InfraModelTabs from 'infra-model/tabs/infra-model-tabs';
 
 export const InfraModelMainView: React.FC = () => {
     const activeInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
@@ -27,18 +27,18 @@ export const InfraModelMainView: React.FC = () => {
                     path="/upload"
                     element={<InfraModelViewContainer viewType={InfraModelViewType.UPLOAD} />}
                 />
-                <Route path="/" element={<TabContainer activeTab={activeInfraModelTab} />} />
+                <Route path="/" element={<InfraModelTabs activeTab={activeInfraModelTab} />} />
                 <Route
                     path="/plans"
-                    element={<TabContainer activeTab={InfraModelTabType.PLAN} />}
+                    element={<InfraModelTabs activeTab={InfraModelTabType.PLAN} />}
                 />
                 <Route
                     path="/waiting-for-approval"
-                    element={<TabContainer activeTab={InfraModelTabType.WAITING} />}
+                    element={<InfraModelTabs activeTab={InfraModelTabType.WAITING} />}
                 />
                 <Route
                     path="/rejected"
-                    element={<TabContainer activeTab={InfraModelTabType.REJECTED} />}
+                    element={<InfraModelTabs activeTab={InfraModelTabType.REJECTED} />}
                 />
             </Routes>
         </div>

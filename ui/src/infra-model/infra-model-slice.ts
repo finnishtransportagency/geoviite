@@ -29,7 +29,11 @@ import {
 } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
 
-//vai olisiko infra-model-slice luontevampi paikka?
+export enum InfraModelViewType {
+    UPLOAD,
+    EDIT,
+}
+
 export enum InfraModelTabType {
     PLAN,
     WAITING,
@@ -47,6 +51,7 @@ export type InfraModelState = {
     validationErrors: ValidationError<InfraModelParameters>[];
     committedFields: InfraModelParametersProp[];
     infraModelActiveTab: InfraModelTabType;
+    infraModelTabSelectedFromUrl: boolean;
 };
 
 export type ExtraInfraModelParameters = {
@@ -134,6 +139,7 @@ export const initialInfraModelState: InfraModelState = {
     validationErrors: [],
     committedFields: [],
     infraModelActiveTab: InfraModelTabType.PLAN,
+    infraModelTabSelectedFromUrl: true,
 };
 
 const infraModelSlice = createSlice({
@@ -237,6 +243,12 @@ const infraModelSlice = createSlice({
             { payload: tab }: PayloadAction<InfraModelTabType>,
         ): void => {
             state.infraModelActiveTab = tab;
+        },
+        setInfraModelTabSelectedFromUrl: (
+            state: InfraModelState,
+            { payload: value }: PayloadAction<boolean>,
+        ): void => {
+            state.infraModelTabSelectedFromUrl = value;
         },
         ...wrapReducers((state: InfraModelState) => state.map, mapReducers),
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),
