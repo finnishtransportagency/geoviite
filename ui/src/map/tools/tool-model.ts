@@ -1,11 +1,11 @@
 import OlMap from 'ol/Map';
-import { OlLayerAdapter } from 'map/layers/layer-model';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
 } from 'selection/selection-model';
+import { MapLayer } from 'map/layers/layer-model';
 
 export type DeactiveToolFun = () => void;
 
@@ -19,7 +19,7 @@ export type MapToolActivateOptions = {
 export type MapTool = {
     activate: (
         map: OlMap,
-        layerAdapter?: OlLayerAdapter[],
+        layers?: MapLayer[],
         options?: MapToolActivateOptions,
     ) => DeactiveToolFun;
 };

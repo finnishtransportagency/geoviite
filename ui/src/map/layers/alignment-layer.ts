@@ -5,12 +5,7 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
 import OlView from 'ol/View';
-import {
-    AlignmentHighlight,
-    LayoutAlignmentLayer,
-    MapTile,
-    OptionalShownItems,
-} from 'map/map-model';
+import { AlignmentHighlight, MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { LayoutPoint } from 'track-layout/track-layout-model';
 import {
@@ -23,13 +18,13 @@ import {
 import {
     addBbox,
     alignmentId,
-    getMatchingAlignmentDatas,
+    getMatchingAlignmentData,
     getTickStyle,
     MatchOptions,
     pointToCoords,
     setAlignmentData,
 } from 'map/layers/layer-utils';
-import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
 import { getBadgeDrawDistance } from 'map/layers/layer-visibility-limits';
 import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
@@ -247,7 +242,7 @@ function createFeatures(
         .flat();
 }
 
-export function createBadgePoints(
+export function getBadgePoints(
     points: LayoutPoint[],
     drawDistance: number,
 ): MapAlignmentBadgePoint[] {
@@ -281,10 +276,7 @@ function createAlignmentFeatures(
 ): Feature<LineString | Point>[] {
     const lineString = new LineString(dataHolder.points.map(pointToCoords));
     const features: Feature<LineString | Point>[] = [];
-    const alignmentFeature = new Feature<LineString>({
-        geometry: lineString,
-    });
-    addBbox(alignmentFeature);
+    const alignmentFeature = new Feature({ geometry: lineString });
     features.push(alignmentFeature);
 
     const styles = [alignmentBackgroundStyle];
@@ -319,7 +311,7 @@ function createAlignmentFeatures(
 
     alignmentFeature.setStyle(styles);
 
-    const badgePoints = createBadgePoints(dataHolder.points, badgeDrawDistance);
+    const badgePoints = getBadgePoints(dataHolder.points, badgeDrawDistance);
     const badgeColor = isReferenceLine ? BadgeColor.DARK : BadgeColor.LIGHT;
 
     if (badgeDisplayMode === DisplayMode.ALL) {
@@ -342,7 +334,7 @@ function createAlignmentFeatures(
     }
 
     if (!isReferenceLine && badgeDisplayMode === DisplayMode.ALL) {
-        features.push(...getStartEndTicks(dataHolder));
+        features.push(...getEndPointTicks(dataHolder));
     }
 
     setAlignmentData(alignmentFeature, dataHolder);
@@ -386,20 +378,20 @@ function isSelected(selection: ItemCollections, alignment: AlignmentHeader): boo
 }
 
 let alignmentCompare = '';
-let newestAlignmentAdapterId = 0;
+let newestAlignmentLayerId = 0;
 
-export function createAlignmentLayerAdapter(
+export function createAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
-    mapLayer: LayoutAlignmentLayer,
+    visibleMapLayers: MapLayerName[],
     selection: Selection,
     publishType: PublishType,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged?: (items: OptionalShownItems) => void,
-): OlLayerAdapter {
-    const adapterId = ++newestAlignmentAdapterId;
+): MapLayer {
+    const layerId = ++newestAlignmentLayerId;
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
@@ -418,8 +410,9 @@ export function createAlignmentLayerAdapter(
             strategy: options.limit == 1 ? 'nearest' : 'limit',
             limit: undefined,
         };
+
         const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-        const holders = getMatchingAlignmentDatas(hitArea, features, matchOptions);
+        const holders = getMatchingAlignmentData(hitArea, features, matchOptions);
         const alignmentHeaders = holders
             .map(({ header }) => header)
             .filter(filterUniqueById((a) => `${a.alignmentType}_${a.id}`));
@@ -456,7 +449,7 @@ export function createAlignmentLayerAdapter(
     const fetchType =
         resolution > Limits.ALL_ALIGNMENTS
             ? 'REFERENCE_LINES'
-            : mapLayer.showReferenceLines
+            : layerIsVisible(visibleMapLayers, 'reference-line-alignment-layer')
             ? 'ALL'
             : 'LOCATION_TRACKS';
 
@@ -469,7 +462,10 @@ export function createAlignmentLayerAdapter(
         selectedAlignment,
     );
 
-    const sectionsWithoutProfile = mapLayer.showMissingVerticalGeometry
+    const sectionsWithoutProfile = layerIsVisible(
+        visibleMapLayers,
+        'missing-vertical-geometry-highlight-layer',
+    )
         ? getLocationTrackSectionsWithoutProfileByTiles(
               changeTimes.layoutLocationTrack,
               publishType,
@@ -477,7 +473,10 @@ export function createAlignmentLayerAdapter(
           )
         : Promise.resolve([]);
 
-    const sectionsWithoutLinking = mapLayer.showMissingLinking
+    const sectionsWithoutLinking = layerIsVisible(
+        visibleMapLayers,
+        'missing-linking-highlight-layer',
+    )
         ? getAlignmentSectionsWithoutLinkingByTiles(
               getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),
               publishType,
@@ -488,7 +487,7 @@ export function createAlignmentLayerAdapter(
 
     Promise.all([alignmentsFetch, sectionsWithoutProfile, sectionsWithoutLinking]).then(
         ([alignments, sectionsWithoutProfile, sectionsWithoutLinking]) => {
-            if (adapterId != newestAlignmentAdapterId) return;
+            if (layerId != newestAlignmentLayerId) return;
 
             const features = createFeatures(
                 alignments,
@@ -496,13 +495,13 @@ export function createAlignmentLayerAdapter(
                 linkingState,
                 badgeDisplayMode,
                 badgeDrawDistance || 0,
-                mapLayer.showDuplicateTracks,
+                layerIsVisible(visibleMapLayers, 'duplicate-tracks-highlight-layer'),
                 sectionsWithoutProfile,
                 sectionsWithoutLinking,
             );
 
             // All features ready, clear old ones and add new ones
-            vectorSource.clear(true);
+            vectorSource.clear();
             vectorSource.addFeatures(features.flat());
 
             if (onViewContentChanged) {
@@ -521,6 +520,7 @@ export function createAlignmentLayerAdapter(
     );
 
     return {
+        name: 'location-track-alignment-layer',
         layer: layer,
         searchItems: selectionSearchFunction,
         searchShownItems: shownItemsSearchFunction,
@@ -572,7 +572,7 @@ export function calculateBadgeRotation(start: Coordinate, end: Coordinate) {
     };
 }
 
-function getStartEndTicks(data: AlignmentDataHolder) {
+function getEndPointTicks(data: AlignmentDataHolder) {
     const ticks = [];
     const points = data.points;
 
@@ -606,4 +606,8 @@ function getStartEndTicks(data: AlignmentDataHolder) {
     }
 
     return ticks;
+}
+
+function layerIsVisible(layers: MapLayerName[], layer: MapLayerName) {
+    return layers.some((l) => l === layer);
 }

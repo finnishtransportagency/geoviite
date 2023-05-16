@@ -229,7 +229,7 @@ function filterItemSelectOptions(
     return {
         ...options,
 
-        // Set non selectable items type collections to undefined
+        // Set non-selectable items type collections to undefined
         ...allSelectableItemTypes.reduce((memo, itemType) => {
             return {
                 ...memo,

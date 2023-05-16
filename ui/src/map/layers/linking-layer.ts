@@ -4,7 +4,6 @@ import { LineString, Point, Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Circle, Fill, RegularShape, Stroke, Style, Text } from 'ol/style';
-import OlView from 'ol/View';
 import { MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import {
@@ -15,7 +14,7 @@ import {
     MatchOptions,
     pointToCoords,
 } from 'map/layers/layer-utils';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import { LINKING_DOTS } from 'map/layers/layer-visibility-limits';
 import {
     ClusterPoint,
@@ -610,25 +609,26 @@ function createFeaturesWhenLinkingGeometryWithLayoutAlignment(
     return allFeatures;
 }
 
-let newestLinkingAdapterId = 0;
+let newestLinkingLayerId = 0;
 
-export function createLinkingLayerAdapter(
+export function createLinkingLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<Point | LineString>> | undefined,
     selection: Selection,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
-    olView: OlView,
-): OlLayerAdapter {
-    const adapterId = ++newestLinkingAdapterId;
+    resolution: number,
+): MapLayer {
+    const layerId = ++newestLinkingLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource, });
-
-    const resolution = olView.getResolution() || 0;
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const clearFeatures = () => {
+        vectorSource.clear;
+    };
 
     if (linkingState?.state === 'setup' || linkingState?.state === 'allSet') {
         if (linkingState.type === LinkingType.LinkingAlignment) {
@@ -641,18 +641,20 @@ export function createLinkingLayerAdapter(
                 mapTiles,
                 linkingState.layoutAlignmentId,
                 linkingState.layoutAlignmentType,
-            ).then((points) => {
-                if (adapterId != newestLinkingAdapterId) return;
-                const allFeatures = createFeaturesWhenUpdatingLayoutAlignment(
-                    selection,
-                    points,
-                    linkingState.layoutAlignmentInterval,
-                    resolution,
-                );
+            )
+                .then((points) => {
+                    if (layerId != newestLinkingLayerId) return;
+                    const allFeatures = createFeaturesWhenUpdatingLayoutAlignment(
+                        selection,
+                        points,
+                        linkingState.layoutAlignmentInterval,
+                        resolution,
+                    );
 
-                vectorSource.clear();
-                vectorSource.addFeatures(allFeatures);
-            });
+                    clearFeatures();
+                    vectorSource.addFeatures(allFeatures);
+                })
+                .catch(clearFeatures);
         } else if (linkingState.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
             const geometryPlanId = linkingState.geometryPlanId;
             const geometryAlignmentId = linkingState.geometryAlignmentId;
@@ -685,11 +687,12 @@ export function createLinkingLayerAdapter(
                     ),
                 )
                 .then((features) => {
-                    if (adapterId != newestLinkingAdapterId) return;
+                    if (layerId != newestLinkingLayerId) return;
 
-                    vectorSource.clear();
+                    clearFeatures();
                     vectorSource.addFeatures(features);
-                });
+                })
+                .catch(clearFeatures);
         } else if (linkingState?.type === LinkingType.LinkingGeometryWithAlignment) {
             const alignmentId = linkingState.layoutAlignmentId;
             const geometryPlanId = linkingState.geometryPlanId;
@@ -730,19 +733,21 @@ export function createLinkingLayerAdapter(
                     );
                 })
                 .then((features) => {
-                    if (adapterId != newestLinkingAdapterId) return;
+                    if (layerId != newestLinkingLayerId) return;
 
-                    vectorSource.clear();
+                    clearFeatures();
                     vectorSource.addFeatures(features);
-                });
+                })
+                .catch(clearFeatures);
         } else {
-            vectorSource.clear();
+            clearFeatures();
         }
     } else {
-        vectorSource.clear();
+        clearFeatures();
     }
 
     return {
+        name: 'linking-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const matchOptions: MatchOptions = {

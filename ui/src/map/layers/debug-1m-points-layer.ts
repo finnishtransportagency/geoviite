@@ -3,11 +3,11 @@ import OlPoint from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Selection } from 'selection/selection-model';
-import { OlLayerAdapter } from 'map/layers/layer-model';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { AddressPoint, PublishType } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
 import { DEBUG_1M_POINTS } from './layer-visibility-limits';
+import { MapLayer } from 'map/layers/layer-model';
 
 export type Debug1mPointsLayerFeatureType = OlPoint;
 
@@ -84,21 +84,17 @@ function createDebugFeatures(data: DebugLayerData): Feature<Debug1mPointsLayerFe
     return data.flatMap((item: DebugLayerPoint) => createDebugFeature(item));
 }
 
-export function createDebug1mPointsLayerAdapter(
+export function createDebug1mPointsLayer(
     existingOlLayer: VectorLayer<VectorSource<Debug1mPointsLayerFeatureType>> | undefined,
     selection: Selection,
     publishType: PublishType,
     resolution: number | undefined,
-): OlLayerAdapter {
+): MapLayer {
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const layer =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-        });
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     function updateFeatures(features: Feature<Debug1mPointsLayerFeatureType>[]) {
         vectorSource.clear();
@@ -115,6 +111,7 @@ export function createDebug1mPointsLayerAdapter(
     }
 
     return {
+        name: 'debug-1m-points-layer',
         layer: layer,
     };
 }

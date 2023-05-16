@@ -2,7 +2,6 @@ import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
 import { LineString, Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
-import OlView from 'ol/View';
 import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
 import { Selection } from 'selection/selection-model';
@@ -12,13 +11,13 @@ import {
     LayoutPoint,
 } from 'track-layout/track-layout-model';
 import {
-    getMatchingAlignmentDatas,
+    getMatchingAlignmentData,
     getTickStyles,
     MatchOptions,
     pointToCoords,
     setAlignmentData,
 } from 'map/layers/layer-utils';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
@@ -80,9 +79,7 @@ function createFeature(
     );
 
     const lineString = new LineString(alignment.points.map(pointToCoords));
-    const feature = new Feature<LineString>({
-        geometry: lineString,
-    });
+    const feature = new Feature({ geometry: lineString });
 
     feature.setStyle(function (feature: Feature<LineString>) {
         let alignmentStyle = isAlignmentSelected
@@ -166,27 +163,22 @@ async function getPlanLayoutAlignmentsWithLinking(
     );
 }
 
-let newestGeometryAdapterId = 0;
+let newestGeometryLayerId = 0;
 
-export function createGeometryAlignmentLayerAdapter(
+export function createGeometryAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     selection: Selection,
     publishType: PublishType,
     changeTimes: ChangeTimes,
-    olView: OlView,
-): OlLayerAdapter {
-    const adapterId = ++newestGeometryAdapterId;
+    resolution: number,
+): MapLayer {
+    const layerId = ++newestGeometryLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
-    const olLayer =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-        });
+    const olLayer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const resolution = olView.getResolution() || 0;
     const changeTime = getMaxTimestamp(
         changeTimes.layoutReferenceLine,
         changeTimes.layoutLocationTrack,
@@ -208,13 +200,14 @@ export function createGeometryAlignmentLayerAdapter(
     );
 
     features.then((f) => {
-        if (adapterId == newestGeometryAdapterId) {
+        if (layerId == newestGeometryLayerId) {
             vectorSource.clear();
             vectorSource.addFeatures(f.flat());
         }
     });
 
     return {
+        name: 'geometry-alignment-layer',
         layer: olLayer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const matchOptions: MatchOptions = {
@@ -222,7 +215,7 @@ export function createGeometryAlignmentLayerAdapter(
                 limit: options.limit,
             };
             const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const holders = features && getMatchingAlignmentDatas(hitArea, features, matchOptions);
+            const holders = features && getMatchingAlignmentData(hitArea, features, matchOptions);
             const alignments = holders
                 .filter(filterUniqueById((data) => data.header.id)) // pick unique alignments
                 .slice(0, options.limit)

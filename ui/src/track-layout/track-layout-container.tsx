@@ -9,55 +9,28 @@ export const TrackLayoutContainer: React.FC = () => {
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const delegates = createDelegates(trackLayoutActionCreators);
 
-    const props = {
-        ...trackLayoutState,
-        onViewportChange: delegates.onViewportChange,
-        onSelect: delegates.onSelect,
-        onHighlightItems: delegates.onHighlightItems,
-        onHoverLocation: delegates.onHoverLocation,
-        onClickLocation: delegates.onClickLocation,
-        onMapSettingsVisibilityChange: delegates.onMapSettingsVisibilityChange,
-        onPublishTypeChange: delegates.onPublishTypeChange,
-        onOpenPreview: () => delegates.onLayoutModeChange('PREVIEW'),
-        onLayerVisibilityChange: (id: string, visible: boolean) =>
-            delegates.onLayerVisibilityChange({
-                type: id,
-                visible: visible,
-            }),
-        onReferenceLineVisibilityChange: (id: string, visible: boolean) =>
-            delegates.onReferencelineVisibilityChange({
-                type: id,
-                visible: visible,
-            }),
-        onMissingVerticalGeometryVisibilityChange: (id: string, visible: boolean) =>
-            delegates.onMissingVerticalGeometryVisibilityChange({
-                type: id,
-                visible: visible,
-            }),
-        onSegmentsFromSelectedPlanVisibilityChange: (id: string, visible: boolean) =>
-            delegates.onShowSegmentsFromSelectedPlanVisibilityChange({
-                type: id,
-                visible: visible,
-            }),
-        onMissingLinkingVisibilityChange: (id: string, visible: boolean) =>
-            delegates.onMissingLinkingVisibilityChange({
-                type: id,
-                visible: visible,
-            }),
-        onDuplicateTracksVisibilityChange: (id: string, visible: boolean) =>
-            delegates.onDuplicateTracksVisibilityChange({
-                type: id,
-                visible: visible,
-            }),
-        changeTimes: changeTimes,
-        onShownItemsChange: delegates.onShownItemsChange,
-        showArea: delegates.showArea,
-        onSetLayoutClusterLinkPoint: delegates.setLayoutClusterLinkPoint,
-        onSetGeometryClusterLinkPoint: delegates.setGeometryClusterLinkPoint,
-        onRemoveGeometryLinkPoint: delegates.removeGeometryLinkPoint,
-        onRemoveLayoutLinkPoint: delegates.removeLayoutLinkPoint,
-        onStopLinking: delegates.stopLinking,
-    };
-
-    return <TrackLayoutView {...props} />;
+    return (
+        <TrackLayoutView
+            publishType={trackLayoutState.publishType}
+            map={trackLayoutState.map}
+            selection={trackLayoutState.selection}
+            onViewportChange={delegates.onViewportChange}
+            onSelect={delegates.onSelect}
+            onHighlightItems={delegates.onHighlightItems}
+            onHoverLocation={delegates.onHoverLocation}
+            onClickLocation={delegates.onClickLocation}
+            onPublishTypeChange={delegates.onPublishTypeChange}
+            onOpenPreview={() => delegates.onLayoutModeChange('PREVIEW')}
+            onShownItemsChange={delegates.onShownItemsChange}
+            showArea={delegates.showArea}
+            onSetLayoutClusterLinkPoint={delegates.setLayoutClusterLinkPoint}
+            onSetGeometryClusterLinkPoint={delegates.setGeometryClusterLinkPoint}
+            onRemoveGeometryLinkPoint={delegates.removeGeometryLinkPoint}
+            onRemoveLayoutLinkPoint={delegates.removeLayoutLinkPoint}
+            onLayerSettingsChange={delegates.onSettingsChange}
+            changeTimes={changeTimes}
+            onStopLinking={delegates.stopLinking}
+            linkingState={trackLayoutState.linkingState}
+        />
+    );
 };

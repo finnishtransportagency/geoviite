@@ -30,6 +30,10 @@ import {
 import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-api';
 import { interpolateXY } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+import { register } from 'ol/proj/proj4';
+
+proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
+register(proj4);
 
 const layoutToWgs84 = proj4(LAYOUT_SRID, 'WGS84');
 
@@ -300,7 +304,7 @@ export function getAlignmentData(feature: FeatureLike): AlignmentDataHolder | un
     return feature.get(FEATURE_PROPERTY_ALIGNMENT_DATA) as AlignmentDataHolder;
 }
 
-export function getMatchingAlignmentDatas(
+export function getMatchingAlignmentData(
     shape: Polygon,
     features: Feature<Geometry>[],
     options?: MatchOptions,

@@ -24,6 +24,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
+import { mapReducers } from 'map/map-store';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -40,14 +41,10 @@ export const linkingReducers = {
             geometryAlignmentInterval: emptyLinkInterval,
             layoutAlignmentInterval: emptyLinkInterval,
         };
-        state.map.mapLayers.forEach((layer) => {
-            if (layer.type === 'switchManualLinking') {
-                state.linkingIssuesSelectedBeforeLinking = layer.visible;
-                layer.visible = false;
-            } else if (layer.type === 'switchLinking') {
-                state.switchLinkingSelectedBeforeLinking = layer.visible;
-                layer.visible = false;
-            }
+
+        mapReducers.showLayers(state.map, {
+            payload: ['linking-layer'],
+            type: 'showLayers',
         });
     },
     lockAlignmentSelection: (
@@ -72,12 +69,9 @@ export const linkingReducers = {
         state.linkingState = undefined;
         state.selection.selectedItems.clusterPoints = [];
         state.selection.selectedItems.suggestedSwitches = [];
-        state.map.mapLayers.forEach((layer) => {
-            if (layer.type === 'switchManualLinking') {
-                layer.visible = state.linkingIssuesSelectedBeforeLinking;
-            } else if (layer.type === 'switchLinking') {
-                layer.visible = state.switchLinkingSelectedBeforeLinking;
-            }
+        mapReducers.hideLayers(state.map, {
+            payload: ['linking-layer', 'switch-layer', 'manual-linking-switch-layer'],
+            type: 'hideLayers',
         });
     },
     setLayoutLinkPoint: function (
@@ -200,6 +194,11 @@ export const linkingReducers = {
                 state: 'setup',
                 errors: [],
             });
+
+            mapReducers.showLayers(state.map, {
+                payload: ['linking-layer'],
+                type: 'showLayers',
+            });
         }
     },
     startSwitchPlacing: (
@@ -226,14 +225,10 @@ export const linkingReducers = {
             errors: [],
         };
 
-        // Make switch linking layer visible. In future this information
-        // should be calculated, not stored into the state.
-        const switchLinkingLayer = state.map.mapLayers.find(
-            (layer) => layer.type == 'switchLinking',
-        );
-        if (switchLinkingLayer) {
-            switchLinkingLayer.visible = true;
-        }
+        mapReducers.showLayers(state.map, {
+            payload: ['switch-layer'],
+            type: 'showLayers',
+        });
 
         // Ensure that layout switch is not selected by accident,
         // operator needs to take an action to select a switch
@@ -261,15 +256,6 @@ export const linkingReducers = {
             state: 'setup',
             errors: [],
         };
-        state.map.mapLayers.forEach((layer) => {
-            if (layer.type === 'switchManualLinking') {
-                state.linkingIssuesSelectedBeforeLinking = layer.visible;
-                layer.visible = false;
-            } else if (layer.type === 'switchLinking') {
-                state.switchLinkingSelectedBeforeLinking = layer.visible;
-                layer.visible = false;
-            }
-        });
     },
 };
 

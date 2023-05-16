@@ -8,7 +8,7 @@ import { Selection } from 'selection/selection-model';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { getSwitchesByTile } from 'track-layout/layout-switch-api';
 import { getMatchingSwitches } from 'map/layers/layer-utils';
-import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
 import { createFeatures } from 'map/layers/switch-layer-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
@@ -17,9 +17,9 @@ import { ChangeTimes } from 'common/common-slice';
 
 let switchIdCompare = '';
 let switchChangeTimeCompare: TimeStamp | undefined = undefined;
-let newestSwitchAdapterId = 0;
+let newestSwitchLayerId = 0;
 
-export function createSwitchLayerAdapter(
+export function createSwitchLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
@@ -27,8 +27,8 @@ export function createSwitchLayerAdapter(
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged?: (items: OptionalShownItems) => void,
-): OlLayerAdapter {
-    const adapterId = ++newestSwitchAdapterId;
+): MapLayer {
+    const layerId = ++newestSwitchLayerId;
     const getSwitchesFromApi = () => {
         return Promise.all(
             mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
@@ -69,11 +69,15 @@ export function createSwitchLayerAdapter(
         }
     };
 
+    const clearFeatures = () => {
+        vectorSource.clear();
+    };
+
     const resolution = olView.getResolution() || 0;
     if (resolution <= Limits.SWITCH_SHOW) {
         Promise.all([getSwitchesFromApi(), getSwitchStructures()])
             .then(([switches, switchStructures]) => {
-                if (adapterId != newestSwitchAdapterId) return;
+                if (layerId != newestSwitchLayerId) return;
 
                 const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
                 const labels = resolution <= Limits.SWITCH_LABELS;
@@ -85,7 +89,7 @@ export function createSwitchLayerAdapter(
                     return selection.highlightedItems.switches.some((s) => s === switchItem.id);
                 };
 
-                vectorSource.clear(true);
+                clearFeatures();
                 vectorSource.addFeatures(
                     createFeatures(
                         switches,
@@ -100,13 +104,14 @@ export function createSwitchLayerAdapter(
                 );
                 switchesChanged(switches.map((s) => s.id));
             })
-            .catch(() => vectorSource.clear(true));
+            .catch(clearFeatures);
     } else {
-        vectorSource.clear(true);
+        clearFeatures();
         switchesChanged([]);
     }
 
     return {
+        name: 'switch-layer',
         layer: layer,
         searchItems: searchFunction,
         searchShownItems: searchFunction,

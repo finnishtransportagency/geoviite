@@ -5,7 +5,7 @@ import { Vector as VectorSource } from 'ol/source';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { getMatchingSwitches } from 'map/layers/layer-utils';
-import { OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import * as Limits from 'map/layers/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
@@ -13,14 +13,14 @@ import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
 import { createFeatures } from 'map/layers/switch-layer-utils';
 
-let newestGeometrySwitchAdapterId = 0;
-export function createGeometrySwitchLayerAdapter(
+let newestGeometrySwitchLayerId = 0;
+export function createGeometrySwitchLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     resolution: number,
-): OlLayerAdapter {
-    const adapterId = ++newestGeometrySwitchAdapterId;
+): MapLayer {
+    const layerId = ++newestGeometrySwitchLayerId;
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
@@ -55,9 +55,7 @@ export function createGeometrySwitchLayerAdapter(
 
         Promise.all([getSwitchStructures(), ...planStatusPromises])
             .then(([switchStructures, ...statusResults]) => {
-                if (adapterId != newestGeometrySwitchAdapterId) return;
-
-                vectorSource.clear(true);
+                if (layerId != newestGeometrySwitchLayerId) return;
 
                 const features = statusResults.flatMap((statusResult) => {
                     const plan = statusResult.plan;
@@ -86,12 +84,14 @@ export function createGeometrySwitchLayerAdapter(
                     );
                 });
 
+                vectorSource.clear();
                 vectorSource.addFeatures(features);
             })
-            .catch(() => vectorSource.clear(true));
+            .catch(vectorSource.clear);
     }
 
     return {
+        name: 'geometry-switch-layer',
         layer: layer,
         searchItems: (hitArea: OlPolygon, options: SearchItemsOptions) => {
             const switches = getMatchingSwitches(

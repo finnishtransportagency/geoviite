@@ -1,105 +1,35 @@
 import { BoundingBox, CoordinateSystem, Point } from 'model/geometry';
 import {
-    GeometryPlanLayout,
     LayoutKmPostId,
     LayoutSwitchId,
     LocationTrackId,
     MapAlignmentType,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { GeometryPlanId } from 'geometry/geometry-model';
-import { DebugLayerData } from 'map/layers/debug-layer';
 
-export type MapLayerBase = {
-    name: string;
-    visible: boolean;
-};
-
-export type TileMapLayer = MapLayerBase & {
-    type: 'tile';
-    url: string;
-};
-
-export type LayoutAlignmentLayer = MapLayerBase & {
-    type: 'alignment';
-    showReferenceLines: boolean;
-    showMissingVerticalGeometry: boolean;
-    showSegmentsFromSelectedPlan: boolean;
-    showMissingLinking: boolean;
-    showDuplicateTracks: boolean;
-};
-
-export type GeometryAlignmentLayer = MapLayerBase & {
-    type: 'geometryAlignment';
-    planIds: GeometryPlanId[];
-
-    /**
-     * This can be used to provide a plan manually, e.g. when plan is not yet in DB.
-     */
-    planLayout: GeometryPlanLayout | null;
-};
-
-export type LinkingLayer = MapLayerBase & {
-    type: 'linking';
-};
-
-export type KmPostLayer = MapLayerBase & {
-    type: 'kmPost';
-};
-
-export type GeometryKmPostLayer = MapLayerBase & {
-    type: 'geometryKmPost';
-};
-
-export type SwitchLayer = MapLayerBase & {
-    type: 'switch';
-};
-
-export type PlanAreaLayer = MapLayerBase & {
-    type: 'planArea';
-};
-
-export type GeometrySwitchLayer = MapLayerBase & {
-    type: 'geometrySwitch';
-};
-
-export type SwitchLinkingLayer = MapLayerBase & {
-    type: 'switchLinking';
-};
-
-export type SwitchManualLinkingLayer = MapLayerBase & {
-    type: 'switchManualLinking';
-};
-
-export type Debug1mPointsLayer = MapLayerBase & {
-    type: 'debug1mPoints';
-};
-
-export type DebugLayer = MapLayerBase & {
-    type: 'debug';
-    data: DebugLayerData;
-};
-
-export type TrackNumberDiagramLayer = MapLayerBase & {
-    type: 'trackNumberDiagram';
-};
-
-export type MapLayer =
-    | LayoutAlignmentLayer
-    | TileMapLayer
-    | GeometryAlignmentLayer
-    | KmPostLayer
-    | GeometryKmPostLayer
-    | SwitchLayer
-    | PlanAreaLayer
-    | GeometrySwitchLayer
-    | LinkingLayer
-    | SwitchLinkingLayer
-    | SwitchManualLinkingLayer
-    | Debug1mPointsLayer
-    | DebugLayer
-    | TrackNumberDiagramLayer;
-export type MapLayerType = MapLayer['type'];
+export type MapLayerName =
+    | 'background-map-layer'
+    | 'location-track-background-layer'
+    | 'reference-line-background-layer'
+    | 'track-number-diagram-layer'
+    | 'location-track-alignment-layer'
+    | 'reference-line-alignment-layer'
+    | 'missing-vertical-geometry-highlight-layer'
+    | 'missing-linking-highlight-layer'
+    | 'duplicate-tracks-highlight-layer'
+    | 'location-track-badge-layer'
+    | 'reference-line-badge-layer'
+    | 'km-post-layer'
+    | 'switch-layer'
+    | 'geometry-alignment-layer'
+    | 'geometry-km-post-layer'
+    | 'geometry-switch-layer'
+    | 'linking-layer'
+    | 'linking-switch-layer'
+    | 'manual-linking-switch-layer'
+    | 'plan-area-layer'
+    | 'debug-1m-points-layer'
+    | 'debug-layer';
 
 export type MapViewportSource = 'Map';
 
@@ -134,10 +64,37 @@ export type ShownItems = {
     switches: LayoutSwitchId[];
 };
 
+export type MapLayerSetting = {
+    name: MapLayerSettingName;
+    visible: boolean;
+    subSettings?: MapLayerSetting[];
+};
+
+export type MapLayerSettingName =
+    | 'map'
+    | 'location-track'
+    | 'reference-line'
+    | 'track-number-diagram'
+    | 'missing-vertical-geometry'
+    | 'missing-linking'
+    | 'duplicate-tracks'
+    | 'km-post'
+    | 'switch'
+    | 'geometry-alignment'
+    | 'geometry-switch'
+    | 'plan-area'
+    | 'geometry-km-post'
+    | 'debug-1m'
+    | 'debug';
+
 export type Map = {
-    mapLayers: MapLayer[];
+    settingsMenu: {
+        layout: MapLayerSetting[];
+        geometry: MapLayerSetting[];
+        debug: MapLayerSetting[];
+    };
+    layers: MapLayerName[];
     viewport: MapViewport;
-    settingsVisible: boolean;
     shownItems: ShownItems;
     hoveredLocation: Point | null;
     clickLocation: Point | null;

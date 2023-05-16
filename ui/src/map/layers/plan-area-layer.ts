@@ -7,9 +7,9 @@ import { Fill, Stroke, Style, Text } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import { PlanArea } from 'track-layout/track-layout-model';
 import { getPlanAreasByTile } from 'geometry/geometry-api';
-import { OlLayerAdapter } from 'map/layers/layer-model';
 import { ChangeTimes } from 'common/common-slice';
 import { pointToCoords } from 'map/layers/layer-utils';
+import { MapLayer } from 'map/layers/layer-model';
 
 function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];
@@ -17,9 +17,7 @@ function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
 
 function createFeatures(planArea: PlanArea): Feature<Polygon> {
     const coordinates = planArea.polygon.map(pointToCoords);
-    const feature = new Feature<Polygon>({
-        geometry: new Polygon([coordinates]),
-    });
+    const feature = new Feature({ geometry: new Polygon([coordinates]) });
 
     feature.setStyle(() => {
         return new Style({
@@ -47,14 +45,14 @@ function createFeatures(planArea: PlanArea): Feature<Polygon> {
     feature.set('planArea', planArea);
     return feature;
 }
-let newestPlanAdapterId = 0;
+let newestPlanLayerId = 0;
 
-export function createPlanAreaLayerAdapter(
+export function createPlanAreaLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<Polygon>> | undefined,
     changeTimes: ChangeTimes,
-): OlLayerAdapter {
-    const adapterId = ++newestPlanAdapterId;
+): MapLayer {
+    const layerId = ++newestPlanLayerId;
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     // Use an existing layer or create a new one. Old layer is "recycled" to
     // prevent features to disappear while moving the map.
@@ -76,13 +74,14 @@ export function createPlanAreaLayerAdapter(
         )
         .then((features) => {
             // Handle the latest fetch only
-            if (adapterId === newestPlanAdapterId) {
+            if (layerId === newestPlanLayerId) {
                 updateFeatures(features);
             }
         })
-        .catch(() => vectorSource.clear());
+        .catch(vectorSource.clear);
 
     return {
+        name: 'plan-area-layer',
         layer: layer,
     };
 }

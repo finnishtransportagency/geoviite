@@ -1,9 +1,9 @@
 import Feature from 'ol/Feature';
-import { Point as OLPoint, Polygon } from 'ol/geom';
+import { Point as OlPoint, Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
 import { LocationTrackEndpoint } from 'linking/linking-model';
 import { MANUAL_SWITCH_LINKING_ENDPOINT_SELECTION_RESOLUTION } from 'map/layers/layer-visibility-limits';
 import { flatten } from 'utils/array-utils';
@@ -12,19 +12,17 @@ import { endPointStyle } from 'map/layers/linking-layer';
 import { PublishType } from 'common/common-model';
 import { getLocationTrackEndpointsByTile } from 'track-layout/layout-location-track-api';
 
-export type ManualSwitchLinkingLayerFeatureType = OLPoint;
-
 export const FEATURE_PROPERTY_LOCATION_TRACK_ENDPOINT = 'location-track-endpoint';
 
 function createLocationTrackEndpointFeatures(
     locationTrackEndpoint: LocationTrackEndpoint,
     isSelected: boolean,
-): Feature<ManualSwitchLinkingLayerFeatureType>[] {
-    const features: Feature<ManualSwitchLinkingLayerFeatureType>[] = [];
+): Feature<OlPoint>[] {
+    const features: Feature<OlPoint>[] = [];
 
     if (!isSelected) {
         const f = new Feature({
-            geometry: new OLPoint(pointToCoords(locationTrackEndpoint.location)),
+            geometry: new OlPoint(pointToCoords(locationTrackEndpoint.location)),
         });
         f.setStyle(endPointStyle);
         f.set(FEATURE_PROPERTY_LOCATION_TRACK_ENDPOINT, locationTrackEndpoint);
@@ -34,14 +32,14 @@ function createLocationTrackEndpointFeatures(
     return features;
 }
 
-let newestSwitchManualLinkingAdapterId = 0;
-export function createManualSwitchLinkingLayerAdapter(
+let newestSwitchManualLinkingLayerId = 0;
+export function createManualSwitchLinkingLayer(
     mapTiles: MapTile[],
-    resolution: number | undefined,
-    existingOlLayer: VectorLayer<VectorSource<ManualSwitchLinkingLayerFeatureType>> | undefined,
+    resolution: number,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     publishType: PublishType,
-): OlLayerAdapter {
-    const adapterId = ++newestSwitchManualLinkingAdapterId;
+): MapLayer {
+    const layerId = ++newestSwitchManualLinkingLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
@@ -53,17 +51,17 @@ export function createManualSwitchLinkingLayerAdapter(
         vectorSource.clear();
     }
 
-    function updateFeatures(features: Feature<ManualSwitchLinkingLayerFeatureType>[]) {
+    function updateFeatures(features: Feature<OlPoint>[]) {
         clearFeatures();
         vectorSource.addFeatures(features);
     }
 
     if (resolution && resolution < MANUAL_SWITCH_LINKING_ENDPOINT_SELECTION_RESOLUTION) {
-        const getLocationTrackEndpointsForTiles = Promise.all(
+        const locationTrackEndpointsPromise = Promise.all(
             mapTiles.map((tile) => getLocationTrackEndpointsByTile(tile, publishType)),
         ).then(flatten);
 
-        getLocationTrackEndpointsForTiles
+        locationTrackEndpointsPromise
             .then((locationTrackEndPoints) => {
                 return locationTrackEndPoints.flatMap((m) =>
                     createLocationTrackEndpointFeatures(m, false),
@@ -71,15 +69,17 @@ export function createManualSwitchLinkingLayerAdapter(
             })
             .then((features) => {
                 // Handle latest fetch only
-                if (adapterId === newestSwitchManualLinkingAdapterId) {
+                if (layerId === newestSwitchManualLinkingLayerId) {
                     updateFeatures(features);
                 }
-            });
+            })
+            .catch(clearFeatures);
     } else {
         clearFeatures();
     }
 
     return {
+        name: 'manual-linking-switch-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const matchOptions: MatchOptions = {

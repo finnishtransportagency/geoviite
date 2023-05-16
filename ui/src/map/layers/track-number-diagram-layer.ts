@@ -3,20 +3,19 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { MapTile } from 'map/map-model';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { OlLayerAdapter } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { groupBy } from 'utils/array-utils';
 import * as Limits from 'map/layers/layer-visibility-limits';
 import { getBadgeDrawDistance } from 'map/layers/layer-visibility-limits';
-import OlView from 'ol/View';
 import { Feature } from 'ol';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { BadgeColor, createBadgePoints, createMapAlignmentBadgeFeature } from './alignment-layer';
+import { BadgeColor, createMapAlignmentBadgeFeature, getBadgePoints } from './alignment-layer';
 import { pointToCoords } from 'map/layers/layer-utils';
 
-let newestTrackNumberDiagramAdapterId = 0;
+let newestTrackNumberDiagramLayerId = 0;
 
 const colors = [
     '#858585',
@@ -45,29 +44,24 @@ const getColorForTrackNumber = (id: LayoutTrackNumberId) => {
     return c + '55'; //55 ~ 33 % opacity
 };
 
-export function createTrackNumberDiagramLayerAdapter(
+export function createTrackNumberDiagramLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | Point>> | undefined,
-    olView: OlView,
+    resolution: number,
     changeTimes: ChangeTimes,
     publishType: PublishType,
     referenceLinesVisible: boolean,
-): OlLayerAdapter {
-    const adapterId = ++newestTrackNumberDiagramAdapterId;
+): MapLayer {
+    const layerId = ++newestTrackNumberDiagramLayerId;
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
 
-    const layer =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-        });
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const resolution = olView.getResolution() || 0;
     const fetchType = resolution > Limits.ALL_ALIGNMENTS ? 'REFERENCE_LINES' : 'ALL';
 
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType)
         .then((alignments) => {
-            if (adapterId != newestTrackNumberDiagramAdapterId) return;
+            if (layerId != newestTrackNumberDiagramLayerId) return;
 
             const referenceLineBadges = referenceLinesVisible
                 ? []
@@ -81,6 +75,7 @@ export function createTrackNumberDiagramLayerAdapter(
         .catch(vectorSource.clear);
 
     return {
+        name: 'track-number-diagram-layer',
         layer: layer,
     };
 }
@@ -90,7 +85,7 @@ function getReferenceLineBadges(alignments: AlignmentDataHolder[], resolution: n
         .filter((a) => a.header.alignmentType === 'REFERENCE_LINE')
         .filter((a) => a.trackNumber)
         .flatMap((a) => {
-            const badgePoints = createBadgePoints(a.points, getBadgeDrawDistance(resolution) || 0);
+            const badgePoints = getBadgePoints(a.points, getBadgeDrawDistance(resolution) || 0);
 
             return createMapAlignmentBadgeFeature(
                 a.trackNumber?.number || '', //Ensured by filter

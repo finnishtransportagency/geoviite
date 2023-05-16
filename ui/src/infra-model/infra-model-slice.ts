@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map, MapLayerType } from 'map/map-model';
+import { Map, MapLayerName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
     infraModelListReducers,
@@ -76,23 +76,20 @@ export type OnPlanFetchReady = {
     planLayout: GeometryPlanLayout | null;
 };
 
-const visibleMapLayerTypes: MapLayerType[] = [
-    'tile',
-    'alignment',
-    'switch',
-    'kmPost',
-    'geometryAlignment',
-    'geometrySwitch',
-    'geometryKmPost',
+const visibleMapLayerTypes: MapLayerName[] = [
+    'background-map-layer',
+    'location-track-alignment-layer',
+    'switch-layer',
+    'km-post-layer',
+    'geometry-alignment-layer',
+    'geometry-switch-layer',
+    'geometry-km-post-layer',
 ];
 
 export const initialInfraModelState: InfraModelState = {
     map: {
         ...initialMapState,
-        mapLayers: initialMapState.mapLayers.map((layer) => ({
-            ...layer,
-            visible: visibleMapLayerTypes.includes(layer.type),
-        })),
+        layers: visibleMapLayerTypes,
     },
     infraModelList: initialInfraModelListState,
     selection: {
