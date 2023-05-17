@@ -10,7 +10,7 @@ export type PointRenderFunction<T> = (
     state: State,
 ) => void;
 
-export function getPointRenderer<T>(
+export function getCanvasRenderer<T>(
     item: T,
     contextInitializer: ContextInitializer,
     drawFunctions: PointRenderFunction<T>[],

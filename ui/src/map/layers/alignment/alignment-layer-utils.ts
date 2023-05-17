@@ -20,7 +20,7 @@ const highlightedLocationTrackStyle = new Style({
         color: mapStyles.selectedAlignmentLine,
         width: 1,
     }),
-    zIndex: 1,
+    zIndex: 2,
 });
 
 const selectedLocationTrackStyle = new Style({
@@ -28,7 +28,7 @@ const selectedLocationTrackStyle = new Style({
         color: mapStyles.selectedAlignmentLine,
         width: 2,
     }),
-    zIndex: 1,
+    zIndex: 2,
 });
 
 const referenceLineStyle = new Style({
@@ -60,12 +60,12 @@ const endPointTickStyle = new Style({
         color: mapStyles.alignmentLine,
         width: 1,
     }),
-    zIndex: 0,
+    zIndex: 1,
 });
 
 const highlightedEndPointTickStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentLine,
+        color: mapStyles.selectedAlignmentLine,
         width: 1,
     }),
     zIndex: 1,

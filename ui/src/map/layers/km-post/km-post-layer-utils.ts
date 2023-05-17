@@ -8,7 +8,7 @@ import {
     drawCircle,
     drawRect,
     drawRoundedRect,
-    getPointRenderer,
+    getCanvasRenderer,
     PointRenderFunction,
 } from 'map/layers/utils/rendering';
 import { GeometryPlanId } from 'geometry/geometry-model';
@@ -87,7 +87,7 @@ function getRenderer(
     fontSize: number,
     drawFunctions: PointRenderFunction<LayoutKmPost>[],
 ) {
-    return getPointRenderer<LayoutKmPost>(
+    return getCanvasRenderer<LayoutKmPost>(
         kmPost,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `${mapStyles['kmPost-font-weight']} ${state.pixelRatio * fontSize}px ${

@@ -39,46 +39,59 @@ function createBadgeFeatures(
         badgeFeature.setStyle(
             () =>
                 new Style({
-                    renderer: (coordinates: Coordinate, state: State) => {
+                    renderer: ([x, y]: Coordinate, state: State) => {
                         const ctx = state.context;
                         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
                             state.pixelRatio * 12
                         }px ${mapStyles['alignmentBadge-font-family']}`;
-                        const backgroundWidth = ctx.measureText(name).width + 16 * state.pixelRatio;
-                        const backgroundHeight = 14 * state.pixelRatio;
+                        const badgeWidth = ctx.measureText(name).width + 16 * state.pixelRatio;
+                        const badgeHeight = 14 * state.pixelRatio;
+                        const halfHeight = badgeHeight / 2;
 
                         ctx.save();
                         ctx.beginPath();
 
-                        ctx.translate(coordinates[0], coordinates[1]);
+                        ctx.translate(x, y);
                         ctx.rotate(badgeRotation.rotation);
-                        ctx.translate(-coordinates[0], -coordinates[1]);
+                        ctx.translate(-x, -y);
 
                         ctx.fillStyle = badgeStyle.background;
+
                         ctx.rect(
-                            coordinates[0] - (badgeRotation.drawFromEnd ? backgroundWidth : 0),
-                            coordinates[1] - backgroundHeight / 2,
-                            backgroundWidth,
-                            backgroundHeight,
+                            x - (badgeRotation.drawFromEnd ? badgeWidth : 0),
+                            y - halfHeight,
+                            badgeWidth,
+                            badgeHeight,
                         );
 
                         ctx.fill();
+
+                        //Won't work with LIGHT badge color, but for now only reference lines have pointy badge
+                        if (color === BadgeColor.DARK) {
+                            ctx.beginPath();
+
+                            const offsetDirection = badgeRotation.drawFromEnd ? -1 : 1;
+
+                            ctx.moveTo(x + (badgeWidth + 6) * offsetDirection, y);
+                            ctx.lineTo(x + badgeWidth * offsetDirection, y - halfHeight);
+                            ctx.lineTo(x + badgeWidth * offsetDirection, y + halfHeight);
+                        }
+
+                        ctx.fill();
+
                         if (badgeStyle.backgroundBorder) {
                             ctx.strokeStyle = badgeStyle.backgroundBorder;
                             ctx.lineWidth = 1;
                             ctx.stroke();
                         }
 
-                        ctx.closePath();
-
                         ctx.fillStyle = badgeStyle.color;
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
                         ctx.fillText(
                             name,
-                            coordinates[0] +
-                                ((badgeRotation.drawFromEnd ? -1 : 1) * backgroundWidth) / 2,
-                            coordinates[1] + 1 * state.pixelRatio,
+                            x + ((badgeRotation.drawFromEnd ? -1 : 1) * badgeWidth) / 2,
+                            y + 1 * state.pixelRatio,
                         );
 
                         ctx.restore();

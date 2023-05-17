@@ -1,6 +1,6 @@
 import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model';
 import { State } from 'ol/render';
-import { drawCircle, drawRoundedRect, getPointRenderer } from 'map/layers/utils/rendering';
+import { drawCircle, drawRoundedRect, getCanvasRenderer } from 'map/layers/utils/rendering';
 import styles from '../../map.module.scss';
 import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
@@ -35,7 +35,7 @@ export function getSelectedSwitchLabelRenderer(
     const iconSize = 14;
     const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
 
-    return getPointRenderer(
+    return getCanvasRenderer(
         layoutSwitch,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
@@ -100,7 +100,7 @@ export function getSwitchRenderer(
     const circleRadius = large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL;
     const textCirclePadding = 4;
     const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
-    return getPointRenderer(
+    return getCanvasRenderer(
         layoutSwitch,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
@@ -141,7 +141,7 @@ export function getJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean): 
     const fontSize = TEXT_FONT_SMALL;
     const circleRadius = CIRCLE_RADIUS_LARGE;
 
-    return getPointRenderer(
+    return getCanvasRenderer(
         joint,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
@@ -178,7 +178,7 @@ export function getLinkingJointRenderer(
     const circleRadius = CIRCLE_RADIUS_LARGE;
     const hasMatch = joint.matches.length > 0;
 
-    return getPointRenderer(
+    return getCanvasRenderer(
         joint,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
