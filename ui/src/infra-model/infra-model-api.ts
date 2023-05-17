@@ -16,7 +16,7 @@ import {
     OverrideInfraModelParameters,
     ValidationResponse,
 } from './infra-model-slice';
-import { VelhoDocumentHeader, VelhoDocumentId, VelhoFileStatus } from './velho/velho-model';
+import { PVDocumentHeader, PVDocumentId, PVDocumentStatus } from './velho/velho-model';
 import { asyncCache } from 'cache/cache';
 import { TimeStamp } from 'common/common-model';
 
@@ -34,7 +34,7 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
 const VELHO_URI = `${INFRAMODEL_URI}/velho-import`;
 
-const documentHeadersCache = asyncCache<string, VelhoDocumentHeader[]>();
+const documentHeadersCache = asyncCache<string, PVDocumentHeader[]>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
 
@@ -106,20 +106,23 @@ export async function updateGeometryPlan(
 
 export async function getVelhoDocuments(
     changeTime: TimeStamp,
-    status: VelhoFileStatus,
-): Promise<VelhoDocumentHeader[]> {
+    status: PVDocumentStatus,
+): Promise<PVDocumentHeader[]> {
     const params = queryParams({ status: status });
     return documentHeadersCache.get(changeTime, status, () =>
-        getWithDefault<VelhoDocumentHeader[]>(`${VELHO_URI}/documents${params}`, []),
+        getWithDefault<PVDocumentHeader[]>(`${VELHO_URI}/documents${params}`, []),
     );
 }
 
-export async function rejectVelhoDocument(id: VelhoDocumentId): Promise<null> {
-    return putIgnoreError<VelhoFileStatus, null>(`${VELHO_URI}/documents/${id}/status`, 'REJECTED');
+export async function rejectVelhoDocument(id: PVDocumentId): Promise<null> {
+    return putIgnoreError<PVDocumentStatus, null>(
+        `${VELHO_URI}/documents/${id}/status`,
+        'REJECTED',
+    );
 }
 
 export const getValidationErrorsForVelhoDocument = async (
-    velhoDocumentId: VelhoDocumentId,
+    velhoDocumentId: PVDocumentId,
     overrideParameters: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
     const formData = createFormData(undefined, undefined, overrideParameters);
@@ -131,7 +134,7 @@ export const getValidationErrorsForVelhoDocument = async (
 };
 
 export async function importVelhoDocument(
-    id: VelhoDocumentId,
+    id: PVDocumentId,
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | null> {

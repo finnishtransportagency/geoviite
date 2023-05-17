@@ -1,11 +1,14 @@
 package fi.fta.geoviite.infra.velho
 
-import com.fasterxml.jackson.databind.DeserializationFeature
+import PVCode
+import PVDocument
+import PVId
+import PVName
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.jsonMapper
-import com.fasterxml.jackson.module.kotlin.kotlinModule
+import com.fasterxml.jackson.databind.ObjectMapper
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
+import fi.fta.geoviite.infra.velho.PVDictionaryType.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,86 +22,109 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
-val reloginoffsetSeconds: Long = 60
+val reloginOffsetSeconds: Long = 60
+
+const val SEARCH_API_V1_PATH = "/hakupalvelu/api/v1"
+const val XML_FILE_SEARCH_PATH = "$SEARCH_API_V1_PATH/taustahaku/kohdeluokat"
+const val XML_FILE_SEARCH_STATE_PATH = "$SEARCH_API_V1_PATH/taustahaku/tila"
+const val XML_FILE_SEARCH_RESULTS_PATH = "$SEARCH_API_V1_PATH/taustahaku/tulokset"
+
+const val MATERIAL_API_V1_PATH = "/aineistopalvelu/api/v1"
+const val FILE_DATA_PATH = "$MATERIAL_API_V1_PATH/aineisto"
+
+const val METADATA_API_V2_PATH = "/metatietopalvelu/api/v2"
+const val DICTIONARIES_PATH = "$METADATA_API_V2_PATH/metatiedot/kohdeluokka/aineisto/aineisto"
+const val REDIRECT_PATH = "$METADATA_API_V2_PATH/ohjaa"
+
+const val PROJECT_REGISTRY_V1_PATH = "/projektirekisteri/api/v1"
 
 @Component
 @ConditionalOnBean(VelhoClientConfiguration::class)
 class VelhoClient @Autowired constructor(
     val velhoClient: VelhoWebClient,
-    val loginClient: VelhoLoginClient
+    val loginClient: VelhoLoginClient,
+    val jsonMapper: ObjectMapper,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val accessToken: AtomicReference<AccessTokenHolder?> = AtomicReference(null)
-    private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    private val accessToken: AtomicReference<PVAccessTokenHolder?> = AtomicReference(null)
 
-    fun login(): AccessTokenHolder {
+    fun login(): PVAccessTokenHolder {
         logger.integrationCall("login")
         return loginClient
             .post()
             .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
             .retrieve()
-            .bodyToMono<AccessToken>()
+            .bodyToMono<PVAccessToken>()
             .block(defaultBlockTimeout)
-            ?.let(::AccessTokenHolder)
+            ?.let(::PVAccessTokenHolder)
             ?: throw IllegalStateException("Projektivelho login failed")
     }
 
-    fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): SearchStatus {
+    fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): PVApiSearchStatus {
+        logger.integrationCall("postXmlFileSearch",
+            "fetchStartTime" to fetchStartTime, "startOid" to startOid)
         val json = searchJson(fetchStartTime, startOid, 100)
         return velhoClient
             .post()
-            .uri("/hakupalvelu/api/v1/taustahaku/kohdeluokat?tagi=aineisto")
+            .uri("$XML_FILE_SEARCH_PATH?tagi=aineisto")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .body(BodyInserters.fromValue(json))
             .retrieve()
-            .bodyToMono<SearchStatus>()
+            .bodyToMono<PVApiSearchStatus>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("Projektivelho search failed")
     }
 
-    fun fetchVelhoSearches() =
-        velhoClient
+    fun fetchVelhoSearches(): List<PVApiSearchStatus> {
+        logger.integrationCall("fetchVelhoSearches")
+        return velhoClient
             .get()
-            .uri("/hakupalvelu/api/v1/taustahaku/tila?tagit=aineisto")
+            .uri("$XML_FILE_SEARCH_STATE_PATH?tagit=aineisto")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
-            .bodyToMono<List<SearchStatus>>()
+            .bodyToMono<List<PVApiSearchStatus>>()
             .block(defaultBlockTimeout)
             ?: throw IllegalStateException("Fetching running searches from ProjektiVelho failed")
+    }
 
-    fun fetchSearchResults(searchId: String) =
-        velhoClient
+    fun fetchSearchResults(searchId: PVId): PVApiSearchResult {
+        logger.integrationCall("fetchSearchResults", "searchId" to searchId)
+        return velhoClient
             .get()
-            .uri("/hakupalvelu/api/v1/taustahaku/tulokset/$searchId")
+            .uri("$XML_FILE_SEARCH_RESULTS_PATH/$searchId")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
-            .bodyToMono<SearchResult>()
+            .bodyToMono<PVApiSearchResult>()
             .block(defaultBlockTimeout)
             ?: throw IllegalStateException("Fetching search results failed. searchId=$searchId")
+    }
 
-    fun fetchFileMetadata(oid: String) =
-        velhoClient
+    fun fetchFileMetadata(oid: Oid<PVDocument>): PVApiFile {
+        logger.integrationCall("fetchFileMetadata", "oid" to oid)
+        return velhoClient
             .get()
-            .uri("/aineistopalvelu/api/v1/aineisto/$oid")
+            .uri("$FILE_DATA_PATH/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
-            .bodyToMono<File>()
+            .bodyToMono<PVApiFile>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("Metadata fetch failed. oid=$oid")
+    }
 
-    fun fetchFileContent(oid: String, version: String) =
-        velhoClient
+    fun fetchFileContent(oid: Oid<PVDocument>, version: PVId): String {
+        logger.integrationCall("fetchFileContent", "oid" to oid, "version" to version)
+        return velhoClient
             .get()
-            .uri("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti?versio=${version}")
+            .uri("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<String>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("File fetch failed. oid=$oid version=$version")
+    }
 
-    fun fetchAineistoMetadata() =
-        velhoClient
+    fun fetchDictionaries(): Map<PVDictionaryType, List<PVDictionaryEntry>> {
+        logger.integrationCall("fetchDictionaries")
+        return velhoClient
             .get()
-            .uri("/metatietopalvelu/api/v2/metatiedot/kohdeluokka/aineisto/aineisto")
+            .uri(DICTIONARIES_PATH)
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<String>()
@@ -107,73 +133,85 @@ class VelhoClient @Autowired constructor(
                 jsonMapper.readTree(response).let { json ->
                     json.get("info").let {
                         it.get("x-velho-nimikkeistot").let { classes ->
-                            mapOf(
-                            "DOC_TYPE" to fetchDictionaryType("aineisto/dokumenttityyppi", classes),
-                                    "FILE_STATE" to fetchDictionaryType("aineisto/aineistotila", classes),
-                                    "CATEGORY" to fetchDictionaryType("aineisto/aineistolaji", classes),
-                                    "ASSET_GROUP" to fetchDictionaryType("aineisto/aineistoryhma", classes))
+                            PVDictionaryType.values().associateWith { type -> fetchDictionaryType(type, classes) }
                         }
                     }
                 }
             } ?: emptyMap()
+    }
 
-    private fun fetchDictionaryType(dictionaryToGet: String, classes: JsonNode) =
-        classes.get(dictionaryToGet).let { asset ->
+    private fun fetchDictionaryType(dictionaryToGet: PVDictionaryType, classes: JsonNode) =
+        classes.get(encodingTypeDictionary(dictionaryToGet)).let { asset ->
             val version = asset.get("uusin-nimikkeistoversio").intValue()
+            println(asset.get("nimikkeistoversiot"))
             asset.get("nimikkeistoversiot").get(version.toString()).let { nodes ->
                 nodes.fieldNames().asSequence().toList().map { code ->
-                    nodes.get(code).let { entry ->
-                        DictionaryEntry(
-                            code = code,
-                            name = entry.get("otsikko").textValue()
-                        )
-                    }
+                    PVDictionaryEntry(
+                        code = PVCode(code),
+                        name = PVName(nodes.get(code).get("otsikko").textValue()),
+                    )
                 }
             }
         }
 
-    fun fetchRedirect(oid: String) =
-        velhoClient
+    fun fetchRedirect(oid: String): PVApiRedirect? {
+        logger.integrationCall("fetchRedirect", "oid" to oid)
+        return velhoClient
             .get()
-            .uri("/metatietopalvelu/api/v2/ohjaa/$oid")
+            .uri("$REDIRECT_PATH/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .accept(MediaType.APPLICATION_JSON)
             .acceptCharset(Charsets.UTF_8)
             .retrieve()
-            .bodyToMono<Redirect>()
+            .bodyToMono<PVApiRedirect>()
             .block(defaultBlockTimeout)
+    }
 
-    fun fetchProject(oid: String) =
-        velhoClient
+    fun fetchProject(oid: String): PVApiProject? {
+        logger.integrationCall("fetchProject", "oid" to oid)
+        return velhoClient
             .get()
-            .uri("/projektirekisteri/api/v1/kohde/$oid")
+            .uri("$PROJECT_REGISTRY_V1_PATH/kohde/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
-            .bodyToMono<Project>()
+            .bodyToMono<PVApiProject>()
             .block(defaultBlockTimeout)
+    }
 
-    fun fetchProjectGroup(oid: String) =
-        velhoClient
+    fun fetchProjectGroup(oid: String): PVApiProjectGroup? {
+        logger.integrationCall("fetchProjectGroup")
+        return velhoClient
             .get()
-            .uri("/projektirekisteri/api/v1/kohde/$oid")
+            .uri("$PROJECT_REGISTRY_V1_PATH/kohde/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
-            .bodyToMono<ProjectGroup>()
+            .bodyToMono<PVApiProjectGroup>()
             .block(defaultBlockTimeout)
+    }
 
-    fun fetchAssignment(oid: String) =
-        velhoClient
+    fun fetchAssignment(oid: String): PVApiAssignment? {
+        logger.integrationCall("fetchAssignment", "oid" to oid)
+        return velhoClient
             .get()
             .uri("/aineistopalvelu/api/v1/kohde/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
-            .bodyToMono<Assignment>()
+            .bodyToMono<PVApiAssignment>()
             .block(defaultBlockTimeout)
+    }
 
     private fun fetchAccessToken(currentTime: Instant) =
         accessToken.updateAndGet { token ->
-            if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginoffsetSeconds))) {
+            if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginOffsetSeconds))) {
                 login()
             } else token
         }?.token ?: throw IllegalStateException("Projektivelho login token can't be null after login")
 }
+
+fun encodingTypeDictionary(type: PVDictionaryType) = "aineisto/${when(type) {
+    DOCUMENT_TYPE -> "dokumenttityyppi"
+    MATERIAL_STATE -> "aineistotila"
+    MATERIAL_CATEGORY -> "aineistolaji"
+    MATERIAL_GROUP -> "aineistoryhma"
+    TECHNICS_FIELD -> "tekniikka-ala"
+}}"

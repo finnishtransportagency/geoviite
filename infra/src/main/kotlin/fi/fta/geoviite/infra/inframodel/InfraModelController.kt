@@ -1,14 +1,14 @@
 package fi.fta.geoviite.infra.inframodel
 
-import VelhoDocument
-import VelhoDocumentHeader
+import PVDocument
+import PVDocumentHeader
+import PVDocumentStatus
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.velho.FileStatus
 import fi.fta.geoviite.infra.velho.VelhoDocumentService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -94,7 +94,7 @@ class InfraModelController @Autowired constructor(
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/velho-import/documents")
-    fun getVelhoDocumentHeaders(@RequestParam("status") status: FileStatus?): List<VelhoDocumentHeader> {
+    fun getVelhoDocumentHeaders(@RequestParam("status") status: PVDocumentStatus?): List<PVDocumentHeader> {
         logger.apiCall("getVelhoDocumentHeaders", "status" to status)
         return velhoDocumentService.getDocumentHeaders(status)
     }
@@ -102,9 +102,9 @@ class InfraModelController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_WRITE)
     @PutMapping("/velho-import/documents/{id}/status")
     fun updateVelhoFileStatus(
-        @PathVariable("id") id: IntId<VelhoDocument>,
-        @RequestBody status: FileStatus,
-    ): IntId<VelhoDocument> {
+        @PathVariable("id") id: IntId<PVDocument>,
+        @RequestBody status: PVDocumentStatus,
+    ): IntId<PVDocument> {
         logger.apiCall("updateVelhoFileStatus", "id" to id, "status" to status)
         return velhoDocumentService.updateDocumentStatus(id, status)
     }
@@ -112,7 +112,7 @@ class InfraModelController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_READ)
     @PostMapping("/velho-import/{documentId}/validate")
     fun validateVelhoDocument(
-        @PathVariable("documentId") documentId: IntId<VelhoDocument>,
+        @PathVariable("documentId") documentId: IntId<PVDocument>,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
     ): ValidationResponse {
         logger.apiCall("validateVelhoDocument", "documentId" to documentId, "overrides" to overrides)
@@ -124,7 +124,7 @@ class InfraModelController @Autowired constructor(
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/velho-import/{documentId}")
     fun importVelhoDocument(
-        documentId: IntId<VelhoDocument>,
+        documentId: IntId<PVDocument>,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
         @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
     ): IntId<GeometryPlan> {

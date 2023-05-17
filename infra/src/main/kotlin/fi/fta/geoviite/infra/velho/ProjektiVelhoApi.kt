@@ -1,8 +1,17 @@
 package fi.fta.geoviite.infra.velho
 
+import PVAssignment
+import PVCode
+import PVDocument
+import PVId
+import PVName
+import PVProject
+import PVProjectGroup
 import com.fasterxml.jackson.annotation.JsonProperty
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
 // TODO Turn into actual data classes etc.
@@ -108,112 +117,117 @@ fun searchJson(date: Instant, minOid: String, maxCount: Int) = """
 }
 """.trimIndent()
 
-data class SearchStatus(
+data class PVApiSearchStatus(
     @JsonProperty("tila") val state: String,
-    @JsonProperty("hakutunniste") val searchId: String,
+    @JsonProperty("hakutunniste") val searchId: PVId,
     @JsonProperty("alkuaika") val startTime: Instant,
     @JsonProperty("hakutunniste-voimassa") val validFor: Long
 )
 
-data class SearchResult(@JsonProperty("osumat") val matches: List<Match>)
-data class Match(
-    @JsonProperty("luontikohdeluokan-oid") val assignmentOid: String,
-    val oid: String
+data class PVApiSearchResult(@JsonProperty("osumat") val matches: List<PVApiMatch>)
+data class PVApiMatch(
+    val oid: Oid<PVDocument>,
+    @JsonProperty("luontikohdeluokan-oid") val assignmentOid: Oid<PVAssignment>,
 )
-data class LatestVersion(
-    @JsonProperty("versio") val version: String,
+data class PVApiLatestVersion(
+    @JsonProperty("versio") val version: PVId,
     @JsonProperty("nimi") val name: FileName,
     @JsonProperty("muokattu") val changeTime: Instant
 )
 
-data class Metadata(
-    @JsonProperty("tila") val state: String?,
-    @JsonProperty("kuvaus") val description: String?,
-    @JsonProperty("laji") val category: String?,
-    @JsonProperty("dokumenttityyppi") val documentType: String?,
-    @JsonProperty("ryhma") val group: String?,
-    @JsonProperty("tekniikka-alat") val technicalGroups: List<String>?,
+data class PVApiFileMetadata(
+    @JsonProperty("tila") val materialState: PVCode,
+    @JsonProperty("kuvaus") val description: FreeText?,
+    @JsonProperty("laji") val materialCategory: PVCode?,
+    @JsonProperty("dokumenttityyppi") val documentType: PVCode,
+    @JsonProperty("ryhma") val materialGroup: PVCode,
+    @JsonProperty("tekniikka-alat") val technicalFields: List<PVCode>,
     @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?
 )
 
-data class File(
-    @JsonProperty("tuorein-versio") val latestVersion: LatestVersion,
-    @JsonProperty("metatiedot") val metadata: Metadata
+data class PVApiFile(
+    @JsonProperty("tuorein-versio") val latestVersion: PVApiLatestVersion,
+    @JsonProperty("metatiedot") val metadata: PVApiFileMetadata
 )
 
-data class Redirect(
+data class PVApiRedirect(
     @JsonProperty("master-jarjestelma") val masterSystem: String,
     @JsonProperty("kohdeluokka") val targetCategory: String,
     @JsonProperty("kohde-url") val targetUrl: String,
 )
 
-data class Properties(
+data class PVApiProperties(
     @JsonProperty("nimi") val name: String,
 )
 
-data class ProjectGroup(
-    @JsonProperty("ominaisuudet") val properties: Properties,
-    @JsonProperty("oid") val oid: String,
+data class PVApiProjectGroup(
+    @JsonProperty("ominaisuudet") val properties: PVApiProperties,
+    @JsonProperty("oid") val oid: Oid<PVProjectGroup>,
 )
 
-data class Project(
-    @JsonProperty("ominaisuudet") val properties: Properties,
-    @JsonProperty("oid") val oid: String,
-    @JsonProperty("projektijoukko") val projectGroupOid: String,
+data class PVApiProject(
+    @JsonProperty("ominaisuudet") val properties: PVApiProperties,
+    @JsonProperty("oid") val oid: Oid<PVProject>,
+    @JsonProperty("projektijoukko") val projectGroupOid: Oid<PVProjectGroup>,
 )
 
-data class Assignment(
-    @JsonProperty("ominaisuudet") val properties: Properties,
-    @JsonProperty("oid") val oid: String,
-    @JsonProperty("projekti") val projectOid: String,
+data class PVApiAssignment(
+    @JsonProperty("ominaisuudet") val properties: PVApiProperties,
+    @JsonProperty("oid") val oid: Oid<PVAssignment>,
+    @JsonProperty("projekti") val projectOid: Oid<PVAssignment>,
 )
 
-data class DictionaryEntry(
-    val code: String,
-    val name: String,
+data class PVDictionaryEntry(
+    val code: PVCode,
+    val name: PVName,
+) {
+    constructor(code: String, name: String): this(PVCode(code), PVName(name))
+}
+
+data class PVFileHolder(
+    val oid: Oid<PVDocument>,
+    val content: String?,
+    val metadata: PVApiFileMetadata,
+    val latestVersion: PVApiLatestVersion,
+    val assignment: PVApiAssignment?,
+    val project: PVApiProject?,
+    val projectGroup: PVApiProjectGroup?
 )
 
-data class ProjektiVelhoFile(
-    val oid: String,
-    val content: String,
-    val metadata: Metadata,
-    val latestVersion: LatestVersion,
-    val assignment: Assignment?,
-    val project: Project?,
-    val projectGroup: ProjectGroup?
-)
-
-data class ProjektiVelhoSearch(
-    val id: IntId<ProjektiVelhoSearch>,
-    val token: String,
-    val state: FetchStatus,
+data class PVSearch(
+    val id: IntId<PVSearch>,
+    val token: PVId,
+    val state: PVFetchStatus,
     val validUntil: Instant
 )
 
-enum class FetchStatus {
+enum class PVFetchStatus {
     WAITING,
     FETCHING,
     FINISHED,
     ERROR
 }
 
-enum class FileStatus {
-    NOT_IM,
-    IMPORTED,
-    REJECTED,
-    ACCEPTED,
+
+enum class PVDictionaryType {
+    DOCUMENT_TYPE, // dokumenttityyppi
+    MATERIAL_STATE, // aineistotila
+    MATERIAL_CATEGORY, // aineistolaji
+    MATERIAL_GROUP, // ainestoryhmä
+    TECHNICS_FIELD, // teknikka-ala
 }
+
 
 const val PROJEKTIVELHO_SEARCH_STATE_READY = "valmis"
 
-data class AccessTokenHolder(
+data class PVAccessTokenHolder(
     val token: String,
     val expireTime: Instant,
 ) {
-    constructor(token: AccessToken) : this(token.accessToken, Instant.now().plusSeconds(token.expiresIn))
+    constructor(token: PVAccessToken) : this(token.accessToken, Instant.now().plusSeconds(token.expiresIn))
 }
 
-data class AccessToken(
+data class PVAccessToken(
     @JsonProperty("access_token") val accessToken: String,
     @JsonProperty("expires_in") val expiresIn: Long,
     @JsonProperty("token_type") val tokenType: String,

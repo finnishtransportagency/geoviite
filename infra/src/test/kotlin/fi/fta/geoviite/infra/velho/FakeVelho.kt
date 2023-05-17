@@ -1,12 +1,14 @@
 package fi.fta.geoviite.infra.velho
 
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.module.kotlin.KotlinFeature
-import com.fasterxml.jackson.module.kotlin.jsonMapper
-import com.fasterxml.jackson.module.kotlin.kotlinModule
+import PVCode
+import PVDocument
+import PVId
+import com.fasterxml.jackson.databind.ObjectMapper
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
@@ -15,94 +17,93 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Service
 import java.time.Instant
 
-@ConditionalOnProperty("geoviite.projektivelho.test-port")
-@Service
-class FakeVelhoService @Autowired constructor(@Value("\${geoviite.projektivelho.test-port:}") private val testPort: Int) {
-    fun start(): FakeVelho = FakeVelho(testPort)
-}
 
-data class VelhoSearchStatus(
-    @JsonProperty("tila") val state: String,
-    @JsonProperty("hakutunniste") val searchId: String,
-    @JsonProperty("alkuaika") val startTime: String,
-    @JsonProperty("hakutunniste-voimassa") val validFor: Long
-)
-
-data class VelhoFile(
-    @JsonProperty("tuorein-versio") val latestVersion: VelhoLatestVersion,
-    @JsonProperty("metatiedot") val metadata: Metadata
-)
-
-data class VelhoLatestVersion(
-    @JsonProperty("versio") val version: String,
-    @JsonProperty("nimi") val name: String,
-    @JsonProperty("muokattu") val changeTime: String
-)
-
-class FakeVelho (port: Int) {
+class FakeVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
     private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
-    private val jsonMapper =
-        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-    fun stop() {
+    override fun close() {
         mockServer.stop()
     }
 
     fun search() {
-        post("/hakupalvelu/api/v1/taustahaku/kohdeluokat").respond(okJson(VelhoSearchStatus(
-            "",
-            "123",
-            Instant.now().minusSeconds(5).toString(),
-            3600
+        post(XML_FILE_SEARCH_PATH).respond(okJsonSerialized(
+            PVApiSearchStatus("", PVId("123"), Instant.now().minusSeconds(5), 3600)
+        ))
+    }
+
+    fun fetchDictionaries(dictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>>) {
+        get(DICTIONARIES_PATH, Times.exactly(1)).respond(okJson("""{
+          "info": {
+            "x-velho-nimikkeistot": {
+              ${dictionaries.entries.joinToString(",") { (type, data) -> dictionaryJson(type, data) }}
+            }
+          }
+        }""".trimIndent()))
+    }
+
+    private fun dictionaryJson(type: PVDictionaryType, entries: List<PVDictionaryEntry>): String {
+        return """
+            "${encodingTypeDictionary(type)}": {
+              "uusin-nimikkeistoversio": 1,
+              "nimikkeistoversiot": {
+                "1": {
+                  ${entries.joinToString(",", transform = ::dictionaryEntryJson)}
+                }
+              }
+            }
+        """.trimIndent()
+    }
+    private fun dictionaryEntryJson(entry: PVDictionaryEntry): String = """
+        "${entry.code}": {
+          "otsikko": "${entry.name}",
+          "aineistoryhmat": [
+            "aineistoryhma/ar07"
+          ]
+        }
+    """.trimIndent()
+
+    fun searchStatus(searchId: PVId) {
+        get(XML_FILE_SEARCH_STATE_PATH).respond(okJsonSerialized(listOf(
+            PVApiSearchStatus("valmis", searchId, Instant.now().minusSeconds(5), 3600)
         )))
     }
 
-    fun searchStatus(searchId: String) {
-        get("/hakupalvelu/api/v1/taustahaku/tila").respond(okJson(listOf(VelhoSearchStatus(
-            "valmis", searchId, Instant.now().minusSeconds(5).toString(), 3600
-        ))))
+    fun searchResults(searchId: PVId, matches: List<PVApiMatch>) {
+        get("$XML_FILE_SEARCH_RESULTS_PATH/$searchId").respond(okJsonSerialized(PVApiSearchResult(matches)))
     }
 
-    fun searchResults(searchId: String, oids: List<String>) {
-        get("/hakupalvelu/api/v1/taustahaku/tulokset/$searchId").respond(okJson(SearchResult(
-            matches = oids.map {  (Match(
-                oid = it
-            )) }
-        )))
-    }
-
-    fun fileMetadata(oid: String, version: String) {
-        get("/aineistopalvelu/api/v1/aineisto/$oid").respond(okJson(VelhoFile(
-            latestVersion = VelhoLatestVersion(
-                version,
-                "test.xml",
-                Instant.now().toString()
-            ),
-            metadata = Metadata(
-                null,
-                "test",
-                null,
-                null,
-                null,
-                null,
-                null,
+    fun fileMetadata(
+        oid: Oid<PVDocument>,
+        version: PVId,
+        description: String = "test description",
+        documentType: PVCode = PVCode("dokumenttityyppi/dt01"),
+        materialState: PVCode = PVCode("aineistotila/tila01"),
+        materialCategory: PVCode = PVCode("aineistolaji/al00"),
+        materialGroup: PVCode = PVCode("aineistoryhma/ar00"),
+    ) {
+        get("$FILE_DATA_PATH/$oid").respond(okJsonSerialized(PVApiFile(
+            latestVersion = PVApiLatestVersion(version, FileName("test.xml"), Instant.now()),
+            metadata = PVApiFileMetadata(
+                description = FreeText(description),
+                documentType = documentType,
+                materialState = materialState,
+                materialCategory = materialCategory,
+                materialGroup = materialGroup,
+                technicalFields = listOf(),
+                containsPersonalInfo = null,
             )
         )))
     }
-    fun fileContent(oid: String) {
-        get("/aineistopalvelu/api/v1/aineisto/${oid}/dokumentti").respond(HttpResponse.response().withBody(
+
+    fun fileContent(oid: Oid<PVDocument>) {
+        get("$FILE_DATA_PATH/${oid}/dokumentti").respond(HttpResponse.response().withBody(
             classpathResourceToString(TESTFILE_CLOTHOID_AND_PARABOLA)))
     }
 
     fun login() {
-        post("/oauth2/token").respond(okJson(AccessToken("mock-token", 3600, "test")))
+        post("/oauth2/token").respond(okJsonSerialized(PVAccessToken("mock-token", 3600, "test")))
     }
 
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =
@@ -129,8 +130,10 @@ class FakeVelho (port: Int) {
             }
         }, times ?: Times.unlimited())
 
-    private fun okJson(body: Any) =
-        HttpResponse.response(jsonMapper.writeValueAsString(body))
+    private fun okJsonSerialized(body: Any) = okJson(jsonMapper.writeValueAsString(body))
+
+    private fun okJson(body: String) =
+        HttpResponse.response(body)
             .withStatusCode(200)
             .withContentType(MediaType.APPLICATION_JSON)
 }
