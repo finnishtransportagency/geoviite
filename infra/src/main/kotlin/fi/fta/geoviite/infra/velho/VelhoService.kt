@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.velho
 
 import PVId
 import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.authorization.withUser
 import fi.fta.geoviite.infra.inframodel.InfraModelService
 import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
 import fi.fta.geoviite.infra.inframodel.toInfraModelFile
@@ -37,43 +38,35 @@ class VelhoService @Autowired constructor(
         logger.info("Initializing ${this::class.simpleName}")
     }
 
+    private fun <T> runIntegration(op: () -> T): T? = withUser(PROJEKTIVELHO_DB_USERNAME) {
+        lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
+    }
+
     @Scheduled(cron = "0 0 * * * *")
-    fun search(): PVApiSearchStatus? {
+    fun search(): PVApiSearchStatus? = runIntegration {
         logger.serviceCall("search")
-        return lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
-            val latest = velhoDao.fetchLatestFile(PROJEKTIVELHO_DB_USERNAME)
-            val searchStatus = velhoClient.postXmlFileSearch(
-                latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR),
-                latest?.first ?: ""
-            )
-            velhoDao.insertFetchInfo(
-                PROJEKTIVELHO_DB_USERNAME,
-                searchStatus.searchId,
-                searchStatus.startTime.plusSeconds(searchStatus.validFor)
-            )
-            return@runWithLock searchStatus
-        }
+        val latest = velhoDao.fetchLatestFile()
+        val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
+        velhoClient.postXmlFileSearch(startTime, latest?.first ?: "")
+            .also { status ->
+                velhoDao.insertFetchInfo(status.searchId, status.startTime.plusSeconds(status.validFor))
+            }
     }
 
     @Scheduled(initialDelay = 60000, fixedRate = 900000) // First run after 1min, then every 15min
-    fun pollAndFetchIfWaiting() {
+    fun pollAndFetchIfWaiting() = runIntegration {
         logger.serviceCall("pollAndFetchIfWaiting")
-        lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
-            val latestSearch = velhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)
-            // Mark previous search as stalled if previous search is supposedly still running after
-            // having outlived its validity period
-            if (latestSearch?.state == PVFetchStatus.FETCHING && Instant.now() > latestSearch.validUntil) {
-                velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latestSearch.id, PVFetchStatus.ERROR)
-                return@runWithLock
-            }
-
+        val latestSearch = velhoDao.fetchLatestSearch()
+        // Mark previous search as stalled if previous search is supposedly still running after
+        // having outlived its validity period
+        if (latestSearch?.state == PVFetchStatus.FETCHING && Instant.now() > latestSearch.validUntil) {
+            velhoDao.updateFetchState(latestSearch.id, PVFetchStatus.ERROR)
+        } else {
             updateDictionaries()
-            val searchResults =
-                if (latestSearch?.state == PVFetchStatus.WAITING)
-                    fetchSearchResults(latestSearch.token)
-                else null
-
-            if (latestSearch != null && searchResults != null) importFilesFromProjektiVelho(latestSearch, searchResults)
+            latestSearch
+                ?.takeIf { search -> search.state == PVFetchStatus.WAITING }
+                ?.let { search -> fetchSearchResults(search.token) }
+                ?.let { results -> importFilesFromProjektiVelho(latestSearch, results) }
         }
     }
 
@@ -81,7 +74,7 @@ class VelhoService @Autowired constructor(
         logger.serviceCall("updateDictionaries")
         val dict = velhoClient.fetchDictionaries()
         dict.forEach { (type, entries) ->
-            velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entries)
+            velhoDao.upsertDictionary(type, entries)
         }
     }
 
@@ -92,12 +85,12 @@ class VelhoService @Autowired constructor(
 
     fun importFilesFromProjektiVelho(latest: PVSearch, searchResults: PVApiSearchStatus) =
         try {
-            velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, PVFetchStatus.FETCHING)
-            velhoClient.fetchSearchResults(searchResults.searchId)
-                .matches.map(::fetchFileAndInsertToDb)
-            velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, PVFetchStatus.FINISHED)
+            velhoDao.updateFetchState(latest.id, PVFetchStatus.FETCHING)
+            velhoClient.fetchSearchResults(searchResults.searchId).matches
+                .map(::fetchFileAndInsertToDb)
+            velhoDao.updateFetchState(latest.id, PVFetchStatus.FINISHED)
         } catch (e: Exception) {
-            velhoDao.updateFetchState(PROJEKTIVELHO_DB_USERNAME, latest.id, PVFetchStatus.ERROR)
+            velhoDao.updateFetchState(latest.id, PVFetchStatus.ERROR)
             throw e
         }
 
@@ -131,15 +124,12 @@ class VelhoService @Autowired constructor(
             ?.takeIf { content -> isRailroadXml(content ,file.latestVersion.name) }
             ?.let { content -> censorAuthorIdentifyingInfo(content) }
         val metadataId = velhoDao.insertFileMetadata(
-            PROJEKTIVELHO_DB_USERNAME,
             file.oid,
             file.metadata,
             file.latestVersion,
             if (xmlContent != null) PVDocumentStatus.IMPORTED else PVDocumentStatus.NOT_IM
         )
-        xmlContent?.let { content ->
-            velhoDao.insertFileContent(PROJEKTIVELHO_DB_USERNAME, content, metadataId)
-        }
+        xmlContent?.let { content -> velhoDao.insertFileContent(content, metadataId) }
     }
 
     fun isRailroadXml(xml: String, filename: FileName) =

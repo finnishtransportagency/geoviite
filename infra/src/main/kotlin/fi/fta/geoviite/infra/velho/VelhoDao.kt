@@ -9,7 +9,6 @@ import PVId
 import PVName
 import PVProject
 import PVProjectGroup
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
@@ -18,8 +17,8 @@ import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.UPSERT
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.velho.PVFetchStatus.WAITING
 import fi.fta.geoviite.infra.velho.PVDictionaryType.*
+import fi.fta.geoviite.infra.velho.PVFetchStatus.WAITING
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -31,7 +30,6 @@ import java.time.Instant
 class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
     fun insertFileMetadata(
-        username: UserName,
         oid: Oid<PVDocument>,
         metadata: PVApiFileMetadata,
         latestVersion: PVApiLatestVersion,
@@ -84,7 +82,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               where integrations.projektivelho_file_metadata.file_version <> :file_version
             returning id
         """.trimIndent()
-        jdbcTemplate.setUser(username)
+        jdbcTemplate.setUser()
         val params = mapOf(
             "filename" to latestVersion.name,
             "oid" to oid,
@@ -104,7 +102,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     }
 
     @Transactional
-    fun insertFileContent(username: UserName, content: String, metadataId: IntId<PVApiFileMetadata>): IntId<PVApiFileMetadata> {
+    fun insertFileContent(content: String, metadataId: IntId<PVApiFileMetadata>): IntId<PVApiFileMetadata> {
         val sql = """
             insert into integrations.projektivelho_file(
                 content,
@@ -114,7 +112,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 :metadata_id
             ) returning projektivelho_file_metadata_id
         """.trimIndent()
-        jdbcTemplate.setUser(username)
+        jdbcTemplate.setUser()
         val params = mapOf("metadata_id" to metadataId.intValue, "content" to content)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId<PVApiFileMetadata>("projektivelho_file_metadata_id")
@@ -122,7 +120,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     }
 
     @Transactional
-    fun insertFetchInfo(username: UserName, searchToken: PVId, validUntil: Instant): IntId<PVSearch> {
+    fun insertFetchInfo(searchToken: PVId, validUntil: Instant): IntId<PVSearch> {
         val sql = """
             insert into integrations.projektivelho_search(
                 status,
@@ -134,7 +132,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 :valid_until
             ) returning id
         """.trimIndent()
-        jdbcTemplate.setUser(username)
+        jdbcTemplate.setUser()
         val params = mapOf(
             "token" to searchToken,
             "status" to WAITING.name,
@@ -147,7 +145,6 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
 
     @Transactional
     fun updateFetchState(
-        username: UserName,
         id: IntId<PVSearch>,
         status: PVFetchStatus
     ): IntId<PVSearch> {
@@ -157,33 +154,31 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             where id = :id
             returning id
         """.trimIndent()
-        jdbcTemplate.setUser(username)
+        jdbcTemplate.setUser()
         return jdbcTemplate.query(sql, mapOf<String, Any>("status" to status.name, "id" to id.intValue)) { rs, _ ->
             rs.getIntId<PVSearch>("id")
         }.single()
     }
 
-    fun fetchLatestFile(username: UserName): Pair<String, Instant>? {
+    fun fetchLatestFile(): Pair<String, Instant>? {
         val sql = """
             select change_time, oid 
             from integrations.projektivelho_file_metadata 
             order by change_time desc, oid desc 
             limit 1
         """.trimIndent()
-        jdbcTemplate.setUser(username)
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             rs.getString("oid") to rs.getInstant("change_time")
         }.firstOrNull()
     }
 
-    fun fetchLatestSearch(username: UserName): PVSearch? {
+    fun fetchLatestSearch(): PVSearch? {
         val sql = """
             select id, token, status, valid_until 
             from integrations.projektivelho_search 
             order by valid_until desc 
             limit 1
         """.trimIndent()
-        jdbcTemplate.setUser(username)
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             PVSearch(
                 rs.getIntId("id"),
@@ -199,11 +194,12 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         logger.daoAccess(AccessType.UPDATE, PVDocument::class, id)
         val sql = """
             update integrations.projektivelho_file_metadata
-            set status = :status
+            set status = :status::integrations.projektivelho_file_status
             where id = :id
             returning id
         """.trimIndent()
         val params = mapOf("id" to id.intValue, "status" to status.name)
+        jdbcTemplate.setUser()
         return getOne<PVDocument, IntId<PVDocument>?>(id, jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId("id")
         })
@@ -300,7 +296,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     }
 
     @Transactional
-    fun upsertDictionary(user: UserName, type: PVDictionaryType, entries: List<PVDictionaryEntry>) {
+    fun upsertDictionary(type: PVDictionaryType, entries: List<PVDictionaryEntry>) {
         val tableName = tableName(type)
         val sql = """
             insert into $tableName(code, name) 
@@ -311,7 +307,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             "code" to entry.code,
             "name" to entry.name,
         ) }.toTypedArray()
-        jdbcTemplate.setUser(user)
+        jdbcTemplate.setUser()
         logger.daoAccess(UPSERT, PVDictionaryEntry::class, entries.map(PVDictionaryEntry::code))
         jdbcTemplate.batchUpdate(sql, params)
     }
