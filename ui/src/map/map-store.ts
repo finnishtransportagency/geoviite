@@ -7,6 +7,7 @@ import {
     MapViewport,
     OptionalShownItems,
     ShownItems,
+    shownItemsByLayer,
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
@@ -159,6 +160,13 @@ export const mapReducers = {
         } else {
             const visibleLayers = collectVisibleLayers(allSettings, payload);
             const hiddenLayers = changedLayers.filter((l) => !visibleLayers.some((v) => v === l));
+
+            hiddenLayers.forEach((l) => {
+                const shownItemsToHide = shownItemsByLayer[l];
+                if (shownItemsToHide) {
+                    state.shownItems[shownItemsToHide] = [];
+                }
+            });
 
             this.hideLayers(state, { payload: hiddenLayers, type: 'hideLayers' });
         }
