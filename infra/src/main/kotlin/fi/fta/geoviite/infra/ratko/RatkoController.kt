@@ -28,14 +28,14 @@ class RatkoController(private val ratkoService: RatkoService) {
     @GetMapping("/push")
     fun pushChangesToRatko() {
         logger.apiCall("pushChangesToRatko")
-        ratkoService.pushChangesToRatko(getCurrentUserName())
+        ratkoService.pushChangesToRatko()
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/push-location-tracks")
     fun pushLocationTracksToRatko(@RequestBody locationTrackChanges: List<LocationTrackChange>): ResponseEntity<String> {
         logger.apiCall("pushLocationTracksToRatko")
-        ratkoService.pushLocationTracksToRatko(getCurrentUserName(), locationTrackChanges)
+        ratkoService.pushLocationTracksToRatko(locationTrackChanges)
         return ResponseEntity(HttpStatus.OK)
     }
 

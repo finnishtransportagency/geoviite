@@ -8,7 +8,6 @@ import PVId
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.velho.PVDictionaryType.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -73,7 +72,7 @@ class VelhoServiceIT @Autowired constructor(
         fakeVelho.search()
         val search = velhoService.search()
         assertNotNull(search)
-        assertEquals(search.searchId, velhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)?.token)
+        assertEquals(search.searchId, velhoDao.fetchLatestSearch()?.token)
     }
     
     @Test
@@ -157,8 +156,8 @@ class VelhoServiceIT @Autowired constructor(
         fakeVelho.fileContent(documentOid)
 
         velhoService.updateDictionaries()
-        velhoDao.insertFetchInfo(PROJEKTIVELHO_DB_USERNAME, searchId, Instant.now().plusSeconds(3600))
-        val search = velhoDao.fetchLatestSearch(PROJEKTIVELHO_DB_USERNAME)!!
+        velhoDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
+        val search = velhoDao.fetchLatestSearch()!!
         val status = velhoService.fetchSearchResults(searchId)!!
 
         velhoService.importFilesFromProjektiVelho(search, status)

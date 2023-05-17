@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -41,7 +40,6 @@ internal class RatkoPushDaoIT @Autowired constructor(
             val hangingPublications = publicationDao.fetchPublicationsBetween(lastSuccessTime, null)
                 .filterNot { it.publicationTime == lastSuccessTime }
             if (hangingPublications.isNotEmpty()) ratkoPushDao.startPushing(
-                getCurrentUserName(),
                 hangingPublications.map { publication -> publication.id },
             )
             val markEverythingComplete = "update integrations.ratko_push set status='SUCCESSFUL' where true"
@@ -60,7 +58,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldStartANewPublish() {
-        val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
+        val ratkoPublishId = ratkoPushDao.startPushing(listOf(layoutPublishId))
         val (startTime, endTime) = jdbc.query(
             "select start_time, end_time from integrations.ratko_push where id = :id",
             mapOf("id" to ratkoPublishId.intValue)
@@ -77,8 +75,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldSetEndTimeWhenFinishedPublishing() {
-        val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
-        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
+        val ratkoPublishId = ratkoPushDao.startPushing(listOf(layoutPublishId))
+        ratkoPushDao.updatePushStatus(ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
         val (endTime, status) = jdbc.query(
             "select end_time, status from integrations.ratko_push where id = :id",
             mapOf("id" to ratkoPublishId.intValue)
@@ -107,8 +105,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldNotReturnSuccessfullyPublishedAlignments() {
-        val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
-        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
+        val ratkoPublishId = ratkoPushDao.startPushing(listOf(layoutPublishId))
+        ratkoPushDao.updatePushStatus(ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
 
         val latestPushMoment = ratkoPushDao.getLatestPushedPublicationMoment()
         assertEquals(layoutPublishMoment, latestPushMoment)
@@ -118,8 +116,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldReturnAlignmentsWithFailedPublication() {
-        val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
-        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.FAILED)
+        val ratkoPublishId = ratkoPushDao.startPushing(listOf(layoutPublishId))
+        ratkoPushDao.updatePushStatus(ratkoPublishId, status = RatkoPushStatus.FAILED)
 
         val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment()
         Assertions.assertTrue(latestPushedPublish < layoutPublishMoment)
@@ -174,7 +172,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     @Test
     fun shouldFindLatestPushErrorByPublicationId() {
-        val ratkoPushId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
+        val ratkoPushId = ratkoPushDao.startPushing(listOf(layoutPublishId))
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
             RatkoPushErrorType.PROPERTIES,
@@ -191,7 +189,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
             trackNumberId,
             "Response body"
         )
-        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPushId, status = RatkoPushStatus.FAILED)
+        ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
         val ratkoPushError = ratkoPushDao.getLatestRatkoPushErrorFor(layoutPublishId)
 
         assertNotNull(ratkoPushError)

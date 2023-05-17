@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.integration
 
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -19,14 +18,14 @@ import java.time.Instant
 class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Transactional
-    fun startPushing(user: UserName, layoutPublishIds: List<IntId<Publication>>): IntId<RatkoPush> {
+    fun startPushing(layoutPublishIds: List<IntId<Publication>>): IntId<RatkoPush> {
         val sql = """
             insert into integrations.ratko_push(start_time, status)
             values (now(), 'IN_PROGRESS')
             returning id
         """.trimIndent()
 
-        jdbcTemplate.setUser(user)
+        jdbcTemplate.setUser()
         val ratkoPushId = jdbcTemplate.query(sql) { rs, _ ->
             rs.getIntId<RatkoPush>("id")
         }.first()
@@ -37,7 +36,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     }
 
     @Transactional
-    fun finishStuckPushes(user: UserName) {
+    fun finishStuckPushes() {
         val sql = """
             update integrations.ratko_push
             set 
@@ -51,14 +50,14 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             returning id
         """.trimIndent()
 
-        jdbcTemplate.setUser(user)
+        jdbcTemplate.setUser()
         jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }.also { updatedPushes ->
             logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes)
         }
     }
 
     @Transactional
-    fun updatePushStatus(user: UserName, pushId: IntId<RatkoPush>, status: RatkoPushStatus) {
+    fun updatePushStatus(pushId: IntId<RatkoPush>, status: RatkoPushStatus) {
         val sql = """
             update integrations.ratko_push
             set 
@@ -72,7 +71,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             "status" to status.name,
         )
 
-        jdbcTemplate.setUser(user)
+        jdbcTemplate.setUser()
         check(jdbcTemplate.update(sql, params) == 1)
         logger.daoAccess(AccessType.UPDATE, RatkoPush::class, pushId)
     }
