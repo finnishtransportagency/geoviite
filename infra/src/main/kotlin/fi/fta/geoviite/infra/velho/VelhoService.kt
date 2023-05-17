@@ -33,6 +33,10 @@ class VelhoService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val databaseLockDuration = Duration.ofMinutes(15)
 
+    init {
+        logger.info("Initializing ${this::class.simpleName}")
+    }
+
     @Scheduled(cron = "0 0 * * * *")
     fun search(): PVApiSearchStatus? {
         logger.serviceCall("search")
@@ -51,7 +55,7 @@ class VelhoService @Autowired constructor(
         }
     }
 
-    @Scheduled(initialDelay = 60000, fixedRate = 60000)
+    @Scheduled(initialDelay = 60000, fixedRate = 900000) // First run after 1min, then every 15min
     fun pollAndFetchIfWaiting() {
         logger.serviceCall("pollAndFetchIfWaiting")
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) {
@@ -78,9 +82,6 @@ class VelhoService @Autowired constructor(
         val dict = velhoClient.fetchDictionaries()
         dict.forEach { (type, entries) ->
             velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entries)
-//            entries.map { entry ->
-//                velhoDao.upsertDictionary(PROJEKTIVELHO_DB_USERNAME, type, entry.code, entry.name)
-//            }
         }
     }
 
