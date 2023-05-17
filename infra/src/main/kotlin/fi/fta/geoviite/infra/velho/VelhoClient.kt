@@ -47,9 +47,6 @@ class VelhoClient @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val accessToken: AtomicReference<PVAccessTokenHolder?> = AtomicReference(null)
-//    private val jsonMapper =
-//        jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
-//            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
     fun login(): PVAccessTokenHolder {
         logger.integrationCall("login")

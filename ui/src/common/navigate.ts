@@ -1,12 +1,12 @@
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { VelhoDocumentId } from 'infra-model/velho/velho-model';
+import { PVDocumentId } from 'infra-model/velho/velho-model';
 import { useNavigate } from 'react-router-dom';
 
 const appPath = {
     'inframodel-list': '/infra-model',
     'inframodel-upload': '/infra-model/upload',
     'inframodel-edit': (id: GeometryPlanId) => `/infra-model/edit/${id}`,
-    'inframodel-import': (id: VelhoDocumentId) => `/infra-model/import/${id}`,
+    'inframodel-import': (id: PVDocumentId) => `/infra-model/import/${id}`,
     'inframodel-plans': '/infra-model/plans',
     'inframodel-waiting': '/infra-model/waiting-for-approval',
     'inframodel-rejected': '/infra-model/rejected',

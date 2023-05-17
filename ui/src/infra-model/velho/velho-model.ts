@@ -1,46 +1,41 @@
 import { Oid, TimeStamp } from 'common/common-model';
 
-export type VelhoEncodingType = '';
-export type VelhoFileStatus = 'NOT_IM' | 'IMPORTED' | 'REJECTED' | 'ACCEPTED';
+export type PVDocumentStatus = 'NOT_IM' | 'IMPORTED' | 'REJECTED' | 'ACCEPTED';
 
-export type VelhoEncoding = {
-    type: VelhoEncodingType;
-    code: string;
-    name: string;
-};
-
-export type VelhoProjectGroup = {
+export type PVProjectGroup = {
     oid: Oid;
     group: string;
     name: string;
 };
 
-export type VelhoProject = {
+export type PVProject = {
     oid: Oid;
-    group: VelhoProjectGroup;
+    group: PVProjectGroup;
     name: string;
 };
 
-export type VelhoDocument = {
-    id: VelhoDocumentId;
+export type PVDocument = {
+    id: PVDocumentId;
     oid: Oid;
     name: string;
     description: string | null;
-    type: VelhoEncoding;
+    type: string;
+    state: string;
+    category: string;
+    group: string;
     modified: TimeStamp;
-    status: VelhoFileStatus;
+    status: PVDocumentStatus;
 };
 
-export type VelhoAssignment = {
+export type PVAssignment = {
     oid: Oid;
     name: string;
 };
 
-export type VelhoDocumentId = string;
+export type PVDocumentId = string;
 
-export type VelhoDocumentHeader = {
-    project: VelhoProject;
-    assignment: VelhoAssignment;
-    materialGroup: VelhoEncoding;
-    document: VelhoDocument;
+export type PVDocumentHeader = {
+    project: PVProject;
+    assignment: PVAssignment;
+    document: PVDocument;
 };

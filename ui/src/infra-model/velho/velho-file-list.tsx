@@ -7,7 +7,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { formatDateFull } from 'utils/date-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import { VelhoDocumentHeader, VelhoDocumentId } from './velho-model';
+import { PVDocumentHeader, PVDocumentId } from './velho-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { updateVelhoDocumentsChangeTime } from 'common/change-time-api';
@@ -15,10 +15,10 @@ import { useAppNavigate } from 'common/navigate';
 import { getVelhoDocuments, rejectVelhoDocument } from 'infra-model/infra-model-api';
 
 type VelhoFileListProps = {
-    documentHeaders: VelhoDocumentHeader[];
+    documentHeaders: PVDocumentHeader[];
     isLoading: boolean;
-    onReject: (id: VelhoDocumentId) => void;
-    onImport: (id: VelhoDocumentId) => void;
+    onReject: (id: PVDocumentId) => void;
+    onImport: (id: PVDocumentId) => void;
 };
 
 export const VelhoFileListContainer: React.FC = () => {
@@ -84,7 +84,7 @@ export const VelhoFileList = ({
 };
 
 type VelhoFileListRowProps = {
-    item: VelhoDocumentHeader;
+    item: PVDocumentHeader;
     isOpen: boolean;
     onToggleOpen: () => void;
     onReject: () => void;
@@ -135,7 +135,7 @@ const VelhoFileListRow = ({
 };
 
 type VelhoFileListExpandedItemProps = {
-    item: VelhoDocumentHeader;
+    item: PVDocumentHeader;
 };
 
 const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => {
@@ -159,11 +159,11 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
             <InfoboxContent>
                 <InfoboxField
                     label={t('velho.file-list.field.material-group')}
-                    value={item.materialGroup.name}
+                    value={item.document.group}
                 />
                 <InfoboxField
                     label={t('velho.file-list.field.document-type')}
-                    value={item.document.type.name}
+                    value={item.document.type}
                 />
             </InfoboxContent>
         </div>
