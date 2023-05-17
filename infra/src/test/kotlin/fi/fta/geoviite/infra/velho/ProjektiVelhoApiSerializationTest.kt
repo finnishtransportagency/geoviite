@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.velho
 
-import VelhoId
-import com.fasterxml.jackson.annotation.JsonProperty
+import PVCode
+import PVId
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.util.FreeText
@@ -16,40 +16,44 @@ import kotlin.test.assertEquals
 @ActiveProfiles("dev", "test", "nodb")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class VelhoSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
+class ProjektiVelhoApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
 
     @Test
     fun `SearchStatus is serialized and deserialized correctly`() {
         val state = "valmis"
-        val searchId = VelhoId("asdf123")
+        val searchId = PVId("asdf123")
         val startTime = Instant.now()
         val validFor = 123456L
         val json = """{"tila":"$state","hakutunniste":"$searchId","alkuaika":"$startTime","hakutunniste-voimassa":$validFor}"""
-        val data = SearchStatus(state, searchId, startTime, validFor)
+        val data = PVApiSearchStatus(state, searchId, startTime, validFor)
 
         assertEquals(json, toJson(data))
-        assertEquals(data, toObject<SearchStatus>(json))
+        assertEquals(data, toObject<PVApiSearchStatus>(json))
     }
 
     @Test
     fun `Metadata is serialized and deserialized correctly`() {
-//        @JsonProperty("tila") val materialState: VelhoCode,
-//        @JsonProperty("kuvaus") val description: FreeText?,
-//        @JsonProperty("laji") val materialCategory: VelhoCode?,
-//        @JsonProperty("dokumenttityyppi") val documentType: VelhoCode,
-//        @JsonProperty("ryhma") val materialGroup: VelhoCode,
-//        @JsonProperty("tekniikka-alat") val technicalFields: List<VelhoCode>,
-//        @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?
+        val materialState = PVCode("matstate/some01")
+        val description = FreeText("some description")
+        val materialCategory = PVCode("matcat/some01")
+        val documentType = PVCode("doctype/some01")
+        val materialGroup = PVCode("matgrp/some01")
+        val technicalFields = listOf<PVCode>()
+        val containsPersonalInfo = null
 
-        val state = "valmis"
-        val searchId = VelhoId("asdf123")
-        val startTime = Instant.now()
-        val validFor = 123456L
-        val json = """{"tila":"$state","hakutunniste":"$searchId","alkuaika":"$startTime","hakutunniste-voimassa":$validFor}"""
-        val data = SearchStatus(state, searchId, startTime, validFor)
+        val json = """{"tila":"$materialState","kuvaus":"$description","laji":"$materialCategory","dokumenttityyppi":"$documentType","ryhma":"$materialGroup","tekniikka-alat":[],"sisaltaa-henkilotietoja":null}"""
+        val data = PVApiFileMetadata(
+            materialState,
+            description,
+            materialCategory,
+            documentType,
+            materialGroup,
+            technicalFields,
+            containsPersonalInfo
+        )
 
         assertEquals(json, toJson(data))
-        assertEquals(data, toObject<SearchStatus>(json))
+        assertEquals(data, toObject<PVApiFileMetadata>(json))
     }
 
     private fun toJson(value: Any): String = mapper.writeValueAsString(value)

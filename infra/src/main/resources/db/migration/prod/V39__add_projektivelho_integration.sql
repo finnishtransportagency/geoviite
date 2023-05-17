@@ -97,38 +97,30 @@ comment on table integrations.projektivelho_technics_field is 'Localized Projekt
 select common.add_metadata_columns('integrations', 'projektivelho_technics_field');
 select common.add_table_versioning('integrations', 'projektivelho_technics_field');
 
--- create table integrations.projektivelho_dictionary
--- (
---   id   int primary key generated always as identity,
---   type varchar(50)  not null,
---   code varchar(50)  not null,
---   name varchar(100) not null,
---   constraint projektivelho_dictionary_type_code_unique unique (type, code)
--- );
--- comment on table integrations.projektivelho_project_group is 'Dictionary of ProjektiVelho enum-like concepts';
--- select common.add_metadata_columns('integrations', 'projektivelho_dictionary');
--- select common.add_table_versioning('integrations', 'projektivelho_dictionary');
-
 create table integrations.projektivelho_file_metadata
 (
   id                                   int primary key generated always as identity,
-  oid                                  varchar(50)                                                                not null,
-  filename                             varchar(100)                                                               not null,
-  file_version                         varchar(50)                                                                not null,
+  oid                                  varchar(50) unique                     not null,
+  filename                             varchar(100)                           not null,
+  file_version                         varchar(50)                            not null,
   description                          varchar(150),
---   file_state_id                  int references integrations.projektivelho_dictionary (id)    not null,
---   doc_type_id                    int references integrations.projektivelho_dictionary (id)    not null,
---   asset_group_id                 int references integrations.projektivelho_dictionary (id)    not null,
---   category_id                    int references integrations.projektivelho_dictionary (id)    not null,
-  projektivelho_document_type_code     varchar(50) references integrations.projektivelho_document_type (code)     not null,
-  projektivelho_material_state_code    varchar(50) references integrations.projektivelho_material_state (code)    not null,
-  projektivelho_material_group_code    varchar(50) references integrations.projektivelho_material_group (code)    not null,
-  projektivelho_material_category_code varchar(50) references integrations.projektivelho_material_category (code) not null,
-  file_change_time                     timestamp with time zone                                                   not null,
-  status                               integrations.projektivelho_file_status                                     not null,
-  projektivelho_assignment_id          int references integrations.projektivelho_assignment (id)                  not null,
-  projektivelho_project_id             int references integrations.projektivelho_project (id)                     not null,
-  projektivelho_project_group_id       int references integrations.projektivelho_project_group (id)               not null
+  projektivelho_document_type_code     varchar(50)                            not null
+    references integrations.projektivelho_document_type (code),
+  projektivelho_material_state_code    varchar(50)                            not null
+    references integrations.projektivelho_material_state (code),
+  projektivelho_material_group_code    varchar(50)                            not null
+    references integrations.projektivelho_material_group (code),
+  projektivelho_material_category_code varchar(50)                            not null
+    references integrations.projektivelho_material_category (code),
+  file_change_time                     timestamp with time zone               not null,
+  status                               integrations.projektivelho_file_status not null,
+  -- TODO: GVT-1860 These should be not-null
+  projektivelho_assignment_id          int                                    null
+    references integrations.projektivelho_assignment (id),
+  projektivelho_project_id             int                                    null
+    references integrations.projektivelho_project (id),
+  projektivelho_project_group_id       int                                    null
+    references integrations.projektivelho_project_group (id)
 );
 comment on table integrations.projektivelho_file_metadata is 'Hangling status & metadata for Projektivelho files';
 select common.add_metadata_columns('integrations', 'projektivelho_file_metadata');
