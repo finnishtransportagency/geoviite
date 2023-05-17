@@ -35,7 +35,7 @@ export type PVAssignment = {
 export type PVDocumentId = string;
 
 export type PVDocumentHeader = {
-    project: PVProject;
-    assignment: PVAssignment;
+    project: PVProject | null;
+    assignment: PVAssignment | null;
     document: PVDocument;
 };
