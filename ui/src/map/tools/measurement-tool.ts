@@ -15,7 +15,6 @@ import {
 } from 'map/layers/utils/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutPoint } from 'track-layout/track-layout-model';
-import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 
 function formatMeasurement(distance: number) {
     let content;
@@ -83,16 +82,15 @@ export const measurementTool: MapTool = {
             type: 'LineString',
             maxPoints: 2,
             style: new Style({
-                zIndex: 20,
                 stroke: new Stroke({
-                    color: mapStyles.measureTooltipStroke,
+                    color: mapStyles.measurementTooltipLine,
                     lineDash: [8],
                     width: 2,
                 }),
                 image: new CircleStyle({
                     radius: 6,
                     stroke: new Stroke({
-                        color: mapStyles.measureTooltipCircleStroke,
+                        color: mapStyles.measurementTooltipCircle,
                     }),
                 }),
             }),
@@ -104,9 +102,7 @@ export const measurementTool: MapTool = {
                 const nearbyPoints = nearbyFeatures
                     .map((f) => getAlignmentData(f))
                     .filter(filterNotEmpty)
-                    .flatMap((f: AlignmentDataHolder) =>
-                        getClosestPoints(f.points, cursorCoordinate, 8),
-                    );
+                    .flatMap(({ points }) => getClosestPoints(points, cursorCoordinate, 8));
 
                 let closestPoint;
                 for (let i = 0; i < nearbyPoints.length; i++) {

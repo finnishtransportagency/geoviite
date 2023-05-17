@@ -73,9 +73,10 @@ export function createReferenceLineAlignmentLayer(
             vectorSource.addFeatures(features);
 
             if (onViewContentChanged) {
-                const compare = JSON.stringify(
-                    referenceLines.map(({ header }) => header.id).sort(),
-                );
+                const compare = referenceLines
+                    .map(({ header }) => header.id)
+                    .sort()
+                    .join();
 
                 if (compare !== compareString) {
                     compareString = compare;

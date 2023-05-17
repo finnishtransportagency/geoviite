@@ -1,40 +1,30 @@
 import mapStyles from 'map/map.module.scss';
-import Feature from 'ol/Feature';
 import { LineString } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Stroke, Style } from 'ol/style';
 import { MapTile } from 'map/map-model';
-import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    getLocationTrackSectionsWithoutProfileByTiles,
+    getMapAlignmentsByTiles,
+} from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
+import { createHighlightFeatures } from 'map/layers/highlight/highlight-layer-utils';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 
-const duplicateTrackHighlightStyle = new Style({
+const highlightBackgroundStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentBlueBackground,
+        color: mapStyles.alignmentRedHighlight,
         width: 12,
     }),
 });
 
-function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
-    return locationTracks
-        .filter((lt) => lt.header.duplicateOf)
-        .flatMap(({ points }) => {
-            const lineString = new LineString(points.map(pointToCoords));
-            const feature = new Feature({ geometry: lineString });
-
-            feature.setStyle(duplicateTrackHighlightStyle);
-
-            return feature;
-        });
-}
-
 let newestLayerId = 0;
 
-export function createDuplicateTrackHighlightLayer(
+export function createMissingLocationTrackProfileHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     publishType: PublishType,
@@ -47,11 +37,28 @@ export function createDuplicateTrackHighlightLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     if (resolution <= HIGHLIGHTS_SHOW) {
-        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
-            .then((locationTracks) => {
+        const locationTracksPromise = getMapAlignmentsByTiles(
+            changeTimes,
+            mapTiles,
+            publishType,
+            'LOCATION_TRACKS',
+        );
+
+        const profilePromise = getLocationTrackSectionsWithoutProfileByTiles(
+            changeTimes.layoutLocationTrack,
+            publishType,
+            mapTiles,
+        );
+
+        Promise.all([locationTracksPromise, profilePromise])
+            .then(([locationTracks, sections]) => {
                 if (layerId != newestLayerId) return;
 
-                const features = createHighlightFeatures(locationTracks);
+                const features = createHighlightFeatures(
+                    locationTracks,
+                    sections,
+                    highlightBackgroundStyle,
+                );
 
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
@@ -62,7 +69,7 @@ export function createDuplicateTrackHighlightLayer(
     }
 
     return {
-        name: 'duplicate-tracks-highlight-layer',
+        name: 'missing-profile-highlight-layer',
         layer: layer,
     };
 }

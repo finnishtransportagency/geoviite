@@ -214,8 +214,7 @@ function sortMatchesByDistance<TEntity>(
                 ...match,
             };
         })
-        .filter((refinedMatch) => refinedMatch) // remove undefined items
-        .map((refinedMatch) => refinedMatch as NonNullable<typeof refinedMatch>) // cast non nullable
+        .filter(filterNotEmpty) // remove undefined items
         .sort((a, b) => (a.distance < b.distance ? -1 : 1));
 }
 
@@ -260,9 +259,7 @@ function findEntities<TVal>(
         const matches = Object.values(match);
         return sortMatchesByDistance(center(shape), matches)
             .slice(0, options?.limit || matches.length)
-            .map((sortedMatch) => {
-                return sortedMatch.entity;
-            });
+            .map((sortedMatch) => sortedMatch.entity);
     }
 
     return Object.values(match).map((match) => match.entity);
@@ -275,7 +272,7 @@ export function setAlignmentData(feature: Feature<LineString>, dataHolder: Align
     feature.set(FEATURE_PROPERTY_ALIGNMENT_DATA, dataHolder);
 }
 
-export function getAlignmentData(feature: FeatureLike): AlignmentDataHolder | undefined {
+export function getAlignmentData(feature: FeatureLike): AlignmentDataHolder {
     return feature.get(FEATURE_PROPERTY_ALIGNMENT_DATA) as AlignmentDataHolder;
 }
 
@@ -400,8 +397,6 @@ export function getMatchingEntities<T extends { id: string }>(
 
 export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();
 
-const tickImageCache = new Map<string, RegularShape>();
-
 export function getTickStyle(
     point1: Coordinate,
     point2: Coordinate,
@@ -413,19 +408,13 @@ export function getTickStyle(
     const angleStep = (Math.PI * 2) / angleVersionCount;
     const actualAngle = Math.atan2(point1[0] - point2[0], point1[1] - point2[1]) + Math.PI / 2;
     const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
-    const strokeData = JSON.stringify(style.getStroke());
-    const key = `${roundAngle}_${length}_${strokeData}`;
-    let image = tickImageCache.get(key);
-    if (!image) {
-        image = new RegularShape({
-            stroke: style.getStroke(),
-            points: 2,
-            radius: length,
-            radius2: 0,
-            angle: roundAngle,
-        });
-        tickImageCache.set(key, image);
-    }
+    const image = new RegularShape({
+        stroke: style.getStroke(),
+        points: 2,
+        radius: length,
+        radius2: 0,
+        angle: roundAngle,
+    });
 
     return new Style({
         geometry: new OlPoint(position == 'start' ? point1 : point2),

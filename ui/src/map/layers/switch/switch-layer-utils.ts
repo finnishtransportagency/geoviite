@@ -1,6 +1,6 @@
 import { LayoutSwitch, LayoutSwitchJoint } from 'track-layout/track-layout-model';
 import { State } from 'ol/render';
-import { createPointRenderer, drawCircle, drawRoundedRect } from 'map/layers/utils/rendering';
+import { drawCircle, drawRoundedRect, getPointRenderer } from 'map/layers/utils/rendering';
 import styles from '../../map.module.scss';
 import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
@@ -11,6 +11,8 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { Feature } from 'ol';
 import { Point } from 'ol/geom';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { Circle, Fill, RegularShape, Stroke } from 'ol/style';
+import mapStyles from 'map/map.module.scss';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -20,7 +22,7 @@ const TEXT_FONT_SMALL = 10;
 const CIRCLE_RADIUS_SMALL = 4.5;
 const CIRCLE_RADIUS_LARGE = 6.5;
 
-export function createSelectedSwitchLabelRenderer(
+export function getSelectedSwitchLabelRenderer(
     layoutSwitch: LayoutSwitch,
     large: boolean,
     linked: boolean,
@@ -33,25 +35,22 @@ export function createSelectedSwitchLabelRenderer(
     const iconSize = 14;
     const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
 
-    return createPointRenderer(
+    return getPointRenderer(
         layoutSwitch,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
             ctx.lineWidth = state.pixelRatio;
         },
         [
-            (_lSwitch, coordinates, ctx, state) => {
+            ({ name }, coordinates, ctx, state) => {
                 ctx.fillStyle = isGeometrySwitch
                     ? linked
-                        ? styles.linkedSwitchLabelBackground
-                        : styles.notLinkedSwitchLabelBackground
-                    : styles.switchLabelBackground;
-                ctx.strokeStyle = isGeometrySwitch
-                    ? linked
-                        ? styles.linkedSwitchLabelBorder
-                        : styles.notLinkedSwitchLabelBorder
-                    : styles.switchLabelBorder;
-                const textSize = ctx.measureText(_lSwitch.name);
+                        ? styles.linkedSwitchLabel
+                        : styles.unlinkedSwitchLabel
+                    : styles.switchLabel;
+
+                ctx.strokeStyle = styles.switchLabelBorder;
+                const textSize = ctx.measureText(name);
                 const height = (Math.max(iconSize, fontSize) + 2 * paddingY) * state.pixelRatio;
                 const width =
                     textSize.width +
@@ -60,8 +59,7 @@ export function createSelectedSwitchLabelRenderer(
                 const y = coordinates[1] - height / 2;
                 drawRoundedRect(ctx, x, y, width, height, 2 * state.pixelRatio);
             },
-
-            (_lSwitch, coordinates, ctx, state) => {
+            (_, coordinates, ctx, state) => {
                 ctx.fillStyle = styles.switchTextColor;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -77,7 +75,7 @@ export function createSelectedSwitchLabelRenderer(
                 );
             },
 
-            (_lSwitch, coordinates, ctx, state) => {
+            ({ name }, coordinates, ctx, state) => {
                 ctx.fillStyle = styles.switchTextColor;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -86,13 +84,13 @@ export function createSelectedSwitchLabelRenderer(
                     coordinates[0] +
                     (labelOffset + iconSize + paddingX + iconTextPaddingX) * state.pixelRatio;
                 const y = coordinates[1] + 2 * state.pixelRatio;
-                ctx.fillText(layoutSwitch.name, x, y);
+                ctx.fillText(name, x, y);
             },
         ],
     );
 }
 
-export function createUnselectedSwitchRenderer(
+export function getSwitchRenderer(
     layoutSwitch: LayoutSwitch,
     large: boolean,
     label: boolean,
@@ -102,28 +100,28 @@ export function createUnselectedSwitchRenderer(
     const circleRadius = large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL;
     const textCirclePadding = 4;
     const isGeometrySwitch = layoutSwitch.dataType == 'TEMP';
-    return createPointRenderer(
+    return getPointRenderer(
         layoutSwitch,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
             ctx.lineWidth = state.pixelRatio;
         },
         [
-            (_lSwitch, coordinates, ctx, state) => {
+            (_, coordinates, ctx, state) => {
                 ctx.fillStyle = isGeometrySwitch
                     ? linked
-                        ? styles.switchLinkedColor
-                        : styles.switchUnlinkedColor
-                    : styles.switchIconBackground;
+                        ? styles.linkedSwitchJoint
+                        : styles.unlinkedSwitchJoint
+                    : styles.switchJoint;
                 ctx.strokeStyle = isGeometrySwitch
                     ? linked
-                        ? styles.switchLinkedColorStroke
-                        : styles.switchUnlinkedColorStroke
-                    : styles.switchIconBorder;
+                        ? styles.linkedSwitchJointBorder
+                        : styles.unlinkedSwitchJointBorder
+                    : styles.switchJointBorder;
 
                 drawCircle(ctx, coordinates[0], coordinates[1], circleRadius * state.pixelRatio);
             },
-            (lSwitch, coordinates, ctx, state) => {
+            ({ name }, coordinates, ctx, state) => {
                 if (label) {
                     ctx.fillStyle = styles.switchTextColor;
                     ctx.textAlign = 'left';
@@ -132,28 +130,26 @@ export function createUnselectedSwitchRenderer(
                     const x =
                         coordinates[0] + (circleRadius + textCirclePadding) * state.pixelRatio;
                     const y = coordinates[1] + state.pixelRatio;
-                    ctx.fillText(lSwitch.name, x, y);
+                    ctx.fillText(name, x, y);
                 }
             },
         ],
     );
 }
 
-export function createJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean): RenderFunction {
+export function getJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean): RenderFunction {
     const fontSize = TEXT_FONT_SMALL;
     const circleRadius = CIRCLE_RADIUS_LARGE;
 
-    return createPointRenderer(
+    return getPointRenderer(
         joint,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
             ctx.lineWidth = state.pixelRatio;
         },
         [
-            (_joint, coordinates, ctx, state) => {
-                ctx.fillStyle = mainJoint
-                    ? styles.switchMainJointBackground
-                    : styles.switchJointBackground;
+            (_, coordinates, ctx, state) => {
+                ctx.fillStyle = mainJoint ? styles.switchMainJoint : styles.switchJoint;
                 ctx.strokeStyle = mainJoint
                     ? styles.switchMainJointBorder
                     : styles.switchJointBorder;
@@ -161,22 +157,20 @@ export function createJointRenderer(joint: LayoutSwitchJoint, mainJoint: boolean
                 drawCircle(ctx, coordinates[0], coordinates[1], circleRadius * state.pixelRatio);
             },
 
-            (_joint, coordinates, ctx, _state) => {
-                ctx.fillStyle = mainJoint ? styles.switchMainJointText : styles.switchJointText;
+            ({ number }, coordinates, ctx) => {
+                ctx.fillStyle = mainJoint
+                    ? styles.switchMainJointTextColor
+                    : styles.switchJointTextColor;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                ctx.fillText(
-                    switchJointNumberToString(joint.number),
-                    coordinates[0],
-                    coordinates[1],
-                );
+                ctx.fillText(switchJointNumberToString(number), coordinates[0], coordinates[1]);
             },
         ],
     );
 }
 
-export function createLinkingJointRenderer(
+export function getLinkingJointRenderer(
     joint: SuggestedSwitchJoint,
     isLinked = false,
 ): RenderFunction {
@@ -184,38 +178,34 @@ export function createLinkingJointRenderer(
     const circleRadius = CIRCLE_RADIUS_LARGE;
     const hasMatch = joint.matches.length > 0;
 
-    return createPointRenderer(
+    return getPointRenderer(
         joint,
         (ctx: CanvasRenderingContext2D, state: State) => {
             ctx.font = `bold ${state.pixelRatio * fontSize}px sans-serif`;
             ctx.lineWidth = state.pixelRatio;
         },
         [
-            (_joint, coordinates, ctx, state) => {
+            (_, coordinates, ctx, state) => {
                 ctx.fillStyle = hasMatch
                     ? isLinked
-                        ? styles.switchLinkedColor
-                        : styles.switchUnlinkedColor
-                    : styles.switchBackground;
+                        ? styles.linkedSwitchJoint
+                        : styles.unlinkedSwitchJoint
+                    : styles.switchJoint;
                 ctx.strokeStyle = hasMatch
                     ? isLinked
-                        ? styles.switchLinkedColorStroke
-                        : styles.switchUnlinkedColorStroke
-                    : styles.switchBackground;
+                        ? styles.linkedSwitchJointBorder
+                        : styles.unlinkedSwitchJointBorder
+                    : styles.switchJointBorder;
 
                 drawCircle(ctx, coordinates[0], coordinates[1], circleRadius * state.pixelRatio);
             },
 
-            (_joint, coordinates, ctx, _state) => {
+            ({ number }, coordinates, ctx) => {
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
-                ctx.fillText(
-                    switchJointNumberToString(joint.number),
-                    coordinates[0],
-                    coordinates[1],
-                );
+                ctx.fillText(switchJointNumberToString(number), coordinates[0], coordinates[1]);
             },
         ],
     );
@@ -325,20 +315,41 @@ function unselectedStyle(
 ) {
     return new Style({
         zIndex: 0,
-        renderer: createUnselectedSwitchRenderer(layoutSwitch, large, textLabel, linked),
+        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked),
     });
 }
 
 function selectedStyle(layoutSwitch: LayoutSwitch, large: boolean, linked: boolean) {
     return new Style({
-        zIndex: 2,
-        renderer: createSelectedSwitchLabelRenderer(layoutSwitch, large, linked),
+        zIndex: 1,
+        renderer: getSelectedSwitchLabelRenderer(layoutSwitch, large, linked),
     });
 }
 
 function jointStyle(joint: LayoutSwitchJoint, mainJoint: boolean) {
     return new Style({
-        zIndex: mainJoint ? 2 : 1,
-        renderer: createJointRenderer(joint, mainJoint),
+        zIndex: mainJoint ? 3 : 2,
+        renderer: getJointRenderer(joint, mainJoint),
     });
 }
+
+export const endPointStyle = [
+    new Style({
+        image: new Circle({
+            radius: 6,
+            fill: new Fill({ color: mapStyles.locationTrackEndPoint }),
+            stroke: new Stroke({ color: mapStyles.locationTrackEndPointBorder }),
+        }),
+        zIndex: 4,
+    }),
+    new Style({
+        image: new RegularShape({
+            stroke: new Stroke({ color: mapStyles.locationTrackEndPointCross }),
+            points: 4,
+            radius: 4,
+            radius2: 0,
+            angle: 0,
+        }),
+        zIndex: 4,
+    }),
+];

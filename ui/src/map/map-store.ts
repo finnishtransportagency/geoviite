@@ -222,13 +222,11 @@ function updateSettings(
     settings: MapLayerSetting[],
     change: MapLayerSettingChange,
 ): MapLayerSetting[] {
-    return settings.map((s) => {
-        return {
-            name: s.name,
-            visible: s.name === change.name ? change.visible : s.visible,
-            subSettings: s.subSettings ? updateSettings(s.subSettings, change) : undefined,
-        };
-    });
+    return settings.map((s) => ({
+        name: s.name,
+        visible: s.name === change.name ? change.visible : s.visible,
+        subSettings: s.subSettings ? updateSettings(s.subSettings, change) : undefined,
+    }));
 }
 
 type MapContextState = 'trackLayout' | 'infra-model' | 'preview';

@@ -7,7 +7,7 @@ import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { getSwitchesByTile } from 'track-layout/layout-switch-api';
-import { getMatchingSwitches } from 'map/layers/utils/layer-utils';
+import { clearFeatures, getMatchingSwitches } from 'map/layers/utils/layer-utils';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { createFeatures } from 'map/layers/switch/switch-layer-utils';
@@ -17,7 +17,7 @@ import { ChangeTimes } from 'common/common-slice';
 
 let switchIdCompare = '';
 let switchChangeTimeCompare: TimeStamp | undefined = undefined;
-let newestSwitchLayerId = 0;
+let newestLayerId = 0;
 
 export function createSwitchLayer(
     mapTiles: MapTile[],
@@ -28,7 +28,7 @@ export function createSwitchLayer(
     olView: OlView,
     onViewContentChanged?: (items: OptionalShownItems) => void,
 ): MapLayer {
-    const layerId = ++newestSwitchLayerId;
+    const layerId = ++newestLayerId;
     const getSwitchesFromApi = () => {
         return Promise.all(
             mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
@@ -36,8 +36,6 @@ export function createSwitchLayer(
     };
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    // Use an existing layer or create a new one. Old layer is "recycled" to
-    // prevent features to disappear while moving the map.
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     const searchFunction = (hitArea: OlPolygon, options: SearchItemsOptions) => {
@@ -50,14 +48,12 @@ export function createSwitchLayer(
             },
         ).map((d) => d.switch.id);
 
-        return {
-            switches: switches,
-        };
+        return { switches };
     };
 
     const switchesChanged = (newIds: LayoutSwitchId[]) => {
         if (onViewContentChanged) {
-            const newCompare = `${publishType}${JSON.stringify(newIds.sort())}`;
+            const newCompare = `${publishType}${newIds.sort().join()}`;
             const changeTimeCompare = changeTimes.layoutSwitch;
             if (newCompare !== switchIdCompare || changeTimeCompare !== switchChangeTimeCompare) {
                 switchIdCompare = newCompare;
@@ -69,15 +65,11 @@ export function createSwitchLayer(
         }
     };
 
-    const clearFeatures = () => {
-        vectorSource.clear();
-    };
-
     const resolution = olView.getResolution() || 0;
     if (resolution <= Limits.SWITCH_SHOW) {
         Promise.all([getSwitchesFromApi(), getSwitchStructures()])
             .then(([switches, switchStructures]) => {
-                if (layerId != newestSwitchLayerId) return;
+                if (layerId != newestLayerId) return;
 
                 const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
                 const labels = resolution <= Limits.SWITCH_LABELS;
@@ -89,24 +81,25 @@ export function createSwitchLayer(
                     return selection.highlightedItems.switches.some((s) => s === switchItem.id);
                 };
 
-                clearFeatures();
-                vectorSource.addFeatures(
-                    createFeatures(
-                        switches,
-                        isSelected,
-                        isHighlighted,
-                        () => false,
-                        largeSymbols,
-                        labels,
-                        undefined,
-                        switchStructures,
-                    ),
+                const features = createFeatures(
+                    switches,
+                    isSelected,
+                    isHighlighted,
+                    () => false,
+                    largeSymbols,
+                    labels,
+                    undefined,
+                    switchStructures,
                 );
+
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
+
                 switchesChanged(switches.map((s) => s.id));
             })
-            .catch(clearFeatures);
+            .catch(() => clearFeatures(vectorSource));
     } else {
-        clearFeatures();
+        clearFeatures(vectorSource);
         switchesChanged([]);
     }
 

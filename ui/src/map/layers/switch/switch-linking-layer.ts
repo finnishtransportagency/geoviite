@@ -8,27 +8,39 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
 import {
+    clearFeatures,
     getMatchingSuggestedSwitches,
     MatchOptions,
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
-import { createLinkingJointRenderer } from 'map/layers/switch/switch-layer-utils';
-import { endPointStyle } from 'map/layers/linking-layer';
+import { endPointStyle, getLinkingJointRenderer } from 'map/layers/switch/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { filterNotEmpty } from 'utils/array-utils';
 
-export type SwitchLinkingFeatureType = Point;
-
 export const FEATURE_PROPERTY_SUGGESTED_SWITCH = 'suggested-switch';
 
-function createFeatures(
-    suggestedSwitch: SuggestedSwitch,
-    isSelected: boolean,
-): Feature<SwitchLinkingFeatureType>[] {
-    const features: Feature<SwitchLinkingFeatureType>[] = [];
+let newestLayerId = 0;
 
-    if (!isSelected) {
+function createFeatures(suggestedSwitch: SuggestedSwitch, isSelected: boolean): Feature<Point>[] {
+    const features: Feature<Point>[] = [];
+
+    if (isSelected) {
+        suggestedSwitch.joints.forEach((joint) => {
+            const f = new Feature({
+                geometry: new Point(pointToCoords(joint.location)),
+            });
+
+            f.setStyle(
+                new Style({
+                    renderer: getLinkingJointRenderer(joint),
+                }),
+            );
+
+            f.set(FEATURE_PROPERTY_SUGGESTED_SWITCH, suggestedSwitch);
+            features.push(f);
+        });
+    } else {
         const presentationJoint = suggestedSwitch.joints.find(
             (joint) => joint.number == suggestedSwitch.switchStructure.presentationJointNumber,
         );
@@ -37,25 +49,12 @@ function createFeatures(
             const f = new Feature({
                 geometry: new Point(pointToCoords(presentationJoint.location)),
             });
+
             f.setStyle(endPointStyle);
             f.set(FEATURE_PROPERTY_SUGGESTED_SWITCH, suggestedSwitch);
+
             features.push(f);
         }
-    } else {
-        suggestedSwitch.joints.forEach((joint) => {
-            const f = new Feature({
-                geometry: new Point(pointToCoords(joint.location)),
-            });
-
-            f.setStyle(
-                new Style({
-                    renderer: createLinkingJointRenderer(joint),
-                    zIndex: 1,
-                }),
-            );
-            f.set(FEATURE_PROPERTY_SUGGESTED_SWITCH, suggestedSwitch);
-            features.push(f);
-        });
     }
 
     return features;
@@ -64,57 +63,54 @@ function createFeatures(
 export function createSwitchLinkingLayer(
     mapTiles: MapTile[],
     resolution: number,
-    existingOlLayer: VectorLayer<VectorSource<SwitchLinkingFeatureType>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<Point>> | undefined,
     selection: Selection,
     linkingState: LinkingSwitch | undefined,
 ): MapLayer {
+    const layerId = ++newestLayerId;
+
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    // Use an existing layer or create a new one. Old layer is "recycled" to
-    // prevent features to disappear while moving the map.
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    function clearFeatures() {
-        vectorSource.clear();
-    }
-
-    function updateFeatures(features: Feature<SwitchLinkingFeatureType>[]) {
-        clearFeatures();
+    function updateFeatures(features: Feature<Point>[]) {
+        clearFeatures(vectorSource);
         vectorSource.addFeatures(features);
     }
 
-    if (resolution && resolution < SUGGESTED_SWITCH_SHOW) {
-        const selectedSuggestedSwitch = selection.selectedItems.suggestedSwitches[0];
+    if (resolution <= SUGGESTED_SWITCH_SHOW) {
+        const selectedSwitches = selection.selectedItems.suggestedSwitches;
 
-        const loadSuggestedSwitches = linkingState == undefined;
-        const getSuggestedSwitchesPromises = loadSuggestedSwitches
-            ? mapTiles.map((tile) => getSuggestedSwitchesByTile(tile))
-            : [];
+        const getSuggestedSwitchesPromises = linkingState
+            ? []
+            : mapTiles.map((tile) => getSuggestedSwitchesByTile(tile));
 
         Promise.all(getSuggestedSwitchesPromises)
             .then((suggestedSwitchGroups) => suggestedSwitchGroups.flat())
             .then((suggestedSwitches) =>
                 [
                     ...suggestedSwitches,
-                    selectedSuggestedSwitch, // add selected suggested switch into collection
+                    selectedSwitches[0], // add selected suggested switch into collection
                 ].filter(filterNotEmpty),
             )
             .then((suggestedSwitches) => {
                 return suggestedSwitches.flatMap((suggestedSwitch) =>
                     createFeatures(
                         suggestedSwitch,
-                        selection.selectedItems.suggestedSwitches.some(
+                        selectedSwitches.some(
                             (switchToCheck) => switchToCheck.id == suggestedSwitch.id,
                         ),
                     ),
                 );
             })
             .then((features) => {
-                // Handle latest fetch only
-                updateFeatures(features);
+                if (layerId === newestLayerId) {
+                    // Handle latest fetch only
+                    updateFeatures(features);
+                }
             })
-            .catch(clearFeatures);
+            .catch(() => clearFeatures(vectorSource));
     } else {
-        clearFeatures();
+        clearFeatures(vectorSource);
     }
 
     return {
@@ -126,6 +122,7 @@ export function createSwitchLinkingLayer(
                 limit: options.limit,
             };
             const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
+
             return {
                 suggestedSwitches: getMatchingSuggestedSwitches(hitArea, features, matchOptions),
             };

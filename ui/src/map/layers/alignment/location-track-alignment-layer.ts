@@ -81,9 +81,10 @@ export function createLocationTrackAlignmentLayer(
                 vectorSource.addFeatures(features);
 
                 if (onViewContentChanged) {
-                    const compare = JSON.stringify(
-                        alignments.map(({ header }) => header.id).sort(),
-                    );
+                    const compare = alignments
+                        .map(({ header }) => header.id)
+                        .sort()
+                        .join();
 
                     if (compare !== compareString) {
                         compareString = compare;

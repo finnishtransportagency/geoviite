@@ -5,8 +5,8 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 
 export const selectTool: MapTool = {
     activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => {
-        const clickEvent = map.on('click', (e) => {
-            const hitArea = getDefaultHitArea(map, e.coordinate);
+        const clickEvent = map.on('click', ({ coordinate }) => {
+            const hitArea = getDefaultHitArea(map, coordinate);
             const items = searchItemsFromLayers(hitArea, layers, { limit: 1 });
             options.onSelect(items);
         });

@@ -12,10 +12,7 @@ import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
 import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
-import {
-    createSwitchLinkingLayer,
-    SwitchLinkingFeatureType,
-} from './layers/switch/switch-linking-layer';
+import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
 import { MapToolActivateOptions } from './tools/tool-model';
@@ -32,16 +29,13 @@ import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
-import { createDebugLayer, DebugLayerFeatureType } from 'map/layers/debug-layer';
-import {
-    createDebug1mPointsLayer,
-    Debug1mPointsLayerFeatureType,
-} from './layers/debug-1m-points-layer';
+import { createDebugLayer } from 'map/layers/debug-layer';
+import { createDebug1mPointsLayer } from './layers/debug-1m-points-layer';
 import { measurementTool } from 'map/tools/measurement-tool';
 import { createClassName } from 'vayla-design-lib/utils';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { ChangeTimes } from 'common/common-slice';
-import { createTrackNumberDiagramLayer } from 'map/layers/alignment/track-number-diagram-layer';
+import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number-diagram-layer';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -49,7 +43,7 @@ import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-align
 import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createLinkingLayer } from 'map/layers/linking-layer';
-import { createPlanAreaLayer } from 'map/layers/plan-area-layer';
+import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
@@ -65,9 +59,9 @@ import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/locatio
 import { createReferenceLineBackgroundLayer } from 'map/layers/alignment/reference-line-background-layer';
 import { createReferenceLineBadgeLayer } from 'map/layers/alignment/reference-line-badge-layer';
 import { createLocationTrackBadgeLayer } from 'map/layers/alignment/location-track-badge-layer';
-import { createDuplicateTrackHighlightLayer } from 'map/layers/alignment/duplicate-tracks-highlight-layer';
-import { createMissingLinkingHighlightLayer } from 'map/layers/alignment/missing-linking-highlight-layer';
-import { createMissingLocationTrackProfileHighlightLayer } from 'map/layers/alignment/missing-profile-highlight-layer';
+import { createDuplicateTrackHighlightLayer } from 'map/layers/highlight/duplicate-tracks-highlight-layer';
+import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
+import { createMissingLocationTrackProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 
 declare global {
     interface Window {
@@ -288,7 +282,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'reference-line-alignment-layer':
                         return createReferenceLineAlignmentLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
                             publishType,
                             linkingState,
@@ -316,7 +310,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-alignment-layer':
                         return createLocationTrackAlignmentLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
                             publishType,
                             linkingState,
@@ -370,7 +364,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'km-post-layer':
                         return createKmPostLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Polygon>>,
                             selection,
                             publishType,
                             changeTimes,
@@ -398,7 +392,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'geometry-km-post-layer':
                         return createGeometryKmPostLayer(
                             resolution,
-                            existingOlLayer as VectorLayer<VectorSource<Polygon>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Polygon>>,
                             selection,
                             publishType,
                         );
@@ -412,7 +406,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'linking-layer':
                         return createLinkingLayer(
                             mapTiles,
-                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint | LineString>>,
                             selection,
                             linkingState,
                             changeTimes,
@@ -422,7 +416,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createSwitchLinkingLayer(
                             mapTiles,
                             resolution,
-                            existingOlLayer as VectorLayer<VectorSource<SwitchLinkingFeatureType>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             linkingState as LinkingSwitch,
                         );
@@ -441,16 +435,14 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(
-                            existingOlLayer as VectorLayer<
-                                VectorSource<Debug1mPointsLayerFeatureType>
-                            >,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             publishType,
                             resolution,
                         );
                     case 'debug-layer':
                         return createDebugLayer(
-                            existingOlLayer as VectorLayer<VectorSource<DebugLayerFeatureType>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Polygon>>,
                         );
                 }
             })

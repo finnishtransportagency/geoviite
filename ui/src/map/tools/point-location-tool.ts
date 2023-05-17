@@ -12,15 +12,15 @@ export const pointLocationTool: MapTool = {
                     y: e.coordinate[1],
                 });
             },
-            20,
+            10,
             {
-                maxWait: 100,
+                maxWait: 50,
             },
         );
-        const clickEvent = map.on('click', (e) => {
+        const clickEvent = map.on('click', ({ coordinate }) => {
             options.onClickLocation({
-                x: e.coordinate[0],
-                y: e.coordinate[1],
+                x: coordinate[0],
+                y: coordinate[1],
             });
         });
         const pointerMoveEvent = map.on('pointermove', debouncedMoveHandlerPointLocation);

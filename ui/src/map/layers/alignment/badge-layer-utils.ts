@@ -24,7 +24,7 @@ enum BadgeColor {
     DARK,
 }
 
-function createBadgeFeature(
+function createBadgeFeatures(
     name: string,
     points: MapAlignmentBadgePoint[],
     color: BadgeColor,
@@ -41,9 +41,9 @@ function createBadgeFeature(
                 new Style({
                     renderer: (coordinates: Coordinate, state: State) => {
                         const ctx = state.context;
-                        ctx.font = `${mapStyles['alignment-badge-font-weight']} ${
+                        ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
                             state.pixelRatio * 12
-                        }px ${mapStyles['alignment-badge-font-family']}`;
+                        }px ${mapStyles['alignmentBadge-font-family']}`;
                         const backgroundWidth = ctx.measureText(name).width + 16 * state.pixelRatio;
                         const backgroundHeight = 14 * state.pixelRatio;
 
@@ -91,16 +91,16 @@ function createBadgeFeature(
 }
 
 function getBadgeStyle(badgeColor: BadgeColor, contrast: boolean) {
-    let color = mapStyles['alignment-badge-color-white'];
-    let background = mapStyles['alignment-badge-background'];
+    let color = mapStyles['alignmentBadgeWhiteTextColor'];
+    let background = mapStyles['alignmentBadge'];
     let backgroundBorder: string | undefined;
 
     if (contrast) {
-        background = mapStyles['alignment-badge-background-blue'];
+        background = mapStyles['alignmentBadgeBlue'];
     } else if (badgeColor === BadgeColor.LIGHT) {
-        color = mapStyles['alignment-badge-color'];
-        background = mapStyles['alignment-badge-background-white'];
-        backgroundBorder = mapStyles['alignment-badge-background-border'];
+        color = mapStyles['alignmentBadgeTextColor'];
+        background = mapStyles['alignmentBadgeWhite'];
+        backgroundBorder = mapStyles['alignmentBadgeBorder'];
     }
 
     return {
@@ -178,7 +178,7 @@ export function createAlignmentBadgeFeatures(
         const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
         const badgePoints = getBadgePoints(alignment.points, badgeDrawDistance);
 
-        return createBadgeFeature(
+        return createBadgeFeatures(
             isReferenceLine && alignment.trackNumber
                 ? alignment.trackNumber.number
                 : alignment.header.name,
