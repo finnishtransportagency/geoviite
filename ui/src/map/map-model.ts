@@ -2,10 +2,12 @@ import { BoundingBox, CoordinateSystem, Point } from 'model/geometry';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
+    LayoutTrackNumberId,
     LocationTrackId,
     MapAlignmentType,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
+import { ValueOf } from 'utils/type-utils';
 
 export type MapLayerName =
     | 'background-map-layer'
@@ -94,12 +96,28 @@ export type MapLayerMenuItemName =
     | 'debug-1m'
     | 'debug';
 
+export type TrackNumberDiagramLayerSetting = {
+    [key: LayoutTrackNumberId]: {
+        selected: boolean;
+    };
+};
+
+export type MapLayerSettings = {
+    'track-number-diagram-layer': TrackNumberDiagramLayerSetting;
+};
+
+export type MapLayerSettingChange = {
+    name: keyof MapLayerSettings;
+    settings: ValueOf<MapLayerSettings>;
+};
+
 export type Map = {
     layerMenu: {
         layout: MapLayerMenuItem[];
         geometry: MapLayerMenuItem[];
         debug: MapLayerMenuItem[];
     };
+    layerSettings: MapLayerSettings;
     visibleLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;

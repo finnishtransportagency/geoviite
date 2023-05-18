@@ -4,6 +4,7 @@ import {
     MapLayerMenuItem,
     MapLayerMenuItemName,
     MapLayerName,
+    MapLayerSettingChange,
     MapViewport,
     OptionalShownItems,
     ShownItems,
@@ -92,6 +93,9 @@ export const initialMapState: Map = {
             { name: 'debug', visible: false },
         ],
     },
+    layerSettings: {
+        'track-number-diagram-layer': {},
+    },
     shownItems: createEmptyShownItems(),
     viewport: {
         center: {
@@ -105,10 +109,7 @@ export const initialMapState: Map = {
 };
 
 export const mapReducers = {
-    onShownItemsChange: (
-        { shownItems }: Map,
-        { payload }: PayloadAction<OptionalShownItems>,
-    ): void => {
+    onShownItemsChange: ({ shownItems }: Map, { payload }: PayloadAction<OptionalShownItems>) => {
         if (payload.referenceLines != null) {
             shownItems.referenceLines = payload.referenceLines;
         }
@@ -122,10 +123,10 @@ export const mapReducers = {
             shownItems.switches = payload.switches;
         }
     },
-    onViewportChange: (state: Map, { payload: viewPort }: PayloadAction<MapViewport>): void => {
+    onViewportChange: (state: Map, { payload: viewPort }: PayloadAction<MapViewport>) => {
         state.viewport = viewPort;
     },
-    showArea: (state: Map, { payload: boundingBox }: PayloadAction<BoundingBox>): void => {
+    showArea: (state: Map, { payload: boundingBox }: PayloadAction<BoundingBox>) => {
         state.viewport = {
             center: centerForBoundingBox(boundingBox),
             // Calculate new resolution by comparing previous and new bounding boxes.
@@ -171,10 +172,16 @@ export const mapReducers = {
             this.hideLayers(state, { payload: hiddenLayers, type: 'hideLayers' });
         }
     },
-    onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>): void => {
+    onLayerSettingChange: (
+        state: Map,
+        { payload: change }: PayloadAction<MapLayerSettingChange>,
+    ) => {
+        state.layerSettings[change.name] = change.settings;
+    },
+    onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>) => {
         state.hoveredLocation = hoverLocation;
     },
-    onClickLocation: (state: Map, { payload: clickLocation }: PayloadAction<Point>): void => {
+    onClickLocation: (state: Map, { payload: clickLocation }: PayloadAction<Point>) => {
         state.clickLocation = clickLocation;
     },
 };

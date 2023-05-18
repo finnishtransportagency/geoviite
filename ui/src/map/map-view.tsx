@@ -278,6 +278,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             publishType,
                             resolution,
+                            map.layerSettings[layerName],
                         );
                     case 'reference-line-alignment-layer':
                         return createReferenceLineAlignmentLayer(
@@ -454,7 +455,16 @@ const MapView: React.FC<MapViewProps> = ({
         // Set converted layers into map object
         const olLayers = updatedLayers.map((l) => l.layer);
         olMap.setLayers(olLayers);
-    }, [olMap, map.viewport, mapLayers, selection, changeTimes, publishType, linkingState]);
+    }, [
+        olMap,
+        map.viewport,
+        mapLayers,
+        selection,
+        changeTimes,
+        publishType,
+        linkingState,
+        map.layerSettings,
+    ]);
 
     React.useEffect(() => {
         if (!olMap) return;
