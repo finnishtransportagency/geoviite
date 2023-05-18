@@ -16,7 +16,7 @@ import {
 import { Selection } from 'selection/selection-model';
 import { endPointStyle, getLinkingJointRenderer } from 'map/layers/switch/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, flatten } from 'utils/array-utils';
 
 export const FEATURE_PROPERTY_SUGGESTED_SWITCH = 'suggested-switch';
 
@@ -85,7 +85,7 @@ export function createSwitchLinkingLayer(
             : mapTiles.map((tile) => getSuggestedSwitchesByTile(tile));
 
         Promise.all(getSuggestedSwitchesPromises)
-            .then((suggestedSwitchGroups) => suggestedSwitchGroups.flat())
+            .then(flatten)
             .then((suggestedSwitches) =>
                 [
                     ...suggestedSwitches,
@@ -93,7 +93,10 @@ export function createSwitchLinkingLayer(
                 ].filter(filterNotEmpty),
             )
             .then((suggestedSwitches) => {
-                return suggestedSwitches.flatMap((suggestedSwitch) =>
+                // Handle latest fetch only
+                if (layerId !== newestLayerId) return;
+
+                const features = suggestedSwitches.flatMap((suggestedSwitch) =>
                     createFeatures(
                         suggestedSwitch,
                         selectedSwitches.some(
@@ -101,12 +104,7 @@ export function createSwitchLinkingLayer(
                         ),
                     ),
                 );
-            })
-            .then((features) => {
-                if (layerId === newestLayerId) {
-                    // Handle latest fetch only
-                    updateFeatures(features);
-                }
+                updateFeatures(features);
             })
             .catch(() => clearFeatures(vectorSource));
     } else {

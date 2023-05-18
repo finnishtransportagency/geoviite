@@ -16,8 +16,8 @@ import {
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutPoint } from 'track-layout/track-layout-model';
 
-function formatMeasurement(distance: number) {
-    let content;
+function formatMeasurement(distance: number): string {
+    let content: string;
     if (distance < 1) {
         content = Math.round(distance * 1000) + ' mm';
     } else if (distance > 10000) {
@@ -104,7 +104,7 @@ export const measurementTool: MapTool = {
                     .filter(filterNotEmpty)
                     .flatMap(({ points }) => getClosestPoints(points, cursorCoordinate, 8));
 
-                let closestPoint;
+                let closestPoint: { distance: number; point: LayoutPoint } | undefined;
                 for (let i = 0; i < nearbyPoints.length; i++) {
                     const nearbyPoint = nearbyPoints[i];
                     const pixelPoint = map.getPixelFromCoordinate(pointToCoords(nearbyPoint));

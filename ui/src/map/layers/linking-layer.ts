@@ -37,7 +37,7 @@ const clusterLinkPointSelectedRadius = 9;
 
 function strokeStyle(color: string, width: number, zIndex: number) {
     return new Style({
-        stroke: new Stroke({ color: color, width: width }),
+        stroke: new Stroke({ color, width }),
         zIndex: zIndex,
     });
 }
@@ -174,7 +174,11 @@ export const FEATURE_PROPERTY_LINK_POINT = 'linkPoint';
 export const FEATURE_PROPERTY_CLUSTER_POINT = 'clusterPoint';
 export const FEATURE_PROPERTY_TYPE = 'type';
 
-function createLineFeature(startPoint: LinkPoint, endPoint: LinkPoint, segmentStyle: Style) {
+function createLineFeature(
+    startPoint: LinkPoint,
+    endPoint: LinkPoint,
+    segmentStyle: Style,
+): Feature<LineString> {
     const segmentFeature = new Feature({
         geometry: new LineString([pointToCoords(startPoint), pointToCoords(endPoint)]),
     });
@@ -295,13 +299,13 @@ function getStyleForSegmentTicksIfNeeded(
     point: LinkPoint,
     controlPoint: LinkPoint | undefined,
     style: Style,
-) {
+): Style | undefined {
     return point.isSegmentEndPoint && controlPoint
         ? getStyleForSegmentTicks(point, controlPoint, style)
         : undefined;
 }
 
-function getStyleForSegmentTicks(point1: LinkPoint, point2: LinkPoint, style: Style) {
+function getStyleForSegmentTicks(point1: LinkPoint, point2: LinkPoint, style: Style): Style {
     return getTickStyle(pointToCoords(point1), pointToCoords(point2), 6, 'start', style);
 }
 
@@ -326,8 +330,8 @@ function createAlignmentFeatures(
     lineUnselectedStyle: Style,
     pointSelectedStyle: Style,
     pointSelectedLargeStyle: Style,
-    lineSelectedStyle: Style,
-    lineSelectedHighlightedStyle: Style,
+    alignmentSelectedStyle: Style,
+    alignmentHighlightedStyle: Style,
 ): Feature<Point | LineString>[] {
     const selectedInterval = linkInterval;
     const selectedIntervalStart = selectedInterval.start?.m;
@@ -377,15 +381,11 @@ function createAlignmentFeatures(
         ...createPointLineFeatures(
             highlightedPoints,
             clusterPoints,
-            lineSelectedHighlightedStyle,
+            alignmentHighlightedStyle,
             (point, controlPoint) =>
                 nonEmptyArray(
                     showAllLinkingPoints ? pointSelectedStyle : undefined,
-                    getStyleForSegmentTicksIfNeeded(
-                        point,
-                        controlPoint,
-                        lineSelectedHighlightedStyle,
-                    ),
+                    getStyleForSegmentTicksIfNeeded(point, controlPoint, alignmentHighlightedStyle),
                 ),
             isGeometryAlignment,
         ),
@@ -393,16 +393,12 @@ function createAlignmentFeatures(
         ...createPointLineFeatures(
             selectedPoints,
             clusterPoints,
-            lineSelectedStyle,
+            alignmentSelectedStyle,
             (point, controlPoint, isEndPoint) => {
                 const pointStyle = isEndPoint ? pointSelectedLargeStyle : pointSelectedStyle;
                 return nonEmptyArray(
                     showAllLinkingPoints ? pointStyle : undefined,
-                    getStyleForSegmentTicksIfNeeded(
-                        point,
-                        controlPoint,
-                        lineSelectedHighlightedStyle,
-                    ),
+                    getStyleForSegmentTicksIfNeeded(point, controlPoint, alignmentHighlightedStyle),
                 );
             },
             isGeometryAlignment,
@@ -431,10 +427,7 @@ function overlappingPoint(
         };
 }
 
-function createConnectingLineFeature(
-    start: LinkPoint,
-    end: LinkPoint,
-): Feature<Point | LineString> {
+function createConnectingLineFeature(start: LinkPoint, end: LinkPoint): Feature<LineString> {
     const linePoints = [start, end].map(pointToCoords);
     const lineString = new LineString(linePoints);
     const feature = new Feature({ geometry: lineString });
@@ -633,8 +626,10 @@ export function createLinkingLayer(
                     linkingState.geometryAlignmentInterval.end,
                 ].filter(filterNotEmpty),
             )
-                .then((points) =>
-                    createAlignmentFeatures(
+                .then((points) => {
+                    if (layerId !== newestLayerId) return;
+
+                    const features = createAlignmentFeatures(
                         points,
                         selection.highlightedItems.geometryLinkPoints[0],
                         [],
@@ -647,10 +642,7 @@ export function createLinkingLayer(
                         geometryPointSelectedLargeStyle,
                         geometryAlignmentSelectedStyle,
                         geometryAlignmentHighlightedStyle,
-                    ),
-                )
-                .then((features) => {
-                    if (layerId !== newestLayerId) return;
+                    );
 
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);
@@ -683,7 +675,9 @@ export function createLinkingLayer(
 
             Promise.all([layoutPointsPromise, geometryPointsPromise])
                 .then(([layoutPoints, geometryPoints]) => {
-                    return createLinkingGeometryWithAlignmentFeatures(
+                    if (layerId !== newestLayerId) return;
+
+                    const features = createLinkingGeometryWithAlignmentFeatures(
                         selection,
                         linkingState.layoutAlignmentInterval,
                         linkingState.geometryAlignmentInterval,
@@ -691,9 +685,6 @@ export function createLinkingLayer(
                         layoutPoints,
                         geometryPoints,
                     );
-                })
-                .then((features) => {
-                    if (layerId !== newestLayerId) return;
 
                     clearFeatures(vectorSource);
                     vectorSource.addFeatures(features);

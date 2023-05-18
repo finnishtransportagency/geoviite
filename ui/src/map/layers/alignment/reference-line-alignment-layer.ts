@@ -7,7 +7,7 @@ import { PublishType } from 'common/common-model';
 import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import OlView from 'ol/View';
-import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import {
     clearFeatures,
     getMatchingAlignmentData,
@@ -36,7 +36,10 @@ export function createReferenceLineAlignmentLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const shownItemsSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
+    const shownItemsSearchFunction = (
+        hitArea: Polygon,
+        options: SearchItemsOptions,
+    ): LayerItemSearchResult => {
         const matchOptions: MatchOptions = {
             strategy: options.limit == 1 ? 'nearest' : 'limit',
             limit: undefined,
@@ -54,13 +57,12 @@ export function createReferenceLineAlignmentLayer(
 
         return {
             trackNumbers: trackNumberIds,
-            referenceLines: referenceLines.map((a) => a.id),
         };
     };
 
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
         .then((referenceLines) => {
-            if (layerId != newestLayerId) return;
+            if (layerId !== newestLayerId) return;
 
             const features = createAlignmentFeatures(
                 referenceLines,

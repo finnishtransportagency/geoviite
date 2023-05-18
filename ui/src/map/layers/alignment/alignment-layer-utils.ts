@@ -89,7 +89,7 @@ export function createAlignmentFeatures(
         const alignmentFeature = new Feature({ geometry: lineString });
         features.push(alignmentFeature);
 
-        const styles = [];
+        const styles: Style[] = [];
         const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
 
         if (selected || isLinking) {

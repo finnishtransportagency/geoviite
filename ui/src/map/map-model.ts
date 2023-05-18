@@ -71,13 +71,13 @@ export type ShownItems = {
     switches: LayoutSwitchId[];
 };
 
-export type MapLayerSetting = {
-    name: MapLayerSettingName;
+export type MapLayerMenuItem = {
+    name: MapLayerMenuItemName;
     visible: boolean;
-    subSettings?: MapLayerSetting[];
+    subMenu?: MapLayerMenuItem[];
 };
 
-export type MapLayerSettingName =
+export type MapLayerMenuItemName =
     | 'map'
     | 'location-track'
     | 'reference-line'
@@ -95,12 +95,12 @@ export type MapLayerSettingName =
     | 'debug';
 
 export type Map = {
-    settingsMenu: {
-        layout: MapLayerSetting[];
-        geometry: MapLayerSetting[];
-        debug: MapLayerSetting[];
+    layerMenu: {
+        layout: MapLayerMenuItem[];
+        geometry: MapLayerMenuItem[];
+        debug: MapLayerMenuItem[];
     };
-    layers: MapLayerName[];
+    visibleLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
     hoveredLocation: Point | null;

@@ -71,7 +71,7 @@ function createFeature(
         ({ geometryItem }) => geometryItem.id == alignment.header.id,
     );
 
-    const styles = [];
+    const styles: Style[] = [];
 
     const lineString = new LineString(alignment.points.map(pointToCoords));
     const feature = new Feature({ geometry: lineString });
@@ -134,9 +134,7 @@ async function getPlanLayoutAlignmentsWithLinking(
     return (
         planLayoutWithGeometry.alignments
             // Include alignments from original layout only
-            .filter(({ header: h1 }) =>
-                planLayout.alignments.some(({ header: h2 }) => h1.id === h2.id),
-            )
+            .filter((a1) => planLayout.alignments.some((a2) => a1.header.id === a2.header.id))
             .map((alignment) => {
                 const points = alignment.polyLine?.points || [];
                 return {
@@ -185,7 +183,7 @@ export function createGeometryAlignmentLayer(
         }),
     )
         .then((f) => {
-            if (layerId == newestLayerId) {
+            if (layerId === newestLayerId) {
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(f.flat());
             }

@@ -52,7 +52,7 @@ export function createMissingLocationTrackProfileHighlightLayer(
 
         Promise.all([locationTracksPromise, profilePromise])
             .then(([locationTracks, sections]) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = createHighlightFeatures(
                     locationTracks,

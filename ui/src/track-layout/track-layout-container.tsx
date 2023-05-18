@@ -27,7 +27,7 @@ export const TrackLayoutContainer: React.FC = () => {
             onSetGeometryClusterLinkPoint={delegates.setGeometryClusterLinkPoint}
             onRemoveGeometryLinkPoint={delegates.removeGeometryLinkPoint}
             onRemoveLayoutLinkPoint={delegates.removeLayoutLinkPoint}
-            onLayerSettingsChange={delegates.onSettingsChange}
+            onLayerMenuItemChange={delegates.onLayerMenuItemChange}
             changeTimes={changeTimes}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}

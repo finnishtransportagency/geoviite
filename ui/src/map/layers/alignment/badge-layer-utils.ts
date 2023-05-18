@@ -19,7 +19,7 @@ type MapAlignmentBadgePoint = {
     nextPoint: number[];
 };
 
-enum BadgeColor {
+enum AlignmentBadgeColor {
     LIGHT,
     DARK,
 }
@@ -27,7 +27,7 @@ enum BadgeColor {
 function createBadgeFeatures(
     name: string,
     points: MapAlignmentBadgePoint[],
-    color: BadgeColor,
+    color: AlignmentBadgeColor,
     contrast: boolean,
 ): Feature<Point>[] {
     const badgeStyle = getBadgeStyle(color, contrast);
@@ -67,7 +67,7 @@ function createBadgeFeatures(
                         ctx.fill();
 
                         //Won't work with LIGHT badge color, but for now only reference lines have pointy badge
-                        if (color === BadgeColor.DARK) {
+                        if (color === AlignmentBadgeColor.DARK) {
                             ctx.beginPath();
 
                             const offsetDirection = badgeRotation.drawFromEnd ? -1 : 1;
@@ -103,14 +103,14 @@ function createBadgeFeatures(
     });
 }
 
-function getBadgeStyle(badgeColor: BadgeColor, contrast: boolean) {
+function getBadgeStyle(badgeColor: AlignmentBadgeColor, contrast: boolean) {
     let color = mapStyles['alignmentBadgeWhiteTextColor'];
     let background = mapStyles['alignmentBadge'];
     let backgroundBorder: string | undefined;
 
     if (contrast) {
         background = mapStyles['alignmentBadgeBlue'];
-    } else if (badgeColor === BadgeColor.LIGHT) {
+    } else if (badgeColor === AlignmentBadgeColor.LIGHT) {
         color = mapStyles['alignmentBadgeTextColor'];
         background = mapStyles['alignmentBadgeWhite'];
         backgroundBorder = mapStyles['alignmentBadgeBorder'];
@@ -196,7 +196,7 @@ export function createAlignmentBadgeFeatures(
                 ? alignment.trackNumber.number
                 : alignment.header.name,
             badgePoints,
-            isReferenceLine ? BadgeColor.DARK : BadgeColor.LIGHT,
+            isReferenceLine ? AlignmentBadgeColor.DARK : AlignmentBadgeColor.LIGHT,
             selected || isLinking || highlighted,
         );
     });

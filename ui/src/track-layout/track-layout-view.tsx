@@ -1,6 +1,6 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { MapContext, MapLayerSettingChange } from 'map/map-store';
+import { MapContext, MapLayerMenuChange } from 'map/map-store';
 import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
 import MapView from 'map/map-view';
 import {
@@ -18,7 +18,7 @@ import { BoundingBox } from 'model/geometry';
 import { PublishType } from 'common/common-model';
 import { LinkingState, LinkPoint } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
-import { MapLayerSettingsMenu } from 'map/settings-menu/map-layer-menu';
+import { MapLayerMenu } from 'map/settings-menu/map-layer-menu';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
@@ -39,7 +39,7 @@ export type TrackLayoutViewProps = {
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
-    onLayerSettingsChange: (change: MapLayerSettingChange) => void;
+    onLayerMenuItemChange: (change: MapLayerMenuChange) => void;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
 };
@@ -93,8 +93,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
                 <div className={styles['track-layout__map']}>
                     {mapSettingsVisible && (
                         <div className={styles['track-layout__map-settings']}>
-                            <MapLayerSettingsMenu
-                                onSettingChange={props.onLayerSettingsChange}
+                            <MapLayerMenu
+                                onMenuChange={props.onLayerMenuItemChange}
                                 onClose={() => setMapSettingsVisible(false)}
                                 map={props.map}
                             />

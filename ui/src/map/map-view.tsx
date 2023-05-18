@@ -52,7 +52,7 @@ import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { filterNotEmpty } from 'utils/array-utils';
-import { layerZIndexes } from 'map/layers/utils/layer-visibility-limits';
+import { mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
 import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/location-track-background-layer';
@@ -138,10 +138,10 @@ const MapView: React.FC<MapViewProps> = ({
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
-    const [activeLayers, setActiveLayers] = React.useState<MapLayer[]>([]);
+    const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
 
-    const mapLayers = [...map.layers].sort().join();
+    const mapLayers = [...map.visibleLayers].sort().join();
 
     const handleClusterPointClick = (clickType: string) => {
         const clusterPoint = selection.selectedItems.clusterPoints[0];
@@ -246,10 +246,10 @@ const MapView: React.FC<MapViewProps> = ({
             // Get items from whole visible map
             const area = olMap.getView().calculateExtent();
             const pol = fromExtent(area);
-            const items = searchShownItemsFromLayers(pol, activeLayers, {});
+            const items = searchShownItemsFromLayers(pol, visibleLayers, {});
             props.onShownLayerItemsChange(items);
         }
-    }, [olMap, map.viewport, activeLayers]);
+    }, [olMap, map.viewport, visibleLayers]);
 
     // Convert layer domain models into OpenLayers layers
     React.useEffect(() => {
@@ -259,14 +259,14 @@ const MapView: React.FC<MapViewProps> = ({
         const resolution = olView.getResolution() || 0;
 
         // Create OpenLayers objects by domain layers
-        const newLayers = map.layers
+        const updatedLayers = map.visibleLayers
             .map((layerName) => {
                 const mapTiles = calculateMapTiles(olView, undefined);
 
                 // Step 2. create the layer
                 // In some cases an adapter wants to reuse existing OL layer,
                 // e.g. tile layers cause flickering if recreated every time
-                const existingOlLayer = activeLayers.find((l) => l.name === layerName)?.layer;
+                const existingOlLayer = visibleLayers.find((l) => l.name === layerName)?.layer;
 
                 switch (layerName) {
                     case 'background-map-layer':
@@ -322,7 +322,6 @@ const MapView: React.FC<MapViewProps> = ({
                         return createLocationTrackBackgroundLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            selection,
                             publishType,
                             changeTimes,
                             resolution,
@@ -442,18 +441,18 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'debug-layer':
                         return createDebugLayer(
-                            existingOlLayer as VectorLayer<VectorSource<OlPoint | Polygon>>,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                         );
                 }
             })
             .filter(filterNotEmpty);
 
-        newLayers.forEach((l) => l.layer.setZIndex(layerZIndexes[l.name]));
+        updatedLayers.forEach((l) => l.layer.setZIndex(mapLayerZIndexes[l.name]));
 
-        setActiveLayers(newLayers);
+        setVisibleLayers(updatedLayers);
 
         // Set converted layers into map object
-        const olLayers = newLayers.map((l) => l.layer);
+        const olLayers = updatedLayers.map((l) => l.layer);
         olMap.setLayers(olLayers);
     }, [olMap, map.viewport, mapLayers, selection, changeTimes, publishType, linkingState]);
 
@@ -469,14 +468,16 @@ const MapView: React.FC<MapViewProps> = ({
         };
 
         const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, activeLayers, toolActivateOptions),
+            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
         ];
 
         if (!measurementToolActive) {
-            deactivateCallbacks.push(selectTool.activate(olMap, activeLayers, toolActivateOptions));
+            deactivateCallbacks.push(
+                selectTool.activate(olMap, visibleLayers, toolActivateOptions),
+            );
 
             deactivateCallbacks.push(
-                highlightTool.activate(olMap, activeLayers, toolActivateOptions),
+                highlightTool.activate(olMap, visibleLayers, toolActivateOptions),
             );
         }
 
@@ -484,7 +485,7 @@ const MapView: React.FC<MapViewProps> = ({
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [olMap, activeLayers, measurementToolActive]);
+    }, [olMap, visibleLayers, measurementToolActive]);
 
     React.useEffect(() => {
         if (measurementToolActive && olMap) {

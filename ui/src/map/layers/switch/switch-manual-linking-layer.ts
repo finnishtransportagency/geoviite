@@ -61,15 +61,14 @@ export function createManualSwitchLinkingLayer(
 
         locationTrackEndpointsPromise
             .then((locationTrackEndPoints) => {
-                return locationTrackEndPoints.flatMap((e) =>
+                // Handle latest fetch only
+                if (layerId !== newestLayerId) return;
+
+                const features = locationTrackEndPoints.flatMap((e) =>
                     createLocationTrackEndpointFeatures(e, false),
                 );
-            })
-            .then((features) => {
-                // Handle latest fetch only
-                if (layerId === newestLayerId) {
-                    updateFeatures(features);
-                }
+
+                updateFeatures(features);
             })
             .catch(() => clearFeatures(vectorSource));
     } else {

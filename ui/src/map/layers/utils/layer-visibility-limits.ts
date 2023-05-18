@@ -6,7 +6,7 @@ export const DEBUG_1M_POINTS = 0.06;
 
 export const HIGHLIGHTS_SHOW = 100.0;
 
-export const layerZIndexes = [
+export const mapLayerZIndexes = [
     'background-map-layer',
     'location-track-background-layer',
     'reference-line-background-layer',

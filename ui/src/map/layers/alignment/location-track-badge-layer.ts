@@ -32,18 +32,11 @@ export function createLocationTrackBadgeLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     if (resolution <= Limits.SHOW_LOCATION_TRACK_BADGES) {
-        const selectedAlignment = selection.selectedItems?.locationTracks[0];
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
 
-        getMapAlignmentsByTiles(
-            changeTimes,
-            mapTiles,
-            publishType,
-            'LOCATION_TRACKS',
-            selectedAlignment,
-        )
+        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((alignments) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = createAlignmentBadgeFeatures(
                     alignments,

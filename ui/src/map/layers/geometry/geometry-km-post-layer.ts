@@ -41,6 +41,8 @@ export function createGeometryKmPostLayer(
 
         Promise.all(planStatusPromises)
             .then((planStatuses) => {
+                if (layerId !== newestLayerId) return;
+
                 const features = planStatuses.flatMap(({ plan, status }) => {
                     const kmPosts = plan.kmPosts.filter(
                         ({ kmNumber }) => Number.parseInt(kmNumber) % step === 0,
@@ -66,10 +68,8 @@ export function createGeometryKmPostLayer(
                     );
                 });
 
-                if (layerId === newestLayerId) {
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                }
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
             })
             .catch(() => clearFeatures(vectorSource));
     } else {

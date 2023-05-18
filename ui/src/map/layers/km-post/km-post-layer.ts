@@ -8,7 +8,7 @@ import { MapTile, OptionalShownItems } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
-import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { clearFeatures, getMatchingKmPosts } from 'map/layers/utils/layer-utils';
 import { fromExtent } from 'ol/geom/Polygon';
 import { PublishType } from 'common/common-model';
@@ -43,7 +43,10 @@ export function createKmPostLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource, style: null });
 
-    const searchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
+    const searchFunction = (
+        hitArea: Polygon,
+        options: SearchItemsOptions,
+    ): LayerItemSearchResult => {
         const kmPosts = getMatchingKmPosts(
             hitArea,
             vectorSource.getFeaturesInExtent(hitArea.getExtent()),
@@ -87,20 +90,20 @@ export function createKmPostLayer(
         getKmPostsFromApi(step)
             .then((kmPosts) => {
                 // Handle latest fetch only
-                if (layerId == newestLayerId) {
-                    const isSelected = (kmPost: LayoutKmPost) => {
-                        return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
-                    };
+                if (layerId !== newestLayerId) return;
 
-                    const features = createKmPostFeatures(
-                        kmPosts,
-                        isSelected,
-                        'layoutKmPost',
-                        resolution,
-                    );
+                const isSelected = (kmPost: LayoutKmPost) => {
+                    return selection.selectedItems.kmPosts.some((k) => k === kmPost.id);
+                };
 
-                    updateFeatures(kmPosts, features);
-                }
+                const features = createKmPostFeatures(
+                    kmPosts,
+                    isSelected,
+                    'layoutKmPost',
+                    resolution,
+                );
+
+                updateFeatures(kmPosts, features);
             })
             .catch(() => clearFeatures(vectorSource));
     }

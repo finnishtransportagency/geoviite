@@ -5,7 +5,7 @@ import { Vector as VectorSource } from 'ol/source';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { clearFeatures, getMatchingSwitches } from 'map/layers/utils/layer-utils';
-import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
@@ -26,8 +26,8 @@ export function createGeometrySwitchLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     if (resolution <= Limits.SWITCH_SHOW) {
-        const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
-        const labels = resolution <= Limits.SWITCH_LABELS;
+        const showLargeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
+        const showLabels = resolution <= Limits.SWITCH_LABELS;
         const isSelected = (switchItem: LayoutSwitch) => {
             return selection.selectedItems.geometrySwitches.some(
                 ({ geometryItem }) => geometryItem.id === switchItem.id,
@@ -48,7 +48,7 @@ export function createGeometrySwitchLayer(
 
         Promise.all([getSwitchStructures(), ...planStatusPromises])
             .then(([switchStructures, ...planStatuses]) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = planStatuses.flatMap(({ status, plan }) => {
                     const switchLinkedStatus = status
@@ -69,8 +69,8 @@ export function createGeometrySwitchLayer(
                         isSelected,
                         isHighlighted,
                         isSwitchLinked,
-                        largeSymbols,
-                        labels,
+                        showLargeSymbols,
+                        showLabels,
                         plan.planId,
                         switchStructures,
                     );
@@ -89,7 +89,7 @@ export function createGeometrySwitchLayer(
     return {
         name: 'geometry-switch-layer',
         layer: layer,
-        searchItems: (hitArea: OlPolygon, options: SearchItemsOptions) => {
+        searchItems: (hitArea: OlPolygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const geometrySwitches = getMatchingSwitches(
                 hitArea,
                 vectorSource.getFeaturesInExtent(hitArea.getExtent()),

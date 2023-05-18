@@ -63,11 +63,10 @@ export function createPlanAreaLayer(
     );
 
     Promise.all(planAreaPromises)
-        .then((planAreas) =>
-            deduplicatePlanAreas(planAreas.flat()).flatMap((planArea) => createFeature(planArea)),
-        )
-        .then((features) => {
+        .then((planAreas) => deduplicatePlanAreas(planAreas.flat()))
+        .then((planAreas) => {
             if (layerId === newestLayerId) {
+                const features = planAreas.flatMap((planArea) => createFeature(planArea));
                 updateFeatures(features);
             }
         })

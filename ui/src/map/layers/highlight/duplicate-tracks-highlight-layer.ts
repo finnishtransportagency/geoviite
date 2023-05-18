@@ -49,7 +49,7 @@ export function createDuplicateTrackHighlightLayer(
     if (resolution <= HIGHLIGHTS_SHOW) {
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((locationTracks) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = createHighlightFeatures(locationTracks);
 

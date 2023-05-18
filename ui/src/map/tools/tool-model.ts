@@ -7,7 +7,7 @@ import {
 } from 'selection/selection-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 
-export type DeactiveToolFun = () => void;
+export type DeactivateToolFn = () => void;
 
 export type MapToolActivateOptions = {
     onSelect: OnSelectFunction;
@@ -21,5 +21,5 @@ export type MapTool = {
         map: OlMap,
         layers?: MapLayer[],
         options?: MapToolActivateOptions,
-    ) => DeactiveToolFun;
+    ) => DeactivateToolFn;
 };

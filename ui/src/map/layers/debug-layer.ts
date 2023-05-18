@@ -1,5 +1,4 @@
 import Feature from 'ol/Feature';
-import { Polygon } from 'ol/geom';
 import OlPoint from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
@@ -32,12 +31,11 @@ globalThis.setDebugLayerData = (data: DebugLayerPoint[]) => {
     }
 };
 
-function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint | Polygon>[] {
+function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
     return points
         .flatMap((point) => {
-            let feature;
             if (point.type == 'point') {
-                feature = new Feature({
+                const feature = new Feature({
                     geometry: new OlPoint(pointToCoords(point)),
                 });
 
@@ -61,20 +59,20 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint | Polyg
                             : undefined,
                     }),
                 );
-            }
 
-            return feature;
+                return feature;
+            }
         })
         .filter(filterNotEmpty);
 }
 
 export function createDebugLayer(
-    existingOlLayer: VectorLayer<VectorSource<OlPoint | Polygon>> | undefined,
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
 ): MapLayer {
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    function updateFeatures(features: Feature<OlPoint | Polygon>[]) {
+    function updateFeatures(features: Feature<OlPoint>[]) {
         clearFeatures(vectorSource);
         vectorSource.addFeatures(features);
     }

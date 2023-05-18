@@ -30,12 +30,11 @@ export function createReferenceLineBadgeLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
-
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
         .then((referenceLines) => {
-            if (layerId != newestLayerId) return;
+            if (layerId !== newestLayerId) return;
 
+            const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
             const features = createAlignmentBadgeFeatures(
                 referenceLines,
                 selection,

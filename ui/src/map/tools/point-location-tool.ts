@@ -4,12 +4,12 @@ import { debounce } from 'ts-debounce';
 import { MapLayer } from 'map/layers/utils/layer-model';
 
 export const pointLocationTool: MapTool = {
-    activate: (map: OlMap, _layers: MapLayer[], options: MapToolActivateOptions) => {
+    activate: (map: OlMap, _: MapLayer[], options: MapToolActivateOptions) => {
         const debouncedMoveHandlerPointLocation = debounce(
-            (e) => {
+            ({ coordinate }) => {
                 options.onHoverLocation({
-                    x: e.coordinate[0],
-                    y: e.coordinate[1],
+                    x: coordinate[0],
+                    y: coordinate[1],
                 });
             },
             10,

@@ -49,7 +49,7 @@ export function createMissingLinkingHighlightLayer(
 
         Promise.all([alignmentPromise, linkingStatusPromise])
             .then(([alignments, sections]) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = createHighlightFeatures(
                     alignments,

@@ -69,10 +69,10 @@ export function createSwitchLayer(
     if (resolution <= Limits.SWITCH_SHOW) {
         Promise.all([getSwitchesFromApi(), getSwitchStructures()])
             .then(([switches, switchStructures]) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
-                const labels = resolution <= Limits.SWITCH_LABELS;
+                const showLabels = resolution <= Limits.SWITCH_LABELS;
                 const isSelected = (switchItem: LayoutSwitch) => {
                     return selection.selectedItems.switches.some((s) => s === switchItem.id);
                 };
@@ -87,7 +87,7 @@ export function createSwitchLayer(
                     isHighlighted,
                     () => false,
                     largeSymbols,
-                    labels,
+                    showLabels,
                     undefined,
                     switchStructures,
                 );
