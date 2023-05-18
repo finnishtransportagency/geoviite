@@ -4,12 +4,12 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Selection } from 'selection/selection-model';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
-import { getMatchingKmPosts } from 'map/layers/layer-utils';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { getMatchingKmPosts } from 'map/layers/utils/layer-utils';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { PublishType } from 'common/common-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
-import { createKmPostFeature, getKmPostStepByResolution } from './km-post-layer-utils';
+import { createKmPostFeature, getKmPostStepByResolution } from '../km-post/km-post-layer-utils';
 
 let newestGeometryKmPostLayerId = 0;
 

@@ -5,7 +5,7 @@ import {
     OnHoverLocationFunction,
     OnSelectFunction,
 } from 'selection/selection-model';
-import { MapLayer } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 
 export type DeactiveToolFun = () => void;
 

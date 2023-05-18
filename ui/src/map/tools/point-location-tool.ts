@@ -1,7 +1,7 @@
 import OlMap from 'ol/Map';
 import { MapTool, MapToolActivateOptions } from './tool-model';
 import { debounce } from 'ts-debounce';
-import { MapLayer } from 'map/layers/layer-model';
+import { MapLayer } from 'map/layers/utils/layer-model';
 
 export const pointLocationTool: MapTool = {
     activate: (map: OlMap, _layers: MapLayer[], options: MapToolActivateOptions) => {

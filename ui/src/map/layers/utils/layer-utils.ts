@@ -12,10 +12,10 @@ import {
 import * as turf from '@turf/turf';
 import { OptionalItemCollections } from 'selection/selection-model';
 import { FEATURE_PROPERTY_LINK_POINT, FEATURE_PROPERTY_TYPE } from 'map/layers/linking-layer';
-import { LayerItemSearchResult } from 'map/layers/layer-model';
+import { LayerItemSearchResult } from 'map/layers/utils/layer-model';
 import { LinkPoint, LinkPointType, SuggestedSwitch } from 'linking/linking-model';
 import proj4 from 'proj4';
-import { FEATURE_PROPERTY_SUGGESTED_SWITCH } from 'map/layers/switch-linking-layer';
+import { FEATURE_PROPERTY_SUGGESTED_SWITCH } from 'map/layers/switch/switch-linking-layer';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { OptionalShownItems } from 'map/map-model';
 import { Extent, getBottomRight, getTopLeft } from 'ol/extent';
@@ -31,6 +31,7 @@ import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-ap
 import { interpolateXY } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { register } from 'ol/proj/proj4';
+import VectorSource from 'ol/source/Vector';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -218,26 +219,6 @@ function sortMatchesByDistance<TEntity>(
         .sort((a, b) => (a.distance < b.distance ? -1 : 1));
 }
 
-export function addBbox(feature: Feature<Polygon | LineString>): void {
-    const geom = feature.getGeometry();
-    let points = null;
-    if (geom instanceof Polygon) points = geom.getCoordinates().flat();
-    if (geom instanceof LineString) points = geom.getCoordinates();
-    if (points && points.length >= 2) {
-        const turfLine = turf.lineString(toWgs84Multi(points));
-        feature.set('bboxTurfPolygon', turf.bboxPolygon(turf.bbox(turfLine)).geometry);
-    }
-}
-
-function hasBoundsMatch(turfPolyShape: turf.Feature, feature: Feature<Geometry>): boolean {
-    const featBounds = feature.get('bboxTurfPolygon') as turf.Polygon;
-    if (featBounds) {
-        return !turf.booleanDisjoint(featBounds, turfPolyShape);
-    } else {
-        return true;
-    }
-}
-
 function hasAccurateMatch(shape: Polygon, feature: Feature<Geometry>): boolean {
     const geom = feature.getGeometry();
     return geom !== undefined && hasCollision(shape, geom);
@@ -251,7 +232,6 @@ function findEntities<TVal>(
 ): TVal[] {
     const match: { [key: string]: { feature: Feature<Geometry>; entity: TVal } } = {};
     let itemCount = 0;
-    const turfPolyShape = turf.polygon(toWgs84Polygon(shape.getCoordinates()));
     // Use "some" instead of "forEach" to stop iteration when needed (e.g. enough hits)
     features.some((feature) => {
         let continueSearching = true;
@@ -259,12 +239,7 @@ function findEntities<TVal>(
         const entityInfo = getEntity(feature);
         if (entityInfo) {
             const [id, entity] = entityInfo;
-            if (
-                entity &&
-                !match[id] &&
-                hasBoundsMatch(turfPolyShape, feature) &&
-                hasAccurateMatch(shape, feature)
-            ) {
+            if (entity && !match[id] && hasAccurateMatch(shape, feature)) {
                 // New match found
                 match[id] = {
                     feature: feature,
@@ -422,6 +397,8 @@ export function getMatchingEntities<T extends { id: string }>(
         options,
     );
 }
+
+export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();
 
 const tickImageCache = new Map<string, RegularShape>();
 

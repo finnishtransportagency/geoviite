@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Map, MapLayerSetting } from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
-import styles from './map-layer-settings.scss';
+import styles from './map-layer-menu.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';

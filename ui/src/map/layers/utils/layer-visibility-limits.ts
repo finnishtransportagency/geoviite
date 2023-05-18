@@ -1,8 +1,10 @@
-import { MapLayerName } from "map/map-model";
+import { MapLayerName } from 'map/map-model';
 // Alignments
 export const ALL_ALIGNMENTS = 10.0;
 export const LINKING_DOTS = 0.19;
 export const DEBUG_1M_POINTS = 0.06;
+
+export const HIGHLIGHTS_SHOW = 100.0;
 
 export const layerZIndexes: Record<MapLayerName, number> = {
     'background-map-layer': 0,
@@ -11,7 +13,7 @@ export const layerZIndexes: Record<MapLayerName, number> = {
     'track-number-diagram-layer': 3,
     'location-track-alignment-layer': 4,
     'reference-line-alignment-layer': 5,
-    'missing-vertical-geometry-highlight-layer': 6,
+    'missing-profile-highlight-layer': 6,
     'missing-linking-highlight-layer': 7,
     'duplicate-tracks-highlight-layer': 8,
     'location-track-badge-layer': 9,
@@ -34,7 +36,8 @@ export const GEOMETRY_TICKS = 5.0;
 
 // Track numbers
 export const SHOW_LOCATION_TRACK_BADGES = 0.4;
-const BADGE_DRAW_DISTANCES = [
+
+export const BADGE_DRAW_DISTANCES = [
     [0.1, 20],
     [0.15, 40],
     [0.25, 80],
@@ -46,11 +49,6 @@ const BADGE_DRAW_DISTANCES = [
     [16, 5120],
     [24, 10240],
 ];
-
-export function getBadgeDrawDistance(resolution: number): number | null {
-    const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < d[0]);
-    return distance ? distance[1] : null;
-}
 
 // Switches
 export const SWITCH_SHOW = 3.2;

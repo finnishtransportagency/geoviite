@@ -3,6 +3,7 @@ import { AlignmentHighlight, MapTile } from 'map/map-model';
 import {
     AlignmentId,
     combineLayoutPoints,
+    LayoutPoint,
     LayoutState,
     LayoutTrackNumber,
     LayoutTrackNumberId,
@@ -10,10 +11,11 @@ import {
     LocationTrackType,
     MapAlignmentSource,
     MapAlignmentType,
+    ReferenceLineId,
 } from './track-layout-model';
 import { API_URI, getWithDefault, queryParams } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
-import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/layer-visibility-limits';
+import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
 import { PublishType, RowVersion, TimeStamp, TrackMeter } from 'common/common-model';
 import { LinkInterval, LinkPoint } from 'linking/linking-model';
@@ -22,8 +24,6 @@ import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { createLinkPoints, layoutPointToLinkPoint } from 'linking/linking-store';
-import { ReferenceLineId } from './track-layout-model';
-import { LayoutPoint } from './track-layout-model';
 import { deduplicate, filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getTrackNumbers } from './layout-track-number-api';

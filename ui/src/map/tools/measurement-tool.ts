@@ -12,7 +12,7 @@ import {
     getAlignmentData,
     getPlanarDistanceUnwrapped,
     pointToCoords,
-} from 'map/layers/layer-utils';
+} from 'map/layers/utils/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutPoint } from 'track-layout/track-layout-model';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';

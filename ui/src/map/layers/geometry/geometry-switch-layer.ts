@@ -4,14 +4,14 @@ import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
 import { Selection } from 'selection/selection-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
-import { getMatchingSwitches } from 'map/layers/layer-utils';
-import { MapLayer, SearchItemsOptions } from 'map/layers/layer-model';
-import * as Limits from 'map/layers/layer-visibility-limits';
+import { getMatchingSwitches } from 'map/layers/utils/layer-utils';
+import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { getSwitchStructures } from 'common/common-api';
-import { createFeatures } from 'map/layers/switch-layer-utils';
+import { createFeatures } from 'map/layers/switch/switch-layer-utils';
 
 let newestGeometrySwitchLayerId = 0;
 export function createGeometrySwitchLayer(

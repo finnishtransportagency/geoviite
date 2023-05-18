@@ -8,8 +8,8 @@ import { MapTile } from 'map/map-model';
 import { PlanArea } from 'track-layout/track-layout-model';
 import { getPlanAreasByTile } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
-import { pointToCoords } from 'map/layers/layer-utils';
-import { MapLayer } from 'map/layers/layer-model';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { MapLayer } from 'map/layers/utils/layer-model';
 
 function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];
