@@ -47,7 +47,7 @@ class GeometryServiceIT @Autowired constructor(
                 segment(yRangeToSegmentPoints(15..17), sourceId = p1.alignments[0].elements[0].id, sourceStart = 0.0),
             )
         ).id
-        val heights = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
+        val kmHeights = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
         // this track is exactly straight on the reference line, so m-values and track meters coincide perfectly; also,
         // the profile is at exactly 50 meters height at every point where it's linked
         val expected = listOf(
@@ -63,18 +63,19 @@ class GeometryServiceIT @Autowired constructor(
             13 to 50,
             15 to 50,
             17 to 50
-        ).map { (m, h) -> TrackMeterHeight(m.toDouble(), m.toDouble(), h?.toDouble()) }
-        assertEquals(expected, heights.kmHeights[0].trackMeterHeights)
+        ).map { (m, h) -> TrackMeterHeight(m.toDouble(), m.toDouble(), h?.toDouble(), Point(0.0, m.toDouble())) }
+        assertEquals(expected, kmHeights[0].trackMeterHeights)
+        val linkingSummary = geometryService.getLocationTrackGeometryLinkingSummary(locationTrackId, PublishType.DRAFT)!!
         assertEquals(
             listOf(
-                PlanLinkingSummaryItem(0.0, 6.0, FileName("plan1.xml")),
-                PlanLinkingSummaryItem(6.0, 10.0, null),
-                PlanLinkingSummaryItem(10.0, 12.0, FileName("plan2.xml")),
-                PlanLinkingSummaryItem(12.0, 13.0, null),
-                PlanLinkingSummaryItem(13.0, 15.0, FileName("plan3.xml")),
-                PlanLinkingSummaryItem(15.0, 17.0, FileName("plan1.xml")),
+                Triple(0.0, 6.0, FileName("plan1.xml")),
+                Triple(6.0, 10.0, null),
+                Triple(10.0, 12.0, FileName("plan2.xml")),
+                Triple(12.0, 13.0, null),
+                Triple(13.0, 15.0, FileName("plan3.xml")),
+                Triple(15.0, 17.0, FileName("plan1.xml")),
             ),
-            heights.linkingSummary
+            linkingSummary.map { item -> Triple(item.startM, item.endM, item.filename) }
         )
     }
 

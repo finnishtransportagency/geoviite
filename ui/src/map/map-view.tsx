@@ -39,6 +39,7 @@ import { createTrackNumberDiagramLayer } from 'map/layers/highlight/track-number
 import { LineString, Point as OlPoint } from 'ol/geom';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import useResizeObserver from 'use-resize-observer';
 import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
 import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
@@ -174,9 +175,7 @@ const MapView: React.FC<MapViewProps> = ({
         }
     };
 
-    React.useEffect(() => {
-        olMap?.updateSize();
-    }, [olMapContainer.current?.clientWidth]);
+    useResizeObserver({ onResize: () => olMap?.updateSize() });
 
     // Initialize OpenLayers map. Do this only once, in subsequent
     // renders we just want to update OpenLayers layers. In this way map

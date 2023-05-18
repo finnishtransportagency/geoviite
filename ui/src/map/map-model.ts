@@ -123,6 +123,7 @@ export type Map = {
     shownItems: ShownItems;
     hoveredLocation: Point | null;
     clickLocation: Point | null;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 export type MapTile = {

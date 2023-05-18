@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
@@ -245,6 +247,7 @@ data class TrackNumberPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val boundingBox: BoundingBox?,
 ) : PublishCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
 }
@@ -258,6 +261,7 @@ data class ReferenceLinePublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation?,
+    val boundingBox: BoundingBox?,
 ) : PublishCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
 }
@@ -272,6 +276,7 @@ data class LocationTrackPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val boundingBox: BoundingBox?,
 ) : PublishCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
 }
@@ -285,6 +290,7 @@ data class SwitchPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val location: Point?,
 ) : PublishCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
 }
@@ -298,6 +304,7 @@ data class KmPostPublishCandidate(
     override val userName: UserName,
     override val errors: List<PublishValidationError> = listOf(),
     override val operation: Operation,
+    val location: Point?,
 ) : PublishCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }

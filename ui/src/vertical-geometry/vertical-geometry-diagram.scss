@@ -9,6 +9,10 @@
     }
 }
 
+.vertical-geometry-diagram__plan-link {
+    cursor: pointer;
+}
+
 .vertical-geometry-diagram__tooltip {
     background: $color-white-darker;
     color: $color-black-default;
