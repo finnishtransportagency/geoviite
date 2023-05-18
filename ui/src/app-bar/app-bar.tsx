@@ -8,6 +8,7 @@ import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
 import { useInfraModelAppSelector } from 'store/hooks';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
+import { InfraModelLink } from 'app-bar/infra-model-link';
 
 type Link = {
     link: string;
@@ -35,12 +36,13 @@ export const AppBar: React.FC = () => {
     const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
 
     function getInfraModelLink(): string {
-        if (selectedInfraModelTab === InfraModelTabType.PLAN) {
-            return '/infra-model/plans';
-        } else if (selectedInfraModelTab === InfraModelTabType.WAITING) {
-            return '/infra-model/waiting-for-approval';
-        } else {
-            return '/infra-model/rejected';
+        switch (selectedInfraModelTab) {
+            case InfraModelTabType.PLAN:
+                return '/infra-model/plans';
+            case InfraModelTabType.WAITING:
+                return '/infra-model/waiting-for-approval';
+            case InfraModelTabType.REJECTED:
+                return '/infra-model/rejected';
         }
     }
 
@@ -68,7 +70,11 @@ export const AppBar: React.FC = () => {
                                             }`
                                         }
                                         end>
-                                        {t(link.name)}
+                                        {link.link === '/infra-model' ? (
+                                            <InfraModelLink visibility={true} />
+                                        ) : (
+                                            t(link.name)
+                                        )}
                                     </NavLink>
                                 </li>
                             </EnvRestricted>
@@ -119,3 +125,4 @@ export const AppBar: React.FC = () => {
         </nav>
     );
 };
+//{t(link.name)}

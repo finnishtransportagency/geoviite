@@ -62,6 +62,11 @@ $appbar-height: 48px;
             color: $color-blue-light;
             border-bottom-color: $color-blue-light;
         }
+        &--exclamation-point {
+            position: relative;
+            top: -7px;
+            left: 7px;
+        }
     }
 
     &__data-menu-button {

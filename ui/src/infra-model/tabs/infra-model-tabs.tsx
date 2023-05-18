@@ -4,8 +4,7 @@ import InfraModelTabContent from 'infra-model/tabs/infra-model-tab-content';
 import { useCommonDataAppSelector, useInfraModelAppSelector } from 'store/hooks';
 import { InfraModelListContainer } from 'infra-model/list/infra-model-list-container';
 import { useTranslation } from 'react-i18next';
-import { createDelegates } from 'store/store-utils';
-import { infraModelActionCreators, InfraModelTabType } from 'infra-model/infra-model-slice';
+import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { VelhoFileListContainer } from 'infra-model/velho/velho-file-list';
 import styles from 'infra-model/tabs/infra-model-tabs.scss';
 
@@ -16,7 +15,6 @@ export type TabsProps = {
 const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
     const { t } = useTranslation();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
-    const delegates = createDelegates(infraModelActionCreators);
     const numberOfInfraModelFiles = useInfraModelAppSelector(
         (state) => state.infraModelList.totalCount,
     );
@@ -30,7 +28,6 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     title={t('im-form.tabs.plans', { number: numberOfInfraModelFiles })}
                     tabId={InfraModelTabType.PLAN}
                     activeTab={activeTab}
-                    setActiveTab={delegates.setInfraModelActiveTab}
                 />
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-waiting', {
@@ -38,7 +35,6 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     })}
                     tabId={InfraModelTabType.WAITING}
                     activeTab={activeTab}
-                    setActiveTab={delegates.setInfraModelActiveTab}
                 />
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-rejected', {
@@ -46,7 +42,6 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     })}
                     tabId={InfraModelTabType.REJECTED}
                     activeTab={activeTab}
-                    setActiveTab={delegates.setInfraModelActiveTab}
                 />
             </ul>
             <div className={styles['outlet']}>

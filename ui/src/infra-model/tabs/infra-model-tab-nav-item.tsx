@@ -1,34 +1,33 @@
 import React from 'react';
 import { useAppNavigate } from 'common/navigate';
-import { InfraModelTabType } from 'infra-model/infra-model-slice';
+import { infraModelActionCreators, InfraModelTabType } from 'infra-model/infra-model-slice';
 import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamation-point';
 import styles from './infra-model-tabs.scss';
+import { createDelegates } from 'store/store-utils';
 
 export type TabNavItemProps = {
     tabId: InfraModelTabType;
     title: string;
     activeTab: InfraModelTabType;
-    setActiveTab: (id: InfraModelTabType) => void;
 };
 
-const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
-    tabId,
-    title,
-    activeTab,
-    setActiveTab,
-}) => {
+const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeTab }) => {
     const navigate = useAppNavigate();
+    const delegates = createDelegates(infraModelActionCreators);
+
+    delegates.setInfraModelActiveTab(activeTab);
 
     const handleClick = () => {
-        setActiveTab(tabId);
-        if (tabId === InfraModelTabType.PLAN) {
-            return navigate('inframodel-plans');
-        } else if (tabId === InfraModelTabType.WAITING) {
-            navigate('inframodel-waiting');
-        } else if (tabId === InfraModelTabType.REJECTED) {
-            navigate('inframodel-rejected');
+        switch (tabId) {
+            case InfraModelTabType.PLAN:
+                return navigate('inframodel-plans');
+            case InfraModelTabType.WAITING:
+                return navigate('inframodel-waiting');
+            case InfraModelTabType.REJECTED:
+                return navigate('inframodel-rejected');
         }
     };
+
     //TODO exclamation point if there are rows in Velho list
     return (
         <li
