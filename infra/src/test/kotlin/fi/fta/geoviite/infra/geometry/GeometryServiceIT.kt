@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
@@ -91,24 +92,27 @@ class GeometryServiceIT @Autowired constructor(
 
     fun planWithGeometryAndHeights(trackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan = plan(
         trackNumberId,
-        LAYOUT_SRID,
-        geometryAlignment(
-            trackNumberId,
-            elements = listOf(lineFromOrigin(1.0)),
-            name = "foo",
-            profile = GeometryProfile(
-                PlanElementName("aoeu"),
-                listOf(
-                    // profile originally inspired by geometry alignment 2466 in order to make the numbers plausible;
-                    // but simplified and rounded
-                    VIPoint(PlanElementName("startpoint"), Point(0.0, 50.0)),
-                    VICircularCurve(
-                        PlanElementName("rounding"),
-                        Point(500.0, 50.0),
-                        BigDecimal(20000),
-                        BigDecimal(155),
-                    ),
-                    VIPoint(PlanElementName("endpoint"), Point(600.0, 51.0)),
+        srid = LAYOUT_SRID,
+        verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
+        alignments = listOf(
+            geometryAlignment(
+                trackNumberId,
+                elements = listOf(lineFromOrigin(1.0)),
+                name = "foo",
+                profile = GeometryProfile(
+                    PlanElementName("aoeu"),
+                    listOf(
+                        // profile originally inspired by geometry alignment 2466 in order to make the numbers plausible;
+                        // but simplified and rounded
+                        VIPoint(PlanElementName("startpoint"), Point(0.0, 50.0)),
+                        VICircularCurve(
+                            PlanElementName("rounding"),
+                            Point(500.0, 50.0),
+                            BigDecimal(20000),
+                            BigDecimal(155),
+                        ),
+                        VIPoint(PlanElementName("endpoint"), Point(600.0, 51.0)),
+                    )
                 )
             )
         ),
