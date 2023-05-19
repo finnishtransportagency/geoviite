@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './track-number-panel.scss';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { fieldComparator } from 'utils/array-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 type TrackNumberPanelProps = {
     trackNumbers: LayoutTrackNumber[];
     onSelectTrackNumber: (trackNumber: LayoutTrackNumber) => void;
-    selectedTrackNumbers: LayoutTrackNumber[];
+    selectedTrackNumbers: LayoutTrackNumberId[];
     max?: number;
 };
 
@@ -24,9 +24,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     React.useEffect(() => {
         const visibleTrackNumbers =
             trackNumbers.length > max && selectedTrackNumbers.length
-                ? trackNumbers.filter((tn) =>
-                      selectedTrackNumbers.some((stn) => stn.number == tn.number),
-                  )
+                ? trackNumbers.filter((tn) => selectedTrackNumbers.some((stn) => stn == tn.id))
                 : [...trackNumbers];
 
         setSortedTrackNumbers(visibleTrackNumbers.sort(fieldComparator((tn) => tn.number)));
@@ -37,9 +35,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
             {sortedTrackNumbers.length <= max && (
                 <ol className={styles['track-number-panel__track-numbers']}>
                     {sortedTrackNumbers.map((trackNumber) => {
-                        const isSelected = selectedTrackNumbers?.some(
-                            (selected) => selected.id == trackNumber.id,
-                        );
+                        const isSelected = selectedTrackNumbers?.some((s) => s == trackNumber.id);
                         return (
                             <li
                                 className={styles['track-number-panel__track-number']}

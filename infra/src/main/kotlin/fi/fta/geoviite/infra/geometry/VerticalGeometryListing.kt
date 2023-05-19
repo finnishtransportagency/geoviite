@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
 import java.math.BigDecimal
+import java.util.stream.Collectors
 import kotlin.math.tan
 
 data class CurvedSectionEndpoint(
@@ -171,7 +172,7 @@ fun toVerticalGeometryListing(
     fun getAlignmentStation(maybeAddress: TrackMeter?) =
         maybeAddress?.let { address -> geocodingContext?.getTrackLocation(layoutAlignment, address)?.point?.m }
 
-    return listing.map { entry ->
+    return listing.parallelStream().map { entry ->
         entry.copy(
             overlapsAnother = listing.filter { overlapCandidate ->
                 entry.start.address != null &&
@@ -185,7 +186,7 @@ fun toVerticalGeometryListing(
             layoutPointStation = getAlignmentStation(entry.point.address),
             layoutEndStation = getAlignmentStation(entry.end.address),
         )
-    }
+    }.collect(Collectors.toList())
 }
 
 private fun toVerticalGeometry(

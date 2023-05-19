@@ -1,7 +1,7 @@
 import { LineString } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { MapTile } from 'map/map-model';
+import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
@@ -75,6 +75,7 @@ export function createTrackNumberDiagramLayer(
     changeTimes: ChangeTimes,
     publishType: PublishType,
     resolution: number,
+    layerSettings: TrackNumberDiagramLayerSetting,
 ): MapLayer {
     const layerId = ++newestLayerId;
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
@@ -86,7 +87,15 @@ export function createTrackNumberDiagramLayer(
         .then((alignments) => {
             if (layerId !== newestLayerId) return;
 
-            const features = createDiagramFeatures(alignments);
+            const showAll = Object.values(layerSettings).every((s) => !s.selected);
+            const filteredAlignments = showAll
+                ? alignments
+                : alignments.filter((a) => {
+                      const trackNumberId = a.trackNumber?.id;
+                      return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
+                  });
+
+            const features = createDiagramFeatures(filteredAlignments);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

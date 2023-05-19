@@ -20,7 +20,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useMapState, useSetState } from 'utils/react-utils';
 import { getGeometryPlanHeadersBySearchTerms, getTrackLayoutPlan } from 'geometry/geometry-api';
-import { GeometryPlanLayout, LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { getPlanLinkStatus } from 'linking/linking-api';
 import { MapViewport } from 'map/map-model';
@@ -38,7 +38,7 @@ type GeometryPlansPanelProps = {
     selectedItems?: OptionalItemCollections;
     viewport: MapViewport;
     selectedPlanLayouts?: GeometryPlanLayout[];
-    trackNumberFilter: LayoutTrackNumber[];
+    selectedTrackNumbers: LayoutTrackNumberId[];
     onTogglePlanVisibility: (payload: GeometryPlanLayout | null) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;
     onToggleSwitchVisibility: (payload: ToggleSwitchPayload) => void;
@@ -63,7 +63,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     selectedItems,
     viewport,
     selectedPlanLayouts,
-    trackNumberFilter,
+    selectedTrackNumbers,
     onTogglePlanVisibility,
     onToggleAlignmentVisibility,
     onToggleSwitchVisibility,
@@ -87,7 +87,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             0,
             viewport.area,
             ['GEOMETRIAPALVELU', 'PAIKANNUSPALVELU'],
-            trackNumberFilter.map((tn) => tn.id),
+            selectedTrackNumbers,
             undefined,
             SortByValue.UPLOADED_AT,
             SortOrderValue.ASCENDING,
@@ -95,7 +95,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             setPlanHeadersInView(page.items);
             setPlanHeaderCount(page.totalCount);
         });
-    }, [viewport.area, changeTimes.geometryPlan, trackNumberFilter]);
+    }, [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers]);
 
     React.useEffect(
         () => [...loadedPlans.keys()].forEach(loadPlanLayout),

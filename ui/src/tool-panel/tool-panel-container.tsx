@@ -79,6 +79,7 @@ const ToolPanelContainer: React.FC = () => {
             startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
             stopLinking={delegates.stopLinking}
+            verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramVisible}
         />
     );
 };

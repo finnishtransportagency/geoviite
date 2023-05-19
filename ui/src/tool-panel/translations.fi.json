@@ -237,6 +237,10 @@
                 "end-km": "Loppukilometri",
                 "push": "Vie Ratkoon"
             },
+            "vertical-geometry": {
+                "heading": "Raiteen pystygeometria",
+                "diagram-visibility": "Kuvaaja"
+            },
             "topological-connectivity": "Topologinen kytkeytyminen"
         },
         "disabled": {

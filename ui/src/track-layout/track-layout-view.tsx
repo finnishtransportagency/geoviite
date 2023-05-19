@@ -19,6 +19,8 @@ import { PublishType } from 'common/common-model';
 import { LinkingState, LinkPoint } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerMenu } from 'map/settings-menu/map-layer-menu';
+import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
+import { createClassName } from 'vayla-design-lib/utils';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
@@ -45,10 +47,27 @@ export type TrackLayoutViewProps = {
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayoutViewProps) => {
+    const verticalDiagramAlignmentId = React.useMemo(
+        () =>
+            props.selection.selectedItems.locationTracks[0] && {
+                locationTrackId: props.selection.selectedItems.locationTracks[0],
+                publishType: props.publishType,
+            },
+        [props.selection.selectedItems.locationTracks[0], props.publishType],
+    );
+
+    const showVerticalGeometryDiagram =
+        props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;
+
+    const className = createClassName(
+        styles['track-layout'],
+        showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
+    );
+
     const [mapSettingsVisible, setMapSettingsVisible] = React.useState(false);
 
     return (
-        <div className={styles['track-layout']} qa-id="track-layout-content">
+        <div className={className} qa-id="track-layout-content">
             <ToolBar
                 settingsVisible={mapSettingsVisible}
                 publishType={props.publishType}
@@ -89,6 +108,17 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
                         <SelectionPanelContainer />
                     </MapContext.Provider>
                 </div>
+
+                {showVerticalGeometryDiagram && verticalDiagramAlignmentId && (
+                    <div className={styles['track-layout__diagram']}>
+                        <VerticalGeometryDiagram
+                            alignmentId={verticalDiagramAlignmentId}
+                            onSelect={props.onSelect}
+                            changeTimes={props.changeTimes}
+                            showArea={props.showArea}
+                        />
+                    </div>
+                )}
 
                 <div className={styles['track-layout__map']}>
                     {mapSettingsVisible && (

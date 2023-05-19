@@ -1,12 +1,17 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.map.AlignmentHeader
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.FileName
 
 data class TrackMeterHeight(
     val m: Double,
     val meter: Double,
     val height: Double?,
+    val point: Point,
 )
 data class KmHeights(
     val kmNumber: KmNumber,
@@ -17,12 +22,8 @@ data class PlanLinkingSummaryItem(
     val startM: Double,
     val endM: Double,
     val filename: FileName?,
-)
-
-data class AlignmentHeights (
-    val alignmentStartM: Double,
-    val alignmentEndM: Double,
-    val kmHeights: List<KmHeights>,
-    val linkingSummary: List<PlanLinkingSummaryItem>,
+    val alignmentHeader: AlignmentHeader<GeometryAlignment>?,
+    val planId: DomainId<GeometryPlan>?,
+    val verticalCoordinateSystem: VerticalCoordinateSystem?,
 )
 

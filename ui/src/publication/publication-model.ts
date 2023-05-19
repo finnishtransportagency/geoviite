@@ -16,7 +16,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { RatkoPushStatus } from 'ratko/ratko-model';
-import { Point } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 
 export type PublishValidationError = {
     type: 'ERROR' | 'WARNING';
@@ -43,41 +43,56 @@ export type PublishCandidate = {
     errors: PublishValidationError[];
 };
 
-export type TrackNumberPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.TRACK_NUMBER;
-    number: TrackNumber;
-    id: LayoutTrackNumberId;
+export type WithBoundingBox = {
+    boundingBox: BoundingBox | null;
 };
 
-export type LocationTrackPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.LOCATION_TRACK;
-    id: LocationTrackId;
-    trackNumberId: LayoutTrackNumberId;
-    name: string;
-    duplicateOf: LocationTrackId;
+export type WithLocation = {
+    location: Point | null;
 };
 
-export type ReferenceLinePublishCandidate = PublishCandidate & {
-    type: DraftChangeType.REFERENCE_LINE;
-    id: ReferenceLineId;
-    trackNumberId: LayoutTrackNumberId;
-    name: TrackNumber;
-    operation: Operation | null;
-};
+export type TrackNumberPublishCandidate = PublishCandidate &
+    WithBoundingBox & {
+        type: DraftChangeType.TRACK_NUMBER;
+        number: TrackNumber;
+        id: LayoutTrackNumberId;
+    };
 
-export type SwitchPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.SWITCH;
-    id: LayoutSwitchId;
-    name: string;
-    trackNumberIds: LayoutTrackNumberId[];
-};
+export type LocationTrackPublishCandidate = PublishCandidate &
+    WithBoundingBox & {
+        type: DraftChangeType.LOCATION_TRACK;
+        id: LocationTrackId;
+        trackNumberId: LayoutTrackNumberId;
+        name: string;
+        duplicateOf: LocationTrackId;
+    };
 
-export type KmPostPublishCandidate = PublishCandidate & {
-    type: DraftChangeType.KM_POST;
-    id: LayoutKmPostId;
-    trackNumberId: LayoutTrackNumberId;
-    kmNumber: KmNumber;
-};
+export type ReferenceLinePublishCandidate = PublishCandidate &
+    WithBoundingBox & {
+        type: DraftChangeType.REFERENCE_LINE;
+        id: ReferenceLineId;
+        trackNumberId: LayoutTrackNumberId;
+        name: TrackNumber;
+        operation: Operation | null;
+        boundingBox: BoundingBox | null;
+    };
+
+export type SwitchPublishCandidate = PublishCandidate &
+    WithLocation & {
+        type: DraftChangeType.SWITCH;
+        id: LayoutSwitchId;
+        name: string;
+        trackNumberIds: LayoutTrackNumberId[];
+    };
+
+export type KmPostPublishCandidate = PublishCandidate &
+    WithLocation & {
+        type: DraftChangeType.KM_POST;
+        id: LayoutKmPostId;
+        trackNumberId: LayoutTrackNumberId;
+        kmNumber: KmNumber;
+        location: Point | null;
+    };
 
 export type PublishCandidates = {
     trackNumbers: TrackNumberPublishCandidate[];

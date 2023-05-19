@@ -29,7 +29,11 @@
     cursor: pointer;
     user-select: none;
 
-    &:hover {
+    &-disabled {
+        color: $color-black-lighter;
+    }
+
+    &:hover:not(.contexify_item-disabled) {
         background: $color-blue-lighter;
     }
 }

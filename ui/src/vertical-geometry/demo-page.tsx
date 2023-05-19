@@ -13,6 +13,9 @@ import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram
 import { GeometryAlignment, GeometryPlanHeader, PlanSource } from 'geometry/geometry-model';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
+import { OnSelectOptions } from 'selection/selection-model';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { BoundingBox } from 'model/geometry';
 
 const VerticalGeometryDiagramDemoPage: React.FC = () => {
     const { t } = useTranslation();
@@ -21,6 +24,7 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
     const [geometryPlanHeader, setGeometryPlanHeader] = React.useState<GeometryPlanHeader>();
     const [selectedAlignment, setSelectedAlignment] = React.useState<GeometryAlignment>();
     const [geometryAlignments, setGeometryAlignments] = React.useState<GeometryAlignment[]>([]);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
     const getLocationTracks = React.useCallback(
         (searchTerm) =>
@@ -71,6 +75,15 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
         [geometryPlanHeader, selectedAlignment],
     );
 
+    const noopActions = {
+        onSelect: (options: OnSelectOptions) => {
+            console.log(options);
+        },
+        showArea: (view: BoundingBox) => {
+            console.log(view);
+        },
+    };
+
     return (
         <div style={{ width: '100%' }}>
             Sijaintiraide:
@@ -87,10 +100,9 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
             />
             {locationTrackAlignmentId && (
                 <VerticalGeometryDiagram
-                    key={locationTrackAlignmentId.locationTrackId}
                     alignmentId={locationTrackAlignmentId}
-                    initialStartM={0}
-                    initialEndM={10000}
+                    {...noopActions}
+                    changeTimes={changeTimes}
                 />
             )}
             <br />
@@ -125,10 +137,9 @@ const VerticalGeometryDiagramDemoPage: React.FC = () => {
             />
             {planAlignmentId && (
                 <VerticalGeometryDiagram
-                    key={`${planAlignmentId.planId}_${planAlignmentId.alignmentId}`}
                     alignmentId={planAlignmentId}
-                    initialStartM={0}
-                    initialEndM={10000}
+                    {...noopActions}
+                    changeTimes={changeTimes}
                 />
             )}
         </div>
