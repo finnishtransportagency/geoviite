@@ -2,7 +2,7 @@
 @import '../../vayla-design-lib/shadows';
 @import '../../vayla-design-lib/typography';
 
-.map-layer-settings {
+.map-layer-menu {
     position: relative;
     padding: 16px;
     background: $color-white-dark;
@@ -22,24 +22,24 @@
             margin-top: 20px;
         }
     }
-}
 
-.layer-visibility-setting {
-    display: flex;
-    align-items: center;
-    user-select: none;
-    cursor: pointer;
+    &__layer-visibility {
+        display: flex;
+        align-items: center;
+        user-select: none;
+        cursor: pointer;
 
-    &:not(:last-child) {
-        margin-bottom: 14px;
+        &:not(:last-child) {
+            margin-bottom: 14px;
+        }
+
+        &--indented {
+            margin-left: 16px;
+        }
     }
 
-    &--indented {
-        margin-left: 16px;
+    &__label {
+        flex: 1;
+        margin-left: 8px;
     }
-}
-
-.layer-visibility-setting__label {
-    flex: 1;
-    margin-left: 8px;
 }

@@ -24,7 +24,7 @@ export function createReferenceLineBackgroundLayer(
 
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
         .then((referenceLines) => {
-            if (layerId != newestLayerId) return;
+            if (layerId !== newestLayerId) return;
 
             const features = createAlignmentBackgroundFeatures(referenceLines);
 

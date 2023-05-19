@@ -13,12 +13,12 @@ import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { createHighlightFeatures } from 'map/layers/alignment/highlight-layer-utils';
+import { createHighlightFeatures } from 'map/layers/highlight/highlight-layer-utils';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 
 const highlightBackgroundStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentRedBackground,
+        color: mapStyles.alignmentRedHighlight,
         width: 12,
     }),
 });
@@ -38,18 +38,18 @@ export function createMissingLinkingHighlightLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     if (resolution <= HIGHLIGHTS_SHOW) {
-        const alignmentsFetch = getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL');
+        const alignmentPromise = getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL');
 
-        const sectionsFetch = getAlignmentSectionsWithoutLinkingByTiles(
+        const linkingStatusPromise = getAlignmentSectionsWithoutLinkingByTiles(
             getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),
             publishType,
             'ALL',
             mapTiles,
         );
 
-        Promise.all([alignmentsFetch, sectionsFetch])
+        Promise.all([alignmentPromise, linkingStatusPromise])
             .then(([alignments, sections]) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = createHighlightFeatures(
                     alignments,

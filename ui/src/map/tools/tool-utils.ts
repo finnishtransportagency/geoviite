@@ -12,29 +12,14 @@ import { OptionalShownItems } from 'map/map-model';
  *
  */
 export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 10): Polygon {
-    const pixelLocation = map.getPixelFromCoordinate(coordinate);
+    const [x, y] = map.getPixelFromCoordinate(coordinate);
     return new Polygon([
         [
-            map.getCoordinateFromPixel([
-                pixelLocation[0] - tolerance,
-                pixelLocation[1] - tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] - tolerance,
-                pixelLocation[1] + tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] + tolerance,
-                pixelLocation[1] + tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] + tolerance,
-                pixelLocation[1] - tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] - tolerance,
-                pixelLocation[1] - tolerance,
-            ]),
+            map.getCoordinateFromPixel([x - tolerance, y - tolerance]),
+            map.getCoordinateFromPixel([x - tolerance, y + tolerance]),
+            map.getCoordinateFromPixel([x + tolerance, y + tolerance]),
+            map.getCoordinateFromPixel([x + tolerance, y - tolerance]),
+            map.getCoordinateFromPixel([x - tolerance, y - tolerance]),
         ],
     ]);
 }
@@ -45,7 +30,7 @@ export function searchShownItemsFromLayers(
     searchItemsOptions: SearchItemsOptions,
 ): OptionalShownItems {
     const searchResults = layers
-        .filter((layer) => layer.searchItems)
+        .filter((layer) => layer.searchShownItems)
         .map((layer) => {
             return layer.searchShownItems
                 ? layer.searchShownItems(hitArea, searchItemsOptions)
@@ -60,7 +45,7 @@ export function searchItemsFromLayers(
     searchItemsOptions: SearchItemsOptions,
 ): LayerItemSearchResult {
     const searchResults = layers
-        .filter((l) => l.layer.getVisible() && l.searchItems)
+        .filter((l) => l.searchItems)
         .map((layer) => {
             return layer.searchItems ? layer.searchItems(hitArea, searchItemsOptions) : {};
         });

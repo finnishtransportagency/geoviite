@@ -11,6 +11,7 @@ import {
     LayoutPoint,
 } from 'track-layout/track-layout-model';
 import {
+    clearFeatures,
     getMatchingAlignmentData,
     getTickStyles,
     MatchOptions,
@@ -60,14 +61,6 @@ const selectedLinkedAlignmentStyle = new Style({
     zIndex: 2,
 });
 
-/**
- * Creates OL feature objects by alignments.
- *
- * @param planLayout
- * @param alignment
- * @param selection
- * @param resolution
- */
 function createFeature(
     planLayout: GeometryPlanLayout,
     alignment: AlignmentWithLinking,
@@ -75,34 +68,31 @@ function createFeature(
     resolution: number,
 ): Feature<LineString> {
     const isAlignmentSelected = selection.selectedItems.geometryAlignments.find(
-        (alignmentToCheck) => alignmentToCheck.geometryItem.id == alignment.header.id,
+        ({ geometryItem }) => geometryItem.id == alignment.header.id,
     );
+
+    const styles: Style[] = [];
 
     const lineString = new LineString(alignment.points.map(pointToCoords));
     const feature = new Feature({ geometry: lineString });
 
-    feature.setStyle(function (feature: Feature<LineString>) {
-        let alignmentStyle = isAlignmentSelected
-            ? selectedUnlinkedAlignmentStyle
-            : unlinkedAlignmentStyle;
+    let alignmentStyle = isAlignmentSelected
+        ? selectedUnlinkedAlignmentStyle
+        : unlinkedAlignmentStyle;
 
-        if (alignment.linked) {
-            alignmentStyle = isAlignmentSelected
-                ? selectedLinkedAlignmentStyle
-                : linkedAlignmentStyle;
-        }
+    if (alignment.linked) {
+        alignmentStyle = isAlignmentSelected ? selectedLinkedAlignmentStyle : linkedAlignmentStyle;
+    }
 
-        const styles = [alignmentStyle];
+    styles.push(alignmentStyle);
 
-        const geom = feature.getGeometry();
-        if (geom instanceof LineString && resolution <= Limits.GEOMETRY_TICKS) {
-            styles.push(
-                ...getTickStyles(alignment.points, alignment.segmentMValues, 10, alignmentStyle),
-            );
-        }
+    if (resolution <= Limits.GEOMETRY_TICKS) {
+        styles.push(
+            ...getTickStyles(alignment.points, alignment.segmentMValues, 10, alignmentStyle),
+        );
+    }
 
-        return styles;
-    });
+    feature.setStyle(styles);
 
     setAlignmentData(feature, {
         trackNumber: null,
@@ -144,11 +134,7 @@ async function getPlanLayoutAlignmentsWithLinking(
     return (
         planLayoutWithGeometry.alignments
             // Include alignments from original layout only
-            .filter((alignment) =>
-                planLayout.alignments.some(
-                    (alignment2) => alignment.header.id == alignment2.header.id,
-                ),
-            )
+            .filter((a1) => planLayout.alignments.some((a2) => a1.header.id === a2.header.id))
             .map((alignment) => {
                 const points = alignment.polyLine?.points || [];
                 return {
@@ -163,7 +149,7 @@ async function getPlanLayoutAlignmentsWithLinking(
     );
 }
 
-let newestGeometryLayerId = 0;
+let newestLayerId = 0;
 
 export function createGeometryAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
@@ -172,11 +158,9 @@ export function createGeometryAlignmentLayer(
     changeTimes: ChangeTimes,
     resolution: number,
 ): MapLayer {
-    const layerId = ++newestGeometryLayerId;
+    const layerId = ++newestLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    // Use an existing layer or create a new one. Old layer is "recycled" to
-    // prevent features to disappear while moving the map.
     const olLayer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     const changeTime = getMaxTimestamp(
@@ -184,7 +168,7 @@ export function createGeometryAlignmentLayer(
         changeTimes.layoutLocationTrack,
     );
 
-    const features = Promise.all(
+    Promise.all(
         selection.planLayouts.map((planLayout) => {
             return getPlanLayoutAlignmentsWithLinking(
                 planLayout,
@@ -197,14 +181,14 @@ export function createGeometryAlignmentLayer(
                 ),
             );
         }),
-    );
-
-    features.then((f) => {
-        if (layerId == newestGeometryLayerId) {
-            vectorSource.clear();
-            vectorSource.addFeatures(f.flat());
-        }
-    });
+    )
+        .then((f) => {
+            if (layerId === newestLayerId) {
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(f.flat());
+            }
+        })
+        .catch(() => clearFeatures(vectorSource));
 
     return {
         name: 'geometry-alignment-layer',
@@ -214,8 +198,10 @@ export function createGeometryAlignmentLayer(
                 strategy: options.limit == 1 ? 'nearest' : 'limit',
                 limit: options.limit,
             };
+
             const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-            const holders = features && getMatchingAlignmentData(hitArea, features, matchOptions);
+            const holders = getMatchingAlignmentData(hitArea, features, matchOptions);
+
             const alignments = holders
                 .filter(filterUniqueById((data) => data.header.id)) // pick unique alignments
                 .slice(0, options.limit)

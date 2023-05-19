@@ -10,7 +10,7 @@ import {
     getMatchingAlignmentData,
     MatchOptions,
 } from 'map/layers/utils/layer-utils';
-import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState } from 'linking/linking-model';
@@ -39,7 +39,10 @@ export function createLocationTrackAlignmentLayer(
 
     const resolution = olView.getResolution() || 0;
 
-    const shownItemsSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
+    const shownItemsSearchFunction = (
+        hitArea: Polygon,
+        options: SearchItemsOptions,
+    ): LayerItemSearchResult => {
         const matchOptions: MatchOptions = {
             strategy: options.limit == 1 ? 'nearest' : 'limit',
             limit: undefined,
@@ -55,20 +58,12 @@ export function createLocationTrackAlignmentLayer(
         return { locationTracks };
     };
 
-    const selectedLocationTrack = selection.selectedItems?.locationTracks[0];
-
-    if (resolution <= Limits.ALL_ALIGNMENTS || selectedLocationTrack) {
+    if (resolution <= Limits.ALL_ALIGNMENTS) {
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
-        getMapAlignmentsByTiles(
-            changeTimes,
-            mapTiles,
-            publishType,
-            'LOCATION_TRACKS',
-            selectedLocationTrack,
-        )
+        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((alignments) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = createAlignmentFeatures(
                     alignments,
@@ -81,9 +76,10 @@ export function createLocationTrackAlignmentLayer(
                 vectorSource.addFeatures(features);
 
                 if (onViewContentChanged) {
-                    const compare = JSON.stringify(
-                        alignments.map(({ header }) => header.id).sort(),
-                    );
+                    const compare = alignments
+                        .map(({ header }) => header.id)
+                        .sort()
+                        .join();
 
                     if (compare !== compareString) {
                         compareString = compare;

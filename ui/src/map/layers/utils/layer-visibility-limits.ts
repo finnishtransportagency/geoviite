@@ -6,30 +6,34 @@ export const DEBUG_1M_POINTS = 0.06;
 
 export const HIGHLIGHTS_SHOW = 100.0;
 
-export const layerZIndexes: Record<MapLayerName, number> = {
-    'background-map-layer': 0,
-    'location-track-background-layer': 1,
-    'reference-line-background-layer': 2,
-    'track-number-diagram-layer': 3,
-    'location-track-alignment-layer': 4,
-    'reference-line-alignment-layer': 5,
-    'missing-profile-highlight-layer': 6,
-    'missing-linking-highlight-layer': 7,
-    'duplicate-tracks-highlight-layer': 8,
-    'location-track-badge-layer': 9,
-    'reference-line-badge-layer': 10,
-    'km-post-layer': 11,
-    'switch-layer': 12,
-    'geometry-alignment-layer': 13,
-    'geometry-km-post-layer': 14,
-    'geometry-switch-layer': 15,
-    'linking-layer': 16,
-    'linking-switch-layer': 17,
-    'manual-linking-switch-layer': 18,
-    'plan-area-layer': 19,
-    'debug-1m-points-layer': 20,
-    'debug-layer': 21,
-};
+export const mapLayerZIndexes = [
+    'background-map-layer',
+    'location-track-background-layer',
+    'reference-line-background-layer',
+    'track-number-diagram-layer',
+    'missing-profile-highlight-layer',
+    'missing-linking-highlight-layer',
+    'duplicate-tracks-highlight-layer',
+    'location-track-alignment-layer',
+    'reference-line-alignment-layer',
+    'geometry-alignment-layer',
+    'location-track-badge-layer',
+    'reference-line-badge-layer',
+    'km-post-layer',
+    'switch-layer',
+    'geometry-km-post-layer',
+    'geometry-switch-layer',
+    'linking-layer',
+    'linking-switch-layer',
+    'manual-linking-switch-layer',
+    'plan-area-layer',
+    'debug-1m-points-layer',
+    'debug-layer',
+].reduce((acc, layer, idx) => {
+    acc[layer as MapLayerName] = idx;
+
+    return acc;
+}, {} as Record<MapLayerName, number>);
 
 // Geometry
 export const GEOMETRY_TICKS = 5.0;

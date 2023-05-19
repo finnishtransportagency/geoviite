@@ -5,10 +5,10 @@ import { State } from 'ol/render';
 import Style, { RenderFunction } from 'ol/style/Style';
 import KmPost from 'vayla-design-lib/icon/glyphs/misc/kmpost.svg';
 import {
-    createPointRenderer,
     drawCircle,
     drawRect,
     drawRoundedRect,
+    getCanvasRenderer,
     PointRenderFunction,
 } from 'map/layers/utils/rendering';
 import { GeometryPlanId } from 'geometry/geometry-model';
@@ -30,7 +30,7 @@ export function getKmPostStepByResolution(resolution: number): number {
     return kmPostSteps.find((step) => step * 10 >= resolution) || 0;
 }
 
-export function createKmPostFeature(
+export function createKmPostFeatures(
     kmPosts: LayoutKmPost[],
     isSelected: (kmPost: LayoutKmPost) => boolean,
     kmPostType: KmPostType,
@@ -59,10 +59,8 @@ export function createKmPostFeature(
                         : getKmPostRenderer(kmPost, kmPostType, isLinked && isLinked(kmPost)),
                 });
             });
-            feature.set('kmPost-data', {
-                kmPost: kmPost,
-                planId: planId,
-            });
+
+            feature.set('kmPost-data', { kmPost, planId });
 
             // Create a feature to act as a clickable area
             const width = 35 * resolution;
@@ -78,10 +76,7 @@ export function createKmPostFeature(
                 ],
             ]);
             const hitAreaFeature = new Feature({ geometry: polygon });
-            hitAreaFeature.set('kmPost-data', {
-                kmPost: kmPost,
-                planId: planId,
-            });
+            hitAreaFeature.set('kmPost-data', { kmPost, planId });
 
             return [feature, hitAreaFeature];
         });
@@ -91,14 +86,14 @@ function getRenderer(
     kmPost: LayoutKmPost,
     fontSize: number,
     drawFunctions: PointRenderFunction<LayoutKmPost>[],
-) {
-    return createPointRenderer<LayoutKmPost>(
+): RenderFunction {
+    return getCanvasRenderer<LayoutKmPost>(
         kmPost,
-        (ctx: CanvasRenderingContext2D, state: State) => {
-            ctx.font = `${mapStyles['kmpost-font-weight']} ${state.pixelRatio * fontSize}px ${
-                mapStyles['kmpost-font-family']
+        (ctx: CanvasRenderingContext2D, { pixelRatio }: State) => {
+            ctx.font = `${mapStyles['kmPost-font-weight']} ${pixelRatio * fontSize}px ${
+                mapStyles['kmPost-font-family']
             }`;
-            ctx.lineWidth = state.pixelRatio;
+            ctx.lineWidth = pixelRatio;
         },
         drawFunctions,
     );
@@ -112,10 +107,10 @@ function getSelectedKmPostRenderer(
     const dFunctions: PointRenderFunction<LayoutKmPost>[] = [];
     const fillColor =
         kmPostType === 'layoutKmPost'
-            ? mapStyles['selected-kmPost-background']
+            ? mapStyles['selectedKmPostLabel']
             : isLinked
-            ? mapStyles['selected-linked-geometry-kmPost-background']
-            : mapStyles['selected-not-linked-geometry-kmPost-background'];
+            ? mapStyles['selectedLinkedKmPostLabel']
+            : mapStyles['selectedUnlinkedKmPostLabel'];
 
     const [paddingTb, paddingRl] = [6, 6];
     const textMargin = 4;
@@ -124,74 +119,70 @@ function getSelectedKmPostRenderer(
 
     dFunctions.push(
         (
-            _kmPost: LayoutKmPost,
-            coordinates: Coordinate,
+            _: LayoutKmPost,
+            [x, y]: Coordinate,
             ctx: CanvasRenderingContext2D,
-            state: State,
+            { pixelRatio }: State,
         ) => {
-            ctx.fillStyle = mapStyles['selected-kmPost-dot-background'];
-            ctx.strokeStyle = mapStyles['selected-kmPost-dot-border'];
+            ctx.fillStyle = mapStyles['selectedKmPostDot'];
+            ctx.strokeStyle = mapStyles['selectedKmPostDotBorder'];
 
-            drawCircle(ctx, coordinates[0], coordinates[1], iconRadius * state.pixelRatio);
+            drawCircle(ctx, x, y, iconRadius * pixelRatio);
         },
     );
 
     dFunctions.push(
         (
-            kmPost: LayoutKmPost,
-            coordinates: Coordinate,
+            { kmNumber }: LayoutKmPost,
+            [x, y]: Coordinate,
             ctx: CanvasRenderingContext2D,
-            state: State,
+            { pixelRatio }: State,
         ) => {
             ctx.fillStyle = fillColor;
-            ctx.strokeStyle = mapStyles['selected-kmPost-border-color'];
+            ctx.strokeStyle = mapStyles['selectedKmPostLabelBorder'];
 
             drawRoundedRect(
                 ctx,
-                coordinates[0] + (iconRadius + 10) * state.pixelRatio,
-                coordinates[1] - (iconRadius + paddingTb) * state.pixelRatio,
-                ctx.measureText(kmPost.kmNumber).width +
-                    (paddingRl + iconSize + textMargin + paddingRl) * state.pixelRatio,
-                (iconSize + paddingTb * 2) * state.pixelRatio,
-                2 * state.pixelRatio,
+                x + (iconRadius + 10) * pixelRatio,
+                y - (iconRadius + paddingTb) * pixelRatio,
+                ctx.measureText(kmNumber).width +
+                    (paddingRl + iconSize + textMargin + paddingRl) * pixelRatio,
+                (iconSize + paddingTb * 2) * pixelRatio,
+                2 * pixelRatio,
             );
         },
     );
 
     dFunctions.push(
         (
-            _kmPost: LayoutKmPost,
-            coordinates: Coordinate,
+            _: LayoutKmPost,
+            [x, y]: Coordinate,
             ctx: CanvasRenderingContext2D,
-            state: State,
+            { pixelRatio }: State,
         ) => {
-            const x = coordinates[0] + (iconRadius + 10 + paddingRl) * state.pixelRatio;
-            const y = coordinates[1] - iconRadius * state.pixelRatio;
             ctx.drawImage(
                 kmPostImg,
-                x,
-                y,
-                iconSize * state.pixelRatio,
-                iconSize * state.pixelRatio,
+                x + (iconRadius + 10 + paddingRl) * pixelRatio,
+                y - iconRadius * pixelRatio,
+                iconSize * pixelRatio,
+                iconSize * pixelRatio,
             );
         },
     );
 
     dFunctions.push(
         (
-            kmPost: LayoutKmPost,
-            coordinates: Coordinate,
+            { kmNumber }: LayoutKmPost,
+            [x, y]: Coordinate,
             ctx: CanvasRenderingContext2D,
             state: State,
         ) => {
-            ctx.fillStyle = mapStyles['kmPost-text'];
+            ctx.fillStyle = mapStyles['kmPostTextColor'];
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
             const paddingX = iconRadius + 10 + paddingRl + iconSize + textMargin;
-            const x = coordinates[0] + paddingX * state.pixelRatio;
-            const y = coordinates[1] + 2 * state.pixelRatio;
-            ctx.fillText(kmPost.kmNumber, x, y);
+            ctx.fillText(kmNumber, x + paddingX * state.pixelRatio, y + 2 * state.pixelRatio);
         },
     );
 
@@ -212,35 +203,35 @@ function getKmPostRenderer(
 
     dFunctions.push(
         (
-            kmPost: LayoutKmPost,
-            coordinates: Coordinate,
+            { kmNumber }: LayoutKmPost,
+            [x, y]: Coordinate,
             ctx: CanvasRenderingContext2D,
-            state: State,
+            { pixelRatio }: State,
         ) => {
-            const textWidth = ctx.measureText(kmPost.kmNumber).width;
+            const textWidth = ctx.measureText(kmNumber).width;
 
             if (kmPostType === 'layoutKmPost') {
-                ctx.fillStyle = mapStyles['kmPost-background'];
+                ctx.fillStyle = mapStyles['kmPostLabel'];
 
                 drawRect(
                     ctx,
-                    coordinates[0] + iconRadius * state.pixelRatio,
-                    coordinates[1] - (iconRadius - 1) * state.pixelRatio,
-                    textWidth + paddingRl * 2 * state.pixelRatio,
-                    iconSize * state.pixelRatio,
+                    x + iconRadius * pixelRatio,
+                    y - (iconRadius - 1) * pixelRatio,
+                    textWidth + paddingRl * 2 * pixelRatio,
+                    iconSize * pixelRatio,
                 );
             } else {
                 ctx.fillStyle = isLinked
-                    ? mapStyles['geometry-linked-kmPost-background']
-                    : mapStyles['geometry-not-linked-kmPost-background'];
+                    ? mapStyles['linkedKmPostLabel']
+                    : mapStyles['unlinkedKmPostLabel'];
 
                 drawRoundedRect(
                     ctx,
-                    coordinates[0] - (iconRadius + paddingRl) * state.pixelRatio,
-                    coordinates[1] - (iconRadius + paddingTb) * state.pixelRatio,
-                    textWidth + (paddingRl + iconSize + textMargin + paddingRl) * state.pixelRatio,
-                    (iconSize + paddingTb * 2) * state.pixelRatio,
-                    2 * state.pixelRatio,
+                    x - (iconRadius + paddingRl) * pixelRatio,
+                    y - (iconRadius + paddingTb) * pixelRatio,
+                    textWidth + (paddingRl + iconSize + textMargin + paddingRl) * pixelRatio,
+                    (iconSize + paddingTb * 2) * pixelRatio,
+                    2 * pixelRatio,
                 );
             }
         },
@@ -248,37 +239,37 @@ function getKmPostRenderer(
 
     dFunctions.push(
         (
-            _kmPost: LayoutKmPost,
-            coordinates: Coordinate,
+            _: LayoutKmPost,
+            [x, y]: Coordinate,
             ctx: CanvasRenderingContext2D,
-            state: State,
+            { pixelRatio }: State,
         ) => {
-            const x = coordinates[0] - iconRadius * state.pixelRatio;
-            const y = coordinates[1] - iconRadius * state.pixelRatio;
             ctx.drawImage(
                 kmPostImg,
-                x,
-                y,
-                iconSize * state.pixelRatio,
-                iconSize * state.pixelRatio,
+                x - iconRadius * pixelRatio,
+                y - iconRadius * pixelRatio,
+                iconSize * pixelRatio,
+                iconSize * pixelRatio,
             );
         },
     );
 
     dFunctions.push(
         (
-            kmPost: LayoutKmPost,
-            coordinates: Coordinate,
+            { kmNumber }: LayoutKmPost,
+            [x, y]: Coordinate,
             ctx: CanvasRenderingContext2D,
             state: State,
         ) => {
-            ctx.fillStyle = mapStyles['kmPost-text'];
+            ctx.fillStyle = mapStyles['kmPostTextColor'];
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
-            const x = coordinates[0] + (iconRadius + textMargin) * state.pixelRatio;
-            const y = coordinates[1] + 2 * state.pixelRatio;
-            ctx.fillText(kmPost.kmNumber, x, y);
+            ctx.fillText(
+                kmNumber,
+                x + (iconRadius + textMargin) * state.pixelRatio,
+                y + 2 * state.pixelRatio,
+            );
         },
     );
 

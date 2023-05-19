@@ -3,19 +3,19 @@ import Feature from 'ol/Feature';
 import { Polygon } from 'ol/geom';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { Fill, Stroke, Style, Text } from 'ol/style';
+import { Stroke, Style, Text } from 'ol/style';
 import { MapTile } from 'map/map-model';
 import { PlanArea } from 'track-layout/track-layout-model';
 import { getPlanAreasByTile } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
-import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 
 function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];
 }
 
-function createFeatures(planArea: PlanArea): Feature<Polygon> {
+function createFeature(planArea: PlanArea): Feature<Polygon> {
     const coordinates = planArea.polygon.map(pointToCoords);
     const feature = new Feature({ geometry: new Polygon([coordinates]) });
 
@@ -27,39 +27,33 @@ function createFeatures(planArea: PlanArea): Feature<Polygon> {
                 scale: 2,
                 offsetX: 30,
                 stroke: new Stroke({
-                    color: mapStyles.boundingBoxText,
-                }),
-                backgroundFill: new Fill({
-                    color: mapStyles.boundingBoxBackground,
+                    color: mapStyles.planAreaTextColor,
                 }),
             }),
             stroke: new Stroke({
-                color: mapStyles.boundingBoxColor,
+                color: mapStyles.planAreaBorder,
                 width: 3,
-            }),
-            fill: new Fill({
-                color: mapStyles.boundingBoxBackground,
             }),
         });
     });
-    feature.set('planArea', planArea);
+
     return feature;
 }
-let newestPlanLayerId = 0;
+
+let newestLayerId = 0;
 
 export function createPlanAreaLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<Polygon>> | undefined,
     changeTimes: ChangeTimes,
 ): MapLayer {
-    const layerId = ++newestPlanLayerId;
+    const layerId = ++newestLayerId;
+
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    // Use an existing layer or create a new one. Old layer is "recycled" to
-    // prevent features to disappear while moving the map.
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     function updateFeatures(features: Feature<Polygon>[]) {
-        vectorSource.clear();
+        clearFeatures(vectorSource);
         vectorSource.addFeatures(features);
     }
 
@@ -69,16 +63,14 @@ export function createPlanAreaLayer(
     );
 
     Promise.all(planAreaPromises)
-        .then((planAreas) =>
-            deduplicatePlanAreas(planAreas.flat()).flatMap((planArea) => createFeatures(planArea)),
-        )
-        .then((features) => {
-            // Handle the latest fetch only
-            if (layerId === newestPlanLayerId) {
+        .then((planAreas) => deduplicatePlanAreas(planAreas.flat()))
+        .then((planAreas) => {
+            if (layerId === newestLayerId) {
+                const features = planAreas.flatMap((planArea) => createFeature(planArea));
                 updateFeatures(features);
             }
         })
-        .catch(vectorSource.clear);
+        .catch(() => clearFeatures(vectorSource));
 
     return {
         name: 'plan-area-layer',

@@ -38,12 +38,12 @@ export async function getReferenceLineHoverLocation(
     coordinate: Point,
 ): Promise<HoverLocation> {
     return getTrackNumberReferenceLine(trackNumberId, publishType).then((line) => {
-        if (!line) {
-            return emptyHoveredLocation(coordinate);
-        } else {
+        if (line) {
             return getTrackNumberById(line.trackNumberId, publishType).then((trackNumber) =>
                 getHoverLocation(trackNumber?.number, trackNumber?.id, publishType, coordinate),
             );
+        } else {
+            return emptyHoveredLocation(coordinate);
         }
     });
 }

@@ -31,6 +31,13 @@ export type MapLayerName =
     | 'debug-1m-points-layer'
     | 'debug-layer';
 
+export const shownItemsByLayer: { [key in MapLayerName]?: keyof ShownItems } = {
+    'switch-layer': 'switches',
+    'km-post-layer': 'kmPosts',
+    'location-track-alignment-layer': 'locationTracks',
+    'reference-line-alignment-layer': 'referenceLines',
+};
+
 export type MapViewportSource = 'Map';
 
 export type MapViewport = {
@@ -64,13 +71,13 @@ export type ShownItems = {
     switches: LayoutSwitchId[];
 };
 
-export type MapLayerSetting = {
-    name: MapLayerSettingName;
+export type MapLayerMenuItem = {
+    name: MapLayerMenuItemName;
     visible: boolean;
-    subSettings?: MapLayerSetting[];
+    subMenu?: MapLayerMenuItem[];
 };
 
-export type MapLayerSettingName =
+export type MapLayerMenuItemName =
     | 'map'
     | 'location-track'
     | 'reference-line'
@@ -88,12 +95,12 @@ export type MapLayerSettingName =
     | 'debug';
 
 export type Map = {
-    settingsMenu: {
-        layout: MapLayerSetting[];
-        geometry: MapLayerSetting[];
-        debug: MapLayerSetting[];
+    layerMenu: {
+        layout: MapLayerMenuItem[];
+        geometry: MapLayerMenuItem[];
+        debug: MapLayerMenuItem[];
     };
-    layers: MapLayerName[];
+    visibleLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
     hoveredLocation: Point | null;

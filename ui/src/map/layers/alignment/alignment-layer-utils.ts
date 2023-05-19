@@ -9,31 +9,31 @@ import { getTickStyle, pointToCoords, setAlignmentData } from 'map/layers/utils/
 
 const locationTrackStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentColor,
+        color: mapStyles.alignmentLine,
+        width: 1,
+    }),
+    zIndex: 0,
+});
+
+const highlightedLocationTrackStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
         width: 1,
     }),
     zIndex: 2,
 });
 
-const highlightedLocationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.alignmentHighlightColor,
-        width: 1,
-    }),
-    zIndex: 3,
-});
-
 const selectedLocationTrackStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentHighlightColor,
+        color: mapStyles.selectedAlignmentLine,
         width: 2,
     }),
-    zIndex: 3,
+    zIndex: 2,
 });
 
 const referenceLineStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentColor,
+        color: mapStyles.alignmentLine,
         width: 3,
     }),
     zIndex: 0,
@@ -41,7 +41,7 @@ const referenceLineStyle = new Style({
 
 const highlightedReferenceLineStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentHighlightColor,
+        color: mapStyles.selectedAlignmentLine,
         width: 3,
     }),
     zIndex: 1,
@@ -49,7 +49,7 @@ const highlightedReferenceLineStyle = new Style({
 
 const selectedReferenceLineStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentHighlightColor,
+        color: mapStyles.selectedAlignmentLine,
         width: 4,
     }),
     zIndex: 1,
@@ -57,10 +57,18 @@ const selectedReferenceLineStyle = new Style({
 
 const endPointTickStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.alignmentColor,
+        color: mapStyles.alignmentLine,
         width: 1,
     }),
-    zIndex: 2,
+    zIndex: 1,
+});
+
+const highlightedEndPointTickStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLine,
+        width: 1,
+    }),
+    zIndex: 1,
 });
 
 export function createAlignmentFeatures(
@@ -81,7 +89,7 @@ export function createAlignmentFeatures(
         const alignmentFeature = new Feature({ geometry: lineString });
         features.push(alignmentFeature);
 
-        const styles = [];
+        const styles: Style[] = [];
         const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
 
         if (selected || isLinking) {
@@ -95,7 +103,7 @@ export function createAlignmentFeatures(
         alignmentFeature.setStyle(styles);
 
         if (showEndTicks) {
-            features.push(...getEndPointTicks(alignment));
+            features.push(...getEndPointTicks(alignment, selected || isLinking || highlighted));
         }
 
         setAlignmentData(alignmentFeature, alignment);
@@ -137,7 +145,7 @@ export function getAlignmentHeaderStates(
     };
 }
 
-function getEndPointTicks(alignment: AlignmentDataHolder) {
+function getEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean) {
     const ticks: Feature<Point>[] = [];
     const points = alignment.points;
 
@@ -148,7 +156,15 @@ function getEndPointTicks(alignment: AlignmentDataHolder) {
 
             const startF = new Feature({ geometry: new Point(fP) });
 
-            startF.setStyle(getTickStyle(fP, sP, 6, 'start', endPointTickStyle));
+            startF.setStyle(
+                getTickStyle(
+                    fP,
+                    sP,
+                    6,
+                    'start',
+                    contrast ? highlightedEndPointTickStyle : endPointTickStyle,
+                ),
+            );
 
             ticks.push(startF);
         }
@@ -159,7 +175,15 @@ function getEndPointTicks(alignment: AlignmentDataHolder) {
             const sLP = pointToCoords(points[lastIdx - 1]);
 
             const endF = new Feature({ geometry: new Point(lP) });
-            endF.setStyle(getTickStyle(sLP, lP, 6, 'end', endPointTickStyle));
+            endF.setStyle(
+                getTickStyle(
+                    sLP,
+                    lP,
+                    6,
+                    'end',
+                    contrast ? highlightedEndPointTickStyle : endPointTickStyle,
+                ),
+            );
 
             ticks.push(endF);
         }

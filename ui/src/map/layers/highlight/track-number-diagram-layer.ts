@@ -42,7 +42,7 @@ const getColorForTrackNumber = (id: LayoutTrackNumberId) => {
     return c + '55'; //55 ~ 33 % opacity
 };
 
-function createDiagramFeatures(alignments: AlignmentDataHolder[]) {
+function createDiagramFeatures(alignments: AlignmentDataHolder[]): Feature<LineString>[] {
     const perTrackNumber = groupBy(
         alignments,
         (a) => a.header.trackNumberId || a.trackNumber?.id || '',
@@ -57,9 +57,9 @@ function createDiagramFeatures(alignments: AlignmentDataHolder[]) {
             }),
         });
 
-        return alignments.map((a) => {
+        return alignments.map(({ points }) => {
             const feature = new Feature({
-                geometry: new LineString(a.points.map(pointToCoords)),
+                geometry: new LineString(points.map(pointToCoords)),
             });
 
             feature.setStyle(style);
@@ -84,7 +84,7 @@ export function createTrackNumberDiagramLayer(
 
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, fetchType)
         .then((alignments) => {
-            if (layerId != newestLayerId) return;
+            if (layerId !== newestLayerId) return;
 
             const features = createDiagramFeatures(alignments);
 

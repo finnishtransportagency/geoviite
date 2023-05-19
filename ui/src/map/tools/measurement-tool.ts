@@ -15,10 +15,9 @@ import {
 } from 'map/layers/utils/layer-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutPoint } from 'track-layout/track-layout-model';
-import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 
-function formatMeasurement(distance: number) {
-    let content;
+function formatMeasurement(distance: number): string {
+    let content: string;
     if (distance < 1) {
         content = Math.round(distance * 1000) + ' mm';
     } else if (distance > 10000) {
@@ -83,16 +82,15 @@ export const measurementTool: MapTool = {
             type: 'LineString',
             maxPoints: 2,
             style: new Style({
-                zIndex: 20,
                 stroke: new Stroke({
-                    color: mapStyles.measureTooltipStroke,
+                    color: mapStyles.measurementTooltipLine,
                     lineDash: [8],
                     width: 2,
                 }),
                 image: new CircleStyle({
                     radius: 6,
                     stroke: new Stroke({
-                        color: mapStyles.measureTooltipCircleStroke,
+                        color: mapStyles.measurementTooltipCircle,
                     }),
                 }),
             }),
@@ -104,11 +102,9 @@ export const measurementTool: MapTool = {
                 const nearbyPoints = nearbyFeatures
                     .map((f) => getAlignmentData(f))
                     .filter(filterNotEmpty)
-                    .flatMap((f: AlignmentDataHolder) =>
-                        getClosestPoints(f.points, cursorCoordinate, 8),
-                    );
+                    .flatMap(({ points }) => getClosestPoints(points, cursorCoordinate, 8));
 
-                let closestPoint;
+                let closestPoint: { distance: number; point: LayoutPoint } | undefined;
                 for (let i = 0; i < nearbyPoints.length; i++) {
                     const nearbyPoint = nearbyPoints[i];
                     const pixelPoint = map.getPixelFromCoordinate(pointToCoords(nearbyPoint));

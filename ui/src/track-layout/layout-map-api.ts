@@ -288,7 +288,7 @@ export async function getLinkPointsByTiles(
     );
 }
 
-export async function createGeometryLinkPointsByTiles(
+export async function getGeometryLinkPointsByTiles(
     geometryPlanId: GeometryPlanId,
     geometryAlignmentId: GeometryAlignmentId,
     mapTiles: MapTile[],

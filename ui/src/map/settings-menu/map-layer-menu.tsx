@@ -1,20 +1,20 @@
 import * as React from 'react';
-import { Map, MapLayerSetting } from 'map/map-model';
+import { Map, MapLayerMenuItem } from 'map/map-model';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
-import { MapLayerSettingChange } from 'map/map-store';
+import { MapLayerMenuChange } from 'map/map-store';
 
-type MapLayersSettingMenuProps = {
+type MapLayerMenuProps = {
     map: Map;
-    onSettingChange: (change: MapLayerSettingChange) => void;
+    onMenuChange: (change: MapLayerMenuChange) => void;
     onClose?: () => void;
 };
 
-type LayerSettingProps = {
+type MapLayerProps = {
     label: string;
     visible: boolean;
     onChange: () => void;
@@ -22,13 +22,13 @@ type LayerSettingProps = {
     indented?: boolean;
 };
 
-type MapLayerSettingProps = {
+type MapLayerGroupProps = {
     title: string;
-    settings: MapLayerSetting[];
-    onSettingChange: (change: MapLayerSettingChange) => void;
+    visibilities: MapLayerMenuItem[];
+    onMenuChange: (change: MapLayerMenuChange) => void;
 };
 
-const LayerVisibilitySetting: React.FC<LayerSettingProps> = ({
+const MapLayer: React.FC<MapLayerProps> = ({
     label,
     visible,
     onChange,
@@ -38,8 +38,8 @@ const LayerVisibilitySetting: React.FC<LayerSettingProps> = ({
     const [hover, setHover] = React.useState(false);
     return (
         <label
-            className={`${styles['layer-visibility-setting']} ${
-                indented ? styles['layer-visibility-setting--indented'] : ''
+            className={`${styles['map-layer-menu__layer-visibility']} ${
+                indented ? styles['map-layer-menu__layer-visibility--indented'] : ''
             }`}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}>
@@ -49,39 +49,39 @@ const LayerVisibilitySetting: React.FC<LayerSettingProps> = ({
                 hover={hover}
                 disabled={disabled}
             />
-            <span className={styles['layer-visibility-setting__label']}>{label}</span>
+            <span className={styles['map-layer-menu__label']}>{label}</span>
         </label>
     );
 };
 
-const MapLayerSettings: React.FC<MapLayerSettingProps> = ({ title, settings, onSettingChange }) => {
+const MapLayerGroup: React.FC<MapLayerGroupProps> = ({ title, visibilities, onMenuChange }) => {
     const { t } = useTranslation();
     return (
         <React.Fragment>
-            <div className={styles['map-layer-settings__title']}>{title}</div>
-            {settings.flatMap((setting) => {
+            <div className={styles['map-layer-menu__title']}>{title}</div>
+            {visibilities.flatMap((setting) => {
                 return [
-                    <LayerVisibilitySetting
+                    <MapLayer
                         key={setting.name}
                         label={t(`map-layer-settings.${setting.name}`)}
                         visible={setting.visible}
                         onChange={() =>
-                            onSettingChange({
+                            onMenuChange({
                                 name: setting.name,
                                 visible: !setting.visible,
                             })
                         }
                     />,
-                    setting.subSettings?.map((subSetting) => {
+                    setting.subMenu?.map((subSetting) => {
                         return (
-                            <LayerVisibilitySetting
+                            <MapLayer
                                 key={subSetting.name}
                                 label={t(`map-layer-settings.${subSetting.name}`)}
                                 visible={subSetting.visible}
                                 disabled={!setting.visible}
                                 indented={true}
                                 onChange={() =>
-                                    onSettingChange({
+                                    onMenuChange({
                                         name: subSetting.name,
                                         visible: !subSetting.visible,
                                     })
@@ -95,36 +95,38 @@ const MapLayerSettings: React.FC<MapLayerSettingProps> = ({ title, settings, onS
     );
 };
 
-export const MapLayerSettingsMenu: React.FC<MapLayersSettingMenuProps> = (
-    props: MapLayersSettingMenuProps,
-) => {
+export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
+    onClose,
+    map,
+    onMenuChange,
+}: MapLayerMenuProps) => {
     const { t } = useTranslation();
 
     return (
-        <div className={styles['map-layer-settings']}>
-            <span className={styles['map-layer-settings__close-button']}>
+        <div className={styles['map-layer-menu']}>
+            <span className={styles['map-layer-menu__close-button']}>
                 <Button
                     variant={ButtonVariant.GHOST}
                     icon={Icons.Close}
-                    onClick={() => props.onClose && props.onClose()}
+                    onClick={() => onClose && onClose()}
                 />
             </span>
 
-            <MapLayerSettings
+            <MapLayerGroup
                 title={t('map-layer-settings.layout-title')}
-                settings={props.map.settingsMenu.layout}
-                onSettingChange={props.onSettingChange}
+                visibilities={map.layerMenu.layout}
+                onMenuChange={onMenuChange}
             />
-            <MapLayerSettings
+            <MapLayerGroup
                 title={t('map-layer-settings.geometry-title')}
-                settings={props.map.settingsMenu.geometry}
-                onSettingChange={props.onSettingChange}
+                visibilities={map.layerMenu.geometry}
+                onMenuChange={onMenuChange}
             />
             <EnvRestricted restrictTo="dev">
-                <MapLayerSettings
+                <MapLayerGroup
                     title={t('map-layer-settings.debug-title')}
-                    settings={props.map.settingsMenu.debug}
-                    onSettingChange={props.onSettingChange}
+                    visibilities={map.layerMenu.debug}
+                    onMenuChange={onMenuChange}
                 />
             </EnvRestricted>
         </div>

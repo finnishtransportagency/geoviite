@@ -8,7 +8,6 @@ import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/alignment/background-layer-utils';
-import { Selection } from 'selection/selection-model';
 import { clearFeatures } from 'map/layers/utils/layer-utils';
 
 let newestLayerId = 0;
@@ -16,7 +15,6 @@ let newestLayerId = 0;
 export function createLocationTrackBackgroundLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-    selection: Selection,
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
@@ -27,16 +25,9 @@ export function createLocationTrackBackgroundLayer(
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
     if (resolution <= Limits.ALL_ALIGNMENTS) {
-        const selectedAlignment = selection.selectedItems?.locationTracks[0];
-        getMapAlignmentsByTiles(
-            changeTimes,
-            mapTiles,
-            publishType,
-            'LOCATION_TRACKS',
-            selectedAlignment,
-        )
+        getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
             .then((locationTracks) => {
-                if (layerId != newestLayerId) return;
+                if (layerId !== newestLayerId) return;
 
                 const features = createAlignmentBackgroundFeatures(locationTracks);
 

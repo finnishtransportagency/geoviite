@@ -76,7 +76,7 @@ export type OnPlanFetchReady = {
     planLayout: GeometryPlanLayout | null;
 };
 
-const visibleMapLayerTypes: MapLayerName[] = [
+const visibleMapLayers: MapLayerName[] = [
     'background-map-layer',
     'location-track-alignment-layer',
     'switch-layer',
@@ -89,7 +89,7 @@ const visibleMapLayerTypes: MapLayerName[] = [
 export const initialInfraModelState: InfraModelState = {
     map: {
         ...initialMapState,
-        layers: visibleMapLayerTypes,
+        visibleLayers: visibleMapLayers,
     },
     infraModelList: initialInfraModelListState,
     selection: {

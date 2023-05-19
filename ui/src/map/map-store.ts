@@ -1,16 +1,17 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
     Map,
+    MapLayerMenuItem,
+    MapLayerMenuItemName,
     MapLayerName,
-    MapLayerSetting,
-    MapLayerSettingName,
     MapViewport,
     OptionalShownItems,
     ShownItems,
+    shownItemsByLayer,
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
-import { deduplicate, filterNotEmpty } from 'utils/array-utils';
+import { deduplicate } from 'utils/array-utils';
 
 export function createEmptyShownItems(): ShownItems {
     return {
@@ -21,12 +22,12 @@ export function createEmptyShownItems(): ShownItems {
     };
 }
 
-export type MapLayerSettingChange = {
-    name: MapLayerSettingName;
+export type MapLayerMenuChange = {
+    name: MapLayerMenuItemName;
     visible: boolean;
 };
 
-const layerSettingMapLayers: Record<MapLayerSettingName, MapLayerName[]> = {
+const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'map': ['background-map-layer'],
     'location-track': [
         'location-track-alignment-layer',
@@ -53,7 +54,7 @@ const layerSettingMapLayers: Record<MapLayerSettingName, MapLayerName[]> = {
 };
 
 export const initialMapState: Map = {
-    layers: [
+    visibleLayers: [
         'background-map-layer',
         'location-track-alignment-layer',
         'reference-line-alignment-layer',
@@ -63,13 +64,13 @@ export const initialMapState: Map = {
         'geometry-switch-layer',
         'geometry-km-post-layer',
     ],
-    settingsMenu: {
+    layerMenu: {
         layout: [
             { name: 'map', visible: true },
             {
                 name: 'location-track',
                 visible: true,
-                subSettings: [
+                subMenu: [
                     { name: 'reference-line', visible: true },
                     { name: 'track-number-diagram', visible: false },
                     { name: 'missing-vertical-geometry', visible: false },
@@ -121,44 +122,53 @@ export const mapReducers = {
             shownItems.switches = payload.switches;
         }
     },
-    onViewportChange: (state: Map, action: PayloadAction<MapViewport>): void => {
-        state.viewport = action.payload;
+    onViewportChange: (state: Map, { payload: viewPort }: PayloadAction<MapViewport>): void => {
+        state.viewport = viewPort;
     },
-    showArea: (state: Map, action: PayloadAction<BoundingBox>): void => {
+    showArea: (state: Map, { payload: boundingBox }: PayloadAction<BoundingBox>): void => {
         state.viewport = {
-            center: centerForBoundingBox(action.payload),
+            center: centerForBoundingBox(boundingBox),
             // Calculate new resolution by comparing previous and new bounding boxes.
             // Also zoom out a bit to make it look more natural (hence the "* 1.2").
             resolution: state.viewport.area
                 ? state.viewport.resolution *
-                  boundingBoxScale(state.viewport.area, action.payload) *
+                  boundingBoxScale(state.viewport.area, boundingBox) *
                   1.2
                 : state.viewport.resolution,
         };
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        state.layers = deduplicate([...state.layers, ...layers]);
+        state.visibleLayers = deduplicate([...state.visibleLayers, ...layers]);
     },
     hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        state.layers = state.layers.filter((l) => !layers.some((p) => p === l));
+        state.visibleLayers = state.visibleLayers.filter((l) => !layers.some((p) => p === l));
     },
-    onSettingsChange(state: Map, { payload }: PayloadAction<MapLayerSettingChange>) {
-        state.settingsMenu.layout = updateSettings(state.settingsMenu.layout, payload);
-        state.settingsMenu.geometry = updateSettings(state.settingsMenu.geometry, payload);
-        state.settingsMenu.debug = updateSettings(state.settingsMenu.debug, payload);
-        const changedLayers = collectChangedLayers(
-            [
-                ...state.settingsMenu.layout,
-                ...state.settingsMenu.geometry,
-                ...state.settingsMenu.debug,
-            ],
-            payload,
-        );
+    onLayerMenuItemChange(state: Map, { payload: change }: PayloadAction<MapLayerMenuChange>) {
+        state.layerMenu.layout = updateMenuItem(state.layerMenu.layout, change);
+        state.layerMenu.geometry = updateMenuItem(state.layerMenu.geometry, change);
+        state.layerMenu.debug = updateMenuItem(state.layerMenu.debug, change);
+        const allMenuItems = [
+            ...state.layerMenu.layout,
+            ...state.layerMenu.geometry,
+            ...state.layerMenu.debug,
+        ];
 
-        if (payload.visible) {
+        const changedLayers = collectChangedLayers(allMenuItems, change);
+
+        if (change.visible) {
             this.showLayers(state, { payload: changedLayers, type: 'showLayers' });
         } else {
-            this.hideLayers(state, { payload: changedLayers, type: 'hideLayers' });
+            const visibleLayers = collectVisibleLayers(allMenuItems, change);
+            const hiddenLayers = changedLayers.filter((l) => !visibleLayers.some((v) => v === l));
+
+            hiddenLayers.forEach((l) => {
+                const shownItemsToHide = shownItemsByLayer[l];
+                if (shownItemsToHide) {
+                    state.shownItems[shownItemsToHide] = [];
+                }
+            });
+
+            this.hideLayers(state, { payload: hiddenLayers, type: 'hideLayers' });
         }
     },
     onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>): void => {
@@ -169,50 +179,58 @@ export const mapReducers = {
     },
 };
 
-function collectChangedLayers(
-    settings: MapLayerSetting[],
-    change: MapLayerSettingChange,
-    isChild = false,
+function collectVisibleLayers(
+    settings: MapLayerMenuItem[],
+    change: MapLayerMenuChange,
 ): MapLayerName[] {
-    return settings
-        .flatMap(({ name, subSettings }) => {
-            if (name === change.name) {
-                if (change.visible) {
-                    return [
-                        ...layerSettingMapLayers[name],
-                        ...collectChangedLayers(
-                            subSettings?.filter((s) => s.visible) ?? [],
-                            change,
-                            true,
-                        ),
-                    ];
-                } else {
-                    return [
-                        ...layerSettingMapLayers[name],
-                        ...collectChangedLayers(subSettings ?? [], change, true),
-                    ];
-                }
-            } else {
-                return [
-                    ...(isChild ? layerSettingMapLayers[name] : []),
-                    ...collectChangedLayers(subSettings ?? [], change, isChild),
-                ];
-            }
-        })
-        .filter(filterNotEmpty);
+    return settings.flatMap((s) => {
+        if (s.visible && s.name !== change.name) {
+            return [
+                ...layerMenuItemMapLayers[s.name],
+                ...collectVisibleLayers(s.subMenu ?? [], change),
+            ];
+        }
+
+        return [];
+    });
 }
 
-function updateSettings(
-    settings: MapLayerSetting[],
-    change: MapLayerSettingChange,
-): MapLayerSetting[] {
-    return settings.map((s) => {
-        return {
-            name: s.name,
-            visible: s.name === change.name ? change.visible : s.visible,
-            subSettings: s.subSettings ? updateSettings(s.subSettings, change) : undefined,
-        };
+function collectChangedLayers(
+    settings: MapLayerMenuItem[],
+    change: MapLayerMenuChange,
+    isChild = false,
+): MapLayerName[] {
+    return settings.flatMap(({ name, subMenu }) => {
+        if (name === change.name) {
+            if (change.visible) {
+                return [
+                    ...layerMenuItemMapLayers[name],
+                    ...collectChangedLayers(subMenu?.filter((s) => s.visible) ?? [], change, true),
+                ];
+            } else {
+                return [
+                    ...layerMenuItemMapLayers[name],
+                    ...collectChangedLayers(subMenu ?? [], change, true),
+                ];
+            }
+        } else {
+            return [
+                ...(isChild ? layerMenuItemMapLayers[name] : []),
+                ...collectChangedLayers(subMenu ?? [], change, isChild),
+            ];
+        }
     });
+}
+
+function updateMenuItem(
+    settings: MapLayerMenuItem[],
+    change: MapLayerMenuChange,
+): MapLayerMenuItem[] {
+    return settings.map((s) => ({
+        name: s.name,
+        visible: s.name === change.name ? change.visible : s.visible,
+        subMenu: s.subMenu ? updateMenuItem(s.subMenu, change) : undefined,
+    }));
 }
 
 type MapContextState = 'trackLayout' | 'infra-model' | 'preview';

@@ -7,10 +7,15 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import { LocationTrackEndpoint } from 'linking/linking-model';
 import { MANUAL_SWITCH_LINKING_ENDPOINT_SELECTION_RESOLUTION } from 'map/layers/utils/layer-visibility-limits';
 import { flatten } from 'utils/array-utils';
-import { getMatchingEntities, MatchOptions, pointToCoords } from 'map/layers/utils/layer-utils';
-import { endPointStyle } from 'map/layers/linking-layer';
+import {
+    clearFeatures,
+    getMatchingEntities,
+    MatchOptions,
+    pointToCoords,
+} from 'map/layers/utils/layer-utils';
 import { PublishType } from 'common/common-model';
 import { getLocationTrackEndpointsByTile } from 'track-layout/layout-location-track-api';
+import { endPointStyle } from 'map/layers/switch/switch-layer-utils';
 
 export const FEATURE_PROPERTY_LOCATION_TRACK_ENDPOINT = 'location-track-endpoint';
 
@@ -32,50 +37,42 @@ function createLocationTrackEndpointFeatures(
     return features;
 }
 
-let newestSwitchManualLinkingLayerId = 0;
+let newestLayerId = 0;
 export function createManualSwitchLinkingLayer(
     mapTiles: MapTile[],
     resolution: number,
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     publishType: PublishType,
 ): MapLayer {
-    const layerId = ++newestSwitchManualLinkingLayerId;
+    const layerId = ++newestLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-
-    // Use an existing layer or create a new one. Old layer is "recycled" to
-    // prevent features to disappear while moving the map.
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    function clearFeatures() {
-        vectorSource.clear();
-    }
-
     function updateFeatures(features: Feature<OlPoint>[]) {
-        clearFeatures();
+        clearFeatures(vectorSource);
         vectorSource.addFeatures(features);
     }
 
-    if (resolution && resolution < MANUAL_SWITCH_LINKING_ENDPOINT_SELECTION_RESOLUTION) {
+    if (resolution <= MANUAL_SWITCH_LINKING_ENDPOINT_SELECTION_RESOLUTION) {
         const locationTrackEndpointsPromise = Promise.all(
             mapTiles.map((tile) => getLocationTrackEndpointsByTile(tile, publishType)),
         ).then(flatten);
 
         locationTrackEndpointsPromise
             .then((locationTrackEndPoints) => {
-                return locationTrackEndPoints.flatMap((m) =>
-                    createLocationTrackEndpointFeatures(m, false),
-                );
-            })
-            .then((features) => {
                 // Handle latest fetch only
-                if (layerId === newestSwitchManualLinkingLayerId) {
-                    updateFeatures(features);
-                }
+                if (layerId !== newestLayerId) return;
+
+                const features = locationTrackEndPoints.flatMap((e) =>
+                    createLocationTrackEndpointFeatures(e, false),
+                );
+
+                updateFeatures(features);
             })
-            .catch(clearFeatures);
+            .catch(() => clearFeatures(vectorSource));
     } else {
-        clearFeatures();
+        clearFeatures(vectorSource);
     }
 
     return {
@@ -86,6 +83,7 @@ export function createManualSwitchLinkingLayer(
                 strategy: options.limit == 1 ? 'nearest' : 'limit',
                 limit: options.limit,
             };
+
             const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
             const matchingEntities: LocationTrackEndpoint[] = getMatchingEntities(
                 hitArea,
@@ -93,6 +91,7 @@ export function createManualSwitchLinkingLayer(
                 FEATURE_PROPERTY_LOCATION_TRACK_ENDPOINT,
                 matchOptions,
             );
+
             return {
                 locationTracks: matchingEntities.map((entity) => entity.locationTrackId),
                 locationTrackEndPoints: matchingEntities,
