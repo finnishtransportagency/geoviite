@@ -1,16 +1,14 @@
 import styles from './track-layout.module.scss';
 import * as React from 'react';
-import { useMemo } from 'react';
-import { TrackLayoutState } from 'track-layout/track-layout-slice';
-import { MapContext } from 'map/map-store';
-import { MapViewport, OptionalShownItems } from 'map/map-model';
+import { MapContext, MapLayerMenuChange } from 'map/map-store';
+import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
 import MapView from 'map/map-view';
-import { MapLayersSettings } from 'map/settings/map-layer-settings';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
+    Selection,
 } from 'selection/selection-model';
 import { ToolBar } from 'tool-bar/tool-bar';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
@@ -18,39 +16,38 @@ import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-crea
 import ToolPanelContainer from 'tool-panel/tool-panel-container';
 import { BoundingBox } from 'model/geometry';
 import { PublishType } from 'common/common-model';
-import { LinkPoint } from 'linking/linking-model';
+import { LinkingState, LinkPoint } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
+import { MapLayerMenu } from 'map/settings-menu/map-layer-menu';
 import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
 import { createClassName } from 'vayla-design-lib/utils';
 
 // For now use whole state and some extras as params
-export type TrackLayoutParams = TrackLayoutState & {
+export type TrackLayoutViewProps = {
+    publishType: PublishType;
+    selection: Selection;
+    map: Map;
+    linkingState: LinkingState | undefined;
     onViewportChange: (viewport: MapViewport) => void;
     onSelect: OnSelectFunction;
     onHighlightItems: OnHighlightItemsFunction;
     onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
-    onMapSettingsVisibilityChange: (visible: boolean) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
-    onLayerVisibilityChange: (layerId: string, visible: boolean) => void;
-    onReferenceLineVisibilityChange: (layerId: string, visible: boolean) => void;
-    onMissingVerticalGeometryVisibilityChange: (layerId: string, visible: boolean) => void;
-    onSegmentsFromSelectedPlanVisibilityChange: (layerId: string, visible: boolean) => void;
-    onMissingLinkingVisibilityChange: (layerId: string, visible: boolean) => void;
-    onDuplicateTracksVisibilityChange: (layerId: string, visible: boolean) => void;
     onShownItemsChange: (shownItems: OptionalShownItems) => void;
     showArea: (area: BoundingBox) => void;
     onSetLayoutClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onSetGeometryClusterLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
+    onLayerMenuItemChange: (change: MapLayerMenuChange) => void;
     changeTimes: ChangeTimes;
     onStopLinking: () => void;
 };
 
-export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutParams) => {
-    const verticalDiagramAlignmentId = useMemo(
+export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayoutViewProps) => {
+    const verticalDiagramAlignmentId = React.useMemo(
         () =>
             props.selection.selectedItems.locationTracks[0] && {
                 locationTrackId: props.selection.selectedItems.locationTracks[0],
@@ -61,16 +58,20 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
 
     const showVerticalGeometryDiagram =
         props.map.verticalGeometryDiagramVisible && verticalDiagramAlignmentId != undefined;
+
     const className = createClassName(
         styles['track-layout'],
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
+
+    const [mapSettingsVisible, setMapSettingsVisible] = React.useState(false);
+
     return (
         <div className={className} qa-id="track-layout-content">
             <ToolBar
-                settingsVisible={props.map.settingsVisible}
+                settingsVisible={mapSettingsVisible}
                 publishType={props.publishType}
-                onMapSettingsVisibilityChange={props.onMapSettingsVisibilityChange}
+                onMapSettingsVisibilityChange={setMapSettingsVisible}
                 selection={props.selection}
                 showArea={props.showArea}
                 onSelectTrackNumber={(trackNumberId) =>
@@ -120,27 +121,12 @@ export const TrackLayoutView: React.FC<TrackLayoutParams> = (props: TrackLayoutP
                 )}
 
                 <div className={styles['track-layout__map']}>
-                    {props.map.settingsVisible && (
+                    {mapSettingsVisible && (
                         <div className={styles['track-layout__map-settings']}>
-                            <MapLayersSettings
+                            <MapLayerMenu
+                                onMenuChange={props.onLayerMenuItemChange}
+                                onClose={() => setMapSettingsVisible(false)}
                                 map={props.map}
-                                onReferenceLineVisibilityChange={
-                                    props.onReferenceLineVisibilityChange
-                                }
-                                onMissingVerticalGeometryVisibilityChange={
-                                    props.onMissingVerticalGeometryVisibilityChange
-                                }
-                                onSegmentsFromSelectedPlanVisibilityChange={
-                                    props.onSegmentsFromSelectedPlanVisibilityChange
-                                }
-                                onMissingLinkingVisibilityChange={
-                                    props.onMissingLinkingVisibilityChange
-                                }
-                                onDuplicateTrackVisibilityChange={
-                                    props.onDuplicateTracksVisibilityChange
-                                }
-                                onLayerVisibilityChange={props.onLayerVisibilityChange}
-                                onClose={() => props.onMapSettingsVisibilityChange(false)}
                             />
                         </div>
                     )}

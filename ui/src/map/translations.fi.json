@@ -1,13 +1,23 @@
 {
     "map-layer-settings": {
-        "layout": "Paikannuspohja",
-        "track-numbers": "Ratanumerot",
-        "reference-lines": "Pituusmittauslinjat",
-        "geometry": "Geometriat",
-        "debug": "Debug-työkalut",
-        "missing-linking": "Korosta puuttuva linkitys",
+        "layout-title": "Paikannuspohja",
+        "geometry-title": "Geometriat",
+        "debug-title": "Debug-työkalut",
+        "map": "Taustakartta",
+        "location-track": "Sijaintiraiteet",
+        "reference-line": "Pituusmittauslinjat",
+        "track-number-diagram": "Pituusmittausraidekaavio",
         "missing-vertical-geometry": "Korosta puuttuva pystygeometria",
-        "duplicate-tracks": "Korosta duplikaattiraiteet"
+        "missing-linking": "Korosta puuttuva linkitys",
+        "duplicate-tracks": "Korosta duplikaattiraiteet",
+        "km-post": "Tasakilometripisteet",
+        "switch": "Vaihteet",
+        "geometry-alignment": "Suunnitelman raiteet",
+        "geometry-switch": "Suunnitelman vaihteet",
+        "plan-area": "Suunnitelman alueet",
+        "geometry-km-post": "Suunnitelman tasakilometripisteet",
+        "debug-1m": "Tasametripisteet",
+        "debug": "Debug"
     },
     "map-view": {
         "cluster-overlay-title": "Klusteripiste",

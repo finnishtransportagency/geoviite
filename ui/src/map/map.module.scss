@@ -6,110 +6,121 @@
 
 $font-family: 'Open Sans';
 
+$color-geometry-green-default: #4abc4a;
+$color-geometry-green-dark: #008e00;
+
+$color-geometry-red-default: #e07764;
+$color-geometry-red-dark: #ab1a00;
+
+$color-highlight-red: #e53e27;
+$color-highlight-blue: #389bf6;
+
 // Export colors to use e.g. in map canvas
 :export {
-    boundingBoxColor: $color-red-default;
-    boundingBoxBackground: rgba($color-white-default, 0.2);
-    boundingBoxText: $color-black-default;
+    planAreaBorder: $color-red-default;
+    planAreaTextColor: $color-black-default;
     fontFamily: $font-family;
 }
 
 //Linking layer
 :export {
-    linkingPointStrokeColor: $color-white-default;
+    linkingPoint: $color-white-default;
     unselectedAlignmentInterval: $color-white-darker;
     selectedLayoutAlignmentInterval: $color-geoviite-blue;
     selectedGeometryAlignmentInterval: $color-red-dark;
 
     clusterPointTextColor: $color-white-default;
-    clusterPointStrokeColor: $color-white-default;
-    clusterPointFillColor: $color-white-darker;
+    clusterPointBorder: $color-white-default;
+    clusterPoint: $color-white-darker;
 
     locationTrackEndPoint: $color-red-default;
-    locationTrackEndPointInnerCircle: $color-red-darker;
+    locationTrackEndPointBorder: $color-red-darker;
     locationTrackEndPointCross: $color-white-default;
 }
 
 // Alignment styling
 :export {
-    unlinkedGeometryAlignment: $color-red-light;
-    selectedUnlinkedGeometryAlignment: $color-red-dark;
+    unlinkedGeometryAlignment: $color-geometry-red-default;
+    selectedUnlinkedGeometryAlignment: $color-geometry-red-dark;
 
-    linkedGeometryAlignment: $color-green-light;
-    selectedLinkedGeometryAlignment: $color-green-dark;
+    linkedGeometryAlignment: $color-geometry-green-default;
+    selectedLinkedGeometryAlignment: $color-geometry-green-dark;
 
     alignmentBackground: $color-white-default;
 
-    alignmentColor: rgba($color-black-default, 0.8);
-    alignmentHighlightColor: $color-geoviite-blue;
+    alignmentLine: rgba($color-black-default, 0.8);
+    selectedAlignmentLine: $color-geoviite-blue;
 
-    alignmentRedBackground: rgba(255, 61, 0, 0.51);
-    alignmentBlueBackground: rgba(56, 155, 246, 0.37);
+    alignmentRedHighlight: rgba($color-highlight-red, 0.2);
+    alignmentBlueHighlight: rgba($color-highlight-blue, 0.2);
 }
 
 // Alignment badge styling
 :export {
-    alignment-badge: {
+    /* prettier-ignore */
+    alignmentBadge: {
         @include typography-body-strong;
     }
-    alignment-badge-background: $color-black-default;
-    alignment-badge-background-white: $color-white-default;
-    alignment-badge-background-selected: $color-geoviite-blue;
-    alignment-badge-background-border: $color-black-lighter;
-    alignment-badge-color-white: $color-white-default;
-    alignment-badge-color: $color-black-default;
+    alignmentBadge: $color-black-default;
+    alignmentBadgeWhite: $color-white-default;
+    alignmentBadgeBlue: $color-geoviite-blue;
+    alignmentBadgeBorder: $color-black-lighter;
+
+    alignmentBadgeWhiteTextColor: $color-white-default;
+    alignmentBadgeTextColor: $color-black-default;
 }
 
 // Km post styling
 :export {
-    kmpost: {
+    /* prettier-ignore */
+    kmPost: {
         @include typography-body-strong;
     }
-    kmPost-text: $color-black-default;
-    kmPost-background: rgba($color-white-default, 0.6);
-    geometry-not-linked-kmPost-background: rgba($color-red-lighter, 0.6);
-    geometry-linked-kmPost-background: rgba($color-green-lighter, 0.6);
-    selected-kmPost-dot-background: $color-geoviite-blue;
-    selected-kmPost-dot-border: rgba($color-black-default, 0.2);
-    selected-kmPost-background: $color-white-default;
-    selected-not-linked-geometry-kmPost-background: $color-red-lighter;
-    selected-linked-geometry-kmPost-background: $color-green-lighter;
-    selected-kmPost-border-color: rgba($color-black-default, 0.6);
+
+    kmPostTextColor: $color-black-default;
+    kmPostLabel: rgba($color-white-default, 0.6);
+
+    unlinkedKmPostLabel: rgba($color-red-lighter, 0.6);
+    linkedKmPostLabel: rgba($color-green-lighter, 0.6);
+
+    selectedKmPostLabel: $color-white-default;
+    selectedKmPostLabelBorder: rgba($color-black-default, 0.6);
+
+    selectedKmPostDot: $color-geoviite-blue;
+    selectedKmPostDotBorder: rgba($color-black-default, 0.2);
+
+    selectedUnlinkedKmPostLabel: $color-red-lighter;
+    selectedLinkedKmPostLabel: $color-green-lighter;
 }
 
 // Switch styling
 :export {
     switchTextColor: $color-black-default;
-    switchBackground: $color-black-lighter;
+    switchBackground: $color-black-lighter; //todo
 
-    switchLabelBackground: $color-geoviite-cadmium-lighter;
+    switchLabel: $color-geoviite-cadmium-lighter;
     switchLabelBorder: rgba($color-black-default, 0.5);
+    linkedSwitchLabel: $color-green-lighter;
+    unlinkedSwitchLabel: $color-red-lighter;
 
-    switchIconBackground: $color-geoviite-cadmium;
-    switchIconBorder: rgba($color-black-default, 0.5);
-
-    switchJointBackground: $color-geoviite-cadmium;
+    switchJoint: $color-geoviite-cadmium;
     switchJointBorder: rgba($color-black-default, 0.5);
-    switchJointText: $color-black-default;
+    switchJointTextColor: $color-black-default;
 
-    switchMainJointBackground: $color-geoviite-blue;
+    switchMainJoint: $color-geoviite-blue;
     switchMainJointBorder: scale-color($color-geoviite-blue, $lightness: -40%);
-    switchMainJointText: $color-white-default;
+    switchMainJointTextColor: $color-white-default;
 
-    switchLinkedColor: $color-green-default;
-    switchLinkedColorStroke: $color-green-dark;
-    switchUnlinkedColor: $color-red-default;
-    switchUnlinkedColorStroke: $color-red-dark;
-    linkedSwitchLabelBackground: $color-green-lighter;
-    linkedSwitchLabelBorder: rgba($color-black-default, 0.5);
-    notLinkedSwitchLabelBackground: $color-red-lighter;
-    notLinkedSwitchLabelBorder: rgba($color-black-default, 0.5);
+    linkedSwitchJoint: $color-green-default;
+    linkedSwitchJointBorder: $color-green-dark;
+    unlinkedSwitchJoint: $color-red-default;
+    unlinkedSwitchJointBorder: $color-red-dark;
 }
 
 //Measure tooltip styling
 :export {
-    measureTooltipStroke: $color-black-lighter;
-    measureTooltipCircleStroke: $color-black-light;
+    measurementTooltipLine: $color-black-lighter;
+    measurementTooltipCircle: $color-black-light;
 }
 
 .map {

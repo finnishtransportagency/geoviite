@@ -1,13 +1,13 @@
 import OlMap from 'ol/Map';
 import { MapTool, MapToolActivateOptions } from './tool-model';
-import { OlLayerAdapter } from 'map/layers/layer-model';
 import { getDefaultHitArea, searchItemsFromLayers } from 'map/tools/tool-utils';
+import { MapLayer } from 'map/layers/utils/layer-model';
 
 export const selectTool: MapTool = {
-    activate: (map: OlMap, layerAdapters: OlLayerAdapter[], options: MapToolActivateOptions) => {
-        const clickEvent = map.on('click', (e) => {
-            const hitArea = getDefaultHitArea(map, e.coordinate);
-            const items = searchItemsFromLayers(hitArea, layerAdapters, { limit: 1 });
+    activate: (map: OlMap, layers: MapLayer[], options: MapToolActivateOptions) => {
+        const clickEvent = map.on('click', ({ coordinate }) => {
+            const hitArea = getDefaultHitArea(map, coordinate);
+            const items = searchItemsFromLayers(hitArea, layers, { limit: 1 });
             options.onSelect(items);
         });
 

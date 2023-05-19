@@ -38,7 +38,7 @@ import {
     toIntervalRequest,
 } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LINKING_DOTS } from 'map/layers/layer-visibility-limits';
+import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
     updateLocationTrackChangeTime,
     updateReferenceLineChangeTime,

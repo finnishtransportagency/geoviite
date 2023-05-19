@@ -1,21 +1,21 @@
 import Feature, { FeatureLike } from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
-import { Geometry, LineString, Point, Polygon } from 'ol/geom';
+import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { RegularShape, Style } from 'ol/style';
 import {
     LAYOUT_SRID,
     LayoutKmPost,
+    LayoutPoint,
     LayoutSwitch,
     LayoutSwitchJoint,
-    LayoutPoint,
 } from 'track-layout/track-layout-model';
 import * as turf from '@turf/turf';
 import { OptionalItemCollections } from 'selection/selection-model';
 import { FEATURE_PROPERTY_LINK_POINT, FEATURE_PROPERTY_TYPE } from 'map/layers/linking-layer';
-import { LayerItemSearchResult } from 'map/layers/layer-model';
+import { LayerItemSearchResult } from 'map/layers/utils/layer-model';
 import { LinkPoint, LinkPointType, SuggestedSwitch } from 'linking/linking-model';
 import proj4 from 'proj4';
-import { FEATURE_PROPERTY_SUGGESTED_SWITCH } from 'map/layers/switch-linking-layer';
+import { FEATURE_PROPERTY_SUGGESTED_SWITCH } from 'map/layers/switch/switch-linking-layer';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { OptionalShownItems } from 'map/map-model';
 import { Extent, getBottomRight, getTopLeft } from 'ol/extent';
@@ -25,10 +25,16 @@ import {
     boundingBoxIntersectsLine,
     coordsToPoint,
     createLine,
+    Point,
 } from 'model/geometry';
 import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-api';
 import { interpolateXY } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+import { register } from 'ol/proj/proj4';
+import VectorSource from 'ol/source/Vector';
+
+proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
+register(proj4);
 
 const layoutToWgs84 = proj4(LAYOUT_SRID, 'WGS84');
 
@@ -48,7 +54,7 @@ function toWgs84Polygon(polyCoordinates: number[][][]): number[][][] {
     return polyCoordinates.map((coordinates) => toWgs84Multi(coordinates));
 }
 
-function center(polygon: Polygon): Point {
+function center(polygon: Polygon): OlPoint {
     const coords = polygon.getLinearRing(0)?.getCoordinates();
     if (!coords) {
         throw 'Cannot find the center of a polygon!';
@@ -58,14 +64,14 @@ function center(polygon: Polygon): Point {
     if (!center) {
         throw 'Cannot find the center of a polygon!';
     }
-    return new Point(toMapProjection(center));
+    return new OlPoint(toMapProjection(center));
 }
 
-function hasCollisionPoints(pointA: Point, pointB: Point): boolean {
+function hasCollisionPoints(pointA: OlPoint, pointB: OlPoint): boolean {
     return pointA.intersectsCoordinate(pointB.getCoordinates());
 }
 
-function hasCollisionPolygonAndPoint(poly: Polygon, point: Point): boolean {
+function hasCollisionPolygonAndPoint(poly: Polygon, point: OlPoint): boolean {
     return turf.booleanPointInPolygon(
         turf.point(toWgs84(point.getCoordinates())),
         turf.polygon(toWgs84Polygon(poly.getCoordinates())),
@@ -108,11 +114,11 @@ function hasCollisionPolygons(polyA: Polygon, polyB: Polygon): boolean {
  * Returns true if given geometries collides.
  */
 function hasCollision(geomA: Geometry, geomB: Geometry): boolean {
-    if (geomA instanceof Point && geomB instanceof Point) {
+    if (geomA instanceof OlPoint && geomB instanceof OlPoint) {
         return hasCollisionPoints(geomA, geomB);
-    } else if (geomA instanceof Polygon && geomB instanceof Point) {
+    } else if (geomA instanceof Polygon && geomB instanceof OlPoint) {
         return hasCollisionPolygonAndPoint(geomA, geomB);
-    } else if (geomA instanceof Point && geomB instanceof Polygon) {
+    } else if (geomA instanceof OlPoint && geomB instanceof Polygon) {
         return hasCollisionPolygonAndPoint(geomB, geomA);
     } else if (geomA instanceof Polygon && geomB instanceof LineString) {
         return hasCollisionPolygonAndLine(geomA, geomB);
@@ -130,7 +136,7 @@ function hasCollision(geomA: Geometry, geomB: Geometry): boolean {
  * @param pointA
  * @param pointB
  */
-function getPlanarDistancePointAndPoint(pointA: Point, pointB: Point): number {
+function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): number {
     const pointACoords = pointA.getCoordinates();
     const pointBCoords = pointB.getCoordinates();
 
@@ -147,7 +153,7 @@ export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y
  * @param point
  * @param line
  */
-export function getDistancePointAndLine(point: Point, line: LineString): number {
+export function getDistancePointAndLine(point: OlPoint, line: LineString): number {
     return (
         turf.pointToLineDistance(
             turf.point(toWgs84(point.getCoordinates())),
@@ -157,7 +163,7 @@ export function getDistancePointAndLine(point: Point, line: LineString): number 
     );
 }
 
-export function getDistancePointAndPolygon(point: Point, polygon: Polygon): number {
+export function getDistancePointAndPolygon(point: OlPoint, polygon: Polygon): number {
     const polyCenter = center(polygon);
     return getPlanarDistancePointAndPoint(point, polyCenter);
 }
@@ -168,8 +174,8 @@ export function getDistancePointAndPolygon(point: Point, polygon: Polygon): numb
  * @param point
  * @param geom
  */
-export function getDistance(point: Point, geom: Geometry): number {
-    if (geom instanceof Point) {
+export function getDistance(point: OlPoint, geom: Geometry): number {
+    if (geom instanceof OlPoint) {
         return getPlanarDistancePointAndPoint(point, geom);
     } else if (geom instanceof LineString) {
         return getDistancePointAndLine(point, geom);
@@ -194,7 +200,7 @@ type SortedMatch<TEntity> = Match<TEntity> & {
 };
 
 function sortMatchesByDistance<TEntity>(
-    point: Point,
+    point: OlPoint,
     matches: Match<TEntity>[],
 ): SortedMatch<TEntity>[] {
     return Object.values(matches)
@@ -208,29 +214,8 @@ function sortMatchesByDistance<TEntity>(
                 ...match,
             };
         })
-        .filter((refinedMatch) => refinedMatch) // remove undefined items
-        .map((refinedMatch) => refinedMatch as NonNullable<typeof refinedMatch>) // cast non nullable
+        .filter(filterNotEmpty) // remove undefined items
         .sort((a, b) => (a.distance < b.distance ? -1 : 1));
-}
-
-export function addBbox(feature: Feature<Polygon | LineString>): void {
-    const geom = feature.getGeometry();
-    let points = null;
-    if (geom instanceof Polygon) points = geom.getCoordinates().flat();
-    if (geom instanceof LineString) points = geom.getCoordinates();
-    if (points && points.length >= 2) {
-        const turfLine = turf.lineString(toWgs84Multi(points));
-        feature.set('bboxTurfPolygon', turf.bboxPolygon(turf.bbox(turfLine)).geometry);
-    }
-}
-
-function hasBoundsMatch(turfPolyShape: turf.Feature, feature: Feature<Geometry>): boolean {
-    const featBounds = feature.get('bboxTurfPolygon') as turf.Polygon;
-    if (featBounds) {
-        return !turf.booleanDisjoint(featBounds, turfPolyShape);
-    } else {
-        return true;
-    }
 }
 
 function hasAccurateMatch(shape: Polygon, feature: Feature<Geometry>): boolean {
@@ -246,7 +231,6 @@ function findEntities<TVal>(
 ): TVal[] {
     const match: { [key: string]: { feature: Feature<Geometry>; entity: TVal } } = {};
     let itemCount = 0;
-    const turfPolyShape = turf.polygon(toWgs84Polygon(shape.getCoordinates()));
     // Use "some" instead of "forEach" to stop iteration when needed (e.g. enough hits)
     features.some((feature) => {
         let continueSearching = true;
@@ -254,12 +238,7 @@ function findEntities<TVal>(
         const entityInfo = getEntity(feature);
         if (entityInfo) {
             const [id, entity] = entityInfo;
-            if (
-                entity &&
-                !match[id] &&
-                hasBoundsMatch(turfPolyShape, feature) &&
-                hasAccurateMatch(shape, feature)
-            ) {
+            if (entity && !match[id] && hasAccurateMatch(shape, feature)) {
                 // New match found
                 match[id] = {
                     feature: feature,
@@ -280,9 +259,7 @@ function findEntities<TVal>(
         const matches = Object.values(match);
         return sortMatchesByDistance(center(shape), matches)
             .slice(0, options?.limit || matches.length)
-            .map((sortedMatch) => {
-                return sortedMatch.entity;
-            });
+            .map((sortedMatch) => sortedMatch.entity);
     }
 
     return Object.values(match).map((match) => match.entity);
@@ -295,11 +272,11 @@ export function setAlignmentData(feature: Feature<LineString>, dataHolder: Align
     feature.set(FEATURE_PROPERTY_ALIGNMENT_DATA, dataHolder);
 }
 
-export function getAlignmentData(feature: FeatureLike): AlignmentDataHolder | undefined {
+export function getAlignmentData(feature: FeatureLike): AlignmentDataHolder {
     return feature.get(FEATURE_PROPERTY_ALIGNMENT_DATA) as AlignmentDataHolder;
 }
 
-export function getMatchingAlignmentDatas(
+export function getMatchingAlignmentData(
     shape: Polygon,
     features: Feature<Geometry>[],
     options?: MatchOptions,
@@ -418,7 +395,7 @@ export function getMatchingEntities<T extends { id: string }>(
     );
 }
 
-const tickImageCache = new Map<string, RegularShape>();
+export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();
 
 export function getTickStyle(
     point1: Coordinate,
@@ -431,22 +408,16 @@ export function getTickStyle(
     const angleStep = (Math.PI * 2) / angleVersionCount;
     const actualAngle = Math.atan2(point1[0] - point2[0], point1[1] - point2[1]) + Math.PI / 2;
     const roundAngle = Math.round(actualAngle / angleStep) * angleStep;
-    const strokeData = JSON.stringify(style.getStroke());
-    const key = `${roundAngle}_${length}_${strokeData}`;
-    let image = tickImageCache.get(key);
-    if (!image) {
-        image = new RegularShape({
-            stroke: style.getStroke(),
-            points: 2,
-            radius: length,
-            radius2: 0,
-            angle: roundAngle,
-        });
-        tickImageCache.set(key, image);
-    }
+    const image = new RegularShape({
+        stroke: style.getStroke(),
+        points: 2,
+        radius: length,
+        radius2: 0,
+        angle: roundAngle,
+    });
 
     return new Style({
-        geometry: new Point(position == 'start' ? point1 : point2),
+        geometry: new OlPoint(position == 'start' ? point1 : point2),
         image: image,
         zIndex: style.getZIndex(),
     });
@@ -468,11 +439,11 @@ export function getTickStyles(
                 return undefined;
             } else if (m >= points[points.length - 1].m) {
                 const prev = points[points.length - 2];
-                return getTickStyle([prev.x, prev.y], coordinate, length, 'end', style);
+                return getTickStyle(pointToCoords(prev), coordinate, length, 'end', style);
             } else {
                 const next = points.find((p) => p.m > m);
                 return next
-                    ? getTickStyle(coordinate, [next.x, next.y], length, 'start', style)
+                    ? getTickStyle(coordinate, pointToCoords(next), length, 'start', style)
                     : undefined;
             }
         })
@@ -484,7 +455,7 @@ function getCoordinate(points: LayoutPoint[], m: number): number[] | undefined {
     if (nextIndex < 0 || nextIndex >= points.length) {
         return undefined;
     } else if (points[nextIndex].m === m) {
-        return [points[nextIndex].x, points[nextIndex].y];
+        return pointToCoords(points[nextIndex]);
     } else if (nextIndex === 0) {
         return undefined;
     } else {
@@ -539,6 +510,10 @@ export function mergePartialItemSearchResults(
             geometryPlans: mergeOptionalArrays(merged.geometryPlans, searchResult.geometryPlans),
         };
     }, {});
+}
+
+export function pointToCoords(point: Point): Coordinate {
+    return [point.x, point.y];
 }
 
 export function mergePartialShownItemSearchResults(

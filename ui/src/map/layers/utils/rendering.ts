@@ -10,7 +10,7 @@ export type PointRenderFunction<T> = (
     state: State,
 ) => void;
 
-export function createPointRenderer<T>(
+export function getCanvasRenderer<T>(
     item: T,
     contextInitializer: ContextInitializer,
     drawFunctions: PointRenderFunction<T>[],
@@ -77,23 +77,4 @@ export function drawRoundedRect(
 
     ctx.fill();
     ctx.stroke();
-}
-
-export function drawImage(
-    ctx: CanvasRenderingContext2D,
-    image: HTMLImageElement,
-    coordinates: Coordinate,
-    iconSize: number,
-    paddingX: number,
-    paddingY: number,
-    pixelRatio: number,
-): void {
-    const iconRadius = iconSize / 2;
-    ctx.drawImage(
-        image,
-        coordinates[0] + (iconRadius + paddingX) * pixelRatio,
-        coordinates[1] - (iconRadius + paddingY) * pixelRatio,
-        iconSize * pixelRatio,
-        iconSize * pixelRatio,
-    );
 }

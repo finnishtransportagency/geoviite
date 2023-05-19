@@ -1,0 +1,26 @@
+import { Stroke, Style } from 'ol/style';
+import mapStyles from 'map/map.module.scss';
+import { AlignmentDataHolder } from 'track-layout/layout-map-api';
+import Feature from 'ol/Feature';
+import { LineString } from 'ol/geom';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
+
+const alignmentBackgroundStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentBackground,
+        width: 12,
+        lineCap: 'butt',
+    }),
+});
+
+export function createAlignmentBackgroundFeatures(
+    alignments: AlignmentDataHolder[],
+): Feature<LineString>[] {
+    return alignments.map(({ points }) => {
+        const lineString = new LineString(points.map(pointToCoords));
+        const alignmentFeature = new Feature({ geometry: lineString });
+        alignmentFeature.setStyle(alignmentBackgroundStyle);
+
+        return alignmentFeature;
+    });
+}

@@ -1,10 +1,10 @@
 import { Polygon } from 'ol/geom';
 import OlMap from 'ol/Map';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
+import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import {
     mergePartialItemSearchResults,
     mergePartialShownItemSearchResults,
-} from 'map/layers/layer-utils';
+} from 'map/layers/utils/layer-utils';
 import { OptionalShownItems } from 'map/map-model';
 
 /**
@@ -12,43 +12,28 @@ import { OptionalShownItems } from 'map/map-model';
  *
  */
 export function getDefaultHitArea(map: OlMap, coordinate: number[], tolerance = 10): Polygon {
-    const pixelLocation = map.getPixelFromCoordinate(coordinate);
+    const [x, y] = map.getPixelFromCoordinate(coordinate);
     return new Polygon([
         [
-            map.getCoordinateFromPixel([
-                pixelLocation[0] - tolerance,
-                pixelLocation[1] - tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] - tolerance,
-                pixelLocation[1] + tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] + tolerance,
-                pixelLocation[1] + tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] + tolerance,
-                pixelLocation[1] - tolerance,
-            ]),
-            map.getCoordinateFromPixel([
-                pixelLocation[0] - tolerance,
-                pixelLocation[1] - tolerance,
-            ]),
+            map.getCoordinateFromPixel([x - tolerance, y - tolerance]),
+            map.getCoordinateFromPixel([x - tolerance, y + tolerance]),
+            map.getCoordinateFromPixel([x + tolerance, y + tolerance]),
+            map.getCoordinateFromPixel([x + tolerance, y - tolerance]),
+            map.getCoordinateFromPixel([x - tolerance, y - tolerance]),
         ],
     ]);
 }
 
 export function searchShownItemsFromLayers(
     hitArea: Polygon,
-    layerAdapters: OlLayerAdapter[],
+    layers: MapLayer[],
     searchItemsOptions: SearchItemsOptions,
 ): OptionalShownItems {
-    const searchResults = layerAdapters
-        .filter((layerAdapter) => layerAdapter.layer.getVisible() && layerAdapter.searchItems)
-        .map((layerAdapter) => {
-            return layerAdapter.searchShownItems
-                ? layerAdapter.searchShownItems(hitArea, searchItemsOptions)
+    const searchResults = layers
+        .filter((layer) => layer.searchShownItems)
+        .map((layer) => {
+            return layer.searchShownItems
+                ? layer.searchShownItems(hitArea, searchItemsOptions)
                 : {};
         });
     return mergePartialShownItemSearchResults(...searchResults);
@@ -56,15 +41,13 @@ export function searchShownItemsFromLayers(
 
 export function searchItemsFromLayers(
     hitArea: Polygon,
-    layerAdapters: OlLayerAdapter[],
+    layers: MapLayer[],
     searchItemsOptions: SearchItemsOptions,
 ): LayerItemSearchResult {
-    const searchResults = layerAdapters
-        .filter((layerAdapter) => layerAdapter.layer.getVisible() && layerAdapter.searchItems)
-        .map((layerAdapter) => {
-            return layerAdapter.searchItems
-                ? layerAdapter.searchItems(hitArea, searchItemsOptions)
-                : {};
+    const searchResults = layers
+        .filter((l) => l.searchItems)
+        .map((layer) => {
+            return layer.searchItems ? layer.searchItems(hitArea, searchItemsOptions) : {};
         });
     return mergePartialItemSearchResults(...searchResults);
 }
