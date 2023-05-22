@@ -1,4 +1,5 @@
 @import '../../vayla-design-lib/colors';
+@import '../../vayla-design-lib/typography';
 
 .exclamation-point {
     height: 15px;
@@ -6,10 +7,10 @@
     background-color: $color-red-default;
     border-radius: 50%;
     display: inline-block;
-    font-family: 'Open Sans', sans-serif;
     font-size: 10px;
     color: $color-white-default;
     font-weight: bold;
     line-height: 1.5;
     text-align: center;
+    font-family: typography-caption-strong, sans-serif;
 }

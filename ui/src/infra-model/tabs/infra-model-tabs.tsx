@@ -22,8 +22,8 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
     const numberOfRejectedInfraModelFiles = 1500;
 
     return (
-        <div className={styles['tab-container']}>
-            <ul className={styles['nav']}>
+        <div className={styles['tabs__tab-container']}>
+            <ul className={styles['tabs__nav']}>
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.plans', { number: numberOfInfraModelFiles })}
                     tabId={InfraModelTabType.PLAN}
@@ -44,7 +44,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     activeTab={activeTab}
                 />
             </ul>
-            <div className={styles['outlet']}>
+            <div className={styles['tabs__outlet']}>
                 <InfraModelTabContent tabId={InfraModelTabType.PLAN} activeTab={activeTab}>
                     <InfraModelListContainer changeTimes={changeTimes} />
                 </InfraModelTabContent>
