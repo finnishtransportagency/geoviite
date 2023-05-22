@@ -4,13 +4,16 @@ export type PVDocumentStatus = 'NOT_IM' | 'IMPORTED' | 'REJECTED' | 'ACCEPTED';
 
 export type PVProjectGroup = {
     oid: Oid;
-    group: string;
     name: string;
 };
 
 export type PVProject = {
     oid: Oid;
-    group: PVProjectGroup;
+    name: string;
+};
+
+export type PVAssignment = {
+    oid: Oid;
     name: string;
 };
 
@@ -27,15 +30,11 @@ export type PVDocument = {
     status: PVDocumentStatus;
 };
 
-export type PVAssignment = {
-    oid: Oid;
-    name: string;
-};
-
 export type PVDocumentId = string;
 
 export type PVDocumentHeader = {
     project: PVProject | null;
+    projectGroup: PVProjectGroup | null;
     assignment: PVAssignment | null;
     document: PVDocument;
 };

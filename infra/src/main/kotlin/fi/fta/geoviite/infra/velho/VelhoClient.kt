@@ -1,13 +1,18 @@
 package fi.fta.geoviite.infra.velho
 
+import PVAssignment
 import PVCode
 import PVDocument
 import PVId
 import PVName
+import PVProject
+import PVProjectGroup
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
+import fi.fta.geoviite.infra.velho.PVDictionaryGroup.MATERIAL
+import fi.fta.geoviite.infra.velho.PVDictionaryGroup.PROJECT
 import fi.fta.geoviite.infra.velho.PVDictionaryType.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -16,7 +21,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
+import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
@@ -33,10 +40,15 @@ const val MATERIAL_API_V1_PATH = "/aineistopalvelu/api/v1"
 const val FILE_DATA_PATH = "$MATERIAL_API_V1_PATH/aineisto"
 
 const val METADATA_API_V2_PATH = "/metatietopalvelu/api/v2"
-const val DICTIONARIES_PATH = "$METADATA_API_V2_PATH/metatiedot/kohdeluokka/aineisto/aineisto"
+const val DICTIONARIES_PATH = "$METADATA_API_V2_PATH/metatiedot/kohdeluokka/"
+const val MATERIAL_DICTIONARIES_PATH = "$DICTIONARIES_PATH/aineisto/aineisto"
+const val PROJECT_DICTIONARIES_PATH = "$DICTIONARIES_PATH/projekti/projekti"
 const val REDIRECT_PATH = "$METADATA_API_V2_PATH/ohjaa"
 
 const val PROJECT_REGISTRY_V1_PATH = "/projektirekisteri/api/v1"
+const val ASSIGNMENT_PATH = "$PROJECT_REGISTRY_V1_PATH/toimeksianto"
+const val PROJECT_PATH = "$PROJECT_REGISTRY_V1_PATH/projekti"
+const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V1_PATH/projektijoukko"
 
 @Component
 @ConditionalOnBean(VelhoClientConfiguration::class)
@@ -72,6 +84,17 @@ class VelhoClient @Autowired constructor(
             .retrieve()
             .bodyToMono<PVApiSearchStatus>()
             .block(defaultBlockTimeout) ?: throw IllegalStateException("Projektivelho search failed")
+    }
+    fun fetchVelhoSearchStatus(id: PVId): PVApiSearchStatus {
+        logger.integrationCall("fetchVelhoSearchStatus", "id" to id)
+        return velhoClient
+            .get()
+            .uri("$XML_FILE_SEARCH_STATE_PATH/$id")
+            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
+            .retrieve()
+            .bodyToMono<PVApiSearchStatus>()
+            .block(defaultBlockTimeout)
+            ?: throw IllegalStateException("Fetching running search status from ProjektiVelho failed: id=$id")
     }
 
     fun fetchVelhoSearches(): List<PVApiSearchStatus> {
@@ -120,20 +143,29 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout) ?: throw IllegalStateException("File fetch failed. oid=$oid version=$version")
     }
 
-    fun fetchDictionaries(): Map<PVDictionaryType, List<PVDictionaryEntry>> {
+    fun fetchDictionaries(): Map<PVDictionaryType, List<PVDictionaryEntry>> =
+        fetchDictionaries(MATERIAL) + fetchDictionaries(PROJECT)
+
+    fun fetchDictionaries(group: PVDictionaryGroup): Map<PVDictionaryType, List<PVDictionaryEntry>> {
         logger.integrationCall("fetchDictionaries")
         return velhoClient
             .get()
-            .uri(DICTIONARIES_PATH)
+            .uri(when (group) {
+                MATERIAL -> MATERIAL_DICTIONARIES_PATH
+                PROJECT -> PROJECT_DICTIONARIES_PATH
+            })
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<String>()
             .block(defaultBlockTimeout)
             ?.let { response ->
                 jsonMapper.readTree(response).let { json ->
+//                    println("Fetching: group=$group result=$json")
                     json.get("info").let {
                         it.get("x-velho-nimikkeistot").let { classes ->
-                            PVDictionaryType.values().associateWith { type -> fetchDictionaryType(type, classes) }
+                            PVDictionaryType.values()
+                                .filter { t -> t.group == group }
+                                .associateWith { type -> fetchDictionaryType(type, classes) }
                         }
                     }
                 }
@@ -154,7 +186,7 @@ class VelhoClient @Autowired constructor(
             }
         }
 
-    fun fetchRedirect(oid: Oid<PVApiRedirect>): PVApiRedirect? {
+    fun fetchRedirect(oid: Oid<PVApiRedirect>): PVApiRedirect {
         logger.integrationCall("fetchRedirect", "oid" to oid)
         return velhoClient
             .get()
@@ -165,38 +197,48 @@ class VelhoClient @Autowired constructor(
             .retrieve()
             .bodyToMono<PVApiRedirect>()
             .block(defaultBlockTimeout)
+            .let { assignment -> requireNotNull(assignment) { "Redirect fetch failed: oid=$oid" } }
     }
 
-    fun fetchProject(oid: Oid<PVApiProject>): PVApiProject? {
+    fun fetchProject(oid: Oid<PVProject>): PVApiProject? {
         logger.integrationCall("fetchProject", "oid" to oid)
         return velhoClient
             .get()
-            .uri("$PROJECT_REGISTRY_V1_PATH/kohde/$oid")
+            .uri("$PROJECT_PATH/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<PVApiProject>()
+            .onErrorResume(WebClientResponseException::class.java) { ex ->
+                if (ex.rawStatusCode == 404) Mono.empty() else Mono.error(ex)
+            }
             .block(defaultBlockTimeout)
     }
 
-    fun fetchProjectGroup(oid: Oid<PVApiProjectGroup>): PVApiProjectGroup? {
-        logger.integrationCall("fetchProjectGroup")
+    fun fetchProjectGroup(oid: Oid<PVProjectGroup>): PVApiProjectGroup? {
+        logger.integrationCall("fetchProjectGroup", "oid" to oid)
         return velhoClient
             .get()
-            .uri("$PROJECT_REGISTRY_V1_PATH/kohde/$oid")
+            .uri("$PROJECT_GROUP_PATH/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<PVApiProjectGroup>()
+            .onErrorResume(WebClientResponseException::class.java) { ex ->
+                if (ex.rawStatusCode == 404) Mono.empty() else Mono.error(ex)
+            }
             .block(defaultBlockTimeout)
     }
 
-    fun fetchAssignment(oid: Oid<PVApiAssignment>): PVApiAssignment? {
+    fun fetchAssignment(oid: Oid<PVAssignment>): PVApiAssignment? {
         logger.integrationCall("fetchAssignment", "oid" to oid)
         return velhoClient
             .get()
-            .uri("/aineistopalvelu/api/v1/kohde/$oid")
+            .uri("$ASSIGNMENT_PATH/$oid")
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<PVApiAssignment>()
+            .onErrorResume(WebClientResponseException::class.java) { ex ->
+                if (ex.rawStatusCode == 404) Mono.empty() else Mono.error(ex)
+            }
             .block(defaultBlockTimeout)
     }
 
@@ -208,10 +250,18 @@ class VelhoClient @Autowired constructor(
         }?.token ?: throw IllegalStateException("Projektivelho login token can't be null after login")
 }
 
-fun encodingTypeDictionary(type: PVDictionaryType) = "aineisto/${when(type) {
+fun encodingTypeDictionary(type: PVDictionaryType) =
+    "${encodingGroupPath(type.group)}/${encodingTypePath(type)}"
+
+fun encodingGroupPath(group: PVDictionaryGroup) = when(group) {
+    MATERIAL -> "aineisto"
+    PROJECT -> "projekti"
+}
+fun encodingTypePath(type: PVDictionaryType) = when(type) {
     DOCUMENT_TYPE -> "dokumenttityyppi"
     MATERIAL_STATE -> "aineistotila"
     MATERIAL_CATEGORY -> "aineistolaji"
     MATERIAL_GROUP -> "aineistoryhma"
     TECHNICS_FIELD -> "tekniikka-ala"
-}}"
+    PROJECT_STATE -> "tila"
+}

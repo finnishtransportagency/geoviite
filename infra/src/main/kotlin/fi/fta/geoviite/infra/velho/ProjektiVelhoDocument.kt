@@ -50,7 +50,7 @@ enum class PVDocumentStatus {
 
 data class PVProjectGroup(val oid: Oid<PVProjectGroup>, val name: PVName)
 
-data class PVProject(val oid: Oid<PVProject>, val group: PVProjectGroup, val name: PVName)
+data class PVProject(val oid: Oid<PVProject>, val name: PVName)
 
 data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVName)
 
@@ -68,8 +68,8 @@ data class PVDocument(
 )
 
 data class PVDocumentHeader(
-    // TODO: GVT-1680 These should be non-null
     val project: PVProject?,
+    val projectGroup: PVProjectGroup?,
     val assignment: PVAssignment?,
     val document: PVDocument,
 )

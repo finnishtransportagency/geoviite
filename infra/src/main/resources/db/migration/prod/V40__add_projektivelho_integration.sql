@@ -1,6 +1,5 @@
 create type integrations.projektivelho_file_status as enum ('NOT_IM', 'IMPORTED', 'REJECTED', 'ACCEPTED');
 create type integrations.projektivelho_search_status as enum ('WAITING', 'FETCHING', 'FINISHED', 'ERROR');
--- create type integrations.projektivelho_dictionary_type as enum ('DOC_TYPE', 'FILE_STATE', 'CATEGORY', 'ASSET_GROUP');
 
 create table integrations.projektivelho_search
 (
@@ -15,10 +14,10 @@ select common.add_table_versioning('integrations', 'projektivelho_search');
 
 create table integrations.projektivelho_assignment
 (
-  id         int primary key generated always as identity,
-  oid        varchar(50)              not null,
+  oid        varchar(50)              not null primary key,
   name       varchar(100)             not null,
-  state      varchar(100)             not null,
+  state      varchar(100)             not null
+    references integrations.projektivelho_project_state (code),
   created_at timestamp with time zone not null,
   modified   timestamp with time zone not null
 );
@@ -28,10 +27,10 @@ select common.add_table_versioning('integrations', 'projektivelho_assignment');
 
 create table integrations.projektivelho_project
 (
-  id         int primary key generated always as identity,
-  oid        varchar(50)              not null,
+  oid        varchar(50)              not null primary key,
   name       varchar(100)             not null,
-  state      varchar(100)             not null,
+  state      varchar(100)             not null
+    references integrations.projektivelho_project_state (code),
   created_at timestamp with time zone not null,
   modified   timestamp with time zone not null
 );
@@ -41,61 +40,16 @@ select common.add_table_versioning('integrations', 'projektivelho_project');
 
 create table integrations.projektivelho_project_group
 (
-  id         int primary key generated always as identity,
-  oid        varchar(50)              not null,
+  oid        varchar(50)              not null primary key,
   name       varchar(100)             not null,
-  state      varchar(100)             not null,
+  state      varchar(100)             not null
+    references integrations.projektivelho_project_state (code),
   created_at timestamp with time zone not null,
   modified   timestamp with time zone not null
 );
 comment on table integrations.projektivelho_project_group is 'ProjektiVelho project group';
 select common.add_metadata_columns('integrations', 'projektivelho_project_group');
 select common.add_table_versioning('integrations', 'projektivelho_project_group');
-
-create table integrations.projektivelho_document_type
-(
-  code varchar(50) primary key not null,
-  name varchar(100)            not null
-);
-comment on table integrations.projektivelho_document_type is 'Localized ProjektiVelho document types (dokumenttityyppi)';
-select common.add_metadata_columns('integrations', 'projektivelho_document_type');
-select common.add_table_versioning('integrations', 'projektivelho_document_type');
-
-create table integrations.projektivelho_material_state
-(
-  code varchar(50) primary key not null,
-  name varchar(100)            not null
-);
-comment on table integrations.projektivelho_material_state is 'Localized ProjektiVelho material states (ainestotila)';
-select common.add_metadata_columns('integrations', 'projektivelho_material_state');
-select common.add_table_versioning('integrations', 'projektivelho_material_state');
-
-create table integrations.projektivelho_material_group
-(
-  code varchar(50) primary key not null,
-  name varchar(100)            not null
-);
-comment on table integrations.projektivelho_material_group is 'Localized Projektivelho material group (aineistoryhmä) options';
-select common.add_metadata_columns('integrations', 'projektivelho_material_group');
-select common.add_table_versioning('integrations', 'projektivelho_material_group');
-
-create table integrations.projektivelho_material_category
-(
-  code varchar(50) primary key not null,
-  name varchar(100)            not null
-);
-comment on table integrations.projektivelho_material_category is 'Localized Projektivelho material category (ainestolaji) options';
-select common.add_metadata_columns('integrations', 'projektivelho_material_category');
-select common.add_table_versioning('integrations', 'projektivelho_material_category');
-
-create table integrations.projektivelho_technics_field
-(
-  code varchar(50) primary key not null,
-  name varchar(100)            not null
-);
-comment on table integrations.projektivelho_technics_field is 'Localized Projektivelho technics field (tekniikka-ala) options';
-select common.add_metadata_columns('integrations', 'projektivelho_technics_field');
-select common.add_table_versioning('integrations', 'projektivelho_technics_field');
 
 create table integrations.projektivelho_file_metadata
 (
@@ -114,13 +68,12 @@ create table integrations.projektivelho_file_metadata
     references integrations.projektivelho_material_category (code),
   file_change_time                     timestamp with time zone               not null,
   status                               integrations.projektivelho_file_status not null,
-  -- TODO: GVT-1860 These should be not-null
-  projektivelho_assignment_id          int                                    null
-    references integrations.projektivelho_assignment (id),
-  projektivelho_project_id             int                                    null
-    references integrations.projektivelho_project (id),
-  projektivelho_project_group_id       int                                    null
-    references integrations.projektivelho_project_group (id)
+  projektivelho_assignment_oid         varchar(50)                            null
+    references integrations.projektivelho_assignment (oid),
+  projektivelho_project_oid            varchar(50)                            null
+    references integrations.projektivelho_project (oid),
+  projektivelho_project_group_oid      varchar(50)                            null
+    references integrations.projektivelho_project_group (oid)
 );
 comment on table integrations.projektivelho_file_metadata is 'Hangling status & metadata for Projektivelho files';
 select common.add_metadata_columns('integrations', 'projektivelho_file_metadata');
