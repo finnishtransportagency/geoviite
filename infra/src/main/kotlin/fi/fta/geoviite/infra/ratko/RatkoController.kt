@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.authorization.getCurrentUserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset

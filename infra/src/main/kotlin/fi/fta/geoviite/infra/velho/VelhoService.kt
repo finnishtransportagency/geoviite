@@ -47,7 +47,7 @@ class VelhoService @Autowired constructor(
         logger.serviceCall("search")
         val latest = velhoDao.fetchLatestFile()
         val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
-        velhoClient.postXmlFileSearch(startTime, latest?.first ?: "")
+        velhoClient.postXmlFileSearch(startTime, latest?.first)
             .also { status ->
                 velhoDao.insertFetchInfo(status.searchId, status.startTime.plusSeconds(status.validFor))
             }

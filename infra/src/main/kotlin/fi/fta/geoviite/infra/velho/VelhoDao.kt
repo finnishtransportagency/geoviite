@@ -12,9 +12,7 @@ import PVProjectGroup
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.AccessType.UPSERT
+import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.velho.PVDictionaryType.*
@@ -99,6 +97,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             "projektivelho_project_group_id" to null,
         )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<PVApiFileMetadata>("id") }.single()
+            .also { id -> logger.daoAccess(UPSERT, PVApiFileMetadata::class, id) }
     }
 
     @Transactional
@@ -117,6 +116,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId<PVApiFileMetadata>("projektivelho_file_metadata_id")
         }.single()
+            .also { id -> logger.daoAccess(INSERT, "PVApiFileContent", id) }
     }
 
     @Transactional
@@ -141,13 +141,11 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId<PVSearch>("id")
         }.single()
+            .also { id -> logger.daoAccess(INSERT, PVSearch::class, id) }
     }
 
     @Transactional
-    fun updateFetchState(
-        id: IntId<PVSearch>,
-        status: PVFetchStatus
-    ): IntId<PVSearch> {
+    fun updateFetchState(id: IntId<PVSearch>, status: PVFetchStatus): IntId<PVSearch> {
         val sql = """
             update integrations.projektivelho_search 
             set status = :status::integrations.projektivelho_search_status
@@ -158,9 +156,10 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         return jdbcTemplate.query(sql, mapOf<String, Any>("status" to status.name, "id" to id.intValue)) { rs, _ ->
             rs.getIntId<PVSearch>("id")
         }.single()
+            .also { updatedId -> logger.daoAccess(UPDATE, PVSearch::class, updatedId) }
     }
 
-    fun fetchLatestFile(): Pair<String, Instant>? {
+    fun fetchLatestFile(): Pair<Oid<PVDocument>, Instant>? {
         val sql = """
             select change_time, oid 
             from integrations.projektivelho_file_metadata 
@@ -168,8 +167,9 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             limit 1
         """.trimIndent()
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
-            rs.getString("oid") to rs.getInstant("change_time")
+            rs.getOid<PVDocument>("oid") to rs.getInstant("change_time")
         }.firstOrNull()
+            .also { id -> logger.daoAccess(FETCH, "PVFileChangeTime", id?.first ?: "null") }
     }
 
     fun fetchLatestSearch(): PVSearch? {
@@ -187,11 +187,12 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 rs.getInstant("valid_until")
             )
         }.firstOrNull()
+            .also { search -> logger.daoAccess(FETCH, PVSearch::class, search?.id ?: "null") }
     }
 
     @Transactional
     fun updateFileStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
-        logger.daoAccess(AccessType.UPDATE, PVDocument::class, id)
+        logger.daoAccess(UPDATE, PVDocument::class, id)
         val sql = """
             update integrations.projektivelho_file_metadata
             set status = :status::integrations.projektivelho_file_status
@@ -248,7 +249,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             // TODO: GVT-1860 These should be non-null
             project = rs.getOidOrNull<PVProject>("project_oid")?.let{ oid ->
                 PVProject(
-                    oid = oid, //rs.getOid("project_oid"),
+                    oid = oid,
                     name = rs.getVelhoName("project_name"),
                     group = PVProjectGroup(
                         oid = rs.getOid("project_group_oid"),
@@ -257,9 +258,9 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 )
             },
             // TODO: GVT-1860 These should be non-null
-            assignment = rs.getOidOrNull<PVProject>("assignment_oid")?.let { oid ->
+            assignment = rs.getOidOrNull<PVAssignment>("assignment_oid")?.let { oid ->
                 PVAssignment(
-                    oid = rs.getOid("assignment_oid"),
+                    oid = oid,
                     name = rs.getVelhoName("assignment_name"),
                 )
             },

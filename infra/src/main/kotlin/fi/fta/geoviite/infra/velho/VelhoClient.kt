@@ -60,7 +60,7 @@ class VelhoClient @Autowired constructor(
             ?: throw IllegalStateException("Projektivelho login failed")
     }
 
-    fun postXmlFileSearch(fetchStartTime: Instant, startOid: String): PVApiSearchStatus {
+    fun postXmlFileSearch(fetchStartTime: Instant, startOid: Oid<PVDocument>?): PVApiSearchStatus {
         logger.integrationCall("postXmlFileSearch",
             "fetchStartTime" to fetchStartTime, "startOid" to startOid)
         val json = searchJson(fetchStartTime, startOid, 100)
@@ -154,7 +154,7 @@ class VelhoClient @Autowired constructor(
             }
         }
 
-    fun fetchRedirect(oid: String): PVApiRedirect? {
+    fun fetchRedirect(oid: Oid<PVApiRedirect>): PVApiRedirect? {
         logger.integrationCall("fetchRedirect", "oid" to oid)
         return velhoClient
             .get()
@@ -167,7 +167,7 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout)
     }
 
-    fun fetchProject(oid: String): PVApiProject? {
+    fun fetchProject(oid: Oid<PVApiProject>): PVApiProject? {
         logger.integrationCall("fetchProject", "oid" to oid)
         return velhoClient
             .get()
@@ -178,7 +178,7 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout)
     }
 
-    fun fetchProjectGroup(oid: String): PVApiProjectGroup? {
+    fun fetchProjectGroup(oid: Oid<PVApiProjectGroup>): PVApiProjectGroup? {
         logger.integrationCall("fetchProjectGroup")
         return velhoClient
             .get()
@@ -189,7 +189,7 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout)
     }
 
-    fun fetchAssignment(oid: String): PVApiAssignment? {
+    fun fetchAssignment(oid: Oid<PVApiAssignment>): PVApiAssignment? {
         logger.integrationCall("fetchAssignment", "oid" to oid)
         return velhoClient
             .get()

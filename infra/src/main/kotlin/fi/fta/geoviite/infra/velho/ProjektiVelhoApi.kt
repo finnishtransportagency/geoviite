@@ -15,7 +15,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
 // TODO Turn into actual data classes etc.
-fun searchJson(date: Instant, minOid: String, maxCount: Int) = """
+fun searchJson(date: Instant, minOid: Oid<PVDocument>?, maxCount: Int) = """
 {
     "asetukset": {
         "tyyppi": "kohdeluokkahaku",
@@ -72,7 +72,7 @@ fun searchJson(date: Instant, minOid: String, maxCount: Int) = """
                         "aineisto/aineisto",
                         "oid"
                     ],
-                    "$minOid"
+                    "${minOid ?: ""}"
                 ]
                 
             ]
