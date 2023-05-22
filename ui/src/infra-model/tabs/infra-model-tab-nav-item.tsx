@@ -35,7 +35,7 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeT
             className={activeTab === tabId ? styles['active'] : styles['inactive']}>
             {title}
             {tabId === InfraModelTabType.WAITING && (
-                <span className={styles['exclamation-point-container']}>
+                <span className={styles['tabs__exclamation-point-container']}>
                     <ExclamationPoint />
                 </span>
             )}
