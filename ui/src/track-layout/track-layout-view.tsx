@@ -64,14 +64,14 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
         showVerticalGeometryDiagram && styles['track-layout--show-diagram'],
     );
 
-    const [mapSettingsVisible, setMapSettingsVisible] = React.useState(false);
+    const [layerMenuVisible, setLayerMenuVisible] = React.useState(false);
 
     return (
         <div className={className} qa-id="track-layout-content">
             <ToolBar
-                settingsVisible={mapSettingsVisible}
+                layerMenuVisible={layerMenuVisible}
                 publishType={props.publishType}
-                onMapSettingsVisibilityChange={setMapSettingsVisible}
+                onMapLayerVisibilityChange={setLayerMenuVisible}
                 selection={props.selection}
                 showArea={props.showArea}
                 onSelectTrackNumber={(trackNumberId) =>
@@ -121,11 +121,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
                 )}
 
                 <div className={styles['track-layout__map']}>
-                    {mapSettingsVisible && (
+                    {layerMenuVisible && (
                         <div className={styles['track-layout__map-settings']}>
                             <MapLayerMenu
                                 onMenuChange={props.onLayerMenuItemChange}
-                                onClose={() => setMapSettingsVisible(false)}
+                                onClose={() => setLayerMenuVisible(false)}
                                 map={props.map}
                             />
                         </div>
