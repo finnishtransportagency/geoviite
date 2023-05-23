@@ -29,7 +29,6 @@ class VelhoDocumentService @Autowired constructor(
         return velhoDao.getDocumentHeaders(status)
     }
 
-    @Transactional
     fun updateDocumentStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
         logger.serviceCall("updateDocumentStatus", "id" to id, "status" to status)
         return velhoDao.updateFileStatus(id, status)

@@ -90,6 +90,15 @@
         "download-file": "Lataa tiedosto"
     },
     "infra-model": {
+        "upload": {
+            "success": "Uusi InfraModel tiedosto tallennettu Geoviitteeseen"
+        },
+        "import": {
+            "success": "Projektivelhon InfraModel tiedosto tuotu Geoviitteeseen"
+        },
+        "edit": {
+            "success": "InfraModel tiedosto tallennettu"
+        },
         "validation": {
             "metadata": {
                 "coordinate-system-missing": "Koordinaattijärjestelmä puuttuu",
