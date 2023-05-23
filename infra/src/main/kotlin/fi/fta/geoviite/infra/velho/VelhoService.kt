@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.velho
 
 import PVAssignment
+import PVDocument
 import PVDocumentStatus
 import PVProject
 import PVProjectGroup
@@ -46,8 +47,7 @@ class VelhoService @Autowired constructor(
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
     }
 
-//    @Scheduled(cron = "38 10 * * * *")
-    @Scheduled(initialDelay = 60000, fixedRate = 900000) // First run after 1min, then every 15min
+    @Scheduled(cron = "0 0 * * * *")
     fun search(): PVApiSearchStatus? = runIntegration {
         logger.serviceCall("search")
         val latest = velhoDao.fetchLatestFile()
@@ -58,7 +58,7 @@ class VelhoService @Autowired constructor(
             }
     }
 
-    @Scheduled(initialDelay = 120000, fixedRate = 300000) // First run after 1min, then every 15min
+    @Scheduled(initialDelay = 60000, fixedRate = 900000) // First run after 1min, then every 15min
     fun pollAndFetchIfWaiting() = runIntegration {
         logger.serviceCall("pollAndFetchIfWaiting")
         val latestSearch = velhoDao.fetchLatestSearch()
@@ -103,45 +103,57 @@ class VelhoService @Autowired constructor(
         assignments: MutableMap<Oid<PVAssignment>, PVApiAssignment?>,
         projects: MutableMap<Oid<PVProject>, PVApiProject?>,
         projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>
-    ) = fetchFileMetadataAndContent(match, assignments, projects, projectGroups)
-        .let(::insertFileToDatabase)
+    ) {
+        val assignmentData = fetchAndUpsertAssignmentData(match.assignmentOid, assignments, projects, projectGroups)
+        val fileHolder = fetchFileMetadataAndContent(match.oid)
+        insertFileToDatabase(fileHolder, assignmentData)
+    }
 
-    private fun fetchFileMetadataAndContent(
-        match: PVApiMatch,
+    private fun fetchAndUpsertAssignmentData(
+        assignmentOid: Oid<PVAssignment>,
         assignments: MutableMap<Oid<PVAssignment>, PVApiAssignment?>,
         projects: MutableMap<Oid<PVProject>, PVApiProject?>,
-        projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>
-    ): PVFileHolder {
-        val metadataResponse = velhoClient.fetchFileMetadata(match.oid)
-        val content =
-            if (metadataResponse.metadata.containsPersonalInfo == true) null
-            else velhoClient.fetchFileContent(match.oid, metadataResponse.latestVersion.version)
-
-        val assignment = match.assignmentOid.let { oid ->
-            if (assignments.containsKey(oid)) assignments[oid]
-            else velhoClient.fetchAssignment(oid).also { a -> assignments[oid] = a }
+        projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>,
+    ): PVAssignmentHolder {
+        val assignment = assignmentOid.let { oid ->
+            fetchIfNew(assignments, oid, velhoClient::fetchAssignment, velhoDao::upsertAssignment)
         }
         val project = assignment?.projectOid?.let { oid ->
-            if (projects.containsKey(oid)) projects[oid]
-            else velhoClient.fetchProject(oid).also { p -> projects[oid] = p }
+            fetchIfNew(projects, oid, velhoClient::fetchProject, velhoDao::upsertProject)
         }
         val projectGroup = project?.projectGroupOid?.let { oid ->
-            if (projectGroups.containsKey(oid)) projectGroups[oid]
-            else velhoClient.fetchProjectGroup(oid).also { pg -> projectGroups[oid] = pg }
+            fetchIfNew(projectGroups, oid, velhoClient::fetchProjectGroup, velhoDao::upsertProjectGroup)
         }
+        return PVAssignmentHolder(assignment, project, projectGroup)
+    }
+
+    private fun <T, S> fetchIfNew(
+        known: MutableMap<Oid<S>, T?>,
+        oid: Oid<S>,
+        fetch: (oid: Oid<S>) -> T?,
+        store: (T) -> Unit,
+    ): T? =
+        // Can't use compute here, as that would try to re-compute nulls. If the thing doesn't exist, don't re-fetch
+        if (known.containsKey(oid)) known[oid]
+        else fetch(oid)
+            .also { value -> known[oid] = value }
+            ?.also { value -> store(value) }
+
+    private fun fetchFileMetadataAndContent(oid: Oid<PVDocument>): PVFileHolder {
+        val metadataResponse = velhoClient.fetchFileMetadata(oid)
+        val content =
+            if (metadataResponse.metadata.containsPersonalInfo == true) null
+            else velhoClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
 
         return PVFileHolder(
-            oid = match.oid,
+            oid = oid,
             content = content,
             metadata = metadataResponse.metadata,
             latestVersion = metadataResponse.latestVersion,
-            assignment = assignment,
-            project = project,
-            projectGroup = projectGroup,
         )
     }
 
-    private fun insertFileToDatabase(file: PVFileHolder) {
+    private fun insertFileToDatabase(file: PVFileHolder, assignment: PVAssignmentHolder) {
         val xmlContent = file.content
             ?.takeIf { content -> isRailroadXml(content ,file.latestVersion.name) }
             ?.let { content -> censorAuthorIdentifyingInfo(content) }
@@ -150,9 +162,9 @@ class VelhoService @Autowired constructor(
             file.metadata,
             file.latestVersion,
             if (xmlContent != null) PVDocumentStatus.IMPORTED else PVDocumentStatus.NOT_IM,
-            file.assignment?.also(velhoDao::upsertAssignment)?.oid,
-            file.project?.also(velhoDao::upsertProject)?.oid,
-            file.projectGroup?.also(velhoDao::upsertProjectGroup)?.oid,
+            assignment.assignment?.oid,
+            assignment.project?.oid,
+            assignment.projectGroup?.oid,
         )
         xmlContent?.let { content -> velhoDao.insertFileContent(content, metadataId) }
     }

@@ -193,14 +193,17 @@ data class PVDictionaryEntry(
     constructor(code: String, name: String): this(PVCode(code), PVName(name))
 }
 
+data class PVAssignmentHolder(
+    val assignment: PVApiAssignment?,
+    val project: PVApiProject?,
+    val projectGroup: PVApiProjectGroup?,
+)
+
 data class PVFileHolder(
     val oid: Oid<PVDocument>,
     val content: String?,
     val metadata: PVApiFileMetadata,
     val latestVersion: PVApiLatestVersion,
-    val assignment: PVApiAssignment?,
-    val project: PVApiProject?,
-    val projectGroup: PVApiProjectGroup?
 )
 
 data class PVSearch(
