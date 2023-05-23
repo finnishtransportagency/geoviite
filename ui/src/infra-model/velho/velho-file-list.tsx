@@ -54,7 +54,6 @@ export const VelhoFileList = ({
 
     return (
         <div>
-            <p>{isLoading ? 'LOADING' : 'DONE'}</p>
             <Table className={styles['velho-file-list__table']} wide isLoading={isLoading}>
                 <thead>
                     <tr>
