@@ -75,7 +75,7 @@ create table integrations.projektivelho_file_metadata
   projektivelho_project_group_oid      varchar(50)                            null
     references integrations.projektivelho_project_group (oid)
 );
-comment on table integrations.projektivelho_file_metadata is 'Hangling status & metadata for Projektivelho files';
+comment on table integrations.projektivelho_file_metadata is 'Handling status & metadata for Projektivelho files';
 select common.add_metadata_columns('integrations', 'projektivelho_file_metadata');
 select common.add_table_versioning('integrations', 'projektivelho_file_metadata');
 
