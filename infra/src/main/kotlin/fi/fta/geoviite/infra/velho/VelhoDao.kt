@@ -37,20 +37,20 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         projectGroupOid: Oid<PVProjectGroup>?,
     ): IntId<PVApiFileMetadata> {
         val sql = """
-            insert into integrations.projektivelho_file_metadata(
+            insert into projektivelho.file_metadata(
                 oid,
                 filename,
                 file_version,
                 file_change_time,
                 description,
-                projektivelho_document_type_code,
-                projektivelho_material_state_code,
-                projektivelho_material_category_code,
-                projektivelho_material_group_code,
+                document_type_code,
+                material_state_code,
+                material_category_code,
+                material_group_code,
                 status,
-                projektivelho_assignment_oid,
-                projektivelho_project_oid,
-                projektivelho_project_group_oid
+                assignment_oid,
+                project_oid,
+                project_group_oid
             ) values (
                 :oid,
                 :filename,
@@ -61,10 +61,10 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 :material_state,
                 :material_category,
                 :material_group,
-                :status::integrations.projektivelho_file_status,
-                :projektivelho_assignment_oid,
-                :projektivelho_project_oid,
-                :projektivelho_project_group_oid
+                :status::projektivelho.file_status,
+                :assignment_oid,
+                :project_oid,
+                :project_group_oid
             ) 
             on conflict (oid) do 
               update set
@@ -72,15 +72,15 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 file_version = :file_version,
                 file_change_time = :file_change_time,
                 description = :description,
-                projektivelho_document_type_code = :document_type,
-                projektivelho_material_state_code = :material_state,
-                projektivelho_material_category_code = :material_category,
-                projektivelho_material_group_code = :material_group,
-                status = :status::integrations.projektivelho_file_status,
-                projektivelho_assignment_oid = :projektivelho_assignment_oid,
-                projektivelho_project_oid = :projektivelho_project_oid,
-                projektivelho_project_group_oid = :projektivelho_project_group_oid
-              where integrations.projektivelho_file_metadata.file_version <> :file_version
+                document_type_code = :document_type,
+                material_state_code = :material_state,
+                material_category_code = :material_category,
+                material_group_code = :material_group,
+                status = :status::projektivelho.file_status,
+                assignment_oid = :assignment_oid,
+                project_oid = :project_oid,
+                project_group_oid = :project_group_oid
+              where projektivelho.file_metadata.file_version <> :file_version
         """.trimIndent()
         val params = mapOf(
             "filename" to latestVersion.name,
@@ -93,15 +93,15 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             "material_group" to metadata.materialGroup,
             "file_change_time" to Timestamp.from(latestVersion.changeTime),
             "status" to status.name,
-            "projektivelho_assignment_oid" to assignmentOid,
-            "projektivelho_project_oid" to  projectOid,
-            "projektivelho_project_group_oid" to projectGroupOid,
+            "assignment_oid" to assignmentOid,
+            "project_oid" to  projectOid,
+            "project_group_oid" to projectGroupOid,
         )
         jdbcTemplate.setUser()
         jdbcTemplate.update(sql, params)
 
         // We can't get the id via a returning clause since it won't see the row id if it's not updated
-        val selectSql = "select id from integrations.projektivelho_file_metadata where oid = :oid"
+        val selectSql = "select id from projektivelho.file_metadata where oid = :oid"
         val selectParams = mapOf("oid" to oid)
         return jdbcTemplate.query(selectSql, selectParams) { rs, _ ->
             rs.getIntId<PVApiFileMetadata>("id")
@@ -111,17 +111,17 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun upsertProject(project: PVApiProject) {
         val sql = """
-            insert into integrations.projektivelho_project (oid, name, state, created_at, modified)
+            insert into projektivelho.project (oid, name, state, created_at, modified)
             values (:oid, :name, :state, :created_at, :modified)
             on conflict (oid) do update 
               set name = :name, 
                   state = :state,
                   created_at = :created_at,
                   modified = :modified
-              where integrations.projektivelho_project.name <> :name
-                 or integrations.projektivelho_project.state <> :state
-                 or integrations.projektivelho_project.created_at <> :created_at
-                 or integrations.projektivelho_project.modified <> :modified;
+              where projektivelho.project.name <> :name
+                 or projektivelho.project.state <> :state
+                 or projektivelho.project.created_at <> :created_at
+                 or projektivelho.project.modified <> :modified;
         """.trimIndent()
         val params = mapOf(
             "oid" to project.oid,
@@ -138,17 +138,17 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun upsertProjectGroup(projectGroup: PVApiProjectGroup) {
         val sql = """
-            insert into integrations.projektivelho_project_group (oid, name, state, created_at, modified)
+            insert into projektivelho.project_group (oid, name, state, created_at, modified)
             values (:oid, :name, :state, :created_at, :modified)
             on conflict (oid) do update 
               set name = :name,
                   state = :state,
                   created_at = :created_at,
                   modified = :modified
-              where integrations.projektivelho_project_group.name <> :name
-                 or integrations.projektivelho_project_group.state <> :state
-                 or integrations.projektivelho_project_group.created_at <> :created_at
-                 or integrations.projektivelho_project_group.modified <> :modified
+              where projektivelho.project_group.name <> :name
+                 or projektivelho.project_group.state <> :state
+                 or projektivelho.project_group.created_at <> :created_at
+                 or projektivelho.project_group.modified <> :modified
         """.trimIndent()
         val params = mapOf(
             "oid" to projectGroup.oid,
@@ -165,17 +165,17 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun upsertAssignment(assignment: PVApiAssignment) {
         val sql = """
-            insert into integrations.projektivelho_assignment (oid, name, state, created_at, modified)
+            insert into projektivelho.assignment (oid, name, state, created_at, modified)
             values (:oid, :name, :state, :created_at, :modified)
             on conflict (oid) do update 
               set name = :name,
                   state = :state,
                   created_at = :created_at,
                   modified = :modified
-              where integrations.projektivelho_assignment.name <> :name
-                 or integrations.projektivelho_assignment.state <> :state
-                 or integrations.projektivelho_assignment.created_at <> :created_at
-                 or integrations.projektivelho_assignment.modified <> :modified
+              where projektivelho.assignment.name <> :name
+                 or projektivelho.assignment.state <> :state
+                 or projektivelho.assignment.created_at <> :created_at
+                 or projektivelho.assignment.modified <> :modified
         """.trimIndent()
         val params = mapOf(
             "oid" to assignment.oid,
@@ -192,18 +192,18 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun insertFileContent(content: String, metadataId: IntId<PVApiFileMetadata>): IntId<PVApiFileMetadata> {
         val sql = """
-            insert into integrations.projektivelho_file(
+            insert into projektivelho.file(
                 content,
-                projektivelho_file_metadata_id
+                file_metadata_id
             ) values (
                 xmlparse(document :content),
                 :metadata_id
-            ) returning projektivelho_file_metadata_id
+            ) returning file_metadata_id
         """.trimIndent()
         jdbcTemplate.setUser()
         val params = mapOf("metadata_id" to metadataId.intValue, "content" to content)
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId<PVApiFileMetadata>("projektivelho_file_metadata_id")
+            rs.getIntId<PVApiFileMetadata>("file_metadata_id")
         }.single()
             .also { id -> logger.daoAccess(INSERT, "PVApiFileContent", id) }
     }
@@ -211,12 +211,12 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun insertFetchInfo(searchToken: PVId, validUntil: Instant): IntId<PVSearch> {
         val sql = """
-            insert into integrations.projektivelho_search(
+            insert into projektivelho.search(
                 status,
                 token,
                 valid_until
             ) values (
-                :status::integrations.projektivelho_search_status,
+                :status::projektivelho.search_status,
                 :token,
                 :valid_until
             ) returning id
@@ -236,8 +236,8 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun updateFetchState(id: IntId<PVSearch>, status: PVFetchStatus): IntId<PVSearch> {
         val sql = """
-            update integrations.projektivelho_search 
-            set status = :status::integrations.projektivelho_search_status
+            update projektivelho.search 
+            set status = :status::projektivelho.search_status
             where id = :id
             returning id
         """.trimIndent()
@@ -251,7 +251,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun fetchLatestFile(): Pair<Oid<PVDocument>, Instant>? {
         val sql = """
             select change_time, oid 
-            from integrations.projektivelho_file_metadata 
+            from projektivelho.file_metadata 
             order by change_time desc, oid desc 
             limit 1
         """.trimIndent()
@@ -264,7 +264,7 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun fetchLatestSearch(): PVSearch? {
         val sql = """
             select id, token, status, valid_until 
-            from integrations.projektivelho_search 
+            from projektivelho.search 
             order by valid_until desc 
             limit 1
         """.trimIndent()
@@ -283,8 +283,8 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     fun updateFileStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
         logger.daoAccess(UPDATE, PVDocument::class, id)
         val sql = """
-            update integrations.projektivelho_file_metadata
-            set status = :status::integrations.projektivelho_file_status
+            update projektivelho.file_metadata
+            set status = :status::projektivelho.file_status
             where id = :id
             returning id
         """.trimIndent()
@@ -306,32 +306,25 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               metadata.description,
               metadata.change_time, 
               metadata.status,
-              project.oid project_oid,
+              metadata.project_oid,
               project.name project_name,
-              project_group.oid project_group_oid,
+              metadata.project_group_oid,
               project_group.name project_group_name,
-              assignment.oid assignment_oid,
+              metadata.assignment_oid,
               assignment.name assignment_name,
               document_type.name document_type,
               material_state.name material_state,
               material_group.name material_group,
               material_category.name material_category
-            from integrations.projektivelho_file_metadata metadata
-              left join integrations.projektivelho_project project 
-                on project.oid = metadata.projektivelho_project_oid
-              left join integrations.projektivelho_project_group project_group 
-                on project_group.oid = metadata.projektivelho_project_group_oid
-              left join integrations.projektivelho_assignment assignment 
-                on assignment.oid = metadata.projektivelho_assignment_oid
-              left join integrations.projektivelho_document_type document_type 
-                on document_type.code = metadata.projektivelho_document_type_code
-              left join integrations.projektivelho_material_state material_state 
-                on material_state.code = metadata.projektivelho_material_state_code
-              left join integrations.projektivelho_material_group material_group 
-                on material_group.code = metadata.projektivelho_material_group_code
-              left join integrations.projektivelho_material_category material_category 
-                on material_category.code = metadata.projektivelho_material_category_code
-            where (:status::integrations.projektivelho_file_status is null or status = :status::integrations.projektivelho_file_status)
+            from projektivelho.file_metadata metadata
+              left join projektivelho.project on project.oid = metadata.project_oid
+              left join projektivelho.project_group on project_group.oid = metadata.project_group_oid
+              left join projektivelho.assignment on assignment.oid = metadata.assignment_oid
+              left join projektivelho.document_type on document_type.code = metadata.document_type_code
+              left join projektivelho.material_state on material_state.code = metadata.material_state_code
+              left join projektivelho.material_group on material_group.code = metadata.material_group_code
+              left join projektivelho.material_category on material_category.code = metadata.material_category_code
+            where (:status::projektivelho.file_status is null or status = :status::projektivelho.file_status)
         """.trimIndent()
         val params = mapOf("status" to status?.name)
         return jdbcTemplate.query(sql, params) { rs, _ -> PVDocumentHeader(
@@ -365,8 +358,8 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
             select 
               metadata.filename,
               xmlserialize(document content.content as varchar) as file_content
-            from integrations.projektivelho_file_metadata metadata
-              inner join integrations.projektivelho_file content on metadata.id = content.projektivelho_file_metadata_id
+            from projektivelho.file_metadata metadata
+              inner join projektivelho.file content on metadata.id = content.file_metadata_id
             where metadata.id = :id
         """.trimIndent()
         val params = mapOf("id" to id.intValue)
@@ -400,12 +393,12 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         }.associate { it }.also { _ -> logger.daoAccess(FETCH, PVDictionaryType::class) }
     }
 
-    private fun tableName(type: PVDictionaryType) = "integrations.${when(type) {
-        DOCUMENT_TYPE -> "projektivelho_document_type"
-        MATERIAL_STATE -> "projektivelho_material_state"
-        MATERIAL_CATEGORY -> "projektivelho_material_category"
-        MATERIAL_GROUP -> "projektivelho_material_group"
-        TECHNICS_FIELD -> "projektivelho_technics_field"
-        PROJECT_STATE -> "projektivelho_project_state"
+    private fun tableName(type: PVDictionaryType) = "projektivelho.${when(type) {
+        DOCUMENT_TYPE -> "document_type"
+        MATERIAL_STATE -> "material_state"
+        MATERIAL_CATEGORY -> "material_category"
+        MATERIAL_GROUP -> "material_group"
+        TECHNICS_FIELD -> "technics_field"
+        PROJECT_STATE -> "project_state"
     }}"
 }

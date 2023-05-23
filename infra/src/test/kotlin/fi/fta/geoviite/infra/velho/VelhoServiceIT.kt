@@ -56,13 +56,17 @@ class VelhoServiceIT @Autowired constructor(
     @BeforeEach
     fun setup() {
         transactional {
-            jdbc.update("delete from integrations.projektivelho_file where true", mapOf<String, Any>())
-            jdbc.update("delete from integrations.projektivelho_file_metadata where true", mapOf<String, Any>())
-            jdbc.update("delete from integrations.projektivelho_document_type where true", mapOf<String, Any>())
-            jdbc.update("delete from integrations.projektivelho_material_category where true", mapOf<String, Any>())
-            jdbc.update("delete from integrations.projektivelho_material_group where true", mapOf<String, Any>())
-            jdbc.update("delete from integrations.projektivelho_material_state where true", mapOf<String, Any>())
-            jdbc.update("delete from integrations.projektivelho_technics_field where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.file where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.file_metadata where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.document_type where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.material_category where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.material_group where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.material_state where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.technics_field where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.project_state where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.assignment where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.project where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.project_group where true", mapOf<String, Any>())
         }
     }
 
@@ -158,7 +162,7 @@ class VelhoServiceIT @Autowired constructor(
         velhoService.updateDictionaries()
         velhoDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
         val search = velhoDao.fetchLatestSearch()!!
-        val status = velhoService.fetchSearchStatus(searchId)!!
+        val status = velhoService.getSearchStatusIfReady(search)!!
 
         velhoService.importFilesFromProjektiVelho(search, status)
         assertDocumentExists(

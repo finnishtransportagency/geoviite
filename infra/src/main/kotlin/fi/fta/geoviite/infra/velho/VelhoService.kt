@@ -69,12 +69,14 @@ class VelhoService @Autowired constructor(
         } else {
             updateDictionaries()
             latestSearch
-                ?.takeIf { search -> search.state == PVFetchStatus.WAITING }
-                ?.let { search -> velhoClient.fetchVelhoSearchStatus(search.token) }
-                ?.takeIf { status -> status.state == PROJEKTIVELHO_SEARCH_STATE_READY }
+                ?.let(::getSearchStatusIfReady)
                 ?.let { status -> importFilesFromProjektiVelho(latestSearch, status) }
         }
     }
+    fun getSearchStatusIfReady(pvSearch: PVSearch) = pvSearch
+        .takeIf { search -> search.state == PVFetchStatus.WAITING }
+        ?.let { search -> velhoClient.fetchVelhoSearchStatus(search.token) }
+        ?.takeIf { status -> status.state == PROJEKTIVELHO_SEARCH_STATE_READY }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")
