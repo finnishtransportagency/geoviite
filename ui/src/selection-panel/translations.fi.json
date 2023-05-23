@@ -11,6 +11,9 @@
         "no-switches": "Ei vaihteita",
         "no-kmposts": "Ei tasakilometripisteitä",
         "zoom-closer": "Zoomaa lähemmäksi.",
-        "no-results": "Ei hakutuloksia."
+        "no-results": "Ei hakutuloksia.",
+        "color-selector": {
+            "none": "Ei väriä"
+        }
     }
 }

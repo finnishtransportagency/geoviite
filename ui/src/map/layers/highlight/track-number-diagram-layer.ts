@@ -12,37 +12,29 @@ import { Feature } from 'ol';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { TrackNumberColor } from 'selection-panel/track-number-panel/color-selector/color-selector';
 
 let newestLayerId = 0;
 
-const colors = [
-    '#858585',
+const getColorForTrackNumber = (
+    id: LayoutTrackNumberId,
+    layerSettings: TrackNumberDiagramLayerSetting,
+) => {
+    const selectedColor = layerSettings[id]?.color;
+    if (selectedColor && TrackNumberColor[selectedColor]) {
+        return TrackNumberColor[selectedColor] + '55'; //55 ~ 33 % opacity
+    }
 
-    '#66a3e0',
-    '#0066cc',
-
-    '#d9a599',
-    '#de3618',
-
-    '#ffc300',
-
-    '#8dcb6d',
-    '#27b427',
-
-    '#00b0cc',
-    '#afe1e9',
-
-    '#a050a0',
-    '#e50083',
-];
-
-const getColorForTrackNumber = (id: LayoutTrackNumberId) => {
-    const c = colors[parseInt(id.replace(/^\D+/g, '')) % colors.length];
+    const randomColors = Object.values(TrackNumberColor);
+    const c = randomColors[parseInt(id.replace(/^\D+/g, '')) % randomColors.length];
 
     return c + '55'; //55 ~ 33 % opacity
 };
 
-function createDiagramFeatures(alignments: AlignmentDataHolder[]): Feature<LineString>[] {
+function createDiagramFeatures(
+    alignments: AlignmentDataHolder[],
+    layerSettings: TrackNumberDiagramLayerSetting,
+): Feature<LineString>[] {
     const perTrackNumber = groupBy(
         alignments,
         (a) => a.header.trackNumberId || a.trackNumber?.id || '',
@@ -51,7 +43,7 @@ function createDiagramFeatures(alignments: AlignmentDataHolder[]): Feature<LineS
     return Object.entries(perTrackNumber).flatMap(([trackNumberId, alignments]) => {
         const style = new Style({
             stroke: new Stroke({
-                color: getColorForTrackNumber(trackNumberId),
+                color: getColorForTrackNumber(trackNumberId, layerSettings),
                 width: 15,
                 lineCap: 'butt',
             }),
@@ -95,7 +87,7 @@ export function createTrackNumberDiagramLayer(
                       return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
                   });
 
-            const features = createDiagramFeatures(filteredAlignments);
+            const features = createDiagramFeatures(filteredAlignments, layerSettings);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

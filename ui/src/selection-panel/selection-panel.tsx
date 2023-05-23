@@ -36,6 +36,7 @@ import { LocationTracksPanel } from 'selection-panel/location-track-panel/locati
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 import { ChangeTimes } from 'common/common-slice';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -101,7 +102,24 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             settings: {
                 ...diagramLayer,
                 [trackNumber.id]: {
+                    ...diagramLayer[trackNumber.id],
                     selected: !diagramLayer[trackNumber.id]?.selected,
+                },
+            },
+        });
+    };
+
+    const onTrackNumberColorSelection = (
+        trackNumberId: LayoutTrackNumberId,
+        color: TrackNumberColorKey | undefined,
+    ) => {
+        onMapLayerSettingChange({
+            name: 'track-number-diagram-layer',
+            settings: {
+                ...diagramLayer,
+                [trackNumberId]: {
+                    ...diagramLayer[trackNumberId],
+                    color,
                 },
             },
         });
@@ -173,9 +191,11 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 )} (${visibleTrackNumbers.length})`}</h3>
                 <div className={styles['selection-panel__content']}>
                     <TrackNumberPanel
+                        settings={diagramLayer}
                         trackNumbers={visibleTrackNumbers}
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
+                        onSelectColor={onTrackNumberColorSelection}
                     />
                 </div>
             </section>

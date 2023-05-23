@@ -8,6 +8,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { ValueOf } from 'utils/type-utils';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector';
 
 export type MapLayerName =
     | 'background-map-layer'
@@ -98,7 +99,8 @@ export type MapLayerMenuItemName =
 
 export type TrackNumberDiagramLayerSetting = {
     [key: LayoutTrackNumberId]: {
-        selected: boolean;
+        selected?: boolean;
+        color?: TrackNumberColorKey | undefined;
     };
 };
 
