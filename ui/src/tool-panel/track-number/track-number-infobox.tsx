@@ -34,7 +34,7 @@ import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 
 type TrackNumberInfoboxProps = {
@@ -168,7 +168,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             value={<TrackMeter value={startAndEndPoints?.end?.address} />}
                         />
                         {linkingState === undefined && referenceLine && (
-                            <WriteRoleRequired>
+                            <WriteAccessRequired>
                                 <InfoboxButtons>
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
@@ -184,7 +184,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                         {t('tool-panel.location-track.modify-start-or-end')}
                                     </Button>
                                 </InfoboxButtons>
-                            </WriteRoleRequired>
+                            </WriteAccessRequired>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (
                             <React.Fragment>

@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
+import { Privilege } from 'user/user-model';
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
@@ -26,13 +27,13 @@ export const initialChangeTimes: ChangeTimes = {
 export type CommonState = {
     version: string | undefined;
     changeTimes: ChangeTimes;
-    userHasWriteRole: boolean;
+    userPrivileges: Privilege[];
 };
 
 export const initialCommonState = {
     version: undefined,
     changeTimes: initialChangeTimes,
-    userHasWriteRole: false,
+    userPrivileges: [],
 };
 
 const commonSlice = createSlice({
@@ -117,11 +118,11 @@ const commonSlice = createSlice({
             if (toDate(changeTimes.publication) < toDate(payload))
                 changeTimes.publication = payload;
         },
-        setUserHasWriteRole: (
+        setUserPrivileges: (
             state: CommonState,
-            { payload: writeRole }: PayloadAction<boolean>,
+            { payload: privileges }: PayloadAction<Privilege[]>,
         ): void => {
-            state.userHasWriteRole = writeRole;
+            state.userPrivileges = privileges;
         },
     },
 });

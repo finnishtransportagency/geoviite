@@ -40,7 +40,7 @@ import { asyncCache } from 'cache/cache';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 const switchJointTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
@@ -291,7 +291,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             publishType={publishType}
                         />
                     )}
-                    <WriteRoleRequired>
+                    <WriteAccessRequired>
                         <InfoboxButtons>
                             {!canStartPlacing && (
                                 <Button
@@ -310,7 +310,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 {t('tool-panel.switch.layout.start-switch-placing')}
                             </Button>
                         </InfoboxButtons>
-                    </WriteRoleRequired>
+                    </WriteAccessRequired>
                     {placingSwitchLinkingState && (
                         <MessageBox>{t('tool-panel.switch.layout.switch-placing-help')}</MessageBox>
                     )}
