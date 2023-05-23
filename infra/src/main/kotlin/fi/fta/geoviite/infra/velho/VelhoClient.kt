@@ -160,7 +160,6 @@ class VelhoClient @Autowired constructor(
             .block(defaultBlockTimeout)
             ?.let { response ->
                 jsonMapper.readTree(response).let { json ->
-//                    println("Fetching: group=$group result=$json")
                     json.get("info").let {
                         it.get("x-velho-nimikkeistot").let { classes ->
                             PVDictionaryType.values()
@@ -209,7 +208,10 @@ class VelhoClient @Autowired constructor(
             .retrieve()
             .bodyToMono<PVApiProject>()
             .onErrorResume(WebClientResponseException::class.java) { ex ->
-                if (ex.rawStatusCode == 404) Mono.empty() else Mono.error(ex)
+                if (ex.rawStatusCode == 404) {
+                    logger.warn("Could not fetch project from ProjektiVelho, despite knowing its OID: oid=$oid")
+                    Mono.empty()
+                } else Mono.error(ex)
             }
             .block(defaultBlockTimeout)
     }
@@ -223,7 +225,10 @@ class VelhoClient @Autowired constructor(
             .retrieve()
             .bodyToMono<PVApiProjectGroup>()
             .onErrorResume(WebClientResponseException::class.java) { ex ->
-                if (ex.rawStatusCode == 404) Mono.empty() else Mono.error(ex)
+                if (ex.rawStatusCode == 404) {
+                    logger.warn("Could not fetch project group from ProjektiVelho, despite knowing its OID: oid=$oid")
+                    Mono.empty()
+                } else Mono.error(ex)
             }
             .block(defaultBlockTimeout)
     }
@@ -237,7 +242,10 @@ class VelhoClient @Autowired constructor(
             .retrieve()
             .bodyToMono<PVApiAssignment>()
             .onErrorResume(WebClientResponseException::class.java) { ex ->
-                if (ex.rawStatusCode == 404) Mono.empty() else Mono.error(ex)
+                if (ex.rawStatusCode == 404) {
+                    logger.warn("Could not fetch assignment from ProjektiVelho, despite knowing its OID: oid=$oid")
+                    Mono.empty()
+                } else Mono.error(ex)
             }
             .block(defaultBlockTimeout)
     }

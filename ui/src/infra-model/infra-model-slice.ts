@@ -222,11 +222,11 @@ const infraModelSlice = createSlice({
             { payload: plan }: PayloadAction<GeometryPlan>,
         ) => {
             state.extraInfraModelParameters = {
-                oid: plan.oid ? plan.oid : undefined,
-                planPhase: plan.planPhase ? plan.planPhase : undefined,
-                decisionPhase: plan.decisionPhase ? plan.decisionPhase : undefined,
-                measurementMethod: plan.measurementMethod ? plan.measurementMethod : undefined,
-                message: plan.message ? plan.message : undefined,
+                oid: plan.oid ?? undefined,
+                planPhase: plan.planPhase ?? undefined,
+                decisionPhase: plan.decisionPhase ?? undefined,
+                measurementMethod: plan.measurementMethod ?? undefined,
+                message: plan.message ?? undefined,
             };
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
