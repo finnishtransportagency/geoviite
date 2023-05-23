@@ -19,7 +19,7 @@ export type InfraModelUploadLoaderProps = InfraModelBaseProps & {
 export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ ...props }) => {
     const { t } = useTranslation();
 
-    const [file, setFile] = React.useState<File>();
+    const [file, setFile] = React.useState<File | null>(null);
 
     const extraParams = props.extraInfraModelParameters;
     const overrideParams = props.overrideInfraModelParameters;
@@ -33,9 +33,11 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     }, [props.file]);
 
     const onValidate: () => void = async () => {
-        props.setLoading(true);
-        props.onValidation(await getValidationErrorsForInfraModelFile(file, overrideParams));
-        props.setLoading(false);
+        if (file) {
+            props.setLoading(true);
+            props.onValidation(await getValidationErrorsForInfraModelFile(file, overrideParams));
+            props.setLoading(false);
+        }
     };
     // Automatically re-validate whenever the file or manually input data changes
     React.useEffect(() => {
@@ -43,10 +45,14 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     }, [file, overrideParams]);
 
     const onSave: () => Promise<boolean> = async () => {
-        props.setLoading(true);
-        const response = await saveInfraModelFile(file, extraParams, overrideParams);
-        props.setLoading(false);
-        return response != null;
+        if (file) {
+            props.setLoading(true);
+            const response = await saveInfraModelFile(file, extraParams, overrideParams);
+            props.setLoading(false);
+            return response != null;
+        } else {
+            return false;
+        }
     };
 
     const fileHandlingFailedErrors =

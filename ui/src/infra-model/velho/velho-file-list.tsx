@@ -26,7 +26,7 @@ export const VelhoFileListContainer: React.FC = () => {
     const changeTime = useCommonDataAppSelector((state) => state.changeTimes.velhoDocument);
     const [documentHeaders, loadStatus] =
         useLoaderWithStatus(() => {
-            return getVelhoDocuments(changeTime, 'IMPORTED');
+            return getVelhoDocuments(changeTime, 'SUGGESTED');
         }, [changeTime]) || [];
     return (
         <div className="velho-file-list">

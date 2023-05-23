@@ -163,7 +163,7 @@ class VelhoServiceIT @Autowired constructor(
         velhoService.importFilesFromProjektiVelho(search, status)
         assertDocumentExists(
             documentOid,
-            PVDocumentStatus.IMPORTED,
+            PVDocumentStatus.SUGGESTED,
             description = description,
             documentType = documentType,
             materialState = materialState,

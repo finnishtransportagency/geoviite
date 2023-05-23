@@ -116,15 +116,13 @@ class InfraModelController @Autowired constructor(
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
     ): ValidationResponse {
         logger.apiCall("validateVelhoDocument", "documentId" to documentId, "overrides" to overrides)
-        val file = velhoDocumentService.getFile(documentId)
-        return file?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }
-            ?: noFileValidationResponse(overrides)
+        return velhoDocumentService.validateVelhoDocument(documentId, overrides)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
     @PostMapping("/velho-import/{documentId}")
     fun importVelhoDocument(
-        documentId: IntId<PVDocument>,
+        @PathVariable("documentId") documentId: IntId<PVDocument>,
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
         @RequestPart(value = "extrainfo-parameters") extraInfo: ExtraInfoParameters?,
     ): IntId<GeometryPlan> {
@@ -134,10 +132,7 @@ class InfraModelController @Autowired constructor(
             "overrides" to overrides,
             "extraInfo" to extraInfo,
         )
-        val file = requireNotNull(velhoDocumentService.getFile(documentId)) {
-            "Velho document has no file to import: documentId=$documentId"
-        }
-        return infraModelService.saveInfraModel(file, overrides, extraInfo).id
+        return velhoDocumentService.importVelhoDocument(documentId, overrides, extraInfo)
     }
 }
 

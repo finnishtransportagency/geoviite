@@ -1,6 +1,6 @@
 import { Oid, TimeStamp } from 'common/common-model';
 
-export type PVDocumentStatus = 'NOT_IM' | 'IMPORTED' | 'REJECTED' | 'ACCEPTED';
+export type PVDocumentStatus = 'NOT_IM' | 'SUGGESTED' | 'REJECTED' | 'ACCEPTED';
 
 export type PVProjectGroup = {
     oid: Oid;

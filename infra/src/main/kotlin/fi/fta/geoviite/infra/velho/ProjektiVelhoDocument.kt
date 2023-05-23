@@ -43,7 +43,7 @@ data class PVName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(p
 
 enum class PVDocumentStatus {
     NOT_IM,
-    IMPORTED,
+    SUGGESTED,
     REJECTED,
     ACCEPTED,
 }

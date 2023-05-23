@@ -161,7 +161,7 @@ class VelhoService @Autowired constructor(
             file.oid,
             file.metadata,
             file.latestVersion,
-            if (xmlContent != null) PVDocumentStatus.IMPORTED else PVDocumentStatus.NOT_IM,
+            if (xmlContent != null) PVDocumentStatus.SUGGESTED else PVDocumentStatus.NOT_IM,
             assignment.assignment?.oid,
             assignment.project?.oid,
             assignment.projectGroup?.oid,

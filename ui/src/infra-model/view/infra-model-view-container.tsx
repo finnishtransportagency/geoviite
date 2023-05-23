@@ -59,7 +59,12 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
                 />
             );
         case InfraModelViewType.IMPORT:
-            return <InfraModelImportLoader {...loaderProps} />;
+            return (
+                <InfraModelImportLoader
+                    {...loaderProps}
+                    setExistingInfraModel={delegates.setExistingInfraModel}
+                />
+            );
         case InfraModelViewType.UPLOAD:
             return <InfraModelUploadLoader {...loaderProps} />;
     }

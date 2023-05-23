@@ -206,7 +206,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
             setCoordinateSystem(undefined);
             setFieldInEdit(undefined);
         }
-    }, [overrideInfraModelParameters.coordinateSystemSrid]);
+    }, [
+        overrideInfraModelParameters.coordinateSystemSrid,
+        geometryPlan.units.coordinateSystemSrid,
+    ]);
 
     function getVisibleErrorsByProp(prop: InfraModelParametersProp) {
         return committedFields.includes(prop)

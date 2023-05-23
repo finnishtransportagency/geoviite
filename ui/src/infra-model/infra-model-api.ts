@@ -123,7 +123,7 @@ export async function rejectVelhoDocument(id: PVDocumentId): Promise<null> {
 
 export const getValidationErrorsForVelhoDocument = async (
     velhoDocumentId: PVDocumentId,
-    overrideParameters: OverrideInfraModelParameters,
+    overrideParameters?: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
     const formData = createFormData(undefined, undefined, overrideParameters);
     return postFormWithError(
@@ -138,9 +138,14 @@ export async function importVelhoDocument(
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | null> {
-    const _formData = createFormData(undefined, extraParameters, overrideParameters);
-    console.log('Import', id, 'extra', extraParameters, 'override', overrideParameters);
-    return null;
+    const formData = createFormData(undefined, extraParameters, overrideParameters);
+    const url = `${INFRAMODEL_URI}/velho-import/${id}`;
+    const response = await postFormIgnoreError<GeometryPlanId>(url, formData);
+    if (response) {
+        Snackbar.success(`Projektivelhon IM-tiedosto tuotu geoviitteeseen`);
+        updatePlanChangeTime();
+    }
+    return response;
 }
 
 const createFormData = (

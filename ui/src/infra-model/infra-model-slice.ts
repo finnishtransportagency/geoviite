@@ -155,6 +155,7 @@ const infraModelSlice = createSlice({
                 const bBox = response.planLayout.boundingBox;
                 state.map.viewport = {
                     ...state.map.viewport,
+                    source: undefined,
                     center: {
                         x: (bBox.x.min + bBox.x.max) / 2.0,
                         y: (bBox.y.min + bBox.y.max) / 2.0,
@@ -219,14 +220,14 @@ const infraModelSlice = createSlice({
         },
         setExistingInfraModel: (
             state: InfraModelState,
-            { payload: plan }: PayloadAction<GeometryPlan>,
+            { payload: plan }: PayloadAction<GeometryPlan | null>,
         ) => {
             state.extraInfraModelParameters = {
-                oid: plan.oid ?? undefined,
-                planPhase: plan.planPhase ?? undefined,
-                decisionPhase: plan.decisionPhase ?? undefined,
-                measurementMethod: plan.measurementMethod ?? undefined,
-                message: plan.message ?? undefined,
+                oid: plan?.oid ?? undefined,
+                planPhase: plan?.planPhase ?? undefined,
+                decisionPhase: plan?.decisionPhase ?? undefined,
+                measurementMethod: plan?.measurementMethod ?? undefined,
+                message: plan?.message ?? undefined,
             };
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
