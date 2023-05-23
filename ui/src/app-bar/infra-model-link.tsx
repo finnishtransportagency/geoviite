@@ -4,14 +4,14 @@ import { ExclamationPoint } from 'geoviite-design-lib/exclamation-point/exclamat
 import { useTranslation } from 'react-i18next';
 
 type InfraModelLinkProps = {
-    visibility: boolean;
+    exclamationPointVisibility: boolean;
 };
-export const InfraModelLink: React.FC<InfraModelLinkProps> = ({ visibility }) => {
+export const InfraModelLink: React.FC<InfraModelLinkProps> = ({ exclamationPointVisibility }) => {
     const { t } = useTranslation();
     return (
         <span>
             {t('app-bar.infra-model')}
-            {visibility && (
+            {exclamationPointVisibility && (
                 <span className={styles['app-bar__link--exclamation-point']}>
                     <ExclamationPoint />
                 </span>

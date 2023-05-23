@@ -34,6 +34,8 @@ export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
     const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
+    //TODO update velhoFilesWaiting with value showing whether there are file candidates waiting for approval
+    const velhoFilesWaiting = true;
 
     function getInfraModelLink(): string {
         switch (selectedInfraModelTab) {
@@ -71,7 +73,9 @@ export const AppBar: React.FC = () => {
                                         }
                                         end>
                                         {link.link === '/infra-model' ? (
-                                            <InfraModelLink visibility={true} />
+                                            <InfraModelLink
+                                                exclamationPointVisibility={velhoFilesWaiting}
+                                            />
                                         ) : (
                                             t(link.name)
                                         )}
