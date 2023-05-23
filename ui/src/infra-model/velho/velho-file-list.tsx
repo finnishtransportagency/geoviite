@@ -146,24 +146,26 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
     const { t } = useTranslation();
     return (
         <div className={styles['velho-file-list__expanded']}>
-            {item.project && (
-                <InfoboxContent>
+            <InfoboxContent>
+                {item.projectGroup && (
                     <InfoboxField
                         label={t('velho.file-list.field.project-group')}
-                        value={item.project.group.name}
+                        value={item.projectGroup.name}
                     />
+                )}
+                {item.project && (
                     <InfoboxField
                         label={t('velho.file-list.field.project-name')}
                         value={item.project.name}
                     />
-                    {item.assignment && (
-                        <InfoboxField
-                            label={t('velho.file-list.field.assignment')}
-                            value={item.assignment.name}
-                        />
-                    )}
-                </InfoboxContent>
-            )}
+                )}
+                {item.assignment && (
+                    <InfoboxField
+                        label={t('velho.file-list.field.assignment')}
+                        value={item.assignment.name}
+                    />
+                )}
+            </InfoboxContent>
             <InfoboxContent>
                 <InfoboxField
                     label={t('velho.file-list.field.material-group')}

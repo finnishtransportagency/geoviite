@@ -158,7 +158,7 @@ class VelhoServiceIT @Autowired constructor(
         velhoService.updateDictionaries()
         velhoDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
         val search = velhoDao.fetchLatestSearch()!!
-        val status = velhoService.fetchSearchResults(searchId)!!
+        val status = velhoService.fetchSearchStatus(searchId)!!
 
         velhoService.importFilesFromProjektiVelho(search, status)
         assertDocumentExists(

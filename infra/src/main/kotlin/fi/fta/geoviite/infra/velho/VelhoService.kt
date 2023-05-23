@@ -1,8 +1,13 @@
 package fi.fta.geoviite.infra.velho
 
-import PVId
+import PVAssignment
+import PVDocument
+import PVDocumentStatus
+import PVProject
+import PVProjectGroup
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.withUser
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.InfraModelService
 import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
 import fi.fta.geoviite.infra.inframodel.toInfraModelFile
@@ -65,8 +70,9 @@ class VelhoService @Autowired constructor(
             updateDictionaries()
             latestSearch
                 ?.takeIf { search -> search.state == PVFetchStatus.WAITING }
-                ?.let { search -> fetchSearchResults(search.token) }
-                ?.let { results -> importFilesFromProjektiVelho(latestSearch, results) }
+                ?.let { search -> velhoClient.fetchVelhoSearchStatus(search.token) }
+                ?.takeIf { status -> status.state == PROJEKTIVELHO_SEARCH_STATE_READY }
+                ?.let { status -> importFilesFromProjektiVelho(latestSearch, status) }
         }
     }
 
@@ -78,48 +84,76 @@ class VelhoService @Autowired constructor(
         }
     }
 
-    fun fetchSearchResults(searchId: PVId)=
-        velhoClient
-            .fetchVelhoSearches()
-            .find { search -> search.searchId == searchId && search.state == PROJEKTIVELHO_SEARCH_STATE_READY }
-
     fun importFilesFromProjektiVelho(latest: PVSearch, searchResults: PVApiSearchStatus) =
         try {
             velhoDao.updateFetchState(latest.id, PVFetchStatus.FETCHING)
+            val assignments = mutableMapOf<Oid<PVAssignment>, PVApiAssignment?>()
+            val projects = mutableMapOf<Oid<PVProject>, PVApiProject?>()
+            val projectGroups = mutableMapOf<Oid<PVProjectGroup>, PVApiProjectGroup?>()
             velhoClient.fetchSearchResults(searchResults.searchId).matches
-                .map(::fetchFileAndInsertToDb)
+                .map { match -> fetchFileAndInsertToDb(match, assignments, projects, projectGroups) }
             velhoDao.updateFetchState(latest.id, PVFetchStatus.FINISHED)
         } catch (e: Exception) {
             velhoDao.updateFetchState(latest.id, PVFetchStatus.ERROR)
             throw e
         }
 
-    private fun fetchFileAndInsertToDb(match: PVApiMatch) =
-        fetchFileMetadataAndContent(match).let(::insertFileToDatabase)
+    private fun fetchFileAndInsertToDb(
+        match: PVApiMatch,
+        assignments: MutableMap<Oid<PVAssignment>, PVApiAssignment?>,
+        projects: MutableMap<Oid<PVProject>, PVApiProject?>,
+        projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>
+    ) {
+        val assignmentData = fetchAndUpsertAssignmentData(match.assignmentOid, assignments, projects, projectGroups)
+        val fileHolder = fetchFileMetadataAndContent(match.oid)
+        insertFileToDatabase(fileHolder, assignmentData)
+    }
 
-    private fun fetchFileMetadataAndContent(match: PVApiMatch): PVFileHolder {
-        val metadataResponse = velhoClient.fetchFileMetadata(match.oid)
+    private fun fetchAndUpsertAssignmentData(
+        assignmentOid: Oid<PVAssignment>,
+        assignments: MutableMap<Oid<PVAssignment>, PVApiAssignment?>,
+        projects: MutableMap<Oid<PVProject>, PVApiProject?>,
+        projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>,
+    ): PVAssignmentHolder {
+        val assignment = assignmentOid.let { oid ->
+            fetchIfNew(assignments, oid, velhoClient::fetchAssignment, velhoDao::upsertAssignment)
+        }
+        val project = assignment?.projectOid?.let { oid ->
+            fetchIfNew(projects, oid, velhoClient::fetchProject, velhoDao::upsertProject)
+        }
+        val projectGroup = project?.projectGroupOid?.let { oid ->
+            fetchIfNew(projectGroups, oid, velhoClient::fetchProjectGroup, velhoDao::upsertProjectGroup)
+        }
+        return PVAssignmentHolder(assignment, project, projectGroup)
+    }
+
+    private fun <T, S> fetchIfNew(
+        known: MutableMap<Oid<S>, T?>,
+        oid: Oid<S>,
+        fetch: (oid: Oid<S>) -> T?,
+        store: (T) -> Unit,
+    ): T? =
+        // Can't use compute here, as that would try to re-compute nulls. If the thing doesn't exist, don't re-fetch
+        if (known.containsKey(oid)) known[oid]
+        else fetch(oid)
+            .also { value -> known[oid] = value }
+            ?.also { value -> store(value) }
+
+    private fun fetchFileMetadataAndContent(oid: Oid<PVDocument>): PVFileHolder {
+        val metadataResponse = velhoClient.fetchFileMetadata(oid)
         val content =
             if (metadataResponse.metadata.containsPersonalInfo == true) null
-            else velhoClient.fetchFileContent(match.oid, metadataResponse.latestVersion.version)
-
-        // TODO Add these when fetches actually work
-        /*val assignment = velhoClient.fetchAssignment(match.assignmentOid)
-        val project = assignment?.projectOid?.let(velhoClient::fetchProject)
-        val projectGroup = project?.projectGroupOid?.let(velhoClient::fetchProjectGroup)*/
+            else velhoClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
 
         return PVFileHolder(
-            oid = match.oid,
+            oid = oid,
             content = content,
             metadata = metadataResponse.metadata,
             latestVersion = metadataResponse.latestVersion,
-            assignment = null,
-            project = null,
-            projectGroup = null
         )
     }
 
-    private fun insertFileToDatabase(file: PVFileHolder) {
+    private fun insertFileToDatabase(file: PVFileHolder, assignment: PVAssignmentHolder) {
         val xmlContent = file.content
             ?.takeIf { content -> isRailroadXml(content ,file.latestVersion.name) }
             ?.let { content -> censorAuthorIdentifyingInfo(content) }
@@ -127,7 +161,10 @@ class VelhoService @Autowired constructor(
             file.oid,
             file.metadata,
             file.latestVersion,
-            if (xmlContent != null) PVDocumentStatus.IMPORTED else PVDocumentStatus.NOT_IM
+            if (xmlContent != null) PVDocumentStatus.IMPORTED else PVDocumentStatus.NOT_IM,
+            assignment.assignment?.oid,
+            assignment.project?.oid,
+            assignment.projectGroup?.oid,
         )
         xmlContent?.let { content -> velhoDao.insertFileContent(content, metadataId) }
     }

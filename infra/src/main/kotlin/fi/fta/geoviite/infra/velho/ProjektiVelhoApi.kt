@@ -12,6 +12,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.velho.PVDictionaryGroup.MATERIAL
+import fi.fta.geoviite.infra.velho.PVDictionaryGroup.PROJECT
 import java.time.Instant
 
 // TODO Turn into actual data classes etc.
@@ -157,24 +159,31 @@ data class PVApiRedirect(
 )
 
 data class PVApiProperties(
-    @JsonProperty("nimi") val name: String,
+    @JsonProperty("nimi") val name: PVName,
+    @JsonProperty("tila") val state: PVCode,
 )
 
 data class PVApiProjectGroup(
     @JsonProperty("ominaisuudet") val properties: PVApiProperties,
     @JsonProperty("oid") val oid: Oid<PVProjectGroup>,
+    @JsonProperty("luotu") val createdAt: Instant,
+    @JsonProperty("muokattu") val modified: Instant?,
 )
 
 data class PVApiProject(
     @JsonProperty("ominaisuudet") val properties: PVApiProperties,
     @JsonProperty("oid") val oid: Oid<PVProject>,
-    @JsonProperty("projektijoukko") val projectGroupOid: Oid<PVProjectGroup>,
+    @JsonProperty("projektijoukko") val projectGroupOid: Oid<PVProjectGroup>?,
+    @JsonProperty("luotu") val createdAt: Instant,
+    @JsonProperty("muokattu") val modified: Instant?,
 )
 
 data class PVApiAssignment(
     @JsonProperty("ominaisuudet") val properties: PVApiProperties,
     @JsonProperty("oid") val oid: Oid<PVAssignment>,
-    @JsonProperty("projekti") val projectOid: Oid<PVAssignment>,
+    @JsonProperty("projekti") val projectOid: Oid<PVProject>,
+    @JsonProperty("luotu") val createdAt: Instant,
+    @JsonProperty("muokattu") val modified: Instant?,
 )
 
 data class PVDictionaryEntry(
@@ -184,14 +193,17 @@ data class PVDictionaryEntry(
     constructor(code: String, name: String): this(PVCode(code), PVName(name))
 }
 
+data class PVAssignmentHolder(
+    val assignment: PVApiAssignment?,
+    val project: PVApiProject?,
+    val projectGroup: PVApiProjectGroup?,
+)
+
 data class PVFileHolder(
     val oid: Oid<PVDocument>,
     val content: String?,
     val metadata: PVApiFileMetadata,
     val latestVersion: PVApiLatestVersion,
-    val assignment: PVApiAssignment?,
-    val project: PVApiProject?,
-    val projectGroup: PVApiProjectGroup?
 )
 
 data class PVSearch(
@@ -209,14 +221,18 @@ enum class PVFetchStatus {
 }
 
 
-enum class PVDictionaryType {
-    DOCUMENT_TYPE, // dokumenttityyppi
-    MATERIAL_STATE, // aineistotila
-    MATERIAL_CATEGORY, // aineistolaji
-    MATERIAL_GROUP, // ainestoryhmä
-    TECHNICS_FIELD, // teknikka-ala
+enum class PVDictionaryGroup {
+    MATERIAL,
+    PROJECT,
 }
-
+enum class PVDictionaryType(val group: PVDictionaryGroup) {
+    DOCUMENT_TYPE (MATERIAL), // dokumenttityyppi
+    MATERIAL_STATE (MATERIAL), // aineistotila
+    MATERIAL_CATEGORY (MATERIAL), // aineistolaji
+    MATERIAL_GROUP (MATERIAL), // ainestoryhmä
+    TECHNICS_FIELD (MATERIAL), // teknikka-ala
+    PROJECT_STATE (PROJECT), // projektin tila
+}
 
 const val PROJEKTIVELHO_SEARCH_STATE_READY = "valmis"
 
