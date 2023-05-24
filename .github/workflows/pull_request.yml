@@ -9,13 +9,12 @@ on:
       - 'README.md'
 
 jobs:
-  build:
-    
+  container-job:
+
     runs-on: ubuntu-latest
 
     services:
       geoviite-postgres:
-        using: 'docker'
         image: ./infra/Dockerfile
         env:
           POSTGRES_PASSWORD: 'postgres'
@@ -23,7 +22,6 @@ jobs:
           POSTGRES_DB: 'geoviite'
         ports:
           - 127.0.0.1:5436:5432
-        container_name: geoviite-postgres
 
     steps:
     - name: Download repository on the runner
