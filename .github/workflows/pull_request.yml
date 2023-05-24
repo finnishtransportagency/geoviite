@@ -13,6 +13,18 @@ jobs:
     
     runs-on: ubuntu-latest
 
+    services:
+      geoviite-postgres:
+        using: 'docker'
+        image: ./infra/Dockerfile
+        env:
+          POSTGRES_PASSWORD: 'postgres'
+          POSTGRES_USER: 'postgres'
+          POSTGRES_DB: 'geoviite'
+        ports:
+          - 127.0.0.1:5436:5432
+        container_name: geoviite-postgres
+
     steps:
     - name: Download repository on the runner
       uses: actions/checkout@v3
@@ -35,3 +47,11 @@ jobs:
       run: |
         cd infra
         ./gradlew cleanTest test --tests "*Test"
+
+    - name: run integration tests in infra (backend)
+        env:
+          DB_USERNAME: 'postgres'
+          DB_PASSWORD: 'postgres'
+        run: |
+          cd infra
+          ./gradlew cleanTest test --tests "*IT"
