@@ -52,6 +52,6 @@ jobs:
       env:
         DB_USERNAME: 'postgres'
         DB_PASSWORD: 'postgres'
-        run: |
-          cd infra
-          ./gradlew cleanTest test --tests "*IT"
+      run: |
+        cd infra
+        ./gradlew cleanTest test --tests "*IT"
