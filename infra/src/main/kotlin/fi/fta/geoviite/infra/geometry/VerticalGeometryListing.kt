@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -10,6 +11,7 @@ import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
 import java.math.BigDecimal
+import java.time.Instant
 import java.util.stream.Collectors
 import kotlin.math.tan
 
@@ -18,27 +20,31 @@ data class CurvedSectionEndpoint(
     val height: BigDecimal,
     val angle: BigDecimal?,
     val station: BigDecimal,
+    val location: RoundedPoint?,
 )
 
-fun toCurvedSectionEndpoint(address: TrackMeter?, height: Double, angle: Double?, station: Double) =
+fun toCurvedSectionEndpoint(address: TrackMeter?, location: RoundedPoint?, height: Double, angle: Double?, station: Double) =
     CurvedSectionEndpoint(
         address = address,
         height = roundTo3Decimals(height),
         angle = angle?.let(::roundTo6Decimals),
-        station = roundTo3Decimals(station)
+        station = roundTo3Decimals(station),
+        location = location,
     )
 
 data class IntersectionPoint(
     val address: TrackMeter?,
     val height: BigDecimal,
     val station: BigDecimal,
+    val location: RoundedPoint?,
 )
 
-fun toIntersectionPoint(address: TrackMeter?, height: Double, station: Double) =
+fun toIntersectionPoint(address: TrackMeter?, location: RoundedPoint?, height: Double, station: Double) =
     IntersectionPoint(
         address = address,
         height = roundTo3Decimals(height),
-        station = roundTo3Decimals(station)
+        station = roundTo3Decimals(station),
+        location = location,
     )
 
 data class LinearSection(
@@ -71,6 +77,9 @@ data class VerticalGeometryListing(
     val linearSectionBackward: LinearSection,
     val overlapsAnother: Boolean,
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
+    val coordinateSystemSrid: Srid?,
+    val coordinateSystemName: CoordinateSystemName?,
+    val creationTime: Instant?,
 
     val layoutStartStation: Double? = null,
     val layoutPointStation: Double? = null,
@@ -104,21 +113,26 @@ fun toVerticalGeometryListing(
                         segment.end.x
                     )
                 } else (null to null)
+            val segmentStartLocation = alignment
+                .getCoordinateAt(alignment.stationValueNormalized(segment.start.x))
+                ?.round(COORDINATE_DECIMALS)
+            val segmentEndLocation = alignment
+                .getCoordinateAt(alignment.stationValueNormalized(segment.end.x))
+                ?.round(COORDINATE_DECIMALS)
 
             toVerticalGeometryListing(
                 segment,
                 alignment,
                 null,
                 coordinateTransform,
-                planHeader.id,
-                planHeader.source,
-                planHeader.fileName,
+                planHeader,
                 geocodingContext,
                 curvedSegments,
                 linearSegments,
                 segmentStartAddress,
                 segmentEndAddress,
-                planHeader.units.verticalCoordinateSystem
+                segmentStartLocation,
+                segmentEndLocation,
             )
         }
     }.flatten()
@@ -216,6 +230,12 @@ private fun toVerticalGeometry(
                 segment.end.x
             )
         } else (null to null)
+    val startLocation = geometryAlignment
+        .getCoordinateAt(geometryAlignment.stationValueNormalized(segment.start.x))
+        ?.round(COORDINATE_DECIMALS)
+    val endLocation = geometryAlignment
+        .getCoordinateAt(geometryAlignment.stationValueNormalized(segment.end.x))
+        ?.round(COORDINATE_DECIMALS)
 
     return if (segmentStartAddress != null && endAddress != null && segmentStartAddress > endAddress) null
     else if (segmentEndAddress != null && startAddress != null && segmentEndAddress < startAddress) null
@@ -224,15 +244,14 @@ private fun toVerticalGeometry(
         geometryAlignment,
         track.name,
         planHeader.units.coordinateSystemSrid?.let(getTransformation),
-        planHeader.id,
-        planHeader.source,
-        planHeader.fileName,
+        planHeader,
         geocodingContext,
         curvedProfileSegments,
         linearProfileSegments,
         segmentStartAddress,
         segmentEndAddress,
-        planHeader.units.verticalCoordinateSystem
+        startLocation,
+        endLocation
     )
 }
 
@@ -241,17 +260,19 @@ fun toVerticalGeometryListing(
     alignment: GeometryAlignment,
     locationTrackName: AlignmentName?,
     coordinateTransform: Transformation?,
-    planId: DomainId<GeometryPlan>,
-    planSource: PlanSource,
-    planFileName: FileName,
+    planHeader: GeometryPlanHeader,
     geocodingContext: GeocodingContext?,
     curvedSegments: List<CurvedProfileSegment>,
     linearSegments: List<LinearProfileSegment>,
     segmentStartAddress: TrackMeter?,
     segmentEndAddress: TrackMeter?,
-    verticalCoordinateSystem: VerticalCoordinateSystem?,
+    segmentStartLocation: RoundedPoint?,
+    segmentEndLocation: RoundedPoint?
     ): VerticalGeometryListing {
     val stationPoint = circCurveStationPoint(segment)
+    val stationPointLocation = alignment
+        .getCoordinateAt(alignment.stationValueNormalized(stationPoint.x))
+        ?.round(COORDINATE_DECIMALS)
     val stationPointAddress = if (geocodingContext != null && coordinateTransform != null) getTrackAddressAtStation(
         geocodingContext,
         coordinateTransform,
@@ -261,9 +282,9 @@ fun toVerticalGeometryListing(
 
     return VerticalGeometryListing(
         id = StringId("${alignment.id}_${segment.start.x}"),
-        planId = planId,
-        planSource = planSource,
-        fileName = planFileName,
+        planId = planHeader.id,
+        planSource = planHeader.source,
+        fileName = planHeader.fileName,
         alignmentId = alignment.id,
         alignmentName = alignment.name,
         locationTrackName,
@@ -271,24 +292,30 @@ fun toVerticalGeometryListing(
             address = segmentStartAddress,
             height = segment.start.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.start),
-            station = segment.start.x
+            station = segment.start.x,
+            location = segmentStartLocation,
         ),
         end = toCurvedSectionEndpoint(
             address = segmentEndAddress,
             height = segment.end.y,
             angle = angleFractionBetweenPoints(stationPoint, segment.end),
-            station = segment.end.x
+            station = segment.end.x,
+            location = segmentEndLocation,
         ),
         point = toIntersectionPoint(
             address = stationPointAddress,
             height = stationPoint.y,
-            station = stationPoint.x
+            station = stationPoint.x,
+            location = stationPointLocation,
         ),
         radius = round(segment.radius, 0),
         tangent = lineLength(segment.start, stationPoint).let(::roundTo3Decimals),
         linearSectionBackward = previousLinearSection(segment, curvedSegments, linearSegments),
         linearSectionForward = nextLinearSection(segment, curvedSegments, linearSegments),
-        verticalCoordinateSystem = verticalCoordinateSystem,
+        verticalCoordinateSystem = planHeader.units.verticalCoordinateSystem,
+        coordinateSystemSrid = planHeader.units.coordinateSystemSrid,
+        coordinateSystemName = planHeader.units.coordinateSystemName,
+        creationTime = planHeader.planTime,
         overlapsAnother = false,
     )
 }
@@ -306,6 +333,8 @@ private val locationTrackCsvEntry =
 
 private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry<VerticalGeometryListing>(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.PLAN_NAME)) { it.fileName },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.CRS)) { it.coordinateSystemSrid ?: it.coordinateSystemName },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.CREATION_DATE)) { it.creationTime },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.PLAN_TRACK)) { it.alignmentName },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_START)) {
         it.start.address?.let { address ->
@@ -321,6 +350,8 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.ANGLE_START)) {
         it.start.angle
     },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LOCATION_E_START)) { it.start.location?.roundedX },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LOCATION_N_START)) { it.start.location?.roundedY },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_POINT)) {
         it.point.address?.let { address ->
             formatTrackMeter(
@@ -332,6 +363,8 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.HEIGHT_POINT)) {
         it.point.height
     },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LOCATION_E_POINT)) { it.point.location?.roundedX },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LOCATION_N_POINT)) { it.point.location?.roundedY },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_END)) {
         it.end.address?.let { address ->
             formatTrackMeter(
@@ -346,6 +379,8 @@ private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.ANGLE_END)) {
         it.end.angle
     },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LOCATION_E_END)) { it.end.location?.roundedX },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.LOCATION_N_END)) { it.end.location?.roundedY },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.RADIUS)) { it.radius },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TANGENT)) {
         it.tangent

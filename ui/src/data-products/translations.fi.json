@@ -91,7 +91,11 @@
                 "curve-end": "Pyöristyksen loppu",
                 "point-of-vertical-intersection": "Taite",
                 "vertical-coordinate-system": "Korkeusjärjestelmä",
-                "remarks": "Huomiot"
+                "remarks": "Huomiot",
+                "location-e": "Sijainti E",
+                "location-n": "Sijainti N",
+                "crs": "Koordinaattijärjestelmä",
+                "creation-date": "Laadittu"
             }
         },
         "km-lengths": {

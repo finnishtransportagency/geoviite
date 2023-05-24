@@ -70,18 +70,26 @@ fun translateTrackGeometryElementType(type: TrackGeometryElementType) =
 enum class VerticalGeometryListingHeader {
     PLAN_NAME,
     LOCATION_TRACK,
+    CREATION_DATE,
+    CRS,
     PLAN_TRACK,
     TRACK_ADDRESS_START,
     HEIGHT_START,
     ANGLE_START,
     STATION_START,
+    LOCATION_E_START,
+    LOCATION_N_START,
     TRACK_ADDRESS_END,
     HEIGHT_END,
     ANGLE_END,
     STATION_END,
+    LOCATION_E_END,
+    LOCATION_N_END,
     TRACK_ADDRESS_POINT,
     HEIGHT_POINT,
     STATION_POINT,
+    LOCATION_E_POINT,
+    LOCATION_N_POINT,
     RADIUS,
     TANGENT,
     LINEAR_SECTION_FORWARD_LENGTH,
@@ -116,4 +124,12 @@ fun translateVerticalGeometryListingHeader(header: VerticalGeometryListingHeader
         VerticalGeometryListingHeader.TANGENT -> "Tangentti"
         VerticalGeometryListingHeader.VERTICAL_COORDINATE_SYSTEM -> "Korkeusjärjestelmä"
         VerticalGeometryListingHeader.REMARKS -> "Huomiot"
+        VerticalGeometryListingHeader.CRS -> "Koordinaattijärjestelmä"
+        VerticalGeometryListingHeader.CREATION_DATE -> "Luotu"
+        VerticalGeometryListingHeader.LOCATION_E_START -> "Pyöristyksen alkupisteen sijainti E"
+        VerticalGeometryListingHeader.LOCATION_N_START -> "Pyöristyksen alkupisteen sijainti N"
+        VerticalGeometryListingHeader.LOCATION_E_END -> "Pyöristyksen loppupisteen sijainti E"
+        VerticalGeometryListingHeader.LOCATION_N_END -> "Pyöristyksen loppupisteen sijainti N"
+        VerticalGeometryListingHeader.LOCATION_E_POINT -> "Taitepisteen sijainti E"
+        VerticalGeometryListingHeader.LOCATION_N_POINT -> "Taitepisteen sijainti N"
     }
