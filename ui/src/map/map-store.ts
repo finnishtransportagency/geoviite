@@ -12,7 +12,7 @@ import {
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
-import { deduplicate } from 'utils/array-utils';
+import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 
 export function createEmptyShownItems(): ShownItems {
     return {
@@ -28,19 +28,19 @@ export type MapLayerMenuChange = {
     visible: boolean;
 };
 
+const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
+    'track-number-diagram-layer': ['reference-line-badge-layer'],
+    'manual-switch-linking-layer': ['switch-layer'],
+    'switch-linking-layer': ['switch-layer'],
+    'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
+    'location-track-alignment-layer': ['location-track-background-layer'],
+    'reference-line-alignment-layer': ['reference-line-background-layer'],
+};
+
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'map': ['background-map-layer'],
-    'location-track': [
-        'location-track-alignment-layer',
-        'location-track-background-layer',
-        'location-track-badge-layer',
-    ],
-    'reference-line': [
-        'reference-line-alignment-layer',
-        'reference-line-background-layer',
-        'reference-line-badge-layer',
-    ],
-    'track-number-diagram': ['track-number-diagram-layer', 'reference-line-badge-layer'],
+    'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
+    'reference-line': ['reference-line-alignment-layer', 'reference-line-badge-layer'],
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
     'missing-linking': ['missing-linking-highlight-layer'],
     'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
@@ -73,7 +73,6 @@ export const initialMapState: Map = {
                 visible: true,
                 subMenu: [
                     { name: 'reference-line', visible: true },
-                    { name: 'track-number-diagram', visible: false },
                     { name: 'missing-vertical-geometry', visible: false },
                     { name: 'missing-linking', visible: false },
                     { name: 'duplicate-tracks', visible: false },
@@ -140,10 +139,28 @@ export const mapReducers = {
         };
     },
     showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        state.visibleLayers = deduplicate([...state.visibleLayers, ...layers]);
+        state.visibleLayers = deduplicate([
+            ...state.visibleLayers,
+            ...layers,
+            ...collectRelatedLayers(layers),
+        ]);
     },
     hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
-        state.visibleLayers = state.visibleLayers.filter((l) => !layers.some((p) => p === l));
+        const relatedLayers = collectRelatedLayers(layers);
+        const layersByMenu = collectVisibleLayers([
+            ...state.layerMenu.layout,
+            ...state.layerMenu.geometry,
+            ...state.layerMenu.debug,
+        ]);
+
+        const visibleLayers = state.visibleLayers
+            .filter((l) => !relatedLayers.includes(l) && !layers.includes(l))
+            .concat(layersByMenu);
+
+        state.visibleLayers = deduplicate([
+            ...visibleLayers,
+            ...collectRelatedLayers(visibleLayers),
+        ]);
     },
     onLayerMenuItemChange(state: Map, { payload: change }: PayloadAction<MapLayerMenuChange>) {
         state.layerMenu.layout = updateMenuItem(state.layerMenu.layout, change);
@@ -160,17 +177,14 @@ export const mapReducers = {
         if (change.visible) {
             this.showLayers(state, { payload: changedLayers, type: 'showLayers' });
         } else {
-            const visibleLayers = collectVisibleLayers(allMenuItems, change);
-            const hiddenLayers = changedLayers.filter((l) => !visibleLayers.some((v) => v === l));
-
-            hiddenLayers.forEach((l) => {
+            changedLayers.forEach((l) => {
                 const shownItemsToHide = shownItemsByLayer[l];
                 if (shownItemsToHide) {
                     state.shownItems[shownItemsToHide] = [];
                 }
             });
 
-            this.hideLayers(state, { payload: hiddenLayers, type: 'hideLayers' });
+            this.hideLayers(state, { payload: changedLayers, type: 'hideLayers' });
         }
     },
     onLayerSettingChange: (
@@ -192,22 +206,6 @@ export const mapReducers = {
         state.verticalGeometryDiagramVisible = visibilitySetting;
     },
 };
-
-function collectVisibleLayers(
-    settings: MapLayerMenuItem[],
-    change: MapLayerMenuChange,
-): MapLayerName[] {
-    return settings.flatMap((s) => {
-        if (s.visible && s.name !== change.name) {
-            return [
-                ...layerMenuItemMapLayers[s.name],
-                ...collectVisibleLayers(s.subMenu ?? [], change),
-            ];
-        }
-
-        return [];
-    });
-}
 
 function collectChangedLayers(
     settings: MapLayerMenuItem[],
@@ -234,6 +232,22 @@ function collectChangedLayers(
             ];
         }
     });
+}
+
+function collectVisibleLayers(settings: MapLayerMenuItem[]): MapLayerName[] {
+    return settings.flatMap((s) =>
+        s.visible
+            ? [...layerMenuItemMapLayers[s.name], ...collectVisibleLayers(s.subMenu ?? [])]
+            : [],
+    );
+}
+
+function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
+    const relatedLayers = layers.flatMap((l) => relatedMapLayers[l]).filter(filterNotEmpty);
+
+    return relatedLayers.length > 0
+        ? [...relatedLayers, ...collectRelatedLayers(relatedLayers)]
+        : [];
 }
 
 function updateMenuItem(

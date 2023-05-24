@@ -84,7 +84,6 @@ export type MapLayerMenuItemName =
     | 'map'
     | 'location-track'
     | 'reference-line'
-    | 'track-number-diagram'
     | 'missing-vertical-geometry'
     | 'missing-linking'
     | 'duplicate-tracks'
