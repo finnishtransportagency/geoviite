@@ -47,9 +47,12 @@ class PVService @Autowired constructor(
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
     }
 
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(
+        initialDelayString="\${geoviite.projektivelho.search-poll.initial}",
+        fixedRateString="\${geoviite.projektivelho.search-poll.rate}",
+    )
     fun search(): PVApiSearchStatus? = runIntegration {
-        logger.serviceCall("search")
+        logger.info("Poll to launch new search")
         val latest = pvDao.fetchLatestFile()
         val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
         projektiVelhoClient.postXmlFileSearch(startTime, latest?.first).also { status ->
@@ -58,9 +61,12 @@ class PVService @Autowired constructor(
         }
     }
 
-    @Scheduled(initialDelay = 60000, fixedRate = 900000) // First run after 1min, then every 15min
+    @Scheduled(
+        initialDelayString="\${geoviite.projektivelho.result-poll.initial}",
+        fixedRateString="\${geoviite.projektivelho.result-poll.rate}",
+    )
     fun pollAndFetchIfWaiting() = runIntegration {
-        logger.serviceCall("pollAndFetchIfWaiting")
+        logger.info("Poll for search results")
         val latestSearch = pvDao.fetchLatestSearch()
         // Mark previous search as stalled if previous search is supposedly still running after
         // having outlived its validity period
