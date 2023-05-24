@@ -150,21 +150,15 @@ function getEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean) {
     const points = alignment.points;
 
     if (points.length >= 2) {
+        const tickStyle = contrast ? highlightedEndPointTickStyle : endPointTickStyle;
+
         if (points[0].m === 0) {
             const fP = pointToCoords(points[0]);
             const sP = pointToCoords(points[1]);
 
             const startF = new Feature({ geometry: new Point(fP) });
 
-            startF.setStyle(
-                getTickStyle(
-                    fP,
-                    sP,
-                    6,
-                    'start',
-                    contrast ? highlightedEndPointTickStyle : endPointTickStyle,
-                ),
-            );
+            startF.setStyle(getTickStyle(fP, sP, 6, 'start', tickStyle));
 
             ticks.push(startF);
         }
@@ -175,15 +169,8 @@ function getEndPointTicks(alignment: AlignmentDataHolder, contrast: boolean) {
             const sLP = pointToCoords(points[lastIdx - 1]);
 
             const endF = new Feature({ geometry: new Point(lP) });
-            endF.setStyle(
-                getTickStyle(
-                    sLP,
-                    lP,
-                    6,
-                    'end',
-                    contrast ? highlightedEndPointTickStyle : endPointTickStyle,
-                ),
-            );
+
+            endF.setStyle(getTickStyle(sLP, lP, 6, 'end', tickStyle));
 
             ticks.push(endF);
         }

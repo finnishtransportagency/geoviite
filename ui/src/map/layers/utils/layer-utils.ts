@@ -11,7 +11,10 @@ import {
 } from 'track-layout/track-layout-model';
 import * as turf from '@turf/turf';
 import { OptionalItemCollections } from 'selection/selection-model';
-import { FEATURE_PROPERTY_LINK_POINT, FEATURE_PROPERTY_TYPE } from 'map/layers/linking-layer';
+import {
+    FEATURE_PROPERTY_LINK_POINT,
+    FEATURE_PROPERTY_TYPE,
+} from 'map/layers/alignment-linking-layer';
 import { LayerItemSearchResult } from 'map/layers/utils/layer-model';
 import { LinkPoint, LinkPointType, SuggestedSwitch } from 'linking/linking-model';
 import proj4 from 'proj4';

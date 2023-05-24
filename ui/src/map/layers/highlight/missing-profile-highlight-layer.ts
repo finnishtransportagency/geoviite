@@ -24,7 +24,7 @@ const highlightBackgroundStyle = new Style({
 
 let newestLayerId = 0;
 
-export function createMissingLocationTrackProfileHighlightLayer(
+export function createMissingProfileHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     publishType: PublishType,

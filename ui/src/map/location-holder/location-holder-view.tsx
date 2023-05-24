@@ -22,7 +22,7 @@ type HoverLocation = {
     address: TrackMeterModel | null;
 };
 
-export async function getLocationTrackHoverLocation(
+async function getLocationTrackHoverLocation(
     locationTrackId: LocationTrackId,
     publishType: PublishType,
     coordinate: Point,
@@ -32,7 +32,7 @@ export async function getLocationTrackHoverLocation(
     );
 }
 
-export async function getReferenceLineHoverLocation(
+async function getReferenceLineHoverLocation(
     trackNumberId: LayoutTrackNumberId,
     publishType: PublishType,
     coordinate: Point,
@@ -48,7 +48,7 @@ export async function getReferenceLineHoverLocation(
     });
 }
 
-export async function getHoverLocation(
+async function getHoverLocation(
     name: string | null | undefined,
     trackNumberId: LayoutTrackNumberId | null | undefined,
     publishType: PublishType,

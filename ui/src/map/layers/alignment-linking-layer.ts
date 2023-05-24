@@ -577,7 +577,7 @@ function createLinkingGeometryWithAlignmentFeatures(
 
 let newestLayerId = 0;
 
-export function createLinkingLayer(
+export function createAlignmentLinkingLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<Point | LineString>> | undefined,
     selection: Selection,
@@ -698,7 +698,7 @@ export function createLinkingLayer(
     }
 
     return {
-        name: 'linking-layer',
+        name: 'alignment-linking-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const matchOptions: MatchOptions = {

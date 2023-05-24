@@ -19,7 +19,7 @@ const duplicateTrackHighlightStyle = new Style({
     }),
 });
 
-function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
+function createFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
     return locationTracks
         .filter((lt) => lt.header.duplicateOf)
         .flatMap(({ points }) => {
@@ -34,7 +34,7 @@ function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature
 
 let newestLayerId = 0;
 
-export function createDuplicateTrackHighlightLayer(
+export function createDuplicateTracksHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     publishType: PublishType,
@@ -51,7 +51,7 @@ export function createDuplicateTrackHighlightLayer(
             .then((locationTracks) => {
                 if (layerId !== newestLayerId) return;
 
-                const features = createHighlightFeatures(locationTracks);
+                const features = createFeatures(locationTracks);
 
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);

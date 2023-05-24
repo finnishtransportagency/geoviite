@@ -38,7 +38,7 @@ export const SwitchSuggestionCreatorContainer: React.FC = () => {
     }
 
     function onSuggestedSwitchCreated(suggestedSwitch: SuggestedSwitch) {
-        hideLayers(['manual-linking-switch-layer']);
+        hideLayers(['manual-switch-linking-layer']);
         onSelect({
             locationTrackEndPoints: [],
             suggestedSwitches: [suggestedSwitch],

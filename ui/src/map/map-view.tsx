@@ -24,7 +24,7 @@ import { searchShownItemsFromLayers } from 'map/tools/tool-utils';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { createManualSwitchLinkingLayer } from 'map/layers/switch/switch-manual-linking-layer';
+import { createManualSwitchLinkingLayer } from 'map/layers/switch/manual-switch-linking-layer';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
@@ -43,7 +43,7 @@ import useResizeObserver from 'use-resize-observer';
 import { createGeometryAlignmentLayer } from 'map/layers/geometry/geometry-alignment-layer';
 import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-layer';
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
-import { createLinkingLayer } from 'map/layers/linking-layer';
+import { createAlignmentLinkingLayer } from 'map/layers/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
@@ -60,9 +60,9 @@ import { createLocationTrackBackgroundLayer } from 'map/layers/alignment/locatio
 import { createReferenceLineBackgroundLayer } from 'map/layers/alignment/reference-line-background-layer';
 import { createReferenceLineBadgeLayer } from 'map/layers/alignment/reference-line-badge-layer';
 import { createLocationTrackBadgeLayer } from 'map/layers/alignment/location-track-badge-layer';
-import { createDuplicateTrackHighlightLayer } from 'map/layers/highlight/duplicate-tracks-highlight-layer';
+import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplicate-tracks-highlight-layer';
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
-import { createMissingLocationTrackProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
+import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 
 declare global {
     interface Window {
@@ -345,7 +345,7 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                         );
                     case 'duplicate-tracks-highlight-layer':
-                        return createDuplicateTrackHighlightLayer(
+                        return createDuplicateTracksHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             publishType,
@@ -353,7 +353,7 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                         );
                     case 'missing-profile-highlight-layer':
-                        return createMissingLocationTrackProfileHighlightLayer(
+                        return createMissingProfileHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             publishType,
@@ -402,8 +402,8 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             resolution,
                         );
-                    case 'linking-layer':
-                        return createLinkingLayer(
+                    case 'alignment-linking-layer':
+                        return createAlignmentLinkingLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint | LineString>>,
                             selection,
@@ -411,7 +411,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                         );
-                    case 'linking-switch-layer':
+                    case 'switch-linking-layer':
                         return createSwitchLinkingLayer(
                             mapTiles,
                             resolution,
@@ -419,7 +419,7 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             linkingState as LinkingSwitch,
                         );
-                    case 'manual-linking-switch-layer':
+                    case 'manual-switch-linking-layer':
                         return createManualSwitchLinkingLayer(
                             mapTiles,
                             resolution,

@@ -1,26 +1,26 @@
-import styles from './track-layout.module.scss';
-import * as React from 'react';
-import { MapContext, MapLayerMenuChange } from 'map/map-store';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
-import MapView from 'map/map-view';
+import styles from "./track-layout.module.scss";
+import * as React from "react";
+import { MapContext, MapLayerMenuChange } from "map/map-store";
+import { Map, MapViewport, OptionalShownItems } from "map/map-model";
+import MapView from "map/map-view";
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
     OnHoverLocationFunction,
     OnSelectFunction,
-    Selection,
-} from 'selection/selection-model';
-import { ToolBar } from 'tool-bar/tool-bar';
-import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
-import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
-import ToolPanelContainer from 'tool-panel/tool-panel-container';
-import { BoundingBox } from 'model/geometry';
-import { PublishType } from 'common/common-model';
-import { LinkingState, LinkPoint } from 'linking/linking-model';
-import { ChangeTimes } from 'common/common-slice';
-import { MapLayerMenu } from 'map/settings-menu/map-layer-menu';
-import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
-import { createClassName } from 'vayla-design-lib/utils';
+    Selection
+} from "selection/selection-model";
+import { ToolBar } from "tool-bar/tool-bar";
+import { SelectionPanelContainer } from "selection-panel/selection-panel-container";
+import { SwitchSuggestionCreatorContainer } from "linking/switch-suggestion-creator-container";
+import ToolPanelContainer from "tool-panel/tool-panel-container";
+import { BoundingBox } from "model/geometry";
+import { PublishType } from "common/common-model";
+import { LinkingState, LinkPoint } from "linking/linking-model";
+import { ChangeTimes } from "common/common-slice";
+import { MapLayerMenu } from "map/layer-menu/map-layer-menu";
+import VerticalGeometryDiagram from "vertical-geometry/vertical-geometry-diagram";
+import { createClassName } from "vayla-design-lib/utils";
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
