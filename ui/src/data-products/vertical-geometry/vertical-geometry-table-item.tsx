@@ -6,6 +6,11 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
+import { findCoordinateSystem } from 'data-products/data-products-utils';
+import { useLoader } from 'utils/react-utils';
+import { getSridList } from 'common/common-api';
+import { formatDateShort } from 'utils/date-utils';
 
 type VerticalGeometryTableItemProps = {
     verticalGeometry: VerticalGeometryItem;
@@ -19,6 +24,7 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
     overlapsAnother,
 }) => {
     const { t } = useTranslation();
+    const coordinateSystems = useLoader(getSridList, []);
     return (
         <tr>
             {showLocationTrack && (
@@ -39,6 +45,17 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
                     planName={verticalGeometry.fileName}
                 />
             </td>
+            <td>{formatDateShort(verticalGeometry.creationTime)}</td>
+            <td>
+                {verticalGeometry.coordinateSystemSrid && (
+                    <CoordinateSystemView
+                        coordinateSystem={findCoordinateSystem(
+                            verticalGeometry.coordinateSystemSrid,
+                            coordinateSystems || [],
+                        )}
+                    />
+                )}
+            </td>
             <td>{verticalGeometry.alignmentName}</td>
             <td className={styles['data-product-table__column--number']}>
                 {verticalGeometry.start.address && formatTrackMeter(verticalGeometry.start.address)}
@@ -50,10 +67,26 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
                 {roundToPrecision(verticalGeometry.start.angle, Precision.angle6Decimals)}
             </td>
             <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.start.location &&
+                    roundToPrecision(verticalGeometry.start.location.x, Precision.TM35FIN)}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.start.location &&
+                    roundToPrecision(verticalGeometry.start.location.y, Precision.TM35FIN)}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
                 {verticalGeometry.point.address && formatTrackMeter(verticalGeometry.point.address)}
             </td>
             <td className={styles['data-product-table__column--number']}>
                 {roundToPrecision(verticalGeometry.point.height, Precision.profileMeters)}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.point.location &&
+                    roundToPrecision(verticalGeometry.point.location.x, Precision.TM35FIN)}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.point.location &&
+                    roundToPrecision(verticalGeometry.point.location.y, Precision.TM35FIN)}
             </td>
             <td className={styles['data-product-table__column--number']}>
                 {verticalGeometry.end.address && formatTrackMeter(verticalGeometry.end.address)}
@@ -63,6 +96,14 @@ export const VerticalGeometryTableItem: React.FC<VerticalGeometryTableItemProps>
             </td>
             <td className={styles['data-product-table__column--number']}>
                 {roundToPrecision(verticalGeometry.end.angle, Precision.angle6Decimals)}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.end.location &&
+                    roundToPrecision(verticalGeometry.end.location.x, Precision.TM35FIN)}
+            </td>
+            <td className={styles['data-product-table__column--number']}>
+                {verticalGeometry.end.location &&
+                    roundToPrecision(verticalGeometry.end.location.y, Precision.TM35FIN)}
             </td>
             <td className={styles['data-product-table__column--number']}>
                 {roundToPrecision(verticalGeometry.radius, Precision.profileRadiusMeters)}

@@ -19,15 +19,23 @@ type VerticalGeometryTableProps = {
 
 const COMMON_HEADINGS = [
     nonNumericHeading('plan'),
+    nonNumericHeading('creation-date'),
+    nonNumericHeading('crs'),
     nonNumericHeading('alignment'),
     withSeparator(numericHeading('track-address')),
     numericHeading('height'),
     numericHeading('angle'),
+    numericHeading('location-e'),
+    numericHeading('location-n'),
     withSeparator(numericHeading('track-address')),
     numericHeading('height'),
+    numericHeading('location-e'),
+    numericHeading('location-n'),
     withSeparator(numericHeading('track-address')),
     numericHeading('height'),
     numericHeading('angle'),
+    numericHeading('location-e'),
+    numericHeading('location-n'),
     withSeparator(numericHeading('radius')),
     numericHeading('tangent'),
     withSeparator(numericHeading('length')),
@@ -73,20 +81,20 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
                     <thead className={styles['data-product-table__table-heading']}>
                         <tr>
                             <Th
-                                colSpan={showLocationTrack ? 3 : 2}
+                                colSpan={showLocationTrack ? 5 : 4}
                                 scope={'colgroup'}
                                 variant={ThVariant.MULTILINE_TOP}
                                 className={styles['data-product-table__table-heading--centered']}
                             />
                             <Th
-                                colSpan={3}
+                                colSpan={5}
                                 scope={'colgroup'}
                                 variant={ThVariant.MULTILINE_TOP}
                                 className={separatorAndCenteredClassName}>
                                 {t(`data-products.vertical-geometry.table.curve-start`)}
                             </Th>
                             <Th
-                                colSpan={2}
+                                colSpan={4}
                                 scope={'colgroup'}
                                 variant={ThVariant.MULTILINE_TOP}
                                 className={separatorAndCenteredClassName}>
@@ -95,7 +103,7 @@ export const VerticalGeometryTable: React.FC<VerticalGeometryTableProps> = ({
                                 )}
                             </Th>
                             <Th
-                                colSpan={3}
+                                colSpan={5}
                                 scope={'colgroup'}
                                 variant={ThVariant.MULTILINE_TOP}
                                 className={separatorAndCenteredClassName}>

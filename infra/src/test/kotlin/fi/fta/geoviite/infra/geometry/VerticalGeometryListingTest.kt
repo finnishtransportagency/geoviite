@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geography.KKJ2
+import fi.fta.geoviite.infra.geography.KKJ3_YKJ
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.FileName
@@ -210,15 +212,14 @@ class VerticalGeometryListingTest() {
             ),
             null,
             null,
-            IntId(1),
-            PlanSource.GEOMETRIAPALVELU,
-            FileName("test"),
+            planHeader(fileName = FileName("test")),
             null,
             curved as List<CurvedProfileSegment>,
             linear as List<LinearProfileSegment>,
             TrackMeter.ZERO,
             TrackMeter.ZERO,
-            VerticalCoordinateSystem.N2000,
+            null,
+            null,
         )
 
         assertEquals(verticalGeometryEntry.start.station.toDouble(), 4.0, 0.001)
