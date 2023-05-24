@@ -12,7 +12,11 @@ import { Feature } from 'ol';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
-import { TrackNumberColor } from 'selection-panel/track-number-panel/color-selector/color-selector';
+import {
+    getColor,
+    getDefaultColorKey,
+    TrackNumberColor,
+} from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 let newestLayerId = 0;
 
@@ -20,15 +24,9 @@ const getColorForTrackNumber = (
     id: LayoutTrackNumberId,
     layerSettings: TrackNumberDiagramLayerSetting,
 ) => {
-    const selectedColor = layerSettings[id]?.color;
-    if (selectedColor && TrackNumberColor[selectedColor]) {
-        return TrackNumberColor[selectedColor] + '55'; //55 ~ 33 % opacity
-    }
-
-    const randomColors = Object.values(TrackNumberColor);
-    const c = randomColors[parseInt(id.replace(/^\D+/g, '')) % randomColors.length];
-
-    return c + '55'; //55 ~ 33 % opacity
+    //Track numbers with transparent color are already filtered out
+    const selectedColor = layerSettings[id]?.color ?? getDefaultColorKey(id);
+    return getColor(selectedColor) + '55'; //~33 % opacity in hex
 };
 
 function createDiagramFeatures(
@@ -87,7 +85,14 @@ export function createTrackNumberDiagramLayer(
                       return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
                   });
 
-            const features = createDiagramFeatures(filteredAlignments, layerSettings);
+            const alignmentsWithColor = filteredAlignments.filter((a) => {
+                const trackNumberId = a.trackNumber?.id;
+                return trackNumberId
+                    ? layerSettings[trackNumberId]?.color !== TrackNumberColor.TRANSPARENT
+                    : false;
+            });
+
+            const features = createDiagramFeatures(alignmentsWithColor, layerSettings);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

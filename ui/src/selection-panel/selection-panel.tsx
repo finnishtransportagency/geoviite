@@ -36,8 +36,8 @@ import { LocationTracksPanel } from 'selection-panel/location-track-panel/locati
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 import { ChangeTimes } from 'common/common-slice';
-import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector';
 import { Eye } from 'geoviite-design-lib/eye/eye';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -118,7 +118,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
 
     const onTrackNumberColorSelection = (
         trackNumberId: LayoutTrackNumberId,
-        color: TrackNumberColorKey | undefined,
+        color: TrackNumberColorKey,
     ) => {
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',

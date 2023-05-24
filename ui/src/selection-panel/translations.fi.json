@@ -13,7 +13,7 @@
         "zoom-closer": "Zoomaa lähemmäksi.",
         "no-results": "Ei hakutuloksia.",
         "color-selector": {
-            "none": "Ei väriä"
+            "transparent": "Ei väriä"
         }
     }
 }

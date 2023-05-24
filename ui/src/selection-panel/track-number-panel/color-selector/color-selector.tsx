@@ -2,25 +2,21 @@ import * as React from 'react';
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './color-selector.scss';
-import { createClassName } from 'vayla-design-lib/utils';
 import { useTranslation } from 'react-i18next';
-
-export type TrackNumberColorKey = keyof typeof TrackNumberColor;
-export enum TrackNumberColor {
-    GRAY = '#858585',
-    FIG = '#00b0cc',
-    BLUE = '#0066cc',
-    GREEN = '#27b427',
-    LEMON = '#ffc300',
-    RED = '#de3618',
-    PITAYA = '#e50083',
-    EGGPLANT = '#a050a0',
-}
+import { createClassName } from 'vayla-design-lib/utils';
+import {
+    getColor,
+    getColors,
+    TrackNumberColor,
+    TrackNumberColorKey,
+} from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 type ColorSelectorProps = {
     color?: TrackNumberColorKey;
-    onSelectColor: (color: TrackNumberColorKey | undefined) => void;
+    onSelectColor: (color: TrackNumberColorKey) => void;
 } & React.HTMLProps<HTMLDivElement>;
+
+const colorOpacity = '80'; //~50% opacity in hex
 
 const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor, ...props }) => {
     const [showSelector, setShowSelector] = React.useState(false);
@@ -42,17 +38,18 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor, ...
     }, [ref]);
 
     const { x, y } = ref.current?.getBoundingClientRect() ?? {};
-    const hasColor = !!(color && TrackNumberColor[color]);
+    const selectedColor = color && getColor(color);
+    const isTransparent = selectedColor === TrackNumberColor.TRANSPARENT;
     const selectedColorClasses = createClassName(
         styles['color-square'],
-        !hasColor && styles['color-square--none'],
+        isTransparent && styles['color-square--transparent'],
     );
 
     return (
         <div ref={ref} {...props}>
             <div
-                style={{ ...(hasColor ? { backgroundColor: TrackNumberColor[color] } : {}) }}
-                title={hasColor ? '' : t('selection-panel.color-selector.none')}
+                style={isTransparent ? {} : { backgroundColor: selectedColor + colorOpacity }}
+                title={isTransparent ? t('selection-panel.color-selector.transparent') : ''}
                 className={selectedColorClasses}
                 onClick={() => setShowSelector(!showSelector)}
             />
@@ -73,7 +70,7 @@ const ColorSelector: React.FC<ColorSelectorProps> = ({ color, onSelectColor, ...
 type ColorSelectorMenuProps = {
     x: number;
     y: number;
-    onSelectColor: (color: TrackNumberColorKey | undefined) => void;
+    onSelectColor: (color: TrackNumberColorKey) => void;
 };
 
 const ColorSelectorMenu: React.FC<ColorSelectorMenuProps> = ({ x, y, onSelectColor }) => {
@@ -86,17 +83,17 @@ const ColorSelectorMenu: React.FC<ColorSelectorMenuProps> = ({ x, y, onSelectCol
             onClick={(e) => e.stopPropagation()}>
             <ol>
                 <li
-                    className={`${styles['color-square']} ${styles['color-square--none']}`}
-                    onClick={() => onSelectColor(undefined)}
-                    title={t('selection-panel.color-selector.none')}
+                    className={`${styles['color-square']} ${styles['color-square--transparent']}`}
+                    onClick={() => onSelectColor(TrackNumberColor.TRANSPARENT)}
+                    title={t('selection-panel.color-selector.transparent')}
                 />
-                {Object.entries(TrackNumberColor).map(([key, value]) => {
+                {getColors().map(([key, value]) => {
                     return (
                         <li
                             className={styles['color-square']}
                             key={key}
-                            onClick={() => onSelectColor(key as TrackNumberColorKey)}
-                            style={{ backgroundColor: value }}
+                            onClick={() => onSelectColor(key)}
+                            style={{ backgroundColor: value + colorOpacity }}
                         />
                     );
                 })}

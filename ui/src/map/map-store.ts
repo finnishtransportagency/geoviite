@@ -68,11 +68,11 @@ export const initialMapState: Map = {
     layerMenu: {
         layout: [
             { name: 'map', visible: true },
+            { name: 'reference-line', visible: true },
             {
                 name: 'location-track',
                 visible: true,
                 subMenu: [
-                    { name: 'reference-line', visible: true },
                     { name: 'missing-vertical-geometry', visible: false },
                     { name: 'missing-linking', visible: false },
                     { name: 'duplicate-tracks', visible: false },

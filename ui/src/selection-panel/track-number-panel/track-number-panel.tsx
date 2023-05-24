@@ -4,19 +4,18 @@ import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layou
 import { fieldComparator } from 'utils/array-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { useTranslation } from 'react-i18next';
-import ColorSelector, {
-    TrackNumberColorKey,
-} from 'selection-panel/track-number-panel/color-selector/color-selector';
+import ColorSelector from 'selection-panel/track-number-panel/color-selector/color-selector';
 import { TrackNumberDiagramLayerSetting } from 'map/map-model';
+import {
+    getDefaultColorKey,
+    TrackNumberColorKey,
+} from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 type TrackNumberPanelProps = {
     trackNumbers: LayoutTrackNumber[];
     settings: TrackNumberDiagramLayerSetting;
     onSelectTrackNumber: (trackNumber: LayoutTrackNumber) => void;
-    onSelectColor: (
-        trackNumberId: LayoutTrackNumberId,
-        color: TrackNumberColorKey | undefined,
-    ) => void;
+    onSelectColor: (trackNumberId: LayoutTrackNumberId, color: TrackNumberColorKey) => void;
     selectedTrackNumbers: LayoutTrackNumberId[];
     max?: number;
 };
@@ -27,7 +26,7 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     onSelectTrackNumber,
     onSelectColor,
     selectedTrackNumbers,
-    max = 24,
+    max = 16,
 }: TrackNumberPanelProps) => {
     const { t } = useTranslation();
     const [sortedTrackNumbers, setSortedTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -61,7 +60,10 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                                         {trackNumber.number}
                                     </span>
                                     <ColorSelector
-                                        color={settings[trackNumber.id]?.color}
+                                        color={
+                                            settings[trackNumber.id]?.color ??
+                                            getDefaultColorKey(trackNumber.id)
+                                        }
                                         onSelectColor={(color) =>
                                             onSelectColor(trackNumber.id, color)
                                         }
