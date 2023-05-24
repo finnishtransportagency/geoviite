@@ -12,7 +12,8 @@
                 "project-group": "Projektijoukko",
                 "assignment": "Toimeksianto",
                 "material-group": "Aineistoryhmä ja laji",
-                "document-type": "Dokumenttityyppi"
+                "document-type": "Dokumenttityyppi",
+                "document-state": "Dokumentin tila"
             },
             "reject": "Hylkää",
             "upload": "Tuo suunnitelma..."

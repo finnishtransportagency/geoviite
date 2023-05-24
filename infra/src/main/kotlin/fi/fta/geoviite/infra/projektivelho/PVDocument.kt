@@ -48,11 +48,11 @@ enum class PVDocumentStatus {
     ACCEPTED,
 }
 
-data class PVProjectGroup(val oid: Oid<PVProjectGroup>, val name: PVName)
+data class PVProjectGroup(val oid: Oid<PVProjectGroup>, val name: PVName, val state: PVName)
 
-data class PVProject(val oid: Oid<PVProject>, val name: PVName)
+data class PVProject(val oid: Oid<PVProject>, val name: PVName, val state: PVName)
 
-data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVName)
+data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVName, val state: PVName)
 
 data class PVDocument(
     val id: IntId<PVDocument>,

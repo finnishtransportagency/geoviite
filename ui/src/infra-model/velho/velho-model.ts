@@ -5,16 +5,19 @@ export type PVDocumentStatus = 'NOT_IM' | 'SUGGESTED' | 'REJECTED' | 'ACCEPTED';
 export type PVProjectGroup = {
     oid: Oid;
     name: string;
+    state: string;
 };
 
 export type PVProject = {
     oid: Oid;
     name: string;
+    state: string;
 };
 
 export type PVAssignment = {
     oid: Oid;
     name: string;
+    state: string;
 };
 
 export type PVDocument = {
