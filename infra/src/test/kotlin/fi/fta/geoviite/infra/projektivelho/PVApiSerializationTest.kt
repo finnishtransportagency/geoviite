@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVCode
 import PVId
@@ -16,7 +16,7 @@ import kotlin.test.assertEquals
 @ActiveProfiles("dev", "test", "nodb")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-class ProjektiVelhoApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
+class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
 
     @Test
     fun `SearchStatus is serialized and deserialized correctly`() {

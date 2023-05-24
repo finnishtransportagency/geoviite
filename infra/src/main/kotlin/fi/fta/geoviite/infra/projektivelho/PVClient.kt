@@ -1,7 +1,13 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
 import PVCode
+import PVDictionaryEntry
+import PVDictionaryGroup
+import PVDictionaryGroup.MATERIAL
+import PVDictionaryGroup.PROJECT
+import PVDictionaryType
+import PVDictionaryType.MATERIAL_CATEGORY
 import PVDocument
 import PVId
 import PVName
@@ -11,9 +17,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
-import fi.fta.geoviite.infra.velho.PVDictionaryGroup.MATERIAL
-import fi.fta.geoviite.infra.velho.PVDictionaryGroup.PROJECT
-import fi.fta.geoviite.infra.velho.PVDictionaryType.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,7 +43,7 @@ const val MATERIAL_API_V1_PATH = "/aineistopalvelu/api/v1"
 const val FILE_DATA_PATH = "$MATERIAL_API_V1_PATH/aineisto"
 
 const val METADATA_API_V2_PATH = "/metatietopalvelu/api/v2"
-const val DICTIONARIES_PATH = "$METADATA_API_V2_PATH/metatiedot/kohdeluokka/"
+const val DICTIONARIES_PATH = "$METADATA_API_V2_PATH/metatiedot/kohdeluokka"
 const val MATERIAL_DICTIONARIES_PATH = "$DICTIONARIES_PATH/aineisto/aineisto"
 const val PROJECT_DICTIONARIES_PATH = "$DICTIONARIES_PATH/projekti/projekti"
 const val REDIRECT_PATH = "$METADATA_API_V2_PATH/ohjaa"
@@ -51,10 +54,10 @@ const val PROJECT_PATH = "$PROJECT_REGISTRY_V1_PATH/projekti"
 const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V1_PATH/projektijoukko"
 
 @Component
-@ConditionalOnBean(VelhoClientConfiguration::class)
-class VelhoClient @Autowired constructor(
-    val velhoClient: VelhoWebClient,
-    val loginClient: VelhoLoginClient,
+@ConditionalOnBean(PVClientConfiguration::class)
+class ProjektiVelhoClient @Autowired constructor(
+    val velhoClient: PVWebClient,
+    val loginClient: PVLoginClient,
     val jsonMapper: ObjectMapper,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -150,10 +153,7 @@ class VelhoClient @Autowired constructor(
         logger.integrationCall("fetchDictionaries")
         return velhoClient
             .get()
-            .uri(when (group) {
-                MATERIAL -> MATERIAL_DICTIONARIES_PATH
-                PROJECT -> PROJECT_DICTIONARIES_PATH
-            })
+            .uri(encodingGroupUrl(group))
             .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
             .retrieve()
             .bodyToMono<String>()
@@ -261,15 +261,28 @@ class VelhoClient @Autowired constructor(
 fun encodingTypeDictionary(type: PVDictionaryType) =
     "${encodingGroupPath(type.group)}/${encodingTypePath(type)}"
 
+fun encodingGroupUrl(group: PVDictionaryGroup) = when (group) {
+    MATERIAL -> MATERIAL_DICTIONARIES_PATH
+    PROJECT -> PROJECT_DICTIONARIES_PATH
+}
+
 fun encodingGroupPath(group: PVDictionaryGroup) = when(group) {
     MATERIAL -> "aineisto"
     PROJECT -> "projekti"
 }
 fun encodingTypePath(type: PVDictionaryType) = when(type) {
-    DOCUMENT_TYPE -> "dokumenttityyppi"
-    MATERIAL_STATE -> "aineistotila"
+    PVDictionaryType.DOCUMENT_TYPE -> "dokumenttityyppi"
+    PVDictionaryType.MATERIAL_STATE -> "aineistotila"
     MATERIAL_CATEGORY -> "aineistolaji"
-    MATERIAL_GROUP -> "aineistoryhma"
-    TECHNICS_FIELD -> "tekniikka-ala"
-    PROJECT_STATE -> "tila"
+    PVDictionaryType.MATERIAL_GROUP -> "aineistoryhma"
+    PVDictionaryType.TECHNICS_FIELD -> "tekniikka-ala"
+    PVDictionaryType.PROJECT_STATE -> "tila"
 }
+
+data class PVAccessTokenHolder(
+    val token: String,
+    val expireTime: Instant,
+) {
+    constructor(token: PVAccessToken) : this(token.accessToken, Instant.now().plusSeconds(token.expiresIn))
+}
+

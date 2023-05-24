@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.velho.VelhoDocumentService
+import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile
 class InfraModelController @Autowired constructor(
     private val infraModelService: InfraModelService,
     private val geometryService: GeometryService,
-    private val velhoDocumentService: VelhoDocumentService,
+    private val pvDocumentService: PVDocumentService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -96,7 +96,7 @@ class InfraModelController @Autowired constructor(
     @GetMapping("/velho-import/documents")
     fun getVelhoDocumentHeaders(@RequestParam("status") status: PVDocumentStatus?): List<PVDocumentHeader> {
         logger.apiCall("getVelhoDocumentHeaders", "status" to status)
-        return velhoDocumentService.getDocumentHeaders(status)
+        return pvDocumentService.getDocumentHeaders(status)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -106,7 +106,7 @@ class InfraModelController @Autowired constructor(
         @RequestBody status: PVDocumentStatus,
     ): IntId<PVDocument> {
         logger.apiCall("updateVelhoFileStatus", "id" to id, "status" to status)
-        return velhoDocumentService.updateDocumentStatus(id, status)
+        return pvDocumentService.updateDocumentStatus(id, status)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -116,7 +116,7 @@ class InfraModelController @Autowired constructor(
         @RequestPart(value = "override-parameters") overrides: OverrideParameters?,
     ): ValidationResponse {
         logger.apiCall("validateVelhoDocument", "documentId" to documentId, "overrides" to overrides)
-        return velhoDocumentService.validateVelhoDocument(documentId, overrides)
+        return pvDocumentService.validateVelhoDocument(documentId, overrides)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
@@ -132,7 +132,7 @@ class InfraModelController @Autowired constructor(
             "overrides" to overrides,
             "extraInfo" to extraInfo,
         )
-        return velhoDocumentService.importVelhoDocument(documentId, overrides, extraInfo)
+        return pvDocumentService.importVelhoDocument(documentId, overrides, extraInfo)
     }
 }
 

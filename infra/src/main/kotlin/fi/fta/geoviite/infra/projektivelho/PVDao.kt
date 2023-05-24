@@ -1,7 +1,10 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
 import PVCode
+import PVDictionaryEntry
+import PVDictionaryType
+import PVDictionaryType.*
 import PVDocument
 import PVDocumentHeader
 import PVDocumentStatus
@@ -15,8 +18,7 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.velho.PVDictionaryType.*
-import fi.fta.geoviite.infra.velho.PVFetchStatus.WAITING
+import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -25,7 +27,7 @@ import java.time.Instant
 
 @Transactional(readOnly = true)
 @Component
-class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
     fun insertFileMetadata(
         oid: Oid<PVDocument>,

@@ -1,6 +1,9 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVCode
+import PVDictionaryEntry
+import PVDictionaryGroup
+import PVDictionaryType
 import PVDocument
 import PVId
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -20,7 +23,7 @@ import org.mockserver.model.MediaType
 import java.time.Instant
 
 
-class FakeVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
+class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
     private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
 
     override fun close() {
@@ -33,8 +36,8 @@ class FakeVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
         ))
     }
 
-    fun fetchDictionaries(dictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>>) {
-        get(DICTIONARIES_PATH, Times.exactly(1)).respond(okJson("""{
+    fun fetchDictionaries(group: PVDictionaryGroup, dictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>>) {
+        get(encodingGroupUrl(group), Times.exactly(1)).respond(okJson("""{
           "info": {
             "x-velho-nimikkeistot": {
               ${dictionaries.entries.joinToString(",") { (type, data) -> dictionaryJson(type, data) }}
@@ -65,9 +68,9 @@ class FakeVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
     """.trimIndent()
 
     fun searchStatus(searchId: PVId) {
-        get(XML_FILE_SEARCH_STATE_PATH).respond(okJsonSerialized(listOf(
+        get("$XML_FILE_SEARCH_STATE_PATH/$searchId").respond(okJsonSerialized(
             PVApiSearchStatus("valmis", searchId, Instant.now().minusSeconds(5), 3600)
-        )))
+        ))
     }
 
     fun searchResults(searchId: PVId, matches: List<PVApiMatch>) {
@@ -83,7 +86,8 @@ class FakeVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
         materialCategory: PVCode = PVCode("aineistolaji/al00"),
         materialGroup: PVCode = PVCode("aineistoryhma/ar00"),
     ) {
-        get("$FILE_DATA_PATH/$oid").respond(okJsonSerialized(PVApiFile(
+        get("$FILE_DATA_PATH/$oid").respond(okJsonSerialized(
+            PVApiFile(
             latestVersion = PVApiLatestVersion(version, FileName("test.xml"), Instant.now()),
             metadata = PVApiFileMetadata(
                 description = FreeText(description),
@@ -94,7 +98,8 @@ class FakeVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
                 technicalFields = listOf(),
                 containsPersonalInfo = null,
             )
-        )))
+        )
+        ))
     }
 
     fun fileContent(oid: Oid<PVDocument>) {

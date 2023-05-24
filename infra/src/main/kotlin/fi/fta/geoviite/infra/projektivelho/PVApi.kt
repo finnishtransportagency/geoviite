@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
 import PVCode
@@ -12,8 +12,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.velho.PVDictionaryGroup.MATERIAL
-import fi.fta.geoviite.infra.velho.PVDictionaryGroup.PROJECT
 import java.time.Instant
 
 // TODO Turn into actual data classes etc.
@@ -127,6 +125,7 @@ data class PVApiSearchStatus(
 )
 
 data class PVApiSearchResult(@JsonProperty("osumat") val matches: List<PVApiMatch>)
+
 data class PVApiMatch(
     val oid: Oid<PVDocument>,
     @JsonProperty("luontikohdeluokan-oid") val assignmentOid: Oid<PVAssignment>,
@@ -186,62 +185,21 @@ data class PVApiAssignment(
     @JsonProperty("muokattu") val modified: Instant?,
 )
 
-data class PVDictionaryEntry(
-    val code: PVCode,
-    val name: PVName,
-) {
-    constructor(code: String, name: String): this(PVCode(code), PVName(name))
-}
-
-data class PVAssignmentHolder(
-    val assignment: PVApiAssignment?,
-    val project: PVApiProject?,
-    val projectGroup: PVApiProjectGroup?,
-)
-
-data class PVFileHolder(
-    val oid: Oid<PVDocument>,
-    val content: String?,
-    val metadata: PVApiFileMetadata,
-    val latestVersion: PVApiLatestVersion,
-)
-
 data class PVSearch(
     val id: IntId<PVSearch>,
     val token: PVId,
     val state: PVFetchStatus,
-    val validUntil: Instant
+    val validUntil: Instant,
 )
 
 enum class PVFetchStatus {
     WAITING,
     FETCHING,
     FINISHED,
-    ERROR
-}
-
-
-enum class PVDictionaryGroup {
-    MATERIAL,
-    PROJECT,
-}
-enum class PVDictionaryType(val group: PVDictionaryGroup) {
-    DOCUMENT_TYPE (MATERIAL), // dokumenttityyppi
-    MATERIAL_STATE (MATERIAL), // aineistotila
-    MATERIAL_CATEGORY (MATERIAL), // aineistolaji
-    MATERIAL_GROUP (MATERIAL), // ainestoryhmä
-    TECHNICS_FIELD (MATERIAL), // teknikka-ala
-    PROJECT_STATE (PROJECT), // projektin tila
+    ERROR,
 }
 
 const val PROJEKTIVELHO_SEARCH_STATE_READY = "valmis"
-
-data class PVAccessTokenHolder(
-    val token: String,
-    val expireTime: Instant,
-) {
-    constructor(token: PVAccessToken) : this(token.accessToken, Instant.now().plusSeconds(token.expiresIn))
-}
 
 data class PVAccessToken(
     @JsonProperty("access_token") val accessToken: String,

@@ -1,14 +1,19 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
 import PVCode
+import PVDictionaryEntry
+import PVDictionaryGroup.MATERIAL
+import PVDictionaryGroup.PROJECT
+import PVDictionaryType
+import PVDictionaryType.*
 import PVDocument
 import PVDocumentStatus
 import PVId
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.velho.PVDictionaryType.*
+import fi.fta.geoviite.infra.projektivelho.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,7 +24,7 @@ import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-val dictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
+val materialDictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
     DOCUMENT_TYPE to listOf(
         PVDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),
         PVDictionaryEntry("dokumenttityyppi/dt02", "test doc type 2"),
@@ -39,19 +44,26 @@ val dictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
     TECHNICS_FIELD to listOf(
         PVDictionaryEntry("tekniikka-ala/ta00", "test tech field 0"),
         PVDictionaryEntry("tekniikka-ala/ta01", "test tech field 1"),
-    )
+    ),
+)
+
+val projectDictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
+    PROJECT_STATE to listOf(
+        PVDictionaryEntry("tila/tila14", "test state 14"),
+        PVDictionaryEntry("tila/tila15", "test state 15"),
+    ),
 )
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
-class VelhoServiceIT @Autowired constructor(
+class PVServiceIT @Autowired constructor(
     @Value("\${geoviite.projektivelho.test-port:12345}") private val velhoPort: Int,
-    private val velhoService: VelhoService,
-    private val velhoDao: VelhoDao,
+    private val pvService: PVService,
+    private val pvDao: PVDao,
     private val jsonMapper: ObjectMapper,
 ) : ITTestBase() {
 
-    fun fakeVelho() = FakeVelho(velhoPort, jsonMapper)
+    fun fakeVelho() = FakeProjektiVelho(velhoPort, jsonMapper)
 
     @BeforeEach
     fun setup() {
@@ -74,28 +86,29 @@ class VelhoServiceIT @Autowired constructor(
     fun `Spinning up search works`(): Unit = fakeVelho().use { fakeVelho ->
         fakeVelho.login()
         fakeVelho.search()
-        val search = velhoService.search()
+        val search = pvService.search()
         assertNotNull(search)
-        assertEquals(search.searchId, velhoDao.fetchLatestSearch()?.token)
+        assertEquals(search.searchId, pvDao.fetchLatestSearch()?.token)
     }
     
     @Test
     fun `Dictionary update works`(): Unit = fakeVelho().use { fakeVelho ->
         fakeVelho.login()
         PVDictionaryType.values().forEach { type ->
-            assertEquals(mapOf(), velhoDao.fetchDictionary(type))
+            assertEquals(mapOf(), pvDao.fetchDictionary(type))
         }
 
-        fakeVelho.fetchDictionaries(dictionaries)
-        velhoService.updateDictionaries()
+        fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries)
+        fakeVelho.fetchDictionaries(PROJECT, projectDictionaries)
+        pvService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
-                dictionaries[type]!!.map { e -> e.code to e.name }.associate { it },
-                velhoDao.fetchDictionary(type),
+                (materialDictionaries+projectDictionaries)[type]!!.map { e -> e.code to e.name }.associate { it },
+                pvDao.fetchDictionary(type),
             )
         }
 
-        val dictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
+        val materialDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
             DOCUMENT_TYPE to listOf(
                 PVDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),
                 PVDictionaryEntry("dokumenttityyppi/dt02", "test doc type 2 altered"),
@@ -120,14 +133,22 @@ class VelhoServiceIT @Autowired constructor(
                 PVDictionaryEntry("tekniikka-ala/ta00", "test tech field 0"),
                 PVDictionaryEntry("tekniikka-ala/ta01", "test tech field 1 altered"),
                 PVDictionaryEntry("tekniikka-ala/ta02", "test tech field 2 added"),
-            )
+            ),
         )
-        fakeVelho.fetchDictionaries(dictionaries2)
-        velhoService.updateDictionaries()
+        val projectDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
+            PROJECT_STATE to listOf(
+                PVDictionaryEntry("tila/tila14", "test state 14 altered"),
+                PVDictionaryEntry("tila/tila15", "test state 15"),
+                PVDictionaryEntry("tila/tila15", "test state 16 added"),
+            ),
+        )
+        fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
+        fakeVelho.fetchDictionaries(PROJECT, projectDictionaries2)
+        pvService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
-                dictionaries2[type]!!.map { e -> e.code to e.name }.associate { it },
-                velhoDao.fetchDictionary(type),
+                (materialDictionaries2+projectDictionaries2)[type]!!.map { e -> e.code to e.name }.associate { it },
+                pvDao.fetchDictionary(type),
             )
         }
     }
@@ -139,13 +160,14 @@ class VelhoServiceIT @Autowired constructor(
         val assignmentOid = Oid<PVAssignment>("1.2.4.5.6")
         val version = PVId("1")
         val description = "description 1"
-        val documentType = dictionaries[DOCUMENT_TYPE]!!.first().code
-        val materialState = dictionaries[MATERIAL_STATE]!!.first().code
-        val materialGroup = dictionaries[MATERIAL_GROUP]!!.first().code
-        val materialCategory = dictionaries[MATERIAL_CATEGORY]!!.first().code
+        val documentType = materialDictionaries[DOCUMENT_TYPE]!!.first().code
+        val materialState = materialDictionaries[MATERIAL_STATE]!!.first().code
+        val materialGroup = materialDictionaries[MATERIAL_GROUP]!!.first().code
+        val materialCategory = materialDictionaries[MATERIAL_CATEGORY]!!.first().code
 
         fakeVelho.login()
-        fakeVelho.fetchDictionaries(dictionaries)
+        fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries)
+        fakeVelho.fetchDictionaries(PROJECT, projectDictionaries)
         fakeVelho.searchStatus(searchId)
         fakeVelho.searchResults(searchId, listOf(PVApiMatch(documentOid, assignmentOid)))
         fakeVelho.fileMetadata(
@@ -159,12 +181,12 @@ class VelhoServiceIT @Autowired constructor(
         )
         fakeVelho.fileContent(documentOid)
 
-        velhoService.updateDictionaries()
-        velhoDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
-        val search = velhoDao.fetchLatestSearch()!!
-        val status = velhoService.getSearchStatusIfReady(search)!!
+        pvService.updateDictionaries()
+        pvDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
+        val search = pvDao.fetchLatestSearch()!!
+        val status = pvService.getSearchStatusIfReady(search)!!
 
-        velhoService.importFilesFromProjektiVelho(search, status)
+        pvService.importFilesFromProjektiVelho(search, status)
         assertDocumentExists(
             documentOid,
             PVDocumentStatus.SUGGESTED,
@@ -185,7 +207,7 @@ class VelhoServiceIT @Autowired constructor(
         materialCategory: PVCode = PVCode("aineistolaji/al00"),
         materialGroup: PVCode = PVCode("aineistoryhma/ar00"),
     ) {
-        val header = velhoDao.getDocumentHeaders().find { d -> d.document.oid == oid }
+        val header = pvDao.getDocumentHeaders().find { d -> d.document.oid == oid }
         assertNotNull(header, "Document should exist with OID=$oid")
         assertEquals(description, header.document.description?.toString())
         assertEquals(status, header.document.status)
@@ -197,4 +219,4 @@ class VelhoServiceIT @Autowired constructor(
 }
 
 private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVCode) =
-    dictionaries[type]?.find { e -> e.code == code }?.name
+    (materialDictionaries+ projectDictionaries)[type]?.find { e -> e.code == code }?.name
