@@ -8,12 +8,14 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.projektivelho.PVApiRedirect
 import fi.fta.geoviite.infra.projektivelho.PVDocumentCounts
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -105,6 +107,13 @@ class InfraModelController @Autowired constructor(
     fun getVelhoDocumentCounts(): PVDocumentCounts {
         logger.apiCall("getVelhoDocumentCounts")
         return pvDocumentService.getDocumentCounts()
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/velho-import/redirect/{oid}")
+    fun getVelhoRedirect(@PathVariable("oid") oid: Oid<PVApiRedirect>): ResponseEntity<*> {
+        logger.apiCall("getVelhoRedirect")
+        return ResponseEntity(mapOf("Location" to pvDocumentService.getLink(oid).targetUrl), HttpStatus.TEMPORARY_REDIRECT)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
