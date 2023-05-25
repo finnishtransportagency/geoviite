@@ -249,14 +249,15 @@ class GeometryService @Autowired constructor(
     }
 
     fun getVerticalGeometryListing(
+        publicationType: PublishType,
         locationTrackId: IntId<LocationTrack>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<VerticalGeometryListing> {
         logger.serviceCall("getVerticalGeometryListing", "locationTrackId" to locationTrackId,
             "startAddress" to startAddress, "endAddress" to endAddress)
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
-        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId)
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(publicationType, locationTrackId)
+        val geocodingContext = geocodingService.getGeocodingContext(publicationType, track.trackNumberId)
         return toVerticalGeometryListing(track, alignment, startAddress, endAddress, geocodingContext, coordinateTransformationService::getLayoutTransformation, ::getHeaderAndAlignment)
     }
 
@@ -268,7 +269,7 @@ class GeometryService @Autowired constructor(
         logger.serviceCall("getVerticalGeometryListingCsv",
             "trackId" to locationTrackId, "startAddress" to startAddress, "endAdress" to endAddress,)
         val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
-        val verticalGeometryListing = getVerticalGeometryListing(locationTrackId, startAddress, endAddress)
+        val verticalGeometryListing = getVerticalGeometryListing(OFFICIAL, locationTrackId, startAddress, endAddress)
 
         val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
         return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()

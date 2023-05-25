@@ -59,6 +59,26 @@ interface VerticalGeometryDiagramProps {
     showArea: (area: BoundingBox) => void;
 }
 
+function loadGeometry(
+    changeTimes: ChangeTimes,
+    alignmentId:
+        | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
+        | { locationTrackId: LocationTrackId; publishType: PublishType },
+): Promise<VerticalGeometryItem[] | null | undefined> {
+    return 'planId' in alignmentId
+        ? getGeometryPlanVerticalGeometry(changeTimes.geometryPlan, alignmentId.planId).then(
+              (allPlanGeometries) =>
+                  allPlanGeometries?.filter((vgl) => vgl.alignmentId == alignmentId.alignmentId),
+          )
+        : getLocationTrackVerticalGeometry(
+              changeTimes.layoutLocationTrack,
+              alignmentId.publishType,
+              alignmentId.locationTrackId,
+              undefined,
+              undefined,
+          );
+}
+
 // we don't really need the station values in the plan geometry for anything in this entire diagram
 function substituteLayoutStationsForGeometryStations(
     geometryItem: VerticalGeometryItem,
@@ -142,18 +162,6 @@ function loadAlignmentHeights(
               endM,
               horizontalTickLengthMeters,
           );
-}
-
-function loadGeometry(
-    alignmentId:
-        | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
-        | { locationTrackId: LocationTrackId; publishType: PublishType },
-): Promise<VerticalGeometryItem[] | null | undefined> {
-    return 'planId' in alignmentId
-        ? getGeometryPlanVerticalGeometry(alignmentId.planId).then((allPlanGeometries) =>
-              allPlanGeometries?.filter((vgl) => vgl.alignmentId == alignmentId.alignmentId),
-          )
-        : getLocationTrackVerticalGeometry(alignmentId.locationTrackId, undefined, undefined);
 }
 
 const VerticalGeometryDiagramSizeHolder: React.FC<VerticalGeometryDiagramProps> = ({
@@ -292,7 +300,7 @@ const VerticalGeometryDiagram: React.FC<{
 
     const [rawGeometry, geometryLoadedForAlignmentId] = useLoader(
         () =>
-            loadGeometry(alignmentId).then(
+            loadGeometry(changeTimes, alignmentId).then(
                 (rawGeometry) => rawGeometry && [rawGeometry, alignmentId],
             ),
         [alignmentId, changeTimes.layoutLocationTrack],
