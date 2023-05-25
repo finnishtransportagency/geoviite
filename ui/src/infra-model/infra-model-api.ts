@@ -24,7 +24,7 @@ import {
     PVDocumentStatus,
 } from './velho/velho-model';
 import { asyncCache } from 'cache/cache';
-import { TimeStamp } from 'common/common-model';
+import { Oid, TimeStamp } from 'common/common-model';
 import i18n from 'i18next';
 
 export interface InsertResponse {
@@ -126,6 +126,8 @@ export async function getVelhoDocuments(
         getWithDefault<PVDocumentHeader[]>(`${VELHO_URI}/documents${params}`, []),
     );
 }
+
+export const getVelhoRedirecUrl = (oid: Oid) => `${VELHO_URI}/redirect/${oid}`;
 
 export async function getVelhoDocumentCount(): Promise<PVDocumentCount | null> {
     return getIgnoreError<PVDocumentCount>(`${VELHO_URI}/documents/count`);

@@ -30,6 +30,7 @@ import measureSvg from './glyphs/action/measure.svg';
 import selectSvg from './glyphs/action/select.svg';
 import fullScreen from './glyphs/navigation/fullscreen.svg';
 import exitFullScreen from './glyphs/navigation/exit-fullscreen.svg';
+import externalLink from './glyphs/navigation/external-link.svg';
 import styles from './icon.scss';
 import { createClassName } from 'vayla-design-lib/utils';
 
@@ -72,6 +73,7 @@ const iconNameToSvgMap = {
     VectorRight: vectorRight,
     FullScreen: fullScreen,
     ExitFullScreen: exitFullScreen,
+    ExternalLink: externalLink,
 
     // Status
     Info: infoSvg,

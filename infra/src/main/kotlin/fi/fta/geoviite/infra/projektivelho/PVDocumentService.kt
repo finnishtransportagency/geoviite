@@ -4,6 +4,7 @@ import PVDocument
 import PVDocumentHeader
 import PVDocumentStatus
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class PVDocumentService @Autowired constructor(
     private val pvDao: PVDao,
+    private val pvClient: ProjektiVelhoClient,
     private val infraModelService: InfraModelService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -33,6 +35,11 @@ class PVDocumentService @Autowired constructor(
     fun getFile(id: IntId<PVDocument>): InfraModelFile? {
         logger.serviceCall("getFile", "id" to id)
         return pvDao.getFileContent(id)
+    }
+
+    fun getLink(oid: Oid<PVApiRedirect>): PVApiRedirect {
+        logger.serviceCall("getLink", "oid" to oid)
+        return pvClient.fetchRedirect(oid)
     }
 
     @Transactional

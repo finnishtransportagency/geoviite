@@ -1,3 +1,5 @@
+@import '../../vayla-design-lib/colors';
+
 .velho-file-list {
     padding: 20px;
 }
@@ -32,4 +34,13 @@
     height: 100%;
     align-content: center;
     justify-content: space-between;
+}
+
+.velho-file-list__link {
+    display: flex;
+    text-decoration: none;
+    :not(:first-child) {
+        margin-left: 6px;
+    }
+    fill: $color-blue-dark;
 }
