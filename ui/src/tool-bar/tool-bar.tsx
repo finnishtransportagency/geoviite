@@ -40,7 +40,7 @@ import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog'
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu } from 'vayla-design-lib/menu/menu';
 import { ChangeTimes } from 'common/common-slice';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 export type ToolbarParams = {
     selection: Selection;
@@ -245,14 +245,14 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                     qa-id="map-layers-button"
                 />
                 <div className={styles['tool-bar__new-menu-button']}>
-                    <WriteRoleRequired>
+                    <WriteAccessRequired>
                         <Button
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
                             disabled={props.publishType !== 'DRAFT'}
                             onClick={() => setShowAddMenu(!showAddMenu)}
                         />
-                    </WriteRoleRequired>
+                    </WriteAccessRequired>
                     {showAddMenu && (
                         <div className={styles['tool-bar__new-menu']}>
                             <Menu
@@ -270,13 +270,13 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
 
             <div className={styles['tool-bar__right-section']}>
                 {props.publishType === 'OFFICIAL' && (
-                    <WriteRoleRequired>
+                    <WriteAccessRequired>
                         <Button
                             variant={ButtonVariant.PRIMARY}
                             onClick={() => props.onPublishTypeChange('DRAFT')}>
                             {t('tool-bar.draft-mode.enable')}
                         </Button>
-                    </WriteRoleRequired>
+                    </WriteAccessRequired>
                 )}
                 {props.publishType === 'DRAFT' && (
                     <React.Fragment>

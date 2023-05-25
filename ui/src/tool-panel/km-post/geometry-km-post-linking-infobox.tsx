@@ -22,7 +22,7 @@ import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-fi
 import { KmPostEditDialog } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { updateKmPostChangeTime } from 'common/change-time-api';
 import { filterNotEmpty } from 'utils/array-utils';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -146,7 +146,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         }
                     />
                     {!linkingState && (
-                        <WriteRoleRequired>
+                        <WriteAccessRequired>
                             <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}
@@ -154,7 +154,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                     {t('tool-panel.km-post.geometry.linking.start-linking-command')}
                                 </Button>
                             </InfoboxButtons>
-                        </WriteRoleRequired>
+                        </WriteAccessRequired>
                     )}
 
                     {linkingState && (

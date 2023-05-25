@@ -5,7 +5,7 @@ import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { LinkingState } from 'linking/linking-model';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
@@ -20,7 +20,7 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
 }) => {
     const { t } = useTranslation();
     return (
-        <WriteRoleRequired>
+        <WriteAccessRequired>
             {linkingState === undefined &&
                 (hasSuggestedSwitch ? (
                     <InfoboxButtons>
@@ -37,6 +37,6 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
                         </MessageBox>
                     </InfoboxContentSpread>
                 ))}
-        </WriteRoleRequired>
+        </WriteAccessRequired>
     );
 };

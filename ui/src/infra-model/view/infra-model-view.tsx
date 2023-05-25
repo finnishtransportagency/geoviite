@@ -49,7 +49,7 @@ import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { useAppNavigate } from 'common/navigate';
 import { ChangeTimes } from 'common/common-slice';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 // For now use whole state and some extras as params
 export type InfraModelViewProps = InfraModelState & {
@@ -331,7 +331,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.return')}
                         </Button>
                     )}
-                    <WriteRoleRequired>
+                    <WriteAccessRequired>
                         <Button
                             title={getVisibleErrors()}
                             onClick={() => onProgressClick()}
@@ -349,7 +349,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                     : 'button.save',
                             )}
                         </Button>
-                    </WriteRoleRequired>
+                    </WriteAccessRequired>
                 </div>
             </div>
             <div className={styles['infra-model-upload__map-container']}>
