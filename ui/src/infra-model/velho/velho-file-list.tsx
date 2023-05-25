@@ -10,7 +10,7 @@ import { PVDocumentHeader, PVDocumentId } from './velho-model';
 import { useAppNavigate } from 'common/navigate';
 import {
     getVelhoDocuments,
-    getVelhoRedirecUrl,
+    getVelhoRedirectUrl,
     rejectVelhoDocument,
     restoreVelhoDocument,
 } from 'infra-model/infra-model-api';
@@ -243,7 +243,7 @@ const VelhoRedirectLink: React.FC<VelhoRedirectLinkProps> = ({ oid, children }) 
     return (
         <Link
             className={styles['velho-file-list__link']}
-            href={getVelhoRedirecUrl(oid)}
+            href={getVelhoRedirectUrl(oid)}
             target={'_blank'}>
             <span>{children}</span>
             <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
