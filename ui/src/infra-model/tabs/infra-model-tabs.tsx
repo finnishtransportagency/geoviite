@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { VelhoFileListContainer } from 'infra-model/velho/velho-file-list';
 import styles from 'infra-model/tabs/infra-model-tabs.scss';
+import { useLoader } from 'utils/react-utils';
+import { getVelhoDocumentCount } from 'infra-model/infra-model-api';
 
 export type TabsProps = {
     activeTab: InfraModelTabType;
@@ -15,11 +17,11 @@ export type TabsProps = {
 const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
     const { t } = useTranslation();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+    const changeTime = useCommonDataAppSelector((state) => state.changeTimes.velhoDocument);
     const numberOfInfraModelFiles = useInfraModelAppSelector(
         (state) => state.infraModelList.totalCount,
     );
-    const numberOfInfraModelFileCandidates = 500;
-    const numberOfRejectedInfraModelFiles = 1500;
+    const documentCounts = useLoader(() => getVelhoDocumentCount(), [changeTime]);
 
     return (
         <div className={styles['tabs__tab-container']}>
@@ -31,14 +33,14 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                 />
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-waiting', {
-                        number: numberOfInfraModelFileCandidates,
+                        number: documentCounts?.suggested,
                     })}
                     tabId={InfraModelTabType.WAITING}
                     activeTab={activeTab}
                 />
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-rejected', {
-                        number: numberOfRejectedInfraModelFiles,
+                        number: documentCounts?.rejected,
                     })}
                     tabId={InfraModelTabType.REJECTED}
                     activeTab={activeTab}
@@ -49,10 +51,10 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     <InfraModelListContainer changeTimes={changeTimes} />
                 </InfraModelTabContent>
                 <InfraModelTabContent tabId={InfraModelTabType.WAITING} activeTab={activeTab}>
-                    <VelhoFileListContainer />
+                    <VelhoFileListContainer listMode={'SUGGESTED'} changeTime={changeTime} />
                 </InfraModelTabContent>
                 <InfraModelTabContent tabId={InfraModelTabType.REJECTED} activeTab={activeTab}>
-                    <p>Hello from rejected tab</p>
+                    <VelhoFileListContainer listMode={'REJECTED'} changeTime={changeTime} />
                 </InfraModelTabContent>
             </div>
         </div>

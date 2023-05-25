@@ -3,40 +3,60 @@ import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from './velho-file-list.scss';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
-import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { formatDateFull } from 'utils/date-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { PVDocumentHeader, PVDocumentId } from './velho-model';
-import { useCommonDataAppSelector } from 'store/hooks';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { updateVelhoDocumentsChangeTime } from 'common/change-time-api';
 import { useAppNavigate } from 'common/navigate';
-import { getVelhoDocuments, rejectVelhoDocument } from 'infra-model/infra-model-api';
+import {
+    getVelhoDocuments,
+    rejectVelhoDocument,
+    restoreVelhoDocument,
+} from 'infra-model/infra-model-api';
+import { updateVelhoDocumentsChangeTime } from 'common/change-time-api';
+import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { TimeStamp } from 'common/common-model';
+
+type ListMode = 'SUGGESTED' | 'REJECTED';
+
+type VelhoFileListContainerProps = {
+    changeTime: TimeStamp;
+    listMode: ListMode;
+};
 
 type VelhoFileListProps = {
     documentHeaders: PVDocumentHeader[];
     isLoading: boolean;
+    listMode: ListMode;
     onReject: (id: PVDocumentId) => void;
     onImport: (id: PVDocumentId) => void;
+    onRestore: (id: PVDocumentId) => void;
 };
 
-export const VelhoFileListContainer: React.FC = () => {
+export const VelhoFileListContainer: React.FC<VelhoFileListContainerProps> = ({
+    changeTime,
+    listMode,
+}: VelhoFileListContainerProps) => {
     const navigate = useAppNavigate();
-    const changeTime = useCommonDataAppSelector((state) => state.changeTimes.velhoDocument);
-    const [documentHeaders, loadStatus] =
+    const [documentHeaders, isLoading] =
         useLoaderWithStatus(() => {
-            return getVelhoDocuments(changeTime, 'SUGGESTED');
+            return getVelhoDocuments(changeTime, listMode);
         }, [changeTime]) || [];
+
     return (
         <div className="velho-file-list">
             <VelhoFileList
                 documentHeaders={documentHeaders || []}
-                isLoading={loadStatus != LoaderStatus.Ready}
+                isLoading={isLoading !== LoaderStatus.Ready}
                 onReject={(id) =>
                     rejectVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())
                 }
                 onImport={(id) => navigate('inframodel-import', id)}
+                onRestore={(id) =>
+                    restoreVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())
+                }
+                listMode={listMode}
             />
         </div>
     );
@@ -47,9 +67,10 @@ export const VelhoFileList = ({
     isLoading,
     onReject,
     onImport,
+    onRestore,
+    listMode,
 }: VelhoFileListProps) => {
     const { t } = useTranslation();
-
     const [openItemId, setOpenItemId] = React.useState<string | null>(null);
 
     return (
@@ -68,6 +89,7 @@ export const VelhoFileList = ({
                 <tbody>
                     {documentHeaders.map((item) => (
                         <VelhoFileListRow
+                            listMode={listMode}
                             key={item.document.id}
                             item={item}
                             isOpen={item.document.id === openItemId}
@@ -78,6 +100,7 @@ export const VelhoFileList = ({
                             }
                             onReject={() => onReject(item.document.id)}
                             onImport={() => onImport(item.document.id)}
+                            onRestore={() => onRestore(item.document.id)}
                         />
                     ))}
                 </tbody>
@@ -88,18 +111,22 @@ export const VelhoFileList = ({
 
 type VelhoFileListRowProps = {
     item: PVDocumentHeader;
+    listMode: ListMode;
     isOpen: boolean;
     onToggleOpen: () => void;
     onReject: () => void;
     onImport: () => void;
+    onRestore: () => void;
 };
 
 const VelhoFileListRow = ({
     item,
+    listMode,
     isOpen,
     onToggleOpen,
     onReject,
     onImport,
+    onRestore,
 }: VelhoFileListRowProps) => {
     const { t } = useTranslation();
     return (
@@ -114,9 +141,16 @@ const VelhoFileListRow = ({
                 <td>{formatDateFull(item.document.modified)}</td>
                 <td>
                     <div className={styles['velho-file-list__buttons']}>
-                        <Button variant={ButtonVariant.SECONDARY} onClick={onReject}>
-                            {t('velho.file-list.reject')}
-                        </Button>
+                        {listMode === 'SUGGESTED' && (
+                            <Button variant={ButtonVariant.SECONDARY} onClick={onReject}>
+                                {t('velho.file-list.reject')}
+                            </Button>
+                        )}
+                        {listMode === 'REJECTED' && (
+                            <Button variant={ButtonVariant.SECONDARY} onClick={onRestore}>
+                                {t('velho.file-list.restore')}
+                            </Button>
+                        )}
                         <Button variant={ButtonVariant.SECONDARY} onClick={onImport}>
                             {t('velho.file-list.upload')}
                         </Button>

@@ -38,3 +38,8 @@ export type PVDocumentHeader = {
     assignment: PVAssignment | null;
     document: PVDocument;
 };
+
+export type PVDocumentCount = {
+    suggested: number;
+    rejected: number;
+};

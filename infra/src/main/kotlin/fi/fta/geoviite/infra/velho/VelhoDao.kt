@@ -23,6 +23,11 @@ import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 
+data class PVDocumentCounts(
+    val suggested: Int,
+    val rejected: Int,
+)
+
 @Transactional(readOnly = true)
 @Component
 class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
@@ -350,6 +355,31 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
                 status = rs.getEnum("status"),
             ),
         )}
+    }
+
+    fun getDocumentCounts(): PVDocumentCounts {
+        val sql = """
+            with
+              suggested as (
+                select count(*) suggestedCount
+                  from projektivelho.file_metadata
+                  where status = 'SUGGESTED'
+              ),
+              rejected as (
+                select count(*) rejectedCount
+                  from projektivelho.file_metadata
+                  where status = 'REJECTED'
+              )
+            select suggestedCount, rejectedCount
+              from suggested
+                join rejected on 1=1
+        """.trimIndent()
+        return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
+            PVDocumentCounts(
+                suggested = rs.getInt("suggestedCount"),
+                rejected = rs.getInt("rejectedCount")
+            )
+        }.single()
     }
 
     fun getFileContent(id: IntId<PVDocument>): InfraModelFile? {

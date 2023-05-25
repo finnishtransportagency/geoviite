@@ -15,6 +15,7 @@
                 "document-type": "Dokumenttityyppi"
             },
             "reject": "Hylkää",
+            "restore": "Palauta",
             "upload": "Tuo suunnitelma..."
         }
     }

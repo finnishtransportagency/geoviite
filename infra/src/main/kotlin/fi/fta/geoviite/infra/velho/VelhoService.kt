@@ -47,7 +47,8 @@ class VelhoService @Autowired constructor(
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
     }
 
-    @Scheduled(cron = "0 0 * * * *")
+    //@Scheduled(cron = "0 0 * * * *")
+    @Scheduled(initialDelay = 50000, fixedRate = 900000) // First run after 1min, then every 15min
     fun search(): PVApiSearchStatus? = runIntegration {
         logger.serviceCall("search")
         val latest = velhoDao.fetchLatestFile()

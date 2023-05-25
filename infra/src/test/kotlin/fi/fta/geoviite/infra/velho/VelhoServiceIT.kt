@@ -8,6 +8,7 @@ import PVId
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.velho.PVDictionaryType.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -47,6 +48,7 @@ val dictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
 class VelhoServiceIT @Autowired constructor(
     @Value("\${geoviite.projektivelho.test-port:12345}") private val velhoPort: Int,
     private val velhoService: VelhoService,
+    private val velhoDocumentService: VelhoDocumentService,
     private val velhoDao: VelhoDao,
     private val jsonMapper: ObjectMapper,
 ) : ITTestBase() {
@@ -176,6 +178,17 @@ class VelhoServiceIT @Autowired constructor(
         )
     }
 
+    @Test
+    fun `Document count fetching works`() {
+        insertTestDictionary()
+        insertDocumentMetaWithStatus(Oid("1.2.3.4.5"), PVDocumentStatus.SUGGESTED)
+        insertDocumentMetaWithStatus(Oid("1.2.3.4.6"), PVDocumentStatus.SUGGESTED)
+        insertDocumentMetaWithStatus(Oid("1.2.3.4.7"), PVDocumentStatus.REJECTED)
+        val counts = velhoDocumentService.getDocumentCounts()
+        assertEquals(2, counts.suggested)
+        assertEquals(1, counts.rejected)
+    }
+
     private fun assertDocumentExists(
         oid: Oid<PVDocument>,
         status: PVDocumentStatus,
@@ -194,6 +207,36 @@ class VelhoServiceIT @Autowired constructor(
         assertEquals(getTestDataDictionaryName(MATERIAL_GROUP, materialGroup)!!, header.document.group)
         assertEquals(getTestDataDictionaryName(MATERIAL_CATEGORY, materialCategory)!!, header.document.category)
     }
+
+    private fun insertTestDictionary() {
+        velhoDao.upsertDictionary(DOCUMENT_TYPE, listOf(PVDictionaryEntry("test", "test")))
+        velhoDao.upsertDictionary(MATERIAL_CATEGORY, listOf(PVDictionaryEntry("test", "test")))
+        velhoDao.upsertDictionary(MATERIAL_GROUP, listOf(PVDictionaryEntry("test", "test")))
+        velhoDao.upsertDictionary(MATERIAL_STATE, listOf(PVDictionaryEntry("test", "test")))
+    }
+
+    private fun insertDocumentMetaWithStatus(oid: Oid<PVDocument>, status: PVDocumentStatus) =
+        velhoDao.insertFileMetadata(
+            oid = oid,
+            assignmentOid = null,
+            latestVersion = PVApiLatestVersion(
+                version = PVId("test"),
+                name = FileName("test"),
+                changeTime = Instant.now()
+            ),
+            metadata = PVApiFileMetadata(
+                materialCategory = PVCode("test"),
+                description = null,
+                materialGroup = PVCode("test"),
+                materialState = PVCode("test"),
+                documentType = PVCode("test"),
+                technicalFields = emptyList(),
+                containsPersonalInfo = false
+            ),
+            projectGroupOid = null,
+            projectOid = null,
+            status = status
+        )
 }
 
 private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVCode) =

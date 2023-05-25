@@ -4,18 +4,14 @@ import PVDocument
 import PVDocumentHeader
 import PVDocumentStatus
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.inframodel.*
-import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.serviceCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestPart
 
 @Service
 class VelhoDocumentService @Autowired constructor(
@@ -64,5 +60,10 @@ class VelhoDocumentService @Autowired constructor(
         val file = getFile(documentId)
         return file?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }
             ?: noFileValidationResponse(overrides)
+    }
+
+    fun getDocumentCounts(): PVDocumentCounts {
+        logger.serviceCall("getDocumentCounts")
+        return velhoDao.getDocumentCounts()
     }
 }
