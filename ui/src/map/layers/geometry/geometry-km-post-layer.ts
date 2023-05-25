@@ -22,7 +22,7 @@ export function createGeometryKmPostLayer(
     const layerId = ++newestLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource, style: null });
 
     const step = getKmPostStepByResolution(resolution);
 

@@ -79,6 +79,8 @@ export type OnPlanFetchReady = {
 const visibleMapLayers: MapLayerName[] = [
     'background-map-layer',
     'location-track-alignment-layer',
+    'reference-line-alignment-layer',
+    'reference-line-badge-layer',
     'switch-layer',
     'km-post-layer',
     'geometry-alignment-layer',
