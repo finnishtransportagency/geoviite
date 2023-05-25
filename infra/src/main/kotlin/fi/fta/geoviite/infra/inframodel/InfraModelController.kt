@@ -8,8 +8,8 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.projektivelho.PVDocumentCounts
 import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.velho.PVDocumentCounts
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -104,7 +104,7 @@ class InfraModelController @Autowired constructor(
     @GetMapping("/velho-import/documents/count")
     fun getVelhoDocumentCounts(): PVDocumentCounts {
         logger.apiCall("getVelhoDocumentCounts")
-        return velhoDocumentService.getDocumentCounts()
+        return pvDocumentService.getDocumentCounts()
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)

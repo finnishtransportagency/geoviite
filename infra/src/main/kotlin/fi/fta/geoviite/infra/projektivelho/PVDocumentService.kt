@@ -64,6 +64,6 @@ class PVDocumentService @Autowired constructor(
 
     fun getDocumentCounts(): PVDocumentCounts {
         logger.serviceCall("getDocumentCounts")
-        return velhoDao.getDocumentCounts()
+        return pvDao.getDocumentCounts()
     }
 }

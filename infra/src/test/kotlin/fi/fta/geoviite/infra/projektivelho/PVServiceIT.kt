@@ -61,7 +61,7 @@ class PVServiceIT @Autowired constructor(
     @Value("\${geoviite.projektivelho.test-port:12345}") private val velhoPort: Int,
     private val pvService: PVService,
     private val pvDao: PVDao,
-    private val velhoDocumentService: VelhoDocumentService,
+    private val pvDocumentService: PVDocumentService,
     private val jsonMapper: ObjectMapper,
 ) : ITTestBase() {
 
@@ -206,7 +206,7 @@ class PVServiceIT @Autowired constructor(
         insertDocumentMetaWithStatus(Oid("1.2.3.4.5"), PVDocumentStatus.SUGGESTED)
         insertDocumentMetaWithStatus(Oid("1.2.3.4.6"), PVDocumentStatus.SUGGESTED)
         insertDocumentMetaWithStatus(Oid("1.2.3.4.7"), PVDocumentStatus.REJECTED)
-        val counts = velhoDocumentService.getDocumentCounts()
+        val counts = pvDocumentService.getDocumentCounts()
         assertEquals(2, counts.suggested)
         assertEquals(1, counts.rejected)
     }
@@ -231,14 +231,14 @@ class PVServiceIT @Autowired constructor(
     }
 
     private fun insertTestDictionary() {
-        velhoDao.upsertDictionary(DOCUMENT_TYPE, listOf(PVDictionaryEntry("test", "test")))
-        velhoDao.upsertDictionary(MATERIAL_CATEGORY, listOf(PVDictionaryEntry("test", "test")))
-        velhoDao.upsertDictionary(MATERIAL_GROUP, listOf(PVDictionaryEntry("test", "test")))
-        velhoDao.upsertDictionary(MATERIAL_STATE, listOf(PVDictionaryEntry("test", "test")))
+        pvDao.upsertDictionary(DOCUMENT_TYPE, listOf(PVDictionaryEntry("test", "test")))
+        pvDao.upsertDictionary(MATERIAL_CATEGORY, listOf(PVDictionaryEntry("test", "test")))
+        pvDao.upsertDictionary(MATERIAL_GROUP, listOf(PVDictionaryEntry("test", "test")))
+        pvDao.upsertDictionary(MATERIAL_STATE, listOf(PVDictionaryEntry("test", "test")))
     }
 
     private fun insertDocumentMetaWithStatus(oid: Oid<PVDocument>, status: PVDocumentStatus) =
-        velhoDao.insertFileMetadata(
+        pvDao.insertFileMetadata(
             oid = oid,
             assignmentOid = null,
             latestVersion = PVApiLatestVersion(
