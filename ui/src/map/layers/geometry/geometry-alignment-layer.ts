@@ -202,7 +202,7 @@ export function createGeometryAlignmentLayer(
             const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
             const holders = getMatchingAlignmentData(hitArea, features, matchOptions);
 
-            const alignments = holders
+            const geometryAlignments = holders
                 .filter(filterUniqueById((data) => data.header.id)) // pick unique alignments
                 .slice(0, options.limit)
                 .map((data) => {
@@ -212,9 +212,7 @@ export function createGeometryAlignmentLayer(
                     };
                 });
 
-            return {
-                geometryAlignments: alignments,
-            };
+            return { geometryAlignments };
         },
     };
 }
