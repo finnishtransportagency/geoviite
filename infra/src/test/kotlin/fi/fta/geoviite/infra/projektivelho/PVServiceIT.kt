@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
-import PVCode
+import PVDictionaryCode
 import PVDictionaryEntry
 import PVDictionaryGroup.MATERIAL
 import PVDictionaryGroup.PROJECT
@@ -9,7 +9,6 @@ import PVDictionaryType
 import PVDictionaryType.*
 import PVDocument
 import PVDocumentStatus
-import PVId
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
@@ -202,10 +201,10 @@ class PVServiceIT @Autowired constructor(
         oid: Oid<PVDocument>,
         status: PVDocumentStatus,
         description: String = "test description",
-        documentType: PVCode = PVCode("dokumenttityyppi/dt01"),
-        materialState: PVCode = PVCode("aineistotila/tila01"),
-        materialCategory: PVCode = PVCode("aineistolaji/al00"),
-        materialGroup: PVCode = PVCode("aineistoryhma/ar00"),
+        documentType: PVDictionaryCode = PVDictionaryCode("dokumenttityyppi/dt01"),
+        materialState: PVDictionaryCode = PVDictionaryCode("aineistotila/tila01"),
+        materialCategory: PVDictionaryCode = PVDictionaryCode("aineistolaji/al00"),
+        materialGroup: PVDictionaryCode = PVDictionaryCode("aineistoryhma/ar00"),
     ) {
         val header = pvDao.getDocumentHeaders().find { d -> d.document.oid == oid }
         assertNotNull(header, "Document should exist with OID=$oid")
@@ -218,5 +217,5 @@ class PVServiceIT @Autowired constructor(
     }
 }
 
-private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVCode) =
+private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVDictionaryCode) =
     (materialDictionaries+ projectDictionaries)[type]?.find { e -> e.code == code }?.name

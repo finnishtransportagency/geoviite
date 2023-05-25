@@ -101,8 +101,13 @@ fun toInfraModelFile(file: MultipartFile, fileEncodingOverride: Charset?): Infra
 }
 
 fun toInfraModelFile(file: ByteArray, fileName: FileName, fileEncodingOverride: Charset?): InfraModelFile {
-    assertNotEmpty(fileName, file)
+    toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
     return toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
+}
+
+fun toInfraModelFile(file: String, fileName: FileName): InfraModelFile {
+    assertNotEmpty(fileName, file)
+    return toInfraModelFile(fileName, file)
 }
 
 fun toInfraModelFile(fileName: FileName, fileContent: String) =
@@ -153,8 +158,8 @@ fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
 }
 
-fun assertNotEmpty(fileName: FileName, file: ByteArray) {
-    if (file.isEmpty()) throw InframodelParsingException(
+fun assertNotEmpty(fileName: FileName, file: String): String = file.also{ f ->
+    if (f.isEmpty()) throw InframodelParsingException(
         message = "File \"${fileName}\" is empty",
         localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
     )

@@ -1,27 +1,27 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
-import PVCode
+import PVDictionaryCode
 import PVDictionaryEntry
 import PVDictionaryGroup
 import PVDictionaryGroup.MATERIAL
 import PVDictionaryGroup.PROJECT
+import PVDictionaryName
 import PVDictionaryType
 import PVDictionaryType.MATERIAL_CATEGORY
 import PVDocument
-import PVId
-import PVName
 import PVProject
 import PVProjectGroup
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
+import fi.fta.geoviite.infra.util.formatForLog
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.http.MediaType
+import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClientResponseException
@@ -79,71 +79,32 @@ class ProjektiVelhoClient @Autowired constructor(
         logger.integrationCall("postXmlFileSearch",
             "fetchStartTime" to fetchStartTime, "startOid" to startOid)
         val json = searchJson(fetchStartTime, startOid, 100)
-        return velhoClient
-            .post()
-            .uri("$XML_FILE_SEARCH_PATH?tagi=aineisto")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .body(BodyInserters.fromValue(json))
-            .retrieve()
-            .bodyToMono<PVApiSearchStatus>()
-            .block(defaultBlockTimeout) ?: throw IllegalStateException("Projektivelho search failed")
+        return postMandatoryReturn<String, PVApiSearchStatus>("$XML_FILE_SEARCH_PATH?tagi=aineisto", json)
     }
+
     fun fetchVelhoSearchStatus(id: PVId): PVApiSearchStatus {
         logger.integrationCall("fetchVelhoSearchStatus", "id" to id)
-        return velhoClient
-            .get()
-            .uri("$XML_FILE_SEARCH_STATE_PATH/$id")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<PVApiSearchStatus>()
-            .block(defaultBlockTimeout)
-            ?: throw IllegalStateException("Fetching running search status from ProjektiVelho failed: id=$id")
+        return getMandatory<PVApiSearchStatus>("$XML_FILE_SEARCH_STATE_PATH/$id")
     }
 
     fun fetchVelhoSearches(): List<PVApiSearchStatus> {
         logger.integrationCall("fetchVelhoSearches")
-        return velhoClient
-            .get()
-            .uri("$XML_FILE_SEARCH_STATE_PATH?tagit=aineisto")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<List<PVApiSearchStatus>>()
-            .block(defaultBlockTimeout)
-            ?: throw IllegalStateException("Fetching running searches from ProjektiVelho failed")
+        return getMandatory<List<PVApiSearchStatus>>("$XML_FILE_SEARCH_STATE_PATH?tagit=aineisto")
     }
 
     fun fetchSearchResults(searchId: PVId): PVApiSearchResult {
         logger.integrationCall("fetchSearchResults", "searchId" to searchId)
-        return velhoClient
-            .get()
-            .uri("$XML_FILE_SEARCH_RESULTS_PATH/$searchId")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<PVApiSearchResult>()
-            .block(defaultBlockTimeout)
-            ?: throw IllegalStateException("Fetching search results failed. searchId=$searchId")
+        return getMandatory<PVApiSearchResult>("$XML_FILE_SEARCH_RESULTS_PATH/$searchId")
     }
 
     fun fetchFileMetadata(oid: Oid<PVDocument>): PVApiFile {
         logger.integrationCall("fetchFileMetadata", "oid" to oid)
-        return velhoClient
-            .get()
-            .uri("$FILE_DATA_PATH/$oid")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<PVApiFile>()
-            .block(defaultBlockTimeout) ?: throw IllegalStateException("Metadata fetch failed. oid=$oid")
+        return getMandatory<PVApiFile>("$FILE_DATA_PATH/$oid")
     }
 
     fun fetchFileContent(oid: Oid<PVDocument>, version: PVId): String {
         logger.integrationCall("fetchFileContent", "oid" to oid, "version" to version)
-        return velhoClient
-            .get()
-            .uri("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout) ?: throw IllegalStateException("File fetch failed. oid=$oid version=$version")
+        return getMandatory<String>("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}")
     }
 
     fun fetchDictionaries(): Map<PVDictionaryType, List<PVDictionaryEntry>> =
@@ -151,35 +112,25 @@ class ProjektiVelhoClient @Autowired constructor(
 
     fun fetchDictionaries(group: PVDictionaryGroup): Map<PVDictionaryType, List<PVDictionaryEntry>> {
         logger.integrationCall("fetchDictionaries")
-        return velhoClient
-            .get()
-            .uri(encodingGroupUrl(group))
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<String>()
-            .block(defaultBlockTimeout)
-            ?.let { response ->
-                jsonMapper.readTree(response).let { json ->
-                    json.get("info").let {
-                        it.get("x-velho-nimikkeistot").let { classes ->
-                            PVDictionaryType.values()
-                                .filter { t -> t.group == group }
-                                .associateWith { type -> fetchDictionaryType(type, classes) }
-                        }
-                    }
+        return getJsonOptional(encodingGroupUrl(group))?.let { json ->
+            json.get("info").let { infoNode ->
+                infoNode.get("x-velho-nimikkeistot").let { classes ->
+                    PVDictionaryType.values()
+                        .filter { t -> t.group == group }
+                        .associateWith { type -> fetchDictionaryType(type, classes) }
                 }
-            } ?: emptyMap()
+            }
+        } ?: emptyMap()
     }
 
     private fun fetchDictionaryType(dictionaryToGet: PVDictionaryType, classes: JsonNode) =
         classes.get(encodingTypeDictionary(dictionaryToGet)).let { asset ->
             val version = asset.get("uusin-nimikkeistoversio").intValue()
-            println(asset.get("nimikkeistoversiot"))
             asset.get("nimikkeistoversiot").get(version.toString()).let { nodes ->
                 nodes.fieldNames().asSequence().toList().map { code ->
                     PVDictionaryEntry(
-                        code = PVCode(code),
-                        name = PVName(nodes.get(code).get("otsikko").textValue()),
+                        code = PVDictionaryCode(code),
+                        name = PVDictionaryName(nodes.get(code).get("otsikko").textValue()),
                     )
                 }
             }
@@ -187,68 +138,72 @@ class ProjektiVelhoClient @Autowired constructor(
 
     fun fetchRedirect(oid: Oid<PVApiRedirect>): PVApiRedirect {
         logger.integrationCall("fetchRedirect", "oid" to oid)
-        return velhoClient
-            .get()
-            .uri("$REDIRECT_PATH/$oid")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .accept(MediaType.APPLICATION_JSON)
-            .acceptCharset(Charsets.UTF_8)
-            .retrieve()
-            .bodyToMono<PVApiRedirect>()
-            .block(defaultBlockTimeout)
-            .let { assignment -> requireNotNull(assignment) { "Redirect fetch failed: oid=$oid" } }
+        return getMandatory<PVApiRedirect>("$REDIRECT_PATH/$oid")
     }
 
     fun fetchProject(oid: Oid<PVProject>): PVApiProject? {
         logger.integrationCall("fetchProject", "oid" to oid)
-        return velhoClient
-            .get()
-            .uri("$PROJECT_PATH/$oid")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<PVApiProject>()
-            .onErrorResume(WebClientResponseException::class.java) { ex ->
-                if (ex.rawStatusCode == 404) {
-                    logger.warn("Could not fetch project from ProjektiVelho, despite knowing its OID: oid=$oid")
-                    Mono.empty()
-                } else Mono.error(ex)
-            }
-            .block(defaultBlockTimeout)
+        return getOptional<PVApiProject>("$PROJECT_PATH/$oid", get404toNull("oid=$oid"))
     }
 
     fun fetchProjectGroup(oid: Oid<PVProjectGroup>): PVApiProjectGroup? {
         logger.integrationCall("fetchProjectGroup", "oid" to oid)
-        return velhoClient
-            .get()
-            .uri("$PROJECT_GROUP_PATH/$oid")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<PVApiProjectGroup>()
-            .onErrorResume(WebClientResponseException::class.java) { ex ->
-                if (ex.rawStatusCode == 404) {
-                    logger.warn("Could not fetch project group from ProjektiVelho, despite knowing its OID: oid=$oid")
-                    Mono.empty()
-                } else Mono.error(ex)
-            }
-            .block(defaultBlockTimeout)
+        return getOptional<PVApiProjectGroup>("$PROJECT_GROUP_PATH/$oid", get404toNull("oid=$oid"))
     }
 
     fun fetchAssignment(oid: Oid<PVAssignment>): PVApiAssignment? {
         logger.integrationCall("fetchAssignment", "oid" to oid)
-        return velhoClient
-            .get()
-            .uri("$ASSIGNMENT_PATH/$oid")
-            .headers { header -> header.setBearerAuth(fetchAccessToken(Instant.now())) }
-            .retrieve()
-            .bodyToMono<PVApiAssignment>()
-            .onErrorResume(WebClientResponseException::class.java) { ex ->
-                if (ex.rawStatusCode == 404) {
-                    logger.warn("Could not fetch assignment from ProjektiVelho, despite knowing its OID: oid=$oid")
-                    Mono.empty()
-                } else Mono.error(ex)
-            }
-            .block(defaultBlockTimeout)
+        return getOptional<PVApiAssignment>("$ASSIGNMENT_PATH/$oid", get404toNull("oid=$oid"))
     }
+
+    private inline fun <reified T> get404toNull(message: String): (ex: WebClientResponseException) -> Mono<T> = { ex ->
+        if (ex.rawStatusCode == 404) {
+            logger.warn("Could not GET ${T::class.simpleName} from ProjektiVelho: " +
+                    "$message status=${ex.statusCode} result=${ex.message?.let(::formatForLog) ?: "" }")
+            Mono.empty()
+        } else Mono.error(ex)
+    }
+
+    private fun getJsonOptional(uri: String): JsonNode? = getOptional<String>(uri)?.let(jsonMapper::readTree)
+
+    private inline fun <reified Out : Any> getMandatory(uri: String): Out =
+        requireNotNull(getOptional<Out>(uri)) { "GET failed with null result: outType=${Out::class}: uri=$uri" }
+
+    private inline fun <reified Out : Any> getOptional(
+        uri: String,
+        crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
+    ): Out? = velhoClient
+        .get()
+        .uri(uri)
+        .headers(::setBearerAuth)
+        .retrieve()
+        .bodyToMono<Out>()
+        .onErrorResume(WebClientResponseException::class.java) { ex -> onError(ex) }
+        .block(defaultBlockTimeout)
+
+    private inline fun <reified In : Any, reified Out : Any> postMandatoryReturn(
+        uri: String,
+        body: In,
+        crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
+    ): Out = requireNotNull(postOptionalReturn(uri, body, onError)) {
+        "POST failed with null result: inType=${In::class.simpleName} outType=${Out::class.simpleName} uri=$uri"
+    }
+
+    private inline fun <reified In : Any, reified Out : Any> postOptionalReturn(
+        uri: String,
+        body: In,
+        crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
+    ): Out? = velhoClient
+        .post()
+        .uri(uri)
+        .headers(::setBearerAuth)
+        .body(BodyInserters.fromValue(body))
+        .retrieve()
+        .bodyToMono<Out>()
+        .onErrorResume(WebClientResponseException::class.java) { ex -> onError(ex) }
+        .block(defaultBlockTimeout)
+
+    private fun setBearerAuth(headers: HttpHeaders) = headers.setBearerAuth(fetchAccessToken(Instant.now()).toString())
 
     private fun fetchAccessToken(currentTime: Instant) =
         accessToken.updateAndGet { token ->
@@ -280,9 +235,8 @@ fun encodingTypePath(type: PVDictionaryType) = when(type) {
 }
 
 data class PVAccessTokenHolder(
-    val token: String,
+    val token: PVBearerToken,
     val expireTime: Instant,
 ) {
     constructor(token: PVAccessToken) : this(token.accessToken, Instant.now().plusSeconds(token.expiresIn))
 }
-

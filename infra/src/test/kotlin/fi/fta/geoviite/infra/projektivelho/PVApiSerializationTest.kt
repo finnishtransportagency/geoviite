@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVCode
-import PVId
+import PVDictionaryCode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.HttpsUrl
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -20,7 +20,7 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
 
     @Test
     fun `SearchStatus is serialized and deserialized correctly`() {
-        val state = "valmis"
+        val state = PVDictionaryCode("valmis")
         val searchId = PVId("asdf123")
         val startTime = Instant.now()
         val validFor = 123456L
@@ -33,12 +33,12 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
 
     @Test
     fun `Metadata is serialized and deserialized correctly`() {
-        val materialState = PVCode("matstate/some01")
+        val materialState = PVDictionaryCode("matstate/some01")
         val description = FreeText("some description")
-        val materialCategory = PVCode("matcat/some01")
-        val documentType = PVCode("doctype/some01")
-        val materialGroup = PVCode("matgrp/some01")
-        val technicalFields = listOf<PVCode>()
+        val materialCategory = PVDictionaryCode("matcat/some01")
+        val documentType = PVDictionaryCode("doctype/some01")
+        val materialGroup = PVDictionaryCode("matgrp/some01")
+        val technicalFields = listOf<PVDictionaryCode>()
         val containsPersonalInfo = null
 
         val json = """{"tila":"$materialState","kuvaus":"$description","laji":"$materialCategory","dokumenttityyppi":"$documentType","ryhma":"$materialGroup","tekniikka-alat":[],"sisaltaa-henkilotietoja":null}"""
@@ -54,6 +54,18 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
 
         assertEquals(json, toJson(data))
         assertEquals(data, toObject<PVApiFileMetadata>(json))
+    }
+
+    @Test
+    fun `Redirect is serialized and deserialized correctly`() {
+        val masterSystem = PVMasterSystem("someservice")
+        val targetCategory = PVTargetCategory("somenamespace/somecategory")
+        val targetUrl = HttpsUrl("https://some.url.org:1234/some-path?query=test&other=other")
+        val json = """{"master-jarjestelma":"$masterSystem","kohdeluokka":"$targetCategory","kohde-url":"$targetUrl"}"""
+        val data = PVApiRedirect(masterSystem, targetCategory, targetUrl)
+
+        assertEquals(json, toJson(data))
+        assertEquals(data, toObject<PVApiRedirect>(json))
     }
 
     private fun toJson(value: Any): String = mapper.writeValueAsString(value)

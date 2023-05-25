@@ -1,8 +1,7 @@
 package fi.fta.geoviite.infra.configuration
 
-import PVCode
-import PVId
-import PVName
+import PVDictionaryCode
+import PVDictionaryName
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -13,10 +12,9 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.util.Code
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.projektivelho.PVId
+import fi.fta.geoviite.infra.projektivelho.PVTargetCategory
+import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -49,6 +47,7 @@ class WebConfig : WebMvcConfigurer {
 
         logger.info("Registering geometry name converters")
         registry.addStringConstructorConverter(::FileName)
+        registry.addStringConstructorConverter(::HttpsUrl)
         registry.addStringConstructorConverter(::MetaDataName)
         registry.addStringConstructorConverter(::GeometrySwitchTypeName)
         registry.addStringConstructorConverter(::PlanElementName)
@@ -91,8 +90,9 @@ class WebConfig : WebMvcConfigurer {
 
         logger.info("Registering Velho sanitized string converters")
         registry.addStringConstructorConverter(::PVId)
-        registry.addStringConstructorConverter(::PVCode)
-        registry.addStringConstructorConverter(::PVName)
+        registry.addStringConstructorConverter(::PVDictionaryCode)
+        registry.addStringConstructorConverter(::PVDictionaryName)
+        registry.addStringConstructorConverter(::PVTargetCategory)
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {

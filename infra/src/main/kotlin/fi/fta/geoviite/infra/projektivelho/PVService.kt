@@ -1,19 +1,25 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
+import PVDictionaryCode
 import PVDocument
 import PVDocumentStatus
+import PVDocumentStatus.NOT_IM
+import PVDocumentStatus.SUGGESTED
 import PVProject
 import PVProjectGroup
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.withUser
+import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.inframodel.InfraModelService
 import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
 import fi.fta.geoviite.infra.inframodel.toInfraModelFile
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.formatForLog
 import org.slf4j.Logger
@@ -25,8 +31,8 @@ import org.springframework.stereotype.Service
 import java.time.Duration
 import java.time.Instant
 
-val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
-val SECONDS_IN_A_YEAR: Long = 31556926
+val PROJEKTIVELHO_INTEGRATION_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
+val SECONDS_IN_A_YEAR: Long = Duration.ofDays(365).toSeconds()
 
 @Service
 @ConditionalOnBean(PVClientConfiguration::class)
@@ -43,7 +49,7 @@ class PVService @Autowired constructor(
         logger.info("Initializing ${this::class.simpleName}")
     }
 
-    private fun <T> runIntegration(op: () -> T): T? = withUser(PROJEKTIVELHO_DB_USERNAME) {
+    private fun <T> runIntegration(op: () -> T): T? = withUser(PROJEKTIVELHO_INTEGRATION_USERNAME) {
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
     }
 
@@ -70,8 +76,8 @@ class PVService @Autowired constructor(
         val latestSearch = pvDao.fetchLatestSearch()
         // Mark previous search as stalled if previous search is supposedly still running after
         // having outlived its validity period
-        if (latestSearch?.state == PVFetchStatus.FETCHING && Instant.now() > latestSearch.validUntil) {
-            pvDao.updateFetchState(latestSearch.id, PVFetchStatus.ERROR)
+        if (latestSearch?.state == FETCHING && Instant.now() > latestSearch.validUntil) {
+            pvDao.updateFetchState(latestSearch.id, ERROR)
         } else {
             updateDictionaries()
             latestSearch
@@ -80,9 +86,9 @@ class PVService @Autowired constructor(
         }
     }
     fun getSearchStatusIfReady(pvSearch: PVSearch) = pvSearch
-        .takeIf { search -> search.state == PVFetchStatus.WAITING }
+        .takeIf { search -> search.state == WAITING }
         ?.let { search -> projektiVelhoClient.fetchVelhoSearchStatus(search.token) }
-        ?.takeIf { status -> status.state == PROJEKTIVELHO_SEARCH_STATE_READY }
+        ?.takeIf { status -> status.state == PVDictionaryCode("valmis") }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")
@@ -94,15 +100,15 @@ class PVService @Autowired constructor(
 
     fun importFilesFromProjektiVelho(latest: PVSearch, searchResults: PVApiSearchStatus) =
         try {
-            pvDao.updateFetchState(latest.id, PVFetchStatus.FETCHING)
+            pvDao.updateFetchState(latest.id, FETCHING)
             val assignments = mutableMapOf<Oid<PVAssignment>, PVApiAssignment?>()
             val projects = mutableMapOf<Oid<PVProject>, PVApiProject?>()
             val projectGroups = mutableMapOf<Oid<PVProjectGroup>, PVApiProjectGroup?>()
             projektiVelhoClient.fetchSearchResults(searchResults.searchId).matches
                 .map { match -> fetchFileAndInsertToDb(match, assignments, projects, projectGroups) }
-            pvDao.updateFetchState(latest.id, PVFetchStatus.FINISHED)
+            pvDao.updateFetchState(latest.id, FINISHED)
         } catch (e: Exception) {
-            pvDao.updateFetchState(latest.id, PVFetchStatus.ERROR)
+            pvDao.updateFetchState(latest.id, ERROR)
             throw e
         }
 
@@ -169,7 +175,7 @@ class PVService @Autowired constructor(
             file.oid,
             file.metadata,
             file.latestVersion,
-            if (xmlContent != null) PVDocumentStatus.SUGGESTED else PVDocumentStatus.NOT_IM,
+            if (xmlContent != null) SUGGESTED else NOT_IM,
             assignment.assignment?.oid,
             assignment.project?.oid,
             assignment.projectGroup?.oid,
@@ -179,12 +185,20 @@ class PVService @Autowired constructor(
 
     fun isRailroadXml(xml: String, filename: FileName) =
         try {
-            infraModelService.parseInfraModel(toInfraModelFile(xml.toByteArray(), filename, null))
-            true
+            val parsed = infraModelService.parseInfraModel(toInfraModelFile(xml, filename))
+            parsed.alignments.isNotEmpty() && parsed.alignments.all(::isRailroadAlignment)
         } catch (e: Exception) {
             logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
             false
         }
+
+    val railroadAlignmentFeatureTypes = listOf(
+        FeatureTypeCode("111"),
+        FeatureTypeCode("121"),
+        FeatureTypeCode("281"),
+    )
+    fun isRailroadAlignment(alignment: GeometryAlignment) =
+        alignment.featureTypeCode?.let { code -> railroadAlignmentFeatureTypes.contains(code) } ?: true
 }
 
 private data class PVAssignmentHolder(
