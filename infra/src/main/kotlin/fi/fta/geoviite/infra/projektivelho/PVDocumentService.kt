@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVDocument
 import PVDocumentHeader
@@ -14,25 +14,25 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class VelhoDocumentService @Autowired constructor(
-    private val velhoDao: VelhoDao,
+class PVDocumentService @Autowired constructor(
+    private val pvDao: PVDao,
     private val infraModelService: InfraModelService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getDocumentHeaders(status: PVDocumentStatus?): List<PVDocumentHeader> {
         logger.serviceCall("getDocumentHeaders", "status" to status)
-        return velhoDao.getDocumentHeaders(status)
+        return pvDao.getDocumentHeaders(status)
     }
 
     fun updateDocumentStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
         logger.serviceCall("updateDocumentStatus", "id" to id, "status" to status)
-        return velhoDao.updateFileStatus(id, status)
+        return pvDao.updateFileStatus(id, status)
     }
 
     fun getFile(id: IntId<PVDocument>): InfraModelFile? {
         logger.serviceCall("getFile", "id" to id)
-        return velhoDao.getFileContent(id)
+        return pvDao.getFileContent(id)
     }
 
     @Transactional

@@ -1,7 +1,6 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import fi.fta.geoviite.infra.logging.integrationCall
-import io.netty.handler.logging.LogLevel
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -17,33 +16,32 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import reactor.netty.http.client.HttpClient
-import reactor.netty.transport.logging.AdvancedByteBufFormat
 import java.time.Duration
 
 val defaultResponseTimeout: Duration = Duration.ofMinutes(5L)
 val maxFileSize: Int = 100*1024*1024
 
-class VelhoWebClient(
+class PVWebClient(
     val client: WebClient
 ): WebClient by client
 
-class VelhoLoginClient(
+class PVLoginClient(
     val client: WebClient
 ): WebClient by client
 
 @Configuration
 @ConditionalOnProperty(prefix = "geoviite.projektivelho", name = ["enabled"], havingValue = "true")
-class VelhoClientConfiguration @Autowired constructor(
+class PVClientConfiguration @Autowired constructor(
     @Value("\${geoviite.projektivelho.url:}") private val projektiVelhoBaseUrl: String,
     @Value("\${geoviite.projektivelho.login_url:}") private val projektiVelhoLoginUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
     @Value("\${geoviite.projektivelho.client_secret:}") private val projektiVelhoPassword: String,
 ) {
 
-    private val logger: Logger = LoggerFactory.getLogger(VelhoClient::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
 
     @Bean
-    fun loginClient(): VelhoLoginClient {
+    fun loginClient(): PVLoginClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
         val webClientBuilder = WebClient.builder()
@@ -54,11 +52,11 @@ class VelhoClientConfiguration @Autowired constructor(
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             .defaultHeaders { header -> header.setBasicAuth(projektiVelhoUsername, projektiVelhoPassword) }
 
-        return VelhoLoginClient(webClientBuilder.build())
+        return PVLoginClient(webClientBuilder.build())
     }
 
     @Bean
-    fun projVelhoClient(): VelhoWebClient {
+    fun projVelhoClient(): PVWebClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout).secure().compress(true)
 
         val webClientBuilder = WebClient.builder()
@@ -72,7 +70,7 @@ class VelhoClientConfiguration @Autowired constructor(
                     .maxInMemorySize(maxFileSize)
             }
 
-        return VelhoWebClient(webClientBuilder.build())
+        return PVWebClient(webClientBuilder.build())
     }
 
     private fun logRequest(): ExchangeFilterFunction {

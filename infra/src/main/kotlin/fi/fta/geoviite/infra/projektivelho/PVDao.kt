@@ -1,7 +1,10 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
 import PVCode
+import PVDictionaryEntry
+import PVDictionaryType
+import PVDictionaryType.*
 import PVDocument
 import PVDocumentHeader
 import PVDocumentStatus
@@ -15,8 +18,7 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.velho.PVDictionaryType.*
-import fi.fta.geoviite.infra.velho.PVFetchStatus.WAITING
+import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -30,7 +32,7 @@ data class PVDocumentCounts(
 
 @Transactional(readOnly = true)
 @Component
-class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
     fun insertFileMetadata(
         oid: Oid<PVDocument>,
@@ -116,22 +118,22 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun upsertProject(project: PVApiProject) {
         val sql = """
-            insert into projektivelho.project (oid, name, state, created_at, modified)
-            values (:oid, :name, :state, :created_at, :modified)
+            insert into projektivelho.project (oid, name, state_code, created_at, modified)
+            values (:oid, :name, :state_code, :created_at, :modified)
             on conflict (oid) do update 
               set name = :name, 
-                  state = :state,
+                  state_code = :state_code,
                   created_at = :created_at,
                   modified = :modified
               where projektivelho.project.name <> :name
-                 or projektivelho.project.state <> :state
+                 or projektivelho.project.state_code <> :state_code
                  or projektivelho.project.created_at <> :created_at
                  or projektivelho.project.modified <> :modified;
         """.trimIndent()
         val params = mapOf(
             "oid" to project.oid,
             "name" to project.properties.name,
-            "state" to project.properties.state,
+            "state_code" to project.properties.state,
             "created_at" to Timestamp.from(project.createdAt),
             "modified" to Timestamp.from(project.modified),
         )
@@ -143,22 +145,22 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun upsertProjectGroup(projectGroup: PVApiProjectGroup) {
         val sql = """
-            insert into projektivelho.project_group (oid, name, state, created_at, modified)
-            values (:oid, :name, :state, :created_at, :modified)
+            insert into projektivelho.project_group (oid, name, state_code, created_at, modified)
+            values (:oid, :name, :state_code, :created_at, :modified)
             on conflict (oid) do update 
               set name = :name,
-                  state = :state,
+                  state_code = :state_code,
                   created_at = :created_at,
                   modified = :modified
               where projektivelho.project_group.name <> :name
-                 or projektivelho.project_group.state <> :state
+                 or projektivelho.project_group.state_code <> :state_code
                  or projektivelho.project_group.created_at <> :created_at
                  or projektivelho.project_group.modified <> :modified
         """.trimIndent()
         val params = mapOf(
             "oid" to projectGroup.oid,
             "name" to projectGroup.properties.name,
-            "state" to projectGroup.properties.state,
+            "state_code" to projectGroup.properties.state,
             "created_at" to Timestamp.from(projectGroup.createdAt),
             "modified" to Timestamp.from(projectGroup.modified),
         )
@@ -170,22 +172,22 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
     @Transactional
     fun upsertAssignment(assignment: PVApiAssignment) {
         val sql = """
-            insert into projektivelho.assignment (oid, name, state, created_at, modified)
-            values (:oid, :name, :state, :created_at, :modified)
+            insert into projektivelho.assignment (oid, name, state_code, created_at, modified)
+            values (:oid, :name, :state_code, :created_at, :modified)
             on conflict (oid) do update 
               set name = :name,
-                  state = :state,
+                  state_code = :state_code,
                   created_at = :created_at,
                   modified = :modified
               where projektivelho.assignment.name <> :name
-                 or projektivelho.assignment.state <> :state
+                 or projektivelho.assignment.state_code <> :state_code
                  or projektivelho.assignment.created_at <> :created_at
                  or projektivelho.assignment.modified <> :modified
         """.trimIndent()
         val params = mapOf(
             "oid" to assignment.oid,
             "name" to assignment.properties.name,
-            "state" to assignment.properties.state,
+            "state_code" to assignment.properties.state,
             "created_at" to Timestamp.from(assignment.createdAt),
             "modified" to Timestamp.from(assignment.modified),
         )
@@ -313,18 +315,24 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
               metadata.status,
               metadata.project_oid,
               project.name project_name,
+              project_state.name project_state,
               metadata.project_group_oid,
               project_group.name project_group_name,
+              project_group_state.name project_group_state,
               metadata.assignment_oid,
               assignment.name assignment_name,
+              assignment_state.name assignment_state,
               document_type.name document_type,
               material_state.name material_state,
               material_group.name material_group,
               material_category.name material_category
             from projektivelho.file_metadata metadata
               left join projektivelho.project on project.oid = metadata.project_oid
+              left join projektivelho.project_state on project.state_code = project_state.code
               left join projektivelho.project_group on project_group.oid = metadata.project_group_oid
+              left join projektivelho.project_state project_group_state on project_group.state_code = project_group_state.code
               left join projektivelho.assignment on assignment.oid = metadata.assignment_oid
+              left join projektivelho.project_state assignment_state on assignment.state_code = assignment_state.code
               left join projektivelho.document_type on document_type.code = metadata.document_type_code
               left join projektivelho.material_state on material_state.code = metadata.material_state_code
               left join projektivelho.material_group on material_group.code = metadata.material_group_code
@@ -334,13 +342,13 @@ class VelhoDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTem
         val params = mapOf("status" to status?.name)
         return jdbcTemplate.query(sql, params) { rs, _ -> PVDocumentHeader(
             project = rs.getOidOrNull<PVProject>("project_oid")?.let{ oid ->
-                PVProject(oid, rs.getVelhoName("project_name"))
+                PVProject(oid, rs.getVelhoName("project_name"), rs.getVelhoName("project_state"))
             },
             projectGroup = rs.getOidOrNull<PVProjectGroup>("project_group_oid")?.let { oid ->
-                PVProjectGroup(oid, rs.getVelhoName("project_group_name"))
+                PVProjectGroup(oid, rs.getVelhoName("project_group_name"), rs.getVelhoName("project_state"))
             },
             assignment = rs.getOidOrNull<PVAssignment>("assignment_oid")?.let { oid ->
-                PVAssignment(oid, rs.getVelhoName("assignment_name"))
+                PVAssignment(oid, rs.getVelhoName("assignment_name"), rs.getVelhoName("project_state"))
             },
             document = PVDocument(
                 id = rs.getIntId("id"),

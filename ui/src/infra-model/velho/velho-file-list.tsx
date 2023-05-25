@@ -183,30 +183,34 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                 {item.projectGroup && (
                     <InfoboxField
                         label={t('velho.file-list.field.project-group')}
-                        value={item.projectGroup.name}
+                        value={`${item.projectGroup.name} (${item.projectGroup.state})`}
                     />
                 )}
                 {item.project && (
                     <InfoboxField
                         label={t('velho.file-list.field.project-name')}
-                        value={item.project.name}
+                        value={`${item.project.name} (${item.project.state})`}
                     />
                 )}
                 {item.assignment && (
                     <InfoboxField
                         label={t('velho.file-list.field.assignment')}
-                        value={item.assignment.name}
+                        value={`${item.assignment.name} (${item.assignment.state})`}
                     />
                 )}
             </InfoboxContent>
             <InfoboxContent>
                 <InfoboxField
                     label={t('velho.file-list.field.material-group')}
-                    value={item.document.group}
+                    value={`${item.document.group} / ${item.document.category}`}
                 />
                 <InfoboxField
                     label={t('velho.file-list.field.document-type')}
                     value={item.document.type}
+                />
+                <InfoboxField
+                    label={t('velho.file-list.field.document-state')}
+                    value={item.document.state}
                 />
             </InfoboxContent>
         </div>

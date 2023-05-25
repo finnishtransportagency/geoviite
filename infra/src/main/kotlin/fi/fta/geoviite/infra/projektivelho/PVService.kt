@@ -1,4 +1,4 @@
-package fi.fta.geoviite.infra.velho
+package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
 import PVDocument
@@ -29,10 +29,10 @@ val PROJEKTIVELHO_DB_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
 val SECONDS_IN_A_YEAR: Long = 31556926
 
 @Service
-@ConditionalOnBean(VelhoClientConfiguration::class)
-class VelhoService @Autowired constructor(
-    private val velhoClient: VelhoClient,
-    private val velhoDao: VelhoDao,
+@ConditionalOnBean(PVClientConfiguration::class)
+class PVService @Autowired constructor(
+    private val projektiVelhoClient: ProjektiVelhoClient,
+    private val pvDao: PVDao,
     private val lockDao: LockDao,
     private val infraModelService: InfraModelService,
 ) {
@@ -47,26 +47,32 @@ class VelhoService @Autowired constructor(
         lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
     }
 
-    //@Scheduled(cron = "0 0 * * * *")
+    @Scheduled(
+        initialDelayString="\${geoviite.projektivelho.search-poll.initial}",
+        fixedRateString="\${geoviite.projektivelho.search-poll.rate}",
+    )
     @Scheduled(initialDelay = 50000, fixedRate = 900000) // First run after 1min, then every 15min
     fun search(): PVApiSearchStatus? = runIntegration {
-        logger.serviceCall("search")
-        val latest = velhoDao.fetchLatestFile()
+        logger.info("Poll to launch new search")
+        val latest = pvDao.fetchLatestFile()
         val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
-        velhoClient.postXmlFileSearch(startTime, latest?.first)
-            .also { status ->
-                velhoDao.insertFetchInfo(status.searchId, status.startTime.plusSeconds(status.validFor))
-            }
+        projektiVelhoClient.postXmlFileSearch(startTime, latest?.first).also { status ->
+            val validUntil = status.startTime.plusSeconds(status.validFor)
+            pvDao.insertFetchInfo(status.searchId, validUntil)
+        }
     }
 
-    @Scheduled(initialDelay = 60000, fixedRate = 900000) // First run after 1min, then every 15min
+    @Scheduled(
+        initialDelayString="\${geoviite.projektivelho.result-poll.initial}",
+        fixedRateString="\${geoviite.projektivelho.result-poll.rate}",
+    )
     fun pollAndFetchIfWaiting() = runIntegration {
-        logger.serviceCall("pollAndFetchIfWaiting")
-        val latestSearch = velhoDao.fetchLatestSearch()
+        logger.info("Poll for search results")
+        val latestSearch = pvDao.fetchLatestSearch()
         // Mark previous search as stalled if previous search is supposedly still running after
         // having outlived its validity period
         if (latestSearch?.state == PVFetchStatus.FETCHING && Instant.now() > latestSearch.validUntil) {
-            velhoDao.updateFetchState(latestSearch.id, PVFetchStatus.ERROR)
+            pvDao.updateFetchState(latestSearch.id, PVFetchStatus.ERROR)
         } else {
             updateDictionaries()
             latestSearch
@@ -76,28 +82,28 @@ class VelhoService @Autowired constructor(
     }
     fun getSearchStatusIfReady(pvSearch: PVSearch) = pvSearch
         .takeIf { search -> search.state == PVFetchStatus.WAITING }
-        ?.let { search -> velhoClient.fetchVelhoSearchStatus(search.token) }
+        ?.let { search -> projektiVelhoClient.fetchVelhoSearchStatus(search.token) }
         ?.takeIf { status -> status.state == PROJEKTIVELHO_SEARCH_STATE_READY }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")
-        val dict = velhoClient.fetchDictionaries()
+        val dict = projektiVelhoClient.fetchDictionaries()
         dict.forEach { (type, entries) ->
-            velhoDao.upsertDictionary(type, entries)
+            pvDao.upsertDictionary(type, entries)
         }
     }
 
     fun importFilesFromProjektiVelho(latest: PVSearch, searchResults: PVApiSearchStatus) =
         try {
-            velhoDao.updateFetchState(latest.id, PVFetchStatus.FETCHING)
+            pvDao.updateFetchState(latest.id, PVFetchStatus.FETCHING)
             val assignments = mutableMapOf<Oid<PVAssignment>, PVApiAssignment?>()
             val projects = mutableMapOf<Oid<PVProject>, PVApiProject?>()
             val projectGroups = mutableMapOf<Oid<PVProjectGroup>, PVApiProjectGroup?>()
-            velhoClient.fetchSearchResults(searchResults.searchId).matches
+            projektiVelhoClient.fetchSearchResults(searchResults.searchId).matches
                 .map { match -> fetchFileAndInsertToDb(match, assignments, projects, projectGroups) }
-            velhoDao.updateFetchState(latest.id, PVFetchStatus.FINISHED)
+            pvDao.updateFetchState(latest.id, PVFetchStatus.FINISHED)
         } catch (e: Exception) {
-            velhoDao.updateFetchState(latest.id, PVFetchStatus.ERROR)
+            pvDao.updateFetchState(latest.id, PVFetchStatus.ERROR)
             throw e
         }
 
@@ -119,13 +125,13 @@ class VelhoService @Autowired constructor(
         projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>,
     ): PVAssignmentHolder {
         val assignment = assignmentOid.let { oid ->
-            fetchIfNew(assignments, oid, velhoClient::fetchAssignment, velhoDao::upsertAssignment)
+            fetchIfNew(assignments, oid, projektiVelhoClient::fetchAssignment, pvDao::upsertAssignment)
         }
         val project = assignment?.projectOid?.let { oid ->
-            fetchIfNew(projects, oid, velhoClient::fetchProject, velhoDao::upsertProject)
+            fetchIfNew(projects, oid, projektiVelhoClient::fetchProject, pvDao::upsertProject)
         }
         val projectGroup = project?.projectGroupOid?.let { oid ->
-            fetchIfNew(projectGroups, oid, velhoClient::fetchProjectGroup, velhoDao::upsertProjectGroup)
+            fetchIfNew(projectGroups, oid, projektiVelhoClient::fetchProjectGroup, pvDao::upsertProjectGroup)
         }
         return PVAssignmentHolder(assignment, project, projectGroup)
     }
@@ -143,10 +149,10 @@ class VelhoService @Autowired constructor(
             ?.also { value -> store(value) }
 
     private fun fetchFileMetadataAndContent(oid: Oid<PVDocument>): PVFileHolder {
-        val metadataResponse = velhoClient.fetchFileMetadata(oid)
+        val metadataResponse = projektiVelhoClient.fetchFileMetadata(oid)
         val content =
             if (metadataResponse.metadata.containsPersonalInfo == true) null
-            else velhoClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
+            else projektiVelhoClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
 
         return PVFileHolder(
             oid = oid,
@@ -160,7 +166,7 @@ class VelhoService @Autowired constructor(
         val xmlContent = file.content
             ?.takeIf { content -> isRailroadXml(content ,file.latestVersion.name) }
             ?.let { content -> censorAuthorIdentifyingInfo(content) }
-        val metadataId = velhoDao.insertFileMetadata(
+        val metadataId = pvDao.insertFileMetadata(
             file.oid,
             file.metadata,
             file.latestVersion,
@@ -169,7 +175,7 @@ class VelhoService @Autowired constructor(
             assignment.project?.oid,
             assignment.projectGroup?.oid,
         )
-        xmlContent?.let { content -> velhoDao.insertFileContent(content, metadataId) }
+        xmlContent?.let { content -> pvDao.insertFileContent(content, metadataId) }
     }
 
     fun isRailroadXml(xml: String, filename: FileName) =
@@ -181,3 +187,16 @@ class VelhoService @Autowired constructor(
             false
         }
 }
+
+private data class PVAssignmentHolder(
+    val assignment: PVApiAssignment?,
+    val project: PVApiProject?,
+    val projectGroup: PVApiProjectGroup?,
+)
+
+private data class PVFileHolder(
+    val oid: Oid<PVDocument>,
+    val content: String?,
+    val metadata: PVApiFileMetadata,
+    val latestVersion: PVApiLatestVersion,
+)
