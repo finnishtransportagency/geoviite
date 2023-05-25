@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.stream.Collectors
-import kotlin.math.floor
 
 
 @Service
@@ -484,31 +483,44 @@ class GeometryService @Autowired constructor(
                 { (trackMeter, segmentIndex) -> trackMeter.meters to segmentIndex }
             )
 
-        val lastAddress = geocodingContext.getStartAndEnd(alignment).end?.address ?: return null
+        val (alignmentStart, alignmentEnd) = geocodingContext.getStartAndEnd(alignment).let { startAndEnd ->
+            (startAndEnd.start ?: return null) to (startAndEnd.end ?: return null)
+        }
 
         return referencePointIndices.toList().parallelStream().map { referencePointIndex ->
             val referencePoint = geocodingContext.referencePoints[referencePointIndex]
             val kmNumber = referencePoint.kmNumber
             // The choice of a half-tick-length minimum is totally arbitrary
             val minTickSpace = BigDecimal(tickLength).setScale(1) / BigDecimal(2)
-            val referenceLineKmLength =
-                getKmLengthAtReferencePointIndex(referencePointIndex, geocodingContext) - minTickSpace.toInt()
+            val lastPoint = (referencePoint.meters.toDouble() + getKmLengthAtReferencePointIndex(
+                referencePointIndex,
+                geocodingContext
+            ) - minTickSpace.toDouble()).toInt()
 
             // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
             // hit a specific segment; but points on different sides of a segment boundary are often the exact same
             // point, but potentially have different heights (or more often null/not-null heights).
-            val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf())
-                    + (referencePoint.meters.toInt()..(referencePoint.meters.toInt() + referenceLineKmLength) step tickLength)
-                .map { distance -> distance.toBigDecimal() to null }
-                    // special-case last point so front-end doesn't have to extrapolate heights at track end
-                    ).sortedBy { (trackMeterInKm) -> trackMeterInKm }
+            val allTicks = ((0..lastPoint step tickLength).map { distance -> distance.toBigDecimal() to null } +
+                    (planBoundaryAddressesByKm[kmNumber] ?: listOf())).sortedBy { (trackMeterInKm) -> trackMeterInKm }
 
-            val ticksToSend = allTicks.filterIndexed { i, (trackMeterInKm, segmentIndex) ->
+            val ticksToSend = (allTicks.filterIndexed { i, (trackMeterInKm, segmentIndex) ->
                 segmentIndex != null || i == 0 ||
-                        (trackMeterInKm - allTicks[i - 1].first >= minTickSpace) &&
-                        (i == allTicks.lastIndex || allTicks[i + 1].first - trackMeterInKm >= minTickSpace)
-            } + if (kmNumber == lastAddress.kmNumber) listOf(lastAddress.meters to null) else listOf()
+                        ((trackMeterInKm - allTicks[i - 1].first >= minTickSpace) &&
+                                (i == allTicks.lastIndex || allTicks[i + 1].first - trackMeterInKm >= minTickSpace))
+            }
+                    // Special-case first and last points so we get as close as possible to the track ends
+                    + (if (kmNumber == alignmentStart.address.kmNumber) listOf(alignmentStart.address.meters to null) else listOf())
+                    + (if (kmNumber == alignmentEnd.address.kmNumber) listOf(alignmentEnd.address.meters to null) else listOf()))
+                .sortedBy { (trackMeterInKm) -> trackMeterInKm }
 
+            val endM = if (kmNumber == alignmentEnd.address.kmNumber) {
+                alignmentEnd.point.m
+            } else {
+                geocodingContext.getTrackLocation(
+                    alignment,
+                    TrackMeter(geocodingContext.referencePoints[referencePointIndex + 1].kmNumber, 0)
+                )?.point?.m!!
+            }
 
             KmHeights(
                 referencePoint.kmNumber,
@@ -523,7 +535,8 @@ class GeometryService @Autowired constructor(
                                 address.point.toPoint(),
                             )
                         }
-                    }.distinct() // don't bother sending segment boundary sides with the same location and height
+                    }.distinct(), // don't bother sending segment boundary sides with the same location and height
+                endM,
             )
         }.collect(Collectors.toList())
             .filter { km -> km.trackMeterHeights.isNotEmpty() }
@@ -533,12 +546,12 @@ class GeometryService @Autowired constructor(
 private fun getKmLengthAtReferencePointIndex(
     referencePointIndex: Int,
     geocodingContext: GeocodingContext,
-): Int = floor(
+) =
     if (referencePointIndex == geocodingContext.referencePoints.size - 1)
         geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
     else
         geocodingContext.referencePoints[referencePointIndex + 1].distance - geocodingContext.referencePoints[referencePointIndex].distance
-).toInt()
+
 
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,
