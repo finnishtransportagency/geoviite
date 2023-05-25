@@ -16,6 +16,7 @@
                 "document-state": "Dokumentin tila"
             },
             "reject": "Hylkää",
+            "restore": "Palauta",
             "upload": "Tuo suunnitelma..."
         }
     }

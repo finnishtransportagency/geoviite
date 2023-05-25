@@ -7,6 +7,7 @@ import {
     queryParams,
     getWithDefault,
     putIgnoreError,
+    getIgnoreError,
 } from 'api/api-fetch';
 import { GeometryPlan, GeometryPlanId } from 'geometry/geometry-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -16,7 +17,12 @@ import {
     OverrideInfraModelParameters,
     ValidationResponse,
 } from './infra-model-slice';
-import { PVDocumentHeader, PVDocumentId, PVDocumentStatus } from './velho/velho-model';
+import {
+    PVDocumentCount,
+    PVDocumentHeader,
+    PVDocumentId,
+    PVDocumentStatus,
+} from './velho/velho-model';
 import { asyncCache } from 'cache/cache';
 import { TimeStamp } from 'common/common-model';
 import i18n from 'i18next';
@@ -121,10 +127,21 @@ export async function getVelhoDocuments(
     );
 }
 
+export async function getVelhoDocumentCount(): Promise<PVDocumentCount | null> {
+    return getIgnoreError<PVDocumentCount>(`${VELHO_URI}/documents/count`);
+}
+
 export async function rejectVelhoDocument(id: PVDocumentId): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
         `${VELHO_URI}/documents/${id}/status`,
         'REJECTED',
+    );
+}
+
+export async function restoreVelhoDocument(id: PVDocumentId): Promise<null> {
+    return putIgnoreError<PVDocumentStatus, null>(
+        `${VELHO_URI}/documents/${id}/status`,
+        'SUGGESTED',
     );
 }
 

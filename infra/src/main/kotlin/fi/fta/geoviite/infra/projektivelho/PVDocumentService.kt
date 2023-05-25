@@ -61,4 +61,9 @@ class PVDocumentService @Autowired constructor(
         return file?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }
             ?: noFileValidationResponse(overrides)
     }
+
+    fun getDocumentCounts(): PVDocumentCounts {
+        logger.serviceCall("getDocumentCounts")
+        return pvDao.getDocumentCounts()
+    }
 }

@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.projektivelho.PVDocumentCounts
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import org.slf4j.Logger
@@ -97,6 +98,13 @@ class InfraModelController @Autowired constructor(
     fun getVelhoDocumentHeaders(@RequestParam("status") status: PVDocumentStatus?): List<PVDocumentHeader> {
         logger.apiCall("getVelhoDocumentHeaders", "status" to status)
         return pvDocumentService.getDocumentHeaders(status)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/velho-import/documents/count")
+    fun getVelhoDocumentCounts(): PVDocumentCounts {
+        logger.apiCall("getVelhoDocumentCounts")
+        return pvDocumentService.getDocumentCounts()
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
