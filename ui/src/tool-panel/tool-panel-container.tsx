@@ -78,7 +78,10 @@ const ToolPanelContainer: React.FC = () => {
             selectedTabId={store.selectedToolPanelTabId}
             startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
-            stopLinking={delegates.stopLinking}
+            stopSwitchLinking={() => {
+                delegates.hideLayers(['switch-linking-layer']);
+                delegates.stopLinking();
+            }}
             verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramVisible}
         />
     );

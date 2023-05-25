@@ -48,8 +48,14 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 locationTrack={locationTrack}
                 linkingState={linkingState}
                 onDataChange={onDataChange}
-                onStartLocationTrackGeometryChange={delegates.startAlignmentGeometryChange}
-                onEndLocationTrackGeometryChange={delegates.stopLinking}
+                onStartLocationTrackGeometryChange={(interval) => {
+                    delegates.showLayers(['alignment-linking-layer']);
+                    delegates.startAlignmentGeometryChange(interval);
+                }}
+                onEndLocationTrackGeometryChange={() => {
+                    delegates.hideLayers(['alignment-linking-layer']);
+                    delegates.stopLinking();
+                }}
                 showArea={delegates.showArea}
                 publishType={publishType}
                 locationTrackChangeTime={locationTrackChangeTime}

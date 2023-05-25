@@ -68,9 +68,15 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
             )}
             trackNumberChangeTime={changeTimes.layoutTrackNumber}
             linkingState={linkingState}
-            onLinkingStart={delegates.startAlignmentLinking}
+            onLinkingStart={(params) => {
+                delegates.showLayers(['alignment-linking-layer']);
+                delegates.startAlignmentLinking(params);
+            }}
             onLockAlignment={delegates.lockAlignmentSelection}
-            onStopLinking={delegates.stopLinking}
+            onStopLinking={() => {
+                delegates.hideLayers(['alignment-linking-layer']);
+                delegates.stopLinking();
+            }}
             resolution={trackLayoutState.map.viewport.resolution}
             publishType={publishType}
             showArea={delegates.showArea}

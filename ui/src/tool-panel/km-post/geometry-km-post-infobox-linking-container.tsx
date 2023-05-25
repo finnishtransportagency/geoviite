@@ -43,7 +43,10 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
                     ? state.linkingState
                     : undefined
             }
-            startLinking={delegates.startKmPostLinking}
+            startLinking={(id) => {
+                delegates.showLayers(['km-post-layer']);
+                delegates.startKmPostLinking(id);
+            }}
             stopLinking={delegates.stopLinking}
             onKmPostSelect={(kmPost: LayoutKmPost) => delegates.onSelect({ kmPosts: [kmPost.id] })}
             publishType={state.publishType}

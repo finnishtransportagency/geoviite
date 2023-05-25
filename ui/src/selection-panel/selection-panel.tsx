@@ -120,6 +120,8 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
         trackNumberId: LayoutTrackNumberId,
         color: TrackNumberColorKey,
     ) => {
+        showMapLayer('track-number-diagram-layer');
+
         onMapLayerSettingChange({
             name: 'track-number-diagram-layer',
             settings: {
