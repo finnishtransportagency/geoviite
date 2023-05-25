@@ -51,7 +51,6 @@ class PVService @Autowired constructor(
         initialDelayString="\${geoviite.projektivelho.search-poll.initial}",
         fixedRateString="\${geoviite.projektivelho.search-poll.rate}",
     )
-    @Scheduled(initialDelay = 50000, fixedRate = 900000) // First run after 1min, then every 15min
     fun search(): PVApiSearchStatus? = runIntegration {
         logger.info("Poll to launch new search")
         val latest = pvDao.fetchLatestFile()
