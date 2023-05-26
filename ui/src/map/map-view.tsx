@@ -81,7 +81,7 @@ type MapViewProps = {
     onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
     onViewportUpdate?: (viewport: MapViewport) => void;
-    onShownLayerItemsChange?: (items: OptionalShownItems) => void;
+    onShownLayerItemsChange: (items: OptionalShownItems) => void;
     onSetLayoutPoint?: (linkPoint: LinkPoint) => void;
     onsetGeometryPoint?: (linkPoint: LinkPoint) => void;
     onSetLayoutClusterLinkPoint?: (linkPoint: LinkPoint) => void;
@@ -241,13 +241,11 @@ const MapView: React.FC<MapViewProps> = ({
             olMap.setView(getOlViewByDomainViewport(map.viewport));
         }
 
-        if (props.onShownLayerItemsChange) {
-            // Get items from whole visible map
-            const area = olMap.getView().calculateExtent();
-            const pol = fromExtent(area);
-            const items = searchShownItemsFromLayers(pol, visibleLayers, {});
-            props.onShownLayerItemsChange(items);
-        }
+        // Get items from whole visible map
+        const area = olMap.getView().calculateExtent();
+        const pol = fromExtent(area);
+        const items = searchShownItemsFromLayers(pol, visibleLayers, {});
+        props.onShownLayerItemsChange(items);
     }, [olMap, map.viewport, visibleLayers]);
 
     // Convert layer domain models into OpenLayers layers

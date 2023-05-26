@@ -29,7 +29,7 @@ export function createReferenceLineAlignmentLayer(
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
-    onViewContentChanged?: (items: OptionalShownItems) => void,
+    onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
@@ -72,18 +72,16 @@ export function createReferenceLineAlignmentLayer(
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);
 
-            if (onViewContentChanged) {
-                const compare = referenceLines
-                    .map(({ header }) => header.id)
-                    .sort()
-                    .join();
+            const compare = referenceLines
+                .map(({ header }) => header.id)
+                .sort()
+                .join();
 
-                if (compare !== compareString) {
-                    compareString = compare;
-                    const area = fromExtent(olView.calculateExtent());
-                    const result = shownItemsSearchFunction(area, {});
-                    onViewContentChanged(result);
-                }
+            if (compare !== compareString) {
+                compareString = compare;
+                const area = fromExtent(olView.calculateExtent());
+                const result = shownItemsSearchFunction(area, {});
+                onViewContentChanged(result);
             }
         })
         .catch(() => clearFeatures(vectorSource));

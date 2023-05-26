@@ -30,7 +30,7 @@ export function createLocationTrackAlignmentLayer(
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
-    onViewContentChanged?: (items: OptionalShownItems) => void,
+    onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
@@ -75,18 +75,16 @@ export function createLocationTrackAlignmentLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
 
-                if (onViewContentChanged) {
-                    const compare = alignments
-                        .map(({ header }) => header.id)
-                        .sort()
-                        .join();
+                const compare = alignments
+                    .map(({ header }) => header.id)
+                    .sort()
+                    .join();
 
-                    if (compare !== compareString) {
-                        compareString = compare;
-                        const area = fromExtent(olView.calculateExtent());
-                        const result = shownItemsSearchFunction(area, {});
-                        onViewContentChanged(result);
-                    }
+                if (compare !== compareString) {
+                    compareString = compare;
+                    const area = fromExtent(olView.calculateExtent());
+                    const result = shownItemsSearchFunction(area, {});
+                    onViewContentChanged(result);
                 }
             })
             .catch(() => clearFeatures(vectorSource));
