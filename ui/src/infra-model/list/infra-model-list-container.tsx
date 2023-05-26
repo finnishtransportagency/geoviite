@@ -64,6 +64,7 @@ export const InfraModelListContainer: React.FC<InfraModelListContainerProps> = (
             page={state.page}
             pageSize={state.pageSize}
             changeTimes={changeTimes}
+            clearInfraModelState={infraModelListDelegates.clearInfraModelState}
         />
     );
 };

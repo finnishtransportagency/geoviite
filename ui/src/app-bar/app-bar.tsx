@@ -6,6 +6,9 @@ import vaylaLogo from 'vayla-design-lib/logo/vayla-logo.svg';
 import { EnvRestricted } from 'environment/env-restricted';
 import { Environment } from 'environment/environment-info';
 import { useTranslation } from 'react-i18next';
+import { useInfraModelAppSelector } from 'store/hooks';
+import { GeometryPlanId } from 'geometry/geometry-model';
+import { inframodelEditPath } from 'infra-model/infra-model-main-view';
 
 type Link = {
     link: string;
@@ -13,11 +16,19 @@ type Link = {
     type: Environment;
 };
 
-const links: Link[] = [
+const links: (a: GeometryPlanId | undefined) => Link[] = (
+    inframodelBeingEdited: GeometryPlanId | undefined,
+) => [
     { link: '/', name: 'app-bar.frontpage', type: 'prod' },
     { link: '/track-layout', name: 'app-bar.track-layout', type: 'prod' },
     { link: '/registry', name: 'app-bar.register', type: 'test' },
-    { link: '/infra-model', name: 'app-bar.infra-model', type: 'prod' },
+    {
+        link: `/infra-model${
+            inframodelBeingEdited ? `${inframodelEditPath}/${inframodelBeingEdited}` : ''
+        }`,
+        name: 'app-bar.infra-model',
+        type: 'prod',
+    },
     { link: '/design-lib-demo', name: 'app-bar.components', type: 'dev' },
     { link: '/localization-demo', name: 'app-bar.localization', type: 'dev' },
     {
@@ -30,6 +41,7 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
+    const infraModelBeingEdited = useInfraModelAppSelector((state) => state.plan?.id);
 
     return (
         <nav className={styles['app-bar']}>
@@ -39,7 +51,7 @@ export const AppBar: React.FC = () => {
             </div>
             <ul className={styles['app-bar__links']}>
                 {links &&
-                    links.map((link) => {
+                    links(infraModelBeingEdited).map((link) => {
                         return (
                             <EnvRestricted restrictTo={link.type} key={link.name}>
                                 <li>

@@ -221,6 +221,18 @@ const infraModelSlice = createSlice({
             state.committedFields = [];
             state.validationErrors = initialInfraModelState.validationErrors;
         },
+        clearInfraModelState: (state: InfraModelState) => {
+            state.plan = initialInfraModelState.plan;
+            state.planLayout = initialInfraModelState.planLayout;
+            state.extraInfraModelParameters = initialInfraModelState.extraInfraModelParameters;
+            state.overrideInfraModelParameters =
+                initialInfraModelState.overrideInfraModelParameters;
+            state.file = initialInfraModelState.file;
+            state.selection = initialSelectionState;
+            state.map.viewport = initialInfraModelState.map.viewport;
+            state.committedFields = [];
+            state.validationErrors = initialInfraModelState.validationErrors;
+        },
         ...wrapReducers((state: InfraModelState) => state.map, mapReducers),
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),
         ...wrapReducers((state: InfraModelState) => state.selection, selectionReducers),
