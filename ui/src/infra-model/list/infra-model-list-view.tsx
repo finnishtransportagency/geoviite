@@ -16,12 +16,16 @@ export type InfraModelListViewProps = Pick<
     onNextPage: () => void;
     onPrevPage: () => void;
     changeTimes: ChangeTimes;
+    clearInfraModelState: () => void;
 };
 
 export const InfraModelListView: React.FC<InfraModelListViewProps> = (
     props: InfraModelListViewProps,
 ) => {
     const trackNumbers = useTrackNumbers('DRAFT');
+    React.useEffect(() => {
+        props.clearInfraModelState();
+    }, []);
     return (
         <div className="infra-model-list">
             <div className="infra-model-list__search-form">

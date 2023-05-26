@@ -6,13 +6,15 @@ import { Route, Routes } from 'react-router-dom';
 import { InfraModelViewType } from 'infra-model/infra-model-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
 
+export const inframodelEditPath = `/edit`;
+
 export const InfraModelMainView: React.FC = () => {
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     return (
         <div className={styles['infra-model-main']}>
             <Routes>
                 <Route
-                    path="/edit/:id"
+                    path={`${inframodelEditPath}/:id`}
                     element={<InfraModelViewContainer viewType={InfraModelViewType.EDIT} />}
                 />
                 <Route
