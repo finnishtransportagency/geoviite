@@ -11,6 +11,7 @@ export type ChangeTimes = {
     layoutKmPost: TimeStamp;
     geometryPlan: TimeStamp;
     publication: TimeStamp;
+    ratkoPush: TimeStamp;
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -22,6 +23,7 @@ export const initialChangeTimes: ChangeTimes = {
     layoutKmPost: initialChangeTime,
     geometryPlan: initialChangeTime,
     publication: initialChangeTime,
+    ratkoPush: initialChangeTime,
 };
 
 export type CommonState = {
@@ -67,6 +69,9 @@ const commonSlice = createSlice({
             }
             if (toDate(changeTimes.publication) < toDate(payload.publication)) {
                 changeTimes.publication = payload.publication;
+            }
+            if (toDate(changeTimes.ratkoPush) < toDate(payload.ratkoPush)) {
+                changeTimes.ratkoPush = payload.ratkoPush;
             }
         },
         setLayoutTrackNumberChangeTime: function (
@@ -117,6 +122,12 @@ const commonSlice = createSlice({
         ) {
             if (toDate(changeTimes.publication) < toDate(payload))
                 changeTimes.publication = payload;
+        },
+        setRatkoPushChangeTime: function (
+            { changeTimes }: CommonState,
+            { payload }: PayloadAction<TimeStamp>,
+        ) {
+            if (toDate(changeTimes.ratkoPush) < toDate(payload)) changeTimes.ratkoPush = payload;
         },
         setUserPrivileges: (
             state: CommonState,
