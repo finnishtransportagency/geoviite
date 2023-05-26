@@ -239,6 +239,21 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             .also { logger.daoAccess(AccessType.FETCH, Publication::class) }
     }
 
+    fun getRatkoPushChangeTime(): Instant {
+        val sql = """
+            select coalesce(
+                greatest(
+                    max(ratko_push.end_time), 
+                    max(ratko_push.start_time)
+                ), 
+                now()
+            ) as latest_ratko_push_time
+            from integrations.ratko_push
+        """.trimIndent()
+        return jdbcTemplate.queryOne(sql) { rs, _, -> rs.getInstant("latest_ratko_push_time") }
+            .also { logger.daoAccess(AccessType.FETCH, Publication::class) }
+    }
+
     fun getRatkoStatus(publicationId: IntId<Publication>): List<RatkoPush> {
         val sql = """
             select

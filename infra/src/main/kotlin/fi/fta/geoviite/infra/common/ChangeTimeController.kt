@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.integration.RatkoPushDao
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.*
@@ -21,6 +22,7 @@ data class CollectedChangeTimes(
     val layoutKmPost: Instant,
     val geometryPlan: Instant,
     val publication: Instant,
+    val ratkoPush: Instant,
 )
 
 @RestController
@@ -33,6 +35,7 @@ class ChangeTimeController(
     private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
     private val publicationService: PublicationService,
+    private val ratkoPushDao: RatkoPushDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -49,6 +52,7 @@ class ChangeTimeController(
             layoutSwitch = switchService.getChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             publication = publicationService.getChangeTime(),
+            ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
         )
     }
 
