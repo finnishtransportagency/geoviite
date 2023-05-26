@@ -96,7 +96,7 @@ $color-highlight-blue: #389bf6;
 // Switch styling
 :export {
     switchTextColor: $color-black-default;
-    switchBackground: $color-black-lighter; //todo
+    switchBackground: $color-black-lighter;
 
     switchLabel: $color-geoviite-cadmium-lighter;
     switchLabelBorder: rgba($color-black-default, 0.5);

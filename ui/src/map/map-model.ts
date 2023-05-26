@@ -8,6 +8,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { ValueOf } from 'utils/type-utils';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 export type MapLayerName =
     | 'background-map-layer'
@@ -26,9 +27,9 @@ export type MapLayerName =
     | 'geometry-alignment-layer'
     | 'geometry-km-post-layer'
     | 'geometry-switch-layer'
-    | 'linking-layer'
-    | 'linking-switch-layer'
-    | 'manual-linking-switch-layer'
+    | 'alignment-linking-layer'
+    | 'switch-linking-layer'
+    | 'manual-switch-linking-layer'
     | 'plan-area-layer'
     | 'debug-1m-points-layer'
     | 'debug-layer';
@@ -83,7 +84,6 @@ export type MapLayerMenuItemName =
     | 'map'
     | 'location-track'
     | 'reference-line'
-    | 'track-number-diagram'
     | 'missing-vertical-geometry'
     | 'missing-linking'
     | 'duplicate-tracks'
@@ -98,7 +98,8 @@ export type MapLayerMenuItemName =
 
 export type TrackNumberDiagramLayerSetting = {
     [key: LayoutTrackNumberId]: {
-        selected: boolean;
+        selected?: boolean;
+        color?: TrackNumberColorKey;
     };
 };
 

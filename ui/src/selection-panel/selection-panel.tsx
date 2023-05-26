@@ -21,7 +21,7 @@ import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
-import { MapLayerSettingChange, MapLayerSettings, MapViewport } from 'map/map-model';
+import { MapLayerName, MapLayerSettingChange, MapLayerSettings, MapViewport } from 'map/map-model';
 import {
     createEmptyItemCollections,
     ToggleAccordionOpenPayload,
@@ -36,6 +36,8 @@ import { LocationTracksPanel } from 'selection-panel/location-track-panel/locati
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 import { ChangeTimes } from 'common/common-slice';
+import { Eye } from 'geoviite-design-lib/eye/eye';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -60,6 +62,9 @@ type SelectionPanelProps = {
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
     onMapLayerSettingChange: (change: MapLayerSettingChange) => void;
     mapLayerSettings: MapLayerSettings;
+    showMapLayer: (mapLayers: MapLayerName) => void;
+    hideMapLayer: (mapLayers: MapLayerName) => void;
+    visibleMapLayers: MapLayerName[];
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
@@ -85,6 +90,9 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     togglePlanSwitchesOpen,
     onMapLayerSettingChange,
     mapLayerSettings,
+    showMapLayer,
+    hideMapLayer,
+    visibleMapLayers,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -101,7 +109,24 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             settings: {
                 ...diagramLayer,
                 [trackNumber.id]: {
+                    ...diagramLayer[trackNumber.id],
                     selected: !diagramLayer[trackNumber.id]?.selected,
+                },
+            },
+        });
+    };
+
+    const onTrackNumberColorSelection = (
+        trackNumberId: LayoutTrackNumberId,
+        color: TrackNumberColorKey,
+    ) => {
+        onMapLayerSettingChange({
+            name: 'track-number-diagram-layer',
+            settings: {
+                ...diagramLayer,
+                [trackNumberId]: {
+                    ...diagramLayer[trackNumberId],
+                    color,
                 },
             },
         });
@@ -164,18 +189,31 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     );
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
+    const trackNumberDiagramVisible = visibleMapLayers.some(
+        (layer) => layer === 'track-number-diagram-layer',
+    );
 
     return (
         <div className={styles['selection-panel']}>
             <section>
-                <h3 className={styles['selection-panel__title']}>{`${t(
-                    'selection-panel.track-numbers-title',
-                )} (${visibleTrackNumbers.length})`}</h3>
+                <h3 className={styles['selection-panel__title']}>
+                    {`${t('selection-panel.track-numbers-title')} (${visibleTrackNumbers.length})`}
+                    <Eye
+                        onVisibilityToggle={() =>
+                            (trackNumberDiagramVisible ? hideMapLayer : showMapLayer)(
+                                'track-number-diagram-layer',
+                            )
+                        }
+                        visibility={trackNumberDiagramVisible}
+                    />
+                </h3>
                 <div className={styles['selection-panel__content']}>
                     <TrackNumberPanel
+                        settings={diagramLayer}
                         trackNumbers={visibleTrackNumbers}
                         selectedTrackNumbers={selectedTrackNumberIds}
                         onSelectTrackNumber={onTrackNumberSelection}
+                        onSelectColor={onTrackNumberColorSelection}
                     />
                 </div>
             </section>

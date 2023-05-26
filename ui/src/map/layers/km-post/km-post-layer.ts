@@ -59,7 +59,7 @@ export function createKmPostLayer(
         return { kmPosts };
     };
 
-    function switchesChanged(kmPostIds: LayoutKmPostId[]) {
+    function kmPostChanged(kmPostIds: LayoutKmPostId[]) {
         if (onViewContentChanged) {
             const newIds = kmPostIds.sort().join();
 
@@ -78,13 +78,13 @@ export function createKmPostLayer(
         clearFeatures(vectorSource);
         vectorSource.addFeatures(features);
 
-        switchesChanged(kmPosts.map((k) => k.id));
+        kmPostChanged(kmPosts.map((k) => k.id));
     }
 
     const step = getKmPostStepByResolution(resolution);
     if (step == 0) {
         clearFeatures(vectorSource);
-        switchesChanged([]);
+        kmPostChanged([]);
     } else {
         // Fetch every nth
         getKmPostsFromApi(step)

@@ -43,7 +43,7 @@ export const linkingReducers = {
         };
 
         mapReducers.showLayers(state.map, {
-            payload: ['linking-layer'],
+            payload: ['alignment-linking-layer'],
             type: 'showLayers',
         });
     },
@@ -70,7 +70,11 @@ export const linkingReducers = {
         state.selection.selectedItems.clusterPoints = [];
         state.selection.selectedItems.suggestedSwitches = [];
         mapReducers.hideLayers(state.map, {
-            payload: ['linking-layer', 'switch-layer', 'manual-linking-switch-layer'],
+            payload: [
+                'alignment-linking-layer',
+                'switch-linking-layer',
+                'manual-switch-linking-layer',
+            ],
             type: 'hideLayers',
         });
     },
@@ -196,7 +200,7 @@ export const linkingReducers = {
             });
 
             mapReducers.showLayers(state.map, {
-                payload: ['linking-layer'],
+                payload: ['alignment-linking-layer'],
                 type: 'showLayers',
             });
         }

@@ -67,6 +67,9 @@ export const SelectionPanelContainer: React.FC = () => {
             togglePlanSwitchesOpen={delegates.togglePlanSwitchesOpen}
             onMapLayerSettingChange={delegates.onLayerSettingChange}
             mapLayerSettings={state.map.layerSettings}
+            showMapLayer={(l) => delegates.showLayers([l])}
+            hideMapLayer={(l) => delegates.hideLayers([l])}
+            visibleMapLayers={state.map.visibleLayers}
         />
     );
 };

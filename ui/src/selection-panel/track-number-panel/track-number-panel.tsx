@@ -4,19 +4,29 @@ import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layou
 import { fieldComparator } from 'utils/array-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { useTranslation } from 'react-i18next';
+import ColorSelector from 'selection-panel/track-number-panel/color-selector/color-selector';
+import { TrackNumberDiagramLayerSetting } from 'map/map-model';
+import {
+    getDefaultColorKey,
+    TrackNumberColorKey,
+} from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 type TrackNumberPanelProps = {
     trackNumbers: LayoutTrackNumber[];
+    settings: TrackNumberDiagramLayerSetting;
     onSelectTrackNumber: (trackNumber: LayoutTrackNumber) => void;
+    onSelectColor: (trackNumberId: LayoutTrackNumberId, color: TrackNumberColorKey) => void;
     selectedTrackNumbers: LayoutTrackNumberId[];
     max?: number;
 };
 
 const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
     trackNumbers,
+    settings,
     onSelectTrackNumber,
+    onSelectColor,
     selectedTrackNumbers,
-    max = 24,
+    max = 16,
 }: TrackNumberPanelProps) => {
     const { t } = useTranslation();
     const [sortedTrackNumbers, setSortedTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -39,19 +49,33 @@ const TrackNumberPanel: React.FC<TrackNumberPanelProps> = ({
                         return (
                             <li
                                 className={styles['track-number-panel__track-number']}
-                                key={trackNumber.id}
-                                onMouseUp={() => onSelectTrackNumber(trackNumber)}>
-                                <Radio
-                                    checked={isSelected}
-                                    readOnly={true}
-                                    name={trackNumber.number}
-                                />
-                                {trackNumber.number}
+                                key={trackNumber.id}>
+                                <div>
+                                    <span onMouseUp={() => onSelectTrackNumber(trackNumber)}>
+                                        <Radio
+                                            checked={isSelected}
+                                            readOnly={true}
+                                            name={trackNumber.number}
+                                        />
+                                        {trackNumber.number}
+                                    </span>
+                                    <ColorSelector
+                                        color={
+                                            settings[trackNumber.id]?.color ??
+                                            getDefaultColorKey(trackNumber.id)
+                                        }
+                                        onSelectColor={(color) =>
+                                            onSelectColor(trackNumber.id, color)
+                                        }
+                                        className={'track-number-panel__color-selector'}
+                                    />
+                                </div>
                             </li>
                         );
                     })}
                 </ol>
             )}
+
             {sortedTrackNumbers.length > max && (
                 <span className={styles['track-number-panel__subtitle']}>{`${t(
                     'selection-panel.zoom-closer',

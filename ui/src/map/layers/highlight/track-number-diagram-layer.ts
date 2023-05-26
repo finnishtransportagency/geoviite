@@ -12,37 +12,27 @@ import { Feature } from 'ol';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    getColor,
+    getDefaultColorKey,
+    TrackNumberColor,
+} from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 let newestLayerId = 0;
 
-const colors = [
-    '#858585',
-
-    '#66a3e0',
-    '#0066cc',
-
-    '#d9a599',
-    '#de3618',
-
-    '#ffc300',
-
-    '#8dcb6d',
-    '#27b427',
-
-    '#00b0cc',
-    '#afe1e9',
-
-    '#a050a0',
-    '#e50083',
-];
-
-const getColorForTrackNumber = (id: LayoutTrackNumberId) => {
-    const c = colors[parseInt(id.replace(/^\D+/g, '')) % colors.length];
-
-    return c + '55'; //55 ~ 33 % opacity
+const getColorForTrackNumber = (
+    id: LayoutTrackNumberId,
+    layerSettings: TrackNumberDiagramLayerSetting,
+) => {
+    //Track numbers with transparent color are already filtered out
+    const selectedColor = layerSettings[id]?.color ?? getDefaultColorKey(id);
+    return getColor(selectedColor) + '55'; //~33 % opacity in hex
 };
 
-function createDiagramFeatures(alignments: AlignmentDataHolder[]): Feature<LineString>[] {
+function createDiagramFeatures(
+    alignments: AlignmentDataHolder[],
+    layerSettings: TrackNumberDiagramLayerSetting,
+): Feature<LineString>[] {
     const perTrackNumber = groupBy(
         alignments,
         (a) => a.header.trackNumberId || a.trackNumber?.id || '',
@@ -51,7 +41,7 @@ function createDiagramFeatures(alignments: AlignmentDataHolder[]): Feature<LineS
     return Object.entries(perTrackNumber).flatMap(([trackNumberId, alignments]) => {
         const style = new Style({
             stroke: new Stroke({
-                color: getColorForTrackNumber(trackNumberId),
+                color: getColorForTrackNumber(trackNumberId, layerSettings),
                 width: 15,
                 lineCap: 'butt',
             }),
@@ -95,7 +85,14 @@ export function createTrackNumberDiagramLayer(
                       return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
                   });
 
-            const features = createDiagramFeatures(filteredAlignments);
+            const alignmentsWithColor = filteredAlignments.filter((a) => {
+                const trackNumberId = a.trackNumber?.id;
+                return trackNumberId
+                    ? layerSettings[trackNumberId]?.color !== TrackNumberColor.TRANSPARENT
+                    : false;
+            });
+
+            const features = createDiagramFeatures(alignmentsWithColor, layerSettings);
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);

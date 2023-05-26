@@ -112,7 +112,7 @@ export function createSwitchLinkingLayer(
     }
 
     return {
-        name: 'linking-switch-layer',
+        name: 'switch-linking-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const matchOptions: MatchOptions = {

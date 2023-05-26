@@ -459,7 +459,7 @@ export const selectionReducers = {
         state: Selection,
         { payload }: PayloadAction<ToggleKmPostPayload>,
     ): void => {
-        const { planLayout, kmPost: kmPost } = payload;
+        const { planLayout, kmPost } = payload;
 
         const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
         if (storePlanLayout) {

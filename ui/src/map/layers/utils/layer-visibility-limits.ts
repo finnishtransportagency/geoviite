@@ -1,4 +1,4 @@
-import { MapLayerName } from 'map/map-model';
+import { MapLayerName } from "map/map-model";
 // Alignments
 export const ALL_ALIGNMENTS = 10.0;
 export const LINKING_DOTS = 0.19;
@@ -23,9 +23,9 @@ export const mapLayerZIndexes = [
     'switch-layer',
     'geometry-km-post-layer',
     'geometry-switch-layer',
-    'linking-layer',
-    'linking-switch-layer',
-    'manual-linking-switch-layer',
+    'alignment-linking-layer',
+    'switch-linking-layer',
+    'manual-switch-linking-layer',
     'plan-area-layer',
     'debug-1m-points-layer',
     'debug-layer',

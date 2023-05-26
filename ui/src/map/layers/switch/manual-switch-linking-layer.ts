@@ -19,7 +19,7 @@ import { endPointStyle } from 'map/layers/switch/switch-layer-utils';
 
 export const FEATURE_PROPERTY_LOCATION_TRACK_ENDPOINT = 'location-track-endpoint';
 
-function createLocationTrackEndpointFeatures(
+function createLocationTrackEndPointFeatures(
     locationTrackEndpoint: LocationTrackEndpoint,
     isSelected: boolean,
 ): Feature<OlPoint>[] {
@@ -65,7 +65,7 @@ export function createManualSwitchLinkingLayer(
                 if (layerId !== newestLayerId) return;
 
                 const features = locationTrackEndPoints.flatMap((e) =>
-                    createLocationTrackEndpointFeatures(e, false),
+                    createLocationTrackEndPointFeatures(e, false),
                 );
 
                 updateFeatures(features);
@@ -76,7 +76,7 @@ export function createManualSwitchLinkingLayer(
     }
 
     return {
-        name: 'manual-linking-switch-layer',
+        name: 'manual-switch-linking-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
             const matchOptions: MatchOptions = {

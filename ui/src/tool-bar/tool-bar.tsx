@@ -48,10 +48,10 @@ export type ToolbarParams = {
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
     onSelectSwitch: (switchId: LayoutSwitchId) => void;
     onSelectKmPost: (kmPostId: LayoutKmPostId) => void;
-    onMapSettingsVisibilityChange: (visible: boolean) => void;
+    onMapLayerVisibilityChange: (visible: boolean) => void;
     onPublishTypeChange: (publishType: PublishType) => void;
     onOpenPreview: () => void;
-    settingsVisible: boolean;
+    layerMenuVisible: boolean;
     showArea: (area: BoundingBox) => void;
     publishType: PublishType;
     changeTimes: ChangeTimes;
@@ -240,8 +240,8 @@ export const ToolBar: React.FC<ToolbarParams> = (props: ToolbarParams) => {
                 <Button
                     variant={ButtonVariant.SECONDARY}
                     icon={Icons.Layers}
-                    isPressed={props.settingsVisible}
-                    onClick={() => props.onMapSettingsVisibilityChange(!props.settingsVisible)}
+                    isPressed={props.layerMenuVisible}
+                    onClick={() => props.onMapLayerVisibilityChange(!props.layerMenuVisible)}
                     qa-id="map-layers-button"
                 />
                 <div className={styles['tool-bar__new-menu-button']}>

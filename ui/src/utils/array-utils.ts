@@ -44,20 +44,15 @@ export function fieldComparator<T, S>(getter: (obj: T) => S): (v1: T, v2: T) => 
     return (v1: T, v2: T) => compareByField(v1, v2, getter);
 }
 
-export function chunk<T>(arr: T[], chunkSize: number): T[][] {
-    if (chunkSize <= 0) return [arr];
+export function chunk<T>(array: T[], chunkSize: number): T[][] {
+    if (chunkSize <= 0) return [array];
 
-    return arr.reduce((acc, item, index) => {
-        const chunkIndex = Math.floor(index / chunkSize);
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += chunkSize) {
+        chunks.push(array.slice(i, i + chunkSize));
+    }
 
-        if (!acc[chunkIndex]) {
-            acc[chunkIndex] = [];
-        }
-
-        acc[chunkIndex].push(item);
-
-        return acc;
-    }, [] as T[][]);
+    return chunks;
 }
 
 //Null and undefined values are considered "max"
