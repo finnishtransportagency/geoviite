@@ -60,26 +60,31 @@ export const AppBar: React.FC = () => {
                         return (
                             <EnvRestricted restrictTo={link.type} key={link.name}>
                                 <li>
-                                    <NavLink
-                                        to={
-                                            link.link === '/infra-model'
-                                                ? getInfraModelLink()
-                                                : link.link
-                                        }
-                                        className={({ isActive }) =>
-                                            `${styles['app-bar__link']} ${
-                                                isActive ? styles['app-bar__link--active'] : ''
-                                            }`
-                                        }
-                                        end>
-                                        {link.link === '/infra-model' ? (
+                                    {link.link !== '/infra-model' ? (
+                                        <NavLink
+                                            to={link.link}
+                                            className={({ isActive }) =>
+                                                `${styles['app-bar__link']} ${
+                                                    isActive ? styles['app-bar__link--active'] : ''
+                                                }`
+                                            }
+                                            end>
+                                            {t(link.name)}
+                                        </NavLink>
+                                    ) : (
+                                        <NavLink
+                                            to={getInfraModelLink()}
+                                            className={({ isActive }) =>
+                                                `${styles['app-bar__link--infra-model']} ${
+                                                    isActive ? styles['app-bar__link--active'] : ''
+                                                }`
+                                            }
+                                            end>
                                             <InfraModelLink
                                                 exclamationPointVisibility={velhoFilesWaiting}
                                             />
-                                        ) : (
-                                            t(link.name)
-                                        )}
-                                    </NavLink>
+                                        </NavLink>
+                                    )}
                                 </li>
                             </EnvRestricted>
                         );
@@ -129,4 +134,61 @@ export const AppBar: React.FC = () => {
         </nav>
     );
 };
-//{t(link.name)}
+
+/* INFRAMODEL-linkin tyyli toimii tällä
+<NavLink
+                                        to={
+                                            link.link === '/infra-model'
+                                                ? getInfraModelLink()
+                                                : link.link
+                                        }
+                                        className={
+                                            link.link === '/infra-model'
+                                                ? ({ isActive }) =>
+                                                      `${styles['app-bar__link--infra-model']} ${
+                                                          isActive
+                                                              ? styles['app-bar__link--active']
+                                                              : ''
+                                                      }`
+                                                : ({ isActive }) =>
+                                                      `${styles['app-bar__link']} ${
+                                                          isActive
+                                                              ? styles['app-bar__link--active']
+                                                              : ''
+                                                      }`
+                                        }
+                                        end>
+                                        {link.link === '/infra-model' ? (
+                                            <InfraModelLink
+                                                exclamationPointVisibility={velhoFilesWaiting}
+                                            />
+                                        ) : (
+                                            t(link.name)
+                                        )}
+                                    </NavLink>
+ */
+
+/*ORIGINAALI
+<li>
+                                    <NavLink
+                                        to={
+                                            link.link === '/infra-model'
+                                                ? getInfraModelLink()
+                                                : link.link
+                                        }
+                                        className={({ isActive }) =>
+                                            `${styles['app-bar__link']} ${
+                                                isActive ? styles['app-bar__link--active'] : ''
+                                            }`
+                                        }
+                                        end>
+                                        {link.link === '/infra-model' ? (
+                                            <InfraModelLink
+                                                exclamationPointVisibility={velhoFilesWaiting}
+                                            />
+                                        ) : (
+                                            t(link.name)
+                                        )}
+                                    </NavLink>
+                                </li>
+ */
