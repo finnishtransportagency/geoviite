@@ -110,18 +110,10 @@ export const initialMapState: Map = {
 
 export const mapReducers = {
     onShownItemsChange: ({ shownItems }: Map, { payload }: PayloadAction<OptionalShownItems>) => {
-        if (payload.referenceLines != null) {
-            shownItems.referenceLines = payload.referenceLines;
-        }
-        if (payload.locationTracks != null) {
-            shownItems.locationTracks = payload.locationTracks;
-        }
-        if (payload.kmPosts != null) {
-            shownItems.kmPosts = payload.kmPosts;
-        }
-        if (payload.switches != null) {
-            shownItems.switches = payload.switches;
-        }
+        shownItems.referenceLines = payload.referenceLines ?? [];
+        shownItems.locationTracks = payload.locationTracks ?? [];
+        shownItems.kmPosts = payload.kmPosts ?? [];
+        shownItems.switches = payload.switches ?? [];
     },
     onViewportChange: (state: Map, { payload: viewPort }: PayloadAction<MapViewport>) => {
         state.viewport = viewPort;
