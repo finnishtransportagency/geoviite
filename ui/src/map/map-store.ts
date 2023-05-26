@@ -33,8 +33,14 @@ const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
     'manual-switch-linking-layer': ['switch-layer'],
     'switch-linking-layer': ['switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
-    'location-track-alignment-layer': ['location-track-background-layer'],
-    'reference-line-alignment-layer': ['reference-line-background-layer'],
+    'location-track-alignment-layer': [
+        'location-track-background-layer',
+        'location-track-badge-layer',
+    ],
+    'reference-line-alignment-layer': [
+        'reference-line-background-layer',
+        'reference-line-badge-layer',
+    ],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {

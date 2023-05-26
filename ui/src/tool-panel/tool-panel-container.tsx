@@ -35,6 +35,7 @@ const ToolPanelContainer: React.FC = () => {
     []);
 
     const startSwitchPlacing = React.useCallback(function (layoutSwitch: LayoutSwitch) {
+        delegates.showLayers(['switch-linking-layer']);
         delegates.startSwitchPlacing(layoutSwitch);
     }, []);
 

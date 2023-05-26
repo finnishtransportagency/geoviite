@@ -7,6 +7,7 @@ import { useKmPost } from 'track-layout/track-layout-react-utils';
 import GeometryKmPostLinkingInfobox from 'tool-panel/km-post/geometry-km-post-linking-infobox';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { LinkingType } from 'linking/linking-model';
+import { MapLayerName } from 'map/map-model';
 
 type GeometryKmPostLinkingContainerProps = {
     geometryKmPost: LayoutKmPost;
@@ -30,6 +31,12 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
         kmPostChangeTime,
     );
 
+    const linkingLayers: MapLayerName[] = [
+        'km-post-layer',
+        'reference-line-alignment-layer',
+        'reference-line-badge-layer',
+    ];
+
     return (
         <GeometryKmPostLinkingInfobox
             contentVisible={contentVisible}
@@ -44,10 +51,13 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
                     : undefined
             }
             startLinking={(id) => {
-                delegates.showLayers(['km-post-layer']);
+                delegates.showLayers(linkingLayers);
                 delegates.startKmPostLinking(id);
             }}
-            stopLinking={delegates.stopLinking}
+            stopLinking={() => {
+                delegates.hideLayers(linkingLayers);
+                delegates.stopLinking();
+            }}
             onKmPostSelect={(kmPost: LayoutKmPost) => delegates.onSelect({ kmPosts: [kmPost.id] })}
             publishType={state.publishType}
         />
