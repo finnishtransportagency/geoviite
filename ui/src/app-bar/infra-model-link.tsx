@@ -9,7 +9,7 @@ type InfraModelLinkProps = {
 export const InfraModelLink: React.FC<InfraModelLinkProps> = ({ exclamationPointVisibility }) => {
     const { t } = useTranslation();
     return (
-        <span>
+        <span className={styles['app-bar__link--container']}>
             {t('app-bar.infra-model')}
             {exclamationPointVisibility && (
                 <span className={styles['app-bar__link--exclamation-point']}>
