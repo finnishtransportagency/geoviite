@@ -15,7 +15,7 @@ jobs:
     # Service container to run with `runner-job`
     services:
       geoviite-postgres:
-        image: 'Dockerfile'
+        container: './infra/Dockerfile'
         env:
           POSTGRES_PASSWORD: 'postgres'
           POSTGRES_USER: 'postgres'
