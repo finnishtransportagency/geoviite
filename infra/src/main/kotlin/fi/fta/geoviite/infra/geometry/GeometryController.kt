@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.KnownFileSuffix.CSV
 import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -176,7 +177,7 @@ class GeometryController @Autowired constructor(
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes)
-        return toFileDownloadResponse("${filename}.csv", content)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -204,9 +205,8 @@ class GeometryController @Autowired constructor(
         log.apiCall("getPlanElementListCsv",
             "id" to id, "elementTypes" to elementTypes, "startAddress" to startAddress,
             "endAddress" to endAddress)
-        val (filename, content) = geometryService
-            .getElementListingCsv(id, elementTypes, startAddress, endAddress)
-        return toFileDownloadResponse("${filename}.csv", content)
+        val (filename, content) = geometryService.getElementListingCsv(id, elementTypes, startAddress, endAddress)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -225,7 +225,7 @@ class GeometryController @Autowired constructor(
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanVerticalGeometryListingCsv", "id" to id)
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id)
-        return toFileDownloadResponse("${filename}.csv", content)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -250,9 +250,8 @@ class GeometryController @Autowired constructor(
         log.apiCall("getTrackVerticalGeometryListingCsv",
             "id" to id, "startAddress" to startAddress,
             "endAddress" to endAddress)
-        val (filename, content) = geometryService
-            .getVerticalGeometryListingCsv(id, startAddress, endAddress)
-        return toFileDownloadResponse("${filename}.csv", content)
+        val (filename, content) = geometryService.getVerticalGeometryListingCsv(id, startAddress, endAddress)
+        return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -271,10 +270,10 @@ class GeometryController @Autowired constructor(
     @GetMapping("/{publishType}/layout/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") locationTrackId: IntId<LocationTrack>,
+        @PathVariable("id") trackId: IntId<LocationTrack>,
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
     ): AlignmentHeights? {
-        return geometryService.getLocationTrackHeights(locationTrackId, publishType, startDistance, endDistance, tickLength)
+        return geometryService.getLocationTrackHeights(trackId, publishType, startDistance, endDistance, tickLength)
     }}

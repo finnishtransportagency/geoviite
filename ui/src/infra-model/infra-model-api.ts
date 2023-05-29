@@ -39,11 +39,13 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 };
 
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
-const VELHO_URI = `${INFRAMODEL_URI}/velho-import`;
+const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/velho-import`;
 
 const documentHeadersCache = asyncCache<string, PVDocumentHeader[]>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
+export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
+    `${PROJEKTIVELHO_URI}/${docId}`;
 
 const defaultValidationErrorHandler = (response: ApiErrorResponse): ValidationResponse => ({
     ...EMPTY_VALIDATION_RESPONSE,
@@ -123,19 +125,19 @@ export async function getVelhoDocuments(
 ): Promise<PVDocumentHeader[]> {
     const params = queryParams({ status: status });
     return documentHeadersCache.get(changeTime, status, () =>
-        getWithDefault<PVDocumentHeader[]>(`${VELHO_URI}/documents${params}`, []),
+        getWithDefault<PVDocumentHeader[]>(`${PROJEKTIVELHO_URI}/documents${params}`, []),
     );
 }
 
-export const getVelhoRedirectUrl = (oid: Oid) => `${VELHO_URI}/redirect/${oid}`;
+export const getVelhoRedirectUrl = (oid: Oid) => `${PROJEKTIVELHO_URI}/redirect/${oid}`;
 
 export async function getVelhoDocumentCount(): Promise<PVDocumentCount | null> {
-    return getIgnoreError<PVDocumentCount>(`${VELHO_URI}/documents/count`);
+    return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);
 }
 
 export async function rejectVelhoDocument(id: PVDocumentId): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
-        `${VELHO_URI}/documents/${id}/status`,
+        `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'REJECTED',
     ).then((id) => {
         Snackbar.success(i18n.t('velho.file-list.reject-success'));
@@ -145,7 +147,7 @@ export async function rejectVelhoDocument(id: PVDocumentId): Promise<null> {
 
 export async function restoreVelhoDocument(id: PVDocumentId): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
-        `${VELHO_URI}/documents/${id}/status`,
+        `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
     ).then((id) => {
         Snackbar.success(i18n.t('velho.file-list.restore-success'));

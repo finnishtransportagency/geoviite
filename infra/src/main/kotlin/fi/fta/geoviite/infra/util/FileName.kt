@@ -17,12 +17,26 @@ const val umlautsCanonicalDecomposition = "aäöåÄÖÅ"
 val fileNameRegex = Regex("^[\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+., /]+\$")
 val fileNameLength = 1..100
 
+enum class KnownFileSuffix {
+    CSV,
+    XML,
+}
+
 data class FileName @JsonCreator(mode = DELEGATING) constructor(private val value: String)
     : Comparable<FileName>, CharSequence by value {
-    init { assertSanitized<FileName>(value, fileNameRegex, fileNameLength) }
+    init {
+        assertSanitized<FileName>(value, fileNameRegex, fileNameLength)
+    }
+
     constructor(file: MultipartFile) : this(file.originalFilename?.takeIf(String::isNotBlank) ?: file.name)
 
     @JsonValue
     override fun toString(): String = value
     override fun compareTo(other: FileName): Int = value.compareTo(other.value)
+
+    fun withSuffix(suffix: KnownFileSuffix): FileName =
+        suffix.name.lowercase().let { suffixName ->
+            if (value.endsWith(".$suffixName", true)) value
+            else "$value.$suffixName"
+        }.let(::FileName)
 }

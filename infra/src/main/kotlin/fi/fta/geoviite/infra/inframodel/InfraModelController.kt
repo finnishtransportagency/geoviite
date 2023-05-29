@@ -6,6 +6,7 @@ import PVDocumentStatus
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.projektivelho.PVApiRedirect
@@ -88,11 +89,7 @@ class InfraModelController @Autowired constructor(
     @GetMapping("{id}/file", MediaType.APPLICATION_OCTET_STREAM_VALUE)
     fun downloadFile(@PathVariable("id") id: IntId<GeometryPlan>): ResponseEntity<ByteArray> {
         logger.apiCall("downloadFile", "id" to id)
-        val infraModelFileAndSource = geometryService.getPlanFile(id)
-        return toFileDownloadResponse(
-            fileNameWithSuffix(infraModelFileAndSource.name),
-            infraModelFileAndSource.content.toByteArray(),
-        )
+        return geometryService.getPlanFile(id).let(::toFileDownloadResponse)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -151,8 +148,13 @@ class InfraModelController @Autowired constructor(
         )
         return pvDocumentService.importVelhoDocument(documentId, overrides, extraInfo)
     }
-}
 
-private fun fileNameWithSuffix(fileName: FileName): String =
-    if (fileName.endsWith(".xml", true)) fileName.toString()
-    else "$fileName.xml"
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/velho-import/{documentId}", MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    fun downloadVelhoDocument(@PathVariable("documentId") documentId: IntId<PVDocument>): ResponseEntity<ByteArray> {
+        logger.apiCall("downloadVelhoDocument",  "documentId" to documentId)
+        return pvDocumentService.getFile(documentId)
+            ?.let(::toFileDownloadResponse)
+            ?: throw NoSuchEntityException(PVDocument::class, documentId)
+    }
+}

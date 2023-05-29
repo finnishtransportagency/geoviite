@@ -11,6 +11,7 @@ import { useAppNavigate } from 'common/navigate';
 import {
     getVelhoDocuments,
     getVelhoRedirectUrl,
+    projektivelhoDocumentDownloadUri,
     rejectVelhoDocument,
     restoreVelhoDocument,
 } from 'infra-model/infra-model-api';
@@ -139,7 +140,13 @@ const VelhoFileListRow = ({
                     <AccordionToggle open={isOpen} onToggle={() => onToggleOpen()} />
                 </td>
                 <td>{item.project && item.project.name}</td>
-                <td>{item.document.name}</td>
+                <td>
+                    <Link
+                        className={styles['velho-file-list__link']}
+                        href={projektivelhoDocumentDownloadUri(item.document.id)}>
+                        {item.document.name}
+                    </Link>
+                </td>
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>
                 <td>
