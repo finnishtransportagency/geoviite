@@ -20,7 +20,7 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
 
     @Test
     fun `SearchStatus is serialized and deserialized correctly`() {
-        val state = PVDictionaryCode("valmis")
+        val state = PVSearchState("valmis")
         val searchId = PVId("asdf123")
         val startTime = Instant.now()
         val validFor = 123456L

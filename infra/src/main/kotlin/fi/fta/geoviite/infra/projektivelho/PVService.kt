@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
-import PVDictionaryCode
 import PVDocument
-import PVDocumentStatus
 import PVDocumentStatus.NOT_IM
 import PVDocumentStatus.SUGGESTED
 import PVProject
@@ -85,10 +83,10 @@ class PVService @Autowired constructor(
                 ?.let { status -> importFilesFromProjektiVelho(latestSearch, status) }
         }
     }
-    fun getSearchStatusIfReady(pvSearch: PVSearch) = pvSearch
+    fun getSearchStatusIfReady(pvSearch: PVSearch): PVApiSearchStatus? = pvSearch
         .takeIf { search -> search.state == WAITING }
         ?.let { search -> projektiVelhoClient.fetchVelhoSearchStatus(search.token) }
-        ?.takeIf { status -> status.state == PVDictionaryCode("valmis") }
+        ?.takeIf { status -> status.state == PVSearchState("valmis") }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")
@@ -185,7 +183,7 @@ class PVService @Autowired constructor(
 
     fun isRailroadXml(xml: String, filename: FileName) =
         try {
-            val parsed = infraModelService.parseInfraModel(toInfraModelFile(xml, filename))
+            val parsed = infraModelService.parseInfraModel(toInfraModelFile(filename, xml))
             parsed.alignments.isNotEmpty() && parsed.alignments.all(::isRailroadAlignment)
         } catch (e: Exception) {
             logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")

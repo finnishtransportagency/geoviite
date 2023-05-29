@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import org.apache.commons.validator.routines.UrlValidator
 import java.net.URL
 
-val urlLength = 1..100
+val urlLength = 1..2000
 val httpsValidator = UrlValidator(arrayOf("https"))
 data class HttpsUrl @JsonCreator(mode = DELEGATING) constructor(private val value: URL)
     : Comparable<HttpsUrl>, CharSequence by value.toString() {

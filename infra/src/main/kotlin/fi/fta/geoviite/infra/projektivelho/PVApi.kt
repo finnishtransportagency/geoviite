@@ -9,13 +9,19 @@ import PVProjectGroup
 import com.auth0.jwt.JWT
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.*
+import org.slf4j.LoggerFactory
+import java.time.Duration
 import java.time.Instant
 import java.util.*
+
+
+private val logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
 
 // TODO Turn into actual data classes etc.
 fun searchJson(date: Instant, minOid: Oid<PVDocument>?, maxCount: Int) = """
@@ -153,8 +159,19 @@ data class PVId @JsonCreator(mode = DELEGATING) constructor(private val value: S
     override fun compareTo(other: PVId): Int = value.compareTo(other.value)
 }
 
+val pvSearchStateLength = 1..20
+val pvSearchStateRegex = Regex("^[A-Za-z/]+\$")
+data class PVSearchState @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
+    : Comparable<PVSearchState>, CharSequence by value {
+    init { assertSanitized<PVSearchState>(value, pvSearchStateRegex, pvSearchStateLength) }
+
+    @JsonValue
+    override fun toString(): String = value
+    override fun compareTo(other: PVSearchState): Int = value.compareTo(other.value)
+}
+
 data class PVApiSearchStatus(
-    @JsonProperty("tila") val state: PVDictionaryCode,
+    @JsonProperty("tila") val state: PVSearchState,
     @JsonProperty("hakutunniste") val searchId: PVId,
     @JsonProperty("alkuaika") val startTime: Instant,
     @JsonProperty("hakutunniste-voimassa") val validFor: Long
@@ -239,10 +256,14 @@ enum class PVFetchStatus {
 val pvBearerTokenLength = 1..5000
 data class PVBearerToken @JsonCreator(mode = DELEGATING) constructor(private val value: String)
     : Comparable<PVBearerToken>, CharSequence by value {
+
+    @get:JsonIgnore
+    val decoded by lazy { JWT.decode(value) }
+
     init {
         assertLength<PVBearerToken>(value, pvBearerTokenLength)
-        JWT.decode(value)
     }
+
 
     @JsonValue
     override fun toString(): String = value
@@ -254,4 +275,35 @@ data class PVAccessToken(
     @JsonProperty("access_token") val accessToken: PVBearerToken,
     @JsonProperty("expires_in") val expiresIn: Long,
     @JsonProperty("token_type") val tokenType: BearerTokenType,
-)
+){
+    private val issueTime: Instant = accessToken.decoded.expiresAtAsInstant ?: Instant.now()
+    @get:JsonIgnore
+    val expireTime: Instant get() = accessToken.decoded.expiresAtAsInstant ?: issueTime.plusSeconds(expiresIn)
+
+    init {
+        accessToken.decoded.let { t ->
+            logger.info("ProjektiVelho API Bearer token: " +
+                    "audience=${t.audience} " +
+                    "issuer=${t.issuer} " +
+                    "subject=${t.subject} " +
+                    "algorithm=${t.algorithm} " +
+                    "issued=${t.issuedAtAsInstant} " +
+                    "notBefore=${t.notBeforeAsInstant} " +
+                    "expires=${t.expiresAtAsInstant} " +
+                    "claims=${t.claims}"
+            )
+            if (t.issuedAtAsInstant == null) {
+                logger.warn("ProjektiVelho API token does not have issued time available")
+            } else if (Duration.between(t.issuedAtAsInstant, Instant.now()).abs() > Duration.ofSeconds(60)) {
+                logger.warn("ProjektiVelho API token is not issued in 1 minute. The server time might differ from the client.")
+            }
+            if (t.expiresAtAsInstant == null) {
+                logger.warn("ProjektiVelho API token does not have expiry time available: defaulting to now()+expiresIn")
+            }
+        }
+        if (issueTime.plusSeconds(expiresIn) != expireTime) {
+            logger.warn("ProjektiVelho API token expiry does not match expiresIn value:" +
+                    " issued=${issueTime} expires=${expireTime} expiresIn=$expiresIn")
+        }
+    }
+}

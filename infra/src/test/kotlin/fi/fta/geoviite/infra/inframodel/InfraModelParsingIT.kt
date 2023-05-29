@@ -43,7 +43,7 @@ class InfraModelParsingIT @Autowired constructor(
         val trackNumber = getOrCreateTrackNumber(TrackNumber("001"))
 
         val xmlString = classpathResourceToString(TESTFILE_SIMPLE)
-        val infraModel = stringToInfraModel(xmlString)
+        val infraModel = toInfraModel(toInfraModelFile(FileName("tstfile.xml"), xmlString))
         assertEquals("finnish", infraModel.language)
         assertEquals("grads", infraModel.units?.metric?.angularUnit)
         assertEquals("grads", infraModel.units?.metric?.directionUnit)

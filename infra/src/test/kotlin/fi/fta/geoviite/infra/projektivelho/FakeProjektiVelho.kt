@@ -5,7 +5,6 @@ import PVDictionaryEntry
 import PVDictionaryGroup
 import PVDictionaryType
 import PVDocument
-import com.auth0.jwt.JWT
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
@@ -34,7 +33,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
     fun search() {
         post(XML_FILE_SEARCH_PATH).respond(okJsonSerialized(
             PVApiSearchStatus(
-                PVDictionaryCode("asdf"),
+                PVSearchState("asdf"),
                 PVId("123"),
                 Instant.now().minusSeconds(5),
                 3600,
@@ -76,7 +75,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
     fun searchStatus(searchId: PVId) {
         get("$XML_FILE_SEARCH_STATE_PATH/$searchId").respond(okJsonSerialized(
             PVApiSearchStatus(
-                PVDictionaryCode("valmis"),
+                PVSearchState("valmis"),
                 searchId,
                 Instant.now().minusSeconds(5),
                 3600,
@@ -155,4 +154,3 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
             .withStatusCode(200)
             .withContentType(MediaType.APPLICATION_JSON)
 }
-

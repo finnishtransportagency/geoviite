@@ -8,7 +8,7 @@ import PVDictionaryGroup.MATERIAL
 import PVDictionaryGroup.PROJECT
 import PVDictionaryName
 import PVDictionaryType
-import PVDictionaryType.MATERIAL_CATEGORY
+import PVDictionaryType.*
 import PVDocument
 import PVProject
 import PVProjectGroup
@@ -61,9 +61,9 @@ class ProjektiVelhoClient @Autowired constructor(
     val jsonMapper: ObjectMapper,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val accessToken: AtomicReference<PVAccessTokenHolder?> = AtomicReference(null)
+    private val accessToken: AtomicReference<PVAccessToken?> = AtomicReference(null)
 
-    fun login(): PVAccessTokenHolder {
+    fun login(): PVAccessToken {
         logger.integrationCall("login")
         return loginClient
             .post()
@@ -71,7 +71,6 @@ class ProjektiVelhoClient @Autowired constructor(
             .retrieve()
             .bodyToMono<PVAccessToken>()
             .block(defaultBlockTimeout)
-            ?.let(::PVAccessTokenHolder)
             ?: throw IllegalStateException("Projektivelho login failed")
     }
 
@@ -210,7 +209,7 @@ class ProjektiVelhoClient @Autowired constructor(
             if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginOffsetSeconds))) {
                 login()
             } else token
-        }?.token ?: throw IllegalStateException("Projektivelho login token can't be null after login")
+        }?.accessToken ?: throw IllegalStateException("ProjektiVelho login token can't be null after login")
 }
 
 fun encodingTypeDictionary(type: PVDictionaryType) =
@@ -226,17 +225,10 @@ fun encodingGroupPath(group: PVDictionaryGroup) = when(group) {
     PROJECT -> "projekti"
 }
 fun encodingTypePath(type: PVDictionaryType) = when(type) {
-    PVDictionaryType.DOCUMENT_TYPE -> "dokumenttityyppi"
-    PVDictionaryType.MATERIAL_STATE -> "aineistotila"
+    DOCUMENT_TYPE -> "dokumenttityyppi"
+    MATERIAL_STATE -> "aineistotila"
     MATERIAL_CATEGORY -> "aineistolaji"
-    PVDictionaryType.MATERIAL_GROUP -> "aineistoryhma"
-    PVDictionaryType.TECHNICS_FIELD -> "tekniikka-ala"
-    PVDictionaryType.PROJECT_STATE -> "tila"
-}
-
-data class PVAccessTokenHolder(
-    val token: PVBearerToken,
-    val expireTime: Instant,
-) {
-    constructor(token: PVAccessToken) : this(token.accessToken, Instant.now().plusSeconds(token.expiresIn))
+    MATERIAL_GROUP -> "aineistoryhma"
+    TECHNICS_FIELD -> "tekniikka-ala"
+    PROJECT_STATE -> "tila"
 }

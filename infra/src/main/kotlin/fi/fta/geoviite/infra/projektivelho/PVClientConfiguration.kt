@@ -9,13 +9,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-import org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE
-import org.springframework.http.MediaType.APPLICATION_JSON
+import org.springframework.http.HttpHeaders.CONTENT_TYPE
+import org.springframework.http.MediaType.*
 import org.springframework.http.client.reactive.*
-import org.springframework.http.codec.json.Jackson2JsonDecoder
-import org.springframework.http.codec.json.Jackson2JsonEncoder
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
@@ -55,12 +51,8 @@ class PVClientConfiguration @Autowired constructor(
             .baseUrl(projektiVelhoLoginUrl)
             .filter(logRequest())
             .filter(logResponse())
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
+            .defaultHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
             .defaultHeaders { header -> header.setBasicAuth(projektiVelhoUsername, projektiVelhoPassword) }
-            .codecs { codecs ->
-                codecs.defaultCodecs().jackson2JsonEncoder(Jackson2JsonEncoder(objectMapper, APPLICATION_JSON))
-                codecs.defaultCodecs().jackson2JsonDecoder(Jackson2JsonDecoder(objectMapper, APPLICATION_JSON))
-            }
 
         return PVLoginClient(webClientBuilder.build())
     }
@@ -78,17 +70,14 @@ class PVClientConfiguration @Autowired constructor(
             .baseUrl(projektiVelhoBaseUrl)
             .filter(logRequest())
             .filter(logResponse())
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
             .codecs { codecs ->
-                codecs.defaultCodecs() .maxInMemorySize(maxFileSize)
-                codecs.defaultCodecs().jackson2JsonEncoder(Jackson2JsonEncoder(objectMapper, APPLICATION_JSON))
-                codecs.defaultCodecs().jackson2JsonDecoder(Jackson2JsonDecoder(objectMapper, APPLICATION_JSON))
+                codecs.defaultCodecs().maxInMemorySize(maxFileSize)
             }
 
         return PVWebClient(webClientBuilder.build())
     }
 
-    //
     private fun logRequest(): ExchangeFilterFunction {
         return ExchangeFilterFunction.ofRequestProcessor { clientRequest: ClientRequest ->
             logger.integrationCall(clientRequest)
