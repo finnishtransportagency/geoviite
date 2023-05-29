@@ -364,6 +364,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                                                     <Icons.Eye
                                                         color={IconColor.INHERIT}
                                                         onClick={() =>
+                                                            isAlignmentSelected ||
                                                             onToggleAlignmentVisibility({
                                                                 alignment: alignment.header,
                                                                 status: alignmentStatus,

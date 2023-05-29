@@ -24,7 +24,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
-import { mapReducers } from 'map/map-store';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -41,11 +40,6 @@ export const linkingReducers = {
             geometryAlignmentInterval: emptyLinkInterval,
             layoutAlignmentInterval: emptyLinkInterval,
         };
-
-        mapReducers.showLayers(state.map, {
-            payload: ['alignment-linking-layer'],
-            type: 'showLayers',
-        });
     },
     lockAlignmentSelection: (
         state: TrackLayoutState,
@@ -69,14 +63,6 @@ export const linkingReducers = {
         state.linkingState = undefined;
         state.selection.selectedItems.clusterPoints = [];
         state.selection.selectedItems.suggestedSwitches = [];
-        mapReducers.hideLayers(state.map, {
-            payload: [
-                'alignment-linking-layer',
-                'switch-linking-layer',
-                'manual-switch-linking-layer',
-            ],
-            type: 'hideLayers',
-        });
     },
     setLayoutLinkPoint: function (
         state: TrackLayoutState,
@@ -198,11 +184,6 @@ export const linkingReducers = {
                 state: 'setup',
                 errors: [],
             });
-
-            mapReducers.showLayers(state.map, {
-                payload: ['alignment-linking-layer'],
-                type: 'showLayers',
-            });
         }
     },
     startSwitchPlacing: (
@@ -228,11 +209,6 @@ export const linkingReducers = {
             state: 'preliminary',
             errors: [],
         };
-
-        mapReducers.showLayers(state.map, {
-            payload: ['switch-layer'],
-            type: 'showLayers',
-        });
 
         // Ensure that layout switch is not selected by accident,
         // operator needs to take an action to select a switch

@@ -325,28 +325,30 @@ export const selectionReducers = {
         state: Selection,
         { payload: planLayout }: PayloadAction<GeometryPlanLayout | null>,
     ): void => {
-        const isPlanLayoutSelected = state.planLayouts.some((p) => p.planId == planLayout?.planId);
+        const isPlanLayoutSelected = state.planLayouts.some((p) => p.planId === planLayout?.planId);
 
         if (isPlanLayoutSelected) {
+            const selectedItems = state.selectedItems;
+
             state.planLayouts = [
                 ...state.planLayouts.filter((p) => p.planId !== planLayout?.planId),
             ];
 
-            state.selectedItems.geometryKmPosts = [
-                ...state.selectedItems.geometryKmPosts.filter(
+            selectedItems.geometryKmPosts = [
+                ...selectedItems.geometryKmPosts.filter(
                     (gKmPost) =>
                         !planLayout?.kmPosts.some(
                             (kmPost) => kmPost.id === gKmPost.geometryItem.id,
                         ),
                 ),
             ];
-            state.selectedItems.geometrySwitches = [
-                ...state.selectedItems.geometrySwitches.filter(
-                    (gs) => !planLayout?.switches.some((s) => s.id == gs.geometryItem.id),
+            selectedItems.geometrySwitches = [
+                ...selectedItems.geometrySwitches.filter(
+                    (gs) => !planLayout?.switches.some((s) => s.id === gs.geometryItem.id),
                 ),
             ];
-            state.selectedItems.geometryAlignments = [
-                ...state.selectedItems.geometryAlignments.filter(
+            selectedItems.geometryAlignments = [
+                ...selectedItems.geometryAlignments.filter(
                     (ga) => !planLayout?.alignments.some((a) => a.header.id === ga.geometryItem.id),
                 ),
             ];
@@ -358,7 +360,7 @@ export const selectionReducers = {
         state: Selection,
         { payload }: PayloadAction<ToggleAlignmentPayload>,
     ): void => {
-        const { planLayout, alignment } = payload;
+        const { planLayout, alignment, keepAlignmentVisible: keepVisible } = payload;
 
         const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
         if (storePlanLayout) {
@@ -367,7 +369,7 @@ export const selectionReducers = {
             );
 
             if (alignmentVisible) {
-                if (!payload.keepAlignmentVisible) {
+                if (!keepVisible) {
                     state.planLayouts = [
                         ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
                         {
@@ -416,14 +418,14 @@ export const selectionReducers = {
         state: Selection,
         { payload }: PayloadAction<ToggleSwitchPayload>,
     ): void => {
-        const { planLayout, switch: switchItem } = payload;
+        const { planLayout, switch: switchItem, keepSwitchesVisible: keepVisible } = payload;
 
         const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
         if (storePlanLayout) {
             const switchVisible = storePlanLayout.switches.some((s) => s.id === switchItem.id);
 
             if (switchVisible) {
-                if (!payload.keepSwitchesVisible) {
+                if (!keepVisible) {
                     state.planLayouts = [
                         ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
                         {
@@ -459,14 +461,14 @@ export const selectionReducers = {
         state: Selection,
         { payload }: PayloadAction<ToggleKmPostPayload>,
     ): void => {
-        const { planLayout, kmPost } = payload;
+        const { planLayout, kmPost, keepKmPostsVisible: keepVisible } = payload;
 
         const storePlanLayout = state.planLayouts.find((p) => p.planId === planLayout.planId);
         if (storePlanLayout) {
             const kmPostVisible = storePlanLayout.kmPosts.some((k) => k.id === kmPost.id);
 
             if (kmPostVisible) {
-                if (!payload.keepKmPostsVisible) {
+                if (!keepVisible) {
                     state.planLayouts = [
                         ...state.planLayouts.filter((p) => p.planId !== planLayout.planId),
                         {

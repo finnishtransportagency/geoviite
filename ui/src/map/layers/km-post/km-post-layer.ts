@@ -29,7 +29,7 @@ export function createKmPostLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     olView: OlView,
-    onViewContentChanged?: (items: OptionalShownItems) => void,
+    onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
     const layerId = ++newestLayerId;
     const resolution = olView.getResolution() || 0;
@@ -60,17 +60,15 @@ export function createKmPostLayer(
     };
 
     function kmPostChanged(kmPostIds: LayoutKmPostId[]) {
-        if (onViewContentChanged) {
-            const newIds = kmPostIds.sort().join();
+        const newIds = kmPostIds.sort().join();
 
-            const changeTimeCompare = changeTimes.layoutKmPost;
-            if (newIds !== kmPostIdCompare || changeTimeCompare !== kmPostChangeTimeCompare) {
-                kmPostIdCompare = newIds;
-                kmPostChangeTimeCompare = changeTimeCompare;
-                const area = fromExtent(olView.calculateExtent());
-                const result = searchFunction(area, {});
-                onViewContentChanged(result);
-            }
+        const changeTimeCompare = changeTimes.layoutKmPost;
+        if (newIds !== kmPostIdCompare || changeTimeCompare !== kmPostChangeTimeCompare) {
+            kmPostIdCompare = newIds;
+            kmPostChangeTimeCompare = changeTimeCompare;
+            const area = fromExtent(olView.calculateExtent());
+            const result = searchFunction(area, {});
+            onViewContentChanged(result);
         }
     }
 

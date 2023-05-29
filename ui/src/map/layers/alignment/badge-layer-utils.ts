@@ -39,6 +39,7 @@ function createBadgeFeatures(
         badgeFeature.setStyle(
             () =>
                 new Style({
+                    zIndex: contrast ? 1 : 0,
                     renderer: ([x, y]: Coordinate, state: State) => {
                         const ctx = state.context;
                         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
@@ -72,7 +73,7 @@ function createBadgeFeatures(
 
                             const offsetDirection = badgeRotation.drawFromEnd ? -1 : 1;
 
-                            ctx.moveTo(x + (badgeWidth + 6) * offsetDirection, y);
+                            ctx.moveTo(x + (badgeWidth + 7) * offsetDirection, y);
                             ctx.lineTo(x + badgeWidth * offsetDirection, y - halfHeight);
                             ctx.lineTo(x + badgeWidth * offsetDirection, y + halfHeight);
                         }

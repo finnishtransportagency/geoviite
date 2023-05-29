@@ -26,7 +26,7 @@ export function createSwitchLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     olView: OlView,
-    onViewContentChanged?: (items: OptionalShownItems) => void,
+    onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
     const layerId = ++newestLayerId;
     const getSwitchesFromApi = () => {
@@ -52,16 +52,14 @@ export function createSwitchLayer(
     };
 
     const switchesChanged = (newIds: LayoutSwitchId[]) => {
-        if (onViewContentChanged) {
-            const newCompare = `${publishType}${newIds.sort().join()}`;
-            const changeTimeCompare = changeTimes.layoutSwitch;
-            if (newCompare !== switchIdCompare || changeTimeCompare !== switchChangeTimeCompare) {
-                switchIdCompare = newCompare;
-                switchChangeTimeCompare = changeTimeCompare;
-                const area = fromExtent(olView.calculateExtent());
-                const result = searchFunction(area, {});
-                onViewContentChanged(result);
-            }
+        const newCompare = `${publishType}${newIds.sort().join()}`;
+        const changeTimeCompare = changeTimes.layoutSwitch;
+        if (newCompare !== switchIdCompare || changeTimeCompare !== switchChangeTimeCompare) {
+            switchIdCompare = newCompare;
+            switchChangeTimeCompare = changeTimeCompare;
+            const area = fromExtent(olView.calculateExtent());
+            const result = searchFunction(area, {});
+            onViewContentChanged(result);
         }
     };
 

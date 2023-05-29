@@ -7,7 +7,7 @@ import { PublishType } from 'common/common-model';
 import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
 import OlView from 'ol/View';
-import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import {
     clearFeatures,
     getMatchingAlignmentData,
@@ -29,17 +29,14 @@ export function createReferenceLineAlignmentLayer(
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
-    onViewContentChanged?: (items: OptionalShownItems) => void,
+    onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const shownItemsSearchFunction = (
-        hitArea: Polygon,
-        options: SearchItemsOptions,
-    ): LayerItemSearchResult => {
+    const shownItemsSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
         const matchOptions: MatchOptions = {
             strategy: options.limit == 1 ? 'nearest' : 'limit',
             limit: undefined,
@@ -56,6 +53,7 @@ export function createReferenceLineAlignmentLayer(
         );
 
         return {
+            referenceLines: referenceLines.map((r) => r.id),
             trackNumbers: trackNumberIds,
         };
     };
@@ -74,18 +72,16 @@ export function createReferenceLineAlignmentLayer(
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);
 
-            if (onViewContentChanged) {
-                const compare = referenceLines
-                    .map(({ header }) => header.id)
-                    .sort()
-                    .join();
+            const compare = referenceLines
+                .map(({ header }) => header.id)
+                .sort()
+                .join();
 
-                if (compare !== compareString) {
-                    compareString = compare;
-                    const area = fromExtent(olView.calculateExtent());
-                    const result = shownItemsSearchFunction(area, {});
-                    onViewContentChanged(result);
-                }
+            if (compare !== compareString) {
+                compareString = compare;
+                const area = fromExtent(olView.calculateExtent());
+                const result = shownItemsSearchFunction(area, {});
+                onViewContentChanged(result);
             }
         })
         .catch(() => clearFeatures(vectorSource));

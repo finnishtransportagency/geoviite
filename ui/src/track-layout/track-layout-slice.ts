@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map } from 'map/map-model';
+import { Map, MapLayerName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
     allSelectableItemTypes,
@@ -8,21 +8,32 @@ import {
     Selection,
 } from 'selection/selection-model';
 import { wrapReducers } from 'store/store-utils';
-import { initialSelectionState, selectionReducers } from 'selection/selection-store';
+import {
+    initialSelectionState,
+    selectionReducers,
+    ToggleAlignmentPayload,
+    ToggleKmPostPayload,
+    ToggleSwitchPayload,
+} from 'selection/selection-store';
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { LayoutMode, PublishType } from 'common/common-model';
 import {
     GeometryPlanLayout,
+    LayoutKmPost,
     LayoutKmPostId,
+    LayoutSwitch,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
+    PlanLayoutAlignment,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { addIfExists, subtract } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
+import { GeometryPlanLayoutId } from 'geometry/geometry-model';
+import { ValueOf } from 'utils/type-utils';
 
 export type SelectedPublishChange = {
     trackNumber: LayoutTrackNumberId | undefined;
@@ -383,8 +394,74 @@ const trackLayoutSlice = createSlice({
             action: PayloadAction<GeometryPlanLayout | null>,
         ): void => {
             if (!state.linkingState) {
+                const isPlanLayoutSelected = state.selection.planLayouts.some(
+                    (p) => p.planId === action.payload?.planId,
+                );
+
+                updateMapLayerVisibilities(state.map, isPlanLayoutSelected, [
+                    'geometry-alignment-layer',
+                    'geometry-switch-layer',
+                    'geometry-km-post-layer',
+                ]);
+
                 selectionReducers.togglePlanVisibility(state.selection, action);
             }
+        },
+        toggleAlignmentVisibility: (
+            state: TrackLayoutState,
+            action: PayloadAction<ToggleAlignmentPayload>,
+        ) => {
+            const { planLayout, alignment, keepAlignmentVisible } = action.payload;
+            const hideLayer = shouldHideMapLayer(
+                state,
+                planLayout.planId,
+                'alignments',
+                (i: PlanLayoutAlignment) => i.header.id,
+                alignment.id,
+                keepAlignmentVisible,
+            );
+
+            updateMapLayerVisibilities(state.map, hideLayer, ['geometry-alignment-layer']);
+
+            selectionReducers.toggleAlignmentVisibility(state.selection, action);
+        },
+        toggleSwitchVisibility: (
+            state: TrackLayoutState,
+            action: PayloadAction<ToggleSwitchPayload>,
+        ) => {
+            const { planLayout, switch: layoutSwitch, keepSwitchesVisible } = action.payload;
+
+            const hideLayer = shouldHideMapLayer(
+                state,
+                planLayout.planId,
+                'switches',
+                (i: LayoutSwitch) => i.id,
+                layoutSwitch.id,
+                keepSwitchesVisible,
+            );
+
+            updateMapLayerVisibilities(state.map, hideLayer, ['geometry-switch-layer']);
+
+            selectionReducers.toggleSwitchVisibility(state.selection, action);
+        },
+        toggleKmPostsVisibility: (
+            state: TrackLayoutState,
+            action: PayloadAction<ToggleKmPostPayload>,
+        ) => {
+            const { planLayout, kmPost, keepKmPostsVisible } = action.payload;
+
+            const hideLayer = shouldHideMapLayer(
+                state,
+                planLayout.planId,
+                'kmPosts',
+                (i: LayoutKmPost) => i.id,
+                kmPost.id,
+                keepKmPostsVisible,
+            );
+
+            updateMapLayerVisibilities(state.map, hideLayer, ['geometry-km-post-layer']);
+
+            selectionReducers.toggleKmPostsVisibility(state.selection, action);
         },
         onPublishTypeChange: (
             state: TrackLayoutState,
@@ -414,3 +491,27 @@ const trackLayoutSlice = createSlice({
 
 export const trackLayoutReducer = trackLayoutSlice.reducer;
 export const trackLayoutActionCreators = trackLayoutSlice.actions;
+
+const updateMapLayerVisibilities = (state: Map, shouldHide: boolean, layers: MapLayerName[]) => {
+    const mapAction = shouldHide ? mapReducers.hideLayers : mapReducers.showLayers;
+    mapAction(state, { payload: layers, type: shouldHide ? 'hideLayers' : 'showLayers' });
+};
+
+type GeometryItemType = Pick<GeometryPlanLayout, 'alignments' | 'kmPosts' | 'switches'>;
+
+const shouldHideMapLayer = <T>(
+    state: TrackLayoutState,
+    planId: GeometryPlanLayoutId,
+    key: keyof GeometryItemType,
+    getId: (item: ValueOf<GeometryItemType>[number]) => T,
+    id: T,
+    keepVisible: boolean | undefined,
+) => {
+    const plan = state.selection.planLayouts.find((p) => p.planId === planId)?.[key];
+
+    const numberOfItems = state.selection.planLayouts
+        .map((p) => p[key].length)
+        .reduce((a, b) => a + b, 0);
+
+    return plan?.some((i) => getId(i) === id) ? numberOfItems === 1 && !keepVisible : false;
+};

@@ -33,8 +33,14 @@ const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
     'manual-switch-linking-layer': ['switch-layer'],
     'switch-linking-layer': ['switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
-    'location-track-alignment-layer': ['location-track-background-layer'],
-    'reference-line-alignment-layer': ['reference-line-background-layer'],
+    'location-track-alignment-layer': [
+        'location-track-background-layer',
+        'location-track-badge-layer',
+    ],
+    'reference-line-alignment-layer': [
+        'reference-line-background-layer',
+        'reference-line-badge-layer',
+    ],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
@@ -110,18 +116,10 @@ export const initialMapState: Map = {
 
 export const mapReducers = {
     onShownItemsChange: ({ shownItems }: Map, { payload }: PayloadAction<OptionalShownItems>) => {
-        if (payload.referenceLines != null) {
-            shownItems.referenceLines = payload.referenceLines;
-        }
-        if (payload.locationTracks != null) {
-            shownItems.locationTracks = payload.locationTracks;
-        }
-        if (payload.kmPosts != null) {
-            shownItems.kmPosts = payload.kmPosts;
-        }
-        if (payload.switches != null) {
-            shownItems.switches = payload.switches;
-        }
+        shownItems.referenceLines = payload.referenceLines ?? [];
+        shownItems.locationTracks = payload.locationTracks ?? [];
+        shownItems.kmPosts = payload.kmPosts ?? [];
+        shownItems.switches = payload.switches ?? [];
     },
     onViewportChange: (state: Map, { payload: viewPort }: PayloadAction<MapViewport>) => {
         state.viewport = viewPort;

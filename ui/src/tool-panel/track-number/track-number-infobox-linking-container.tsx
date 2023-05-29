@@ -45,8 +45,14 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
             trackNumber={trackNumber}
             referenceLine={referenceLine}
             linkingState={linkingState}
-            onStartReferenceLineGeometryChange={delegates.startAlignmentGeometryChange}
-            onEndReferenceLineGeometryChange={delegates.stopLinking}
+            onStartReferenceLineGeometryChange={(interval) => {
+                delegates.showLayers(['alignment-linking-layer']);
+                delegates.startAlignmentGeometryChange(interval);
+            }}
+            onEndReferenceLineGeometryChange={() => {
+                delegates.hideLayers(['alignment-linking-layer']);
+                delegates.stopLinking();
+            }}
             showArea={delegates.showArea}
             publishType={publishType}
             viewport={viewport}
