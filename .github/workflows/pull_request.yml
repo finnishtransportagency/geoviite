@@ -48,7 +48,7 @@ jobs:
 
     #KOKEILU
     - name: Build docker image
-      run: docker build -f ./infra/Dockerfile
+      run: docker build ./infra/Dockerfile
 
     - name: run integration tests in infra (backend)
       #env:
