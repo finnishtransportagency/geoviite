@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.projektivelho
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.logging.integrationCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -8,9 +9,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
-import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import org.springframework.http.HttpHeaders.CONTENT_TYPE
+import org.springframework.http.MediaType.*
+import org.springframework.http.client.reactive.*
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction
 import org.springframework.web.reactive.function.client.WebClient
@@ -36,6 +37,7 @@ class PVClientConfiguration @Autowired constructor(
     @Value("\${geoviite.projektivelho.login_url:}") private val projektiVelhoLoginUrl: String,
     @Value("\${geoviite.projektivelho.client_id:}") private val projektiVelhoUsername: String,
     @Value("\${geoviite.projektivelho.client_secret:}") private val projektiVelhoPassword: String,
+    private val objectMapper: ObjectMapper,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
@@ -49,7 +51,7 @@ class PVClientConfiguration @Autowired constructor(
             .baseUrl(projektiVelhoLoginUrl)
             .filter(logRequest())
             .filter(logResponse())
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            .defaultHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
             .defaultHeaders { header -> header.setBasicAuth(projektiVelhoUsername, projektiVelhoPassword) }
 
         return PVLoginClient(webClientBuilder.build())
@@ -57,17 +59,20 @@ class PVClientConfiguration @Autowired constructor(
 
     @Bean
     fun projVelhoClient(): PVWebClient {
-        val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout).secure().compress(true)
+        val httpClient = HttpClient.create()
+            .responseTimeout(defaultResponseTimeout)
+            .secure()
+            .compress(true)
 
+        val connector = ReactorClientHttpConnector(httpClient.followRedirect(true))
         val webClientBuilder = WebClient.builder()
-            .clientConnector(ReactorClientHttpConnector(httpClient.followRedirect(true)))
+            .clientConnector(connector)
             .baseUrl(projektiVelhoBaseUrl)
             .filter(logRequest())
             .filter(logResponse())
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .defaultHeader(CONTENT_TYPE, APPLICATION_JSON_VALUE)
             .codecs { codecs ->
-                codecs.defaultCodecs()
-                    .maxInMemorySize(maxFileSize)
+                codecs.defaultCodecs().maxInMemorySize(maxFileSize)
             }
 
         return PVWebClient(webClientBuilder.build())
@@ -87,4 +92,3 @@ class PVClientConfiguration @Autowired constructor(
         }
     }
 }
-

@@ -1,11 +1,10 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import PVCode
+import PVDictionaryCode
 import PVDictionaryEntry
 import PVDictionaryGroup
 import PVDictionaryType
 import PVDocument
-import PVId
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
@@ -22,6 +21,7 @@ import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
 import java.time.Instant
 
+const val SAMPLE_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
 
 class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable {
     private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
@@ -32,7 +32,12 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
 
     fun search() {
         post(XML_FILE_SEARCH_PATH).respond(okJsonSerialized(
-            PVApiSearchStatus("", PVId("123"), Instant.now().minusSeconds(5), 3600)
+            PVApiSearchStatus(
+                PVSearchState("asdf"),
+                PVId("123"),
+                Instant.now().minusSeconds(5),
+                3600,
+            )
         ))
     }
 
@@ -69,7 +74,12 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
 
     fun searchStatus(searchId: PVId) {
         get("$XML_FILE_SEARCH_STATE_PATH/$searchId").respond(okJsonSerialized(
-            PVApiSearchStatus("valmis", searchId, Instant.now().minusSeconds(5), 3600)
+            PVApiSearchStatus(
+                PVSearchState("valmis"),
+                searchId,
+                Instant.now().minusSeconds(5),
+                3600,
+            )
         ))
     }
 
@@ -81,10 +91,10 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
         oid: Oid<PVDocument>,
         version: PVId,
         description: String = "test description",
-        documentType: PVCode = PVCode("dokumenttityyppi/dt01"),
-        materialState: PVCode = PVCode("aineistotila/tila01"),
-        materialCategory: PVCode = PVCode("aineistolaji/al00"),
-        materialGroup: PVCode = PVCode("aineistoryhma/ar00"),
+        documentType: PVDictionaryCode = PVDictionaryCode("dokumenttityyppi/dt01"),
+        materialState: PVDictionaryCode = PVDictionaryCode("aineistotila/tila01"),
+        materialCategory: PVDictionaryCode = PVDictionaryCode("aineistolaji/al00"),
+        materialGroup: PVDictionaryCode = PVDictionaryCode("aineistoryhma/ar00"),
     ) {
         get("$FILE_DATA_PATH/$oid").respond(okJsonSerialized(
             PVApiFile(
@@ -108,7 +118,9 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
     }
 
     fun login() {
-        post("/oauth2/token").respond(okJsonSerialized(PVAccessToken("mock-token", 3600, "test")))
+        post("/oauth2/token").respond(okJsonSerialized(
+            PVAccessToken(PVBearerToken(SAMPLE_TOKEN), 3600, BearerTokenType.Bearer)
+        ))
     }
 
     private fun get(url: String, times: Times? = null): ForwardChainExpectation =
@@ -142,4 +154,3 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
             .withStatusCode(200)
             .withContentType(MediaType.APPLICATION_JSON)
 }
-

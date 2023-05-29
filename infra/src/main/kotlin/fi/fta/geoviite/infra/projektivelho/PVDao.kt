@@ -1,15 +1,14 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import PVAssignment
-import PVCode
+import PVDictionaryCode
 import PVDictionaryEntry
 import PVDictionaryType
 import PVDictionaryType.*
 import PVDocument
 import PVDocumentHeader
 import PVDocumentStatus
-import PVId
-import PVName
+import PVDictionaryName
 import PVProject
 import PVProjectGroup
 import fi.fta.geoviite.infra.common.IntId
@@ -424,7 +423,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         jdbcTemplate.batchUpdate(sql, params)
     }
 
-    fun fetchDictionary(type: PVDictionaryType): Map<PVCode, PVName> {
+    fun fetchDictionary(type: PVDictionaryType): Map<PVDictionaryCode, PVDictionaryName> {
         val sql = "select code, name from ${tableName(type)}"
         return jdbcTemplate.query(sql, mapOf<String,Any>()) { rs, _ ->
             rs.getVelhoCode("code") to rs.getVelhoName("name")

@@ -80,6 +80,7 @@ dependencies {
     implementation("jakarta.activation:jakarta.activation-api:2.1.2")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
     implementation("com.github.davidmoten:rtree2:0.9.3")
+    implementation("commons-validator:commons-validator:1.7")
     compileOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.sun.xml.bind:jaxb-impl:4.0.2")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
@@ -89,7 +90,6 @@ dependencies {
     testImplementation("io.github.bonigarcia:webdrivermanager:5.3.2")
     testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.2.1")
-
 }
 
 licenseReport {

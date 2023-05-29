@@ -101,7 +101,7 @@ fun toInfraModelFile(file: MultipartFile, fileEncodingOverride: Charset?): Infra
 }
 
 fun toInfraModelFile(file: ByteArray, fileName: FileName, fileEncodingOverride: Charset?): InfraModelFile {
-    assertNotEmpty(fileName, file)
+    toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
     return toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
 }
 
@@ -119,7 +119,7 @@ fun parseInfraModelFile(
     return toGvtPlan(
         source,
         file.name,
-        stringToInfraModel(file.content),
+        toInfraModel(file),
         coordinateSystems,
         switchStructuresByType,
         switchTypeNameAliases,
@@ -127,17 +127,18 @@ fun parseInfraModelFile(
     )
 }
 
-fun stringToInfraModel(xmlString: String): InfraModel =
-    try {
-        unmarshaller.unmarshal(toSaxSource(xmlString)) as InfraModel
+fun toInfraModel(file: InfraModelFile): InfraModel {
+    return try {
+        unmarshaller.unmarshal(toSaxSource(file.content)) as InfraModel
     } catch (e: UnmarshalException) {
-        logger.warn(xmlString)
+        logger.warn("InfraModel parsing failed: fileName=${file.name}", e)
         throw InframodelParsingException(
             message = "Failed to unmarshal XML",
             cause = e,
             localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.xml-invalid",
         )
     }
+}
 
 fun classpathResourceToString(fileName: String): String {
     val resource = InfraModel::class.java.getResource(fileName)
@@ -151,13 +152,6 @@ fun fileToString(file: ByteArray, encodingOverride: Charset?): String {
 
 fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
-}
-
-fun assertNotEmpty(fileName: FileName, file: ByteArray) {
-    if (file.isEmpty()) throw InframodelParsingException(
-        message = "File \"${fileName}\" is empty",
-        localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
-    )
 }
 
 fun assertContentType(fileName: FileName, contentType: String?, vararg fileContentTypes: MediaType) {

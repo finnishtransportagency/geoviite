@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.util
 
-import PVCode
-import PVId
-import PVName
+import PVDictionaryCode
+import PVDictionaryName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import java.sql.ResultSet
 import java.time.Instant
@@ -261,17 +261,17 @@ fun ResultSet.getPolygonPointList(name: String): List<Point> = getPolygonPointLi
 fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? =
     getString(name)?.let(::parse2DPolygon)
 
-fun ResultSet.getVelhoName(name: String): PVName = getVelhoNameOrNull(name)
+fun ResultSet.getVelhoName(name: String): PVDictionaryName = getVelhoNameOrNull(name)
     ?: throw IllegalStateException("Velho name was null: column=$name")
 
-fun ResultSet.getVelhoNameOrNull(name: String): PVName? =
-    getString(name)?.let(::PVName)
+fun ResultSet.getVelhoNameOrNull(name: String): PVDictionaryName? =
+    getString(name)?.let(::PVDictionaryName)
 
-fun ResultSet.getVelhoCode(name: String): PVCode = getVelhoCodeOrNull(name)
+fun ResultSet.getVelhoCode(name: String): PVDictionaryCode = getVelhoCodeOrNull(name)
     ?: throw IllegalStateException("Velho code was null: column=$name")
 
-fun ResultSet.getVelhoCodeOrNull(name: String): PVCode? =
-    getString(name)?.let(::PVCode)
+fun ResultSet.getVelhoCodeOrNull(name: String): PVDictionaryCode? =
+    getString(name)?.let(::PVDictionaryCode)
 
 fun ResultSet.getVelhoId(name: String): PVId = getVelhoIdOrNull(name)
     ?: throw IllegalStateException("Velho code was null: column=$name")
