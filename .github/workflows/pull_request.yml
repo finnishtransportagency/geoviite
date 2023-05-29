@@ -9,13 +9,13 @@ on:
       - 'README.md'
 
 jobs:
-  container-job:
-
+  runner-job:
     runs-on: ubuntu-latest
 
+    # Service container to run with `runner-job`
     services:
       geoviite-postgres:
-        image: ./infra/Dockerfile
+        image: docker build './infra/Dockerfile'
         env:
           POSTGRES_PASSWORD: 'postgres'
           POSTGRES_USER: 'postgres'
