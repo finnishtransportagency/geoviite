@@ -230,15 +230,16 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/layout/location-tracks/{id}/vertical-geometry")
+    @GetMapping("/layout/{publicationType}/location-tracks/{id}/vertical-geometry")
     fun getTrackVerticalGeometryListing(
+        @PathVariable("publicationType") publicationType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        log.apiCall("getTrackVerticalGeometryListing", "id" to id,
+        log.apiCall("getTrackVerticalGeometryListing", "publicationType" to publicationType, "id" to id,
             "startAddress" to startAddress, "endAddress" to endAddress)
-        return geometryService.getVerticalGeometryListing(id, startAddress, endAddress)
+        return geometryService.getVerticalGeometryListing(publicationType, id, startAddress, endAddress)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

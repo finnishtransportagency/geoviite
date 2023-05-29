@@ -50,6 +50,17 @@ const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | nul
 const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | null>();
 const geometryPlanAreaCache = asyncCache<GeometryPlanId, PlanArea[]>();
 
+type PlanVerticalGeometryKey = GeometryPlanId;
+const planVerticalGeometryCache = asyncCache<
+    PlanVerticalGeometryKey,
+    VerticalGeometryItem[] | null
+>;
+type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublishType}`;
+const locationTrackVerticalGeometryCache = asyncCache<
+    LocationTrackVerticalGeometryKey,
+    VerticalGeometryItem[] | null
+>();
+
 export async function getPlanAreasByTile(
     mapTile: MapTile,
     changeTime: TimeStamp,
@@ -139,6 +150,8 @@ export async function getLocationTrackElements(
 }
 
 export async function getLocationTrackVerticalGeometry(
+    changeTime: TimeStamp | null,
+    publicationType: PublishType,
     id: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
@@ -147,16 +160,26 @@ export async function getLocationTrackVerticalGeometry(
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    return getIgnoreError(
-        `${GEOMETRY_URI}/layout/location-tracks/${id}/vertical-geometry${params}`,
-    );
+    const fetch: () => Promise<VerticalGeometryItem[] | null> = () =>
+        getIgnoreError(
+            `${GEOMETRY_URI}/layout/${publicationType}/location-tracks/${id}/vertical-geometry${params}`,
+        );
+    return changeTime === null
+        ? fetch()
+        : locationTrackVerticalGeometryCache.get(changeTime, `${id}_${publicationType}`, fetch);
 }
 
 export async function getGeometryPlanVerticalGeometry(
+    changeTime: TimeStamp | null,
     planId: GeometryPlanId,
 ): Promise<VerticalGeometryItem[] | null> {
-    return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+    const fetch: () => Promise<VerticalGeometryItem[] | null> = () =>
+        getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+    return changeTime === null
+        ? fetch()
+        : planVerticalGeometryCache().get(changeTime, planId, fetch);
 }
+
 export const getLocationTrackVerticalGeometryCsv = (
     trackId: LocationTrackId,
     startAddress: string | undefined,
