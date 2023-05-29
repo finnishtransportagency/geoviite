@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.common
 import fi.fta.geoviite.infra.authorization.AUTH_ALL_READ
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -34,6 +35,7 @@ class ChangeTimeController(
     private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
     private val publicationService: PublicationService,
+    private val pvDocumentService: PVDocumentService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -50,7 +52,7 @@ class ChangeTimeController(
             layoutSwitch = switchService.getChangeTime(),
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             publication = publicationService.getChangeTime(),
-            velhoDocument = Instant.now(), // TODO: GVT-1797
+            velhoDocument = pvDocumentService.getDocumentChangeTime(),
         )
     }
 
@@ -107,6 +109,6 @@ class ChangeTimeController(
     @GetMapping("/velho-documents")
     fun getVelhoDocumentChangeTime(): Instant {
         logger.apiCall("getVelhoDocumentChangeTime")
-        return Instant.now() // TODO: GVT-1797
+        return pvDocumentService.getDocumentChangeTime()
     }
 }

@@ -10,8 +10,8 @@ import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.projektivelho.PVApiRedirect
 import fi.fta.geoviite.infra.projektivelho.PVDocumentCounts
-import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
+import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired

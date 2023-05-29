@@ -13,14 +13,18 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class PVDocumentService @Autowired constructor(
     private val pvDao: PVDao,
-    private val pvClient: PVClient,
+    private val pvClientParam: PVClient?,
     private val infraModelService: InfraModelService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    private val pvClient: PVClient by lazy {
+        requireNotNull(pvClientParam) { "ProjektiVelho must be configured to use the client" }
+    }
 
     fun getDocumentHeaders(status: PVDocumentStatus?): List<PVDocumentHeader> {
         logger.serviceCall("getDocumentHeaders", "status" to status)
@@ -72,5 +76,10 @@ class PVDocumentService @Autowired constructor(
     fun getDocumentCounts(): PVDocumentCounts {
         logger.serviceCall("getDocumentCounts")
         return pvDao.getDocumentCounts()
+    }
+
+    fun getDocumentChangeTime(): Instant {
+        logger.serviceCall("getChangeTime")
+        return pvDao.fetchDocumentChangeTime()
     }
 }

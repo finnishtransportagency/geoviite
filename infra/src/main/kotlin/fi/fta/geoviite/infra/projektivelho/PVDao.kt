@@ -3,12 +3,12 @@ package fi.fta.geoviite.infra.projektivelho
 import PVAssignment
 import PVDictionaryCode
 import PVDictionaryEntry
+import PVDictionaryName
 import PVDictionaryType
 import PVDictionaryType.*
 import PVDocument
 import PVDocumentHeader
 import PVDocumentStatus
-import PVDictionaryName
 import PVProject
 import PVProjectGroup
 import fi.fta.geoviite.infra.common.IntId
@@ -16,8 +16,8 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
+import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -388,6 +388,8 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             )
         }.single()
     }
+
+    fun fetchDocumentChangeTime(): Instant = fetchLatestChangeTime(DbTable.PROJEKTIVELHO_FILE_METADATA)
 
     fun getFileContent(id: IntId<PVDocument>): InfraModelFile? {
         logger.daoAccess(FETCH, InfraModelFile::class, id)
