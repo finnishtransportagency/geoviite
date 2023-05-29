@@ -138,7 +138,7 @@ const VelhoFileListRow = ({
                 <td>
                     <AccordionToggle open={isOpen} onToggle={() => onToggleOpen()} />
                 </td>
-                {item.project && <td>{item.project.name}</td>}
+                <td>{item.project && item.project.name}</td>
                 <td>{item.document.name}</td>
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>
