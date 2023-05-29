@@ -35,6 +35,10 @@ function createBadgeFeatures(
     return points.map(({ point, nextPoint }) => {
         const badgeRotation = getBadgeRotation(point, nextPoint);
         const badgeFeature = new Feature({ geometry: new Point(point) });
+        const badgePadding = 16;
+        const badgeHeight = 14;
+        const fontSize = 12;
+        const badgeNoseWidth = 7;
 
         badgeFeature.setStyle(
             () =>
@@ -43,11 +47,12 @@ function createBadgeFeatures(
                     renderer: ([x, y]: Coordinate, state: State) => {
                         const ctx = state.context;
                         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
-                            state.pixelRatio * 12
+                            state.pixelRatio * fontSize
                         }px ${mapStyles['alignmentBadge-font-family']}`;
-                        const badgeWidth = ctx.measureText(name).width + 16 * state.pixelRatio;
-                        const badgeHeight = 14 * state.pixelRatio;
-                        const halfHeight = badgeHeight / 2;
+                        const badgeWidth =
+                            ctx.measureText(name).width + badgePadding * state.pixelRatio;
+                        const height = badgeHeight * state.pixelRatio;
+                        const halfHeight = height / 2;
 
                         ctx.save();
                         ctx.beginPath();
@@ -62,7 +67,7 @@ function createBadgeFeatures(
                             x - (badgeRotation.drawFromEnd ? badgeWidth : 0),
                             y - halfHeight,
                             badgeWidth,
-                            badgeHeight,
+                            height,
                         );
 
                         ctx.fill();
@@ -73,7 +78,7 @@ function createBadgeFeatures(
 
                             const offsetDirection = badgeRotation.drawFromEnd ? -1 : 1;
 
-                            ctx.moveTo(x + (badgeWidth + 7) * offsetDirection, y);
+                            ctx.moveTo(x + (badgeWidth + badgeNoseWidth) * offsetDirection, y);
                             ctx.lineTo(x + badgeWidth * offsetDirection, y - halfHeight);
                             ctx.lineTo(x + badgeWidth * offsetDirection, y + halfHeight);
                         }
