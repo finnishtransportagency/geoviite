@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class PVDocumentService @Autowired constructor(
     private val pvDao: PVDao,
-    private val pvClient: ProjektiVelhoClient,
+    private val pvClient: PVClient,
     private val infraModelService: InfraModelService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)

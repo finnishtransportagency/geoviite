@@ -40,7 +40,7 @@ class PVClientConfiguration @Autowired constructor(
     private val objectMapper: ObjectMapper,
 ) {
 
-    private val logger: Logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(PVClient::class.java)
 
     @Bean
     fun pvLoginWebClient(): PVLoginWebClient {

@@ -35,7 +35,7 @@ val SECONDS_IN_A_YEAR: Long = Duration.ofDays(365).toSeconds()
 @Service
 @ConditionalOnBean(PVClientConfiguration::class)
 class PVService @Autowired constructor(
-    private val projektiVelhoClient: ProjektiVelhoClient,
+    private val PVClient: PVClient,
     private val pvDao: PVDao,
     private val lockDao: LockDao,
     private val infraModelService: InfraModelService,
@@ -59,7 +59,7 @@ class PVService @Autowired constructor(
         logger.info("Poll to launch new search")
         val latest = pvDao.fetchLatestFile()
         val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
-        projektiVelhoClient.postXmlFileSearch(startTime, latest?.first).also { status ->
+        PVClient.postXmlFileSearch(startTime, latest?.first).also { status ->
             val validUntil = status.startTime.plusSeconds(status.validFor)
             pvDao.insertFetchInfo(status.searchId, validUntil)
         }
@@ -85,12 +85,12 @@ class PVService @Autowired constructor(
     }
     fun getSearchStatusIfReady(pvSearch: PVSearch): PVApiSearchStatus? = pvSearch
         .takeIf { search -> search.state == WAITING }
-        ?.let { search -> projektiVelhoClient.fetchVelhoSearchStatus(search.token) }
+        ?.let { search -> PVClient.fetchVelhoSearchStatus(search.token) }
         ?.takeIf { status -> status.state == PVSearchState("valmis") }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")
-        val dict = projektiVelhoClient.fetchDictionaries()
+        val dict = PVClient.fetchDictionaries()
         dict.forEach { (type, entries) ->
             pvDao.upsertDictionary(type, entries)
         }
@@ -102,7 +102,7 @@ class PVService @Autowired constructor(
             val assignments = mutableMapOf<Oid<PVAssignment>, PVApiAssignment?>()
             val projects = mutableMapOf<Oid<PVProject>, PVApiProject?>()
             val projectGroups = mutableMapOf<Oid<PVProjectGroup>, PVApiProjectGroup?>()
-            projektiVelhoClient.fetchSearchResults(searchResults.searchId).matches
+            PVClient.fetchSearchResults(searchResults.searchId).matches
                 .map { match -> fetchFileAndInsertToDb(match, assignments, projects, projectGroups) }
             pvDao.updateFetchState(latest.id, FINISHED)
         } catch (e: Exception) {
@@ -128,13 +128,13 @@ class PVService @Autowired constructor(
         projectGroups: MutableMap<Oid<PVProjectGroup>, PVApiProjectGroup?>,
     ): PVAssignmentHolder {
         val assignment = assignmentOid.let { oid ->
-            fetchIfNew(assignments, oid, projektiVelhoClient::fetchAssignment, pvDao::upsertAssignment)
+            fetchIfNew(assignments, oid, PVClient::fetchAssignment, pvDao::upsertAssignment)
         }
         val project = assignment?.projectOid?.let { oid ->
-            fetchIfNew(projects, oid, projektiVelhoClient::fetchProject, pvDao::upsertProject)
+            fetchIfNew(projects, oid, PVClient::fetchProject, pvDao::upsertProject)
         }
         val projectGroup = project?.projectGroupOid?.let { oid ->
-            fetchIfNew(projectGroups, oid, projektiVelhoClient::fetchProjectGroup, pvDao::upsertProjectGroup)
+            fetchIfNew(projectGroups, oid, PVClient::fetchProjectGroup, pvDao::upsertProjectGroup)
         }
         return PVAssignmentHolder(assignment, project, projectGroup)
     }
@@ -152,10 +152,10 @@ class PVService @Autowired constructor(
             ?.also { value -> store(value) }
 
     private fun fetchFileMetadataAndContent(oid: Oid<PVDocument>): PVFileHolder {
-        val metadataResponse = projektiVelhoClient.fetchFileMetadata(oid)
+        val metadataResponse = PVClient.fetchFileMetadata(oid)
         val content =
             if (metadataResponse.metadata.containsPersonalInfo == true) null
-            else projektiVelhoClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
+            else PVClient.fetchFileContent(oid, metadataResponse.latestVersion.version)
 
         return PVFileHolder(
             oid = oid,

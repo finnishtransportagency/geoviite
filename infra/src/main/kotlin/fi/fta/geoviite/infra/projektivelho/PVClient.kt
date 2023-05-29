@@ -55,7 +55,7 @@ const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V1_PATH/projektijoukko"
 
 @Component
 @ConditionalOnBean(PVClientConfiguration::class)
-class ProjektiVelhoClient @Autowired constructor(
+class PVClient @Autowired constructor(
     val pvWebClient: PVWebClient,
     val pvLoginWebClient: PVLoginWebClient,
     val jsonMapper: ObjectMapper,

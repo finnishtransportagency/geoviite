@@ -21,7 +21,7 @@ import java.time.Instant
 import java.util.*
 
 
-private val logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
+private val logger = LoggerFactory.getLogger(PVClient::class.java)
 
 // TODO Turn into actual data classes etc.
 fun searchJson(date: Instant, minOid: Oid<PVDocument>?, maxCount: Int) = """
