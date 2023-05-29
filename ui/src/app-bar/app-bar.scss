@@ -59,21 +59,7 @@ $appbar-height: 48px;
         }
 
         &--infra-model {
-            @include typography-body-strong;
-
-            display: inline-block;
-            line-height: $appbar-height;
-            height: $appbar-height - 4px;
             padding: 0 20px;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            transition: border-bottom-color 160ms cubic-bezier(0.61, 1, 0.88, 1);
-            border-bottom: 4px solid transparent;
-
-            &:hover {
-                color: $color-blue-light;
-            }
         }
 
         &--active {

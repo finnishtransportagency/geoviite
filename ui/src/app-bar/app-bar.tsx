@@ -75,7 +75,9 @@ export const AppBar: React.FC = () => {
                                         <NavLink
                                             to={getInfraModelLink()}
                                             className={({ isActive }) =>
-                                                `${styles['app-bar__link--infra-model']} ${
+                                                `${styles['app-bar__link']} ${
+                                                    styles['app-bar__link--infra-model']
+                                                } ${
                                                     isActive ? styles['app-bar__link--active'] : ''
                                                 }`
                                             }
@@ -134,61 +136,3 @@ export const AppBar: React.FC = () => {
         </nav>
     );
 };
-
-/* INFRAMODEL-linkin tyyli toimii tällä
-<NavLink
-                                        to={
-                                            link.link === '/infra-model'
-                                                ? getInfraModelLink()
-                                                : link.link
-                                        }
-                                        className={
-                                            link.link === '/infra-model'
-                                                ? ({ isActive }) =>
-                                                      `${styles['app-bar__link--infra-model']} ${
-                                                          isActive
-                                                              ? styles['app-bar__link--active']
-                                                              : ''
-                                                      }`
-                                                : ({ isActive }) =>
-                                                      `${styles['app-bar__link']} ${
-                                                          isActive
-                                                              ? styles['app-bar__link--active']
-                                                              : ''
-                                                      }`
-                                        }
-                                        end>
-                                        {link.link === '/infra-model' ? (
-                                            <InfraModelLink
-                                                exclamationPointVisibility={velhoFilesWaiting}
-                                            />
-                                        ) : (
-                                            t(link.name)
-                                        )}
-                                    </NavLink>
- */
-
-/*ORIGINAALI
-<li>
-                                    <NavLink
-                                        to={
-                                            link.link === '/infra-model'
-                                                ? getInfraModelLink()
-                                                : link.link
-                                        }
-                                        className={({ isActive }) =>
-                                            `${styles['app-bar__link']} ${
-                                                isActive ? styles['app-bar__link--active'] : ''
-                                            }`
-                                        }
-                                        end>
-                                        {link.link === '/infra-model' ? (
-                                            <InfraModelLink
-                                                exclamationPointVisibility={velhoFilesWaiting}
-                                            />
-                                        ) : (
-                                            t(link.name)
-                                        )}
-                                    </NavLink>
-                                </li>
- */
