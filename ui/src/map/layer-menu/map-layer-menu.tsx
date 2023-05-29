@@ -63,7 +63,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({ title, visibilities, onMe
                 return [
                     <MapLayer
                         key={setting.name}
-                        label={t(`map-layer-settings.${setting.name}`)}
+                        label={t(`map-layer-menu.${setting.name}`)}
                         visible={setting.visible}
                         onChange={() =>
                             onMenuChange({
@@ -76,7 +76,7 @@ const MapLayerGroup: React.FC<MapLayerGroupProps> = ({ title, visibilities, onMe
                         return (
                             <MapLayer
                                 key={subSetting.name}
-                                label={t(`map-layer-settings.${subSetting.name}`)}
+                                label={t(`map-layer-menu.${subSetting.name}`)}
                                 visible={subSetting.visible}
                                 disabled={!setting.visible}
                                 indented={true}
@@ -113,18 +113,18 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
             </span>
 
             <MapLayerGroup
-                title={t('map-layer-settings.layout-title')}
+                title={t('map-layer-menu.layout-title')}
                 visibilities={map.layerMenu.layout}
                 onMenuChange={onMenuChange}
             />
             <MapLayerGroup
-                title={t('map-layer-settings.geometry-title')}
+                title={t('map-layer-menu.geometry-title')}
                 visibilities={map.layerMenu.geometry}
                 onMenuChange={onMenuChange}
             />
             <EnvRestricted restrictTo="dev">
                 <MapLayerGroup
-                    title={t('map-layer-settings.debug-title')}
+                    title={t('map-layer-menu.debug-title')}
                     visibilities={map.layerMenu.debug}
                     onMenuChange={onMenuChange}
                 />

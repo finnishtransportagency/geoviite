@@ -1,4 +1,3 @@
-import Feature from 'ol/Feature';
 import OlPoint from 'ol/geom/Point';
 import OlView from 'ol/View';
 import { Polygon } from 'ol/geom';
@@ -10,7 +9,6 @@ import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { clearFeatures, getMatchingKmPosts } from 'map/layers/utils/layer-utils';
-import { fromExtent } from 'ol/geom/Polygon';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
@@ -18,8 +16,7 @@ import {
     getKmPostStepByResolution,
 } from 'map/layers/km-post/km-post-layer-utils';
 
-let kmPostIdCompare: string;
-let kmPostChangeTimeCompare: string;
+let shownKmPostsCompare: string;
 let newestLayerId = 0;
 
 export function createKmPostLayer(
@@ -43,46 +40,19 @@ export function createKmPostLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource, style: null });
 
-    const searchFunction = (
-        hitArea: Polygon,
-        options: SearchItemsOptions,
-    ): LayerItemSearchResult => {
-        const kmPosts = getMatchingKmPosts(
-            hitArea,
-            vectorSource.getFeaturesInExtent(hitArea.getExtent()),
-            {
-                strategy: 'nearest',
-                limit: options.limit,
-            },
-        ).map(({ kmPost }) => kmPost.id);
+    function updateShownKmPosts(kmPostIds: LayoutKmPostId[]) {
+        const compare = kmPostIds.sort().join();
 
-        return { kmPosts };
-    };
-
-    function kmPostChanged(kmPostIds: LayoutKmPostId[]) {
-        const newIds = kmPostIds.sort().join();
-
-        const changeTimeCompare = changeTimes.layoutKmPost;
-        if (newIds !== kmPostIdCompare || changeTimeCompare !== kmPostChangeTimeCompare) {
-            kmPostIdCompare = newIds;
-            kmPostChangeTimeCompare = changeTimeCompare;
-            const area = fromExtent(olView.calculateExtent());
-            const result = searchFunction(area, {});
-            onViewContentChanged(result);
+        if (compare !== shownKmPostsCompare) {
+            shownKmPostsCompare = compare;
+            onViewContentChanged({ kmPosts: kmPostIds });
         }
-    }
-
-    function updateFeatures(kmPosts: LayoutKmPost[], features: Feature<OlPoint | Polygon>[]) {
-        clearFeatures(vectorSource);
-        vectorSource.addFeatures(features);
-
-        kmPostChanged(kmPosts.map((k) => k.id));
     }
 
     const step = getKmPostStepByResolution(resolution);
     if (step == 0) {
         clearFeatures(vectorSource);
-        kmPostChanged([]);
+        updateShownKmPosts([]);
     } else {
         // Fetch every nth
         getKmPostsFromApi(step)
@@ -101,15 +71,32 @@ export function createKmPostLayer(
                     resolution,
                 );
 
-                updateFeatures(kmPosts, features);
+                clearFeatures(vectorSource);
+                vectorSource.addFeatures(features);
+
+                updateShownKmPosts(kmPosts.map((k) => k.id));
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => {
+                clearFeatures(vectorSource);
+                updateShownKmPosts([]);
+            });
     }
 
     return {
         name: 'km-post-layer',
         layer: layer,
-        searchItems: searchFunction,
-        searchShownItems: searchFunction,
+        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+            const kmPosts = getMatchingKmPosts(
+                hitArea,
+                vectorSource.getFeaturesInExtent(hitArea.getExtent()),
+                {
+                    strategy: 'nearest',
+                    limit: options.limit,
+                },
+            ).map(({ kmPost }) => kmPost.id);
+
+            return { kmPosts };
+        },
+        onRemove: () => updateShownKmPosts([]),
     };
 }

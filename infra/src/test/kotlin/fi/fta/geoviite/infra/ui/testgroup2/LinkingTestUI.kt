@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.*
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLayoutSwitchDialog.Tilakategoria
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog.RaideTyyppi
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog.TilaTyyppi
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapLayerSettingsPanel.Setting
 import fi.fta.geoviite.infra.ui.testdata.EspooTestData
 import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.GEOMETRY_PLAN_NAME
 import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.GEO_ALIGNMENT_A_NAME
@@ -436,11 +435,6 @@ class LinkingTestUI @Autowired constructor(
 
         linkingBox.linkita()
 
-        //Enable show linking error
-        mapPage.karttatasoasetukset()
-            .selectSetting(Setting.MANUAALINEN_VAIHTEIDEN_LINKITYS)
-            .close()
-
         mapPage.clickAtCoordinates(firstElementEnd)
 
         mapPage.addEndPointDialog()
@@ -520,11 +514,6 @@ class LinkingTestUI @Autowired constructor(
         mapPage.clickAtCoordinates(ltPart1EndPoint)
 
         linkingBox.linkita()
-
-        //Enable show linking error
-        val mapLayerSettings = mapPage.karttatasoasetukset()
-        mapLayerSettings.selectSetting(Setting.MANUAALINEN_VAIHTEIDEN_LINKITYS)
-        mapLayerSettings.close()
 
         mapPage.clickAtCoordinates(ltPart1EndPoint)
 
@@ -722,7 +711,7 @@ class LinkingTestUI @Autowired constructor(
         createAndLinkLocationTrack(alignment13, locationTrack13Name)
 
         mapPage.karttatasoasetukset()
-            .selectSetting(Setting.MANUAALINEN_VAIHTEIDEN_LINKITYS, true)
+            .selectSetting(MapLayerSettingsPanel.Setting.MANUAALINEN_VAIHTEIDEN_LINKITYS, true)
             .close()
 
         mapPage.clickAtCoordinates(alignment152.elements.first().start)
