@@ -16,8 +16,13 @@
                 "document-state": "Dokumentin tila"
             },
             "reject": "Hylkää",
+            "reject-tooltip": "Siirrä hylättyjen aineistojen kokoelmaan",
+            "reject-success": "Aineisto siirretty hylättyjen aineistojen kokoelmaan",
             "restore": "Palauta",
-            "upload": "Tuo suunnitelma..."
+            "restore-tooltip": "Palauta takaisin käsiteltävien aineistojen kokoelmaan",
+            "restore-success": "Aineisto siirretty käsiteltävien aineistojen kokoelmaan",
+            "upload": "Tuo suunnitelma...",
+            "upload-tooltip": "Tuo aineisto Geoviitteen suunnitelmaksi"
         }
     }
 }

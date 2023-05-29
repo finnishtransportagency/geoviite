@@ -137,14 +137,20 @@ export async function rejectVelhoDocument(id: PVDocumentId): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
         `${VELHO_URI}/documents/${id}/status`,
         'REJECTED',
-    );
+    ).then((id) => {
+        Snackbar.success(i18n.t('velho.file-list.reject-success'));
+        return id;
+    });
 }
 
 export async function restoreVelhoDocument(id: PVDocumentId): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
         `${VELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
-    );
+    ).then((id) => {
+        Snackbar.success(i18n.t('velho.file-list.restore-success'));
+        return id;
+    });
 }
 
 export const getValidationErrorsForVelhoDocument = async (

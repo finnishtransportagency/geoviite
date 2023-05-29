@@ -145,16 +145,25 @@ const VelhoFileListRow = ({
                 <td>
                     <div className={styles['velho-file-list__buttons']}>
                         {listMode === 'SUGGESTED' && (
-                            <Button variant={ButtonVariant.SECONDARY} onClick={onReject}>
+                            <Button
+                                title={t('velho.file-list.reject-tooltip')}
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={onReject}>
                                 {t('velho.file-list.reject')}
                             </Button>
                         )}
                         {listMode === 'REJECTED' && (
-                            <Button variant={ButtonVariant.SECONDARY} onClick={onRestore}>
+                            <Button
+                                title={t('velho.file-list.restore-tooltip')}
+                                variant={ButtonVariant.SECONDARY}
+                                onClick={onRestore}>
                                 {t('velho.file-list.restore')}
                             </Button>
                         )}
-                        <Button variant={ButtonVariant.SECONDARY} onClick={onImport}>
+                        <Button
+                            title={t('velho.file-list.upload-tooltip')}
+                            variant={ButtonVariant.SECONDARY}
+                            onClick={onImport}>
                             {t('velho.file-list.upload')}
                         </Button>
                     </div>

@@ -61,7 +61,7 @@
         "missing-source": "Suunnitelman lähde puuttuu",
         "toolbar": {
             "files": "IM-tiedostot",
-            "upload": "Tuo uusi"
+            "upload": "Tuo suunnitelma"
         },
         "file-handling-failed": {
             "title": "Tiedoston käsittely epäonnistui",
