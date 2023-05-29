@@ -91,7 +91,7 @@ class PVServiceIT @Autowired constructor(
         assertNotNull(search)
         assertEquals(search.searchId, pvDao.fetchLatestSearch()?.token)
     }
-    
+
     @Test
     fun `Dictionary update works`(): Unit = fakeVelho().use { fakeVelho ->
         fakeVelho.login()
@@ -246,11 +246,11 @@ class PVServiceIT @Autowired constructor(
                 changeTime = Instant.now()
             ),
             metadata = PVApiFileMetadata(
-                materialCategory = PVCode("test"),
+                materialCategory = PVDictionaryCode("test"),
                 description = null,
-                materialGroup = PVCode("test"),
-                materialState = PVCode("test"),
-                documentType = PVCode("test"),
+                materialGroup = PVDictionaryCode("test"),
+                materialState = PVDictionaryCode("test"),
+                documentType = PVDictionaryCode("test"),
                 technicalFields = emptyList(),
                 containsPersonalInfo = false
             ),
