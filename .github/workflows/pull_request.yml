@@ -12,17 +12,6 @@ jobs:
   runner-job:
     runs-on: ubuntu-latest
 
-    # Service container to run with `runner-job`
-    #services:
-    #  geoviite-postgres:
-    #    image: './infra/Dockerfile'
-    #    env:
-    #      POSTGRES_PASSWORD: 'postgres'
-    #      POSTGRES_USER: 'postgres'
-    #      POSTGRES_DB: 'geoviite'
-    #    ports:
-    #      - 127.0.0.1:5436:5432
-
     steps:
     - name: Download repository on the runner
       uses: actions/checkout@v3
@@ -48,7 +37,19 @@ jobs:
 
     #KOKEILU
     - name: Build docker image
-      run: docker build ./infra/Dockerfile
+      run: |
+        cd infra
+        docker build  -t gvt-db .
+      # Service container to run with `runner-job`
+      #services:
+      #  geoviite-postgres:
+      #    image: 'gvt-db'
+      #    env:
+      #      POSTGRES_PASSWORD: 'postgres'
+      #      POSTGRES_USER: 'postgres'
+      #      POSTGRES_DB: 'geoviite'
+      #    ports:
+      #      - 127.0.0.1:5436:5432
 
     - name: run integration tests in infra (backend)
       #env:
