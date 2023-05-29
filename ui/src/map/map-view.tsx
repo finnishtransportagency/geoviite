@@ -174,7 +174,10 @@ const MapView: React.FC<MapViewProps> = ({
         }
     };
 
-    useResizeObserver({ onResize: () => olMap?.updateSize() });
+    useResizeObserver({
+        ref: olMapContainer,
+        onResize: () => olMap?.updateSize(),
+    });
 
     // Initialize OpenLayers map. Do this only once, in subsequent
     // renders we just want to update OpenLayers layers. In this way map
