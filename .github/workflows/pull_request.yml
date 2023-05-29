@@ -36,9 +36,12 @@ jobs:
         ./gradlew cleanTest test --tests "*Test"
 
     #KOKEILU!
+    #laita oikeat lisenssi-tiedostot
     - name: Build docker image
       run: |
         cd infra
+        touch build/reports/dependency-license
+        touch build/LICENSE.txt
         docker build --build-arg TEMURIN_IMAGE=eclipse-temurin:17-jdk -t gvt-db .
 
     - name: run integration tests in infra (backend)
