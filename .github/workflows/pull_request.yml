@@ -37,11 +37,9 @@ jobs:
 
     #KOKEILU!
     - name: Build docker image
-      env:
-        TEMURIN_IMAGE: 'eclipse-temurin:17-jdk'
       run: |
         cd infra
-        docker build -t gvt-db .
+        docker build --build-arg TEMURIN_IMAGE=eclipse-temurin:17-jdk -t gvt-db .
 
     - name: run integration tests in infra (backend)
       #env:
