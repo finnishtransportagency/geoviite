@@ -56,8 +56,8 @@ const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V1_PATH/projektijoukko"
 @Component
 @ConditionalOnBean(PVClientConfiguration::class)
 class ProjektiVelhoClient @Autowired constructor(
-    val velhoClient: PVWebClient,
-    val loginClient: PVLoginClient,
+    val pvWebClient: PVWebClient,
+    val pvLoginWebClient: PVLoginWebClient,
     val jsonMapper: ObjectMapper,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -65,13 +65,13 @@ class ProjektiVelhoClient @Autowired constructor(
 
     fun login(): PVAccessToken {
         logger.integrationCall("login")
-        return loginClient
+        return pvLoginWebClient
             .post()
             .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
             .retrieve()
             .bodyToMono<PVAccessToken>()
             .block(defaultBlockTimeout)
-            ?: throw IllegalStateException("Projektivelho login failed")
+            ?: throw IllegalStateException("ProjektiVelho login failed")
     }
 
     fun postXmlFileSearch(fetchStartTime: Instant, startOid: Oid<PVDocument>?): PVApiSearchStatus {
@@ -171,7 +171,7 @@ class ProjektiVelhoClient @Autowired constructor(
     private inline fun <reified Out : Any> getOptional(
         uri: String,
         crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
-    ): Out? = velhoClient
+    ): Out? = pvWebClient
         .get()
         .uri(uri)
         .headers(::setBearerAuth)
@@ -192,7 +192,7 @@ class ProjektiVelhoClient @Autowired constructor(
         uri: String,
         body: In,
         crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
-    ): Out? = velhoClient
+    ): Out? = pvWebClient
         .post()
         .uri(uri)
         .headers(::setBearerAuth)

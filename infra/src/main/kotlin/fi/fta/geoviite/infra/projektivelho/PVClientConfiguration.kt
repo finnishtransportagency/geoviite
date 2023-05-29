@@ -26,7 +26,7 @@ class PVWebClient(
     val client: WebClient
 ): WebClient by client
 
-class PVLoginClient(
+class PVLoginWebClient(
     val client: WebClient
 ): WebClient by client
 
@@ -43,7 +43,7 @@ class PVClientConfiguration @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(ProjektiVelhoClient::class.java)
 
     @Bean
-    fun loginClient(): PVLoginClient {
+    fun pvLoginWebClient(): PVLoginWebClient {
         val httpClient = HttpClient.create().responseTimeout(defaultResponseTimeout)
 
         val webClientBuilder = WebClient.builder()
@@ -54,11 +54,11 @@ class PVClientConfiguration @Autowired constructor(
             .defaultHeader(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
             .defaultHeaders { header -> header.setBasicAuth(projektiVelhoUsername, projektiVelhoPassword) }
 
-        return PVLoginClient(webClientBuilder.build())
+        return PVLoginWebClient(webClientBuilder.build())
     }
 
     @Bean
-    fun projVelhoClient(): PVWebClient {
+    fun pvWebClient(): PVWebClient {
         val httpClient = HttpClient.create()
             .responseTimeout(defaultResponseTimeout)
             .secure()
