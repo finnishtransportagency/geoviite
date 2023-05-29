@@ -434,17 +434,19 @@ class GeometrySwitchLinkingInfoBox(by: By): LinkingInfoBox(by) {
 class MapLayerSettingsPanel(by: By) : PageModel(by) {
     enum class Setting(val uiText: String) {
         TAUSTAKARTTA("Taustakartta"),
+        PITUUSMITTAUSLINJAT("Pituusmittauslinjat"),
         SIJAINTIRAITEET("Sijaintairaiteet"),
-        RATANUMEROT("Ratanumerot"),
-        KILOMETRIPYLVAAT("Tasakilometripisteet"),
+        KOROSTA_PUUTTUVA_PYSTYGEOMETRIAT("Korosta puuttuva pystygeometria"),
+        KOROSTA_PUUTTUVA_LINKITYS("Korosta puuttuva linkitys"),
+        KOROSTA_DUPLIKAATTIRAITEET("Korosta duplikaattiraiteet"),
         VAIHTEET("Vaihteet"),
-        SUUNNITELMAT("Suunnitelmat"),
+        TASAKILOMETRIPISTEET("Tasakilometripisteet"),
+
+        SUUNNITELMAN_RAITEET("Suunnitelman raiteet"),
         SUUNNITELMAN_VAIHEET("Suunnitelman vaiheet"),
+        SUUNNITELMAN_TASAKILOMETRIPISTEET("Suunnitelman tasakilometripisteet"),
         SUUNNITELMAN_ALUEET("Suunnitelman alueet"),
-        SUUNNITELMAN_KILOMETRIPYLVAAT("Suunnitelman tasakilometripisteet"),
-        LINKITYS("Linkitys"),
-        VAIHTEIDEN_LINKITYS("Vaihteiden linkitys"),
-        MANUAALINEN_VAIHTEIDEN_LINKITYS("Manuaalinen vaihteiden linkitys"),
+        MANUAALINEN_VAIHTEIDEN_LINKITYS("Manuaalinen vaihteiden linkitys")
     }
 
     fun close() = this {
@@ -464,14 +466,15 @@ class MapLayerSettingsPanel(by: By) : PageModel(by) {
     }
 
     private fun isSelected(setting: Setting): Boolean {
-        return getElementWhenVisible(By.xpath("//label[@class='layer-visibility-setting ' and span[text() = '${setting.uiText}']]/label[@class='switch']"))
-            .findElement(By.cssSelector("input")
-        ).isSelected
+        return getElementWhenVisible(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${setting.uiText}']]/label[@class='switch']"))
+            .findElement(
+                By.cssSelector("input")
+            ).isSelected
     }
 
     private fun clickSetting(setting: Setting) {
         logger.info("Click setting ${setting.uiText}")
-        getElementWhenVisible(By.xpath("//label[@class='layer-visibility-setting ' and span[text() = '${setting.uiText}']]/label[@class='switch']")).click()
+        getElementWhenVisible(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${setting.uiText}']]/label[@class='switch']")).click()
     }
 }
 

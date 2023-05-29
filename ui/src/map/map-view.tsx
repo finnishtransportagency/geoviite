@@ -19,8 +19,7 @@ import { MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
-import Polygon, { fromExtent } from 'ol/geom/Polygon';
-import { searchShownItemsFromLayers } from 'map/tools/tool-utils';
+import Polygon from 'ol/geom/Polygon';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
@@ -240,13 +239,7 @@ const MapView: React.FC<MapViewProps> = ({
         if (map.viewport.source != 'Map') {
             olMap.setView(getOlViewByDomainViewport(map.viewport));
         }
-
-        // Get items from whole visible map
-        const area = olMap.getView().calculateExtent();
-        const pol = fromExtent(area);
-        const items = searchShownItemsFromLayers(pol, visibleLayers, {});
-        props.onShownLayerItemsChange(items);
-    }, [olMap, map.viewport, visibleLayers]);
+    }, [olMap, map.viewport]);
 
     // Convert layer domain models into OpenLayers layers
     React.useEffect(() => {
@@ -285,7 +278,6 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             linkingState,
                             changeTimes,
-                            olView,
                             props.onShownLayerItemsChange,
                         );
                     case 'reference-line-background-layer':
@@ -446,6 +438,10 @@ const MapView: React.FC<MapViewProps> = ({
             .filter(filterNotEmpty);
 
         updatedLayers.forEach((l) => l.layer.setZIndex(mapLayerZIndexes[l.name]));
+
+        visibleLayers
+            .filter((vl) => !updatedLayers.some((ul) => ul.name === vl.name))
+            .forEach((l) => l.onRemove && l.onRemove());
 
         setVisibleLayers(updatedLayers);
 

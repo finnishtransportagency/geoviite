@@ -12,14 +12,14 @@ import {
 } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { fromExtent } from 'ol/geom/Polygon';
 import { LinkingState } from 'linking/linking-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentFeatures } from 'map/layers/alignment/alignment-layer-utils';
 import { filterNotEmpty, filterUnique } from 'utils/array-utils';
+import { LocationTrackId } from 'track-layout/track-layout-model';
 
-let compareString = '';
+let shownLocationTracksCompare = '';
 let newestLayerId = 0;
 
 export function createLocationTrackAlignmentLayer(
@@ -39,34 +39,24 @@ export function createLocationTrackAlignmentLayer(
 
     const resolution = olView.getResolution() || 0;
 
-    const shownItemsSearchFunction = (
-        hitArea: Polygon,
-        options: SearchItemsOptions,
-    ): LayerItemSearchResult => {
-        const matchOptions: MatchOptions = {
-            strategy: options.limit == 1 ? 'nearest' : 'limit',
-            limit: undefined,
-        };
+    function updateShownLocationTracks(locationTrackIds: LocationTrackId[]) {
+        const compare = locationTrackIds.sort().join();
 
-        const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-        const locationTracks = getMatchingAlignmentData(hitArea, features, matchOptions)
-            .map(({ header }) => header.id)
-            .filter(filterUnique)
-            .filter(filterNotEmpty)
-            .slice(0, options.limit);
-
-        return { locationTracks };
-    };
+        if (compare !== shownLocationTracksCompare) {
+            shownLocationTracksCompare = compare;
+            onViewContentChanged({ locationTracks: locationTrackIds });
+        }
+    }
 
     if (resolution <= Limits.ALL_ALIGNMENTS) {
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'LOCATION_TRACKS')
-            .then((alignments) => {
+            .then((locationTracks) => {
                 if (layerId !== newestLayerId) return;
 
                 const features = createAlignmentFeatures(
-                    alignments,
+                    locationTracks,
                     selection,
                     linkingState,
                     showEndPointTicks,
@@ -75,27 +65,35 @@ export function createLocationTrackAlignmentLayer(
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
 
-                const compare = alignments
-                    .map(({ header }) => header.id)
-                    .sort()
-                    .join();
-
-                if (compare !== compareString) {
-                    compareString = compare;
-                    const area = fromExtent(olView.calculateExtent());
-                    const result = shownItemsSearchFunction(area, {});
-                    onViewContentChanged(result);
-                }
+                updateShownLocationTracks(locationTracks.map(({ header }) => header.id));
             })
-            .catch(() => clearFeatures(vectorSource));
+            .catch(() => {
+                clearFeatures(vectorSource);
+                updateShownLocationTracks([]);
+            });
     } else {
         clearFeatures(vectorSource);
+        updateShownLocationTracks([]);
     }
 
     return {
         name: 'location-track-alignment-layer',
         layer: layer,
-        searchItems: shownItemsSearchFunction,
-        searchShownItems: shownItemsSearchFunction,
+        searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+            const matchOptions: MatchOptions = {
+                strategy: options.limit == 1 ? 'nearest' : 'limit',
+                limit: undefined,
+            };
+
+            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
+            const locationTracks = getMatchingAlignmentData(hitArea, features, matchOptions)
+                .map(({ header }) => header.id)
+                .filter(filterUnique)
+                .filter(filterNotEmpty)
+                .slice(0, options.limit);
+
+            return { locationTracks };
+        },
+        onRemove: () => updateShownLocationTracks([]),
     };
 }

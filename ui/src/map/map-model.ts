@@ -34,13 +34,6 @@ export type MapLayerName =
     | 'debug-1m-points-layer'
     | 'debug-layer';
 
-export const shownItemsByLayer: { [key in MapLayerName]?: keyof ShownItems } = {
-    'switch-layer': 'switches',
-    'km-post-layer': 'kmPosts',
-    'location-track-alignment-layer': 'locationTracks',
-    'reference-line-alignment-layer': 'referenceLines',
-};
-
 export type MapViewportSource = 'Map';
 
 export type MapViewport = {
@@ -91,6 +84,7 @@ export type MapLayerMenuItemName =
     | 'switch'
     | 'geometry-alignment'
     | 'geometry-switch'
+    | 'manual-switch-linking'
     | 'plan-area'
     | 'geometry-km-post'
     | 'debug-1m'

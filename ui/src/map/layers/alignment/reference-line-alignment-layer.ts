@@ -6,7 +6,6 @@ import { Selection } from 'selection/selection-model';
 import { PublishType } from 'common/common-model';
 import { LinkingState } from 'linking/linking-model';
 import { ChangeTimes } from 'common/common-slice';
-import OlView from 'ol/View';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import {
     clearFeatures,
@@ -15,10 +14,10 @@ import {
 } from 'map/layers/utils/layer-utils';
 import { deduplicate, filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { fromExtent } from 'ol/geom/Polygon';
 import { createAlignmentFeatures } from 'map/layers/alignment/alignment-layer-utils';
+import { ReferenceLineId } from 'track-layout/track-layout-model';
 
-let compareString = '';
+let shownReferenceLinesCompare: string;
 let newestLayerId = 0;
 
 export function createReferenceLineAlignmentLayer(
@@ -28,7 +27,6 @@ export function createReferenceLineAlignmentLayer(
     publishType: PublishType,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
-    olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
 ): MapLayer {
     const layerId = ++newestLayerId;
@@ -36,27 +34,14 @@ export function createReferenceLineAlignmentLayer(
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    const shownItemsSearchFunction = (hitArea: Polygon, options: SearchItemsOptions) => {
-        const matchOptions: MatchOptions = {
-            strategy: options.limit == 1 ? 'nearest' : 'limit',
-            limit: undefined,
-        };
+    function updateShownReferenceLines(referenceLineIds: ReferenceLineId[]) {
+        const compare = referenceLineIds.sort().join();
 
-        const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
-        const referenceLines = getMatchingAlignmentData(hitArea, features, matchOptions)
-            .map(({ header }) => header)
-            .filter(filterUniqueById((a) => a.id))
-            .slice(0, options.limit);
-
-        const trackNumberIds = deduplicate(
-            referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
-        );
-
-        return {
-            referenceLines: referenceLines.map((r) => r.id),
-            trackNumbers: trackNumberIds,
-        };
-    };
+        if (compare !== shownReferenceLinesCompare) {
+            shownReferenceLinesCompare = compare;
+            onViewContentChanged({ referenceLines: referenceLineIds });
+        }
+    }
 
     getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'REFERENCE_LINES')
         .then((referenceLines) => {
@@ -71,25 +56,37 @@ export function createReferenceLineAlignmentLayer(
 
             clearFeatures(vectorSource);
             vectorSource.addFeatures(features);
-
-            const compare = referenceLines
-                .map(({ header }) => header.id)
-                .sort()
-                .join();
-
-            if (compare !== compareString) {
-                compareString = compare;
-                const area = fromExtent(olView.calculateExtent());
-                const result = shownItemsSearchFunction(area, {});
-                onViewContentChanged(result);
-            }
+            updateShownReferenceLines(referenceLines.map(({ header }) => header.id));
         })
-        .catch(() => clearFeatures(vectorSource));
+        .catch(() => {
+            clearFeatures(vectorSource);
+            updateShownReferenceLines([]);
+        });
 
     return {
         name: 'reference-line-alignment-layer',
         layer: layer,
-        searchItems: shownItemsSearchFunction,
-        searchShownItems: shownItemsSearchFunction,
+        searchItems: (hitArea: Polygon, options: SearchItemsOptions) => {
+            const matchOptions: MatchOptions = {
+                strategy: options.limit == 1 ? 'nearest' : 'limit',
+                limit: undefined,
+            };
+
+            const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
+            const referenceLines = getMatchingAlignmentData(hitArea, features, matchOptions)
+                .map(({ header }) => header)
+                .filter(filterUniqueById((a) => a.id))
+                .slice(0, options.limit);
+
+            const trackNumberIds = deduplicate(
+                referenceLines.map((rl) => rl.trackNumberId).filter(filterNotEmpty),
+            );
+
+            return {
+                referenceLines: referenceLines.map((r) => r.id),
+                trackNumbers: trackNumberIds,
+            };
+        },
+        onRemove: () => updateShownReferenceLines([]),
     };
 }

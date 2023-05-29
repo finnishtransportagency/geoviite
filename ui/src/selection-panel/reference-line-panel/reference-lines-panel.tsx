@@ -67,7 +67,7 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                     const itemClassName = createClassName(
                         'reference-lines-panel__reference-line',
                         canSelectReferenceLine &&
-                        'reference-lines-panel__reference-line--can-select',
+                            'reference-lines-panel__reference-line--can-select',
                     );
                     const trackNumber = trackNumbers?.find((tn) => tn.id == line.trackNumberId);
                     return trackNumber ? (
@@ -85,7 +85,7 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
                             <span>{t('reference-line')}</span>
                         </li>
                     ) : (
-                        <></>
+                        <React.Fragment key={line.id} />
                     );
                 })}
             </ol>

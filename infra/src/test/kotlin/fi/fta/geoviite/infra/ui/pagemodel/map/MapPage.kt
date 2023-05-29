@@ -41,7 +41,7 @@ class MapPage {
     fun karttatasoasetukset(): MapLayerSettingsPanel {
         logger.info("Open map layers")
         getElementWhenVisible(By.xpath("//button[@qa-id='map-layers-button']")).click()
-        return MapLayerSettingsPanel(By.xpath("//div[@class='map-layer-settings']"))
+        return MapLayerSettingsPanel(By.xpath("//div[@class='map-layer-menu']"))
     }
 
     fun esikatselu(): PreviewChangesPage {

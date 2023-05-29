@@ -8,7 +8,6 @@ import {
     MapViewport,
     OptionalShownItems,
     ShownItems,
-    shownItemsByLayer,
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
@@ -58,6 +57,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-km-post': ['geometry-km-post-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug': ['debug-layer'],
+    'manual-switch-linking': ['manual-switch-linking-layer'],
 };
 
 export const initialMapState: Map = {
@@ -92,6 +92,7 @@ export const initialMapState: Map = {
             { name: 'geometry-switch', visible: true },
             { name: 'geometry-km-post', visible: true },
             { name: 'plan-area', visible: false },
+            { name: 'manual-switch-linking', visible: false },
         ],
         debug: [
             { name: 'debug-1m', visible: false },
@@ -116,10 +117,10 @@ export const initialMapState: Map = {
 
 export const mapReducers = {
     onShownItemsChange: ({ shownItems }: Map, { payload }: PayloadAction<OptionalShownItems>) => {
-        shownItems.referenceLines = payload.referenceLines ?? [];
-        shownItems.locationTracks = payload.locationTracks ?? [];
-        shownItems.kmPosts = payload.kmPosts ?? [];
-        shownItems.switches = payload.switches ?? [];
+        if ('referenceLines' in payload) shownItems.referenceLines = payload.referenceLines ?? [];
+        if ('locationTracks' in payload) shownItems.locationTracks = payload.locationTracks ?? [];
+        if ('kmPosts' in payload) shownItems.kmPosts = payload.kmPosts ?? [];
+        if ('switches' in payload) shownItems.switches = payload.switches ?? [];
     },
     onViewportChange: (state: Map, { payload: viewPort }: PayloadAction<MapViewport>) => {
         state.viewport = viewPort;
@@ -175,13 +176,6 @@ export const mapReducers = {
         if (change.visible) {
             this.showLayers(state, { payload: changedLayers, type: 'showLayers' });
         } else {
-            changedLayers.forEach((l) => {
-                const shownItemsToHide = shownItemsByLayer[l];
-                if (shownItemsToHide) {
-                    state.shownItems[shownItemsToHide] = [];
-                }
-            });
-
             this.hideLayers(state, { payload: changedLayers, type: 'hideLayers' });
         }
     },
