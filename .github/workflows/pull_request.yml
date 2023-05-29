@@ -35,11 +35,24 @@ jobs:
         cd infra
         ./gradlew cleanTest test --tests "*Test"
 
-    #KOKEILU
+    #KOKEILU!
     - name: Build docker image
+      env:
+        TEMURIN_IMAGE=eclipse-temurin:17-jdk
       run: |
         cd infra
-        docker build  -t gvt-db .
+        docker build -t gvt-db .
+
+    - name: run integration tests in infra (backend)
+      #env:
+      #  DB_USERNAME: 'postgres'
+      #  DB_PASSWORD: 'postgres'
+      run: |
+        cd infra
+        docker run -p 5436:5432 gvt-db
+        ./gradlew cleanTest test --tests "*IT"
+
+
       # Service container to run with `runner-job`
       #services:
       #  geoviite-postgres:
@@ -50,11 +63,3 @@ jobs:
       #      POSTGRES_DB: 'geoviite'
       #    ports:
       #      - 127.0.0.1:5436:5432
-
-    - name: run integration tests in infra (backend)
-      #env:
-      #  DB_USERNAME: 'postgres'
-      #  DB_PASSWORD: 'postgres'
-      run: |
-        cd infra
-        ./gradlew cleanTest test --tests "*IT"
