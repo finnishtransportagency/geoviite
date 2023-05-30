@@ -49,7 +49,7 @@ jobs:
       env:
         DB_USERNAME: 'postgres'
         DB_PASSWORD: 'postgres'
-        DB_URL: '{DB_URL:localhost:5436/geoviite}'
+        DB_URL: 'localhost:5436/gvt-db'
       run: |
         cd infra
         docker run -p 5436:5432 gvt-db
