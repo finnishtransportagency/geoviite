@@ -101,16 +101,16 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                     )}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationStartE, Precision.TM35FIN)}
+                    {roundToPrecision(locationStartE, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationStartN, Precision.TM35FIN)}
+                    {roundToPrecision(locationStartN, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationEndE, Precision.TM35FIN)}
+                    {roundToPrecision(locationEndE, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationEndN, Precision.TM35FIN)}
+                    {roundToPrecision(locationEndN, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(length, Precision.measurementMeterDistance)}

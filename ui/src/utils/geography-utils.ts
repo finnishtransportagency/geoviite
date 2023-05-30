@@ -3,8 +3,8 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import { TrackMeter } from 'common/common-model';
 
 export function formatToTM35FINString(gvtPoint: Point): string {
-    const longitude = roundToPrecision(gvtPoint.x, Precision.TM35FIN);
-    const latitude = roundToPrecision(gvtPoint.y, Precision.TM35FIN);
+    const longitude = roundToPrecision(gvtPoint.x, Precision.coordinateMeters);
+    const latitude = roundToPrecision(gvtPoint.y, Precision.coordinateMeters);
     return `${longitude} E, ${latitude} N`;
 }
 
