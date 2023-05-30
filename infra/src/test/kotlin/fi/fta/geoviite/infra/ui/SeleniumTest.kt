@@ -88,9 +88,9 @@ open class SeleniumTest (
     }
 
     protected fun openBrowser() {
-//        val browserName = System.getProperty("browser.name")
         val headless = !DEV_DEBUG
-       //when (browserName) {
+        logger.info("Initializing webdriver")
+       //when (System.getProperty("browser.name")) {
        //    "chrome" -> PageModel.setBrowser(openChromeBrowser(headless))
        //    "firefox" -> PageModel.setBrowser(openFireFox(headless))
        //    else -> {
@@ -99,16 +99,9 @@ open class SeleniumTest (
        //    }
        //}
 
-        logger.info("Create a webdriver")
 //        openFirefox(headless)
         openChrome(headless)
-//        try {
-//            PageModel.setBrowser(openFireFox(headless))
-//        } catch (ex: SessionNotCreatedException) {
-//            logger.warn("Failed to create a webdriver. RETRY")
-//            PageModel.setBrowser(openFireFox(headless))
-//        }
-        logger.info("Webdriver complete")
+        logger.info("Webdriver initialized")
 
         browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(1))
         logger.info("Browser window size : ${browser().manage().window().size}")
