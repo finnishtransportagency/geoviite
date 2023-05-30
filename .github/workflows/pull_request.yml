@@ -38,6 +38,8 @@ jobs:
     #KOKEILU!
     #laita oikeat lisenssi-tiedostot
     - name: Build docker image
+      env:
+        DB_URL: 'localhost:5436/geoviite'
       run: |
         cd infra
         touch build/reports/dependency-license
