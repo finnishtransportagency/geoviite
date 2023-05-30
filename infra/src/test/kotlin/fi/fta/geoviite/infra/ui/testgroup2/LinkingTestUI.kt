@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.PublicationDetailRow
 import fi.fta.geoviite.infra.ui.pagemodel.map.*
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLayoutSwitchDialog.Tilakategoria
@@ -47,6 +46,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -163,7 +163,7 @@ class LinkingTestUI @Autowired constructor(
         clearDrafts()
         openBrowser()
 
-        mapPage = PageModel.openGeoviite(url).navigationBar().kartta()
+        mapPage = openGeoviite(url).navigationBar().kartta()
         mapPage.luonnostila()
         val previewChangesPage = mapPage.esikatselu()
 
@@ -181,17 +181,10 @@ class LinkingTestUI @Autowired constructor(
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }
 
-    @AfterEach
-    fun closeBrowser() {
-        if(!DEV_DEBUG) PageModel.browser().quit().also { Thread.sleep(1000) }
-    }
-
 
     @Test
     @Disabled
-    fun launchBrowserForDebug() {
-
-    }
+    fun launchBrowserForDebug() { }
 
     @Test
     fun `Create a new location track and link geometry`() {

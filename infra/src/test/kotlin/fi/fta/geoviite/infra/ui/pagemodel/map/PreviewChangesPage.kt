@@ -3,7 +3,10 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.DialogPopUp
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
+import getElementWhenClickable
+import getElementWhenVisible
 import org.openqa.selenium.By
+import waitAndGetToasterElement
 
 class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']")) {
 

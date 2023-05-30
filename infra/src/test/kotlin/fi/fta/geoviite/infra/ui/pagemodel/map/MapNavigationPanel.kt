@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import browser
 import fi.fta.geoviite.infra.ui.pagemodel.*
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.browser
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenVisible
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementsWhenVisible
+import getElementWhenVisible
+import getElementsWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.support.ui.WebDriverWait
@@ -100,7 +100,7 @@ class MapNavigationPanel {
         logger.info("Select switch $switchName")
        try {
            getElementWhenVisible(By.xpath("//ol[@class = 'switch-panel__switches']//span[text() = '$switchName']")).click()
-       }catch (ex: TimeoutException) {
+       } catch (ex: TimeoutException) {
            val switches = switches()
            throw RuntimeException("Switch $switchName not found! Available switches $switches")
        }
@@ -108,11 +108,11 @@ class MapNavigationPanel {
 
     fun switches(): List<TrackLayoutSwitch> {
         //Wait until switches panel exists then check if it contains alignments
-        try {
-            return DynamicList(By.xpath("//ol[@class='switch-panel__switches']")).listElements()
+        return try {
+            DynamicList(By.xpath("//ol[@class='switch-panel__switches']")).listElements()
                 .map { element -> TrackLayoutSwitch(element) }.also { logger.info("Switches $it") }
         } catch (ex: TimeoutException) {
-            return emptyList()
+            emptyList()
         }
     }
 
@@ -127,14 +127,14 @@ class MapNavigationPanel {
     fun geometryPlans(): List<GeometryPlanAccordion> {
         logger.info("Get all geometry plans")
         getElementWhenVisible(By.cssSelector("div.geometry-plan-panel div.accordion"))
-        try {
+        return try {
             val planNames = getElementsWhenVisible(By.cssSelector("span.accordion__header-title"))
                 .map { it.text }
             logger.info("Geometry plans: $planNames")
-            return planNames.map { GeometryPlanAccordion(By.xpath("//div[@class='accordion' and h4/span[text() = '${it}']]")) }
+            planNames.map { GeometryPlanAccordion(By.xpath("//div[@class='accordion' and h4/span[text() = '${it}']]")) }
         } catch (ex: TimeoutException) {
             logger.warn("No geometry plans found")
-            return emptyList()
+            emptyList()
         }
     }
 

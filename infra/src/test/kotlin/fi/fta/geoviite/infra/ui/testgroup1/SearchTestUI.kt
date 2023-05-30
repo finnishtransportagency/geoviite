@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapToolPanel
 import fi.fta.geoviite.infra.ui.pagemodel.map.SearchBox
@@ -55,13 +54,8 @@ class SearchTestUI @Autowired constructor(
     @BeforeEach
     fun goToMapPage() {
         openBrowser()
-        mapPage = PageModel.openGeoviite(url).navigationBar().kartta()
+        mapPage = openGeoviite(url).navigationBar().kartta()
         searchBox = mapPage.searchBox()
-    }
-
-    @AfterEach
-    fun closeBrowser() {
-        PageModel.browser().quit()
     }
 
     @Test

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import getElementIfExists
 import org.openqa.selenium.By
 
 abstract class FormGroup(rootBy: By) : PageModel(rootBy) {

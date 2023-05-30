@@ -1,23 +1,23 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
-import fi.fta.geoviite.infra.util.logger
+import browser
+import getElementWhenVisible
 import org.openqa.selenium.*
-import org.openqa.selenium.interactions.Actions
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import waitUntilElementIsClickable
 import java.time.Duration
 
-abstract class PageModel(
-    protected val rootByCondition: By,
+const val SCREENSHOTS_PATH = "build/reports/screenshots"
+
+abstract class PageModel(protected val rootByCondition: By) {
     protected var rootElement: WebElement = getElementWhenVisible(rootByCondition, timeoutSeconds = 5)
-) {
+    protected val logger: Logger = LoggerFactory.getLogger(PageModel::class.java)
+
 
     protected inline operator fun <T> T.invoke(action: T.() -> Unit): T = apply(action)
-    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
 
     protected open fun clickButton(buttonContent: String) {
         logger.info("Click button '$buttonContent'")
@@ -59,7 +59,7 @@ abstract class PageModel(
             when (ex) {
                 is StaleElementReferenceException -> {
                     logger.info("Root element has become stale ${rootByCondition}")
-                    refresRootElement()
+                    refreshRootElement()
                     logger.info("Retry waiting child to become visible")
                     waitUntilChildIsVisible(childByCondition)
                     return rootElement.findElement(childByCondition)
@@ -80,7 +80,7 @@ abstract class PageModel(
         } catch (ex: WebDriverException) {
             when (ex) {
                 is StaleElementReferenceException -> {
-                    refresRootElement()
+                    refreshRootElement()
                     waitUntilChildIsVisible(childByCondition, timeout)
                     return rootElement.findElements(childByCondition)
                 }
@@ -94,7 +94,7 @@ abstract class PageModel(
         }
     }
 
-    protected fun refresRootElement() {
+    protected fun refreshRootElement() {
         logger.info("Refresh root element")
         rootElement = getElementWhenVisible(rootByCondition)
     }
@@ -113,115 +113,8 @@ abstract class PageModel(
     protected fun childElementExists(byCondition: By) =
         rootElement.findElements(byCondition).isNotEmpty()
 
+    /**
+     * Click element at point x,y where 0,0 is at top left corner
+     */
 
-    companion object {
-        lateinit var webDriver: WebDriver
-        fun setBrowser(webDriver: WebDriver) {
-            Companion.webDriver = webDriver
-        }
-
-        fun browser() = webDriver
-        fun javaScriptExecutor(): JavascriptExecutor = webDriver as JavascriptExecutor
-
-        /**
-         * Click element at point x,y where 0,0 is at top left corner
-         */
-        fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolean = false) {
-
-            //Invert results since negative means up/left
-            val offSetX = -((element.rect.width / 2) - x)
-            val offSetY = -((element.rect.height / 2) - y)
-
-            logger.info("Click double=$doubleClick canvas [${element.rect.width}x${element.rect.height}], center offset ($offSetX,$offSetY)")
-
-            val actions = Actions(browser())
-                .moveToElement(element, offSetX, offSetY)
-                .click()
-            if (doubleClick) actions.click()
-            actions.build().perform()
-            Thread.sleep(400) //Prevents double-clicking and zooming with map canvas
-        }
-
-        fun openGeoviite(startUrl: String): FrontPage {
-            logger.info("Navigate to Geoviite $startUrl")
-            browser().navigate().to(startUrl);
-            return FrontPage()
-        }
-
-        fun waitAndGetToasterElement(): Toaster {
-            logger.info("Waiting toaster element to appear")
-            val toaster = Toaster(getElementWhenVisible(By.cssSelector("div.Toastify__toast"), 15))
-            logger.info("Toaster appeared")
-            return toaster
-        }
-
-        fun waitUntilPopUpDialogCloses() =
-            WebDriverWait(browser(), Duration.ofSeconds(5))
-                .until(
-                    ExpectedConditions.not(
-                        ExpectedConditions.presenceOfElementLocated(By.cssSelector("div.dialog__popup"))
-                    )
-                )
-
-        fun waitUntilElementIsClickable(element: WebElement, timeoutSeconds: Long = 5) =
-            WebDriverWait(browser(), Duration.ofSeconds(timeoutSeconds))
-                .until(ExpectedConditions.elementToBeClickable(element))
-
-
-        fun clearInput(inputElement: WebElement) {
-            //CMD+A does nothing in non-mac systems and vice versa
-            inputElement.click()
-            inputElement.sendKeys(Keys.chord(Keys.COMMAND, "a"))
-            inputElement.sendKeys(Keys.BACK_SPACE)
-            inputElement.sendKeys(Keys.chord(Keys.CONTROL, "a"))
-            inputElement.sendKeys(Keys.BACK_SPACE)
-        }
-
-        fun waitUntilElementIsStale(element: WebElement, timeoutSeconds: Long = 10) {
-            WebDriverWait(browser(), Duration.ofSeconds(timeoutSeconds)).until(ExpectedConditions.stalenessOf(element))
-        }
-
-        fun waitUntilChildExists(rootElement: WebElement, childByCondition: By) {
-            WebDriverWait(browser(), Duration.ofSeconds(5))
-                .until(ExpectedConditions.visibilityOfNestedElementsLocatedBy(rootElement, childByCondition))
-        }
-
-        fun waitUntilChildDoesNotExist(rootElement: WebElement, childByCondition: By) {
-            WebDriverWait(browser(), Duration.ofSeconds(5))
-                .until(ExpectedConditions.not(ExpectedConditions.visibilityOfNestedElementsLocatedBy(rootElement, childByCondition)))
-        }
-
-        fun getElementIfExists(rootElement: WebElement, byCondition: By): WebElement? {
-            try {
-                return rootElement.findElement(byCondition)
-            } catch (ex: NoSuchElementException) {
-                return null
-            }
-        }
-
-        fun getElementWhenExists(byCondition: By, timeoutSeconds: Long = 10): WebElement {
-            WebDriverWait(browser(), Duration.ofSeconds(timeoutSeconds))
-                .until(ExpectedConditions.presenceOfElementLocated(byCondition))
-            return browser().findElement(byCondition)
-        }
-
-        fun getElementWhenVisible(byCondition: By, timeoutSeconds: Long = 10): WebElement {
-            WebDriverWait(browser(), Duration.ofSeconds(timeoutSeconds))
-                .until(ExpectedConditions.visibilityOfElementLocated(byCondition))
-            return browser().findElement(byCondition)
-        }
-
-        fun getElementsWhenVisible(byCondition: By, timeoutSeconds: Long = 10): List<WebElement> {
-            WebDriverWait(browser(), Duration.ofSeconds(timeoutSeconds))
-                .until(ExpectedConditions.visibilityOfElementLocated(byCondition))
-            return browser().findElements(byCondition)
-        }
-
-        fun getElementWhenClickable(byCondition: By, timeoutSeconds: Long = 10): WebElement {
-            WebDriverWait(browser(), Duration.ofSeconds(timeoutSeconds))
-                .until(ExpectedConditions.elementToBeClickable(byCondition))
-            return browser().findElement(byCondition)
-        }
-
-    }
 }
