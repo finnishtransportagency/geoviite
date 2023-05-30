@@ -45,11 +45,13 @@ jobs:
         docker build --build-arg TEMURIN_IMAGE=eclipse-temurin:17-jdk -t geoviite .
 
     - name: run integration tests in infra (backend)
-      #url: "jdbc:postgresql://${DB_URL:localhost:5436/geoviite}"
+      #java.lang.IllegalArgumentException: Could not resolve placeholder 'DB_URL' in value "jdbc:postgresql://${DB_URL}"
       env:
         DB_USERNAME: 'postgres'
         DB_PASSWORD: 'postgres'
-        DB_URL: 'localhost:5436/geoviite'
+        #DB_URL: 'localhost:5436/geoviite'
+        #'DB_URL:localhost:5436/geoviite'
+        # '{DB_URL:localhost:5436/geoviite}'
       run: |
         cd infra
         docker run -p 5436:5432 geoviite
