@@ -100,7 +100,7 @@ function substituteLayoutStationsForGeometryStations(
     };
 }
 
-function processGeometries(
+function processLayoutGeometries(
     geometry: VerticalGeometryItem[],
     linkingSummary: PlanLinkingSummaryItem[],
 ) {
@@ -113,8 +113,7 @@ function processGeometries(
                 geom.fileName === linkedAreaSourceFile(geom.start.station) ||
                 geom.fileName === linkedAreaSourceFile(geom.end.station) ||
                 geom.fileName === linkedAreaSourceFile(geom.point.station),
-        )
-        .sort((a, b) => a.point.station - b.point.station);
+        );
 }
 
 function getBottomAndTopTicks(
@@ -307,9 +306,10 @@ const VerticalGeometryDiagram: React.FC<{
     ) ?? [[], undefined];
     const geometry = useMemo(
         () =>
-            linkingSummary == undefined || rawGeometry == undefined
-                ? []
-                : processGeometries(rawGeometry, linkingSummary),
+            ('planId' in alignmentId
+                ? rawGeometry ?? []
+                : processLayoutGeometries(rawGeometry ?? [], linkingSummary ?? [])
+            ).sort((a, b) => a.point.station - b.point.station),
         [rawGeometry, linkingSummary],
     );
     const elementPosition = ref.current?.getBoundingClientRect();
