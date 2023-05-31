@@ -9,6 +9,7 @@ import PVProjectGroup
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.withUser
 import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.inframodel.InfraModelService
@@ -86,7 +87,7 @@ class PVService @Autowired constructor(
     fun getSearchStatusIfReady(pvSearch: PVSearch): PVApiSearchStatus? = pvSearch
         .takeIf { search -> search.state == WAITING }
         ?.let { search -> PVClient.fetchVelhoSearchStatus(search.token) }
-        ?.takeIf { status -> status.state == PVSearchState("valmis") }
+        ?.takeIf { status -> status.state == PVApiSearchState.valmis }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")
@@ -197,6 +198,11 @@ class PVService @Autowired constructor(
     )
     fun isRailroadAlignment(alignment: GeometryAlignment) =
         alignment.featureTypeCode?.let { code -> railroadAlignmentFeatureTypes.contains(code) } ?: true
+
+    fun getAndStoreDocument(oid: Oid<PVDocument>): IntId<PVDocument> {
+        // TODO: get id for document if it exists in DB. Otherwise, fetch -> insert -> return ID
+        TODO()
+    }
 }
 
 private data class PVAssignmentHolder(

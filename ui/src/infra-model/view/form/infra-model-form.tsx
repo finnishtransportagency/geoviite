@@ -288,30 +288,33 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         {fieldInEdit !== 'planOid' ? (
                             <FieldLayout
                                 value={
-                                    <InfraModelTextField hasError={hasErrors('oid')}>
-                                        {extraInframodelParameters.oid
-                                            ? extraInframodelParameters.oid
+                                    <InfraModelTextField hasError={hasErrors('pvDocumentOid')}>
+                                        {extraInframodelParameters.pvDocumentOid
+                                            ? extraInframodelParameters.pvDocumentOid
                                             : t('im-form.information-missing')}
                                     </InfraModelTextField>
                                 }
-                                errors={getVisibleErrorsByProp('oid')}
+                                errors={getVisibleErrorsByProp('pvDocumentOid')}
                             />
                         ) : (
                             <FieldLayout
                                 value={
                                     <TextField
                                         id="inframodel_oid"
-                                        value={extraInframodelParameters.oid}
-                                        hasError={hasErrors('oid')}
-                                        onBlur={() => onCommitField('oid')}
+                                        value={extraInframodelParameters.pvDocumentOid}
+                                        hasError={hasErrors('pvDocumentOid')}
+                                        onBlur={() => onCommitField('pvDocumentOid')}
                                         onChange={(e) =>
-                                            changeInExtraParametersField(e.target.value, 'oid')
+                                            changeInExtraParametersField(
+                                                e.target.value,
+                                                'pvDocumentOid',
+                                            )
                                         }
                                         wide
                                     />
                                 }
                                 help={t('im-form.oid-help')}
-                                errors={getVisibleErrorsByProp('oid')}
+                                errors={getVisibleErrorsByProp('pvDocumentOid')}
                             />
                         )}
                     </FormgroupField>

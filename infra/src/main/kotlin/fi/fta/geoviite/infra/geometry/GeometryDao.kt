@@ -80,12 +80,12 @@ class GeometryDao @Autowired constructor(
               bounding_polygon,
               vertical_coordinate_system,
               source,
-              oid,
+              projektivelho_file_metadata_id,
               plan_phase,
               plan_decision,
               measurement_method,
               message
-              )
+            )
             values(
               :track_number_id,
               :track_number_description,
@@ -101,12 +101,12 @@ class GeometryDao @Autowired constructor(
               postgis.st_polygonfromtext(:polygon_string,:mapSrid),
               :vertical_coordinate_system::common.vertical_coordinate_system,
               :source::geometry.plan_source,
-              :oid,
+              :projektivelho_file_metadata_id,
               :plan_phase::geometry.plan_phase,
               :plan_decision::geometry.plan_decision,
               :measurement_method::common.measurement_method,
               :message
-              )
+            )
             returning id, version
         """.trimIndent()
 
@@ -128,7 +128,7 @@ class GeometryDao @Autowired constructor(
             "vertical_coordinate_system" to plan.units.verticalCoordinateSystem?.name,
             "mapSrid" to LAYOUT_SRID.code,
             "source" to plan.source.name,
-            "oid" to plan.oid?.toString(),
+            "projektivelho_file_metadata_id" to plan.pvDocumentId?.intValue,
             "plan_phase" to plan.planPhase?.name,
             "plan_decision" to plan.decisionPhase?.name,
             "measurement_method" to plan.measurementMethod?.name,
@@ -223,7 +223,7 @@ class GeometryDao @Autowired constructor(
               srid = :srid,
               coordinate_system_name = :coordinate_system_name,
               vertical_coordinate_system = :vertical_coordinate_system::common.vertical_coordinate_system,
-              oid = :oid,
+              projektivelho_file_metadata_id = :projektivelho_file_metadata_id,
               plan_phase = :plan_phase::geometry.plan_phase,
               plan_decision = :plan_decision::geometry.plan_decision,
               measurement_method = :measurement_method::common.measurement_method,
@@ -242,7 +242,7 @@ class GeometryDao @Autowired constructor(
             "srid" to geometryPlan.units.coordinateSystemSrid?.code,
             "coordinate_system_name" to geometryPlan.units.coordinateSystemName,
             "vertical_coordinate_system" to geometryPlan.units.verticalCoordinateSystem?.name,
-            "oid" to geometryPlan.oid?.toString(),
+            "projektivelho_file_metadata_id" to geometryPlan.pvDocumentId?.intValue,
             "plan_phase" to geometryPlan.planPhase?.name,
             "plan_decision" to geometryPlan.decisionPhase?.name,
             "measurement_method" to geometryPlan.measurementMethod?.name,
@@ -740,7 +740,7 @@ class GeometryDao @Autowired constructor(
               plan_application.manufacturer as application_manufacturer,
               plan_application.application_version as application_version,
               plan_file.name as file_name,
-              plan.oid,
+              plan.projektivelho_file_metadata_id,
               plan.plan_phase,
               plan.plan_decision,
               plan.measurement_method,
@@ -783,7 +783,7 @@ class GeometryDao @Autowired constructor(
                 switches = fetchSwitches(planId = planVersion.id, switchId = null),
                 kmPosts = fetchKmPosts(planVersion.id),
                 fileName = rs.getFileName("file_name"),
-                oid = rs.getOidOrNull("oid"),
+                pvDocumentId = rs.getIntId("projektivelho_file_metadata_id"),
                 planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
                 decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),

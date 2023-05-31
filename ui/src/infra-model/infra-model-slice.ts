@@ -54,7 +54,7 @@ export type InfraModelState = {
 };
 
 export type ExtraInfraModelParameters = {
-    oid: Oid | undefined;
+    pvDocumentOid: Oid | undefined;
     planPhase: PlanPhase | undefined;
     decisionPhase: DecisionPhase | undefined;
     measurementMethod: MeasurementMethod | undefined;
@@ -123,7 +123,7 @@ export const initialInfraModelState: InfraModelState = {
     validationResponse: null,
     file: undefined,
     extraInfraModelParameters: {
-        oid: undefined,
+        pvDocumentOid: undefined,
         planPhase: undefined,
         decisionPhase: undefined,
         measurementMethod: undefined,
@@ -223,7 +223,7 @@ const infraModelSlice = createSlice({
             { payload: plan }: PayloadAction<GeometryPlan | null>,
         ) => {
             state.extraInfraModelParameters = {
-                oid: plan?.oid ?? undefined,
+                pvDocumentOid: undefined, // TODO: get oid from the document (and document by id)
                 planPhase: plan?.planPhase ?? undefined,
                 decisionPhase: plan?.decisionPhase ?? undefined,
                 measurementMethod: plan?.measurementMethod ?? undefined,
@@ -262,15 +262,17 @@ function validateParams(
     extraParams: ExtraInfraModelParameters,
     overrideParams: OverrideInfraModelParameters,
 ): ValidationError<InfraModelParameters>[] {
-    const oidValidationErrors = extraParams.oid ? validateOid(extraParams.oid) : null;
+    const oidValidationErrors = extraParams.pvDocumentOid
+        ? validateOid(extraParams.pvDocumentOid)
+        : null;
     const errors: ValidationError<InfraModelParameters>[] = [];
 
     oidValidationErrors &&
         oidValidationErrors.forEach((error) =>
-            errors.push(createError('oid', error, ValidationErrorType.ERROR)),
+            errors.push(createError('pvDocumentOid', error, ValidationErrorType.ERROR)),
         );
-    (extraParams.oid === undefined || oidValidationErrors?.length != 0) &&
-        errors.push(createError('oid', 'critical', ValidationErrorType.WARNING));
+    (extraParams.pvDocumentOid === undefined || oidValidationErrors?.length != 0) &&
+        errors.push(createError('pvDocumentOid', 'critical', ValidationErrorType.WARNING));
     extraParams.planPhase === undefined &&
         errors.push(createError('planPhase', 'critical', ValidationErrorType.WARNING));
     extraParams.measurementMethod === undefined &&

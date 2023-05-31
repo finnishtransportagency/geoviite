@@ -88,7 +88,7 @@ class EspooTestData {
                     .plus(switchAndAlignments2.second),
                 kmPosts = geometryKmPosts(trackLayoutTrackNumberId),
                 fileName = FileName("espoo_test_data.xml"),
-                oid = null,
+                pvDocumentId = null,
                 planPhase = PlanPhase.RAILWAY_PLAN,
                 decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
                 measurementMethod = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,

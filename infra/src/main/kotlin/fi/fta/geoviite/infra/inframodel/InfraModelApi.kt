@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.inframodel
 
+import PVDocument
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.error.HasLocalizeMessageKey
 import fi.fta.geoviite.infra.geometry.*
@@ -23,7 +24,7 @@ data class InsertResponse(
 )
 
 data class ExtraInfoParameters(
-    val oid: Oid<GeometryPlan>?,
+    val pvDocumentOid: Oid<PVDocument>?,
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,

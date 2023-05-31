@@ -158,20 +158,10 @@ data class PVId @JsonCreator(mode = DELEGATING) constructor(private val value: S
     override fun toString(): String = value
     override fun compareTo(other: PVId): Int = value.compareTo(other.value)
 }
-
-val pvSearchStateLength = 1..20
-val pvSearchStateRegex = Regex("^[A-Za-z/]+\$")
-data class PVSearchState @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
-    : Comparable<PVSearchState>, CharSequence by value {
-    init { assertSanitized<PVSearchState>(value, pvSearchStateRegex, pvSearchStateLength) }
-
-    @JsonValue
-    override fun toString(): String = value
-    override fun compareTo(other: PVSearchState): Int = value.compareTo(other.value)
-}
+enum class PVApiSearchState { kaynnistetty, kaynnissa, valmis, virhe }
 
 data class PVApiSearchStatus(
-    @JsonProperty("tila") val state: PVSearchState,
+    @JsonProperty("tila") val state: PVApiSearchState,
     @JsonProperty("hakutunniste") val searchId: PVId,
     @JsonProperty("alkuaika") val startTime: Instant,
     @JsonProperty("hakutunniste-voimassa") val validFor: Long
