@@ -7,10 +7,22 @@ on:
     branches: [main]
     paths-ignore:
       - 'README.md'
+#tarkasta tuliko services just ennen jobsia
+
+
 
 jobs:
   runner-job:
     runs-on: ubuntu-latest
+
+  services:
+    geoviite-postgres:
+      image: 'postgis/postgis:15-3.3-alpine'
+      env:
+        POSTGRES_PASSWORD: 'postgres'
+        POSTGRES_USER: 'postgres'
+        POSTGRES_DB: 'geoviite-db'
+      ports: '127.0.0.1:5436:5432'
 
     steps:
     - name: Download repository on the runner
@@ -36,6 +48,8 @@ jobs:
         ./gradlew cleanTest test --tests "*Test"
 
     - name: run integration tests in infra (backend)
+      # env-muuttujat, toinen vaihtoehto: githubille oma application-yml? (tai käytä test-yml?)
+      # https://stackoverflow.com/questions/59741629/how-to-pass-environment-variables-to-the-gradle-wrapper-build-using-only-command
       run: |
         cd infra
-        ./gradlew cleanTest test --tests "*IT"
+        POSTGRES_DB=geoviite-db POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./gradlew cleanTest test --tests "*IT"
