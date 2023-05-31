@@ -320,6 +320,7 @@ export interface PlanLinkingSummaryItem {
 export interface TrackKmHeights {
     kmNumber: KmNumber;
     trackMeterHeights: TrackMeterHeight[];
+    endM: number;
 }
 
 export async function getPlanAlignmentHeights(
@@ -357,11 +358,22 @@ export async function getLocationTrackHeights(
     );
 }
 
+const locationTrackLinkingSummaryCache = asyncCache<
+    `${LocationTrackId}_${PublishType}`,
+    PlanLinkingSummaryItem[]
+>();
+
 export async function getLocationTrackLinkingSummary(
+    changeTime: TimeStamp,
     locationTrackId: LocationTrackId,
     publishType: PublishType,
 ): Promise<PlanLinkingSummaryItem[]> {
-    return getThrowError(
-        `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/linking-summary`,
+    return locationTrackLinkingSummaryCache.get(
+        changeTime,
+        `${locationTrackId}_${publishType}`,
+        () =>
+            getThrowError(
+                `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/linking-summary`,
+            ),
     );
 }
