@@ -186,17 +186,15 @@ export function useAlignmentHeights(
     const renderedRange = useRef({ alignmentId, startM, endM, tickLength });
     renderedRange.current = { alignmentId, startM, endM, tickLength };
 
-    let rv = loadedHeights;
     const updateLoadedHeights = () => {
         const cacheItem = getCacheItem(changeTimes, alignmentId, tickLength);
         if (cacheItem !== undefined) {
-            rv = {
+            setLoadedHeights({
                 heights: cacheItem.resolved.filter(
                     (item) => item.trackMeterHeights[0].m <= endM && item.endM >= startM,
                 ),
                 alignmentId,
-            };
-            setLoadedHeights(rv);
+            });
         }
     };
 
@@ -240,6 +238,5 @@ export function useAlignmentHeights(
         }
     }, [alignmentId, startM, endM, tickLength]);
 
-    //    return rv;
     return loadedHeights;
 }
