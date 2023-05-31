@@ -110,8 +110,7 @@ class InfraModelController @Autowired constructor(
     @GetMapping("/velho-import/redirect/{oid}")
     fun getVelhoRedirect(@PathVariable("oid") oid: Oid<PVApiRedirect>): HttpsUrl {
         logger.apiCall("getVelhoRedirect")
-        val link = pvDocumentService.getLink(oid)
-        return link
+        return pvDocumentService.getLink(oid)
     }
 
     @PreAuthorize(AUTH_ALL_WRITE)
