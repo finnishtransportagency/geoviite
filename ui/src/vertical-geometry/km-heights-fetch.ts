@@ -20,7 +20,7 @@ function timeClearedCache<O, T extends { changeTime: Date | null; clear: () => v
     return (changeTime) => {
         if (obj.changeTime === null || changeTime > obj.changeTime) {
             obj.changeTime = changeTime;
-            obj.clear;
+            obj.clear();
         }
         return obj.obj;
     };
@@ -28,13 +28,13 @@ function timeClearedCache<O, T extends { changeTime: Date | null; clear: () => v
 
 const geometryHeightsCache: (changeTime: Date) => Map<HeightCacheKey, HeightCacheItem> = (() => {
     const cache = new Map();
-    return timeClearedCache({ obj: cache, clear: cache.clear, changeTime: null });
+    return timeClearedCache({ obj: cache, clear: () => cache.clear(), changeTime: null });
 })();
 
 const locationTrackHeightsCache: (changeTime: Date) => Map<HeightCacheKey, HeightCacheItem> =
     (() => {
         const cache = new Map();
-        return timeClearedCache({ obj: cache, clear: cache.clear, changeTime: null });
+        return timeClearedCache({ obj: cache, clear: () => cache.clear(), changeTime: null });
     })();
 
 function heightCacheKey(
