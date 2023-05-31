@@ -16,6 +16,7 @@ import java.time.LocalDateTime
 
 class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
     private val header = getChildElementStaleSafe(By.xpath("//table/thead/tr"))
+
     fun rowElements(): List<WebElement> {
         try {
             return getChildElementsStaleSafe(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"), Duration.ofSeconds(2) )
@@ -64,7 +65,7 @@ class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
     fun addOid(input: String) {
         clickEditIcon("Projektin OID")
         val element = fieldValueElement("Projektin OID")
-        
+
         element.findElement(By.cssSelector("div.text-field__input input")).sendKeys(input)
         clickEditIcon("Projektin OID")
     }

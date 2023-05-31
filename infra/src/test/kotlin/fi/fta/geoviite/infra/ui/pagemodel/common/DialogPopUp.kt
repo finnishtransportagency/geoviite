@@ -1,8 +1,10 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import org.openqa.selenium.By
+import waitUntilElementIsClickable
 
 open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(by) {
+
     val title = rootElement.findElement(By.className("dialog__title")).text
     val contentElement = rootElement.findElement(By.className("dialog__content"))
 
@@ -32,7 +34,7 @@ open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(
     }
 }
 
-class DialogPopUpWithTextField() : DialogPopUp() {
+class DialogPopUpWithTextField : DialogPopUp() {
     fun inputTextField(input: String, textFieldIndx: Int = 0) =
         rootElement.findElements(By.cssSelector("input.text-field__input-element"))[textFieldIndx].sendKeys(input)
 
@@ -43,4 +45,3 @@ class DialogPopUpWithTextField() : DialogPopUp() {
         }
     }
 }
-

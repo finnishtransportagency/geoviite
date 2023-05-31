@@ -5,8 +5,6 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.openGeoviite
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapNavigationPanel
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
@@ -97,11 +95,6 @@ class BasicMapTestUI @Autowired constructor(
         mapPage = openGeoviite(url).navigationBar().kartta()
         navigationPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation().kohdistaKartalla()
-    }
-
-    @AfterEach
-    fun closeBrowser() {
-        if(!DEV_DEBUG) PageModel.browser().quit()
     }
 
     @Test

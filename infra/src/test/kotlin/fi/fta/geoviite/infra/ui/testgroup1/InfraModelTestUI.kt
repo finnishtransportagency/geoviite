@@ -2,8 +2,6 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.ui.E2EProperties
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.openGeoviite
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.*
@@ -43,11 +41,6 @@ class InfraModelTestUI @Autowired constructor(
     fun setup() {
         openBrowser()
         infraModelPage = openGeoviite(properties.url).navigationBar().inframodel()
-    }
-
-    @AfterEach
-    fun closeBrowser() {
-        if(!DEV_DEBUG) PageModel.browser().quit()
     }
 
     @Test

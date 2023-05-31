@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenVisible
+import clearInput
+import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
@@ -40,8 +41,7 @@ class DropDown (val element: WebElement) {
         inputElement().sendKeys(input)
     }
 
-    fun clearInput() =
-        PageModel.clearInput(inputElement())
+    fun clearInput() = clearInput(inputElement())
 
     private fun inputElement(): WebElement =
         element.findElement(By.xpath(".//input"))
