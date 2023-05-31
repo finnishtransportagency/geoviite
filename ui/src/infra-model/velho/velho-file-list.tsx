@@ -10,7 +10,6 @@ import { PVDocumentHeader, PVDocumentId } from './velho-model';
 import { useAppNavigate } from 'common/navigate';
 import {
     getVelhoDocuments,
-    getVelhoRedirectUrl,
     projektivelhoDocumentDownloadUri,
     rejectVelhoDocument,
     restoreVelhoDocument,
@@ -18,9 +17,9 @@ import {
 import { updateVelhoDocumentsChangeTime } from 'common/change-time-api';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
-import { Oid, TimeStamp } from 'common/common-model';
+import { TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { VelhoRedirectLink } from 'infra-model/velho/velho-redirect-link';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -203,10 +202,9 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                     <InfoboxField
                         label={t('velho.file-list.field.project-group')}
                         value={
-                            <VelhoRedirectLink
-                                oid={
-                                    item.projectGroup.oid
-                                }>{`${item.projectGroup.name} (${item.projectGroup.state})`}</VelhoRedirectLink>
+                            <VelhoRedirectLink oid={item.projectGroup.oid}>
+                                {`${item.projectGroup.name} (${item.projectGroup.state})`}
+                            </VelhoRedirectLink>
                         }
                     />
                 )}
@@ -214,10 +212,9 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                     <InfoboxField
                         label={t('velho.file-list.field.project-name')}
                         value={
-                            <VelhoRedirectLink
-                                oid={
-                                    item.project.oid
-                                }>{`${item.project.name} (${item.project.state})`}</VelhoRedirectLink>
+                            <VelhoRedirectLink oid={item.project.oid}>
+                                {`${item.project.name} (${item.project.state})`}
+                            </VelhoRedirectLink>
                         }
                     />
                 )}
@@ -225,10 +222,9 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                     <InfoboxField
                         label={t('velho.file-list.field.assignment')}
                         value={
-                            <VelhoRedirectLink
-                                oid={
-                                    item.assignment.oid
-                                }>{`${item.assignment.name} (${item.assignment.state})`}</VelhoRedirectLink>
+                            <VelhoRedirectLink oid={item.assignment.oid}>
+                                {`${item.assignment.name} (${item.assignment.state})`}
+                            </VelhoRedirectLink>
                         }
                     />
                 )}
@@ -248,21 +244,5 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                 />
             </InfoboxContent>
         </div>
-    );
-};
-
-type VelhoRedirectLinkProps = {
-    oid: Oid;
-} & React.HTMLProps<HTMLAnchorElement>;
-
-const VelhoRedirectLink: React.FC<VelhoRedirectLinkProps> = ({ oid, children }) => {
-    return (
-        <Link
-            className={styles['velho-file-list__link']}
-            href={getVelhoRedirectUrl(oid)}
-            target={'_blank'}>
-            <span>{children}</span>
-            <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
-        </Link>
     );
 };

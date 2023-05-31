@@ -366,25 +366,15 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
 
     fun getDocumentCounts(): PVDocumentCounts {
         val sql = """
-            with
-              suggested as (
-                select count(*) suggestedCount
-                  from projektivelho.file_metadata
-                  where status = 'SUGGESTED'
-              ),
-              rejected as (
-                select count(*) rejectedCount
-                  from projektivelho.file_metadata
-                  where status = 'REJECTED'
-              )
-            select suggestedCount, rejectedCount
-              from suggested
-                join rejected on 1=1
+            select 
+              count(*) filter (where status = 'SUGGESTED') suggested_count, 
+              count(*) filter (where status = 'REJECTED') rejected_count
+            from projektivelho.file_metadata
         """.trimIndent()
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             PVDocumentCounts(
-                suggested = rs.getInt("suggestedCount"),
-                rejected = rs.getInt("rejectedCount")
+                suggested = rs.getInt("suggested_count"),
+                rejected = rs.getInt("rejected_count")
             )
         }.single()
     }
