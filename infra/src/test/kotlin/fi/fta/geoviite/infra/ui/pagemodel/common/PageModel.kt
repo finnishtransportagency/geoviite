@@ -13,9 +13,9 @@ import java.time.Duration
 const val SCREENSHOTS_PATH = "build/reports/screenshots"
 
 abstract class PageModel(protected val rootByCondition: By) {
-    protected var rootElement: WebElement = getElementWhenVisible(rootByCondition, timeoutSeconds = 5)
     protected val logger: Logger = LoggerFactory.getLogger(PageModel::class.java)
 
+    val rootElement: WebElement get() = getElementWhenVisible(rootByCondition, timeoutSeconds = 5)
 
     protected inline operator fun <T> T.invoke(action: T.() -> Unit): T = apply(action)
 
@@ -57,13 +57,6 @@ abstract class PageModel(protected val rootByCondition: By) {
             return rootElement.findElement(childByCondition)
         } catch (ex: WebDriverException) {
             when (ex) {
-                is StaleElementReferenceException -> {
-                    logger.info("Root element has become stale ${rootByCondition}")
-                    refreshRootElement()
-                    logger.info("Retry waiting child to become visible")
-                    waitUntilChildIsVisible(childByCondition)
-                    return rootElement.findElement(childByCondition)
-                }
                 is TimeoutException -> {
                     logger.error("${rootElement.getAttribute("innerHTML")} -> $childByCondition TIMEOUT")
                     throw ex
@@ -79,12 +72,6 @@ abstract class PageModel(protected val rootByCondition: By) {
             return rootElement.findElements(childByCondition)
         } catch (ex: WebDriverException) {
             when (ex) {
-                is StaleElementReferenceException -> {
-                    refreshRootElement()
-                    waitUntilChildIsVisible(childByCondition, timeout)
-                    return rootElement.findElements(childByCondition)
-                }
-
                 is TimeoutException -> {
                     logger.error("$rootElement -> $childByCondition TIMEOUT")
                     throw ex
@@ -92,11 +79,6 @@ abstract class PageModel(protected val rootByCondition: By) {
                 else -> throw ex
             }
         }
-    }
-
-    protected fun refreshRootElement() {
-        logger.info("Refresh root element")
-        rootElement = getElementWhenVisible(rootByCondition)
     }
 
     protected fun waitUntilChildIsVisible(childByCondition: By, timeout: Duration = Duration.ofSeconds(5)) {
@@ -107,14 +89,8 @@ abstract class PageModel(protected val rootByCondition: By) {
             logger.warn("${rootElement.getAttribute("innerHTML")} did not include $childByCondition")
             throw ex
         }
-
     }
 
     protected fun childElementExists(byCondition: By) =
         rootElement.findElements(byCondition).isNotEmpty()
-
-    /**
-     * Click element at point x,y where 0,0 is at top left corner
-     */
-
 }

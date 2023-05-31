@@ -72,7 +72,7 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
 
 }
 
-class PreviewChangesSaveOrDiscardDialog(): DialogPopUp() {
+class PreviewChangesSaveOrDiscardDialog: DialogPopUp() {
 
     fun julkaise() {
         val messageBox = getElementWhenVisible(By.cssSelector("textarea[qa-id=publication-message]"))

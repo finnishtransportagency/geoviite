@@ -621,9 +621,8 @@ class LinkingTestUI @Autowired constructor(
         assertTrue(hasSegmentBetweenPoints(
             start = geometryAlignment.elements.last().end,
             end = LOCATION_TRACK_E.second.segments.first().points.first().toPoint(),
-            layoutAlignment = editedLocationTrack.second
-            )
-        )
+            layoutAlignment = editedLocationTrack.second,
+        ))
 
         assertNotEquals(locationTrackStartBeforeLinking, locationTrackLocationInfobox.alkukoordinaatti())
         assertEquals(pointToCoordinateString(geometryAlignment.elements.first().start), locationTrackLocationInfobox.alkukoordinaatti())
@@ -643,8 +642,9 @@ class LinkingTestUI @Autowired constructor(
 
 
         navigationPanel.selectLocationTrack(LOCATION_TRACK_F.first.name.toString())
-        val locationTrackLengthBeforeLinking = metersToDouble(toolPanel.locationTrackLocation().todellinenPituus())
-        val locationTrackEndBeforeLinking = toolPanel.locationTrackLocation().loppukoordinaatti()
+        val locationTrackLocationInfobox = toolPanel.locationTrackLocation()
+        val locationTrackLengthBeforeLinking = metersToDouble(locationTrackLocationInfobox.todellinenPituus())
+        val locationTrackEndBeforeLinking = locationTrackLocationInfobox.loppukoordinaatti()
 
         navigationPanel.geometryPlanByName(GEOMETRY_PLAN_NAME).selecAlignment(GEO_ALIGNMENT_F_NAME)
         val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking()
@@ -662,11 +662,11 @@ class LinkingTestUI @Autowired constructor(
         val locationTrackAfterLinking = getLocationTrackAndAlignment(PublishType.DRAFT, LOCATION_TRACK_F_ID)
 
         toolPanel.selectToolPanelTab(LOCATION_TRACK_F.first.name.toString())
-        val lengthAfterLinking = metersToDouble(toolPanel.locationTrackLocation().todellinenPituus())
+        val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.todellinenPituus())
 
         assertThat(locationTrackLengthBeforeLinking).isLessThan(lengthAfterLinking)
-        assertEquals(pointToCoordinateString(geometryAlignmentStart), toolPanel.locationTrackLocation().alkukoordinaatti())
-        assertEquals(locationTrackEndBeforeLinking, toolPanel.locationTrackLocation().loppukoordinaatti())
+        assertEquals(pointToCoordinateString(geometryAlignmentStart), locationTrackLocationInfobox.alkukoordinaatti())
+        assertEquals(locationTrackEndBeforeLinking, locationTrackLocationInfobox.loppukoordinaatti())
         assertTrue(hasSegmentBetweenPoints(
             start = geometryAlignmentEnd,
             end = LOCATION_TRACK_F.second.segments.first().points.last().toPoint(),

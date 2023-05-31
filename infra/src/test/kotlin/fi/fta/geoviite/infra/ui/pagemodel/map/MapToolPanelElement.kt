@@ -76,7 +76,6 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
 
     fun valmis(): Toaster{
         clickButton("Valmis")
-        refreshRootElement()
         return waitAndGetToasterElement()
     }
 
@@ -348,15 +347,14 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
 
     fun linkita(): Toaster {
         logger.info("Link")
+        val elementBeforeClick = rootElement
         clickButton("Linkitä")
         val toaster = waitAndGetToasterElement()
 
         //This works as a basic Thread.Sleep() if root element becomes stable very fast
         try {
-            waitUntilElementIsStale(rootElement, timeoutSeconds = 1)
-        } catch (_: TimeoutException) {
-
-        }
+            waitUntilElementIsStale(elementBeforeClick, timeoutSeconds = 1)
+        } catch (_: TimeoutException) { }
 
         return toaster
     }
@@ -494,10 +492,7 @@ class AddEndPointDialog : DialogPopUp() {
     private fun ok() = this  {
         clickButton("OK")
         getButtonElementByContent("Jatka")
-        refreshRootElement()
     }
-
-
 
     private fun selectRadioButton(buttonLabel: String) = this {
         logger.info("Select radio button $buttonLabel")
