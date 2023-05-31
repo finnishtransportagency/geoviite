@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import getElementWhenClickable
 import org.openqa.selenium.By
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -10,7 +10,7 @@ class MapToolPanel {
 
     fun selectToolPanelTab(tabName: String) {
         val selectBy = By.xpath("//div[@qa-id='tool-panel-tabs']/button[span[text() = '$tabName']]")
-        PageModel.getElementWhenClickable(selectBy).click()
+        getElementWhenClickable(selectBy).click()
     }
 
     fun layoutKmPostGeneral(): LayoutKmPostGeneralInfoBox =

@@ -43,10 +43,10 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                     {roundToPrecision(length, Precision.measurementMeterDistance)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {hasLocation && roundToPrecision(locationE, Precision.TM35FIN)}
+                    {hasLocation && roundToPrecision(locationE, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {hasLocation && roundToPrecision(locationN, Precision.TM35FIN)}
+                    {hasLocation && roundToPrecision(locationN, Precision.coordinateMeters)}
                 </td>
                 <td>
                     {hasLocation &&

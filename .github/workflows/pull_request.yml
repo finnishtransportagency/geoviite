@@ -12,24 +12,13 @@ jobs:
   runner-job:
     runs-on: ubuntu-latest
 
-    # Service container to run with `runner-job`
-    services:
-      geoviite-postgres:
-        container: './infra/Dockerfile'
-        env:
-          POSTGRES_PASSWORD: 'postgres'
-          POSTGRES_USER: 'postgres'
-          POSTGRES_DB: 'geoviite'
-        ports:
-          - 127.0.0.1:5436:5432
-
     steps:
     - name: Download repository on the runner
       uses: actions/checkout@v3
 
-    - name: Configure JDK 17 
+    - name: Configure JDK 17
       uses: actions/setup-java@v3
-      with: 
+      with:
         java-version: '17'
         distribution: 'temurin'
 
@@ -39,17 +28,45 @@ jobs:
     - name: Execute Gradle build
       run: |
         cd infra
-        ./gradlew build -x test 
+        ./gradlew build -x test
 
     - name: run unit tests in infra (backend)
       run: |
         cd infra
         ./gradlew cleanTest test --tests "*Test"
 
+    #KOKEILU!
+    #laita oikeat lisenssi-tiedostot
+    - name: Build docker image
+      env:
+        DB_URL: 'localhost:5436/geoviite'
+      run: |
+        cd infra
+        touch build/reports/dependency-license
+        touch build/LICENSE.txt
+        docker build --build-arg TEMURIN_IMAGE=eclipse-temurin:17-jdk -t geoviite .
+
     - name: run integration tests in infra (backend)
+      #java.lang.IllegalArgumentException: Could not resolve placeholder 'DB_URL' in value "jdbc:postgresql://${DB_URL}"
       env:
         DB_USERNAME: 'postgres'
         DB_PASSWORD: 'postgres'
+        #DB_URL: 'localhost:5436/geoviite'
+        #'DB_URL:localhost:5436/geoviite'
+        # '{DB_URL:localhost:5436/geoviite}'
       run: |
         cd infra
+        docker run -p 5436:5432 geoviite
         ./gradlew cleanTest test --tests "*IT"
+
+
+      # Service container to run with `runner-job`
+      #services:
+      #  geoviite-postgres:
+      #    image: 'gvt-db'
+      #    env:
+      #      POSTGRES_PASSWORD: 'postgres'
+      #      POSTGRES_USER: 'postgres'
+      #      POSTGRES_DB: 'geoviite'
+      #    ports:
+      #      - 127.0.0.1:5436:5432

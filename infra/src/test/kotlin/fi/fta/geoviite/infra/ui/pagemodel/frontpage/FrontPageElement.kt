@@ -19,7 +19,7 @@ class PublicationListItem(val root: WebElement) {
     }
 }
 
-class PublicationDetails(): PageModel(By.cssSelector("div.publication-details")) {
+class PublicationDetails: PageModel(By.cssSelector("div.publication-details")) {
     fun returnFrontPage() = rootElement.findElement(By.cssSelector("div.publication-details__title a")).click()
     fun publicationDetails(): List<PublicationDetailRow> {
         logger.info("Load publication detail rows")

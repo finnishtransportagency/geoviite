@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import clearInput
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 

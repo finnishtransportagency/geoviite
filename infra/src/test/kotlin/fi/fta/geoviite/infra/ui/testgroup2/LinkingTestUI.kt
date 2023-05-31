@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.PublicationDetailRow
 import fi.fta.geoviite.infra.ui.pagemodel.map.*
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLayoutSwitchDialog.Tilakategoria
@@ -47,6 +46,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -163,7 +163,7 @@ class LinkingTestUI @Autowired constructor(
         clearDrafts()
         openBrowser()
 
-        mapPage = PageModel.openGeoviite(url).navigationBar().kartta()
+        mapPage = openGeoviite(url).navigationBar().kartta()
         mapPage.luonnostila()
         val previewChangesPage = mapPage.esikatselu()
 
@@ -181,17 +181,10 @@ class LinkingTestUI @Autowired constructor(
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }
 
-    @AfterEach
-    fun closeBrowser() {
-        if(!DEV_DEBUG) PageModel.browser().quit().also { Thread.sleep(1000) }
-    }
-
 
     @Test
     @Disabled
-    fun launchBrowserForDebug() {
-
-    }
+    fun launchBrowserForDebug() { }
 
     @Test
     fun `Create a new location track and link geometry`() {
@@ -628,9 +621,8 @@ class LinkingTestUI @Autowired constructor(
         assertTrue(hasSegmentBetweenPoints(
             start = geometryAlignment.elements.last().end,
             end = LOCATION_TRACK_E.second.segments.first().points.first().toPoint(),
-            layoutAlignment = editedLocationTrack.second
-            )
-        )
+            layoutAlignment = editedLocationTrack.second,
+        ))
 
         assertNotEquals(locationTrackStartBeforeLinking, locationTrackLocationInfobox.alkukoordinaatti())
         assertEquals(pointToCoordinateString(geometryAlignment.elements.first().start), locationTrackLocationInfobox.alkukoordinaatti())
@@ -664,7 +656,7 @@ class LinkingTestUI @Autowired constructor(
         mapPage.clickAtCoordinates(geometryAlignmentStart)
         mapPage.clickAtCoordinates(geometryAlignmentEnd)
         mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.first())
-            mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.last())
+        mapPage.clickAtCoordinates(LOCATION_TRACK_F.second.segments.first().points.last())
         alignmentLinkinInfobox.linkita()
 
         val locationTrackAfterLinking = getLocationTrackAndAlignment(PublishType.DRAFT, LOCATION_TRACK_F_ID)
@@ -684,7 +676,7 @@ class LinkingTestUI @Autowired constructor(
 
         publishChanges()
 
-        assertThatLatestPublicationDetailsIncludeMuutoskohde("Sijaintiraide ${LOCATION_TRACK_F.first.name.toString()}")
+        assertThatLatestPublicationDetailsIncludeMuutoskohde("Sijaintiraide ${LOCATION_TRACK_F.first.name}")
     }
 
     @Test

@@ -82,4 +82,4 @@ export const nonNumericHeading = (name: string) => ({
 export const withSeparator = (heading: ElementHeading) => ({ ...heading, hasSeparator: true });
 
 export const findCoordinateSystem = (srid: Srid, coordinateSystems: CoordinateSystem[]) =>
-    coordinateSystems && coordinateSystems.find((crs) => crs.srid === srid);
+    coordinateSystems.find((crs) => crs.srid === srid);

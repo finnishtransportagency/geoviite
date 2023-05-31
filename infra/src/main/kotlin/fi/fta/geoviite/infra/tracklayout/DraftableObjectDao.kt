@@ -81,6 +81,10 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     override fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
         if (ids.isEmpty()) return listOf()
+        val distinctIds = ids.distinct()
+        if (distinctIds.size != ids.size) logger.warn(
+            "Requested versions with duplicate ids: duplicated=${ids.size-distinctIds.size} requested=$ids"
+        )
         val sql = """
             select
               coalesce(${table.draftLink}, id) as official_id,
@@ -90,13 +94,11 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             where coalesce(${table.draftLink}, id) in (:ids)
               and draft = true
         """.trimIndent()
-        val params = mapOf(
-            "ids" to ids.map { id -> id.intValue },
-        )
+        val params = mapOf("ids" to distinctIds.map { id -> id.intValue })
         return jdbcTemplate.query<ValidationVersion<T>>(sql, params) { rs, _ -> ValidationVersion(
             rs.getIntId("official_id"),
             rs.getRowVersion("row_id", "row_version"),
-        ) }.also { found -> ids.forEach { id ->
+        ) }.also { found -> distinctIds.forEach { id ->
             if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
         } }
     }

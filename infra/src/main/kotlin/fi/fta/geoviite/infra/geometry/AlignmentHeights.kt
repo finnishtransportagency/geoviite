@@ -16,6 +16,7 @@ data class TrackMeterHeight(
 data class KmHeights(
     val kmNumber: KmNumber,
     val trackMeterHeights: List<TrackMeterHeight>,
+    val endM: Double,
 )
 
 data class PlanLinkingSummaryItem(

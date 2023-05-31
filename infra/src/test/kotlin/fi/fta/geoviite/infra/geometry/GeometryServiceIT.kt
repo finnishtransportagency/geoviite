@@ -1,9 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.ITTestBase
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
@@ -22,9 +20,69 @@ class GeometryServiceIT @Autowired constructor(
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val referenceLineService: ReferenceLineService,
     private val locationTrackService: LocationTrackService,
+    private val kmPostService: LayoutKmPostService,
     private val geometryDao: GeometryDao,
     private val geometryService: GeometryService,
 ) : ITTestBase() {
+
+    @Test
+    fun getLocationTrackHeightsCoversTrackStartsAndEnds() {
+        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId, startAddress = TrackMeter("0154", BigDecimal("123.4"))),
+            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        )
+        val locationTrackId = locationTrackService.saveDraft(
+            locationTrack(trackNumberId),
+            alignment(segment(yRangeToSegmentPoints(1..29)))
+        ).id
+
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 14.5)))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 27.6)))
+
+        // tickLength = 5 => normal ticks less than 2.5 distance apart from a neighbor get dropped
+        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 30.0, 5)!!
+
+        // location track starts 1 m after reference line start; reference line start address is 123.4; so first address
+        // is 124.4. First km post is at m 14.5 -> 13.5 in location track. Ordinary ticks always start at track meter 0
+        // so we get nice addresses for all of them, we just skip the ones coming before the track start.
+        val expectedData = listOf(
+            "0154" to listOf(
+                124.4 to 0.0,
+                125.0 to 0.6,
+                130.0 to 5.6,
+                135.0 to 10.6,
+            ),
+            "0155" to listOf(
+                0.0 to 13.5,
+                5.0 to 18.5,
+                10.0 to 23.5,
+            ),
+            "0156" to listOf(
+                0.0 to 26.6,
+                1.4 to 28.0,
+            ),
+        )
+
+        actual.forEachIndexed { kmIndex, actualKm ->
+            val expectedKm = expectedData[kmIndex]
+            assertEquals(KmNumber(expectedKm.first), actualKm.kmNumber)
+            val expectedLastM = if (kmIndex == expectedData.lastIndex) {
+                expectedData.last().second.last().second
+            } else {
+                expectedData[kmIndex + 1].second.first().second
+            }
+            assertEquals(expectedLastM, actualKm.endM, "endM at index $kmIndex")
+            assertEquals(expectedKm.second.size, actualKm.trackMeterHeights.size)
+
+            actualKm.trackMeterHeights.forEachIndexed { mIndex, actualM ->
+                val expectedM = expectedKm.second[mIndex]
+                assertEquals(expectedM.first, actualM.meter)
+                assertEquals(expectedM.second, actualM.m, 0.001)
+            }
+        }
+    }
 
     @Test
     fun getLocationTrackHeightsReturnsBothOrdinaryTicksAndPlanBoundaries() {

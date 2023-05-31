@@ -1,11 +1,16 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import getElementWhenClickable
+import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import waitAndGetToasterElement
+import waitUntilChildDoesNotExist
+import waitUntilElementIsStale
 
 class GeometryPlanGeneralInfoBox(by: By) : InfoBox(by) {
     init {
@@ -71,7 +76,6 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
 
     fun valmis(): Toaster{
         clickButton("Valmis")
-        refresRootElement()
         return waitAndGetToasterElement()
     }
 
@@ -145,7 +149,7 @@ class KmPostEditDialog(val editedElement: WebElement): DialogPopUp() {
     fun tallenna(waitUntilRootIsStale: Boolean = true): Toaster {
         clickButton("Tallenna")
         if (waitUntilRootIsStale) waitUntilElementIsStale(editedElement)
-        return PageModel.waitAndGetToasterElement()
+        return waitAndGetToasterElement()
     }
 
     fun poistu() = clickSecondaryButton()
@@ -343,15 +347,14 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
 
     fun linkita(): Toaster {
         logger.info("Link")
+        val elementBeforeClick = rootElement
         clickButton("Linkitä")
         val toaster = waitAndGetToasterElement()
 
         //This works as a basic Thread.Sleep() if root element becomes stable very fast
         try {
-            waitUntilElementIsStale(rootElement, timeoutSeconds = 1)
-        } catch (_: TimeoutException) {
-
-        }
+            waitUntilElementIsStale(elementBeforeClick, timeoutSeconds = 1)
+        } catch (_: TimeoutException) { }
 
         return toaster
     }
@@ -489,10 +492,7 @@ class AddEndPointDialog : DialogPopUp() {
     private fun ok() = this  {
         clickButton("OK")
         getButtonElementByContent("Jatka")
-        refresRootElement()
     }
-
-
 
     private fun selectRadioButton(buttonLabel: String) = this {
         logger.info("Select radio button $buttonLabel")
@@ -541,7 +541,7 @@ class SearchBox(element: WebElement) {
     fun search(input: String) {
         dropDown.inputText((input))
         logger.info("Perform query: ${dropDown.currentValue()}")
-        PageModel.waitUntilChildDoesNotExist(dropDown.element,
+        waitUntilChildDoesNotExist(dropDown.element,
             By.xpath(".//li[@class='dropdown__list-item dropdown__list-item--no-options' and contains(text(),'Ladataan...')]"))
         logger.info("Search ready")
     }
