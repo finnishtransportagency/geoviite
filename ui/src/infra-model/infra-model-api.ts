@@ -129,7 +129,8 @@ export async function getVelhoDocuments(
     );
 }
 
-export const getVelhoRedirectUrl = (oid: Oid) => `${PROJEKTIVELHO_URI}/redirect/${oid}`;
+export const getVelhoRedirectUrl = (oid: Oid) =>
+    getIgnoreError<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`);
 
 export async function getVelhoDocumentCount(): Promise<PVDocumentCount | null> {
     return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);
