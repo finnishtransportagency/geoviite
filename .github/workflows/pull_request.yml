@@ -35,43 +35,7 @@ jobs:
         cd infra
         ./gradlew cleanTest test --tests "*Test"
 
-    #KOKEILU!
-    #laita oikeat lisenssi-tiedostot
-    #- name: Build backend docker image
-    #  env:
-        #DB_URL: 'localhost:5436/geoviite'
-    #  run: |
-      #täällä pitäisi varmaan asettaa password, user, db, port jotenkin?
-      #bäkkäri
-    #    cd infra
-    #    touch build/reports/dependency-license
-    #    touch build/LICENSE.txt
-    #    docker build --build-arg TEMURIN_IMAGE=eclipse-temurin:17-jdk -t geoviite .
-
-    #- name: Build database docker image
-      #https://github.com/finnishtransportagency/geoviite-env/blob/main/aws-baseimages/geoviite-postgres/Dockerfile
-
     - name: run integration tests in infra (backend)
-      #java.lang.IllegalArgumentException: Could not resolve placeholder 'DB_URL' in value "jdbc:postgresql://${DB_URL}"
-      #env:
-      #  DB_USERNAME: 'postgres'
-      #  DB_PASSWORD: 'postgres'
-        #DB_URL: 'localhost:5436/geoviite'
-        #'DB_URL:localhost:5436/geoviite'
-        # '{DB_URL:localhost:5436/geoviite}'
       run: |
         cd infra
-      #  docker run -p 5436:5432 geoviite
         ./gradlew cleanTest test --tests "*IT"
-
-
-      # Service container to run with `runner-job`
-      #services:
-      #  geoviite-postgres:
-      #    image: 'gvt-db'
-      #    env:
-      #      POSTGRES_PASSWORD: 'postgres'
-      #      POSTGRES_USER: 'postgres'
-      #      POSTGRES_DB: 'geoviite'
-      #    ports:
-      #      - 127.0.0.1:5436:5432
