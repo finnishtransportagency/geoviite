@@ -17,8 +17,7 @@ export const VelhoRedirectLink: React.FC<VelhoRedirectLinkProps> = ({ oid, child
                 getVelhoRedirectUrl(oid).then((url) => {
                     if (url) window.location.href = url;
                 })
-            }
-            target={'_blank'}>
+            }>
             <span>{children}</span>
             <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
         </Link>
