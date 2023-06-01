@@ -22,7 +22,6 @@ import { SerializableFile } from 'utils/file-utils';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { MeasurementMethod, Message, Srid, VerticalCoordinateSystem } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
-import { PVDocumentId } from './velho/velho-model';
 
 export enum InfraModelViewType {
     UPLOAD,
@@ -49,7 +48,6 @@ export type InfraModelState = {
 };
 
 export type ExtraInfraModelParameters = {
-    pvDocumentId: PVDocumentId | undefined;
     planPhase: PlanPhase | undefined;
     decisionPhase: DecisionPhase | undefined;
     measurementMethod: MeasurementMethod | undefined;
@@ -118,7 +116,6 @@ export const initialInfraModelState: InfraModelState = {
     validationResponse: null,
     file: undefined,
     extraInfraModelParameters: {
-        pvDocumentId: undefined,
         planPhase: undefined,
         decisionPhase: undefined,
         measurementMethod: undefined,
@@ -218,7 +215,6 @@ const infraModelSlice = createSlice({
             { payload: plan }: PayloadAction<GeometryPlan | null>,
         ) => {
             state.extraInfraModelParameters = {
-                pvDocumentId: undefined, // TODO: get oid from the document (and document by id)
                 planPhase: plan?.planPhase ?? undefined,
                 decisionPhase: plan?.decisionPhase ?? undefined,
                 measurementMethod: plan?.measurementMethod ?? undefined,
