@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Selection } from 'selection/selection-model';
 import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { getSwitch, getSwitchesBySearchTerm } from 'track-layout/layout-switch-api';
 import { getKmPost } from 'track-layout/layout-km-post-api';
@@ -43,7 +42,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 
 export type ToolbarParams = {
-    selection: Selection;
     onSelectTrackNumber: (trackNumberId: LayoutTrackNumberId) => void;
     onSelectLocationTrack: (locationTrackId: LocationTrackId) => void;
     onSelectSwitch: (switchId: LayoutSwitchId) => void;

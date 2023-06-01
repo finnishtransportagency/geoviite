@@ -17,7 +17,6 @@ import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
-    OnHoverLocationFunction,
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
@@ -78,7 +77,6 @@ type PreviewProps = {
     onViewportChange: (viewport: MapViewport) => void;
     onSelect: OnSelectFunction;
     onHighlightItems: OnHighlightItemsFunction;
-    onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
     onShownItemsChange: (shownItems: OptionalShownItems) => void;
     onPublish: () => void;
@@ -463,7 +461,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     changeTimes={props.changeTimes}
                     onSelect={props.onSelect}
                     onHighlightItems={props.onHighlightItems}
-                    onHoverLocation={props.onHoverLocation}
                     onClickLocation={props.onClickLocation}
                     onShownLayerItemsChange={props.onShownItemsChange}
                 />
