@@ -19,15 +19,10 @@ import {
 } from 'geometry/geometry-model';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { SerializableFile } from 'utils/file-utils';
-import { validateOid, ValidationError, ValidationErrorType } from 'utils/validation-utils';
-import {
-    MeasurementMethod,
-    Message,
-    Oid,
-    Srid,
-    VerticalCoordinateSystem,
-} from 'common/common-model';
+import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { MeasurementMethod, Message, Srid, VerticalCoordinateSystem } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
+import { PVDocumentId } from './velho/velho-model';
 
 export enum InfraModelViewType {
     UPLOAD,
@@ -54,7 +49,7 @@ export type InfraModelState = {
 };
 
 export type ExtraInfraModelParameters = {
-    pvDocumentOid: Oid | undefined;
+    pvDocumentId: PVDocumentId | undefined;
     planPhase: PlanPhase | undefined;
     decisionPhase: DecisionPhase | undefined;
     measurementMethod: MeasurementMethod | undefined;
@@ -123,7 +118,7 @@ export const initialInfraModelState: InfraModelState = {
     validationResponse: null,
     file: undefined,
     extraInfraModelParameters: {
-        pvDocumentOid: undefined,
+        pvDocumentId: undefined,
         planPhase: undefined,
         decisionPhase: undefined,
         measurementMethod: undefined,
@@ -223,7 +218,7 @@ const infraModelSlice = createSlice({
             { payload: plan }: PayloadAction<GeometryPlan | null>,
         ) => {
             state.extraInfraModelParameters = {
-                pvDocumentOid: undefined, // TODO: get oid from the document (and document by id)
+                pvDocumentId: undefined, // TODO: get oid from the document (and document by id)
                 planPhase: plan?.planPhase ?? undefined,
                 decisionPhase: plan?.decisionPhase ?? undefined,
                 measurementMethod: plan?.measurementMethod ?? undefined,
@@ -262,17 +257,8 @@ function validateParams(
     extraParams: ExtraInfraModelParameters,
     overrideParams: OverrideInfraModelParameters,
 ): ValidationError<InfraModelParameters>[] {
-    const oidValidationErrors = extraParams.pvDocumentOid
-        ? validateOid(extraParams.pvDocumentOid)
-        : null;
     const errors: ValidationError<InfraModelParameters>[] = [];
 
-    oidValidationErrors &&
-        oidValidationErrors.forEach((error) =>
-            errors.push(createError('pvDocumentOid', error, ValidationErrorType.ERROR)),
-        );
-    (extraParams.pvDocumentOid === undefined || oidValidationErrors?.length != 0) &&
-        errors.push(createError('pvDocumentOid', 'critical', ValidationErrorType.WARNING));
     extraParams.planPhase === undefined &&
         errors.push(createError('planPhase', 'critical', ValidationErrorType.WARNING));
     extraParams.measurementMethod === undefined &&

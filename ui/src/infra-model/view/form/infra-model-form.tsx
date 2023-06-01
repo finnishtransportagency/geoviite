@@ -7,8 +7,8 @@ import {
     PlanSource,
     Project,
 } from 'geometry/geometry-model';
+import styles from './infra-model-form.module.scss';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
-import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { TextArea } from 'vayla-design-lib/text-area/text-area';
 import Formgroup from 'infra-model/view/formgroup/formgroup';
 import FormgroupContent from 'infra-model/view/formgroup/formgroup-content';
@@ -18,7 +18,7 @@ import {
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
+import { CoordinateSystem as CoordinateSystemModel, Oid } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
@@ -36,7 +36,6 @@ import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { filterNotEmpty } from 'utils/array-utils';
-import { InfraModelTextField } from 'infra-model/view/form/infra-model-form-text-field';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'common/change-time-api';
@@ -44,6 +43,9 @@ import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
 import { WriteRoleRequired } from 'user/write-role-required';
+import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
+import { VelhoRedirectLink } from 'infra-model/velho/velho-redirect-link';
+import { VelhoOid } from 'infra-model/velho/velho-oid';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -58,7 +60,6 @@ type InframodelViewFormContainerProps = {
     ) => void;
     overrideInfraModelParameters: OverrideInfraModelParameters;
     extraInframodelParameters: ExtraInfraModelParameters;
-    onCommitField: (fieldName: string) => void;
     committedFields: InfraModelParametersProp[];
     onSelect: OnSelectFunction;
 };
@@ -100,7 +101,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     onInfraModelExtraParametersChange,
     overrideInfraModelParameters,
     extraInframodelParameters,
-    onCommitField,
     committedFields,
     onSelect,
 }: InframodelViewFormContainerProps) => {
@@ -115,6 +115,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
     const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
     const [project, setProject] = React.useState<Project>();
+    const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
 
     const planSourceOptions = [
         {
@@ -223,10 +224,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
             : [];
     }
 
-    function hasErrors(prop: InfraModelParametersProp) {
-        return getVisibleErrorsByProp(prop).length > 0;
-    }
-
     function onSelectTrackNumber(id: LayoutTrackNumberId) {
         onSelect({ trackNumbers: [id] });
     }
@@ -261,7 +258,37 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                 </Formgroup>
             </WriteRoleRequired>
             <Formgroup qa-id="im-form-project">
-                <FormgroupContent title={t('im-form.project-information')}>
+                {pvDocument && (
+                    <FormgroupContent title={t('im-form.pv-document-information.title')}>
+                        {pvDocument.projectGroup && (
+                            <FormgroupField
+                                label={t('im-form.pv-document-information.project-group')}>
+                                {projectInfo(
+                                    pvDocument.projectGroup.oid,
+                                    pvDocument.projectGroup.name,
+                                )}
+                            </FormgroupField>
+                        )}
+                        {pvDocument.project && (
+                            <FormgroupField label={t('im-form.pv-document-information.project')}>
+                                {projectInfo(pvDocument.project.oid, pvDocument.project.name)}
+                            </FormgroupField>
+                        )}
+                        {pvDocument.assignment && (
+                            <FormgroupField label={t('im-form.pv-document-information.assignment')}>
+                                {projectInfo(pvDocument.assignment.oid, pvDocument.assignment.name)}
+                            </FormgroupField>
+                        )}
+                        <FormgroupField label={t('im-form.pv-document-information.document')}>
+                            {projectInfo(
+                                pvDocument.document.oid,
+                                pvDocument.document.description || '',
+                            )}
+                        </FormgroupField>
+                    </FormgroupContent>
+                )}
+
+                <FormgroupContent title={t('im-form.file-metadata')}>
                     <FormgroupField
                         label={t('im-form.name-field')}
                         inEditMode={fieldInEdit === 'planName'}
@@ -276,45 +303,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     changeInOverrideParametersField(projectId, 'projectId')
                                 }
                                 onAddProject={() => setShowNewProjectDialog(true)}
-                            />
-                        )}
-                    </FormgroupField>
-
-                    <FormgroupField
-                        label={t('im-form.oid-field')}
-                        inEditMode={fieldInEdit === 'planOid'}
-                        onEdit={() => setFieldInEdit('planOid')}
-                        onClose={() => setFieldInEdit(undefined)}>
-                        {fieldInEdit !== 'planOid' ? (
-                            <FieldLayout
-                                value={
-                                    <InfraModelTextField hasError={hasErrors('pvDocumentOid')}>
-                                        {extraInframodelParameters.pvDocumentOid
-                                            ? extraInframodelParameters.pvDocumentOid
-                                            : t('im-form.information-missing')}
-                                    </InfraModelTextField>
-                                }
-                                errors={getVisibleErrorsByProp('pvDocumentOid')}
-                            />
-                        ) : (
-                            <FieldLayout
-                                value={
-                                    <TextField
-                                        id="inframodel_oid"
-                                        value={extraInframodelParameters.pvDocumentOid}
-                                        hasError={hasErrors('pvDocumentOid')}
-                                        onBlur={() => onCommitField('pvDocumentOid')}
-                                        onChange={(e) =>
-                                            changeInExtraParametersField(
-                                                e.target.value,
-                                                'pvDocumentOid',
-                                            )
-                                        }
-                                        wide
-                                    />
-                                }
-                                help={t('im-form.oid-help')}
-                                errors={getVisibleErrorsByProp('pvDocumentOid')}
                             />
                         )}
                     </FormgroupField>
@@ -565,3 +553,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 };
 
 export default InfraModelForm;
+
+function projectInfo(oid: Oid, description: string) {
+    return (
+        <span className={styles['infra-model-upload__project-field']}>
+            <VelhoOid oid={oid} />
+            <VelhoRedirectLink oid={oid}>{description}</VelhoRedirectLink>
+        </span>
+    );
+}

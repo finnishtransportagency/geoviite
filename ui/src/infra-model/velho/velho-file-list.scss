@@ -41,11 +41,23 @@
     display: flex;
     text-decoration: none;
     fill: $color-blue-dark;
+    align-items: center;
     :not(:first-child) {
         margin-left: 6px;
     }
 
     :hover {
         text-decoration: underline;
+    }
+}
+
+.velho-file-list__oid {
+    display: flex;
+    color: $color-black-light;
+    align-items: center;
+
+    .icon {
+        padding-left: 6px;
+        cursor: pointer;
     }
 }

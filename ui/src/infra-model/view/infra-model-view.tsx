@@ -39,7 +39,6 @@ export type InfraModelBaseProps = InfraModelState & {
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
-    onCommitField: (fieldName: string) => void;
     isLoading: boolean;
     onClose: () => void;
 };
@@ -118,7 +117,6 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             onInfraModelExtraParametersChange={props.onExtraParametersChange}
                             overrideInfraModelParameters={props.overrideInfraModelParameters}
                             extraInframodelParameters={props.extraInfraModelParameters}
-                            onCommitField={props.onCommitField}
                             committedFields={props.committedFields}
                             onSelect={props.onSelect}
                         />

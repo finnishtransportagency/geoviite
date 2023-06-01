@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -97,6 +96,13 @@ class InfraModelController @Autowired constructor(
     fun getVelhoDocumentHeaders(@RequestParam("status") status: PVDocumentStatus?): List<PVDocumentHeader> {
         logger.apiCall("getVelhoDocumentHeaders", "status" to status)
         return pvDocumentService.getDocumentHeaders(status)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/velho-import/documents/{id}")
+    fun getVelhoDocumentHeaders(@PathVariable id: IntId<PVDocument>): PVDocumentHeader {
+        logger.apiCall("getVelhoDocumentHeader", "id" to id)
+        return pvDocumentService.getDocumentHeader(id)
     }
 
     @PreAuthorize(AUTH_ALL_READ)

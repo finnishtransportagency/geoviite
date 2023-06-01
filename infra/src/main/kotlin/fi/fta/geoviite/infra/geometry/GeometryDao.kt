@@ -783,7 +783,7 @@ class GeometryDao @Autowired constructor(
                 switches = fetchSwitches(planId = planVersion.id, switchId = null),
                 kmPosts = fetchKmPosts(planVersion.id),
                 fileName = rs.getFileName("file_name"),
-                pvDocumentId = rs.getIntId("projektivelho_file_metadata_id"),
+                pvDocumentId = rs.getIntIdOrNull("projektivelho_file_metadata_id"),
                 planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
                 decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
@@ -799,10 +799,7 @@ class GeometryDao @Autowired constructor(
 
     fun getProject(projectId: IntId<Project>): Project {
         val sql = """
-            select
-              id
-            , name
-            , description
+            select id, name, description
             from geometry.plan_project
             where id = :id
         """.trimIndent()

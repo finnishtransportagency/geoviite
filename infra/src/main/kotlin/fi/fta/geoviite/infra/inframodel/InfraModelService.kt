@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.projektivelho.PVService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -41,7 +40,6 @@ class InfraModelService @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberService: LayoutTrackNumberService,
     private val coordinateTransformationService: CoordinateTransformationService,
-    private val pvService: PVService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -177,9 +175,7 @@ class InfraModelService @Autowired constructor(
             ?: plan.application
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
-        val pvDocumentId = extraInfoParameters?.pvDocumentOid?.let(pvService::getAndStoreDocument)
         return plan.copy(
-            pvDocumentId = pvDocumentId,
             units = plan.units.copy(
                 coordinateSystemSrid = overrideCs?.srid ?: plan.units.coordinateSystemSrid,
                 coordinateSystemName = overrideCs?.name ?: plan.units.coordinateSystemName,
