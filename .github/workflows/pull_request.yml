@@ -16,9 +16,11 @@ jobs:
       geoviite-postgres:
         image: 'postgis/postgis:15-3.3-alpine'
         env:
-          POSTGRES_PASSWORD: 'postgres'
-          POSTGRES_USER: 'postgres'
-          POSTGRES_DB: 'geoviite-db'
+          #POSTGRES_PASSWORD: 'postgres'
+          #POSTGRES_USER: 'postgres'
+          #POSTGRES_DB: 'geoviite-db'
+          DB_NAME: 'geoviite'
+          DB_USER: 'dev-geouser'
           DB_PASSWORD: 'dev-geouser-password'
         ports:
           - '127.0.0.1:5436:5432'
@@ -51,4 +53,6 @@ jobs:
       # https://stackoverflow.com/questions/59741629/how-to-pass-environment-variables-to-the-gradle-wrapper-build-using-only-command
       run: |
         cd infra
-        DB_PASSWORD=dev-geouser-password POSTGRES_DB=geoviite-db POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./gradlew cleanTest test --tests "*IT"
+        DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password  ./gradlew cleanTest test --tests "*IT"
+
+#DB_PASSWORD=dev-geouser-password POSTGRES_DB=geoviite-db POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./gradlew cleanTest test --tests "*IT"
