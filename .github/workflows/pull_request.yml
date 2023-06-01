@@ -50,4 +50,4 @@ jobs:
       # https://stackoverflow.com/questions/59741629/how-to-pass-environment-variables-to-the-gradle-wrapper-build-using-only-command
       run: |
         cd infra
-        POSTGRES_DB=geoviite-db POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./gradlew cleanTest test --tests "*IT"
+        DB_PASSWORD=dev-geouser-password POSTGRES_DB=geoviite-db POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres ./gradlew cleanTest test --tests "*IT"

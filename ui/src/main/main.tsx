@@ -33,7 +33,7 @@ type MainProps = {
     layoutMode: LayoutMode;
     version: string | undefined;
 };
-//tes-ti
+
 const Main: React.VFC<MainProps> = (props: MainProps) => {
     const { t } = useTranslation();
     return (
