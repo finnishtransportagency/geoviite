@@ -78,7 +78,8 @@ class PVClient @Autowired constructor(
         logger.integrationCall("postXmlFileSearch",
             "fetchStartTime" to fetchStartTime, "startOid" to startOid)
         val json = searchJson(fetchStartTime, startOid, 100)
-        return postMandatoryReturn<String, PVApiSearchStatus>("$XML_FILE_SEARCH_PATH?tagi=aineisto", json)
+        val strink = jsonMapper.writeValueAsString(json)
+        return postMandatoryReturn<String, PVApiSearchStatus>("$XML_FILE_SEARCH_PATH?tagi=aineisto", strink)
     }
 
     fun fetchVelhoSearchStatus(id: PVId): PVApiSearchStatus {
