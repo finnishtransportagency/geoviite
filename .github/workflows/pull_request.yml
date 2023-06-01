@@ -19,7 +19,8 @@ jobs:
           POSTGRES_PASSWORD: 'postgres'
           POSTGRES_USER: 'postgres'
           POSTGRES_DB: 'geoviite-db'
-        ports: '5436:5432'
+        ports:
+          - '127.0.0.1:5436:5432'
 
     steps:
     - name: Download repository on the runner
