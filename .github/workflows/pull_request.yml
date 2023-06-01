@@ -19,6 +19,7 @@ jobs:
           POSTGRES_PASSWORD: 'postgres'
           POSTGRES_USER: 'postgres'
           POSTGRES_DB: 'geoviite-db'
+          DB_PASSWORD: 'dev-geouser-password'
         ports:
           - '127.0.0.1:5436:5432'
 
