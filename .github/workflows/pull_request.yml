@@ -42,7 +42,7 @@ jobs:
       #unable to prepare context: unable to evaluate symlinks in Dockerfile path: lstat /home/runner/work/geoviite/geoviite/Dockerfile: no such file or directory
       run: |
         docker build -t gvt-postgres .github/workflows
-        docker create -p 127.0.0.1:5436:5432 --name geoviite-db gvt-postgres
+        docker create -p 5436:5432 --name geoviite-db gvt-postgres
         cd infra
         DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
       env:
