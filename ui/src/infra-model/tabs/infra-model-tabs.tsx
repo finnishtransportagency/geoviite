@@ -30,6 +30,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     title={t('im-form.tabs.plans', { number: numberOfInfraModelFiles })}
                     tabId={InfraModelTabType.PLAN}
                     activeTab={activeTab}
+                    exclamationPointVisible={false}
                 />
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-waiting', {
@@ -37,6 +38,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     })}
                     tabId={InfraModelTabType.WAITING}
                     activeTab={activeTab}
+                    exclamationPointVisible={!!documentCounts && documentCounts?.suggested > 0}
                 />
                 <InfraModelTabNavItem
                     title={t('im-form.tabs.velho-files-rejected', {
@@ -44,6 +46,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     })}
                     tabId={InfraModelTabType.REJECTED}
                     activeTab={activeTab}
+                    exclamationPointVisible={false}
                 />
             </ul>
             <div className={styles['tabs__outlet']}>
