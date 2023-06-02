@@ -90,7 +90,8 @@ export const AppBar: React.FC = () => {
                                             end>
                                             <InfraModelLink
                                                 exclamationPointVisibility={
-                                                    (velhoDocumentCounts?.suggested ?? 0) > 0
+                                                    !!velhoDocumentCounts &&
+                                                    velhoDocumentCounts?.suggested > 0
                                                 }
                                             />
                                         </NavLink>
