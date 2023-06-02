@@ -9,9 +9,15 @@ export type TabNavItemProps = {
     tabId: InfraModelTabType;
     title: string;
     activeTab: InfraModelTabType;
+    exclamationPointVisible: boolean;
 };
 
-const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeTab }) => {
+const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
+    tabId,
+    title,
+    activeTab,
+    exclamationPointVisible,
+}) => {
     const navigate = useAppNavigate();
     const delegates = createDelegates(infraModelActionCreators);
 
@@ -28,13 +34,12 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({ tabId, title, activeT
         }
     };
 
-    //TODO exclamation point if there are rows in Velho list
     return (
         <li
             onClick={handleClick}
             className={activeTab === tabId ? styles['active'] : styles['inactive']}>
             {title}
-            {tabId === InfraModelTabType.WAITING && (
+            {exclamationPointVisible && (
                 <span className={styles['tabs__exclamation-point-container']}>
                     <ExclamationPoint />
                 </span>

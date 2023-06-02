@@ -9,6 +9,9 @@ import { useTranslation } from 'react-i18next';
 import { useInfraModelAppSelector } from 'store/hooks';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { InfraModelLink } from 'app-bar/infra-model-link';
+import { getVelhoDocumentCount } from 'infra-model/infra-model-api';
+import { useLoader } from 'utils/react-utils';
+import { getChangeTimes } from 'common/change-time-api';
 
 type Link = {
     link: string;
@@ -34,8 +37,11 @@ export const AppBar: React.FC = () => {
     const { t } = useTranslation();
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
     const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
-    //TODO update velhoFilesWaiting with value showing whether there are file candidates waiting for approval
-    const velhoFilesWaiting = true;
+    const changeTimes = getChangeTimes();
+    const velhoDocumentCounts = useLoader(
+        () => getVelhoDocumentCount(),
+        [changeTimes.velhoDocument],
+    );
 
     function getInfraModelLink(): string {
         switch (selectedInfraModelTab) {
@@ -83,7 +89,10 @@ export const AppBar: React.FC = () => {
                                             }
                                             end>
                                             <InfraModelLink
-                                                exclamationPointVisibility={velhoFilesWaiting}
+                                                exclamationPointVisibility={
+                                                    !!velhoDocumentCounts &&
+                                                    velhoDocumentCounts?.suggested > 0
+                                                }
                                             />
                                         </NavLink>
                                     )}
