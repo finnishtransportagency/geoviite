@@ -11,9 +11,7 @@ import fi.fta.geoviite.infra.authorization.withUser
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
-import fi.fta.geoviite.infra.inframodel.InfraModelService
-import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
-import fi.fta.geoviite.infra.inframodel.toInfraModelFile
+import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -34,7 +32,7 @@ val SECONDS_IN_A_YEAR: Long = Duration.ofDays(365).toSeconds()
 
 @Service
 @ConditionalOnBean(PVClientConfiguration::class)
-class PVService @Autowired constructor(
+class PVIntegrationService @Autowired constructor(
     private val PVClient: PVClient,
     private val pvDao: PVDao,
     private val lockDao: LockDao,

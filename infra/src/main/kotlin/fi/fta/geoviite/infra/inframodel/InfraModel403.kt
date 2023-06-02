@@ -27,6 +27,7 @@ data class InfraModel403(
 @XmlAccessorType(XmlAccessType.FIELD)
 data class InfraModelFeatureDictionary403(
     @field:XmlAttribute override val name: String = "",
+    @field:XmlAttribute override val version: String? = null
 ):InfraModelFeatureDictionary
 
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -48,6 +49,8 @@ data class InfraModelMetric403(
 data class InfraModelProject403(
     @field:XmlAttribute override val name: String = "",
     @field:XmlAttribute override val desc: String? = null,
+    @field:XmlElement(name = "Feature", namespace = XMLNS_403)
+    override val feature: InfraModelFeature403? = null,
 ):InfraModelProject
 
 @XmlAccessorType(XmlAccessType.FIELD)
