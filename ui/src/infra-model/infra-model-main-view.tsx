@@ -5,7 +5,7 @@ import { InfraModelViewContainer } from 'infra-model/view/infra-model-view-conta
 import { Route, Routes } from 'react-router-dom';
 import { InfraModelViewType } from 'infra-model/infra-model-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
-//thing
+
 export const inframodelEditPath = `/edit`;
 
 export const InfraModelMainView: React.FC = () => {
