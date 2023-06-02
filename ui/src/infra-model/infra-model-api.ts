@@ -42,6 +42,7 @@ const INFRAMODEL_URI = `${API_URI}/inframodel`;
 const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/velho-import`;
 
 const documentHeadersCache = asyncCache<string, PVDocumentHeader[]>();
+const velhoRedirectUrlCache = asyncCache<string, string | null>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
@@ -129,8 +130,10 @@ export async function getVelhoDocuments(
     );
 }
 
-export const getVelhoRedirectUrl = (oid: Oid) =>
-    getIgnoreError<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`);
+export const getVelhoRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
+    velhoRedirectUrlCache.get(changeTime, oid, () =>
+        getIgnoreError<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`),
+    );
 
 export async function getVelhoDocumentCount(): Promise<PVDocumentCount | null> {
     return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);

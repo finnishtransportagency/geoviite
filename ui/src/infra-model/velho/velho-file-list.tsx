@@ -35,6 +35,7 @@ type VelhoFileListProps = {
     onReject: (id: PVDocumentId) => void;
     onImport: (id: PVDocumentId) => void;
     onRestore: (id: PVDocumentId) => void;
+    changeTime: TimeStamp;
 };
 
 export const VelhoFileListContainer: React.FC<VelhoFileListContainerProps> = ({
@@ -60,6 +61,7 @@ export const VelhoFileListContainer: React.FC<VelhoFileListContainerProps> = ({
                     restoreVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())
                 }
                 listMode={listMode}
+                changeTime={changeTime}
             />
         </div>
     );
@@ -72,6 +74,7 @@ export const VelhoFileList = ({
     onImport,
     onRestore,
     listMode,
+    changeTime,
 }: VelhoFileListProps) => {
     const { t } = useTranslation();
     const [openItemId, setOpenItemId] = React.useState<string | null>(null);
@@ -104,6 +107,7 @@ export const VelhoFileList = ({
                             onReject={() => onReject(item.document.id)}
                             onImport={() => onImport(item.document.id)}
                             onRestore={() => onRestore(item.document.id)}
+                            changeTime={changeTime}
                         />
                     ))}
                 </tbody>
@@ -120,6 +124,7 @@ type VelhoFileListRowProps = {
     onReject: () => void;
     onImport: () => void;
     onRestore: () => void;
+    changeTime: TimeStamp;
 };
 
 const VelhoFileListRow = ({
@@ -130,6 +135,7 @@ const VelhoFileListRow = ({
     onReject,
     onImport,
     onRestore,
+    changeTime,
 }: VelhoFileListRowProps) => {
     const { t } = useTranslation();
     return (
@@ -179,7 +185,7 @@ const VelhoFileListRow = ({
                 <tr>
                     <td></td>
                     <td colSpan={5}>
-                        <VelhoFileListExpandedItem item={item} />
+                        <VelhoFileListExpandedItem item={item} changeTime={changeTime} />
                     </td>
                 </tr>
             ) : (
@@ -191,9 +197,10 @@ const VelhoFileListRow = ({
 
 type VelhoFileListExpandedItemProps = {
     item: PVDocumentHeader;
+    changeTime: TimeStamp;
 };
 
-const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => {
+const VelhoFileListExpandedItem = ({ item, changeTime }: VelhoFileListExpandedItemProps) => {
     const { t } = useTranslation();
     return (
         <div className={styles['velho-file-list__expanded']}>
@@ -202,7 +209,7 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                     <InfoboxField
                         label={t('velho.file-list.field.project-group')}
                         value={
-                            <VelhoRedirectLink oid={item.projectGroup.oid}>
+                            <VelhoRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
                                 {`${item.projectGroup.name} (${item.projectGroup.state})`}
                             </VelhoRedirectLink>
                         }
@@ -212,7 +219,7 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                     <InfoboxField
                         label={t('velho.file-list.field.project-name')}
                         value={
-                            <VelhoRedirectLink oid={item.project.oid}>
+                            <VelhoRedirectLink changeTime={changeTime} oid={item.project.oid}>
                                 {`${item.project.name} (${item.project.state})`}
                             </VelhoRedirectLink>
                         }
@@ -222,7 +229,7 @@ const VelhoFileListExpandedItem = ({ item }: VelhoFileListExpandedItemProps) => 
                     <InfoboxField
                         label={t('velho.file-list.field.assignment')}
                         value={
-                            <VelhoRedirectLink oid={item.assignment.oid}>
+                            <VelhoRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
                                 {`${item.assignment.name} (${item.assignment.state})`}
                             </VelhoRedirectLink>
                         }
