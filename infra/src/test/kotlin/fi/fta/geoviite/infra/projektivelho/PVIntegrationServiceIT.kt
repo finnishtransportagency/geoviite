@@ -56,9 +56,9 @@ val projectDictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
-class PVServiceIT @Autowired constructor(
+class PVIntegrationServiceIT @Autowired constructor(
     @Value("\${geoviite.projektivelho.test-port:12345}") private val velhoPort: Int,
-    private val pvService: PVService,
+    private val pvIntegrationService: PVIntegrationService,
     private val pvDao: PVDao,
     private val pvDocumentService: PVDocumentService,
     private val jsonMapper: ObjectMapper,
@@ -87,7 +87,7 @@ class PVServiceIT @Autowired constructor(
     fun `Spinning up search works`(): Unit = fakeVelho().use { fakeVelho ->
         fakeVelho.login()
         fakeVelho.search()
-        val search = pvService.search()
+        val search = pvIntegrationService.search()
         assertNotNull(search)
         assertEquals(search.searchId, pvDao.fetchLatestSearch()?.token)
     }
@@ -101,7 +101,7 @@ class PVServiceIT @Autowired constructor(
 
         fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries)
         fakeVelho.fetchDictionaries(PROJECT, projectDictionaries)
-        pvService.updateDictionaries()
+        pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
                 (materialDictionaries+projectDictionaries)[type]!!.map { e -> e.code to e.name }.associate { it },
@@ -145,7 +145,7 @@ class PVServiceIT @Autowired constructor(
         )
         fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
         fakeVelho.fetchDictionaries(PROJECT, projectDictionaries2)
-        pvService.updateDictionaries()
+        pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
                 (materialDictionaries2+projectDictionaries2)[type]!!.map { e -> e.code to e.name }.associate { it },
@@ -182,12 +182,12 @@ class PVServiceIT @Autowired constructor(
         )
         fakeVelho.fileContent(documentOid)
 
-        pvService.updateDictionaries()
+        pvIntegrationService.updateDictionaries()
         pvDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
         val search = pvDao.fetchLatestSearch()!!
-        val status = pvService.getSearchStatusIfReady(search)!!
+        val status = pvIntegrationService.getSearchStatusIfReady(search)!!
 
-        pvService.importFilesFromProjektiVelho(search, status)
+        pvIntegrationService.importFilesFromProjektiVelho(search, status)
         assertDocumentExists(
             documentOid,
             PVDocumentStatus.SUGGESTED,
