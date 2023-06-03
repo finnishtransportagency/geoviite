@@ -13,9 +13,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId? = null): String? {
+fun getDateStringForFileName(instant1: Instant?, instant2: Instant?, timeZone: ZoneId): String? {
     val dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy")
-        .withZone(timeZone ?: ZoneId.of("UTC"))
+        .withZone(timeZone)
 
     val instant1Date = instant1?.let { dateFormatter.format(it) }
     val instant2Date = instant2?.let { dateFormatter.format(it) }
@@ -42,7 +42,7 @@ fun getCsvResponseEntity(content: String, fileName: FileName): ResponseEntity<By
         .body(content.toByteArray())
 }
 
-fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId = ZoneId.of("UTC")): String {
+fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId): String {
     val columns = mapOf<PublicationTableColumn, (item: PublicationTableItem) -> Any?>(
         PublicationTableColumn.NAME to { it.name },
         PublicationTableColumn.TRACK_NUMBERS to {

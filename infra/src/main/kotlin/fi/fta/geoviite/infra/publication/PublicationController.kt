@@ -144,7 +144,7 @@ class PublicationController @Autowired constructor(
         val publicationsAsCsv =
             publicationService.fetchPublicationsAsCsv(from, to, sortBy, order, timeZone)
 
-        val dateString = getDateStringForFileName(from, to, timeZone)
+        val dateString = getDateStringForFileName(from, to, timeZone ?: ZoneId.of("UTC"))
 
         val fileName = FileName("julkaisuloki${dateString?.let { " $it" } ?: ""}.csv")
         return getCsvResponseEntity(publicationsAsCsv, fileName)
