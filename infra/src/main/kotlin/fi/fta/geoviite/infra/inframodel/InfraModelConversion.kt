@@ -64,13 +64,13 @@ fun toGvtPlan(
     if (!isSupportedInframodelVersion(infraModel.featureDictionary?.version)) {
         throw InframodelParsingException(
             message = "Plan InfraModel version isn't supported. version=${infraModel.featureDictionary?.version}",
-            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.parsing.unsupported-version"
+            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.unsupported-version"
         )
     }
     checkBlacklistedCodings(infraModel.project?.feature?.properties ?: emptyList()) { org ->
         throw InframodelParsingException(
             message = "Plan is from a blacklisted organization. org=${org}",
-            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.parsing.blacklisted-organization"
+            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.blacklisted-organization"
         )
     }
 

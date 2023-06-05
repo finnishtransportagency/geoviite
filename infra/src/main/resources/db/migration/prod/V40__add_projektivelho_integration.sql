@@ -68,6 +68,8 @@ create table projektivelho.file_metadata
 comment on table projektivelho.file_metadata is 'Handling status & metadata for Projektivelho files';
 select common.add_metadata_columns('projektivelho', 'file_metadata');
 select common.add_table_versioning('projektivelho', 'file_metadata');
+alter table projektivelho.file_metadata
+  add constraint file_metadata_id_version_unique unique (id, version);
 
 create table projektivelho.file
 (
@@ -75,3 +77,15 @@ create table projektivelho.file
   content          xml not null
 );
 comment on table projektivelho.file is 'File contents for non-discarded files, fetched from ProjektiVelho';
+
+create table projektivelho.file_metadata_rejection
+(
+  id            int primary key generated always as identity,
+  file_id       int not null references projektivelho.file_metadata (id),
+  file_version  int not null,
+  reason        varchar(150) not null,
+
+  constraint projektivelho_file_rejection_file_metadata_fkey
+    foreign key (file_id, file_version) references projektivelho.file_metadata (id, version)
+);
+comment on table projektivelho.file_metadata_rejection is 'Rejection information for discarded ProjektiVelho files';

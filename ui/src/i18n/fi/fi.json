@@ -57,6 +57,10 @@
                     "project": "Projektin tiedot (Project-elementti) puuttuu",
                     "alignment-group": "Keskilinjojen ryhmä (AlignmentGroup) puuttuu tai ei ole yksiselitteinen",
                     "prof-align": "Keskilinjan pystygeometrialta (Profile) puuttuu geometria (ProfAlign-elementti)"
+                },
+                "alignments": {
+                    "no-alignments": "Suunnitelma ei sisällä yhtään keskilinjaa",
+                    "non-railroad-alignments": "Suunnitelman kaikki keskilinjat eivät ole ratageometriakeskilinjoja"
                 }
             },
             "transformation": {
