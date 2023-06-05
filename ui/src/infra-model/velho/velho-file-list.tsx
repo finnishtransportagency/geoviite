@@ -77,7 +77,6 @@ export const VelhoFileList = ({
     changeTime,
 }: VelhoFileListProps) => {
     const { t } = useTranslation();
-    const [openItemId, setOpenItemId] = React.useState<string | null>(null);
 
     return (
         <div>
@@ -98,12 +97,6 @@ export const VelhoFileList = ({
                             listMode={listMode}
                             key={item.document.id}
                             item={item}
-                            isOpen={item.document.id === openItemId}
-                            onToggleOpen={() =>
-                                item.document.id === openItemId
-                                    ? setOpenItemId(null)
-                                    : setOpenItemId(item.document.id)
-                            }
                             onReject={() => onReject(item.document.id)}
                             onImport={() => onImport(item.document.id)}
                             onRestore={() => onRestore(item.document.id)}
@@ -119,8 +112,6 @@ export const VelhoFileList = ({
 type VelhoFileListRowProps = {
     item: PVDocumentHeader;
     listMode: ListMode;
-    isOpen: boolean;
-    onToggleOpen: () => void;
     onReject: () => void;
     onImport: () => void;
     onRestore: () => void;
@@ -130,19 +121,18 @@ type VelhoFileListRowProps = {
 const VelhoFileListRow = ({
     item,
     listMode,
-    isOpen,
-    onToggleOpen,
     onReject,
     onImport,
     onRestore,
     changeTime,
 }: VelhoFileListRowProps) => {
     const { t } = useTranslation();
+    const [isOpen, setIsOpen] = React.useState(false);
     return (
         <>
             <tr key={`${item.document.id}`}>
                 <td>
-                    <AccordionToggle open={isOpen} onToggle={() => onToggleOpen()} />
+                    <AccordionToggle open={isOpen} onToggle={() => setIsOpen(!isOpen)} />
                 </td>
                 <td>{item.project && item.project.name}</td>
                 <td>

@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
-import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.*
@@ -23,78 +22,6 @@ import java.util.*
 
 
 private val logger = LoggerFactory.getLogger(PVClient::class.java)
-
-fun searchJson(cutoffDate: Instant, minOid: Oid<PVDocument>?, maxResultCount: Int) =
-    searchRoot(
-        settings = settings(
-            searchType = PVApiSearchType.TARGET_SEARCH,
-            maxResultCount = maxResultCount,
-            ordering = jsonObjectArray(
-                listOf(
-                    ordering(
-                        listOf(
-                            "aineisto/aineisto",
-                            "tuorein-versio",
-                            "muokattu"
-                        ), PVApiOrderingDirection.ASCENDING
-                    ),
-                    ordering(
-                        listOf(
-                            "aineisto/aineisto",
-                            "oid"
-                        ), PVApiOrderingDirection.ASCENDING
-                    )
-                )
-            )
-        ),
-        formula = and(
-            or(
-                greaterThan(
-                    path = listOf(
-                        "aineisto/aineisto",
-                        "tuorein-versio",
-                        "muokattu"
-                    ),
-                    value = cutoffDate.toString()
-                ),
-                and(
-                    equals(
-                        path = listOf(
-                            "aineisto/aineisto",
-                            "tuorein-versio",
-                            "muokattu"
-                        ),
-                        value = cutoffDate.toString()
-                    ),
-                    greaterThan(
-                        path = listOf(
-                            "aineisto/aineisto",
-                            "oid"
-                        ),
-                        value = minOid?.let { minOid.toString() } ?: ""
-                    )
-                )
-            ),
-            includesText(path = listOf("aineisto/aineisto", "tuorein-versio", "nimi"), value = ".xml"),
-            contains(
-                path = listOf(
-                    "aineisto/aineisto",
-                    "metatiedot",
-                    "tekniikka-alat"
-                ), values = listOf("tekniikka-ala/ta15")
-            ),
-            or(
-                equals(
-                    path = listOf(
-                        "aineisto/aineisto",
-                        "metatiedot",
-                        "ryhma"
-                    ), value = "aineistoryhma/ar07"
-                )
-            )
-        ),
-        targetCategories = JsonNodeFactory.instance.arrayNode().add("aineisto/aineisto")
-    )
 
 val pvTargetCategoryLength = 1..100
 val pvTargetCategoryRegex = Regex("^[A-ZÄÖÅa-zäöå0-9\\-/]+\$")
