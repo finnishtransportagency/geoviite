@@ -69,9 +69,9 @@ class PVIntegrationServiceIT @Autowired constructor(
     @BeforeEach
     fun setup() {
         transactional {
-            jdbc.update("delete from projektivelho.file where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.file_metadata_rejection where true", mapOf<String, Any>())
-            jdbc.update("delete from projektivelho.file_metadata where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.document_content where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.document_rejection where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.document where true", mapOf<String, Any>())
             jdbc.update("delete from projektivelho.document_type where true", mapOf<String, Any>())
             jdbc.update("delete from projektivelho.material_category where true", mapOf<String, Any>())
             jdbc.update("delete from projektivelho.material_group where true", mapOf<String, Any>())
@@ -218,7 +218,7 @@ class PVIntegrationServiceIT @Autowired constructor(
         pvDao.insertRejection(version, "test")
         val rejection = pvDao.getRejection(version)
 
-        assertEquals(version, rejection.metadataVersion)
+        assertEquals(version, rejection.documentVersion)
         assertEquals("test", rejection.reason)
     }
 
@@ -249,7 +249,7 @@ class PVIntegrationServiceIT @Autowired constructor(
     }
 
     private fun insertDocumentMetaWithStatus(oid: Oid<PVDocument>, status: PVDocumentStatus) =
-        pvDao.insertFileMetadata(
+        pvDao.insertDocumentMetadata(
             oid = oid,
             assignmentOid = null,
             latestVersion = PVApiLatestVersion(
@@ -257,7 +257,7 @@ class PVIntegrationServiceIT @Autowired constructor(
                 name = FileName("test"),
                 changeTime = Instant.now()
             ),
-            metadata = PVApiFileMetadata(
+            metadata = PVApiDocumentMetadata(
                 materialCategory = PVDictionaryCode("test"),
                 description = null,
                 materialGroup = PVDictionaryCode("test"),

@@ -97,9 +97,9 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
         materialGroup: PVDictionaryCode = PVDictionaryCode("aineistoryhma/ar00"),
     ) {
         get("$FILE_DATA_PATH/$oid").respond(okJsonSerialized(
-            PVApiFile(
+            PVApiDocument(
             latestVersion = PVApiLatestVersion(version, FileName("test.xml"), Instant.now()),
-            metadata = PVApiFileMetadata(
+            metadata = PVApiDocumentMetadata(
                 description = FreeText(description),
                 documentType = documentType,
                 materialState = materialState,

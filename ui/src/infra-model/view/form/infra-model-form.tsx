@@ -18,7 +18,7 @@ import {
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { CoordinateSystem as CoordinateSystemModel, Oid } from 'common/common-model';
+import { CoordinateSystem as CoordinateSystemModel, Oid, TimeStamp } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
@@ -266,23 +266,33 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 {projectInfo(
                                     pvDocument.projectGroup.oid,
                                     pvDocument.projectGroup.name,
+                                    changeTimes.velhoDocument,
                                 )}
                             </FormgroupField>
                         )}
                         {pvDocument.project && (
                             <FormgroupField label={t('im-form.pv-document-information.project')}>
-                                {projectInfo(pvDocument.project.oid, pvDocument.project.name)}
+                                {projectInfo(
+                                    pvDocument.project.oid,
+                                    pvDocument.project.name,
+                                    changeTimes.velhoDocument,
+                                )}
                             </FormgroupField>
                         )}
                         {pvDocument.assignment && (
                             <FormgroupField label={t('im-form.pv-document-information.assignment')}>
-                                {projectInfo(pvDocument.assignment.oid, pvDocument.assignment.name)}
+                                {projectInfo(
+                                    pvDocument.assignment.oid,
+                                    pvDocument.assignment.name,
+                                    changeTimes.velhoDocument,
+                                )}
                             </FormgroupField>
                         )}
                         <FormgroupField label={t('im-form.pv-document-information.document')}>
                             {projectInfo(
                                 pvDocument.document.oid,
                                 pvDocument.document.description || '',
+                                changeTimes.velhoDocument,
                             )}
                         </FormgroupField>
                     </FormgroupContent>
@@ -554,11 +564,13 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
 export default InfraModelForm;
 
-function projectInfo(oid: Oid, description: string) {
+function projectInfo(oid: Oid, description: string, changeTime: TimeStamp) {
     return (
         <span className={styles['infra-model-upload__project-field']}>
             <VelhoOid oid={oid} />
-            <VelhoRedirectLink oid={oid}>{description}</VelhoRedirectLink>
+            <VelhoRedirectLink changeTime={changeTime} oid={oid}>
+                {description}
+            </VelhoRedirectLink>
         </span>
     );
 }

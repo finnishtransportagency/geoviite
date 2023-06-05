@@ -35,72 +35,72 @@ data class PVDocumentCounts(
 @Component
 class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
-    fun insertFileMetadata(
+    fun insertDocumentMetadata(
         oid: Oid<PVDocument>,
-        metadata: PVApiFileMetadata,
+        metadata: PVApiDocumentMetadata,
         latestVersion: PVApiLatestVersion,
         status: PVDocumentStatus,
         assignmentOid: Oid<PVAssignment>?,
         projectOid: Oid<PVProject>?,
         projectGroupOid: Oid<PVProjectGroup>?,
-    ): RowVersion<PVApiFileMetadata> {
+    ): RowVersion<PVDocument> {
         val sql = """
-            insert into projektivelho.file_metadata(
+            insert into projektivelho.document(
                 oid,
+                status,
                 filename,
-                file_version,
-                file_change_time,
                 description,
+                document_version,
+                document_change_time,
                 document_type_code,
                 material_state_code,
                 material_category_code,
                 material_group_code,
-                status,
                 assignment_oid,
                 project_oid,
                 project_group_oid
             ) values (
                 :oid,
+                :status::projektivelho.document_status,
                 :filename,
-                :file_version,
-                :file_change_time,
                 :description,
+                :document_version,
+                :document_change_time,
                 :document_type,
                 :material_state,
                 :material_category,
                 :material_group,
-                :status::projektivelho.file_status,
                 :assignment_oid,
                 :project_oid,
                 :project_group_oid
             ) 
             on conflict (oid) do 
               update set
+                status = :status::projektivelho.document_status,
                 filename = :filename,
-                file_version = :file_version,
-                file_change_time = :file_change_time,
                 description = :description,
+                document_version = :document_version,
+                document_change_time = :document_change_time,
                 document_type_code = :document_type,
                 material_state_code = :material_state,
                 material_category_code = :material_category,
                 material_group_code = :material_group,
-                status = :status::projektivelho.file_status,
                 assignment_oid = :assignment_oid,
                 project_oid = :project_oid,
                 project_group_oid = :project_group_oid
-              where projektivelho.file_metadata.file_version <> :file_version
+              where projektivelho.document.document_version <> :document_version
         """.trimIndent()
         val params = mapOf(
-            "filename" to latestVersion.name,
             "oid" to oid,
-            "file_version" to latestVersion.version,
+            "status" to status.name,
+            "filename" to latestVersion.name,
             "description" to metadata.description,
+            "document_version" to latestVersion.version,
+            "document_change_time" to Timestamp.from(latestVersion.changeTime),
             "document_type" to metadata.documentType,
             "material_state" to metadata.materialState,
             "material_category" to metadata.materialCategory,
             "material_group" to metadata.materialGroup,
-            "file_change_time" to Timestamp.from(latestVersion.changeTime),
-            "status" to status.name,
             "assignment_oid" to assignmentOid,
             "project_oid" to  projectOid,
             "project_group_oid" to projectGroupOid,
@@ -109,11 +109,11 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         jdbcTemplate.update(sql, params)
 
         // We can't get the id via a returning clause since it won't see the row id if it's not updated
-        val selectSql = "select id, version from projektivelho.file_metadata where oid = :oid"
+        val selectSql = "select id, version from projektivelho.document where oid = :oid"
         val selectParams = mapOf("oid" to oid)
         return jdbcTemplate.query(selectSql, selectParams) { rs, _ ->
-            rs.getRowVersion<PVApiFileMetadata>("id", "version")
-        }.single().also { id -> logger.daoAccess(UPSERT, PVApiFileMetadata::class, id) }
+            rs.getRowVersion<PVDocument>("id", "version")
+        }.single().also { id -> logger.daoAccess(UPSERT, PVApiDocumentMetadata::class, id) }
     }
 
     @Transactional
@@ -198,22 +198,23 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     }
 
     @Transactional
-    fun insertFileContent(content: String, metadataId: IntId<PVApiFileMetadata>): IntId<PVApiFileMetadata> {
+    fun insertDocumentContent(content: String, documentId: IntId<PVDocument>) {
         val sql = """
-            insert into projektivelho.file(
+            insert into projektivelho.document_content(
                 content,
-                file_metadata_id
+                document_id
             ) values (
                 xmlparse(document :content),
-                :metadata_id
-            ) returning file_metadata_id
+                :document_id
+            )
         """.trimIndent()
         jdbcTemplate.setUser()
-        val params = mapOf("metadata_id" to metadataId.intValue, "content" to content)
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId<PVApiFileMetadata>("file_metadata_id")
-        }.single()
-            .also { id -> logger.daoAccess(INSERT, "PVApiFileContent", id) }
+        val params = mapOf(
+            "document_id" to documentId.intValue,
+            "content" to content,
+        )
+        jdbcTemplate.update(sql, params)
+        logger.daoAccess(INSERT, "PVDocument.content", documentId)
     }
 
     @Transactional
@@ -256,17 +257,17 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             .also { updatedId -> logger.daoAccess(UPDATE, PVSearch::class, updatedId) }
     }
 
-    fun fetchLatestFile(): Pair<Oid<PVDocument>, Instant>? {
+    fun fetchLatestDocument(): Pair<Oid<PVDocument>, Instant>? {
         val sql = """
             select change_time, oid 
-            from projektivelho.file_metadata 
+            from projektivelho.document 
             order by change_time desc, oid desc 
             limit 1
         """.trimIndent()
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             rs.getOid<PVDocument>("oid") to rs.getInstant("change_time")
         }.firstOrNull()
-            .also { id -> logger.daoAccess(FETCH, "PVFileChangeTime", id?.first ?: "null") }
+            .also { v -> logger.daoAccess(FETCH, "${PVDocument::class.simpleName}.changeTime", v ?: "null") }
     }
 
     fun fetchLatestSearch(): PVSearch? {
@@ -288,10 +289,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     }
 
     @Transactional
-    fun updateFileStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
+    fun updateDocumentStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
         val sql = """
-            update projektivelho.file_metadata
-            set status = :status::projektivelho.file_status
+            update projektivelho.document
+            set status = :status::projektivelho.document_status
             where id = :id
             returning id
         """.trimIndent()
@@ -303,37 +304,41 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     }
 
     @Transactional
-    fun insertRejection(metadataRowVersion: RowVersion<PVApiFileMetadata>, reason: String): IntId<PVDocumentRejection> {
-        logger.daoAccess(INSERT, PVDocumentRejection::class, metadataRowVersion)
+    fun insertRejection(documentRowVersion: RowVersion<PVDocument>, reason: String): IntId<PVDocumentRejection> {
         val sql = """
-            insert into projektivelho.file_metadata_rejection(
-              file_id, file_version, reason
-            ) values (:id, :version, :reason)
+            insert into projektivelho.document_rejection(document_id, document_version, reason)
+            values (:id, :version, :reason)
             returning id
         """.trimIndent()
-        val params =
-            mapOf("id" to metadataRowVersion.id.intValue, "version" to metadataRowVersion.version, "reason" to reason)
+        val params = mapOf(
+            "id" to documentRowVersion.id.intValue,
+            "version" to documentRowVersion.version,
+            "reason" to reason,
+        )
         jdbcTemplate.setUser()
-        return getOne<PVApiFileMetadata, IntId<PVDocumentRejection>?>(
-            metadataRowVersion.id,
-            jdbcTemplate.query(sql, params) { rs, _ ->
-                rs.getIntId("id")
-            })
+        return getOne<PVDocument, IntId<PVDocumentRejection>?>(
+            documentRowVersion.id,
+            jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("id") },
+        ).also { id -> logger.daoAccess(INSERT, PVDocumentRejection::class, id) }
     }
 
-    fun getRejection(metadataRowVersion: RowVersion<PVApiFileMetadata>): PVDocumentRejection {
+    fun getRejection(documentRowVersion: RowVersion<PVDocument>): PVDocumentRejection {
         logger.daoAccess(FETCH, PVDocumentRejection::class)
         val sql = """
-            select * from projektivelho.file_metadata_rejection
-            where file_id = :file_id and file_version = :file_version
+            select id, document_id, document_version, reason 
+            from projektivelho.document_rejection
+            where document_id = :document_id and document_version = :document_version
         """.trimIndent()
-        val params = mapOf("file_id" to metadataRowVersion.id.intValue, "file_version" to metadataRowVersion.version)
+        val params = mapOf(
+            "document_id" to documentRowVersion.id.intValue,
+            "document_version" to documentRowVersion.version,
+        )
         jdbcTemplate.setUser()
-        return getOne<PVApiFileMetadata, PVDocumentRejection>(metadataRowVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
+        return getOne<PVDocument, PVDocumentRejection>(documentRowVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
             PVDocumentRejection(
-                id = rs.getIntId<PVDocumentRejection>("id"),
-                metadataVersion = rs.getRowVersion<PVApiFileMetadata>("file_id", "file_version"),
-                reason = rs.getString("reason")
+                id = rs.getIntId("id"),
+                documentVersion = rs.getRowVersion("document_id", "document_version"),
+                reason = rs.getString("reason"),
             )
         })
     }
@@ -343,38 +348,38 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun getDocumentHeaders(status: PVDocumentStatus? = null, id: IntId<PVDocument>? = null): List<PVDocumentHeader> {
         val sql = """
             select 
-              metadata.id,
-              metadata.oid,
-              metadata.filename,
-              metadata.version,
-              metadata.description,
-              metadata.change_time, 
-              metadata.status,
-              metadata.project_oid,
+              document.id,
+              document.oid,
+              document.filename,
+              document.version,
+              document.description,
+              document.change_time, 
+              document.status,
+              document.project_oid,
               project.name project_name,
               project_state.name project_state,
-              metadata.project_group_oid,
+              document.project_group_oid,
               project_group.name project_group_name,
               project_group_state.name project_group_state,
-              metadata.assignment_oid,
+              document.assignment_oid,
               assignment.name assignment_name,
               assignment_state.name assignment_state,
               document_type.name document_type,
               material_state.name material_state,
               material_group.name material_group,
               material_category.name material_category
-            from projektivelho.file_metadata metadata
-              left join projektivelho.project on project.oid = metadata.project_oid
+            from projektivelho.document
+              left join projektivelho.project on project.oid = document.project_oid
               left join projektivelho.project_state on project.state_code = project_state.code
-              left join projektivelho.project_group on project_group.oid = metadata.project_group_oid
+              left join projektivelho.project_group on project_group.oid = document.project_group_oid
               left join projektivelho.project_state project_group_state on project_group.state_code = project_group_state.code
-              left join projektivelho.assignment on assignment.oid = metadata.assignment_oid
+              left join projektivelho.assignment on assignment.oid = document.assignment_oid
               left join projektivelho.project_state assignment_state on assignment.state_code = assignment_state.code
-              left join projektivelho.document_type on document_type.code = metadata.document_type_code
-              left join projektivelho.material_state on material_state.code = metadata.material_state_code
-              left join projektivelho.material_group on material_group.code = metadata.material_group_code
-              left join projektivelho.material_category on material_category.code = metadata.material_category_code
-            where (:status::projektivelho.file_status is null or status = :status::projektivelho.file_status)
+              left join projektivelho.document_type on document_type.code = document.document_type_code
+              left join projektivelho.material_state on material_state.code = document.material_state_code
+              left join projektivelho.material_group on material_group.code = document.material_group_code
+              left join projektivelho.material_category on material_category.code = document.material_category_code
+            where (:status::projektivelho.document_status is null or status = :status::projektivelho.document_status)
               and (:id::int is null or id = :id)
         """.trimIndent()
         val params = mapOf(
@@ -413,7 +418,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             select 
               count(*) filter (where status = 'SUGGESTED') suggested_count, 
               count(*) filter (where status = 'REJECTED') rejected_count
-            from projektivelho.file_metadata
+            from projektivelho.document
         """.trimIndent()
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             PVDocumentCounts(
@@ -423,17 +428,17 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         }.single()
     }
 
-    fun fetchDocumentChangeTime(): Instant = fetchLatestChangeTime(DbTable.PROJEKTIVELHO_FILE_METADATA)
+    fun fetchDocumentChangeTime(): Instant = fetchLatestChangeTime(DbTable.PROJEKTIVELHO_DOCUMENT)
 
     fun getFileContent(id: IntId<PVDocument>): InfraModelFile? {
         logger.daoAccess(FETCH, InfraModelFile::class, id)
         val sql = """
             select 
-              metadata.filename,
-              xmlserialize(document content.content as varchar) as file_content
-            from projektivelho.file_metadata metadata
-              inner join projektivelho.file content on metadata.id = content.file_metadata_id
-            where metadata.id = :id
+              document.filename,
+              xmlserialize(document document_content.content as varchar) as file_content
+            from projektivelho.document
+              inner join projektivelho.document_content on document.id = document_content.document_id
+            where document.id = :id
         """.trimIndent()
         val params = mapOf("id" to id.intValue)
         return getOptional(id, jdbcTemplate.query(sql, params) { rs, _ -> InfraModelFile(

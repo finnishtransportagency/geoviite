@@ -149,7 +149,7 @@ data class PVApiLatestVersion(
     @JsonProperty("muokattu") val changeTime: Instant
 )
 
-data class PVApiFileMetadata(
+data class PVApiDocumentMetadata(
     @JsonProperty("tila") val materialState: PVDictionaryCode,
     @JsonProperty("kuvaus") val description: FreeText?,
     @JsonProperty("laji") val materialCategory: PVDictionaryCode?,
@@ -159,9 +159,9 @@ data class PVApiFileMetadata(
     @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?
 )
 
-data class PVApiFile(
+data class PVApiDocument(
     @JsonProperty("tuorein-versio") val latestVersion: PVApiLatestVersion,
-    @JsonProperty("metatiedot") val metadata: PVApiFileMetadata
+    @JsonProperty("metatiedot") val metadata: PVApiDocumentMetadata
 )
 
 data class PVApiRedirect(

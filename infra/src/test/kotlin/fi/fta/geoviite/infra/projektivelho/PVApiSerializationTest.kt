@@ -42,7 +42,7 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
         val containsPersonalInfo = null
 
         val json = """{"tila":"$materialState","kuvaus":"$description","laji":"$materialCategory","dokumenttityyppi":"$documentType","ryhma":"$materialGroup","tekniikka-alat":[],"sisaltaa-henkilotietoja":null}"""
-        val data = PVApiFileMetadata(
+        val data = PVApiDocumentMetadata(
             materialState,
             description,
             materialCategory,
@@ -53,7 +53,7 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
         )
 
         assertEquals(json, toJson(data))
-        assertEquals(data, toObject<PVApiFileMetadata>(json))
+        assertEquals(data, toObject<PVApiDocumentMetadata>(json))
     }
 
     @Test

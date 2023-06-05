@@ -96,9 +96,9 @@ class PVClient @Autowired constructor(
         return getMandatory<PVApiSearchResult>("$XML_FILE_SEARCH_RESULTS_PATH/$searchId")
     }
 
-    fun fetchFileMetadata(oid: Oid<PVDocument>): PVApiFile {
+    fun fetchFileMetadata(oid: Oid<PVDocument>): PVApiDocument {
         logger.integrationCall("fetchFileMetadata", "oid" to oid)
-        return getMandatory<PVApiFile>("$FILE_DATA_PATH/$oid")
+        return getMandatory<PVApiDocument>("$FILE_DATA_PATH/$oid")
     }
 
     fun fetchFileContent(oid: Oid<PVDocument>, version: PVId): String {

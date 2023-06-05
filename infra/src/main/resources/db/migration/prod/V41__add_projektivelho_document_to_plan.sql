@@ -8,8 +8,8 @@ do $$
 $$;
 
 alter table geometry.plan
-  add column projektivelho_file_metadata_id int null references projektivelho.file_metadata (id),
+  add column projektivelho_document_id int null references projektivelho.document (id),
   drop column oid;
 alter table geometry.plan_version
-  add column projektivelho_file_metadata_id int null,
+  add column projektivelho_document_id int null,
   drop column oid;
