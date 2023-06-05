@@ -171,7 +171,7 @@ class PVIntegrationService @Autowired constructor(
                 file.latestVersion.name
             )
         }
-            ?: (false to "Failed to fetch")
+            ?: (false to "error.infra-model.parsing.generic")
         val xmlContent = if (passedValidation) file.content?.let(::censorAuthorIdentifyingInfo) else null
         val metadataRowVersion = pvDao.insertFileMetadata(
             file.oid,
@@ -190,8 +190,8 @@ class PVIntegrationService @Autowired constructor(
         try {
             val parsed = infraModelService.parseInfraModel(toInfraModelFile(filename, xml))
             parsed.alignments.let { alignments ->
-                if (alignments.isEmpty()) false to "error.infra-model.parsing.alignments.no-alignment"
-                else if (parsed.alignments.any { !isRailroadAlignment(it) }) false to "error.infra-model.parsing.alignments.non-railroad-alignments"
+                if (alignments.isEmpty()) false to INFRAMODEL_PARSING_KEY_GENERIC
+                else if (parsed.alignments.any { !isRailroadAlignment(it) }) false to "$INFRAMODEL_PARSING_KEY_PARENT.alignments.non-railroad-alignments"
                 else true to null
             }
         } catch (e: InframodelParsingException) {
@@ -199,7 +199,7 @@ class PVIntegrationService @Autowired constructor(
             false to e.localizedMessageKey.toString()
         } catch (e: Exception) {
             logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
-            false to "error.infra-model.parsing.generic"
+            false to INFRAMODEL_PARSING_KEY_GENERIC
         }
 
     val railroadAlignmentFeatureTypes = listOf(
