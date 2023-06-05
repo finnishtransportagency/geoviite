@@ -12,8 +12,8 @@ import PVDocumentStatus
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.projektivelho.*
+import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -70,6 +70,7 @@ class PVIntegrationServiceIT @Autowired constructor(
     fun setup() {
         transactional {
             jdbc.update("delete from projektivelho.file where true", mapOf<String, Any>())
+            jdbc.update("delete from projektivelho.file_metadata_rejection where true", mapOf<String, Any>())
             jdbc.update("delete from projektivelho.file_metadata where true", mapOf<String, Any>())
             jdbc.update("delete from projektivelho.document_type where true", mapOf<String, Any>())
             jdbc.update("delete from projektivelho.material_category where true", mapOf<String, Any>())
