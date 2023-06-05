@@ -56,7 +56,7 @@ class PVIntegrationService @Autowired constructor(
     )
     fun search(): PVApiSearchStatus? = runIntegration {
         logger.info("Poll to launch new search")
-        val latest = pvDao.fetchLatestFile()
+        val latest = pvDao.fetchLatestDocument()
         val startTime = latest?.second ?: Instant.now().minusSeconds(SECONDS_IN_A_YEAR)
         PVClient.postXmlFileSearch(startTime, latest?.first).also { status ->
             val validUntil = status.startTime.plusSeconds(status.validFor)
@@ -173,7 +173,7 @@ class PVIntegrationService @Autowired constructor(
         }
             ?: (false to "error.infra-model.parsing.generic")
         val xmlContent = if (passedValidation) file.content?.let(::censorAuthorIdentifyingInfo) else null
-        val metadataRowVersion = pvDao.insertFileMetadata(
+        val pvDocumentRowVersion = pvDao.insertDocumentMetadata(
             file.oid,
             file.metadata,
             file.latestVersion,
@@ -182,8 +182,11 @@ class PVIntegrationService @Autowired constructor(
             assignment.project?.oid,
             assignment.projectGroup?.oid,
         )
-        xmlContent?.let { content -> pvDao.insertFileContent(content, metadataRowVersion.id) }
-            ?: pvDao.insertRejection(metadataRowVersion, reasonIfRejected ?: "")
+        if (xmlContent != null) {
+            pvDao.insertDocumentContent(xmlContent, pvDocumentRowVersion.id)
+        } else {
+            pvDao.insertRejection(pvDocumentRowVersion, reasonIfRejected ?: "")
+        }
     }
 
     fun isRailroadXml(xml: String, filename: FileName) =
@@ -220,6 +223,6 @@ private data class PVAssignmentHolder(
 private data class PVFileHolder(
     val oid: Oid<PVDocument>,
     val content: String?,
-    val metadata: PVApiFileMetadata,
+    val metadata: PVApiDocumentMetadata,
     val latestVersion: PVApiLatestVersion,
 )

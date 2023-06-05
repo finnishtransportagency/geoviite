@@ -265,8 +265,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 label={t('im-form.pv-document-information.project-group')}>
                                 {projectInfo(
                                     pvDocument.projectGroup.oid,
-                                    changeTimes.velhoDocument,
                                     pvDocument.projectGroup.name,
+                                    changeTimes.velhoDocument,
                                 )}
                             </FormgroupField>
                         )}
@@ -274,8 +274,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             <FormgroupField label={t('im-form.pv-document-information.project')}>
                                 {projectInfo(
                                     pvDocument.project.oid,
-                                    changeTimes.velhoDocument,
                                     pvDocument.project.name,
+                                    changeTimes.velhoDocument,
                                 )}
                             </FormgroupField>
                         )}
@@ -283,16 +283,16 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             <FormgroupField label={t('im-form.pv-document-information.assignment')}>
                                 {projectInfo(
                                     pvDocument.assignment.oid,
-                                    changeTimes.velhoDocument,
                                     pvDocument.assignment.name,
+                                    changeTimes.velhoDocument,
                                 )}
                             </FormgroupField>
                         )}
                         <FormgroupField label={t('im-form.pv-document-information.document')}>
                             {projectInfo(
                                 pvDocument.document.oid,
-                                changeTimes.velhoDocument,
                                 pvDocument.document.description || '',
+                                changeTimes.velhoDocument,
                             )}
                         </FormgroupField>
                     </FormgroupContent>
@@ -564,7 +564,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
 export default InfraModelForm;
 
-function projectInfo(oid: Oid, changeTime: TimeStamp, description: string) {
+function projectInfo(oid: Oid, description: string, changeTime: TimeStamp) {
     return (
         <span className={styles['infra-model-upload__project-field']}>
             <VelhoOid oid={oid} />
