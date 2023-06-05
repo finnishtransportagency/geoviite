@@ -190,7 +190,7 @@
             }
         },
         "location-track": {
-            "basic-info-heading": "Perustiedot",
+            "basic-info-heading": "Raiteen perustiedot",
             "track-name": "Sijaintiraidetunnus",
             "track-name-short-singular": "Raidetunnus",
             "track-name-short-plural": "Raidetunnukset",
