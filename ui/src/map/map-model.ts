@@ -15,6 +15,7 @@ export type MapLayerName =
     | 'location-track-background-layer'
     | 'reference-line-background-layer'
     | 'track-number-diagram-layer'
+    | 'track-number-addresses-layer'
     | 'location-track-alignment-layer'
     | 'reference-line-alignment-layer'
     | 'missing-profile-highlight-layer'

@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.map
 
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
 
@@ -104,7 +106,7 @@ fun simplify(
                         && (bbox == null || previousInBbox || bbox.contains(p))
             if (result) {
                 previousM = p.m
-                previousInBbox = bbox == null || bbox.contains(p);
+                previousInBbox = bbox == null || bbox.contains(p)
             }
             result
         } }
