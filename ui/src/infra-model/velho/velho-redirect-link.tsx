@@ -23,17 +23,19 @@ export const VelhoRedirectLink: React.FC<VelhoRedirectLinkProps> = ({
     );
     return (
         <React.Fragment>
-            {loaderStatus === LoaderStatus.Ready ? (
-                <Link
-                    className={styles['velho-file-list__link']}
-                    href={url || undefined}
-                    target={'_blank'}>
-                    <span>{children}</span>
-                    <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
-                </Link>
-            ) : (
-                <Spinner />
-            )}
+            <Link
+                className={styles['velho-file-list__link']}
+                href={url || undefined}
+                target={'_blank'}>
+                <span>{children}</span>
+                <span className={styles['velho-file-list__link-icon']}>
+                    {loaderStatus === LoaderStatus.Ready ? (
+                        <Icons.ExternalLink color={IconColor.INHERIT} size={IconSize.SMALL} />
+                    ) : (
+                        <Spinner />
+                    )}
+                </span>
+            </Link>
         </React.Fragment>
     );
 };

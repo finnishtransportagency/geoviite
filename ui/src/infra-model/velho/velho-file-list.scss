@@ -49,6 +49,10 @@
     :hover {
         text-decoration: underline;
     }
+
+    &-icon {
+        min-width: 20px;
+    }
 }
 
 .velho-file-list__oid {
