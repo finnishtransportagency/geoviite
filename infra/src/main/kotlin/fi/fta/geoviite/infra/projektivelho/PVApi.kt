@@ -236,7 +236,7 @@ data class PVAccessToken(
     @JsonProperty("expires_in") val expiresIn: Long,
     @JsonProperty("token_type") val tokenType: BearerTokenType,
 ){
-    private val issueTime: Instant = accessToken.decoded.expiresAtAsInstant ?: Instant.now()
+    private val issueTime: Instant = accessToken.decoded.issuedAtAsInstant ?: Instant.now()
     @get:JsonIgnore
     val expireTime: Instant get() = accessToken.decoded.expiresAtAsInstant ?: issueTime.plusSeconds(expiresIn)
 
