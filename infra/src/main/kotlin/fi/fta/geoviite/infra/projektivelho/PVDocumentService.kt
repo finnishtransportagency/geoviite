@@ -70,7 +70,9 @@ class PVDocumentService @Autowired constructor(
     fun validateVelhoDocument(documentId: IntId<PVDocument>, overrides: OverrideParameters?): ValidationResponse {
         logger.serviceCall("validateVelhoDocument", "documentId" to documentId, "overrides" to overrides)
         val file = getFile(documentId)
-        return file?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }
+        return file
+            ?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }
+            ?.let { r -> r.copy(geometryPlan = r.geometryPlan?.copy(pvDocumentId = documentId)) }
             ?: noFileValidationResponse(overrides)
     }
 
@@ -82,5 +84,10 @@ class PVDocumentService @Autowired constructor(
     fun getDocumentChangeTime(): Instant {
         logger.serviceCall("getChangeTime")
         return pvDao.fetchDocumentChangeTime()
+    }
+
+    fun getDocumentHeader(id: IntId<PVDocument>): PVDocumentHeader {
+        logger.serviceCall("getDocumentHeader")
+        return pvDao.getDocumentHeader(id)
     }
 }

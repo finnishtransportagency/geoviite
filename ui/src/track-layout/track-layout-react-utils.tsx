@@ -42,6 +42,8 @@ import {
 import { getSwitch, getSwitches } from 'track-layout/layout-switch-api';
 import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getKmPost, getKmPosts } from 'track-layout/layout-km-post-api';
+import { PVDocumentHeader, PVDocumentId } from 'infra-model/velho/velho-model';
+import { getVelhoDocument } from 'infra-model/infra-model-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -76,7 +78,7 @@ export function useReferenceLines(
     return (
         useLoader(
             () => (ids ? getReferenceLines(ids, publishType, changeTime) : undefined),
-            [ids, publishType],
+            [ids, publishType, changeTime],
         ) || []
     );
 }
@@ -85,7 +87,10 @@ export function useLocationTrackDuplicates(
     id: LocationTrackId | undefined,
     publishType: PublishType,
 ): LayoutLocationTrackDuplicate[] | undefined {
-    return useLoader(() => (id ? getLocationTrackDuplicates(publishType, id) : undefined), [id]);
+    return useLoader(
+        () => (id ? getLocationTrackDuplicates(publishType, id) : undefined),
+        [id, publishType],
+    );
 }
 
 export function useLocationTrack(
@@ -107,7 +112,7 @@ export function useLocationTracks(
     return (
         useLoader(
             () => (ids ? getLocationTracks(ids, publishType, changeTime) : undefined),
-            [ids, publishType],
+            [ids, publishType, changeTime],
         ) || []
     );
 }
@@ -119,7 +124,7 @@ export function useSwitch(
 ): LayoutSwitch | undefined {
     return useLoader(
         () => (id ? getSwitch(id, publishType, changeTime) : undefined),
-        [id, publishType],
+        [id, publishType, changeTime],
     );
 }
 
@@ -131,7 +136,7 @@ export function useSwitches(
     return (
         useLoader(
             () => (ids ? getSwitches(ids, publishType, changeTime) : undefined),
-            [ids, publishType],
+            [ids, publishType, changeTime],
         ) || []
     );
 }
@@ -217,7 +222,7 @@ export function useKmPost(
 ): LayoutKmPost | undefined {
     return useNullableLoader(
         () => (id ? getKmPost(id, publishType, changeTime) : undefined),
-        [id, publishType],
+        [id, publishType, changeTime],
     );
 }
 
@@ -229,7 +234,17 @@ export function useKmPosts(
     return (
         useLoader(
             () => (ids ? getKmPosts(ids, publishType, changeTime) : undefined),
-            [ids, publishType],
+            [ids, publishType, changeTime],
         ) || []
+    );
+}
+
+export function usePvDocumentHeader(
+    id: PVDocumentId | undefined | null,
+    changeTime?: TimeStamp,
+): PVDocumentHeader | undefined {
+    return useLoader(
+        () => (id ? getVelhoDocument(changeTime, id).then((v) => v || undefined) : undefined),
+        [id, changeTime],
     );
 }

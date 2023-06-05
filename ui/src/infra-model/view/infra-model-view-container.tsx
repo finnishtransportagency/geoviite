@@ -39,7 +39,6 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         onHoverLocation: delegates.onHoverLocation,
         onClickLocation: delegates.onClickLocation,
         onViewportChange: delegates.onViewportChange,
-        onCommitField: delegates.onCommitField,
         changeTimes: changeTimes,
         isLoading: isLoading,
         onClose: () => navigate('inframodel-list'),

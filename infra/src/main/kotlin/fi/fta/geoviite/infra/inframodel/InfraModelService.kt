@@ -39,7 +39,7 @@ class InfraModelService @Autowired constructor(
     private val geographyService: GeographyService,
     private val switchLibraryService: SwitchLibraryService,
     private val trackNumberService: LayoutTrackNumberService,
-    private val coordinateTransformationService: CoordinateTransformationService
+    private val coordinateTransformationService: CoordinateTransformationService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -176,7 +176,6 @@ class InfraModelService @Autowired constructor(
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
         return plan.copy(
-            oid = extraInfoParameters?.oid ?: plan.oid,
             units = plan.units.copy(
                 coordinateSystemSrid = overrideCs?.srid ?: plan.units.coordinateSystemSrid,
                 coordinateSystemName = overrideCs?.name ?: plan.units.coordinateSystemName,

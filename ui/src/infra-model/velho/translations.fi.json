@@ -22,7 +22,8 @@
             "restore-tooltip": "Palauta takaisin käsiteltävien aineistojen kokoelmaan",
             "restore-success": "Aineisto siirretty käsiteltävien aineistojen kokoelmaan",
             "upload": "Tuo suunnitelma...",
-            "upload-tooltip": "Tuo aineisto Geoviitteen suunnitelmaksi"
+            "upload-tooltip": "Tuo aineisto Geoviitteen suunnitelmaksi",
+            "oid-copied-to-clipboard": "OID kopioitu leikepöydälle"
         }
     }
 }

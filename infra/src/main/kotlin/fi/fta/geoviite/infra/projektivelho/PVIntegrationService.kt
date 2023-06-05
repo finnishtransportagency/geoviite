@@ -85,7 +85,7 @@ class PVIntegrationService @Autowired constructor(
     fun getSearchStatusIfReady(pvSearch: PVSearch): PVApiSearchStatus? = pvSearch
         .takeIf { search -> search.state == WAITING }
         ?.let { search -> PVClient.fetchVelhoSearchStatus(search.token) }
-        ?.takeIf { status -> status.state == PVSearchState("valmis") }
+        ?.takeIf { status -> status.state == PVApiSearchState.valmis }
 
     fun updateDictionaries() {
         logger.serviceCall("updateDictionaries")

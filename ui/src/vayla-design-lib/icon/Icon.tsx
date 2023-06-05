@@ -1,4 +1,5 @@
 import React from 'react';
+import copySvg from './glyphs/action/copy.svg';
 import downloadSvg from './glyphs/action/download.svg';
 import appendSvg from './glyphs/action/append.svg';
 import deleteSvg from './glyphs/action/delete.svg';
@@ -84,6 +85,7 @@ const iconNameToSvgMap = {
     Denied: deniedSvg,
 
     // Actions
+    Copy: copySvg,
     Download: downloadSvg,
     Append: appendSvg,
     Filter: filterSvg,

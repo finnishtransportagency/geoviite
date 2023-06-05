@@ -126,7 +126,7 @@ fun toGvtPlan(
         switches = gvtSwitches.values.toList(),
         fileName = fileName,
         kmPosts = kmPosts,
-        oid = null,
+        pvDocumentId = null,
         measurementMethod = null,
         planPhase = null,
         decisionPhase = null,

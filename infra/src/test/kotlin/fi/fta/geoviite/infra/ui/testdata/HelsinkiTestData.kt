@@ -39,7 +39,7 @@ class HelsinkiTestData {
                 switches = listOf(),
                 kmPosts = listOf(westGeometryKmPost(trackLayoutTrackNumberId)),
                 fileName = FileName("ratapiha.xml"),
-                oid = null,
+                pvDocumentId = null,
                 planPhase = PlanPhase.RAILWAY_PLAN,
                 decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
                 measurementMethod = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,

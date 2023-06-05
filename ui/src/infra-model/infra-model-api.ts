@@ -11,7 +11,7 @@ import {
 } from 'api/api-fetch';
 import { GeometryPlan, GeometryPlanId } from 'geometry/geometry-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { updatePlanChangeTime } from 'common/change-time-api';
+import { getChangeTimes, updatePlanChangeTime } from 'common/change-time-api';
 import {
     ExtraInfraModelParameters,
     OverrideInfraModelParameters,
@@ -41,8 +41,9 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
 const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/velho-import`;
 
-const documentHeadersCache = asyncCache<string, PVDocumentHeader[]>();
-const velhoRedirectUrlCache = asyncCache<string, string | null>();
+const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | null>();
+const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
+const pvRedirectUrlCache = asyncCache<string, string | null>();
 
 export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_URI}/${planId}/file`;
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
@@ -125,15 +126,24 @@ export async function getVelhoDocuments(
     status: PVDocumentStatus,
 ): Promise<PVDocumentHeader[]> {
     const params = queryParams({ status: status });
-    return documentHeadersCache.get(changeTime, status, () =>
+    return pvDocumentHeadersByStateCache.get(changeTime, status, () =>
         getWithDefault<PVDocumentHeader[]>(`${PROJEKTIVELHO_URI}/documents${params}`, []),
     );
 }
 
 export const getVelhoRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
-    velhoRedirectUrlCache.get(changeTime, oid, () =>
+    pvRedirectUrlCache.get(changeTime, oid, () =>
         getIgnoreError<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`),
     );
+
+export async function getVelhoDocument(
+    changeTime: TimeStamp = getChangeTimes().velhoDocument,
+    id: PVDocumentId,
+): Promise<PVDocumentHeader | null> {
+    return pvDocumentHeaderCache.get(changeTime, id, () =>
+        getIgnoreError<PVDocumentHeader>(`${PROJEKTIVELHO_URI}/documents/${id}`),
+    );
+}
 
 export async function getVelhoDocumentCount(): Promise<PVDocumentCount | null> {
     return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);

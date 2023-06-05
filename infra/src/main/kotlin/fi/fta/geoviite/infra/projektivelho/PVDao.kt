@@ -289,7 +289,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
 
     @Transactional
     fun updateFileStatus(id: IntId<PVDocument>, status: PVDocumentStatus): IntId<PVDocument> {
-        logger.daoAccess(UPDATE, PVDocument::class, id)
         val sql = """
             update projektivelho.file_metadata
             set status = :status::projektivelho.file_status
@@ -300,7 +299,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         jdbcTemplate.setUser()
         return getOne<PVDocument, IntId<PVDocument>?>(id, jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId("id")
-        })
+        }).also { _ -> logger.daoAccess(UPDATE, PVDocument::class, id) }
     }
 
     @Transactional
@@ -339,8 +338,9 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         })
     }
 
-    fun getDocumentHeaders(status: PVDocumentStatus? = null): List<PVDocumentHeader> {
-        logger.daoAccess(FETCH, PVDocument::class)
+    fun getDocumentHeader(id: IntId<PVDocument>) = getDocumentHeaders(id = id).single()
+
+    fun getDocumentHeaders(status: PVDocumentStatus? = null, id: IntId<PVDocument>? = null): List<PVDocumentHeader> {
         val sql = """
             select 
               metadata.id,
@@ -375,8 +375,12 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
               left join projektivelho.material_group on material_group.code = metadata.material_group_code
               left join projektivelho.material_category on material_category.code = metadata.material_category_code
             where (:status::projektivelho.file_status is null or status = :status::projektivelho.file_status)
+              and (:id::int is null or id = :id)
         """.trimIndent()
-        val params = mapOf("status" to status?.name)
+        val params = mapOf(
+            "id" to id?.intValue,
+            "status" to status?.name,
+        )
         return jdbcTemplate.query(sql, params) { rs, _ -> PVDocumentHeader(
             project = rs.getOidOrNull<PVProject>("project_oid")?.let{ oid ->
                 PVProject(oid, rs.getVelhoName("project_name"), rs.getVelhoName("project_state"))
@@ -399,7 +403,9 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
                 modified = rs.getInstant("change_time"),
                 status = rs.getEnum("status"),
             ),
-        )}
+        )}.also { results ->
+            logger.daoAccess(FETCH, PVDocument::class, results.map { r -> r.document.id })
+        }
     }
 
     fun getDocumentCounts(): PVDocumentCounts {
@@ -457,7 +463,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         val sql = "select code, name from ${tableName(type)}"
         return jdbcTemplate.query(sql, mapOf<String,Any>()) { rs, _ ->
             rs.getVelhoCode("code") to rs.getVelhoName("name")
-        }.associate { it }.also { _ -> logger.daoAccess(FETCH, PVDictionaryType::class) }
+        }.associate { it }.also { _ -> logger.daoAccess(FETCH, PVDictionaryType::class, type) }
     }
 
     private fun tableName(type: PVDictionaryType) = "projektivelho.${when(type) {
@@ -468,4 +474,5 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         TECHNICS_FIELD -> "technics_field"
         PROJECT_STATE -> "project_state"
     }}"
+
 }

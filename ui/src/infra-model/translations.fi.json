@@ -5,15 +5,20 @@
         "warning-content": "{{planFileName}}-suunnitelman lähde on Paikannuspalvelu ja se saattaa sisältää mm. ilmakuvista digitoitua epätarkkaa geometriaa. Tätä suunnitelmaa ei saa välittää vastauksena  tietopyyntöihin tai käyttää muutoinkaan mihinkään tarkkuuttaa vaativaan tehtävään."
     },
     "im-form": {
+        "pv-document-information": {
+            "title": "ProjektiVelhon dokumentti",
+            "document": "Dokumentti",
+            "assignment": "Toimeksianto",
+            "project": "Projekti",
+            "project-group": "Projektiryhmä"
+        },
         "uploading-file-msg": "Tiedostoa ladataan tietokantaan ...",
-        "project-information": "Projektin tiedot",
+        "file-metadata": "Metatiedot",
         "validation-warnings": "Muut huomiot",
         "validation-errors": "Korjaa seuraavat tiedot",
         "name-field": "Projektin nimi",
         "file-name": "Nimi",
         "name-help": "Jos suunnitteluprojekti ei löydy listalta, luo uusi.",
-        "oid-field": "Projektin OID",
-        "oid-help": "Velho OID",
         "observations-field": "Huomiot",
         "observations-help": "Huomiot näkyvät info-symbolina listanäkymässä.",
         "location-formgroup-title": "Sijaintitiedot",

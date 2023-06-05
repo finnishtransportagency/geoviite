@@ -33,7 +33,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
     fun search() {
         post(XML_FILE_SEARCH_PATH).respond(okJsonSerialized(
             PVApiSearchStatus(
-                PVSearchState("asdf"),
+                PVApiSearchState.kaynnissa,
                 PVId("123"),
                 Instant.now().minusSeconds(5),
                 3600,
@@ -75,7 +75,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper): AutoCloseable 
     fun searchStatus(searchId: PVId) {
         get("$XML_FILE_SEARCH_STATE_PATH/$searchId").respond(okJsonSerialized(
             PVApiSearchStatus(
-                PVSearchState("valmis"),
+                PVApiSearchState.valmis,
                 searchId,
                 Instant.now().minusSeconds(5),
                 3600,

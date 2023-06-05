@@ -8,7 +8,6 @@ import {
     KmNumber,
     LinearUnit,
     MeasurementMethod,
-    Oid,
     RotationDirection,
     Srid,
     SwitchStructureId,
@@ -17,6 +16,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
+import { PVDocumentId } from 'infra-model/velho/velho-model';
 
 export type GeometryPlanLayoutId = string;
 export type GeometryPlanId = string;
@@ -104,7 +104,7 @@ export type GeometryPlan = {
     switches: GeometrySwitch[];
     kmPosts: GeometryKmPost[];
     fileContent: string;
-    oid: Oid | null;
+    pvDocumentId: PVDocumentId | null;
     planPhase: PlanPhase | null;
     decisionPhase: DecisionPhase | null;
     measurementMethod: MeasurementMethod | null;
