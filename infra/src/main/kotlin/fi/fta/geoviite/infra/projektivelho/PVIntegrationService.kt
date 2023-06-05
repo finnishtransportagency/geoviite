@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.withUser
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.integration.DatabaseLock
@@ -164,10 +165,15 @@ class PVIntegrationService @Autowired constructor(
     }
 
     private fun insertFileToDatabase(file: PVFileHolder, assignment: PVAssignmentHolder) {
-        val xmlContent = file.content
-            ?.takeIf { content -> isRailroadXml(content ,file.latestVersion.name) }
-            ?.let { content -> censorAuthorIdentifyingInfo(content) }
-        val metadataId = pvDao.insertFileMetadata(
+        val (passedValidation, reasonIfRejected) = file.content?.let {
+            isRailroadXml(
+                file.content,
+                file.latestVersion.name
+            )
+        }
+            ?: (false to "error.infra-model.parsing.generic")
+        val xmlContent = if (passedValidation) file.content?.let(::censorAuthorIdentifyingInfo) else null
+        val metadataRowVersion = pvDao.insertFileMetadata(
             file.oid,
             file.metadata,
             file.latestVersion,
@@ -176,16 +182,24 @@ class PVIntegrationService @Autowired constructor(
             assignment.project?.oid,
             assignment.projectGroup?.oid,
         )
-        xmlContent?.let { content -> pvDao.insertFileContent(content, metadataId) }
+        xmlContent?.let { content -> pvDao.insertFileContent(content, metadataRowVersion.id) }
+            ?: pvDao.insertRejection(metadataRowVersion, reasonIfRejected ?: "")
     }
 
     fun isRailroadXml(xml: String, filename: FileName) =
         try {
             val parsed = infraModelService.parseInfraModel(toInfraModelFile(filename, xml))
-            parsed.alignments.isNotEmpty() && parsed.alignments.all(::isRailroadAlignment)
+            parsed.alignments.let { alignments ->
+                if (alignments.isEmpty()) false to INFRAMODEL_PARSING_KEY_GENERIC
+                else if (parsed.alignments.any { !isRailroadAlignment(it) }) false to "$INFRAMODEL_PARSING_KEY_PARENT.alignments.non-railroad-alignments"
+                else true to null
+            }
+        } catch (e: InframodelParsingException) {
+            logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
+            false to e.localizedMessageKey.toString()
         } catch (e: Exception) {
             logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
-            false
+            false to INFRAMODEL_PARSING_KEY_GENERIC
         }
 
     val railroadAlignmentFeatureTypes = listOf(

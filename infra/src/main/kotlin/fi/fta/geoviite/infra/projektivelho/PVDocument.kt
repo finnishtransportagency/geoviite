@@ -1,5 +1,7 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.projektivelho.PVApiFileMetadata
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
@@ -16,6 +18,12 @@ data class PVProjectGroup(val oid: Oid<PVProjectGroup>, val name: PVDictionaryNa
 data class PVProject(val oid: Oid<PVProject>, val name: PVDictionaryName, val state: PVDictionaryName)
 
 data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVDictionaryName, val state: PVDictionaryName)
+
+data class PVDocumentRejection(
+    val id: IntId<PVDocumentRejection>,
+    val metadataVersion: RowVersion<PVApiFileMetadata>,
+    val reason: String,
+)
 
 data class PVDocument(
     val id: IntId<PVDocument>,

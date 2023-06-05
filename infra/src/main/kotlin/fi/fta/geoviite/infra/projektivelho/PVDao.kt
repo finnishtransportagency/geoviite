@@ -8,11 +8,13 @@ import PVDictionaryType
 import PVDictionaryType.*
 import PVDocument
 import PVDocumentHeader
+import PVDocumentRejection
 import PVDocumentStatus
 import PVProject
 import PVProjectGroup
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -41,7 +43,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         assignmentOid: Oid<PVAssignment>?,
         projectOid: Oid<PVProject>?,
         projectGroupOid: Oid<PVProjectGroup>?,
-    ): IntId<PVApiFileMetadata> {
+    ): RowVersion<PVApiFileMetadata> {
         val sql = """
             insert into projektivelho.file_metadata(
                 oid,
@@ -107,10 +109,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         jdbcTemplate.update(sql, params)
 
         // We can't get the id via a returning clause since it won't see the row id if it's not updated
-        val selectSql = "select id from projektivelho.file_metadata where oid = :oid"
+        val selectSql = "select id, version from projektivelho.file_metadata where oid = :oid"
         val selectParams = mapOf("oid" to oid)
         return jdbcTemplate.query(selectSql, selectParams) { rs, _ ->
-            rs.getIntId<PVApiFileMetadata>("id")
+            rs.getRowVersion<PVApiFileMetadata>("id", "version")
         }.single().also { id -> logger.daoAccess(UPSERT, PVApiFileMetadata::class, id) }
     }
 
@@ -298,6 +300,42 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         jdbcTemplate.setUser()
         return getOne<PVDocument, IntId<PVDocument>?>(id, jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId("id")
+        })
+    }
+
+    @Transactional
+    fun insertRejection(metadataRowVersion: RowVersion<PVApiFileMetadata>, reason: String): IntId<PVDocumentRejection> {
+        logger.daoAccess(INSERT, PVDocumentRejection::class, metadataRowVersion)
+        val sql = """
+            insert into projektivelho.file_metadata_rejection(
+              file_id, file_version, reason
+            ) values (:id, :version, :reason)
+            returning id
+        """.trimIndent()
+        val params =
+            mapOf("id" to metadataRowVersion.id.intValue, "version" to metadataRowVersion.version, "reason" to reason)
+        jdbcTemplate.setUser()
+        return getOne<PVApiFileMetadata, IntId<PVDocumentRejection>?>(
+            metadataRowVersion.id,
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                rs.getIntId("id")
+            })
+    }
+
+    fun getRejection(metadataRowVersion: RowVersion<PVApiFileMetadata>): PVDocumentRejection {
+        logger.daoAccess(FETCH, PVDocumentRejection::class)
+        val sql = """
+            select * from projektivelho.file_metadata_rejection
+            where file_id = :file_id and file_version = :file_version
+        """.trimIndent()
+        val params = mapOf("file_id" to metadataRowVersion.id.intValue, "file_version" to metadataRowVersion.version)
+        jdbcTemplate.setUser()
+        return getOne<PVApiFileMetadata, PVDocumentRejection>(metadataRowVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
+            PVDocumentRejection(
+                id = rs.getIntId<PVDocumentRejection>("id"),
+                metadataVersion = rs.getRowVersion<PVApiFileMetadata>("file_id", "file_version"),
+                reason = rs.getString("reason")
+            )
         })
     }
 

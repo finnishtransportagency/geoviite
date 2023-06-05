@@ -210,6 +210,17 @@ class PVIntegrationServiceIT @Autowired constructor(
         assertEquals(1, counts.rejected)
     }
 
+    @Test
+    fun `Document rejection works`() {
+        insertTestDictionary()
+        val version = insertDocumentMetaWithStatus(Oid("1.2.3.4.7"), PVDocumentStatus.REJECTED)
+        pvDao.insertRejection(version, "test")
+        val rejection = pvDao.getRejection(version)
+
+        assertEquals(version, rejection.metadataVersion)
+        assertEquals("test", rejection.reason)
+    }
+
     private fun assertDocumentExists(
         oid: Oid<PVDocument>,
         status: PVDocumentStatus,
