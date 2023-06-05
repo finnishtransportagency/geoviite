@@ -1,5 +1,9 @@
 {
     "error": {
+        "integration-not-configured": {
+            "RATKO": "Ratko-integraatio ei ole käytössä tässä ympäristössä",
+            "PROJEKTIVELHO": "Velho-integraatio ei ole käytössä tässä ympäristössä"
+        },
         "linking": {
             "generic": "Linkityksessä tapahtui virhe",
             "alignment-geometry": "Uudessa geometriassa on epäjatkuvuuskohtia",

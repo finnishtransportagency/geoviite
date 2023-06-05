@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.withUser
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -16,7 +15,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Duration
@@ -48,7 +46,6 @@ class RatkoService @Autowired constructor(
     private val ratkoPushDao: RatkoPushDao,
     private val publicationService: PublicationService,
     private val calculatedChangesService: CalculatedChangesService,
-    private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
@@ -262,30 +259,6 @@ class RatkoService @Autowired constructor(
         ratkoAssetService.pushSwitchChangesToRatko(switchChanges, publicationTime)
     }
 
-    fun getRatkoPushError(publishId: IntId<Publication>): RatkoPushErrorWithAsset? {
-        return ratkoPushDao.getLatestRatkoPushErrorFor(publishId)?.let { ratkoError ->
-            val asset = when (ratkoError.assetType) {
-                RatkoAssetType.TRACK_NUMBER -> trackNumberService.getOfficial(ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
-                RatkoAssetType.LOCATION_TRACK -> locationTrackService.getOfficial(ratkoError.assetId as IntId<LocationTrack>)
-                RatkoAssetType.SWITCH -> switchService.getOfficial(ratkoError.assetId as IntId<TrackLayoutSwitch>)
-            }
-            checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
-
-            RatkoPushErrorWithAsset(
-                ratkoError.id,
-                ratkoError.ratkoPushId,
-                ratkoError.errorType,
-                ratkoError.operation,
-                ratkoError.assetType,
-                asset
-            )
-        }
-    }
-
-    @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
-    fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
-        return ratkoClient.getRatkoOnlineStatus()
-    }
 
     private fun getSwitchChangesByLocationTrack(
         locationTrackId: IntId<LocationTrack>,

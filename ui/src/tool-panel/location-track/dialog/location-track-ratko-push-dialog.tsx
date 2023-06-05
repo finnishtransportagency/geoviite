@@ -72,13 +72,13 @@ export const LocationTrackRatkoPushDialog: React.FC<LocationTrackRatkoPushDialog
                 setPushing(true);
                 const kms = getKmsInRange(Number.parseInt(startKm), Number.parseInt(endKm));
 
-                await pushLocationTracksToRatko([
+                const result = await pushLocationTracksToRatko([
                     {
                         locationTrackId: locationTrack.id,
                         changedKmNumbers: kms,
                     },
                 ]);
-                setPushDone(true);
+                if (result.isOk()) setPushDone(true);
             } finally {
                 setPushing(false);
             }

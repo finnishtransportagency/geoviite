@@ -5,6 +5,8 @@ import PVDocumentHeader
 import PVDocumentStatus
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.error.Integration
+import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -24,7 +26,7 @@ class PVDocumentService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val pvClient: PVClient by lazy {
-        requireNotNull(pvClientParam) { "ProjektiVelho must be configured to use the client" }
+        pvClientParam ?: throw IntegrationNotConfiguredException(Integration.PROJEKTIVELHO)
     }
 
     fun getDocumentHeaders(status: PVDocumentStatus?): List<PVDocumentHeader> {
