@@ -228,8 +228,7 @@ const infraModelSlice = createSlice({
             state.validationErrors = initialInfraModelState.validationErrors;
         },
         clearInfraModelState: (state: InfraModelState) => {
-            state.plan = initialInfraModelState.plan;
-            state.planLayout = initialInfraModelState.planLayout;
+            state.validationResponse = initialInfraModelState.validationResponse;
             state.extraInfraModelParameters = initialInfraModelState.extraInfraModelParameters;
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
