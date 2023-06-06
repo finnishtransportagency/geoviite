@@ -45,7 +45,7 @@ jobs:
         docker create -p 127.0.0.1:5436:5432 --name geoviite-db gvt-postgres
         docker start geoviite-db
         cd infra
-        DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
+        POSTGRES_DB=geoviite POSTGRES_USER=dev-geouser POSTGRES_PASSWORD=dev-geouser-password DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
       env:
         POSTGRES_PASSWORD: 'dev-geouser-password'
         POSTGRES_USER: 'dev-geouser'
