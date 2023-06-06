@@ -338,7 +338,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             PVDocumentRejection(
                 id = rs.getIntId("id"),
                 documentVersion = rs.getRowVersion("document_id", "document_version"),
-                reason = rs.getString("reason"),
+                reason = LocalizationKey(rs.getString("reason")),
             )
         })
     }

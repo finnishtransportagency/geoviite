@@ -201,7 +201,7 @@ class PVIntegrationService @Autowired constructor(
             logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
             false to e.localizedMessageKey.toString()
         } catch (e: Exception) {
-            logger.info("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
+            logger.warn("Rejecting XML as not-IM: file=$filename error=${e.message?.let(::formatForLog)}")
             false to INFRAMODEL_PARSING_KEY_GENERIC
         }
 
