@@ -44,7 +44,6 @@ jobs:
         docker build -t gvt-postgres ./.github/workflows
         docker create -p 127.0.0.1:5436:5432 --name geoviite-db gvt-postgres
         docker start geoviite-db
-        timeout 20 ping 192.0.2.2
         cd infra
         DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
       env:
