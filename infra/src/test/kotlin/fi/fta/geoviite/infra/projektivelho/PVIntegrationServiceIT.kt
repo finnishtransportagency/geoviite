@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.ITTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -219,7 +220,7 @@ class PVIntegrationServiceIT @Autowired constructor(
         val rejection = pvDao.getRejection(version)
 
         assertEquals(version, rejection.documentVersion)
-        assertEquals("test", rejection.reason)
+        assertEquals(LocalizationKey("test"), rejection.reason)
     }
 
     private fun assertDocumentExists(

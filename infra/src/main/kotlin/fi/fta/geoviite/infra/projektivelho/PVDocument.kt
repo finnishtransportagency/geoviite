@@ -3,6 +3,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
 enum class PVDocumentStatus {
@@ -21,7 +22,7 @@ data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVDictionaryName, 
 data class PVDocumentRejection(
     val id: IntId<PVDocumentRejection>,
     val documentVersion: RowVersion<PVDocument>,
-    val reason: String,
+    val reason: LocalizationKey,
 )
 
 data class PVDocument(
