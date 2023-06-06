@@ -11,29 +11,50 @@
     background: $color-white-default;
 }
 
+.track-layout__main-view {
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 336px auto 380px;
+    grid-template-rows: auto 320px;
+
+    grid-template-areas:
+        'navi map tool-panel'
+        'navi map tool-panel';
+}
+.track-layout--show-diagram .track-layout__main-view {
+    grid-template-areas:
+        'navi map tool-panel'
+        'navi diagram tool-panel';
+}
+
+.track-layout__navi {
+    grid-area: navi;
+    overflow: auto;
+
+    @include shadow-8dp;
+
+    padding-bottom: 64px;
+    min-width: 336px;
+    width: 336px;
+    max-width: 336px;
+}
+
 .track-layout__map {
+    grid-area: map;
     position: relative;
     flex: 1;
 }
 
-.track-layout__main-view {
-    overflow: hidden;
-    display: flex;
-}
-
-.track-layout__map-settings {
+.track-layout__diagram {
+    grid-area: diagram;
     @include shadow-8dp;
-
-    position: absolute;
-    overflow-y: auto;
-    margin-top: 5px;
-    margin-left: 5px;
-    max-height: 100%;
-    border-radius: 6px;
-    z-index: $layer-popup;
+    padding: 0 8px;
 }
 
 .track-layout__tool-panel {
+    grid-area: tool-panel;
+    overflow: auto;
+
     @include shadow-8dp;
     width: 380px;
 
@@ -49,12 +70,14 @@
     }
 }
 
-.track-layout__navi {
+.track-layout__map-settings {
     @include shadow-8dp;
 
-    padding-bottom: 64px;
-    min-width: 336px;
-    width: 336px;
-    max-width: 336px;
-    overflow: auto;
+    position: absolute;
+    overflow-y: auto;
+    margin-top: 5px;
+    margin-left: 5px;
+    max-height: 100%;
+    border-radius: 6px;
+    z-index: $layer-popup;
 }

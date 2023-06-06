@@ -1,6 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel
 
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.browser
+import browser
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage

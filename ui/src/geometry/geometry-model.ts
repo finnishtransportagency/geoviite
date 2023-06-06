@@ -272,10 +272,10 @@ export type ElementItem = {
     planId: GeometryPlanId;
     planSource: PlanSource;
     fileName: string;
-    coordinateSystemSrid: Srid;
+    coordinateSystemSrid: Srid | null;
     trackNumberId: LayoutTrackNumberId;
     trackNumberDescription: string;
-    coordinateSystemName: string;
+    coordinateSystemName: string | null;
     connectedSwitchName: string;
     isPartial: boolean;
 };
@@ -289,6 +289,7 @@ export type StationPoint = {
     address: TrackMeter | null;
     height: number;
     station: number;
+    location: Point | null;
 };
 
 type CircularCurve = StationPoint & {
@@ -299,6 +300,7 @@ export type VerticalGeometryItem = {
     alignmentId: string;
     id: string;
     planId: GeometryPlanId;
+    creationTime: TimeStamp;
     fileName: string;
     alignmentName: string;
     start: CircularCurve;
@@ -311,6 +313,8 @@ export type VerticalGeometryItem = {
     locationTrackName: string;
     overlapsAnother: boolean;
     verticalCoordinateSystem: VerticalCoordinateSystem | null;
+    coordinateSystemSrid: Srid | null;
+    coordinateSystemName: string | null;
 
     layoutStartStation: number | null;
     layoutPointStation: number | null;

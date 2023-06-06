@@ -5,6 +5,7 @@ import { debounceAsync } from 'utils/async-utils';
 import { ValidationError } from 'utils/validation-utils';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import { LayoutLocationTrack } from 'track-layout/track-layout-model';
+import { CoordinateSystem, Srid } from 'common/common-model';
 
 export const searchGeometryPlanHeaders = (
     source: PlanSource,
@@ -79,3 +80,6 @@ export const nonNumericHeading = (name: string) => ({
 });
 
 export const withSeparator = (heading: ElementHeading) => ({ ...heading, hasSeparator: true });
+
+export const findCoordinateSystem = (srid: Srid, coordinateSystems: CoordinateSystem[]) =>
+    coordinateSystems.find((crs) => crs.srid === srid);

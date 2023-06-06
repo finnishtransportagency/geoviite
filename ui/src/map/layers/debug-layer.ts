@@ -1,14 +1,11 @@
 import Feature from 'ol/Feature';
-import { Polygon } from 'ol/geom';
 import OlPoint from 'ol/geom/Point';
 import { Vector as VectorLayer } from 'ol/layer';
 import { Vector as VectorSource } from 'ol/source';
-import { DebugLayer } from 'map/map-model';
-import { LayerItemSearchResult, OlLayerAdapter, SearchItemsOptions } from 'map/layers/layer-model';
 import { filterNotEmpty } from 'utils/array-utils';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
-
-export type DebugLayerFeatureType = OlPoint | Polygon;
+import { MapLayer } from 'map/layers/utils/layer-model';
+import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
 
 type DebugLayerPoint = {
     type: 'point';
@@ -19,100 +16,75 @@ type DebugLayerPoint = {
     text?: string;
 };
 
-export type DebugLayerData = DebugLayerPoint[];
-
-let debugLayerData: DebugLayerData = [];
-/* .map((p: DebugLayerPoint, i: number) => ({
-    ...p,
-    text: `${i}`,
-})); */
+let debugLayerData: DebugLayerPoint[] = [];
 
 declare global {
-    function setDebugLayerData(data: DebugLayerData): void;
+    function setDebugLayerData(data: DebugLayerPoint[]): void;
 }
 
 let updateLayerFunc: (() => void) | undefined = undefined;
 
-globalThis.setDebugLayerData = (data: DebugLayerData) => {
+globalThis.setDebugLayerData = (data: DebugLayerPoint[]) => {
     debugLayerData = data;
     if (updateLayerFunc) {
         updateLayerFunc();
     }
 };
 
-function createDebugFeatures(data: DebugLayerData): Feature<DebugLayerFeatureType>[] {
-    return data
-        .flatMap((item) => {
-            let feature: Feature<DebugLayerFeatureType> | null = null;
-            if (item.type == 'point') {
-                feature = new Feature({
-                    geometry: new OlPoint([item.x, item.y]),
+function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
+    return points
+        .flatMap((point) => {
+            if (point.type == 'point') {
+                const feature = new Feature({
+                    geometry: new OlPoint(pointToCoords(point)),
                 });
-                const color = item.color || 'blue';
-                const size = item.size || 3;
+
+                const color = point.color || 'blue';
+                const size = point.size || 3;
+
                 feature.setStyle(
                     new Style({
                         image: new Circle({
                             radius: size,
-                            stroke: new Stroke({
-                                color: color,
-                            }),
-                            fill: new Fill({
-                                color: color,
-                            }),
+                            stroke: new Stroke({ color }),
+                            fill: new Fill({ color }),
                         }),
-                        text: item.text
+                        text: point.text
                             ? new Text({
-                                text: item.text,
-                                scale: 1.5,
-                                fill: new Fill({
-                                    color: color,
-                                }),
-                                offsetY: -(size + 15),
-                            })
+                                  text: point.text,
+                                  scale: 1.5,
+                                  fill: new Fill({ color }),
+                                  offsetY: -(size + 15),
+                              })
                             : undefined,
                     }),
                 );
+
+                return feature;
             }
-            return feature;
         })
         .filter(filterNotEmpty);
 }
 
-export function createDebugLayerAdapter(
-    mapLayer: DebugLayer,
-    existingOlLayer: VectorLayer<VectorSource<DebugLayerFeatureType>> | undefined,
-): OlLayerAdapter {
+export function createDebugLayer(
+    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+): MapLayer {
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
+    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
 
-    // Use an existing layer or create a new one. Old layer is "recycled" to
-    // prevent features to disappear while moving the map.
-    const layer: VectorLayer<VectorSource<DebugLayerFeatureType>> =
-        existingOlLayer ||
-        new VectorLayer({
-            source: vectorSource,
-        });
-
-    function clearFeatures() {
-        vectorSource.clear();
-    }
-
-    function updateFeatures(features: Feature<DebugLayerFeatureType>[]) {
-        clearFeatures();
+    function updateFeatures(features: Feature<OlPoint>[]) {
+        clearFeatures(vectorSource);
         vectorSource.addFeatures(features);
     }
-
-    layer.setVisible(mapLayer.visible);
-    updateFeatures(createDebugFeatures(debugLayerData));
 
     updateLayerFunc = () => {
         updateFeatures(createDebugFeatures(debugLayerData));
     };
 
+    updateLayerFunc();
+
     return {
+        name: 'debug-layer',
         layer: layer,
-        searchItems: (_hitArea: Polygon, _options: SearchItemsOptions): LayerItemSearchResult => {
-            return {};
-        },
     };
 }

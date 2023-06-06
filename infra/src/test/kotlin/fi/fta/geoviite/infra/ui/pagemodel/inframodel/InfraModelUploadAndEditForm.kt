@@ -1,14 +1,15 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
+import browser
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import getElementsWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
 import java.time.Duration
 
-class InfraModelUploadAndEditForm(): PageModel(By.className("infra-model-upload__form-column")) {
-
+class InfraModelUploadAndEditForm: PageModel(By.className("infra-model-upload__form-column")) {
     fun tallenna() {
         val projectName = projektinTiedot().nimi()
 
@@ -50,4 +51,3 @@ class InfraModelUploadAndEditForm(): PageModel(By.className("infra-model-upload_
     }
 
 }
-

@@ -10,4 +10,5 @@ nvm use
 set -e
 rm -r node_modules
 npm ci
+rm -f src/**/*scss.d.ts
 npm start --

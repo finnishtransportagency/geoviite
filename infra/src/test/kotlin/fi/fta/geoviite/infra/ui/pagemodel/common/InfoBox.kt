@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import browser
 import org.openqa.selenium.By
 import org.openqa.selenium.StaleElementReferenceException
 import org.openqa.selenium.TimeoutException
@@ -18,10 +19,10 @@ abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
         logger.info("Get field $fieldName")
         val fieldValueBy =
             By.xpath(".//div[div[@class='infobox__field-label' and contains(text(), '$fieldName')]]/div[@class='infobox__field-value']")
-        try {
-            return getChildElementStaleSafe(fieldValueBy).text.also { value -> logger.info("Get field [$fieldName]=[$value]") }
+        return try {
+            getChildElementStaleSafe(fieldValueBy).text.also { value -> logger.info("Get field [$fieldName]=[$value]") }
         } catch (staleEx: StaleElementReferenceException) {
-            return getChildElementStaleSafe(fieldValueBy).text.also { value -> logger.info("Get field [$fieldName]=[$value]") }
+            getChildElementStaleSafe(fieldValueBy).text.also { value -> logger.info("Get field [$fieldName]=[$value]") }
         }
     }
 
@@ -91,7 +92,4 @@ abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
         }
         logger.info("Field $fieldName changed to $targetValue")
     }
-
-
-
 }

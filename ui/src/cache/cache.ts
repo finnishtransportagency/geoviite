@@ -2,6 +2,7 @@ import memCache from 'memory-cache';
 import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
 import { initialChangeTime } from 'common/common-slice';
+import { chunk } from 'utils/array-utils';
 
 export type Cache<TKey, TVal> = {
     get(key: TKey): TVal | null;
@@ -51,16 +52,18 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
         getter: (ids: TId[]) => Promise<(id: TId) => TVal>,
     ): Promise<TVal[]> {
         setChangeTime(changeTime);
-        const toFetch = ids.filter((id) => cache.get(cacheKey(id)) === null);
-        if (toFetch.length > 0) {
-            const getting = getter(ids);
-            for (const id of toFetch) {
+        const fetchIds = ids.filter((id) => cache.get(cacheKey(id)) === null);
+
+        chunk(fetchIds, 50).forEach((chunkIds) => {
+            const getting = getter(chunkIds);
+            for (const id of chunkIds) {
                 void put(
                     cacheKey(id),
-                    getting.then((got) => got(id)),
+                    getting.then((gotFn) => gotFn(id)),
                 );
             }
-        }
+        });
+
         // type coercion safety: we called put for every missing cache key
         return Promise.all(ids.map((id) => cache.get(cacheKey(id))) as TVal[]);
     }

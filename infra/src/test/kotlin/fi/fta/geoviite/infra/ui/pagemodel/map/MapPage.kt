@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import browser
+import clickElementAtPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutPoint
 import fi.fta.geoviite.infra.ui.pagemodel.MainNavigationBar
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.browser
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.clickElementAtPoint
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenClickable
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenVisible
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.javaScriptExecutor
+import getElementWhenClickable
+import getElementWhenVisible
+import javaScriptExecutor
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.interactions.Actions
@@ -41,7 +41,7 @@ class MapPage {
     fun karttatasoasetukset(): MapLayerSettingsPanel {
         logger.info("Open map layers")
         getElementWhenVisible(By.xpath("//button[@qa-id='map-layers-button']")).click()
-        return MapLayerSettingsPanel(By.xpath("//div[@class='map-layer-settings']"))
+        return MapLayerSettingsPanel(By.xpath("//div[@class='map-layer-menu']"))
     }
 
     fun esikatselu(): PreviewChangesPage {

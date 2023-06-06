@@ -43,7 +43,8 @@ import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
+import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -59,6 +60,8 @@ type LocationTrackInfoboxProps = {
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
+    onVerticalGeometryDiagramVisibilityChange: (visibility: boolean) => void;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -74,6 +77,8 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     viewport,
     visibilities,
     onVisibilityChange,
+    verticalGeometryDiagramVisible,
+    onVerticalGeometryDiagramVisibilityChange,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
@@ -286,7 +291,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                         </InfoboxField>
 
                         {linkingState === undefined && (
-                            <WriteRoleRequired>
+                            <WriteAccessRequired>
                                 <InfoboxButtons>
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
@@ -302,7 +307,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                                         {t('tool-panel.location-track.modify-start-or-end')}
                                     </Button>
                                 </InfoboxButtons>
-                            </WriteRoleRequired>
+                            </WriteAccessRequired>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (
                             <React.Fragment>
@@ -372,6 +377,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 locationTrackId={locationTrack.id}
                 viewport={viewport}
             />
+            <LocationTrackVerticalGeometryInfobox
+                contentVisible={visibilities.verticalGeometry}
+                onContentVisibilityChange={() => visibilityChange('verticalGeometry')}
+                onVerticalGeometryDiagramVisibilityChange={
+                    onVerticalGeometryDiagramVisibilityChange
+                }
+                verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+            />
             {locationTrack.draftType !== 'NEW_DRAFT' && (
                 <AssetValidationInfoboxContainer
                     contentVisible={visibilities.validation}
@@ -413,7 +426,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             )}
 
             {officialLocationTrack && (
-                <WriteRoleRequired>
+                <WriteAccessRequired>
                     <Infobox
                         contentVisible={visibilities.ratkoPush}
                         onContentVisibilityChange={() => visibilityChange('ratkoPush')}
@@ -430,7 +443,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                             </InfoboxButtons>
                         </InfoboxContent>
                     </Infobox>
-                </WriteRoleRequired>
+                </WriteAccessRequired>
             )}
 
             {showRatkoPushDialog && (

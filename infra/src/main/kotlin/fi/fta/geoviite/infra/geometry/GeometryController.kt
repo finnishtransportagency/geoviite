@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -229,15 +230,16 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/layout/location-tracks/{id}/vertical-geometry")
+    @GetMapping("/layout/{publicationType}/location-tracks/{id}/vertical-geometry")
     fun getTrackVerticalGeometryListing(
+        @PathVariable("publicationType") publicationType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        log.apiCall("getTrackVerticalGeometryListing", "id" to id,
+        log.apiCall("getTrackVerticalGeometryListing", "publicationType" to publicationType, "id" to id,
             "startAddress" to startAddress, "endAddress" to endAddress)
-        return geometryService.getVerticalGeometryListing(id, startAddress, endAddress)
+        return geometryService.getVerticalGeometryListing(publicationType, id, startAddress, endAddress)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -255,6 +257,16 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/plans/{planId}/start-and-end/{planAlignmentId}")
+    fun getPlanAlignmentStartAndEnd(
+        @PathVariable("planId") planId: IntId<GeometryPlan>,
+        @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
+    ): AlignmentStartAndEnd? {
+        logger.apiCall("getPlanAlignmentStartAndEnd", "planId" to planId, "planAlignmentId" to planAlignmentId)
+        return geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/plans/{planId}/plan-alignment-heights/{planAlignmentId}")
     fun getPlanAlignmentHeights(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
@@ -262,18 +274,44 @@ class GeometryController @Autowired constructor(
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): AlignmentHeights? {
+    ): List<KmHeights>? {
+        logger.apiCall(
+            "getPlanAlignmentHeights",
+            "planId" to planId,
+            "planAlignmentId" to planAlignmentId,
+            "startDistance" to startDistance,
+            "endDistance" to endDistance,
+            "tickLength" to tickLength
+        )
         return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("{publishType}/layout/location-tracks/{id}/linking-summary")
+    fun getLocationTrackLinkingSummary(
+        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<PlanLinkingSummaryItem>? {
+        logger.apiCall("getLocationTrackLinkingSummary", "publishType" to publishType, "id" to id)
+        return geometryService.getLocationTrackGeometryLinkingSummary(id, publishType)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/{publishType}/layout/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
         @PathVariable("publishType") publishType: PublishType,
-        @PathVariable("id") trackId: IntId<LocationTrack>,
+        @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
-    ): AlignmentHeights? {
-        return geometryService.getLocationTrackHeights(trackId, publishType, startDistance, endDistance, tickLength)
+    ): List<KmHeights>? {
+        logger.apiCall(
+            "getLayoutAlignmentHeights",
+            "publishType" to publishType,
+            "id" to id,
+            "startDistance" to startDistance,
+            "endDistance" to endDistance,
+            "tickLength" to tickLength
+        )
+        return geometryService.getLocationTrackHeights(id, publishType, startDistance, endDistance, tickLength)
     }}

@@ -18,6 +18,7 @@ import {
     VerticalGeometryItem,
 } from 'geometry/geometry-model';
 import {
+    AlignmentStartAndEnd,
     GeometryPlanLayout,
     LayoutSwitch,
     LayoutTrackNumberId,
@@ -34,19 +35,31 @@ import {
     postIgnoreError,
     queryParams,
 } from 'api/api-fetch';
-import { BoundingBox } from 'model/geometry';
+import { BoundingBox, Point } from 'model/geometry';
 import { MapTile } from 'map/map-model';
 import { getChangeTimes } from 'common/change-time-api';
-import { KmNumber, PublishType, TimeStamp } from 'common/common-model';
+import { KmNumber, PublishType, TimeStamp, VerticalCoordinateSystem } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
+import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
 const trackLayoutPlanCache = asyncCache<GeometryPlanId, GeometryPlanLayout | null>();
 const geometryPlanCache = asyncCache<GeometryPlanId, GeometryPlan | null>();
 const geometryPlanAreaCache = asyncCache<GeometryPlanId, PlanArea[]>();
+
+type PlanVerticalGeometryKey = GeometryPlanId;
+const planVerticalGeometryCache = asyncCache<
+    PlanVerticalGeometryKey,
+    VerticalGeometryItem[] | null
+>;
+type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublishType}`;
+const locationTrackVerticalGeometryCache = asyncCache<
+    LocationTrackVerticalGeometryKey,
+    VerticalGeometryItem[] | null
+>();
 
 export async function getPlanAreasByTile(
     mapTile: MapTile,
@@ -137,6 +150,8 @@ export async function getLocationTrackElements(
 }
 
 export async function getLocationTrackVerticalGeometry(
+    changeTime: TimeStamp | null,
+    publicationType: PublishType,
     id: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
@@ -145,16 +160,26 @@ export async function getLocationTrackVerticalGeometry(
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    return getIgnoreError(
-        `${GEOMETRY_URI}/layout/location-tracks/${id}/vertical-geometry${params}`,
-    );
+    const fetch: () => Promise<VerticalGeometryItem[] | null> = () =>
+        getIgnoreError(
+            `${GEOMETRY_URI}/layout/${publicationType}/location-tracks/${id}/vertical-geometry${params}`,
+        );
+    return changeTime === null
+        ? fetch()
+        : locationTrackVerticalGeometryCache.get(changeTime, `${id}_${publicationType}`, fetch);
 }
 
 export async function getGeometryPlanVerticalGeometry(
+    changeTime: TimeStamp | null,
     planId: GeometryPlanId,
 ): Promise<VerticalGeometryItem[] | null> {
-    return getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+    const fetch: () => Promise<VerticalGeometryItem[] | null> = () =>
+        getIgnoreError(`${GEOMETRY_URI}/plans/${planId}/vertical-geometry`);
+    return changeTime === null
+        ? fetch()
+        : planVerticalGeometryCache().get(changeTime, planId, fetch);
 }
+
 export const getLocationTrackVerticalGeometryCsv = (
     trackId: LocationTrackId,
     startAddress: string | undefined,
@@ -273,7 +298,6 @@ export interface AlignmentHeights {
     kmHeights: TrackKmHeights[];
     alignmentStartM: number;
     alignmentEndM: number;
-    linkingSummary: PlanLinkingSummaryItem[];
 }
 
 export interface TrackMeterHeight {
@@ -281,17 +305,22 @@ export interface TrackMeterHeight {
     m: number;
     meter: number;
     height: number | null;
+    point: Point;
 }
 
 export interface PlanLinkingSummaryItem {
     startM: number;
     endM: number;
     filename: string | null;
+    alignmentHeader: AlignmentHeader | null;
+    planId: GeometryPlanId | null;
+    verticalCoordinateSystem: VerticalCoordinateSystem | null;
 }
 
 export interface TrackKmHeights {
     kmNumber: KmNumber;
     trackMeterHeights: TrackMeterHeight[];
+    endM: number;
 }
 
 export async function getPlanAlignmentHeights(
@@ -300,10 +329,19 @@ export async function getPlanAlignmentHeights(
     startDistance: number,
     endDistance: number,
     tickLength: number,
-): Promise<AlignmentHeights> {
+): Promise<TrackKmHeights[]> {
     return getThrowError(
         `${GEOMETRY_URI}/plans/${planId}/plan-alignment-heights/${alignmentId}` +
             queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+export async function getPlanAlignmentStartAndEnd(
+    planId: GeometryPlanId,
+    alignmentId: GeometryAlignmentId,
+): Promise<AlignmentStartAndEnd | undefined> {
+    return getThrowError<AlignmentStartAndEnd>(
+        `${GEOMETRY_URI}/plans/${planId}/start-and-end/${alignmentId}`,
     );
 }
 
@@ -313,9 +351,29 @@ export async function getLocationTrackHeights(
     startDistance: number,
     endDistance: number,
     tickLength: number,
-): Promise<AlignmentHeights> {
+): Promise<TrackKmHeights[]> {
     return getThrowError(
         `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
             queryParams({ startDistance, endDistance, tickLength }),
+    );
+}
+
+const locationTrackLinkingSummaryCache = asyncCache<
+    `${LocationTrackId}_${PublishType}`,
+    PlanLinkingSummaryItem[]
+>();
+
+export async function getLocationTrackLinkingSummary(
+    changeTime: TimeStamp,
+    locationTrackId: LocationTrackId,
+    publishType: PublishType,
+): Promise<PlanLinkingSummaryItem[]> {
+    return locationTrackLinkingSummaryCache.get(
+        changeTime,
+        `${locationTrackId}_${publishType}`,
+        () =>
+            getThrowError(
+                `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/linking-summary`,
+            ),
     );
 }

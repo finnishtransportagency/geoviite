@@ -6,8 +6,10 @@ import {
     LayoutLocationTrack,
     LayoutReferenceLine,
     LayoutSwitch,
+    LayoutSwitchId,
     LayoutTrackNumber,
     LayoutTrackNumberId,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import {
     OnSelectOptions,
@@ -19,7 +21,7 @@ import { KmPostsPanel } from 'selection-panel/km-posts-panel/km-posts-panel';
 import SwitchPanel from 'selection-panel/switch-panel/switch-panel';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import TrackNumberPanel from 'selection-panel/track-number-panel/track-number-panel';
-import { MapViewport } from 'map/map-model';
+import { MapLayerName, MapLayerSettingChange, MapLayerSettings, MapViewport } from 'map/map-model';
 import {
     createEmptyItemCollections,
     ToggleAccordionOpenPayload,
@@ -34,6 +36,8 @@ import { LocationTracksPanel } from 'selection-panel/location-track-panel/locati
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
 import SelectionPanelGeometrySection from './selection-panel-geometry-section';
 import { ChangeTimes } from 'common/common-slice';
+import { Eye } from 'geoviite-design-lib/eye/eye';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -56,6 +60,11 @@ type SelectionPanelProps = {
     togglePlanKmPostsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanAlignmentsOpen: (payload: ToggleAccordionOpenPayload) => void;
     togglePlanSwitchesOpen: (payload: ToggleAccordionOpenPayload) => void;
+    onMapLayerSettingChange: (change: MapLayerSettingChange) => void;
+    mapLayerSettings: MapLayerSettings;
+    showMapLayer: (mapLayers: MapLayerName) => void;
+    hideMapLayer: (mapLayers: MapLayerName) => void;
+    visibleMapLayers: MapLayerName[];
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
@@ -79,51 +88,75 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     togglePlanKmPostsOpen,
     togglePlanAlignmentsOpen,
     togglePlanSwitchesOpen,
+    onMapLayerSettingChange,
+    mapLayerSettings,
+    showMapLayer,
+    hideMapLayer,
+    visibleMapLayers,
 }: SelectionPanelProps) => {
     const { t } = useTranslation();
     const [visibleTrackNumbers, setVisibleTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
-    const [trackNumberFilter, setTrackNumberFilter] = React.useState<LayoutTrackNumber[]>([]);
 
-    const toggleTrackNumberFilter = React.useCallback(
-        (tn: LayoutTrackNumber) => {
-            if (trackNumberFilter.includes(tn)) {
-                setTrackNumberFilter([]);
-            } else {
-                setTrackNumberFilter([tn]);
-            }
-        },
-        [trackNumberFilter],
-    );
+    const diagramLayer = mapLayerSettings['track-number-diagram-layer'];
 
-    const onToggleSwitchSelection = React.useCallback(
-        (layoutSwitch: LayoutSwitch) =>
-            onSelect({
-                ...createEmptyItemCollections(),
-                switches: [layoutSwitch.id],
-                isToggle: true,
-            }),
-        [],
-    );
+    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayer)
+        .filter(([_, setting]) => setting.selected)
+        .map(([id]) => id);
 
-    const onToggleReferenceLineSelection = React.useCallback(
-        (trackNumber: string) =>
-            onSelect({
-                ...createEmptyItemCollections(),
-                trackNumbers: [trackNumber],
-                isToggle: true,
-            }),
-        [],
-    );
+    const onTrackNumberSelection = (trackNumber: LayoutTrackNumber) => {
+        onMapLayerSettingChange({
+            name: 'track-number-diagram-layer',
+            settings: {
+                ...diagramLayer,
+                [trackNumber.id]: {
+                    ...diagramLayer[trackNumber.id],
+                    selected: !diagramLayer[trackNumber.id]?.selected,
+                },
+            },
+        });
+    };
 
-    const onToggleLocationTrackSelection = React.useCallback(
-        (locationTrack: string) =>
-            onSelect({
-                ...createEmptyItemCollections(),
-                locationTracks: [locationTrack],
-                isToggle: true,
-            }),
-        [],
-    );
+    const onTrackNumberColorSelection = (
+        trackNumberId: LayoutTrackNumberId,
+        color: TrackNumberColorKey,
+    ) => {
+        showMapLayer('track-number-diagram-layer');
+
+        onMapLayerSettingChange({
+            name: 'track-number-diagram-layer',
+            settings: {
+                ...diagramLayer,
+                [trackNumberId]: {
+                    ...diagramLayer[trackNumberId],
+                    color,
+                },
+            },
+        });
+    };
+
+    const onToggleSwitchSelection = (layoutSwitchId: LayoutSwitchId) => {
+        onSelect({
+            ...createEmptyItemCollections(),
+            switches: [layoutSwitchId],
+            isToggle: true,
+        });
+    };
+
+    const onToggleReferenceLineSelection = (trackNumberId: LayoutTrackNumberId) => {
+        onSelect({
+            ...createEmptyItemCollections(),
+            trackNumbers: [trackNumberId],
+            isToggle: true,
+        });
+    };
+
+    const onToggleLocationTrackSelection = (locationTrackId: LocationTrackId) => {
+        onSelect({
+            ...createEmptyItemCollections(),
+            locationTracks: [locationTrackId],
+            isToggle: true,
+        });
+    };
 
     const visibleTrackNumberIds = [
         ...new Set([
@@ -132,41 +165,57 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
             ...kmPosts.map((p) => p.trackNumberId),
         ]),
     ].sort();
+
     React.useEffect(() => {
         getTrackNumbers(publishType, changeTimes.layoutTrackNumber)
             .then((tns) =>
                 tns.filter((tn) => {
                     return (
                         visibleTrackNumberIds.includes(tn.id) ||
-                        trackNumberFilter.some((f) => f.id == tn.id)
+                        selectedTrackNumberIds.some((s) => s === tn.id)
                     );
                 }),
             )
             .then((visible) => setVisibleTrackNumbers(visible));
-    }, [changeTimes.layoutTrackNumber, JSON.stringify(visibleTrackNumberIds)]);
+    }, [changeTimes.layoutTrackNumber, visibleTrackNumberIds.join()]);
 
     const filterByTrackNumberId = (tn: LayoutTrackNumberId) =>
-        trackNumberFilter.length == 0 || trackNumberFilter.some((f) => f.id === tn);
+        selectedTrackNumberIds.length == 0 || selectedTrackNumberIds.some((s) => s === tn);
 
     const filteredLocationTracks = locationTracks.filter((a) =>
         filterByTrackNumberId(a.trackNumberId),
     );
-    const filteredReferenceLines = React.useMemo(() => {
-        return referenceLines.filter((l) => filterByTrackNumberId(l.trackNumberId));
-    }, [referenceLines, trackNumberFilter]);
+
+    const filteredReferenceLines = referenceLines.filter((l) =>
+        filterByTrackNumberId(l.trackNumberId),
+    );
 
     const filteredKmPosts = kmPosts.filter((km) => filterByTrackNumberId(km.trackNumberId));
+    const trackNumberDiagramVisible = visibleMapLayers.some(
+        (layer) => layer === 'track-number-diagram-layer',
+    );
+
     return (
         <div className={styles['selection-panel']}>
             <section>
-                <h3 className={styles['selection-panel__title']}>{`${t(
-                    'selection-panel.track-numbers-title',
-                )} (${visibleTrackNumbers.length})`}</h3>
+                <h3 className={styles['selection-panel__title']}>
+                    {`${t('selection-panel.track-numbers-title')} (${visibleTrackNumbers.length})`}
+                    <Eye
+                        onVisibilityToggle={() =>
+                            (trackNumberDiagramVisible ? hideMapLayer : showMapLayer)(
+                                'track-number-diagram-layer',
+                            )
+                        }
+                        visibility={trackNumberDiagramVisible}
+                    />
+                </h3>
                 <div className={styles['selection-panel__content']}>
                     <TrackNumberPanel
+                        settings={diagramLayer}
                         trackNumbers={visibleTrackNumbers}
-                        selectedTrackNumbers={trackNumberFilter}
-                        onSelectTrackNumber={toggleTrackNumberFilter}
+                        selectedTrackNumbers={selectedTrackNumberIds}
+                        onSelectTrackNumber={onTrackNumberSelection}
+                        onSelectColor={onTrackNumberColorSelection}
                     />
                 </div>
             </section>
@@ -184,7 +233,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 togglePlanKmPostsOpen={togglePlanKmPostsOpen}
                 togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
                 togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                trackNumberFilter={trackNumberFilter}
+                selectedTrackNumbers={selectedTrackNumberIds}
                 togglePlanOpen={togglePlanOpen}
                 onSelect={onSelect}
             />

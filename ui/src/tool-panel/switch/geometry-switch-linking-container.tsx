@@ -43,7 +43,10 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
             onVisibilityChange={onVisibilityChange}
             linkingState={linkingState}
             switchId={switchId}
-            onLinkingStart={delegates.startSwitchLinking}
+            onLinkingStart={(suggestedSwitch) => {
+                delegates.showLayers(['switch-linking-layer']);
+                delegates.startSwitchLinking(suggestedSwitch);
+            }}
             selectedSuggestedSwitch={suggestedSwitch}
             onSwitchSelect={(s) => delegates.onSelect({ switches: [s.id] })}
             switchChangeTime={switchChangeTime}
@@ -51,7 +54,10 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
             layoutSwitch={layoutSwitch}
             publishType={store.publishType}
             resolution={store.map.viewport.resolution}
-            onStopLinking={delegates.stopLinking}
+            onStopLinking={() => {
+                delegates.hideLayers(['switch-linking-layer']);
+                delegates.stopLinking();
+            }}
             onSuggestedSwitchChange={(s) => delegates.onSelect({ suggestedSwitches: [s] })}
             planId={planId}
             geometrySwitchId={switchId}

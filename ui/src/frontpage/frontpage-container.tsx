@@ -5,14 +5,18 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import Frontpage from 'frontpage/frontpage';
 
 export const FrontpageContainer: React.FC = () => {
-    const changeTime = useCommonDataAppSelector((state) => state.changeTimes.publication);
+    const publicationChangeTime = useCommonDataAppSelector(
+        (state) => state.changeTimes.publication,
+    );
+    const ratkoPushChangeTime = useCommonDataAppSelector((state) => state.changeTimes.ratkoPush);
     const publication = useTrackLayoutAppSelector((state) => state.selection.publication);
     const delegates = createDelegates(trackLayoutActionCreators);
 
     return (
         <Frontpage
             selectedPublication={publication}
-            changeTime={changeTime}
+            publicationChangeTime={publicationChangeTime}
+            ratkoPushChangeTime={ratkoPushChangeTime}
             onSelectedPublicationChanged={delegates.onSelectedPublicationChanged}
         />
     );

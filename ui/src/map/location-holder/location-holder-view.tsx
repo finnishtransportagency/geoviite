@@ -22,7 +22,7 @@ type HoverLocation = {
     address: TrackMeterModel | null;
 };
 
-export async function getLocationTrackHoverLocation(
+async function getLocationTrackHoverLocation(
     locationTrackId: LocationTrackId,
     publishType: PublishType,
     coordinate: Point,
@@ -32,23 +32,23 @@ export async function getLocationTrackHoverLocation(
     );
 }
 
-export async function getReferenceLineHoverLocation(
+async function getReferenceLineHoverLocation(
     trackNumberId: LayoutTrackNumberId,
     publishType: PublishType,
     coordinate: Point,
 ): Promise<HoverLocation> {
     return getTrackNumberReferenceLine(trackNumberId, publishType).then((line) => {
-        if (!line) {
-            return emptyHoveredLocation(coordinate);
-        } else {
+        if (line) {
             return getTrackNumberById(line.trackNumberId, publishType).then((trackNumber) =>
                 getHoverLocation(trackNumber?.number, trackNumber?.id, publishType, coordinate),
             );
+        } else {
+            return emptyHoveredLocation(coordinate);
         }
     });
 }
 
-export async function getHoverLocation(
+async function getHoverLocation(
     name: string | null | undefined,
     trackNumberId: LayoutTrackNumberId | null | undefined,
     publishType: PublishType,

@@ -9,7 +9,7 @@ import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
 
 const minimumSpacePxForPviPointSideLabels = 10;
-const minimumSpacePxForPviPointTopLabel = 8;
+const minimumSpacePxForPviPointTopLabel = 16;
 const minimumSpaceForTangentArrowLabel = 14;
 
 function tangentArrow(
@@ -248,7 +248,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                     true,
                     geo.point.station,
                     geo.start.station,
-                    geo.start.height,
+                    approximateHeightAtM(geo.start.station, kmHeights) ?? geo.start.height,
                     geo.tangent,
                     pviAssistLineHeightPx,
                     pviKey++,
@@ -260,7 +260,7 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
                     false,
                     geo.point.station,
                     geo.end.station,
-                    geo.end.height,
+                    approximateHeightAtM(geo.end.station, kmHeights) ?? geo.end.height,
                     geo.tangent,
                     pviAssistLineHeightPx,
                     pviKey++,

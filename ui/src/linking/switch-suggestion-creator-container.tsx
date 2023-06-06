@@ -11,7 +11,7 @@ type SuggestionCreatorData = {
 };
 
 export const SwitchSuggestionCreatorContainer: React.FC = () => {
-    const { onSelect, onPublishTypeChange, onLayerVisibilityChange, startSwitchLinking } =
+    const { onSelect, onPublishTypeChange, hideLayers, startSwitchLinking } =
         createDelegates(trackLayoutActionCreators);
     const locationTrackChangeTime = useCommonDataAppSelector(
         (state) => state.changeTimes.layoutLocationTrack,
@@ -38,10 +38,7 @@ export const SwitchSuggestionCreatorContainer: React.FC = () => {
     }
 
     function onSuggestedSwitchCreated(suggestedSwitch: SuggestedSwitch) {
-        onLayerVisibilityChange({
-            layerId: 'manualSwitchLinking',
-            visible: false,
-        });
+        hideLayers(['manual-switch-linking-layer']);
         onSelect({
             locationTrackEndPoints: [],
             suggestedSwitches: [suggestedSwitch],

@@ -1,111 +1,38 @@
 import { BoundingBox, CoordinateSystem, Point } from 'model/geometry';
 import {
-    GeometryPlanLayout,
     LayoutKmPostId,
     LayoutSwitchId,
+    LayoutTrackNumberId,
     LocationTrackId,
-    ReferenceLineId,
     MapAlignmentType,
+    ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { GeometryPlanId } from 'geometry/geometry-model';
-import { DebugLayerData } from 'map/layers/debug-layer';
+import { ValueOf } from 'utils/type-utils';
+import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 
-export type MapLayerBase = {
-    name: string;
-    id: string;
-    visible: boolean;
-};
-
-export type TileMapLayer = MapLayerBase & {
-    type: 'tile';
-    url: string;
-};
-
-export type LayoutAlignmentsLayer = MapLayerBase & {
-    type: 'alignment';
-    showReferenceLines: boolean;
-    showTrackNumbers: boolean;
-    showMissingVerticalGeometry: boolean;
-    showSegmentsFromSelectedPlan: boolean;
-    showMissingLinking: boolean;
-    showDuplicateTracks: boolean;
-};
-
-export type HighlightsLayer = MapLayerBase & {
-    type: 'highlight';
-    showMissingVerticalGeometry: boolean;
-    showSegmentsFromSelectedPlan: boolean;
-    showMissingLinking: boolean;
-    showDuplicateTracks: boolean;
-};
-
-export type GeometryLayer = MapLayerBase & {
-    type: 'geometry';
-    planIds: GeometryPlanId[];
-
-    /**
-     * This can be used to provide a plan manually, e.g. when plan is not yet in DB.
-     */
-    planLayout: GeometryPlanLayout | null;
-};
-
-export type LinkingLayer = MapLayerBase & {
-    type: 'linking';
-};
-
-export type KmPostLayer = MapLayerBase & {
-    type: 'kmPosts';
-};
-
-export type GeometryKmPostLayer = MapLayerBase & {
-    type: 'geometryKmPosts';
-};
-
-export type SwitchLayer = MapLayerBase & {
-    type: 'switches';
-};
-
-export type PlanAreaLayer = MapLayerBase & {
-    type: 'planAreas';
-};
-
-export type GeometrySwitchLayer = MapLayerBase & {
-    type: 'geometrySwitches';
-};
-
-export type SwitchLinkingLayer = MapLayerBase & {
-    type: 'switchLinking';
-};
-
-export type ManualSwitchLinkingLayer = MapLayerBase & {
-    type: 'manualSwitchLinking';
-};
-
-export type Debug1mPointsLayer = MapLayerBase & {
-    type: 'debug1mPoints';
-};
-
-export type DebugLayer = MapLayerBase & {
-    type: 'debug';
-    data: DebugLayerData;
-};
-
-export type MapLayer =
-    | LayoutAlignmentsLayer
-    | HighlightsLayer
-    | TileMapLayer
-    | GeometryLayer
-    | KmPostLayer
-    | GeometryKmPostLayer
-    | SwitchLayer
-    | PlanAreaLayer
-    | GeometrySwitchLayer
-    | LinkingLayer
-    | SwitchLinkingLayer
-    | ManualSwitchLinkingLayer
-    | Debug1mPointsLayer
-    | DebugLayer;
-export type MapLayerType = MapLayer['type'];
+export type MapLayerName =
+    | 'background-map-layer'
+    | 'location-track-background-layer'
+    | 'reference-line-background-layer'
+    | 'track-number-diagram-layer'
+    | 'location-track-alignment-layer'
+    | 'reference-line-alignment-layer'
+    | 'missing-profile-highlight-layer'
+    | 'missing-linking-highlight-layer'
+    | 'duplicate-tracks-highlight-layer'
+    | 'location-track-badge-layer'
+    | 'reference-line-badge-layer'
+    | 'km-post-layer'
+    | 'switch-layer'
+    | 'geometry-alignment-layer'
+    | 'geometry-km-post-layer'
+    | 'geometry-switch-layer'
+    | 'alignment-linking-layer'
+    | 'switch-linking-layer'
+    | 'manual-switch-linking-layer'
+    | 'plan-area-layer'
+    | 'debug-1m-points-layer'
+    | 'debug-layer';
 
 export type MapViewportSource = 'Map';
 
@@ -140,13 +67,58 @@ export type ShownItems = {
     switches: LayoutSwitchId[];
 };
 
+export type MapLayerMenuItem = {
+    name: MapLayerMenuItemName;
+    visible: boolean;
+    subMenu?: MapLayerMenuItem[];
+};
+
+export type MapLayerMenuItemName =
+    | 'map'
+    | 'location-track'
+    | 'reference-line'
+    | 'missing-vertical-geometry'
+    | 'missing-linking'
+    | 'duplicate-tracks'
+    | 'km-post'
+    | 'switch'
+    | 'geometry-alignment'
+    | 'geometry-switch'
+    | 'manual-switch-linking'
+    | 'plan-area'
+    | 'geometry-km-post'
+    | 'debug-1m'
+    | 'debug';
+
+export type TrackNumberDiagramLayerSetting = {
+    [key: LayoutTrackNumberId]: {
+        selected?: boolean;
+        color?: TrackNumberColorKey;
+    };
+};
+
+export type MapLayerSettings = {
+    'track-number-diagram-layer': TrackNumberDiagramLayerSetting;
+};
+
+export type MapLayerSettingChange = {
+    name: keyof MapLayerSettings;
+    settings: ValueOf<MapLayerSettings>;
+};
+
 export type Map = {
-    mapLayers: MapLayer[];
+    layerMenu: {
+        layout: MapLayerMenuItem[];
+        geometry: MapLayerMenuItem[];
+        debug: MapLayerMenuItem[];
+    };
+    layerSettings: MapLayerSettings;
+    visibleLayers: MapLayerName[];
     viewport: MapViewport;
-    settingsVisible: boolean;
     shownItems: ShownItems;
     hoveredLocation: Point | null;
     clickLocation: Point | null;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 export type MapTile = {

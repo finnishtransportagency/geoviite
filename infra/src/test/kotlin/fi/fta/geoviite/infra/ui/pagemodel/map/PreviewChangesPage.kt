@@ -3,7 +3,10 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.DialogPopUp
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
+import getElementWhenClickable
+import getElementWhenVisible
 import org.openqa.selenium.By
+import waitAndGetToasterElement
 
 class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']")) {
 
@@ -69,7 +72,7 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
 
 }
 
-class PreviewChangesSaveOrDiscardDialog(): DialogPopUp() {
+class PreviewChangesSaveOrDiscardDialog: DialogPopUp() {
 
     fun julkaise() {
         val messageBox = getElementWhenVisible(By.cssSelector("textarea[qa-id=publication-message]"))

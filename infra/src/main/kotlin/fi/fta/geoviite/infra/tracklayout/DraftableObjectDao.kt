@@ -81,6 +81,10 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
     override fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
         if (ids.isEmpty()) return listOf()
+        val distinctIds = ids.distinct()
+        if (distinctIds.size != ids.size) logger.warn(
+            "Requested publication versions with duplicate ids: duplicated=${ids.size-distinctIds.size} requested=$ids"
+        )
         val sql = """
             select
               coalesce(${table.draftLink}, id) as official_id,
@@ -90,13 +94,11 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
             where coalesce(${table.draftLink}, id) in (:ids)
               and draft = true
         """.trimIndent()
-        val params = mapOf(
-            "ids" to ids.map { id -> id.intValue },
-        )
+        val params = mapOf("ids" to distinctIds.map { id -> id.intValue })
         return jdbcTemplate.query<ValidationVersion<T>>(sql, params) { rs, _ -> ValidationVersion(
             rs.getIntId("official_id"),
             rs.getRowVersion("row_id", "row_version"),
-        ) }.also { found -> ids.forEach { id ->
+        ) }.also { found -> distinctIds.forEach { id ->
             if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
         } }
     }
@@ -173,12 +175,17 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     override fun fetchOfficialVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.versionTable, ids)
+        val distinctIds = ids.distinct()
+        if (distinctIds.size != ids.size) logger.warn(
+            "Requested official versions with duplicate ids: duplicated=${ids.size-distinctIds.size} requested=$ids"
+        )
+        val params = mapOf("ids" to distinctIds.map { it.intValue })
         val versions: List<RowVersion<T>> =
             if (ids.isEmpty()) emptyList()
-            else jdbcTemplate.query(officialFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
+            else jdbcTemplate.query(officialFetchSql(table, FetchType.MULTI), params) { rs, _ ->
                 rs.getRowVersion("id", "version")
             }
-        require(versions.size == ids.size) { "RowVersions not found for some ids" }
+        require(versions.size == distinctIds.size) { "RowVersions not found for some ids" }
         return versions
     }
 
@@ -189,12 +196,17 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     override fun fetchDraftVersionsOrThrow(ids: List<IntId<T>>): List<RowVersion<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
+        val distinctIds = ids.distinct()
+        if (distinctIds.size != ids.size) logger.warn(
+            "Requested draft versions with duplicate ids: duplicated=${ids.size-distinctIds.size} requested=$ids"
+        )
+        val params = mapOf("ids" to ids.map { it.intValue })
         val versions: List<RowVersion<T>> =
             if (ids.isEmpty()) emptyList()
-            else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), mapOf("ids" to ids.map { it.intValue })) { rs, _ ->
+            else jdbcTemplate.query(draftFetchSql(table, FetchType.MULTI), params) { rs, _ ->
                 rs.getRowVersion("id", "version")
             }
-        require(versions.size == ids.size) { "RowVersions not found for some ids: ids=$ids versions=$versions" }
+        require(versions.size == distinctIds.size) { "RowVersions not found for some ids: ids=$ids versions=$versions" }
         return versions
     }
 

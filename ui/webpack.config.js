@@ -43,7 +43,7 @@ module.exports = (env) => {
         devtool: 'source-map',
         resolve: {
             extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss'],
-            modules: [path.resolve('./node_modules'), path.resolve('./src')],
+            modules: [path.resolve('./node_modules'), path.resolve(__dirname + '/src')]
         },
         devServer: {
             port: 9000,

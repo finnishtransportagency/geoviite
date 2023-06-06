@@ -42,7 +42,7 @@ import { updateReferenceLineChangeTime, updateTrackNumberChangeTime } from 'comm
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
 import { VelhoRedirectLink } from 'infra-model/velho/velho-redirect-link';
 import { VelhoOid } from 'infra-model/velho/velho-oid';
@@ -238,7 +238,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            <WriteRoleRequired>
+            <WriteAccessRequired>
                 <Formgroup>
                     <FieldLayout
                         label={t('im-form.observations-field')}
@@ -256,7 +256,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         help={t('im-form.observations-help')}
                     />
                 </Formgroup>
-            </WriteRoleRequired>
+            </WriteAccessRequired>
             <Formgroup qa-id="im-form-project">
                 {pvDocument && (
                     <FormgroupContent title={t('im-form.pv-document-information.title')}>

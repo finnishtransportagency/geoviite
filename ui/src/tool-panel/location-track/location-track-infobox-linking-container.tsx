@@ -21,6 +21,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     viewport: MapViewport;
     visibilities: LocationTrackInfoboxVisibilities;
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
+    verticalGeometryDiagramVisible: boolean;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
@@ -33,6 +34,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     viewport,
     visibilities,
     onVisibilityChange,
+    verticalGeometryDiagramVisible,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const delegates = createDelegates(TrackLayoutActions);
     const locationTrack = useLocationTrack(locationTrackId, publishType, locationTrackChangeTime);
@@ -46,14 +48,24 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 locationTrack={locationTrack}
                 linkingState={linkingState}
                 onDataChange={onDataChange}
-                onStartLocationTrackGeometryChange={delegates.startAlignmentGeometryChange}
-                onEndLocationTrackGeometryChange={delegates.stopLinking}
+                onStartLocationTrackGeometryChange={(interval) => {
+                    delegates.showLayers(['alignment-linking-layer']);
+                    delegates.startAlignmentGeometryChange(interval);
+                }}
+                onEndLocationTrackGeometryChange={() => {
+                    delegates.hideLayers(['alignment-linking-layer']);
+                    delegates.stopLinking();
+                }}
                 showArea={delegates.showArea}
                 publishType={publishType}
                 locationTrackChangeTime={locationTrackChangeTime}
                 onUnselect={onUnselect}
                 onSelect={delegates.onSelect}
                 viewport={viewport}
+                onVerticalGeometryDiagramVisibilityChange={
+                    delegates.onVerticalGeometryDiagramVisibilityChange
+                }
+                verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
             />
         );
 };

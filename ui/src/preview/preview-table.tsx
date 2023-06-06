@@ -31,6 +31,8 @@ import { PreviewTableItem } from 'preview/preview-table-item';
 import { PublishValidationError } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewCandidates } from 'preview/preview-view';
 import { getSortDirectionIcon, SortDirection } from 'publication/table/publication-table-utils';
+import { BoundingBox } from 'model/geometry';
+import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -43,6 +45,7 @@ export type PreviewTableEntry = {
     type: PreviewSelectType;
     errors: PublishValidationError[];
     pendingValidation: boolean;
+    boundingBox: BoundingBox | null;
 } & ChangeTableEntry;
 
 export enum PreviewSelectType {
@@ -59,6 +62,7 @@ type PreviewTableProps = {
     onRevert: (entry: PreviewTableEntry) => void;
     staged: boolean;
     changesBeingReverted: ChangesBeingReverted | undefined;
+    onShowOnMap: (bbox: BoundingBox) => void;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -67,6 +71,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     onRevert,
     staged,
     changesBeingReverted,
+    onShowOnMap,
 }) => {
     const { t } = useTranslation();
     const [trackNumbers, setTrackNumbers] = React.useState<LayoutTrackNumber[]>([]);
@@ -116,6 +121,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                 errors: trackNumberCandidate.errors,
                 type: PreviewSelectType.trackNumber,
                 pendingValidation: trackNumberCandidate.pendingValidation,
+                boundingBox: trackNumberCandidate.boundingBox,
             }))
             .concat(
                 previewChanges.referenceLines.map((referenceLineCandidate) => ({
@@ -123,6 +129,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: referenceLineCandidate.errors,
                     type: PreviewSelectType.referenceLine,
                     pendingValidation: referenceLineCandidate.pendingValidation,
+                    boundingBox: referenceLineCandidate.boundingBox,
                 })),
             )
             .concat(
@@ -131,6 +138,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: locationTrackCandidate.errors,
                     type: PreviewSelectType.locationTrack,
                     pendingValidation: locationTrackCandidate.pendingValidation,
+                    boundingBox: locationTrackCandidate.boundingBox,
                 })),
             )
             .concat(
@@ -139,6 +147,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: switchCandidate.errors,
                     type: PreviewSelectType.switch,
                     pendingValidation: switchCandidate.pendingValidation,
+                    boundingBox: switchCandidate.location
+                        ? calculateBoundingBoxToShowAroundLocation(switchCandidate.location)
+                        : null,
                 })),
             )
             .concat(
@@ -147,6 +158,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                     errors: kmPostCandidate.errors,
                     type: PreviewSelectType.kmPost,
                     pendingValidation: kmPostCandidate.pendingValidation,
+                    boundingBox: kmPostCandidate.location
+                        ? calculateBoundingBoxToShowAroundLocation(kmPostCandidate.location)
+                        : null,
                 })),
             );
 
@@ -216,6 +230,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     operation={entry.operation}
                                     publish={staged}
                                     changesBeingReverted={changesBeingReverted}
+                                    boundingBox={entry.boundingBox}
+                                    onShowOnMap={onShowOnMap}
                                 />
                             }
                         </React.Fragment>

@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { CoordinateSystem, TrackMeter } from 'common/common-model';
+import { Srid, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import styles from '../data-product-table.scss';
 import { TFunction, useTranslation } from 'react-i18next';
+import { findCoordinateSystem } from 'data-products/data-products-utils';
+import { useLoader } from 'utils/react-utils';
+import { getSridList } from 'common/common-api';
 
 export type ElementTableItemProps = {
     id: string;
@@ -29,7 +32,7 @@ export type ElementTableItemProps = {
     angleEnd: number;
     plan: string;
     source: string;
-    coordinateSystem: CoordinateSystem | undefined;
+    coordinateSystem: Srid | null;
     planId: GeometryPlanId;
     showLocationTrackName: boolean;
     connectedSwitchName: string | undefined;
@@ -77,6 +80,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     isPartial,
 }) => {
     const { t } = useTranslation();
+    const coordinateSystems = useLoader(getSridList, []);
     return (
         <React.Fragment>
             <tr>
@@ -87,19 +91,26 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                 <td>{trackAddressStart && formatTrackMeter(trackAddressStart)}</td>
                 <td>{trackAddressEnd && formatTrackMeter(trackAddressEnd)}</td>
                 <td>
-                    <CoordinateSystemView coordinateSystem={coordinateSystem} />
+                    {coordinateSystem && (
+                        <CoordinateSystemView
+                            coordinateSystem={findCoordinateSystem(
+                                coordinateSystem,
+                                coordinateSystems || [],
+                            )}
+                        />
+                    )}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationStartE, Precision.TM35FIN)}
+                    {roundToPrecision(locationStartE, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationStartN, Precision.TM35FIN)}
+                    {roundToPrecision(locationStartN, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationEndE, Precision.TM35FIN)}
+                    {roundToPrecision(locationEndE, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {roundToPrecision(locationEndN, Precision.TM35FIN)}
+                    {roundToPrecision(locationEndN, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
                     {roundToPrecision(length, Precision.measurementMeterDistance)}

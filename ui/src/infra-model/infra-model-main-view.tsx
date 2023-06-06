@@ -9,6 +9,8 @@ import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { useInfraModelAppSelector } from 'store/hooks';
 import InfraModelTabs from 'infra-model/tabs/infra-model-tabs';
 
+export const inframodelEditPath = `/edit`;
+
 export const InfraModelMainView: React.FC = () => {
     const activeInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
 
@@ -16,7 +18,7 @@ export const InfraModelMainView: React.FC = () => {
         <div className={styles['infra-model-main']}>
             <Routes>
                 <Route
-                    path="/edit/:id"
+                    path={`${inframodelEditPath}/:id`}
                     element={<InfraModelViewContainer viewType={InfraModelViewType.EDIT} />}
                 />
                 <Route

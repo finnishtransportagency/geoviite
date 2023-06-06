@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
+import { Privilege } from 'user/user-model';
 
 export type ChangeTimes = {
     layoutTrackNumber: TimeStamp;
@@ -10,6 +11,7 @@ export type ChangeTimes = {
     layoutKmPost: TimeStamp;
     geometryPlan: TimeStamp;
     publication: TimeStamp;
+    ratkoPush: TimeStamp;
     velhoDocument: TimeStamp;
 };
 
@@ -22,19 +24,20 @@ export const initialChangeTimes: ChangeTimes = {
     layoutKmPost: initialChangeTime,
     geometryPlan: initialChangeTime,
     publication: initialChangeTime,
+    ratkoPush: initialChangeTime,
     velhoDocument: initialChangeTime,
 };
 
 export type CommonState = {
     version: string | undefined;
     changeTimes: ChangeTimes;
-    userHasWriteRole: boolean;
+    userPrivileges: Privilege[];
 };
 
 export const initialCommonState = {
     version: undefined,
     changeTimes: initialChangeTimes,
-    userHasWriteRole: false,
+    userPrivileges: [],
 };
 
 const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time: TimeStamp) => {
@@ -104,11 +107,17 @@ const commonSlice = createSlice({
         ) {
             updateChangeTime(changeTimes, 'velhoDocument', payload);
         },
-        setUserHasWriteRole: (
+        setRatkoPushChangeTime: function (
+            { changeTimes }: CommonState,
+            { payload }: PayloadAction<TimeStamp>,
+        ) {
+            if (toDate(changeTimes.ratkoPush) < toDate(payload)) changeTimes.ratkoPush = payload;
+        },
+        setUserPrivileges: (
             state: CommonState,
-            { payload: writeRole }: PayloadAction<boolean>,
+            { payload: privileges }: PayloadAction<Privilege[]>,
         ): void => {
-            state.userHasWriteRole = writeRole;
+            state.userPrivileges = privileges;
         },
     },
 });

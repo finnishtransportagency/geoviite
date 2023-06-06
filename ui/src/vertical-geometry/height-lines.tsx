@@ -23,6 +23,9 @@ function chooseVerticalTickLength(bottomTickHeight: number, topTickHeight: numbe
 }
 
 function heightTicks(coordinates: Coordinates) {
+    if (coordinates.topHeightTick <= coordinates.bottomHeightTick) {
+        return [];
+    }
     const tickLength = chooseVerticalTickLength(
         coordinates.bottomHeightTick,
         coordinates.topHeightTick,

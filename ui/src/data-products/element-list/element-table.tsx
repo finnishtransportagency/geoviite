@@ -5,9 +5,6 @@ import { useTranslation } from 'react-i18next';
 import styles from '../data-product-table.scss';
 import { ElementItem } from 'geometry/geometry-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { useLoader } from 'utils/react-utils';
-import { getSridList } from 'common/common-api';
-import { Srid } from 'common/common-model';
 import {
     ElementHeading,
     nonNumericHeading,
@@ -52,10 +49,6 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
           )
         : [nonNumericHeading('track-number')].concat(commonTableHeadings);
 
-    const coordinateSystems = useLoader(getSridList, []);
-    const findCoordinateSystem = (srid: Srid) =>
-        coordinateSystems && coordinateSystems.find((crs) => crs.srid === srid);
-
     return (
         <React.Fragment>
             <p className={styles['data-product-table__element-count']}>
@@ -96,9 +89,7 @@ export const ElementTable = ({ elements, showLocationTrackName, isLoading }: Ele
                                     )}
                                     trackAddressStart={item.start.address}
                                     trackAddressEnd={item.end.address}
-                                    coordinateSystem={findCoordinateSystem(
-                                        item.coordinateSystemSrid,
-                                    )}
+                                    coordinateSystem={item.coordinateSystemSrid}
                                     locationStartE={item.start.coordinate.x}
                                     locationStartN={item.start.coordinate.y}
                                     locationEndE={item.end.coordinate.x}

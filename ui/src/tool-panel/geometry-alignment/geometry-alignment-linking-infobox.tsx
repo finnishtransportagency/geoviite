@@ -38,7 +38,7 @@ import {
     toIntervalRequest,
 } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LINKING_DOTS } from 'map/layers/layer-visibility-limits';
+import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
     updateLocationTrackChangeTime,
     updateReferenceLineChangeTime,
@@ -54,7 +54,7 @@ import {
     GeometryAlignmentLinkingLocationTrackCandidates,
     GeometryAlignmentLinkingReferenceLineCandidates,
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 
 function createLinkingGeometryWithAlignmentParameters(
@@ -332,7 +332,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     )}
 
                     {linkingState === undefined && (
-                        <WriteRoleRequired>
+                        <WriteAccessRequired>
                             <InfoboxButtons>
                                 <Button size={ButtonSize.SMALL} onClick={startLinking}>
                                     {t(
@@ -342,7 +342,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     )}
                                 </Button>
                             </InfoboxButtons>
-                        </WriteRoleRequired>
+                        </WriteAccessRequired>
                     )}
                     {linkingState?.state === 'preliminary' && (
                         <InfoboxButtons>

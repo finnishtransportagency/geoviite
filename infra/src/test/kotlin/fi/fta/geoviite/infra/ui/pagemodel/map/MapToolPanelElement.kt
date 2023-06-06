@@ -1,11 +1,16 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import getElementWhenClickable
+import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import waitAndGetToasterElement
+import waitUntilChildDoesNotExist
+import waitUntilElementIsStale
 
 class GeometryPlanGeneralInfoBox(by: By) : InfoBox(by) {
     init {
@@ -71,7 +76,6 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
 
     fun valmis(): Toaster{
         clickButton("Valmis")
-        refresRootElement()
         return waitAndGetToasterElement()
     }
 
@@ -145,7 +149,7 @@ class KmPostEditDialog(val editedElement: WebElement): DialogPopUp() {
     fun tallenna(waitUntilRootIsStale: Boolean = true): Toaster {
         clickButton("Tallenna")
         if (waitUntilRootIsStale) waitUntilElementIsStale(editedElement)
-        return PageModel.waitAndGetToasterElement()
+        return waitAndGetToasterElement()
     }
 
     fun poistu() = clickSecondaryButton()
@@ -343,15 +347,14 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
 
     fun linkita(): Toaster {
         logger.info("Link")
+        val elementBeforeClick = rootElement
         clickButton("Linkitä")
         val toaster = waitAndGetToasterElement()
 
         //This works as a basic Thread.Sleep() if root element becomes stable very fast
         try {
-            waitUntilElementIsStale(rootElement, timeoutSeconds = 1)
-        } catch (_: TimeoutException) {
-
-        }
+            waitUntilElementIsStale(elementBeforeClick, timeoutSeconds = 1)
+        } catch (_: TimeoutException) { }
 
         return toaster
     }
@@ -434,17 +437,19 @@ class GeometrySwitchLinkingInfoBox(by: By): LinkingInfoBox(by) {
 class MapLayerSettingsPanel(by: By) : PageModel(by) {
     enum class Setting(val uiText: String) {
         TAUSTAKARTTA("Taustakartta"),
+        PITUUSMITTAUSLINJAT("Pituusmittauslinjat"),
         SIJAINTIRAITEET("Sijaintairaiteet"),
-        RATANUMEROT("Ratanumerot"),
-        KILOMETRIPYLVAAT("Tasakilometripisteet"),
+        KOROSTA_PUUTTUVA_PYSTYGEOMETRIAT("Korosta puuttuva pystygeometria"),
+        KOROSTA_PUUTTUVA_LINKITYS("Korosta puuttuva linkitys"),
+        KOROSTA_DUPLIKAATTIRAITEET("Korosta duplikaattiraiteet"),
         VAIHTEET("Vaihteet"),
-        SUUNNITELMAT("Suunnitelmat"),
+        TASAKILOMETRIPISTEET("Tasakilometripisteet"),
+
+        SUUNNITELMAN_RAITEET("Suunnitelman raiteet"),
         SUUNNITELMAN_VAIHEET("Suunnitelman vaiheet"),
+        SUUNNITELMAN_TASAKILOMETRIPISTEET("Suunnitelman tasakilometripisteet"),
         SUUNNITELMAN_ALUEET("Suunnitelman alueet"),
-        SUUNNITELMAN_KILOMETRIPYLVAAT("Suunnitelman tasakilometripisteet"),
-        LINKITYS("Linkitys"),
-        VAIHTEIDEN_LINKITYS("Vaihteiden linkitys"),
-        MANUAALINEN_VAIHTEIDEN_LINKITYS("Manuaalinen vaihteiden linkitys"),
+        MANUAALINEN_VAIHTEIDEN_LINKITYS("Manuaalinen vaihteiden linkitys")
     }
 
     fun close() = this {
@@ -464,14 +469,15 @@ class MapLayerSettingsPanel(by: By) : PageModel(by) {
     }
 
     private fun isSelected(setting: Setting): Boolean {
-        return getElementWhenVisible(By.xpath("//label[@class='layer-visibility-setting ' and span[text() = '${setting.uiText}']]/label[@class='switch']"))
-            .findElement(By.cssSelector("input")
-        ).isSelected
+        return getElementWhenVisible(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${setting.uiText}']]/label[@class='switch']"))
+            .findElement(
+                By.cssSelector("input")
+            ).isSelected
     }
 
     private fun clickSetting(setting: Setting) {
         logger.info("Click setting ${setting.uiText}")
-        getElementWhenVisible(By.xpath("//label[@class='layer-visibility-setting ' and span[text() = '${setting.uiText}']]/label[@class='switch']")).click()
+        getElementWhenVisible(By.xpath("//label[@class='map-layer-menu__layer-visibility ' and span[text() = '${setting.uiText}']]/label[@class='switch']")).click()
     }
 }
 
@@ -486,10 +492,7 @@ class AddEndPointDialog : DialogPopUp() {
     private fun ok() = this  {
         clickButton("OK")
         getButtonElementByContent("Jatka")
-        refresRootElement()
     }
-
-
 
     private fun selectRadioButton(buttonLabel: String) = this {
         logger.info("Select radio button $buttonLabel")
@@ -538,7 +541,7 @@ class SearchBox(element: WebElement) {
     fun search(input: String) {
         dropDown.inputText((input))
         logger.info("Perform query: ${dropDown.currentValue()}")
-        PageModel.waitUntilChildDoesNotExist(dropDown.element,
+        waitUntilChildDoesNotExist(dropDown.element,
             By.xpath(".//li[@class='dropdown__list-item dropdown__list-item--no-options' and contains(text(),'Ladataan...')]"))
         logger.info("Search ready")
     }

@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Map, MapLayerType } from 'map/map-model';
+import { Map, MapLayerName } from 'map/map-model';
 import { initialMapState, mapReducers } from 'map/map-store';
 import {
     infraModelListReducers,
@@ -90,23 +90,22 @@ export interface ValidationResponse {
     planLayout: GeometryPlanLayout | null;
 }
 
-const visibleMapLayerTypes: MapLayerType[] = [
-    'tile',
-    'alignment',
-    'switches',
-    'kmPosts',
-    'geometry',
-    'geometrySwitches',
-    'geometryKmPosts',
+const visibleMapLayers: MapLayerName[] = [
+    'background-map-layer',
+    'location-track-alignment-layer',
+    'reference-line-alignment-layer',
+    'reference-line-badge-layer',
+    'switch-layer',
+    'km-post-layer',
+    'geometry-alignment-layer',
+    'geometry-switch-layer',
+    'geometry-km-post-layer',
 ];
 
 export const initialInfraModelState: InfraModelState = {
     map: {
         ...initialMapState,
-        mapLayers: initialMapState.mapLayers.map((layer) => ({
-            ...layer,
-            visible: visibleMapLayerTypes.includes(layer.type),
-        })),
+        visibleLayers: visibleMapLayers,
     },
     infraModelList: initialInfraModelListState,
     selection: {
@@ -225,6 +224,18 @@ const infraModelSlice = createSlice({
             state.file = initialInfraModelState.file;
             state.selection = initialSelectionState;
             state.map.viewport = initialMapState.viewport;
+            state.committedFields = [];
+            state.validationErrors = initialInfraModelState.validationErrors;
+        },
+        clearInfraModelState: (state: InfraModelState) => {
+            state.plan = initialInfraModelState.plan;
+            state.planLayout = initialInfraModelState.planLayout;
+            state.extraInfraModelParameters = initialInfraModelState.extraInfraModelParameters;
+            state.overrideInfraModelParameters =
+                initialInfraModelState.overrideInfraModelParameters;
+            state.file = initialInfraModelState.file;
+            state.selection = initialSelectionState;
+            state.map.viewport = initialInfraModelState.map.viewport;
             state.committedFields = [];
             state.validationErrors = initialInfraModelState.validationErrors;
         },

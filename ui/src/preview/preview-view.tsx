@@ -45,6 +45,7 @@ import { User } from 'user/user-model';
 import { getOwnUser } from 'user/user-api';
 import { ChangeTimes } from 'common/common-slice';
 import { debounceAsync } from 'utils/async-utils';
+import { BoundingBox } from 'model/geometry';
 
 type Candidate = {
     id: AssetId;
@@ -84,6 +85,7 @@ type PreviewProps = {
     onClosePreview: () => void;
     onPreviewSelect: (selectedChange: SelectedPublishChange) => void;
     onPublishPreviewRemove: (selectedChangesWithDependencies: PublishRequestIds) => void;
+    onShowOnMap: (bbox: BoundingBox) => void;
 };
 
 const publishCandidateIds = (candidates: PublishCandidates): PublishRequestIds => ({
@@ -421,6 +423,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
+                                    onShowOnMap={props.onShowOnMap}
                                 />
                             </section>
 
@@ -434,6 +437,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
+                                    onShowOnMap={props.onShowOnMap}
                                 />
                             </section>
 

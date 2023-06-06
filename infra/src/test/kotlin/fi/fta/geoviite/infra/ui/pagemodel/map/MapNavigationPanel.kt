@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import browser
 import fi.fta.geoviite.infra.ui.pagemodel.*
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.browser
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementWhenVisible
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel.Companion.getElementsWhenVisible
+import getElementWhenVisible
+import getElementsWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.support.ui.WebDriverWait
@@ -16,11 +16,11 @@ class MapNavigationPanel {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun selectTrackNumber(name: String) {
-        logger.info("Select tracknumber $name")
+        logger.info("Select trackNumber $name")
         val trackNumbers = trackNumbers()
         val trackNumber =
-            trackNumbers.find { trackLayoutTrackNumber -> trackLayoutTrackNumber.name().equals(name) }
-                ?: throw RuntimeException("Track number ${name} not found! Available track numbers $trackNumbers")
+            trackNumbers.find { trackLayoutTrackNumber -> trackLayoutTrackNumber.name() == name }
+                ?: throw RuntimeException("Track number $name not found! Available track numbers $trackNumbers")
         trackNumber.select()
     }
 
@@ -31,7 +31,7 @@ class MapNavigationPanel {
     fun selectTrackLayoutKmPost(name: String) {
         logger.info("Select km-post $name")
         val kmPosts = kmPosts()
-        val kmPost = kmPosts.find { kmPost -> kmPost.name().equals(name) }
+        val kmPost = kmPosts.find { kmPost -> kmPost.name() == name }
             ?: throw RuntimeException("KM-Post $name not found! Available KM posts $kmPosts")
         kmPost.select()
     }
@@ -48,10 +48,10 @@ class MapNavigationPanel {
     fun selectReferenceLine(name: String) {
         logger.info("Select reference line $name")
         val referenceLines = referenceLines()
-        val refenceLine =
-            referenceLines.find { trackLayoutAlignment -> trackLayoutAlignment.name().equals(name) }
-                ?: throw RuntimeException("Reference line '$name' not found! Available reference lines are: ${referenceLines}")
-        refenceLine.select()
+        val referenceLine =
+            referenceLines.find { trackLayoutAlignment -> trackLayoutAlignment.name() == name }
+                ?: throw RuntimeException("Reference line '$name' not found! Available reference lines are: $referenceLines")
+        referenceLine.select()
     }
 
     fun referenceLines(): List<TrackLayoutAlignment> {
@@ -70,7 +70,7 @@ class MapNavigationPanel {
         val locationTracks = locationTracks()
         val locationTrack =
             locationTracks.find { trackLayoutAlignment -> trackLayoutAlignment.name() == locationTrackName }
-                ?: throw RuntimeException("Location track '$locationTrackName' not found! Available location tracks are: ${locationTracks}")
+                ?: throw RuntimeException("Location track '$locationTrackName' not found! Available location tracks are: $locationTracks")
         locationTrack.select()
     }
 
@@ -98,21 +98,20 @@ class MapNavigationPanel {
 
     fun selectTrackLayoutSwitch(switchName: String) {
         logger.info("Select switch $switchName")
-       try {
-           getElementWhenVisible(By.xpath("//ol[@class = 'switch-panel__switches']//span[text() = '$switchName']")).click()
-       }catch (ex: TimeoutException) {
-           val switches = switches()
-           throw RuntimeException("Switch $switchName not found! Available switches $switches")
-       }
+        val switches = switches();
+        val switch = switches.find { switch -> switch.name() == switchName }
+            ?: throw RuntimeException("Switch $switchName not found! Available switches $switches")
+
+        switch.select()
     }
 
     fun switches(): List<TrackLayoutSwitch> {
         //Wait until switches panel exists then check if it contains alignments
-        try {
-            return DynamicList(By.xpath("//ol[@class='switch-panel__switches']")).listElements()
+        return try {
+            DynamicList(By.xpath("//ol[@class='switch-panel__switches']")).listElements()
                 .map { element -> TrackLayoutSwitch(element) }.also { logger.info("Switches $it") }
         } catch (ex: TimeoutException) {
-            return emptyList()
+            emptyList()
         }
     }
 
@@ -120,21 +119,21 @@ class MapNavigationPanel {
         logger.info("Select geometry plan '$planName'")
         Thread.sleep(500) //Only way to ensure the list is stable and not updating
         val plans = geometryPlans()
-        return plans.find { plan -> plan.header().equals(planName) }
+        return plans.find { plan -> plan.header() == planName }
             ?: throw RuntimeException("Geometry plan '$planName' not found! Available plans ${plans.map { plan -> plan.header() }}")
     }
 
-    fun geometryPlans(): List<GeometryPlanAccordion> {
+    private fun geometryPlans(): List<GeometryPlanAccordion> {
         logger.info("Get all geometry plans")
         getElementWhenVisible(By.cssSelector("div.geometry-plan-panel div.accordion"))
-        try {
+        return try {
             val planNames = getElementsWhenVisible(By.cssSelector("span.accordion__header-title"))
                 .map { it.text }
             logger.info("Geometry plans: $planNames")
-            return planNames.map { GeometryPlanAccordion(By.xpath("//div[@class='accordion' and h4/span[text() = '${it}']]")) }
+            planNames.map { GeometryPlanAccordion(By.xpath("//div[@class='accordion' and h4/span[text() = '${it}']]")) }
         } catch (ex: TimeoutException) {
             logger.warn("No geometry plans found")
-            return emptyList()
+            emptyList()
         }
     }
 

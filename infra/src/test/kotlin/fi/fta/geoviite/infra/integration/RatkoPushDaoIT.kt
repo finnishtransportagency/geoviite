@@ -74,6 +74,33 @@ internal class RatkoPushDaoIT @Autowired constructor(
     }
 
     @Test
+    fun `ChangeTime fetch should fetch the start time of an ended push`() {
+        val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
+        val startTime = jdbc.query(
+            "select start_time from integrations.ratko_push where id = :id",
+            mapOf("id" to ratkoPublishId.intValue)
+        ) { rs, _ ->
+            rs.getInstantOrNull("start_time")
+        }.first()
+        val changeTime = ratkoPushDao.getRatkoPushChangeTime()
+        assertEquals(startTime, changeTime)
+    }
+
+    @Test
+    fun `ChangeTime fetch should fetch the end time of an ended push`() {
+        val ratkoPublishId = ratkoPushDao.startPushing(getCurrentUserName(), listOf(layoutPublishId))
+        ratkoPushDao.updatePushStatus(getCurrentUserName(), ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
+        val endTime = jdbc.query(
+            "select end_time from integrations.ratko_push where id = :id",
+            mapOf("id" to ratkoPublishId.intValue)
+        ) { rs, _ ->
+                rs.getInstantOrNull("end_time")
+        }.first()
+        val changeTime = ratkoPushDao.getRatkoPushChangeTime()
+        assertEquals(endTime, changeTime)
+    }
+
+    @Test
     fun shouldSetEndTimeWhenFinishedPublishing() {
         val ratkoPublishId = ratkoPushDao.startPushing(listOf(layoutPublishId))
         ratkoPushDao.updatePushStatus(ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)

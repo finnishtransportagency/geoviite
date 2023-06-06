@@ -1,19 +1,17 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { PayloadAction } from '@reduxjs/toolkit';
 import {
-    LayoutAlignmentsLayer,
     Map,
-    MapLayerType,
+    MapLayerMenuItem,
+    MapLayerMenuItemName,
+    MapLayerName,
+    MapLayerSettingChange,
     MapViewport,
     OptionalShownItems,
     ShownItems,
 } from 'map/map-model';
 import { createContext } from 'react';
 import { BoundingBox, boundingBoxScale, centerForBoundingBox, Point } from 'model/geometry';
-
-export type LayerVisibility = {
-    layerId: string;
-    visible: boolean;
-};
+import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 
 export function createEmptyShownItems(): ShownItems {
     return {
@@ -24,97 +22,86 @@ export function createEmptyShownItems(): ShownItems {
     };
 }
 
-export const initialMapState: Map = {
-    mapLayers: [
-        {
-            type: 'tile',
-            name: 'Taustakartta',
-            id: 'tile-1',
-            visible: true,
-            url: 'OSM',
-        },
-        {
-            type: 'alignment',
-            name: 'Sijaintiraiteet',
-            id: 'trackLayout-1',
-            visible: true,
-            showTrackNumbers: true,
-            showReferenceLines: true,
-            showMissingVerticalGeometry: false,
-            showSegmentsFromSelectedPlan: false,
-            showMissingLinking: false,
-            showDuplicateTracks: false,
-        },
-        {
-            type: 'geometry',
-            name: 'Suunnitelmat',
-            id: 'geometry-1',
-            visible: true,
-            planIds: [],
-            planLayout: null,
-        },
-        {
-            type: 'kmPosts',
-            name: 'Tasakilometripisteet',
-            id: 'kmposts-1',
-            visible: true,
-        },
-        {
-            type: 'switches',
-            name: 'Vaihteet',
-            id: 'switches-1',
-            visible: true,
-        },
-        {
-            type: 'geometrySwitches',
-            name: 'Suunnitelman vaihteet',
-            id: 'geom-switches-1',
-            visible: true,
-        },
-        {
-            type: 'planAreas',
-            name: 'Suunnitelman alueet',
-            id: 'geom-plan-areas-1',
-            visible: false,
-        },
-        {
-            type: 'geometryKmPosts',
-            name: 'Suunnitelman tasakilometripisteet',
-            id: 'geom-kmposts-1',
-            visible: true,
-        },
-        {
-            type: 'linking',
-            name: 'Linkitys',
-            id: 'linking-1',
-            visible: true,
-        },
-        {
-            type: 'switchLinking',
-            name: 'Vaihteiden linkitys',
-            id: 'switchLinking',
-            visible: false,
-        },
-        {
-            type: 'manualSwitchLinking',
-            name: 'Manuaalinen vaihteiden linkitys',
-            id: 'manualSwitchLinking',
-            visible: false,
-        },
-        {
-            type: 'debug1mPoints',
-            name: 'Kehittäjien työkalut: 1m-pisteet',
-            id: 'debug1mPoints',
-            visible: false,
-        },
-        {
-            type: 'debug',
-            name: 'Kehittäjien työkalut',
-            id: 'debug',
-            visible: true,
-            data: [],
-        },
+export type MapLayerMenuChange = {
+    name: MapLayerMenuItemName;
+    visible: boolean;
+};
+
+const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
+    'track-number-diagram-layer': ['reference-line-badge-layer'],
+    'manual-switch-linking-layer': ['switch-layer'],
+    'switch-linking-layer': ['switch-layer'],
+    'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
+    'location-track-alignment-layer': [
+        'location-track-background-layer',
+        'location-track-badge-layer',
     ],
+    'reference-line-alignment-layer': [
+        'reference-line-background-layer',
+        'reference-line-badge-layer',
+    ],
+};
+
+const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
+    'map': ['background-map-layer'],
+    'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
+    'reference-line': ['reference-line-alignment-layer', 'reference-line-badge-layer'],
+    'missing-vertical-geometry': ['missing-profile-highlight-layer'],
+    'missing-linking': ['missing-linking-highlight-layer'],
+    'duplicate-tracks': ['duplicate-tracks-highlight-layer'],
+    'km-post': ['km-post-layer'],
+    'switch': ['switch-layer'],
+    'geometry-alignment': ['geometry-alignment-layer'],
+    'geometry-switch': ['geometry-switch-layer'],
+    'plan-area': ['plan-area-layer'],
+    'geometry-km-post': ['geometry-km-post-layer'],
+    'debug-1m': ['debug-1m-points-layer'],
+    'debug': ['debug-layer'],
+    'manual-switch-linking': ['manual-switch-linking-layer'],
+};
+
+export const initialMapState: Map = {
+    visibleLayers: [
+        'background-map-layer',
+        'location-track-alignment-layer',
+        'reference-line-alignment-layer',
+        'km-post-layer',
+        'switch-layer',
+        'geometry-alignment-layer',
+        'geometry-switch-layer',
+        'geometry-km-post-layer',
+    ],
+    layerMenu: {
+        layout: [
+            { name: 'map', visible: true },
+            { name: 'reference-line', visible: true },
+            {
+                name: 'location-track',
+                visible: true,
+                subMenu: [
+                    { name: 'missing-vertical-geometry', visible: false },
+                    { name: 'missing-linking', visible: false },
+                    { name: 'duplicate-tracks', visible: false },
+                ],
+            },
+            { name: 'switch', visible: true },
+            { name: 'km-post', visible: true },
+        ],
+        geometry: [
+            { name: 'geometry-alignment', visible: true },
+            { name: 'geometry-switch', visible: true },
+            { name: 'geometry-km-post', visible: true },
+            { name: 'plan-area', visible: false },
+            { name: 'manual-switch-linking', visible: false },
+        ],
+        debug: [
+            { name: 'debug-1m', visible: false },
+            { name: 'debug', visible: false },
+        ],
+    },
+    layerSettings: {
+        'track-number-diagram-layer': {},
+    },
     shownItems: createEmptyShownItems(),
     viewport: {
         center: {
@@ -123,159 +110,148 @@ export const initialMapState: Map = {
         },
         resolution: 20,
     },
-    settingsVisible: false,
     hoveredLocation: null,
     clickLocation: null,
+    verticalGeometryDiagramVisible: false,
 };
 
 export const mapReducers = {
-    onShownItemsChange: (
-        { shownItems }: Map,
-        { payload }: PayloadAction<OptionalShownItems>,
-    ): void => {
-        if (payload.referenceLines != null) {
-            shownItems.referenceLines = payload.referenceLines;
-        }
-        if (payload.locationTracks != null) {
-            shownItems.locationTracks = payload.locationTracks;
-        }
-        if (payload.kmPosts != null) {
-            shownItems.kmPosts = payload.kmPosts;
-        }
-        if (payload.switches != null) {
-            shownItems.switches = payload.switches;
-        }
+    onShownItemsChange: ({ shownItems }: Map, { payload }: PayloadAction<OptionalShownItems>) => {
+        if ('referenceLines' in payload) shownItems.referenceLines = payload.referenceLines ?? [];
+        if ('locationTracks' in payload) shownItems.locationTracks = payload.locationTracks ?? [];
+        if ('kmPosts' in payload) shownItems.kmPosts = payload.kmPosts ?? [];
+        if ('switches' in payload) shownItems.switches = payload.switches ?? [];
     },
-    onViewportChange: (state: Map, action: PayloadAction<MapViewport>): void => {
-        state.viewport = action.payload;
+    onViewportChange: (state: Map, { payload: viewPort }: PayloadAction<MapViewport>) => {
+        state.viewport = viewPort;
     },
-    showArea: (state: Map, action: PayloadAction<BoundingBox>): void => {
+    showArea: (state: Map, { payload: boundingBox }: PayloadAction<BoundingBox>) => {
         state.viewport = {
-            center: centerForBoundingBox(action.payload),
+            center: centerForBoundingBox(boundingBox),
             // Calculate new resolution by comparing previous and new bounding boxes.
             // Also zoom out a bit to make it look more natural (hence the "* 1.2").
             resolution: state.viewport.area
                 ? state.viewport.resolution *
-                  boundingBoxScale(state.viewport.area, action.payload) *
+                  boundingBoxScale(state.viewport.area, boundingBox) *
                   1.2
                 : state.viewport.resolution,
         };
     },
-    onLayerVisibilityChange: (
-        state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        state.mapLayers.forEach((layer) => {
-            if (layer.id == visibilitySetting.layerId) {
-                layer.visible = visibilitySetting.visible;
-                if (!visibilitySetting.visible) {
-                    const shownItemsToHide = shownItemsByLayer(layer.type);
-                    if (shownItemsToHide) {
-                        state.shownItems[shownItemsToHide] = [];
-                    }
-                }
-            }
-        });
+    showLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
+        state.visibleLayers = deduplicate([
+            ...state.visibleLayers,
+            ...layers,
+            ...collectRelatedLayers(layers),
+        ]);
     },
+    hideLayers(state: Map, { payload: layers }: PayloadAction<MapLayerName[]>) {
+        const relatedLayers = collectRelatedLayers(layers);
+        const layersByMenu = collectVisibleLayers([
+            ...state.layerMenu.layout,
+            ...state.layerMenu.geometry,
+            ...state.layerMenu.debug,
+        ]);
 
-    onTrackNumberVisibilityChange: (
-        state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        onAlignmentLayerVisibilityChange(state, 'showTrackNumbers', visibilitySetting);
+        const visibleLayers = state.visibleLayers
+            .filter((l) => !relatedLayers.includes(l) && !layers.includes(l))
+            .concat(layersByMenu);
+
+        state.visibleLayers = deduplicate([
+            ...visibleLayers,
+            ...collectRelatedLayers(visibleLayers),
+        ]);
     },
-    onReferencelineVisibilityChange: (
-        state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        onAlignmentLayerVisibilityChange(state, 'showReferenceLines', visibilitySetting);
+    onLayerMenuItemChange(state: Map, { payload: change }: PayloadAction<MapLayerMenuChange>) {
+        state.layerMenu.layout = updateMenuItem(state.layerMenu.layout, change);
+        state.layerMenu.geometry = updateMenuItem(state.layerMenu.geometry, change);
+        state.layerMenu.debug = updateMenuItem(state.layerMenu.debug, change);
+        const allMenuItems = [
+            ...state.layerMenu.layout,
+            ...state.layerMenu.geometry,
+            ...state.layerMenu.debug,
+        ];
+
+        const changedLayers = collectChangedLayers(allMenuItems, change);
+
+        if (change.visible) {
+            this.showLayers(state, { payload: changedLayers, type: 'showLayers' });
+        } else {
+            this.hideLayers(state, { payload: changedLayers, type: 'hideLayers' });
+        }
     },
-    onMissingVerticalGeometryVisibilityChange: (
+    onLayerSettingChange: (
         state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        onAlignmentLayerVisibilityChange(state, 'showMissingVerticalGeometry', visibilitySetting);
+        { payload: change }: PayloadAction<MapLayerSettingChange>,
+    ) => {
+        state.layerSettings[change.name] = change.settings;
     },
-    onShowSegmentsFromSelectedPlanVisibilityChange: (
-        state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        onAlignmentLayerVisibilityChange(state, 'showSegmentsFromSelectedPlan', visibilitySetting);
-    },
-    onMissingLinkingVisibilityChange: (
-        state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        onAlignmentLayerVisibilityChange(state, 'showMissingLinking', visibilitySetting);
-    },
-    onDuplicateTracksVisibilityChange: (
-        state: Map,
-        { payload: visibilitySetting }: PayloadAction<LayerVisibility>,
-    ): void => {
-        onAlignmentLayerVisibilityChange(state, 'showDuplicateTracks', visibilitySetting);
-    },
-    onMapSettingsVisibilityChange: (
-        state: Map,
-        { payload: visible }: PayloadAction<boolean>,
-    ): void => {
-        state.settingsVisible = visible;
-    },
-    onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>): void => {
+    onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>) => {
         state.hoveredLocation = hoverLocation;
     },
-    onClickLocation: (state: Map, { payload: clickLocation }: PayloadAction<Point>): void => {
+    onClickLocation: (state: Map, { payload: clickLocation }: PayloadAction<Point>) => {
         state.clickLocation = clickLocation;
+    },
+    onVerticalGeometryDiagramVisibilityChange: (
+        state: Map,
+        { payload: visibilitySetting }: PayloadAction<boolean>,
+    ): void => {
+        state.verticalGeometryDiagramVisible = visibilitySetting;
     },
 };
 
-function onAlignmentLayerVisibilityChange(
-    state: Map,
-    property:
-        | 'showReferenceLines'
-        | 'showTrackNumbers'
-        | 'showMissingVerticalGeometry'
-        | 'showSegmentsFromSelectedPlan'
-        | 'showMissingLinking'
-        | 'showDuplicateTracks',
-    layerVisibility: LayerVisibility,
-) {
-    state.mapLayers.forEach((layer) => {
-        if (layer.id == layerVisibility.layerId) {
-            (<LayoutAlignmentsLayer>layer)[property] = layerVisibility.visible;
+function collectChangedLayers(
+    settings: MapLayerMenuItem[],
+    change: MapLayerMenuChange,
+    isChild = false,
+): MapLayerName[] {
+    return settings.flatMap(({ name, subMenu }) => {
+        if (name === change.name) {
+            if (change.visible) {
+                return [
+                    ...layerMenuItemMapLayers[name],
+                    ...collectChangedLayers(subMenu?.filter((s) => s.visible) ?? [], change, true),
+                ];
+            } else {
+                return [
+                    ...layerMenuItemMapLayers[name],
+                    ...collectChangedLayers(subMenu ?? [], change, true),
+                ];
+            }
+        } else {
+            return [
+                ...(isChild ? layerMenuItemMapLayers[name] : []),
+                ...collectChangedLayers(subMenu ?? [], change, isChild),
+            ];
         }
     });
 }
 
-function shownItemsByLayer(layerType: MapLayerType): keyof ShownItems | undefined {
-    switch (layerType) {
-        case 'switches':
-            return 'switches';
-        case 'kmPosts':
-            return 'kmPosts';
-        case 'alignment':
-            return 'locationTracks';
-        default:
-            return undefined;
-    }
+function collectVisibleLayers(settings: MapLayerMenuItem[]): MapLayerName[] {
+    return settings.flatMap((s) =>
+        s.visible
+            ? [...layerMenuItemMapLayers[s.name], ...collectVisibleLayers(s.subMenu ?? [])]
+            : [],
+    );
 }
 
-const mapSlice = createSlice({
-    name: 'map',
-    initialState: initialMapState,
-    reducers: mapReducers,
-});
+function collectRelatedLayers(layers: MapLayerName[]): MapLayerName[] {
+    const relatedLayers = layers.flatMap((l) => relatedMapLayers[l]).filter(filterNotEmpty);
 
-type MapContextState = 'trackLayout';
+    return relatedLayers.length > 0
+        ? [...relatedLayers, ...collectRelatedLayers(relatedLayers)]
+        : [];
+}
+
+function updateMenuItem(
+    settings: MapLayerMenuItem[],
+    change: MapLayerMenuChange,
+): MapLayerMenuItem[] {
+    return settings.map((s) => ({
+        name: s.name,
+        visible: s.name === change.name ? change.visible : s.visible,
+        subMenu: s.subMenu ? updateMenuItem(s.subMenu, change) : undefined,
+    }));
+}
+
+type MapContextState = 'trackLayout' | 'infra-model' | 'preview';
 export const MapContext = createContext<MapContextState>('trackLayout');
-
-export const mapReducer = mapSlice.reducer;
-export const {
-    onViewportChange,
-    onHoverLocation,
-    onLayerVisibilityChange,
-    onTrackNumberVisibilityChange,
-    onReferencelineVisibilityChange,
-    onMissingLinkingVisibilityChange,
-    onShowSegmentsFromSelectedPlanVisibilityChange,
-    onDuplicateTracksVisibilityChange,
-} = mapSlice.actions;

@@ -12,7 +12,7 @@ import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { getSwitch } from 'track-layout/layout-switch-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { PublishType, TimeStamp } from 'common/common-model';
-import { SWITCH_SHOW } from 'map/layers/layer-visibility-limits';
+import { SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { getSuggestedSwitchesByTile, linkSwitch } from 'linking/linking-api';
 import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
 import GeometrySwitchLinkingSuggestedInfobox from 'tool-panel/switch/geometry-switch-linking-suggested-infobox';

@@ -35,6 +35,7 @@ const ToolPanelContainer: React.FC = () => {
     []);
 
     const startSwitchPlacing = React.useCallback(function (layoutSwitch: LayoutSwitch) {
+        delegates.showLayers(['switch-linking-layer']);
         delegates.startSwitchPlacing(layoutSwitch);
     }, []);
 
@@ -78,7 +79,11 @@ const ToolPanelContainer: React.FC = () => {
             selectedTabId={store.selectedToolPanelTabId}
             startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
-            stopLinking={delegates.stopLinking}
+            stopSwitchLinking={() => {
+                delegates.hideLayers(['switch-linking-layer']);
+                delegates.stopLinking();
+            }}
+            verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramVisible}
         />
     );
 };

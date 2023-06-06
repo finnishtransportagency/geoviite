@@ -1,13 +1,16 @@
 package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 
+import browser
+import clearInput
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
+import getElementWhenExists
+import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
 import java.time.Duration
 
 class InfraModelPage: PageModel(By.xpath("//div[@qa-id='main-content-container']")) {
-
     private val SAVE_BUTTON = By.xpath("//button[span[contains(text(),'Tallenna')]]")
     private val LIST_STATUS = By.xpath("//div[@class='infra-model-list__search-result']/div")
 

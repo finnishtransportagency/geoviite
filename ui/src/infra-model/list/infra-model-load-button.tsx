@@ -5,7 +5,7 @@ import { Button } from 'vayla-design-lib/button/button';
 import { convertToSerializableFile, SerializableFile } from 'utils/file-utils';
 import { useAppNavigate } from 'common/navigate';
 import { useTranslation } from 'react-i18next';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 export type InframodelLoadButtonProps = {
     onFileSelected: (file: SerializableFile) => void;
@@ -27,9 +27,9 @@ const InfraModelLoadButton: React.FC<InframodelLoadButtonProps> = ({
     return (
         <React.Fragment>
             <FileInput onChange={(e) => handleFileInputEvent(e)} accept=".xml">
-                <WriteRoleRequired>
+                <WriteAccessRequired>
                     <Button icon={Icons.Append}>{t('im-form.toolbar.upload')}</Button>
-                </WriteRoleRequired>
+                </WriteAccessRequired>
             </FileInput>
         </React.Fragment>
     );

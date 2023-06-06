@@ -19,7 +19,6 @@ fun toFileDownloadResponse(fileName: FileName, content: ByteArray): ResponseEnti
     headers.contentType = MediaType.APPLICATION_OCTET_STREAM
     headers.set(
         HttpHeaders.CONTENT_DISPOSITION,
-        ContentDisposition.attachment().filename(fileName.toString()).build().toString()
-    )
+        ContentDisposition.attachment().filename(fileName.toString(), Charsets.UTF_8).build().toString())
     return ResponseEntity.ok().headers(headers).body(content)
 }

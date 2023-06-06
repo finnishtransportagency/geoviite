@@ -24,7 +24,7 @@ import { FileMenuOption, InfraModelToolbar } from 'infra-model/view/infra-model-
 import dialogStyles from 'vayla-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { ChangeTimes } from 'common/common-slice';
-import { WriteRoleRequired } from 'user/write-role-required';
+import { WriteAccessRequired } from 'user/write-access-required';
 import { Item } from 'vayla-design-lib/dropdown/dropdown';
 import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
 
@@ -145,7 +145,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.return')}
                         </Button>
                     )}
-                    <WriteRoleRequired>
+                    <WriteAccessRequired>
                         <Button
                             title={getVisibleErrors()}
                             onClick={() => onProgressClick()}
@@ -159,7 +159,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             isProcessing={props.isLoading}>
                             {t(isNewPlan ? 'button.save' : 'im-form.save-changes')}
                         </Button>
-                    </WriteRoleRequired>
+                    </WriteAccessRequired>
                 </div>
             </div>
             <div className={styles['infra-model-upload__map-container']}>
@@ -174,6 +174,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         onHighlightItems={props.onHighlightItems}
                         onHoverLocation={props.onHoverLocation}
                         onClickLocation={props.onClickLocation}
+                        onShownLayerItemsChange={() => undefined}
                     />
                 )}
                 {!showMap && <div className={styles['infra-model-upload__error-photo']} />}

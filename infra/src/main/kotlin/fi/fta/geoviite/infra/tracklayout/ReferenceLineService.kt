@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
-import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -69,6 +68,9 @@ class ReferenceLineService(
     }
 
     private fun saveDraftInternal(draft: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
+        require(alignment.segments.all { it.switchId == null }) {
+            "Reference line cannot have switches, id=${draft.id} trackNumberId=${draft.trackNumberId}"
+        }
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
             if (draft.dataType == TEMP || draft.draft == null) {
