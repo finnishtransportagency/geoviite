@@ -42,8 +42,8 @@ import {
 import { getSwitch, getSwitches } from 'track-layout/layout-switch-api';
 import { getTrackNumberById, getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getKmPost, getKmPosts } from 'track-layout/layout-km-post-api';
-import { PVDocumentHeader, PVDocumentId } from 'infra-model/velho/velho-model';
-import { getVelhoDocument } from 'infra-model/infra-model-api';
+import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
+import { getPVDocument } from 'infra-model/infra-model-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -244,7 +244,7 @@ export function usePvDocumentHeader(
     changeTime?: TimeStamp,
 ): PVDocumentHeader | undefined {
     return useLoader(
-        () => (id ? getVelhoDocument(changeTime, id).then((v) => v || undefined) : undefined),
+        () => (id ? getPVDocument(changeTime, id).then((v) => v || undefined) : undefined),
         [id, changeTime],
     );
 }

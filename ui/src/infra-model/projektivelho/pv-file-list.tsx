@@ -1,34 +1,34 @@
 import * as React from 'react';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
-import styles from './velho-file-list.scss';
+import styles from './pv-file-list.scss';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { formatDateFull } from 'utils/date-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import { PVDocumentHeader, PVDocumentId } from './velho-model';
+import { PVDocumentHeader, PVDocumentId } from './pv-model';
 import { useAppNavigate } from 'common/navigate';
 import {
-    getVelhoDocuments,
+    getPVDocuments,
     projektivelhoDocumentDownloadUri,
-    rejectVelhoDocument,
-    restoreVelhoDocument,
+    rejectPVDocument,
+    restorePVDocument,
 } from 'infra-model/infra-model-api';
-import { updateVelhoDocumentsChangeTime } from 'common/change-time-api';
+import { updatePVDocumentsChangeTime } from 'common/change-time-api';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
-import { VelhoRedirectLink } from 'infra-model/velho/velho-redirect-link';
+import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
-type VelhoFileListContainerProps = {
+type PVFileListContainerProps = {
     changeTime: TimeStamp;
     listMode: ListMode;
 };
 
-type VelhoFileListProps = {
+type PVFileListProps = {
     documentHeaders: PVDocumentHeader[];
     isLoading: boolean;
     listMode: ListMode;
@@ -38,28 +38,24 @@ type VelhoFileListProps = {
     changeTime: TimeStamp;
 };
 
-export const VelhoFileListContainer: React.FC<VelhoFileListContainerProps> = ({
+export const PVFileListContainer: React.FC<PVFileListContainerProps> = ({
     changeTime,
     listMode,
-}: VelhoFileListContainerProps) => {
+}: PVFileListContainerProps) => {
     const navigate = useAppNavigate();
     const [documentHeaders, isLoading] =
         useLoaderWithStatus(() => {
-            return getVelhoDocuments(changeTime, listMode);
+            return getPVDocuments(changeTime, listMode);
         }, [changeTime]) || [];
 
     return (
-        <div className="velho-file-list">
-            <VelhoFileList
+        <div className="projektivelho-file-list">
+            <PVFileList
                 documentHeaders={documentHeaders || []}
                 isLoading={isLoading !== LoaderStatus.Ready}
-                onReject={(id) =>
-                    rejectVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())
-                }
+                onReject={(id) => rejectPVDocument(id).then(() => updatePVDocumentsChangeTime())}
                 onImport={(id) => navigate('inframodel-import', id)}
-                onRestore={(id) =>
-                    restoreVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())
-                }
+                onRestore={(id) => restorePVDocument(id).then(() => updatePVDocumentsChangeTime())}
                 listMode={listMode}
                 changeTime={changeTime}
             />
@@ -67,7 +63,7 @@ export const VelhoFileListContainer: React.FC<VelhoFileListContainerProps> = ({
     );
 };
 
-export const VelhoFileList = ({
+export const PVFileList = ({
     documentHeaders,
     isLoading,
     onReject,
@@ -75,25 +71,25 @@ export const VelhoFileList = ({
     onRestore,
     listMode,
     changeTime,
-}: VelhoFileListProps) => {
+}: PVFileListProps) => {
     const { t } = useTranslation();
 
     return (
         <div>
-            <Table className={styles['velho-file-list__table']} wide isLoading={isLoading}>
+            <Table className={styles['projektivelho-file-list__table']} wide isLoading={isLoading}>
                 <thead>
                     <tr>
                         <Th></Th>
-                        <Th>{t('velho.file-list.header.project-name')}</Th>
-                        <Th>{t('velho.file-list.header.document-name')}</Th>
-                        <Th>{t('velho.file-list.header.document-description')}</Th>
-                        <Th>{t('velho.file-list.header.document-modified')}</Th>
+                        <Th>{t('projektivelho.file-list.header.project-name')}</Th>
+                        <Th>{t('projektivelho.file-list.header.document-name')}</Th>
+                        <Th>{t('projektivelho.file-list.header.document-description')}</Th>
+                        <Th>{t('projektivelho.file-list.header.document-modified')}</Th>
                         <Th></Th>
                     </tr>
                 </thead>
                 <tbody>
                     {documentHeaders.map((item) => (
-                        <VelhoFileListRow
+                        <PVFileListRow
                             listMode={listMode}
                             key={item.document.id}
                             item={item}
@@ -109,7 +105,7 @@ export const VelhoFileList = ({
     );
 };
 
-type VelhoFileListRowProps = {
+type PVFileListRowProps = {
     item: PVDocumentHeader;
     listMode: ListMode;
     onReject: () => void;
@@ -118,14 +114,14 @@ type VelhoFileListRowProps = {
     changeTime: TimeStamp;
 };
 
-const VelhoFileListRow = ({
+const PVFileListRow = ({
     item,
     listMode,
     onReject,
     onImport,
     onRestore,
     changeTime,
-}: VelhoFileListRowProps) => {
+}: PVFileListRowProps) => {
     const { t } = useTranslation();
     const [isOpen, setIsOpen] = React.useState(false);
     return (
@@ -137,7 +133,7 @@ const VelhoFileListRow = ({
                 <td>{item.project && item.project.name}</td>
                 <td>
                     <Link
-                        className={styles['velho-file-list__link']}
+                        className={styles['projektivelho-file-list__link']}
                         href={projektivelhoDocumentDownloadUri(item.document.id)}>
                         {item.document.name}
                     </Link>
@@ -145,28 +141,28 @@ const VelhoFileListRow = ({
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>
                 <td>
-                    <div className={styles['velho-file-list__buttons']}>
+                    <div className={styles['projektivelho-file-list__buttons']}>
                         {listMode === 'SUGGESTED' && (
                             <Button
-                                title={t('velho.file-list.reject-tooltip')}
+                                title={t('projektivelho.file-list.reject-tooltip')}
                                 variant={ButtonVariant.SECONDARY}
                                 onClick={onReject}>
-                                {t('velho.file-list.reject')}
+                                {t('projektivelho.file-list.reject')}
                             </Button>
                         )}
                         {listMode === 'REJECTED' && (
                             <Button
-                                title={t('velho.file-list.restore-tooltip')}
+                                title={t('projektivelho.file-list.restore-tooltip')}
                                 variant={ButtonVariant.SECONDARY}
                                 onClick={onRestore}>
-                                {t('velho.file-list.restore')}
+                                {t('projektivelho.file-list.restore')}
                             </Button>
                         )}
                         <Button
-                            title={t('velho.file-list.upload-tooltip')}
+                            title={t('projektivelho.file-list.upload-tooltip')}
                             variant={ButtonVariant.SECONDARY}
                             onClick={onImport}>
-                            {t('velho.file-list.upload')}
+                            {t('projektivelho.file-list.upload')}
                         </Button>
                     </div>
                 </td>
@@ -175,7 +171,7 @@ const VelhoFileListRow = ({
                 <tr>
                     <td></td>
                     <td colSpan={5}>
-                        <VelhoFileListExpandedItem item={item} changeTime={changeTime} />
+                        <PVFileListExpandedItem item={item} changeTime={changeTime} />
                     </td>
                 </tr>
             ) : (
@@ -185,58 +181,58 @@ const VelhoFileListRow = ({
     );
 };
 
-type VelhoFileListExpandedItemProps = {
+type PVFileListExpandedItemProps = {
     item: PVDocumentHeader;
     changeTime: TimeStamp;
 };
 
-const VelhoFileListExpandedItem = ({ item, changeTime }: VelhoFileListExpandedItemProps) => {
+const PVFileListExpandedItem = ({ item, changeTime }: PVFileListExpandedItemProps) => {
     const { t } = useTranslation();
     return (
-        <div className={styles['velho-file-list__expanded']}>
+        <div className={styles['projektivelho-file-list__expanded']}>
             <InfoboxContent>
                 {item.projectGroup && (
                     <InfoboxField
-                        label={t('velho.file-list.field.project-group')}
+                        label={t('projektivelho.file-list.field.project-group')}
                         value={
-                            <VelhoRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
+                            <PVRedirectLink changeTime={changeTime} oid={item.projectGroup.oid}>
                                 {`${item.projectGroup.name} (${item.projectGroup.state})`}
-                            </VelhoRedirectLink>
+                            </PVRedirectLink>
                         }
                     />
                 )}
                 {item.project && (
                     <InfoboxField
-                        label={t('velho.file-list.field.project-name')}
+                        label={t('projektivelho.file-list.field.project-name')}
                         value={
-                            <VelhoRedirectLink changeTime={changeTime} oid={item.project.oid}>
+                            <PVRedirectLink changeTime={changeTime} oid={item.project.oid}>
                                 {`${item.project.name} (${item.project.state})`}
-                            </VelhoRedirectLink>
+                            </PVRedirectLink>
                         }
                     />
                 )}
                 {item.assignment && (
                     <InfoboxField
-                        label={t('velho.file-list.field.assignment')}
+                        label={t('projektivelho.file-list.field.assignment')}
                         value={
-                            <VelhoRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
+                            <PVRedirectLink changeTime={changeTime} oid={item.assignment.oid}>
                                 {`${item.assignment.name} (${item.assignment.state})`}
-                            </VelhoRedirectLink>
+                            </PVRedirectLink>
                         }
                     />
                 )}
             </InfoboxContent>
             <InfoboxContent>
                 <InfoboxField
-                    label={t('velho.file-list.field.material-group')}
+                    label={t('projektivelho.file-list.field.material-group')}
                     value={`${item.document.group} / ${item.document.category}`}
                 />
                 <InfoboxField
-                    label={t('velho.file-list.field.document-type')}
+                    label={t('projektivelho.file-list.field.document-type')}
                     value={item.document.type}
                 />
                 <InfoboxField
-                    label={t('velho.file-list.field.document-state')}
+                    label={t('projektivelho.file-list.field.document-state')}
                     value={item.document.state}
                 />
             </InfoboxContent>

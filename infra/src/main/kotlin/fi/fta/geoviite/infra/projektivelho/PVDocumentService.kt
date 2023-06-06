@@ -50,27 +50,27 @@ class PVDocumentService @Autowired constructor(
     }
 
     @Transactional
-    fun importVelhoDocument(
+    fun importPVDocument(
         documentId: IntId<PVDocument>,
         overrides: OverrideParameters?,
         extraInfo: ExtraInfoParameters?,
     ): IntId<GeometryPlan> {
         logger.serviceCall(
-            "importVelhoDocument",
+            "importPVDocument",
             "documentId" to documentId,
             "overrides" to overrides,
             "extraInfo" to extraInfo,
         )
         val file = requireNotNull(getFile(documentId)) {
-            "Velho document has no file to import: documentId=$documentId"
+            "ProjektiVelho document has no file to import: documentId=$documentId"
         }
         val id = infraModelService.saveInfraModel(file, overrides, extraInfo).id
         updateDocumentStatus(documentId, PVDocumentStatus.ACCEPTED)
         return id
     }
 
-    fun validateVelhoDocument(documentId: IntId<PVDocument>, overrides: OverrideParameters?): ValidationResponse {
-        logger.serviceCall("validateVelhoDocument", "documentId" to documentId, "overrides" to overrides)
+    fun validatePVDocument(documentId: IntId<PVDocument>, overrides: OverrideParameters?): ValidationResponse {
+        logger.serviceCall("validatePVDocument", "documentId" to documentId, "overrides" to overrides)
         val file = getFile(documentId)
         return file
             ?.let { f -> infraModelService.validateInfraModelFile(f, overrides) }

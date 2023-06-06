@@ -280,7 +280,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             PVSearch(
                 rs.getIntId("id"),
-                rs.getVelhoId("token"),
+                rs.getPVId("token"),
                 rs.getEnum<PVFetchStatus>("status"),
                 rs.getInstant("valid_until")
             )
@@ -388,23 +388,23 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         )
         return jdbcTemplate.query(sql, params) { rs, _ -> PVDocumentHeader(
             project = rs.getOidOrNull<PVProject>("project_oid")?.let{ oid ->
-                PVProject(oid, rs.getVelhoName("project_name"), rs.getVelhoName("project_state"))
+                PVProject(oid, rs.getPVDictionaryName("project_name"), rs.getPVDictionaryName("project_state"))
             },
             projectGroup = rs.getOidOrNull<PVProjectGroup>("project_group_oid")?.let { oid ->
-                PVProjectGroup(oid, rs.getVelhoName("project_group_name"), rs.getVelhoName("project_state"))
+                PVProjectGroup(oid, rs.getPVDictionaryName("project_group_name"), rs.getPVDictionaryName("project_state"))
             },
             assignment = rs.getOidOrNull<PVAssignment>("assignment_oid")?.let { oid ->
-                PVAssignment(oid, rs.getVelhoName("assignment_name"), rs.getVelhoName("project_state"))
+                PVAssignment(oid, rs.getPVDictionaryName("assignment_name"), rs.getPVDictionaryName("project_state"))
             },
             document = PVDocument(
                 id = rs.getIntId("id"),
                 oid = rs.getOid("oid"),
                 name = rs.getFileName("filename"),
                 description = rs.getFreeTextOrNull("description"),
-                type = rs.getVelhoName("document_type"),
-                state = rs.getVelhoName("material_state"),
-                group = rs.getVelhoName("material_group"),
-                category = rs.getVelhoName("material_category"),
+                type = rs.getPVDictionaryName("document_type"),
+                state = rs.getPVDictionaryName("material_state"),
+                group = rs.getPVDictionaryName("material_group"),
+                category = rs.getPVDictionaryName("material_category"),
                 modified = rs.getInstant("change_time"),
                 status = rs.getEnum("status"),
             ),
@@ -467,7 +467,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun fetchDictionary(type: PVDictionaryType): Map<PVDictionaryCode, PVDictionaryName> {
         val sql = "select code, name from ${tableName(type)}"
         return jdbcTemplate.query(sql, mapOf<String,Any>()) { rs, _ ->
-            rs.getVelhoCode("code") to rs.getVelhoName("name")
+            rs.getPVDictionaryCode("code") to rs.getPVDictionaryName("name")
         }.associate { it }.also { _ -> logger.daoAccess(FETCH, PVDictionaryType::class, type) }
     }
 

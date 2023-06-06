@@ -24,7 +24,7 @@ data class CollectedChangeTimes(
     val geometryPlan: Instant,
     val publication: Instant,
     val ratkoPush: Instant,
-    val velhoDocument: Instant,
+    val pvDocument: Instant,
 )
 
 @RestController
@@ -56,7 +56,7 @@ class ChangeTimeController(
             geometryPlan = geometryService.getGeometryPlanChangeTime(),
             publication = publicationService.getChangeTime(),
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
-            velhoDocument = pvDocumentService.getDocumentChangeTime(),
+            pvDocument = pvDocumentService.getDocumentChangeTime(),
         )
     }
 
@@ -110,9 +110,9 @@ class ChangeTimeController(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
-    @GetMapping("/velho-documents")
-    fun getVelhoDocumentChangeTime(): Instant {
-        logger.apiCall("getVelhoDocumentChangeTime")
+    @GetMapping("/projektivelho-documents")
+    fun getPVDocumentChangeTime(): Instant {
+        logger.apiCall("getPVDocumentChangeTime")
         return pvDocumentService.getDocumentChangeTime()
     }
 }

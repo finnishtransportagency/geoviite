@@ -44,8 +44,8 @@ import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-projec
 import { ChangeTimes } from 'common/common-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
-import { VelhoRedirectLink } from 'infra-model/velho/velho-redirect-link';
-import { VelhoOid } from 'infra-model/velho/velho-oid';
+import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
+import { PVOid } from 'infra-model/projektivelho/pv-oid';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -266,7 +266,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 {projectInfo(
                                     pvDocument.projectGroup.oid,
                                     pvDocument.projectGroup.name,
-                                    changeTimes.velhoDocument,
+                                    changeTimes.pvDocument,
                                 )}
                             </FormgroupField>
                         )}
@@ -275,7 +275,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 {projectInfo(
                                     pvDocument.project.oid,
                                     pvDocument.project.name,
-                                    changeTimes.velhoDocument,
+                                    changeTimes.pvDocument,
                                 )}
                             </FormgroupField>
                         )}
@@ -284,7 +284,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                 {projectInfo(
                                     pvDocument.assignment.oid,
                                     pvDocument.assignment.name,
-                                    changeTimes.velhoDocument,
+                                    changeTimes.pvDocument,
                                 )}
                             </FormgroupField>
                         )}
@@ -292,7 +292,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                             {projectInfo(
                                 pvDocument.document.oid,
                                 pvDocument.document.description || '',
-                                changeTimes.velhoDocument,
+                                changeTimes.pvDocument,
                             )}
                         </FormgroupField>
                     </FormgroupContent>
@@ -567,10 +567,10 @@ export default InfraModelForm;
 function projectInfo(oid: Oid, description: string, changeTime: TimeStamp) {
     return (
         <span className={styles['infra-model-upload__project-field']}>
-            <VelhoOid oid={oid} />
-            <VelhoRedirectLink changeTime={changeTime} oid={oid}>
+            <PVOid oid={oid} />
+            <PVRedirectLink changeTime={changeTime} oid={oid}>
                 {description}
-            </VelhoRedirectLink>
+            </PVRedirectLink>
         </span>
     );
 }

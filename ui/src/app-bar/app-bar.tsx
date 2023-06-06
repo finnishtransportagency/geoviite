@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useInfraModelAppSelector } from 'store/hooks';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { InfraModelLink } from 'app-bar/infra-model-link';
-import { getVelhoDocumentCount } from 'infra-model/infra-model-api';
+import { getPVDocumentCount } from 'infra-model/infra-model-api';
 import { useLoader } from 'utils/react-utils';
 import { getChangeTimes } from 'common/change-time-api';
 
@@ -38,10 +38,7 @@ export const AppBar: React.FC = () => {
     const [dataMenuOpen, setDataMenuOpen] = React.useState(false);
     const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
     const changeTimes = getChangeTimes();
-    const velhoDocumentCounts = useLoader(
-        () => getVelhoDocumentCount(),
-        [changeTimes.velhoDocument],
-    );
+    const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
 
     function getInfraModelLink(): string {
         switch (selectedInfraModelTab) {
@@ -90,8 +87,8 @@ export const AppBar: React.FC = () => {
                                             end>
                                             <InfraModelLink
                                                 exclamationPointVisibility={
-                                                    !!velhoDocumentCounts &&
-                                                    velhoDocumentCounts?.suggested > 0
+                                                    !!pvDocumentCounts &&
+                                                    pvDocumentCounts?.suggested > 0
                                                 }
                                             />
                                         </NavLink>
