@@ -20,6 +20,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
 import { VelhoRedirectLink } from 'infra-model/velho/velho-redirect-link';
+import { useState } from 'react';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -44,21 +45,30 @@ export const VelhoFileListContainer: React.FC<VelhoFileListContainerProps> = ({
 }: VelhoFileListContainerProps) => {
     const navigate = useAppNavigate();
     const [documentHeaders, isLoading] =
-        useLoaderWithStatus(() => {
-            return getVelhoDocuments(changeTime, listMode);
+        useLoaderWithStatus(async () => {
+            const documents = await getVelhoDocuments(changeTime, listMode);
+            setLoadingForUserTriggeredChange(false);
+            return documents;
         }, [changeTime]) || [];
+    const [loadingForUserTriggeredChange, setLoadingForUserTriggeredChange] = useState(false);
 
     return (
         <div className="velho-file-list">
             <VelhoFileList
                 documentHeaders={documentHeaders || []}
-                isLoading={isLoading !== LoaderStatus.Ready}
+                isLoading={isLoading !== LoaderStatus.Ready && !loadingForUserTriggeredChange}
                 onReject={(id) =>
-                    rejectVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())
+                    rejectVelhoDocument(id).then(() => {
+                        setLoadingForUserTriggeredChange(true);
+                        updateVelhoDocumentsChangeTime();
+                    })
                 }
                 onImport={(id) => navigate('inframodel-import', id)}
                 onRestore={(id) =>
-                    restoreVelhoDocument(id).then(() => updateVelhoDocumentsChangeTime())
+                    restoreVelhoDocument(id).then(() => {
+                        setLoadingForUserTriggeredChange(true);
+                        updateVelhoDocumentsChangeTime();
+                    })
                 }
                 listMode={listMode}
                 changeTime={changeTime}
