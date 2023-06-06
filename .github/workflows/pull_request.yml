@@ -41,9 +41,10 @@ jobs:
       # https://stackoverflow.com/questions/59741629/how-to-pass-environment-variables-to-the-gradle-wrapper-build-using-only-command
       #unable to prepare context: unable to evaluate symlinks in Dockerfile path: lstat /home/runner/work/geoviite/geoviite/Dockerfile: no such file or directory
       run: |
-        docker build -t gvt-postgres https://github.com/finnishtransportagency/geoviite#:workflows
+        docker build -t gvt-postgres ./.github/workflows
         docker create -p 127.0.0.1:5436:5432 --name geoviite-db gvt-postgres
         docker start geoviite-db
+        ping 192.0.2.2 -n 1 -w 10000 > nul
         cd infra
         DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
       env:
