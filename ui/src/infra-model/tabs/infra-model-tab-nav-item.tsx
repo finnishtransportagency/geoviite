@@ -21,9 +21,8 @@ const InfraModelTabNavItem: React.FC<TabNavItemProps> = ({
     const navigate = useAppNavigate();
     const delegates = createDelegates(infraModelActionCreators);
 
-    delegates.setInfraModelActiveTab(activeTab);
-
     const handleClick = () => {
+        delegates.setInfraModelActiveTab(tabId);
         switch (tabId) {
             case InfraModelTabType.PLAN:
                 return navigate('inframodel-plans');
