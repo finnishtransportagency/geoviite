@@ -216,7 +216,12 @@ class GeometryController @Autowired constructor(
     fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementListCsv")
         val elementListingFile = geometryService.getElementListingCsv()
-        return toFileDownloadResponse("${elementListingFile.name}.csv", elementListingFile.content.toByteArray())
+        return elementListingFile?.let {
+            toFileDownloadResponse(
+                "${elementListingFile.name}.csv",
+                elementListingFile.content.toByteArray()
+            )
+        }
             ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
