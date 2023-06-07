@@ -2,14 +2,12 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.util.DaoBase
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.getFileName
-import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 data class ElementListingFile(val name: FileName, val content: String)
 
@@ -22,9 +20,23 @@ class ElementListingFileDao @Autowired constructor(
     @Transactional
     fun upsertElementListingFile(file: ElementListingFile) {
         val sql = """
-            insert into layout.element_listing_file(name, content)
-            values (:name, :content)
-            on conflict (id) do update set name = :name, content = :content
+            insert into layout.element_listing_file(
+              name,
+              content,
+              change_time,
+              change_user
+            )
+            values (
+              :name,
+              :content,
+              now(),
+              current_setting('geoviite.edit_user')
+            )
+            on conflict (id) do update set 
+              name = :name,
+              content = :content,
+              change_time = now(),
+              change_user = current_setting('geoviite.edit_user')
         """.trimIndent()
         val params = mapOf(
             "name" to file.name,
@@ -48,5 +60,15 @@ class ElementListingFileDao @Autowired constructor(
         ) }
             .firstOrNull()
             .also { file -> logger.daoAccess(AccessType.FETCH, ElementListingFile::class, "${file?.name}") }
+    }
+
+    fun getLastFileListingTime(): Instant {
+        val sql = """
+            select max(change_time) change_time 
+            from layout.element_listing_file
+        """.trimIndent()
+        return jdbcTemplate.query(sql, mapOf<String,Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
+            .also { logger.daoAccess(AccessType.FETCH, "${ElementListingFile::class.simpleName}.changeTime") }
+            .firstOrNull() ?: Instant.EPOCH
     }
 }

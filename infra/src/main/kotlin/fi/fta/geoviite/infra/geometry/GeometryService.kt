@@ -11,6 +11,8 @@ import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.geometry.PlanSource.PAIKANNUSPALVELU
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.integration.DatabaseLock
+import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.*
@@ -24,19 +26,13 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
+import java.time.Duration
 import java.time.Instant
 import java.util.stream.Collectors
 
 
 const val ELEMENT_LISTING_GENERATION_USER = "ELEMENT_LIST_GEN"
-inline fun <reified T> withElementListingGenerationUser(op: () -> T): T {
-    MDC.put(USER_HEADER, ELEMENT_LISTING_GENERATION_USER)
-    return try {
-        op()
-    } finally {
-        MDC.remove(USER_HEADER)
-    }
-}
+
 
 
 @Service
@@ -51,10 +47,22 @@ class GeometryService @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val heightTriangleDao: HeightTriangleDao,
     private val elementListingFileDao: ElementListingFileDao,
+    private val lockDao: LockDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    private fun runElementListGeneration(op: () -> Unit) {
+        MDC.put(USER_HEADER, ELEMENT_LISTING_GENERATION_USER)
+        try {
+            lockDao.runWithLock(DatabaseLock.ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
+                val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
+                if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+            }
+        } finally {
+            MDC.remove(USER_HEADER)
+        }
+    }
 
     fun getGeometryPlanAreas(boundingBox: BoundingBox): List<GeometryPlanArea> {
         logger.serviceCall("getGeometryPlanAreas", "bbox" to boundingBox)
@@ -261,8 +269,8 @@ class GeometryService @Autowired constructor(
     @Scheduled(
         cron = "\${geoviite.rail-network-export.schedule}"
     )
-    fun makeElementListingCsv() = withElementListingGenerationUser {
-        logger.serviceCall("getElementListing")
+    fun makeElementListingCsv() = runElementListGeneration {
+        logger.serviceCall("makeElementListingCsv")
         val trackNumbersToGeocodingContexts = trackNumberService.listOfficial().map { tn ->
             tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id)
         }
