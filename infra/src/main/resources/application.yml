@@ -53,3 +53,5 @@ geoviite:
     url: "${RATKO_URL:}"
     username: "${RATKO_USERNAME:}"
     password: "${RATKO_PASSWORD:}"
+  rail-network-export:
+    schedule: "0 0 3 * * *"
