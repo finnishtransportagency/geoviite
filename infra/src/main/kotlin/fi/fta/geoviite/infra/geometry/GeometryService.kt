@@ -20,6 +20,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.Instant
@@ -37,6 +38,7 @@ class GeometryService @Autowired constructor(
     private val layoutAlignmentDao: LayoutAlignmentDao,
     private val switchService: LayoutSwitchService,
     private val heightTriangleDao: HeightTriangleDao,
+    private val elementListingFileDao: ElementListingFileDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -244,7 +246,10 @@ class GeometryService @Autowired constructor(
         return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
     }
 
-    fun getElementListingCsv(): Pair<FileName, ByteArray> {
+    @Scheduled(
+        cron = "\${geoviite.rail-network-export.schedule}"
+    )
+    fun makeElementListingCsv() {
         logger.serviceCall("getElementListing")
         val trackNumbersToGeocodingContexts = trackNumberService.listOfficial().map { tn ->
             tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id)
@@ -261,8 +266,14 @@ class GeometryService @Autowired constructor(
                 )
             }
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        return FileName(ELEMENT_LISTING_ENTIRE_RAIL_NETWORK) to csvFileContent.toByteArray()
+        elementListingFileDao.upsertElementListingFile(ElementListingFile(
+            name = FileName(ELEMENT_LISTING_ENTIRE_RAIL_NETWORK),
+            content = csvFileContent
+        ))
     }
+
+    fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
+
 
     fun getVerticalGeometryListing(
         planId: IntId<GeometryPlan>

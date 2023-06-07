@@ -112,19 +112,6 @@ export async function deleteIgnoreError<Output>(path: string): Promise<Output | 
     return executeRequest<undefined, Output, null>(path, undefined, ignoreErrorHandler, 'DELETE');
 }
 
-export async function getBlobIgnoreError(
-    path: string,
-    abortSignal: AbortSignal | undefined,
-): Promise<Blob | undefined> {
-    const res = await getResponse(path, undefined, 'GET', abortSignal);
-    if (res.ok) {
-        return Promise.resolve(res.blob());
-    } else {
-        const error = await convertResponseToError(res);
-        ignoreErrorHandler(error.response);
-    }
-}
-
 // Result object returning versions of HTTP methods (ADT)
 export async function getAdt<Output>(
     path: string,
@@ -282,12 +269,10 @@ async function getResponse<Input>(
     path: string,
     data: Input | undefined,
     method: HttpMethod,
-    abortSignal: AbortSignal | undefined = undefined,
 ): Promise<Response> {
     return await fetch(path, {
         method: method,
         headers: createJsonHeaders(),
-        signal: abortSignal,
         ...(data !== undefined && { body: JSON.stringify(data) }),
     });
 }

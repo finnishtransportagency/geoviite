@@ -27,7 +27,6 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     API_URI,
-    getBlobIgnoreError,
     getIgnoreError,
     getThrowError,
     getWithDefault,
@@ -136,8 +135,8 @@ export const getGeometryPlanElementsCsv = (
     elementTypes: GeometryTypeIncludingMissing[],
 ) => `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes })}`;
 
-export const getEntireRailNetworkElementsCsv = (abortSignal: AbortSignal | undefined) =>
-    getBlobIgnoreError(`${GEOMETRY_URI}/rail-network/element-listing/file`, abortSignal);
+export const getEntireRailNetworkElementsCsvUrl = () =>
+    `${GEOMETRY_URI}/rail-network/element-listing/file`;
 
 export async function getLocationTrackElements(
     id: LocationTrackId,

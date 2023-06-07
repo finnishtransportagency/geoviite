@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
@@ -214,8 +215,9 @@ class GeometryController @Autowired constructor(
     @GetMapping("/rail-network/element-listing/file")
     fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementListCsv")
-        val (filename, content) = geometryService.getElementListingCsv()
-        return toFileDownloadResponse("${filename}.csv", content)
+        val elementListingFile = geometryService.getElementListingCsv()
+        return toFileDownloadResponse("${elementListingFile.name}.csv", elementListingFile.content.toByteArray())
+            ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
     @PreAuthorize(AUTH_ALL_READ)
