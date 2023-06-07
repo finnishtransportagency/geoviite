@@ -135,6 +135,9 @@ export const getGeometryPlanElementsCsv = (
     elementTypes: GeometryTypeIncludingMissing[],
 ) => `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes })}`;
 
+export const getEntireRailNetworkElementsCsvUrl = () =>
+    `${GEOMETRY_URI}/rail-network/element-listing/file`;
+
 export async function getLocationTrackElements(
     id: LocationTrackId,
     elementTypes: GeometryTypeIncludingMissing[],

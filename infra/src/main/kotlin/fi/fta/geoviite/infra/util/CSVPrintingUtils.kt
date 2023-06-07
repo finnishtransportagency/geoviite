@@ -27,5 +27,7 @@ fun <T> printCsv(columns: List<CsvEntry<T>>, data: List<T>): String {
             csvPrinter.println()
         }
     }
-    return csvBuilder.toString()
+    return addBOM(csvBuilder.toString())
 }
+
+private fun addBOM(fileContent: String): String = "\uFEFF" + fileContent

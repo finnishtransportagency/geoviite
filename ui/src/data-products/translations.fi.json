@@ -26,7 +26,12 @@
             "location-track-legend": "Raiteen geometria näyttää luettelossa paikannuspohjan raiteeseen liityvät geometriaelementit. Tämä elementtiluettelo ei täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raide on rakennettu, joten luettelon tietoja on syytä pitää  epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
             "plan-geometry": "Suunnitelman geometria",
             "plan-legend": "Suunnitelman geometria näyttää luettelossa suunnitelman sisältämät geometriaelementit. Paikannuspalvelun suunnitelmien elementtien tietoja on syytä pitää epäluotettavina, joten niitä ei pidä käyttää esim. tukemiskoneen työn lähtötietona.",
+            "entire-rail-network-geometry": "Koko rataverkon geometria",
+            "entire-rail-network-legend": "Koko rataverkon geometria on luettelo kaikkien raiteiden kaikista geometriaelementeistä. Tämä elementtiluettelo ei täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raiteet on rakennettu, joten luettelon tietoja on syytä pitää  epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemistyön lähtötietona.",
+            "entire-rail-network-length-warning": "Koska koko rataverkon aineisto on laaja, se tuotetaan vain kerran vuorokaudessa.",
             "geometry-elements": "Geometriaelementit ({{amount}} kpl)",
+            "creating-file": "Luodaan tiedostoa",
+            "long-operation": "Tämä toimenpide voi kestää useita minuutteja.",
             "pcs": "kpl",
             "element-list-table": {
                 "location-track": "Sijaintiraide",
