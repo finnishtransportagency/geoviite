@@ -211,6 +211,14 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_ALL_READ)
+    @GetMapping("/rail-network/element-listing/file")
+    fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
+        log.apiCall("getPlanElementListCsv")
+        val (filename, content) = geometryService.getElementListingCsv()
+        return toFileDownloadResponse("${filename}.csv", content)
+    }
+
+    @PreAuthorize(AUTH_ALL_READ)
     @GetMapping("/plans/{id}/vertical-geometry")
     fun getPlanVerticalGeometryListing(
         @PathVariable("id") id: IntId<GeometryPlan>,

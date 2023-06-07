@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonValue
  */
 const val umlautsCanonicalDecomposition = "aäöåÄÖÅ"
 
-val fileNameRegex = Regex("^[\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+., /]+\$")
+val fileNameRegex = Regex("^[\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+., /()]+\$")
 val fileNameLength = 1..100
 
 data class FileName @JsonCreator(mode = DELEGATING) constructor(private val value: String)

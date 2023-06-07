@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.Instant
@@ -187,6 +188,24 @@ class GeometryService @Autowired constructor(
     }
 
     fun getElementListing(
+        locationTrack: LocationTrack,
+        alignment: LayoutAlignment,
+        geocodingContext: GeocodingContext?
+    ): List<ElementListing> {
+        logger.serviceCall("getElementListing", "locationTrack" to locationTrack, "alignment" to alignment)
+        return toElementListing(
+            geocodingContext,
+            coordinateTransformationService::getLayoutTransformation,
+            locationTrack,
+            alignment,
+            TrackGeometryElementType.values().toList(),
+            null,
+            null,
+            ::getHeaderAndAlignment,
+        ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
+    }
+
+    fun getElementListing(
         trackId: IntId<LocationTrack>,
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
@@ -223,6 +242,26 @@ class GeometryService @Autowired constructor(
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
         return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
+    }
+
+    fun getElementListingCsv(): Pair<FileName, ByteArray> {
+        logger.serviceCall("getElementListing")
+        val trackNumbersToGeocodingContexts = trackNumberService.listOfficial().map { tn ->
+            tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id)
+        }
+        val elementListing = locationTrackService.list(OFFICIAL, includeDeleted = false)
+            .sortedBy { locationTrack -> trackNumbersToGeocodingContexts
+                .find { (tn, _) -> tn.id == locationTrack.trackNumberId }?.first?.number }
+            .flatMap { locationTrack ->
+                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId<LocationTrack>)
+                getElementListing(
+                    locationTrack,
+                    alignment,
+                    trackNumbersToGeocodingContexts.find { (tn, _) -> tn.id == locationTrack.trackNumberId }?.second
+                )
+            }
+        val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        return FileName(ELEMENT_LISTING_ENTIRE_RAIL_NETWORK) to csvFileContent.toByteArray()
     }
 
     fun getVerticalGeometryListing(
