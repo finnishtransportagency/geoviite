@@ -275,6 +275,7 @@ class GeometryService @Autowired constructor(
             tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id)
         }
         val elementListing = locationTrackService.list(OFFICIAL, includeDeleted = false)
+            .sortedBy { locationTrack -> locationTrack.name }
             .sortedBy { locationTrack -> trackNumbersToGeocodingContexts
                 .find { (tn, _) -> tn.id == locationTrack.trackNumberId }?.first?.number }
             .flatMap { locationTrack ->
