@@ -178,7 +178,7 @@ class GeometryController @Autowired constructor(
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes)
-        return toFileDownloadResponse("${filename}.csv", content)
+        return toFileDownloadResponse("${filename}.csv", content.toByteArray(Charsets.UTF_8))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -208,7 +208,7 @@ class GeometryController @Autowired constructor(
             "endAddress" to endAddress)
         val (filename, content) = geometryService
             .getElementListingCsv(id, elementTypes, startAddress, endAddress)
-        return toFileDownloadResponse("${filename}.csv", content)
+        return toFileDownloadResponse("${filename}.csv", content.toByteArray(Charsets.UTF_8))
     }
 
     @PreAuthorize(AUTH_ALL_READ)
@@ -219,7 +219,7 @@ class GeometryController @Autowired constructor(
         return elementListingFile?.let {
             toFileDownloadResponse(
                 "${elementListingFile.name}.csv",
-                elementListingFile.content.toByteArray()
+                elementListingFile.content.toByteArray(Charsets.UTF_8)
             )
         }
             ?: ResponseEntity(HttpStatus.NO_CONTENT)

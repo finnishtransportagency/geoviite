@@ -192,13 +192,13 @@ class GeometryService @Autowired constructor(
         ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
     }
 
-    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): Pair<FileName, ByteArray> {
+    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): ElementListingFile {
         logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes)
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
 
         val csvFileContent = planElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        return FileName("$ELEMENT_LISTING ${plan.fileName}") to csvFileContent.toByteArray()
+        return ElementListingFile(FileName("$ELEMENT_LISTING ${plan.fileName}"), csvFileContent)
     }
 
     fun getElementListing(
@@ -247,7 +247,7 @@ class GeometryService @Autowired constructor(
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
-    ): Pair<FileName, ByteArray> {
+    ): ElementListingFile {
         logger.serviceCall("getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
             "startAddress" to startAddress, "endAdress" to endAddress,
@@ -255,7 +255,7 @@ class GeometryService @Autowired constructor(
         val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        return FileName("$ELEMENT_LISTING ${track.name}") to csvFileContent.toByteArray()
+        return ElementListingFile(FileName("$ELEMENT_LISTING ${track.name}"), csvFileContent)
     }
 
     @Scheduled(
