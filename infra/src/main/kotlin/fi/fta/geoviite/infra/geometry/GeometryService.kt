@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.configuration.USER_HEADER
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -18,12 +19,24 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.stream.Collectors
+
+
+const val ELEMENT_LISTING_GENERATION_USER = "ELEMENT_LIST_GEN"
+inline fun <reified T> withElementListingGenerationUser(op: () -> T): T {
+    MDC.put(USER_HEADER, ELEMENT_LISTING_GENERATION_USER)
+    return try {
+        op()
+    } finally {
+        MDC.remove(USER_HEADER)
+    }
+}
 
 
 @Service
@@ -248,7 +261,7 @@ class GeometryService @Autowired constructor(
     @Scheduled(
         cron = "\${geoviite.rail-network-export.schedule}"
     )
-    fun makeElementListingCsv() {
+    fun makeElementListingCsv() = withElementListingGenerationUser {
         logger.serviceCall("getElementListing")
         val trackNumbersToGeocodingContexts = trackNumberService.listOfficial().map { tn ->
             tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id)
