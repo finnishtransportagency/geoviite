@@ -16,7 +16,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
-import { PVDocumentId } from 'infra-model/velho/velho-model';
+import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 
 export type GeometryPlanLayoutId = string;
 export type GeometryPlanId = string;

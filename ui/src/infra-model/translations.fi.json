@@ -89,8 +89,8 @@
         },
         "tabs": {
             "plans": "Suunnitelmat {{number}} kpl",
-            "velho-files-waiting": "Velhon aineistot, odottaa käsittelyä {{number}} kpl",
-            "velho-files-rejected": "Velhon aineistot, hylätty {{number}} kpl"
+            "projektivelho-files-waiting": "Velhon aineistot, odottaa käsittelyä {{number}} kpl",
+            "projektivelho-files-rejected": "Velhon aineistot, hylätty {{number}} kpl"
         },
         "download-file": "Lataa tiedosto"
     },

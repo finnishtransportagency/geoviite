@@ -12,7 +12,7 @@ export type ChangeTimes = {
     geometryPlan: TimeStamp;
     publication: TimeStamp;
     ratkoPush: TimeStamp;
-    velhoDocument: TimeStamp;
+    pvDocument: TimeStamp;
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -25,7 +25,7 @@ export const initialChangeTimes: ChangeTimes = {
     geometryPlan: initialChangeTime,
     publication: initialChangeTime,
     ratkoPush: initialChangeTime,
-    velhoDocument: initialChangeTime,
+    pvDocument: initialChangeTime,
 };
 
 export type CommonState = {
@@ -101,11 +101,11 @@ const commonSlice = createSlice({
         ) {
             updateChangeTime(changeTimes, 'publication', payload);
         },
-        setVelhoDocumentChangeTime: function (
+        setPVDocumentChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            updateChangeTime(changeTimes, 'velhoDocument', payload);
+            updateChangeTime(changeTimes, 'pvDocument', payload);
         },
         setRatkoPushChangeTime: function (
             { changeTimes }: CommonState,

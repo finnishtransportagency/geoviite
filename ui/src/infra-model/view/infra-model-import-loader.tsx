@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-model-view';
-import {
-    getValidationErrorsForVelhoDocument,
-    importVelhoDocument,
-} from 'infra-model/infra-model-api';
+import { getValidationErrorsForPVDocument, importPVDocument } from 'infra-model/infra-model-api';
 import { ValidationResponse } from 'infra-model/infra-model-slice';
-import { PVDocumentId } from 'infra-model/velho/velho-model';
+import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { GeometryPlan } from 'geometry/geometry-model';
 
 export type InfraModelImportLoaderProps = InfraModelBaseProps & {
@@ -16,26 +13,26 @@ export type InfraModelImportLoaderProps = InfraModelBaseProps & {
 };
 
 export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ ...props }) => {
-    const { id: velhoDocId } = useParams<{ id: string }>();
-    const [initializedDocId, setInitializedDocId] = useState<PVDocumentId | null>(null);
+    const { id: pvDocumentId } = useParams<{ id: string }>();
+    const [initPVDocumentId, setInitPVDocumentId] = useState<PVDocumentId | null>(null);
     const extraParams = props.extraInfraModelParameters;
     const overrideParams = props.overrideInfraModelParameters;
 
     const onInit: () => void = async () => {
-        if (velhoDocId) {
+        if (pvDocumentId) {
             props.setLoading(true);
-            const validation = await getValidationErrorsForVelhoDocument(velhoDocId);
+            const validation = await getValidationErrorsForPVDocument(pvDocumentId);
             props.setExistingInfraModel(validation.geometryPlan);
             props.onValidation(validation);
-            setInitializedDocId(velhoDocId);
+            setInitPVDocumentId(pvDocumentId);
             props.setLoading(false);
         }
     };
     const onValidate: () => void = async () => {
-        if (velhoDocId && velhoDocId == initializedDocId) {
+        if (pvDocumentId && pvDocumentId == initPVDocumentId) {
             props.setLoading(true);
             props.onValidation(
-                await getValidationErrorsForVelhoDocument(velhoDocId, overrideParams),
+                await getValidationErrorsForPVDocument(pvDocumentId, overrideParams),
             );
             props.setLoading(false);
         }
@@ -48,12 +45,12 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
 
     useEffect(() => {
         onInit();
-    }, [velhoDocId]);
+    }, [pvDocumentId]);
 
     const onSave: () => Promise<boolean> = async () => {
-        if (!velhoDocId) return false;
+        if (!pvDocumentId) return false;
         props.setLoading(true);
-        const response = await importVelhoDocument(velhoDocId, extraParams, overrideParams);
+        const response = await importPVDocument(pvDocumentId, extraParams, overrideParams);
         props.setLoading(false);
         return response != null;
     };

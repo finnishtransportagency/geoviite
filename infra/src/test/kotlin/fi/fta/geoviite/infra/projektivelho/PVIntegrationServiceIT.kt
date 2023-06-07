@@ -58,14 +58,14 @@ val projectDictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
 class PVIntegrationServiceIT @Autowired constructor(
-    @Value("\${geoviite.projektivelho.test-port:12345}") private val velhoPort: Int,
+    @Value("\${geoviite.projektivelho.test-port:12345}") private val projektiVelhoPort: Int,
     private val pvIntegrationService: PVIntegrationService,
     private val pvDao: PVDao,
     private val pvDocumentService: PVDocumentService,
     private val jsonMapper: ObjectMapper,
 ) : ITTestBase() {
 
-    fun fakeVelho() = FakeProjektiVelho(velhoPort, jsonMapper)
+    fun fakeProjektiVelho() = FakeProjektiVelho(projektiVelhoPort, jsonMapper)
 
     @BeforeEach
     fun setup() {
@@ -86,23 +86,23 @@ class PVIntegrationServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Spinning up search works`(): Unit = fakeVelho().use { fakeVelho ->
-        fakeVelho.login()
-        fakeVelho.search()
+    fun `Spinning up search works`(): Unit = fakeProjektiVelho().use { fakeProjektiVelho ->
+        fakeProjektiVelho.login()
+        fakeProjektiVelho.search()
         val search = pvIntegrationService.search()
         assertNotNull(search)
         assertEquals(search.searchId, pvDao.fetchLatestSearch()?.token)
     }
 
     @Test
-    fun `Dictionary update works`(): Unit = fakeVelho().use { fakeVelho ->
-        fakeVelho.login()
+    fun `Dictionary update works`(): Unit = fakeProjektiVelho().use { fakeProjektiVelho ->
+        fakeProjektiVelho.login()
         PVDictionaryType.values().forEach { type ->
             assertEquals(mapOf(), pvDao.fetchDictionary(type))
         }
 
-        fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries)
-        fakeVelho.fetchDictionaries(PROJECT, projectDictionaries)
+        fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries)
+        fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries)
         pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
@@ -145,8 +145,8 @@ class PVIntegrationServiceIT @Autowired constructor(
                 PVDictionaryEntry("tila/tila15", "test state 16 added"),
             ),
         )
-        fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
-        fakeVelho.fetchDictionaries(PROJECT, projectDictionaries2)
+        fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
+        fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries2)
         pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
@@ -157,7 +157,7 @@ class PVIntegrationServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Importing through search happy case works`(): Unit = fakeVelho().use { fakeVelho ->
+    fun `Importing through search happy case works`(): Unit = fakeProjektiVelho().use { fakeProjektiVelho ->
         val searchId = PVId("123")
         val documentOid = Oid<PVDocument>("1.2.3.4.5")
         val assignmentOid = Oid<PVAssignment>("1.2.4.5.6")
@@ -168,12 +168,12 @@ class PVIntegrationServiceIT @Autowired constructor(
         val materialGroup = materialDictionaries[MATERIAL_GROUP]!!.first().code
         val materialCategory = materialDictionaries[MATERIAL_CATEGORY]!!.first().code
 
-        fakeVelho.login()
-        fakeVelho.fetchDictionaries(MATERIAL, materialDictionaries)
-        fakeVelho.fetchDictionaries(PROJECT, projectDictionaries)
-        fakeVelho.searchStatus(searchId)
-        fakeVelho.searchResults(searchId, listOf(PVApiMatch(documentOid, assignmentOid)))
-        fakeVelho.fileMetadata(
+        fakeProjektiVelho.login()
+        fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries)
+        fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries)
+        fakeProjektiVelho.searchStatus(searchId)
+        fakeProjektiVelho.searchResults(searchId, listOf(PVApiMatch(documentOid, assignmentOid)))
+        fakeProjektiVelho.fileMetadata(
             documentOid,
             version,
             description = description,
@@ -182,7 +182,7 @@ class PVIntegrationServiceIT @Autowired constructor(
             materialGroup = materialGroup,
             materialCategory = materialCategory,
         )
-        fakeVelho.fileContent(documentOid)
+        fakeProjektiVelho.fileContent(documentOid)
 
         pvIntegrationService.updateDictionaries()
         pvDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))

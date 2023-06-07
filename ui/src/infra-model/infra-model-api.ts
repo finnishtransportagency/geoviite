@@ -1,13 +1,13 @@
 import {
     API_URI,
     ApiErrorResponse,
+    getIgnoreError,
+    getWithDefault,
     postFormIgnoreError,
     postFormWithError,
     putFormIgnoreError,
-    queryParams,
-    getWithDefault,
     putIgnoreError,
-    getIgnoreError,
+    queryParams,
 } from 'api/api-fetch';
 import { GeometryPlan, GeometryPlanId } from 'geometry/geometry-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
@@ -22,7 +22,7 @@ import {
     PVDocumentHeader,
     PVDocumentId,
     PVDocumentStatus,
-} from './velho/velho-model';
+} from './projektivelho/pv-model';
 import { asyncCache } from 'cache/cache';
 import { Oid, TimeStamp } from 'common/common-model';
 import i18n from 'i18next';
@@ -39,7 +39,7 @@ export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
 };
 
 const INFRAMODEL_URI = `${API_URI}/inframodel`;
-const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/velho-import`;
+const PROJEKTIVELHO_URI = `${INFRAMODEL_URI}/projektivelho`;
 
 const pvDocumentHeaderCache = asyncCache<PVDocumentId, PVDocumentHeader | null>();
 const pvDocumentHeadersByStateCache = asyncCache<PVDocumentStatus, PVDocumentHeader[]>();
@@ -121,7 +121,7 @@ export async function updateGeometryPlan(
     return response;
 }
 
-export async function getVelhoDocuments(
+export async function getPVDocuments(
     changeTime: TimeStamp,
     status: PVDocumentStatus,
 ): Promise<PVDocumentHeader[]> {
@@ -131,13 +131,13 @@ export async function getVelhoDocuments(
     );
 }
 
-export const getVelhoRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
+export const getPVRedirectUrl = (changeTime: TimeStamp, oid: Oid) =>
     pvRedirectUrlCache.get(changeTime, oid, () =>
         getIgnoreError<string>(`${PROJEKTIVELHO_URI}/redirect/${oid}`),
     );
 
-export async function getVelhoDocument(
-    changeTime: TimeStamp = getChangeTimes().velhoDocument,
+export async function getPVDocument(
+    changeTime: TimeStamp = getChangeTimes().pvDocument,
     id: PVDocumentId,
 ): Promise<PVDocumentHeader | null> {
     return pvDocumentHeaderCache.get(changeTime, id, () =>
@@ -145,49 +145,49 @@ export async function getVelhoDocument(
     );
 }
 
-export async function getVelhoDocumentCount(): Promise<PVDocumentCount | null> {
+export async function getPVDocumentCount(): Promise<PVDocumentCount | null> {
     return getIgnoreError<PVDocumentCount>(`${PROJEKTIVELHO_URI}/documents/count`);
 }
 
-export async function rejectVelhoDocument(id: PVDocumentId): Promise<null> {
+export async function rejectPVDocument(id: PVDocumentId): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'REJECTED',
     ).then((id) => {
-        Snackbar.success(i18n.t('velho.file-list.reject-success'));
+        Snackbar.success(i18n.t('projektivelho.file-list.reject-success'));
         return id;
     });
 }
 
-export async function restoreVelhoDocument(id: PVDocumentId): Promise<null> {
+export async function restorePVDocument(id: PVDocumentId): Promise<null> {
     return putIgnoreError<PVDocumentStatus, null>(
         `${PROJEKTIVELHO_URI}/documents/${id}/status`,
         'SUGGESTED',
     ).then((id) => {
-        Snackbar.success(i18n.t('velho.file-list.restore-success'));
+        Snackbar.success(i18n.t('projektivelho.file-list.restore-success'));
         return id;
     });
 }
 
-export const getValidationErrorsForVelhoDocument = async (
-    velhoDocumentId: PVDocumentId,
+export const getValidationErrorsForPVDocument = async (
+    pvDocumentId: PVDocumentId,
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
     const formData = createFormData(undefined, undefined, overrideParameters);
     return postFormWithError(
-        `${INFRAMODEL_URI}/velho-import/${velhoDocumentId}/validate`,
+        `${PROJEKTIVELHO_URI}/documents/${pvDocumentId}/validate`,
         formData,
         defaultValidationErrorHandler,
     );
 };
 
-export async function importVelhoDocument(
+export async function importPVDocument(
     id: PVDocumentId,
     extraParameters?: ExtraInfraModelParameters,
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | null> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
-    const url = `${INFRAMODEL_URI}/velho-import/${id}`;
+    const url = `${PROJEKTIVELHO_URI}/documents/${id}`;
     const response = await postFormIgnoreError<GeometryPlanId>(url, formData);
     if (response) {
         Snackbar.success(i18n.t('infra-model.import.success'));
