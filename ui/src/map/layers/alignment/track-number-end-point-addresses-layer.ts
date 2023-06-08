@@ -98,7 +98,7 @@ function createFeature(
     );
 
     const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
-        const fontSize = 11;
+        const fontSize = 12;
         const lineWidth = 120;
         const textPadding = 3 * pixelRatio;
         const lineDash = [12, 6];
