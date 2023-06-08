@@ -12,7 +12,6 @@ jobs:
   runner-job:
     runs-on: ubuntu-latest
 
-
     steps:
     - name: Download repository on the runner
       uses: actions/checkout@v3
@@ -42,7 +41,7 @@ jobs:
         docker run -p 127.0.0.1:5436:5432 -e POSTGRES_DB=$POSTGRES_DB -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD --name geoviite-db gvt-postgres
         docker ps -a
         cd infra
-        POSTGRES_DB=geoviite POSTGRES_USER=dev-geouser POSTGRES_PASSWORD=dev-geouser-password DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
+        DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
       env:
         POSTGRES_PASSWORD: 'dev-geouser-password'
         POSTGRES_USER: 'dev-geouser'
