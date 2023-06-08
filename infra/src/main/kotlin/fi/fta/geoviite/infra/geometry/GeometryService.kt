@@ -271,26 +271,32 @@ class GeometryService @Autowired constructor(
     )
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val trackNumbersToGeocodingContexts = trackNumberService.listOfficial().map { tn ->
-            tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id)
-        }
+        val trackNumberAndGeocodingContextCache = trackNumberService.listOfficial().map { tn ->
+            tn.id to (tn to geocodingService.getGeocodingContext(OFFICIAL, tn.id))
+        }.toMap()
         val elementListing = locationTrackService.list(OFFICIAL, includeDeleted = false)
             .sortedBy { locationTrack -> locationTrack.name }
-            .sortedBy { locationTrack -> trackNumbersToGeocodingContexts
-                .find { (tn, _) -> tn.id == locationTrack.trackNumberId }?.first?.number }
+            .sortedBy { locationTrack -> trackNumberAndGeocodingContextCache.get(locationTrack.trackNumberId)?.first?.number }
             .flatMap { locationTrack ->
-                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId<LocationTrack>)
+                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(
+                    OFFICIAL,
+                    locationTrack.id as IntId<LocationTrack>
+                )
+                val geocodingContext = trackNumberAndGeocodingContextCache.get(locationTrack.trackNumberId)?.second
                 getElementListing(
                     locationTrack,
                     alignment,
-                    trackNumbersToGeocodingContexts.find { (tn, _) -> tn.id == locationTrack.trackNumberId }?.second
+                    geocodingContext
+
                 )
             }
         val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
-        elementListingFileDao.upsertElementListingFile(ElementListingFile(
-            name = FileName(ELEMENT_LISTING_ENTIRE_RAIL_NETWORK),
-            content = csvFileContent
-        ))
+        elementListingFileDao.upsertElementListingFile(
+            ElementListingFile(
+                name = FileName(ELEMENT_LISTING_ENTIRE_RAIL_NETWORK),
+                content = csvFileContent
+            )
+        )
     }
 
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
