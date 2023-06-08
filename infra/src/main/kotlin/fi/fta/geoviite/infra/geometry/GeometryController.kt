@@ -218,7 +218,7 @@ class GeometryController @Autowired constructor(
         val elementListingFile = geometryService.getElementListingCsv()
         return elementListingFile?.let {
             toFileDownloadResponse(
-                "${elementListingFile.name}.csv",
+                elementListingFile.name.withSuffix(CSV),
                 elementListingFile.content.toByteArray(Charsets.UTF_8)
             )
         }

@@ -1,6 +1,6 @@
 import React from 'react';
 import MapView from 'map/map-view';
-import { MapViewport, OptionalShownItems } from 'map/map-model';
+import { MapViewport } from 'map/map-model';
 import styles from './form/infra-model-form.module.scss';
 import InfraModelForm from 'infra-model/view/form/infra-model-form';
 import {
@@ -39,47 +39,6 @@ export type InfraModelBaseProps = InfraModelState & {
     onHighlightItems: OnHighlightItemsFunction;
     isLoading: boolean;
     onClose: () => void;
-    getGeometryElement: (geomElemId: GeometryElementId) => Promise<GeometryElement | null>;
-    getGeometrySwitch: (geomSwitchId: GeometrySwitchId) => Promise<GeometrySwitch | null>;
-    onCommitField: (fieldName: string) => void;
-    onShownLayerItemsChange: (items: OptionalShownItems) => void;
-};
-
-const xmlEncodingOptions: Item<XmlCharset>[] = [
-    { name: 'ISO-8859-1', value: 'ISO_8859_1' },
-    { name: 'UTF-8', value: 'UTF_8' },
-    { name: 'UTF-16', value: 'UTF_16' },
-    { name: 'US ASCII', value: 'US_ASCII' },
-];
-
-const getFormFile = (
-    file?: Blob,
-    extraParameters?: ExtraInfraModelParameters,
-    overrideParameters?: OverrideInfraModelParameters,
-) => {
-    const formData = new FormData();
-
-    if (file) {
-        formData.set('file', file);
-    }
-
-    if (overrideParameters) {
-        const jsonOverrideBlob = new Blob([JSON.stringify(overrideParameters)], {
-            type: 'application/json',
-        });
-
-        formData.set('override-parameters', jsonOverrideBlob);
-    }
-
-    if (extraParameters) {
-        const jsonExtraBlob = new Blob([JSON.stringify(extraParameters)], {
-            type: 'application/json',
-        });
-
-        formData.set('extrainfo-parameters', jsonExtraBlob);
-    }
-
-    return formData;
 };
 export type InfraModelViewProps = InfraModelBaseProps & {
     onSave: () => Promise<boolean>;
@@ -212,7 +171,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         changeTimes={props.changeTimes}
                         onHighlightItems={props.onHighlightItems}
                         onClickLocation={props.onClickLocation}
-                        onShownLayerItemsChange={props.onShownLayerItemsChange}
+                        onShownLayerItemsChange={() => undefined}
                     />
                 )}
                 {!showMap && <div className={styles['infra-model-upload__error-photo']} />}

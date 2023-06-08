@@ -1,18 +1,11 @@
-import { infraModelActionCreators } from '../infra-model-slice';
+import { infraModelActionCreators, InfraModelViewType } from '../infra-model-slice';
 import { createDelegates } from 'store/store-utils';
 import React from 'react';
 import { InfraModelEditLoader } from 'infra-model/view/infra-model-edit-loader';
 import { useCommonDataAppSelector, useInfraModelAppSelector } from 'store/hooks';
-import { InfraModelImportLoader } from './infra-model-import-loader';
-import { InfraModelUploadLoader } from './infra-model-upload-loader';
-import { InfraModelBaseProps } from './infra-model-view';
 import { useAppNavigate } from 'common/navigate';
-
-export enum InfraModelViewType {
-    UPLOAD,
-    IMPORT,
-    EDIT,
-}
+import { InfraModelImportLoader } from 'infra-model/view/infra-model-import-loader';
+import { InfraModelUploadLoader } from 'infra-model/view/infra-model-upload-loader';
 
 type InfraModelViewContainerProps = {
     viewType: InfraModelViewType;
@@ -22,7 +15,6 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
     viewType,
 }: InfraModelViewContainerProps) => {
     const navigate = useAppNavigate();
-
     const infraModelState = useInfraModelAppSelector((state) => state);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
@@ -30,9 +22,8 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
 
     const [isLoading, setLoading] = React.useState(false);
 
-    const generalProps: InfraModelBaseProps = {
+    const generalProps = {
         ...infraModelState,
-        onShownLayerItemsChange: () => undefined,
         onExtraParametersChange: delegates.onInfraModelExtraParametersChange,
         onOverrideParametersChange: delegates.onInfraModelOverrideParametersChange,
         onSelect: delegates.onSelect,
@@ -43,6 +34,7 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         isLoading: isLoading,
         onClose: () => navigate('inframodel-list'),
     };
+
     const loaderProps = {
         ...generalProps,
         setLoading: setLoading,

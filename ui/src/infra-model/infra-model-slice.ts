@@ -25,6 +25,7 @@ import { Prop } from 'utils/type-utils';
 
 export enum InfraModelViewType {
     UPLOAD,
+    IMPORT,
     EDIT,
 }
 
@@ -71,6 +72,11 @@ export type InfraModelParameters = ExtraInfraModelParameters & OverrideInfraMode
 export type InfraModelParametersProp = keyof InfraModelParameters;
 
 export type LocalizationKey = string;
+
+export type OnPlanValidated = {
+    plan: GeometryPlan | null;
+    planLayout: GeometryPlanLayout | null;
+};
 
 export type ErrorType =
     | 'REQUEST_ERROR'
