@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
+import fi.fta.geoviite.infra.util.toCsvDate
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.stream.Collectors
@@ -334,7 +335,7 @@ private val locationTrackCsvEntry =
 private val commonVerticalGeometryListingCsvEntries = arrayOf(
     CsvEntry<VerticalGeometryListing>(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.PLAN_NAME)) { it.fileName },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.CRS)) { it.coordinateSystemSrid ?: it.coordinateSystemName },
-    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.CREATION_DATE)) { it.creationTime },
+    CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.CREATION_DATE)) { it.creationTime?.let(::toCsvDate) },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.PLAN_TRACK)) { it.alignmentName },
     CsvEntry(translateVerticalGeometryListingHeader(VerticalGeometryListingHeader.TRACK_ADDRESS_START)) {
         it.start.address?.let { address ->

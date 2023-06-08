@@ -65,3 +65,5 @@ geoviite:
     result-poll:
       initial: "PT5M"
       rate: "PT15M"
+  rail-network-export:
+    schedule: "0 0 3 * * *"

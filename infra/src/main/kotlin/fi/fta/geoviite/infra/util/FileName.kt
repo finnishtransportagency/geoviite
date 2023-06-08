@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile
  */
 const val umlautsCanonicalDecomposition = "aäöåÄÖÅ"
 
-val fileNameRegex = Regex("^[\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+., /]+\$")
+val fileNameRegex = Regex("^[\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+., /()]+\$")
 val fileNameLength = 1..100
 
 enum class KnownFileSuffix {

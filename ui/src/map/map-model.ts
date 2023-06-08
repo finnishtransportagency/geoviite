@@ -116,7 +116,6 @@ export type Map = {
     visibleLayers: MapLayerName[];
     viewport: MapViewport;
     shownItems: ShownItems;
-    hoveredLocation: Point | null;
     clickLocation: Point | null;
     verticalGeometryDiagramVisible: boolean;
 };
