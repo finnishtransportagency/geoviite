@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import browser
-import fi.fta.geoviite.infra.ui.pagemodel.*
-import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import getElementWhenVisible
 import getElementsWhenVisible
 import org.openqa.selenium.By
@@ -38,7 +36,7 @@ class MapNavigationPanel {
 
     fun kmPosts(): List<TrackLayoutKmPost> {
         return try{
-            DynamicList(By.xpath("//ol[@class='km-posts-panel__km-posts']")).listElements()
+            getElementsWhenVisible(By.xpath("//ol[@class='km-posts-panel__km-posts']"))
                 .map { TrackLayoutKmPost(it) }.also { logger.info("KM posts $it") }
         } catch (ex: TimeoutException) {
             emptyList()
@@ -57,7 +55,7 @@ class MapNavigationPanel {
     fun referenceLines(): List<TrackLayoutAlignment> {
         //Wait until alignment panel exists then check if it contains alignments
         return try {
-            DynamicList(By.xpath("//ol[@qa-id='reference-lines-list']")).listElements()
+            getElementsWhenVisible(By.xpath("//ol[@qa-id='reference-lines-list']"))
                 .map { element -> TrackLayoutAlignment(element) }
                 .also { logger.info("Reference lines $it") }
         } catch (ex: TimeoutException) {
@@ -68,16 +66,15 @@ class MapNavigationPanel {
     fun selectLocationTrack(locationTrackName: String) {
         logger.info("Select location track $locationTrackName")
         val locationTracks = locationTracks()
-        val locationTrack =
-            locationTracks.find { trackLayoutAlignment -> trackLayoutAlignment.name() == locationTrackName }
-                ?: throw RuntimeException("Location track '$locationTrackName' not found! Available location tracks are: $locationTracks")
+        val locationTrack = locationTracks.find { track -> track.name() == locationTrackName }
+            ?: throw RuntimeException("Location track '$locationTrackName' not found! Available location tracks are: $locationTracks")
         locationTrack.select()
     }
 
     fun locationTracks(): List<TrackLayoutAlignment> {
         logger.info("Get all location tracks")
         return try {
-            DynamicList(By.xpath("//ol[@qa-id='location-tracks-list']")).listElements()
+            getElementsWhenVisible(By.xpath("//ol[@qa-id='location-tracks-list']"))
                 .map { element -> TrackLayoutAlignment(element) }
                 .also { logger.info("Location tracks $it") }
         } catch (ex: TimeoutException) {
@@ -89,11 +86,11 @@ class MapNavigationPanel {
     fun waitForLocationTrackNamesTo(namePredicate: (names: List<String>) -> Boolean) {
         logger.info("Wait for location track names")
         WebDriverWait(browser(), Duration.ofSeconds(5))
-            .until { _ ->
-                namePredicate(DynamicList(By.xpath("//ol[@qa-id='location-tracks-list']")).listElements()
+            .until { _ -> namePredicate(
+                getElementsWhenVisible(By.xpath("//ol[@qa-id='location-tracks-list']"))
                     .map { element -> TrackLayoutAlignment(element) }.also { logger.info("Location tracks $it") }
-                    .map { alignment -> alignment.name() })
-            }
+                    .map { alignment -> alignment.name() }
+            ) }
     }
 
     fun selectTrackLayoutSwitch(switchName: String) {
@@ -108,7 +105,7 @@ class MapNavigationPanel {
     fun switches(): List<TrackLayoutSwitch> {
         //Wait until switches panel exists then check if it contains alignments
         return try {
-            DynamicList(By.xpath("//ol[@class='switch-panel__switches']")).listElements()
+            getElementsWhenVisible(By.xpath("//ol[@class='switch-panel__switches']"))
                 .map { element -> TrackLayoutSwitch(element) }.also { logger.info("Switches $it") }
         } catch (ex: TimeoutException) {
             emptyList()
@@ -135,9 +132,5 @@ class MapNavigationPanel {
             logger.warn("No geometry plans found")
             emptyList()
         }
-    }
-
-    private class DynamicList(by: By): PageModel(by) {
-        fun listElements() = getChildElementsStaleSafe(By.tagName("li"))
     }
 }

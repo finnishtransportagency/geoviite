@@ -1,10 +1,11 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import clearInput
+import getChildWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-open class FormLayout(layoutRoot: By): PageModel(layoutRoot){
+open class FormLayout(getElement: () -> WebElement): PageModel(getElement){
 
     fun fieldValue(fieldLabel: String): String {
         logger.info("Get field $fieldLabel")
@@ -25,13 +26,14 @@ open class FormLayout(layoutRoot: By): PageModel(layoutRoot){
         input.sendKeys(newFieldValue)
     }
 
-    protected fun fieldValueElement(fieldLabel: String): WebElement =
-        getChildElementStaleSafe(
-            By.xpath(".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']"))
+    // TODO: use qa-ids to find fields
+    protected fun fieldValueElement(fieldLabel: String): WebElement = getChildWhenVisible(webElement, By.xpath(
+        ".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']"
+    ))
 
-    protected fun fieldValueInputElement(fieldLabel: String): WebElement =
-        getChildElementStaleSafe(
-            By.xpath(".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']//input"))
+    protected fun fieldValueInputElement(fieldLabel: String): WebElement = getChildWhenVisible(webElement, By.xpath(
+        ".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']//input"
+    ))
 
     fun changeFieldDropDownValue(fieldLabel: String, input: String) =
         changeFieldDropDownValues(fieldLabel, listOf(input))
@@ -39,7 +41,7 @@ open class FormLayout(layoutRoot: By): PageModel(layoutRoot){
     fun changeFieldDropDownValues(fieldLabel: String, inputs: List<String>) {
         logger.info("Change dropdown $fieldLabel to [$inputs]")
         inputs.forEachIndexed { index, input ->
-            val dropDown = DropDown(fieldValueElement(fieldLabel).findElements(By.cssSelector(".dropdown"))[index])
+            val dropDown = DropDown{ fieldValueElement(fieldLabel).findElements(By.cssSelector(".dropdown"))[index] }
             dropDown.openDropdown()
             dropDown.selectItem(input)
         }
@@ -47,7 +49,7 @@ open class FormLayout(layoutRoot: By): PageModel(layoutRoot){
 
     fun changeToNewDropDownValue(fieldLabel: String, inputs: List<String>) {
         logger.info("Create and change dropdown $fieldLabel to [$inputs]")
-        val dropDown = DropDown(fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")))
+        val dropDown = DropDown{ fieldValueElement(fieldLabel).findElement(By.cssSelector(".dropdown")) }
         dropDown.openDropdown()
         dropDown.clickAddNew()
         val dialogPopUp = DialogPopUpWithTextField()

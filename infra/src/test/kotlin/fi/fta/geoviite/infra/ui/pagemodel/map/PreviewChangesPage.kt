@@ -27,7 +27,7 @@ class PreviewChangesPage: PageModel(By.xpath("//div[@qa-id='preview-content']"))
             throw AssertionError("Following changes prevent publishing \n $errors")
         }
 
-        clickButton("Julkaise")
+        clickButtonByText("Julkaise")
 
         PreviewChangesSaveOrDiscardDialog().julkaise()
         return waitAndGetToasterElement()
@@ -82,6 +82,6 @@ class PreviewChangesSaveOrDiscardDialog: DialogPopUp() {
     }
 
     fun hylkaa() =
-        clickButton("Hylkää")
+        clickButtonByText("Hylkää")
 
 }

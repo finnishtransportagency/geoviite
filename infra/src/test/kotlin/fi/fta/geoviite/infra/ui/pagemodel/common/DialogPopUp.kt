@@ -1,47 +1,39 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import getChildWhenVisible
 import org.openqa.selenium.By
-import waitUntilElementIsClickable
+import org.openqa.selenium.WebElement
+import waitUntilDoesNotExist
 
 open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(by) {
 
-    val title = rootElement.findElement(By.className("dialog__title")).text
-    val contentElement = rootElement.findElement(By.className("dialog__content"))
+    private val titleElement: WebElement get() = getChildWhenVisible(webElement, By.className("dialog__title"))
+    private val contentElement: WebElement get() = getChildWhenVisible(webElement, By.className("dialog__content"))
+
+    val title: String get() = titleElement.text
+    val content: FormLayout get() = FormLayout { contentElement }
 
     init {
         logger.info("Title: $title \n Content: ${contentElement.text}")
     }
 
-    fun clickPrimaryButton() {
-        val button = rootElement.findElement(By.cssSelector("button.button--primary"))
-        logger.info("Click primary button ${button.text}")
-        waitUntilElementIsClickable(button)
-        button.click()
-    }
+    fun clickPrimaryButton() = clickButton(By.cssSelector("button.button--primary"))
 
-    fun clickPrimaryWarningButton() {
-        val button = rootElement.findElement(By.cssSelector("button.button--primary-warning"))
-        logger.info("Click primary warning button ${button.text}")
-        waitUntilElementIsClickable(button)
-        button.click()
-    }
+    fun clickPrimaryWarningButton() = clickButton(By.cssSelector("button.button--primary-warning"))
 
-    fun clickSecondaryButton() {
-        val button = rootElement.findElement(By.cssSelector("button.button--secondary"))
-        logger.info("Click secondary button")
-        waitUntilElementIsClickable(button)
-        button.click()
-    }
+    fun clickSecondaryButton() = clickButton(By.cssSelector("button.button--secondary"))
+
+    fun waitUntilClosed() = waitUntilDoesNotExist(webElement)
 }
 
 class DialogPopUpWithTextField : DialogPopUp() {
     fun inputTextField(input: String, textFieldIndx: Int = 0) =
-        rootElement.findElements(By.cssSelector("input.text-field__input-element"))[textFieldIndx].sendKeys(input)
+        webElement.findElements(By.cssSelector("input.text-field__input-element"))[textFieldIndx].sendKeys(input)
 
     fun inputTextField(inputs: List<String>) {
         logger.info("Input text fields [$inputs]")
         inputs.forEachIndexed { index, input ->
-            rootElement.findElements(By.cssSelector("input.text-field__input-element"))[index].sendKeys(input)
+            webElement.findElements(By.cssSelector("input.text-field__input-element"))[index].sendKeys(input)
         }
     }
 }

@@ -29,7 +29,7 @@ import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { PublishType, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
+import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { getLocationTracksBySearchTerm } from 'track-layout/layout-location-track-api';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
@@ -221,12 +221,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     />
                     <InfoboxField
                         label={t('tool-panel.location-track.track-number')}
-                        value={
-                            <TrackNumberLink
-                                trackNumberId={trackNumber?.id}
-                                publishType={publishType}
-                            />
-                        }
+                        value={<TrackNumberLinkContainer trackNumberId={trackNumber?.id} />}
                         onEdit={openEditLocationTrackDialog}
                         iconDisabled={isOfficial()}
                     />

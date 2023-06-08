@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapNavigationPanel
-import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapToolPanel
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.EAST_LT_NAME
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACKNUMBER_1
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.Assertions.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
 
@@ -43,10 +41,8 @@ class BasicMapTestUI @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
-    jdbcTemplate: NamedParameterJdbcTemplate,
     @Value("\${geoviite.e2e.url}") private val url: String,
-) : SeleniumTest(jdbcTemplate) {
-    lateinit var mapPage: MapPage
+) : SeleniumTest() {
     val navigationPanel: MapNavigationPanel = MapNavigationPanel()
     val toolPanel: MapToolPanel = MapToolPanel()
 
@@ -56,7 +52,7 @@ class BasicMapTestUI @Autowired constructor(
     lateinit var EAST_LAYOUT_SWITCH: TrackLayoutSwitch
     lateinit var TRACK_NUMBER_WEST: TrackLayoutTrackNumber
 
-    @BeforeAll
+    @BeforeEach
     fun createTestData() {
         clearAllTestData()
 
@@ -87,12 +83,13 @@ class BasicMapTestUI @Autowired constructor(
         GEOMETRY_PLAN = geometryDao.fetchPlan(
             (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile(), null)))
 
-    }
-
-    @BeforeEach
-    fun goToMapPage() {
-        openBrowser()
-        mapPage = openGeoviite(url).navigationBar().kartta()
+//    }
+//
+//    @BeforeEach
+//    fun goToMapPage() {
+        // TODO: Remove this block: if the test needs to be somewhere in the beginning, it should go there itself
+        startGeoviite()
+        goToMap()
         navigationPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation().kohdistaKartalla()
     }
@@ -102,11 +99,11 @@ class BasicMapTestUI @Autowired constructor(
     fun launchBrowserForDebug() {}
 
     @Test
-    fun `edit and discard location track changes`() {
+    fun `Edit and discard location track changes`() {
         val locationTrackToBeEdited = EAST_LT_NAME
 
         navigationPanel.selectLocationTrack(locationTrackToBeEdited)
-        mapPage.luonnostila()
+        goToMap().luonnostila()
         val infobox = toolPanel.locationTrackGeneralInfo()
         val orgTunniste = infobox.tunniste()
         val orgTila = infobox.tila()
@@ -132,7 +129,7 @@ class BasicMapTestUI @Autowired constructor(
         assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.kuvaus())
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
-        val previewChangesPage = mapPage.esikatselu()
+        val previewChangesPage = goToMap().esikatselu()
         val changePreviewTable = previewChangesPage.changesTable()
         assertTrue(changePreviewTable.changeRows().isNotEmpty())
 
@@ -158,11 +155,11 @@ class BasicMapTestUI @Autowired constructor(
     }
 
     @Test
-    fun `edit and save location track changes`() {
+    fun `Edit and save location track changes`() {
         val locationTrackToBeEdited = WEST_LT_NAME
 
         navigationPanel.selectLocationTrack(locationTrackToBeEdited)
-        mapPage.luonnostila()
+        goToMap().luonnostila()
         val infobox = toolPanel.locationTrackGeneralInfo()
         val orgTunniste = infobox.tunniste()
         val orgTila = infobox.tila()
@@ -188,7 +185,7 @@ class BasicMapTestUI @Autowired constructor(
         assertNotEquals(orgKuvaus, infoboxAfterFirstEdit.kuvaus())
         //TBD assertNotEquals(orgRatanumero, infoboxAfterFirstEdit.ratanumero())
 
-        val previewChangesPage = mapPage.esikatselu()
+        val previewChangesPage = goToMap().esikatselu()
         val changePreviewTable = previewChangesPage.changesTable()
         assertTrue(changePreviewTable.changeRows().isNotEmpty())
 
@@ -217,8 +214,8 @@ class BasicMapTestUI @Autowired constructor(
         referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
     }
 
-    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) {
-        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
-        locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion))
-    }
+//    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) {
+//        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
+//        locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+//    }
 }

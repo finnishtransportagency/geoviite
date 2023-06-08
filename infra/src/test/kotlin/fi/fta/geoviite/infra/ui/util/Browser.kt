@@ -1,4 +1,3 @@
-import fi.fta.geoviite.infra.ui.pagemodel.common.SCREENSHOTS_PATH
 import io.github.bonigarcia.wdm.WebDriverManager
 import org.apache.commons.io.FileUtils
 import org.json.JSONObject
@@ -18,7 +17,9 @@ import org.openqa.selenium.logging.LoggingPreferences
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.time.Duration
 import java.time.Instant
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 
@@ -37,6 +38,7 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
     options.addArguments("--remote-allow-origins=*")
 
     //if (!headless) chromeOptions.addArguments("--auto-open-devtools-for-tabs")
+    if (DEV_DEBUG) options.setExperimentalOption("detach", true)
 
     val logPrefs = LoggingPreferences()
     logPrefs.enable(LogType.BROWSER, Level.ALL)
@@ -74,6 +76,28 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     }
 }
 
+const val DEV_DEBUG = false
+fun openBrowser() {
+    val headless = !DEV_DEBUG
+    logger.info("Initializing webdriver")
+    //when (System.getProperty("browser.name")) {
+    //    "chrome" -> PageModel.setBrowser(openChromeBrowser(headless))
+    //    "firefox" -> PageModel.setBrowser(openFireFox(headless))
+    //    else -> {
+    //        //PageModel.setBrowser(openChromeBrowser(headless))
+    //        PageModel.setBrowser(openFireFox(headless))
+    //    }
+    //}
+
+//        openFirefox(headless)
+    openChrome(headless)
+    logger.info("Webdriver initialized")
+
+    browser().manage().timeouts().implicitlyWait(Duration.ofSeconds(1))
+    logger.info("Browser window size : ${browser().manage().window().size}")
+    logger.info("Timezone: ${TimeZone.getDefault().id}")
+}
+
 fun openChrome(headless: Boolean) = setBrowser { createChromeDriver(headless) }
 
 fun openFirefox(headless: Boolean) = setBrowser { createFirefoxDriver(headless) }
@@ -85,6 +109,8 @@ fun browser() = requireNotNull(webDriver.get()) {
 }
 
 fun javaScriptExecutor(): JavascriptExecutor = browser() as JavascriptExecutor
+
+const val SCREENSHOTS_PATH = "build/reports/screenshots"
 
 fun takeScreenShot(targetFilePrefix: String) = try {
     val screenShotDir = File(SCREENSHOTS_PATH)

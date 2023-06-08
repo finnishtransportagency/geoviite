@@ -15,25 +15,28 @@ import java.time.LocalDateTime
 
 
 class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
-    private val header = getChildElementStaleSafe(By.xpath("//table/thead/tr"))
+    private val headerElement: WebElement get() = childElement(By.xpath("//table/thead/tr"))
 
-    fun rowElements(): List<WebElement> {
-        try {
-            return getChildElementsStaleSafe(By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"), Duration.ofSeconds(2) )
-
-        } catch (ex: TimeoutException) {
-            return emptyList()
-        }
+    private fun rowElements(): List<WebElement> = try {
+        childElements(
+            By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"),
+            Duration.ofSeconds(2),
+        )
+    } catch (ex: TimeoutException) {
+        emptyList()
     }
 
+    // TODO: These list elements hold a reference to the WebElement, risking staleness
+    //  See PublicationList for an example on how to handle lists
+    //  In general: the list object should handle actions and row data can be given out as immutable data classes that don't know the WebElement
     fun infraModelRows(): List<InfraModelRow> {
         logger.info("Get Infra Model rows")
-        return rowElements().map { rowElement -> InfraModelRow(header.findElements(By.tagName("th")).map {it.text}, rowElement) }
+        return rowElements().map { rowElement -> InfraModelRow(headerElement.findElements(By.tagName("th")).map {it.text}, rowElement) }
     }
 
     fun sortBy(colName: String) {
         logger.info("Select column $colName")
-        header.findElement(By.xpath(".//*[text() = '$colName']")).click()
+        headerElement.findElement(By.xpath(".//*[text() = '$colName']")).click()
     }
 }
 
@@ -116,6 +119,6 @@ class LokiJaLinkitystiedotFormGroup(by: By) : FormGroup(by) {
 
 class ConfirmDialog(): DialogPopUp() {
     fun tallenna() {
-        clickButton("Tallenna")
+        clickButtonByText("Tallenna")
     }
 }

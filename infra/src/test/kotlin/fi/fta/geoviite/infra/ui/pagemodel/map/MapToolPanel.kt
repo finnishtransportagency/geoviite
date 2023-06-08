@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import fi.fta.geoviite.infra.ui.pagemodel.common.InfoBox
 import getElementWhenClickable
 import org.openqa.selenium.By
 import org.slf4j.Logger
@@ -13,62 +14,45 @@ class MapToolPanel {
         getElementWhenClickable(selectBy).click()
     }
 
-    fun layoutKmPostGeneral(): LayoutKmPostGeneralInfoBox =
-        LayoutKmPostGeneralInfoBox(By.xpath("//div[@qa-id='km-post-infobox']"))
+    fun layoutKmPostGeneral() = infoBox("km-post-infobox", ::LayoutKmPostGeneralInfoBox)
 
-    fun layoutKmPostLocation(): LayoutKmPostLocationInfoBox =
-        LayoutKmPostLocationInfoBox(By.xpath("//div[@qa-id='layout-km-post-location-infobox']"))
+    fun layoutKmPostLocation() = infoBox("layout-km-post-location-infobox", ::LayoutKmPostLocationInfoBox)
 
-    fun trackNumberGeneralInfo(): TrackNumberGeneralInfoBox =
-        TrackNumberGeneralInfoBox(By.xpath("//div[@qa-id='track-number-infobox']"))
+    fun trackNumberGeneralInfo() = infoBox("track-number-infobox", ::TrackNumberGeneralInfoBox)
 
-    fun referenceLineLocation(): ReferenceLineLocationInfoBox =
-        ReferenceLineLocationInfoBox(By.xpath("//div[@qa-id='reference-line-location-infobox']"))
+    fun referenceLineLocation() = infoBox("reference-line-location-infobox", ::ReferenceLineLocationInfoBox)
 
-    fun locationTrackGeneralInfo(): LocationTrackGeneralInfoBox =
-        LocationTrackGeneralInfoBox(By.xpath("//div[@qa-id='location-track-infobox']"))
+    fun locationTrackGeneralInfo() = infoBox("location-track-infobox", ::LocationTrackGeneralInfoBox)
 
-    fun locationTrackLocation(): LocationTrackLocationInfobox =
-        LocationTrackLocationInfobox(By.xpath("//div[@qa-id='location-track-location-infobox']"))
+    fun locationTrackLocation() = infoBox("location-track-location-infobox", ::LocationTrackLocationInfobox)
 
-    fun locationTrackLog(): LocationTrackLogInfoBox =
-        LocationTrackLogInfoBox(By.xpath("//div[@qa-id='location-track-log-infobox']"))
+    fun locationTrackLog() = infoBox("location-track-log-infobox", ::LocationTrackLogInfoBox)
 
     //re-used old qa-id so don't worry
-    fun trackNumberLog(): TrackNumberLogInfoBox =
-        TrackNumberLogInfoBox(By.xpath("//div[@qa-id='track-number-log-infobox']"))
+    fun trackNumberLog() = infoBox("track-number-log-infobox", ::TrackNumberLogInfoBox)
 
-    fun layoutSwitchGeneralInfo(): LayoutSwitchGeneralInfoBox =
-        LayoutSwitchGeneralInfoBox(By.xpath("//div[@qa-id='switch-infobox']"))
+    fun layoutSwitchGeneralInfo() = infoBox("switch-infobox", ::LayoutSwitchGeneralInfoBox)
 
-    fun layoutSwitchStructureGeneralInfo(): SwitchStructureGeneralInfoBox =
-        SwitchStructureGeneralInfoBox(By.xpath("//div[@qa-id='switch-structure-infobox']"))
+    fun layoutSwitchStructureGeneralInfo() = infoBox("switch-structure-infobox", ::SwitchStructureGeneralInfoBox)
 
-    fun layoutSwitchLocation(): SwitchCoordinatesInfoBox =
-        SwitchCoordinatesInfoBox(By.xpath("//div[@qa-id='switch-location-infobox']"))
+    fun layoutSwitchLocation() = infoBox("switch-location-infobox", ::SwitchCoordinatesInfoBox)
 
-    fun layoutSwitchAdditionalInfo(): LayoutSwitchAdditionalInfoInfoBox =
-        LayoutSwitchAdditionalInfoInfoBox(By.xpath("//div[@qa-id='switch-additional-infobox']"))
+    fun layoutSwitchAdditionalInfo() = infoBox("switch-additional-infobox", ::LayoutSwitchAdditionalInfoInfoBox)
 
-    fun geometryAlignmentGeneral(): GeometryAlignmentGeneralInfoBox =
-        GeometryAlignmentGeneralInfoBox(By.xpath("//div[@qa-id='geometry-alignment-infobox']"))
+    fun geometryAlignmentGeneral() = infoBox("geometry-alignment-infobox", ::GeometryAlignmentGeneralInfoBox)
 
-    fun geometryAlignmentLinking(): GeometryAlignmentLinkingInfoBox =
-        GeometryAlignmentLinkingInfoBox(By.xpath("//div[@qa-id='geometry-alignment-linking-infobox']"))
+    fun geometryAlignmentLinking() = infoBox("geometry-alignment-linking-infobox", ::GeometryAlignmentLinkingInfoBox)
 
-    fun geometryKmPostLinking(): GeometryKmPostLinkingInfoBox =
-        GeometryKmPostLinkingInfoBox(By.xpath("//div[@qa-id='geometry-km-post-linking-infobox']"))
+    fun geometryKmPostLinking() = infoBox("geometry-km-post-linking-infobox", ::GeometryKmPostLinkingInfoBox)
 
-    fun geometrySwitchGeneral(): GeometrySwitchGeneralInfoBox =
-        GeometrySwitchGeneralInfoBox(By.xpath("//div[@qa-id='geometry-switch-infobox']"))
+    fun geometrySwitchGeneral() = infoBox("geometry-switch-infobox", ::GeometrySwitchGeneralInfoBox)
 
-    fun geometrySwitchLinking(): GeometrySwitchLinkingInfoBox =
-        GeometrySwitchLinkingInfoBox(By.xpath("//div[@qa-id='geometry-switch-linking-infobox']"))
+    fun geometrySwitchLinking() = infoBox("geometry-switch-linking-infobox", ::GeometrySwitchLinkingInfoBox)
 
-    fun geometryPlanGeneral(): GeometryPlanGeneralInfoBox =
-        GeometryPlanGeneralInfoBox(By.xpath("//div[@qa-id='geometry-plan-general-infobox']"))
+    fun geometryPlanGeneral() = infoBox("geometry-plan-general-infobox", ::GeometryPlanGeneralInfoBox)
 
-    fun geometryPlanQuality(): GeometryPlanQualityInfobox =
-        GeometryPlanQualityInfobox(By.xpath("//div[@qa-id='geometry-plan-quality-infobox']"))
+    fun geometryPlanQuality() = infoBox("geometry-plan-quality-infobox", ::GeometryPlanQualityInfobox)
 
+    private fun <T: InfoBox> infoBox(qaId: String, creator: (by: By) -> T) =
+        creator(By.xpath("//div[@qa-id='$qaId']")).also { b -> b.waitUntilLoaded() }
 }

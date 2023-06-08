@@ -13,7 +13,7 @@ import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-de
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getKmPost } from 'track-layout/layout-km-post-api';
 import { useLoader } from 'utils/react-utils';
-import { TrackNumberLink } from 'geoviite-design-lib/track-number/track-number-link';
+import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { KmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
 
@@ -94,9 +94,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.track-number')}
                         value={
-                            <TrackNumberLink
+                            <TrackNumberLinkContainer
                                 trackNumberId={updatedKmPost?.trackNumberId}
-                                publishType={publishType}
                             />
                         }
                     />

@@ -13,7 +13,7 @@ class InfraModelUploadAndEditForm: PageModel(By.className("infra-model-upload__f
     fun tallenna() {
         val projectName = projektinTiedot().nimi()
 
-        clickButton("Tallenna")
+        clickButtonByText("Tallenna")
         confirmSaving()
         logger.info("Saving infra model to database...")
 
@@ -22,7 +22,7 @@ class InfraModelUploadAndEditForm: PageModel(By.className("infra-model-upload__f
     }
 
     fun tallennaMuutokset() {
-        clickButton("Tallenna muutokset")
+        clickButtonByText("Tallenna muutokset")
         confirmSaving()
     }
 

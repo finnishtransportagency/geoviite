@@ -1,26 +1,34 @@
-package fi.fta.geoviite.infra.ui.pagemodel
+package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import browser
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
+import getChildWhenVisible
 import org.openqa.selenium.By
 
-class MainNavigationBar {
+enum class NavBarLink(val text: String) {
+    FRONT_PAGE("Etusivu"),
+    MAP("Kartta"),
+    INFRAMODEL("InfraModel"),
+}
 
-    fun kartta(): MapPage {
-        browser().findElement(By.ByLinkText("Kartta")).click()
+class MainNavigationBar: PageModel(By.className("app-bar")) {
+
+    // TODO: Change these to qa-id instead of localized link text
+    fun clickLink(to: NavBarLink) = getChildWhenVisible(webElement, By.ByLinkText(to.text)).click()
+
+    fun goToMap(): MapPage {
+        clickLink(NavBarLink.MAP)
         return MapPage()
     }
 
-    fun inframodel(): InfraModelPage {
-        browser().findElement(By.ByLinkText("InfraModel")).click()
+    fun goToInfraModel(): InfraModelPage {
+        clickLink(NavBarLink.INFRAMODEL)
         return InfraModelPage()
     }
 
-    fun etusivu(): FrontPage {
-        browser().findElement(By.linkText("Etusivu")).click()
+    fun goToFrontPage(): FrontPage {
+        clickLink(NavBarLink.FRONT_PAGE)
         return FrontPage()
     }
-
 }

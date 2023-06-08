@@ -1,14 +1,17 @@
-package fi.fta.geoviite.infra.ui.pagemodel
+package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.findByXpath
 import fi.fta.geoviite.infra.findMandatoryByXpath
 import fi.fta.geoviite.infra.ui.pagemodel.common.Accordion
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.NoSuchElementException
 
+// TODO: These list elements hold a reference to the WebElement, risking staleness
+//  See PublicationList for an example on how to handle lists
+//  In general: the list object should handle actions and row data can be given out as immutable data classes that don't know the WebElement
+//  If these elements need activity of their own, you'll need them to be findable so that the element reference can be a dynamic fetch
+@Deprecated("Element risks staleness")
 abstract class TrackLayoutElement(val element: WebElement) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -30,6 +33,7 @@ abstract class TrackLayoutElement(val element: WebElement) {
 
 }
 
+// TODO: These elements don't hold a WebElement reference, so they work. However they should be refactored as data classes
 class TrackLayoutSwitch(element: WebElement): TrackLayoutElement(element) {
     override fun name(): String = element.findMandatoryByXpath("./span/span", "name").text
     override fun toString(): String = name()

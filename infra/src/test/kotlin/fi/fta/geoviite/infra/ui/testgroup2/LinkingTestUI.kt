@@ -11,8 +11,10 @@ import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.pagemodel.frontpage.PublicationDetailRow
+import fi.fta.geoviite.infra.ui.pagemodel.frontpage.PublicationDetailRowContent
 import fi.fta.geoviite.infra.ui.pagemodel.map.*
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLayoutSwitchDialog.Tilakategoria
 import fi.fta.geoviite.infra.ui.pagemodel.map.CreateEditLocationTrackDialog.RaideTyyppi
@@ -39,7 +41,6 @@ import org.openqa.selenium.TimeoutException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -58,9 +59,8 @@ class LinkingTestUI @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
-    jdbcTemplate: NamedParameterJdbcTemplate,
     @Value("\${geoviite.e2e.url}") private val url: String,
-) : SeleniumTest(jdbcTemplate) {
+) : SeleniumTest() {
     lateinit var mapPage: MapPage
     val navigationPanel: MapNavigationPanel = MapNavigationPanel()
     val toolPanel: MapToolPanel = MapToolPanel()
@@ -140,8 +140,8 @@ class LinkingTestUI @Autowired constructor(
         insertLocationTrack(LOCATION_TRACK_B)
         insertLocationTrack(LOCATION_TRACK_D_1)
         insertLocationTrack(LOCATION_TRACK_D_2)
-        LOCATION_TRACK_E_ID = insertLocationTrack(LOCATION_TRACK_E)
-        LOCATION_TRACK_F_ID = insertLocationTrack(LOCATION_TRACK_F)
+        LOCATION_TRACK_E_ID = insertLocationTrack(LOCATION_TRACK_E).id
+        LOCATION_TRACK_F_ID = insertLocationTrack(LOCATION_TRACK_F).id
         insertLocationTrack(LOCATION_TRACK_G)
         insertLocationTrack(LOCATION_TRACK_H)
         insertLocationTrack(LOCATION_TRACK_J)
@@ -160,9 +160,9 @@ class LinkingTestUI @Autowired constructor(
     @BeforeEach
     fun goToMapPage() {
         clearDrafts()
-        openBrowser()
+//        openBrowser()
 
-        mapPage = openGeoviite(url).navigationBar().kartta()
+        mapPage = goToMap()
         mapPage.luonnostila()
         val previewChangesPage = mapPage.esikatselu()
 
@@ -846,10 +846,10 @@ class LinkingTestUI @Autowired constructor(
         return referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
     }
 
-    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>): IntId<LocationTrack> {
-        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
-        return locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
-    }
+//    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>): IntId<LocationTrack> {
+//        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
+//        return locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion)).id
+//    }
 
     fun getLocationTrackAndAlignment(publishType: PublishType, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         return when (publishType) {
@@ -866,14 +866,14 @@ class LinkingTestUI @Autowired constructor(
         }
     }
 
-    private fun latestPublicationDetails(): List<PublicationDetailRow> =
+    private fun latestPublicationDetails(): List<PublicationDetailRowContent> =
         mapPage.mainNavigation
-            .etusivu()
+            .goToFrontPage()
             .openLatestPublication()
-            .publicationDetails()
+            .detailRowContents()
 
     private fun assertThatLatestPublicationDetailsIncludeMuutoskohde(vararg muutoskohde: String) =
-        assertThat(latestPublicationDetails()).anyMatch{ muutoskohde.toList().contains(it.muutoskohde())}
+        assertThat(latestPublicationDetails()).anyMatch{ muutoskohde.toList().contains(it.muutoskohde)}
 
     private fun getGeometryAlignmentFromPlan(alignmentName: String) =
         GEOMETRY_PLAN.alignments.find { alignment -> alignment.name.toString() == alignmentName }!!

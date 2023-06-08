@@ -353,9 +353,10 @@ export const Dropdown = function <TItemValue>({
                         disabled={props.disabled}
                         value={searchTerm}
                         onChange={(e) => handleInputChange(e.target.value)}
+                        placeholder={selectedName}
                     />
                     {!searchTerm && (
-                        <div className={styles['dropwdown__current-value']}>
+                        <div className={styles['dropdown__current-value']}>
                             <span>{selectedName}</span>
                         </div>
                     )}
@@ -410,6 +411,7 @@ export const Dropdown = function <TItemValue>({
                         {searchTerm && !isLoading && filteredOptions.length == 0 && (
                             <li
                                 title="Ei vaihtoehtoja"
+                                qa-id={`${qaId}-no-options`}
                                 className={createClassName(
                                     styles['dropdown__list-item'],
                                     styles['dropdown__list-item--no-options'],
@@ -420,6 +422,7 @@ export const Dropdown = function <TItemValue>({
                         {isLoading && filteredOptions.length == 0 && (
                             <li
                                 title="Ladataan"
+                                qa-id={`${qaId}-loading`}
                                 className={createClassName(
                                     styles['dropdown__list-item'],
                                     styles['dropdown__list-item--loading'],
