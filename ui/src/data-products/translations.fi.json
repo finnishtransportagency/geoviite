@@ -30,8 +30,6 @@
             "entire-rail-network-legend": "Koko rataverkon geometria on luettelo kaikkien raiteiden kaikista geometriaelementeistä. Tämä elementtiluettelo ei täysin vastaa sitä suunnitelmakokonaisuutta, jonka mukaan raiteet on rakennettu, joten luettelon tietoja on syytä pitää  epäluotettavina. Luettelon tietoja voi käyttää esim. kokonaiskuvan hahmottamiseen tai ongelmien selvittämiseen, mutta niitä ei pidä käyttää esim. tukemistyön lähtötietona.",
             "entire-rail-network-length-warning": "Koska koko rataverkon aineisto on laaja, se tuotetaan vain kerran vuorokaudessa.",
             "geometry-elements": "Geometriaelementit ({{amount}} kpl)",
-            "creating-file": "Luodaan tiedostoa",
-            "long-operation": "Tämä toimenpide voi kestää useita minuutteja.",
             "pcs": "kpl",
             "element-list-table": {
                 "location-track": "Sijaintiraide",

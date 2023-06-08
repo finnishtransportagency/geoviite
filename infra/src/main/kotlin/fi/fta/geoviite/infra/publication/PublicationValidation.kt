@@ -107,15 +107,12 @@ fun validateSwitchLocationTrackLinkReferences(
     switch: TrackLayoutSwitch,
     locationTracks: List<LocationTrack>,
     publishLocationTrackIds: List<IntId<LocationTrack>>,
-): List<PublishValidationError> = listOfNotNull(
-    locationTracks
-        .filterNot { track -> isPublished(track, publishLocationTrackIds) }
-        .let { unpublishedTracks ->
-            validateWithParams(unpublishedTracks.isEmpty()) {
-                val unpublishedNames = unpublishedTracks.joinToString(", ") { track -> track.name }
-                "$VALIDATION_SWITCH.location-track.not-published" to listOf(unpublishedNames)
-            }
-        },
+) = locationTracks
+    .mapNotNull { locationTrack ->
+        validateWithParams(isPublished(locationTrack, publishLocationTrackIds)) {
+            "$VALIDATION_SWITCH.location-track.not-published" to listOf(locationTrack.name.toString())
+        }
+    } + listOfNotNull(
     locationTracks
         .filter(LocationTrack::exists)
         .let { existingTracks ->
@@ -123,7 +120,7 @@ fun validateSwitchLocationTrackLinkReferences(
                 val existingNames = existingTracks.joinToString(", ") { track -> track.name }
                 "$VALIDATION_SWITCH.location-track.reference-deleted" to listOf(existingNames)
             }
-        },
+        }
 )
 
 fun validateSwitchLocationTrackLinkStructure(
@@ -255,12 +252,6 @@ data class SegmentSwitch(
     val switchStructure: SwitchStructure,
     val segments: List<LayoutSegment>,
 )
-
-fun validateSwitchLocationTrackReferences(locationTracks: List<LocationTrack>) = locationTracks.mapNotNull { l ->
-    validateWithParams(l.draft == null) {
-        "$VALIDATION_SWITCH.location-track.not-published" to listOf(l.name.toString())
-    }
-}
 
 fun validateSegmentSwitchReferences(
     locationTrack: LocationTrack,
