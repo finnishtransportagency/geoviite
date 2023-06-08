@@ -95,7 +95,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             setPlanHeadersInView(page.items);
             setPlanHeaderCount(page.totalCount);
         });
-    }, [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers]);
+    }, [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers.sort().join('')]);
 
     React.useEffect(
         () => [...loadedPlans.keys()].forEach(loadPlanLayout),

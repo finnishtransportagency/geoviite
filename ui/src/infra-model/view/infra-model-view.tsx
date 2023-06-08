@@ -1,6 +1,6 @@
 import React from 'react';
 import MapView from 'map/map-view';
-import { MapViewport } from 'map/map-model';
+import { MapViewport, OptionalShownItems } from 'map/map-model';
 import styles from './form/infra-model-form.module.scss';
 import {
     EMPTY_VALIDATION_RESPONSE,
@@ -30,7 +30,6 @@ import {
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
-    OnHoverLocationFunction,
     OnSelectFunction,
 } from 'selection/selection-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -63,7 +62,6 @@ export type InfraModelViewProps = InfraModelState & {
     onPlanUpdate: () => void;
     onPlanFetchReady: (plan: OnPlanFetchReady) => void;
     onViewportChange: (viewport: MapViewport) => void;
-    onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
@@ -71,6 +69,7 @@ export type InfraModelViewProps = InfraModelState & {
     getGeometryElement: (geomElemId: GeometryElementId) => Promise<GeometryElement | null>;
     getGeometrySwitch: (geomSwitchId: GeometrySwitchId) => Promise<GeometrySwitch | null>;
     onCommitField: (fieldName: string) => void;
+    onShownLayerItemsChange: (items: OptionalShownItems) => void;
 };
 
 const xmlEncodingOptions: Item<XmlCharset>[] = [
@@ -362,9 +361,8 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         onSelect={props.onSelect}
                         changeTimes={props.changeTimes}
                         onHighlightItems={props.onHighlightItems}
-                        onHoverLocation={props.onHoverLocation}
                         onClickLocation={props.onClickLocation}
-                        onShownLayerItemsChange={() => undefined}
+                        onShownLayerItemsChange={props.onShownLayerItemsChange}
                     />
                 )}
                 {!showMap && <div className={styles['infra-model-upload__error-photo']} />}

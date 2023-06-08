@@ -3,7 +3,6 @@ import OlMap from 'ol/Map';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
-    OnHoverLocationFunction,
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
@@ -63,6 +62,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/alignment/track-number-end-point-addresses-layer';
+import { Point } from 'model/geometry';
 
 declare global {
     interface Window {
@@ -78,7 +78,6 @@ type MapViewProps = {
     onSelect: OnSelectFunction;
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
-    onHoverLocation: OnHoverLocationFunction;
     onClickLocation: OnClickLocationFunction;
     onViewportUpdate?: (viewport: MapViewport) => void;
     onShownLayerItemsChange: (items: OptionalShownItems) => void;
@@ -141,6 +140,7 @@ const MapView: React.FC<MapViewProps> = ({
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
+    const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
 
     const mapLayers = [...map.visibleLayers].sort().join();
 
@@ -479,7 +479,7 @@ const MapView: React.FC<MapViewProps> = ({
         const toolActivateOptions: MapToolActivateOptions = {
             onSelect: onSelect,
             onHighlightItems: props.onHighlightItems,
-            onHoverLocation: props.onHoverLocation,
+            onHoverLocation: (p) => setHoveredLocation(p),
             onClickLocation: props.onClickLocation,
         };
 
@@ -559,7 +559,7 @@ const MapView: React.FC<MapViewProps> = ({
                 )}
             </div>
 
-            <LocationHolderView hoveredCoordinate={map.hoveredLocation} />
+            <LocationHolderView hoveredCoordinate={hoveredLocation} />
         </div>
     );
 };

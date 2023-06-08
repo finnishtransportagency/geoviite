@@ -9,6 +9,7 @@ import java.time.Duration
 enum class DatabaseLock {
     PUBLICATION,
     RATKO,
+    ELEMENT_LIST_GEN,
 }
 
 /**

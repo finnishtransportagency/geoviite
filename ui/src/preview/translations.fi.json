@@ -178,7 +178,7 @@
                 },
                 "location-track": {
                     "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen poistamattomia raiteita: {{0}}",
-                    "not-published": "Vaihteen kaikki sijaintiraiteet eivät ole julkaistuja: {{0}}",
+                    "not-published": "Vaihteeseen liittyvä sijaintiraide ei ole mukana julkaisussa: {{0}}",
                     "not-continuous": "Sama raide ({{0}}) on kytketty vaihteeseen eri kohdista",
                     "joint-location-mismatch": "Vaihteen ja sijaintiraiteen vaihdepisteiden sijainnit eivät kohtaa: {{0}}",
                     "wrong-joint-sequence": "Kaikki vaihteeseen kytketyt raiteet ({{0}}) eivät vastaa vaihderakenteen linjoja",

@@ -452,16 +452,16 @@ export const kmLengthsSearchSlice = createSlice({
     },
 });
 
-type SelectedSearch = 'PLAN' | 'LOCATION_TRACK';
+export type SelectedGeometrySearch = 'PLAN' | 'LOCATION_TRACK' | 'ENTIRE_RAIL_NETWORK';
 
 export type DataProductsState = {
     elementList: {
-        selectedSearch: SelectedSearch;
+        selectedSearch: SelectedGeometrySearch;
         planSearch: PlanGeometrySearchState;
         locationTrackSearch: ElementListContinuousGeometrySearchState;
     };
     verticalGeometry: {
-        selectedSearch: SelectedSearch;
+        selectedSearch: SelectedGeometrySearch;
         planSearch: PlanVerticalGeometrySearchState;
         locationTrackSearch: LocationTrackVerticalGeometrySearchState;
     };
@@ -488,13 +488,13 @@ const dataProductsSlice = createSlice({
     reducers: {
         setSelectedElementListSearch: function (
             state: DataProductsState,
-            { payload: search }: PayloadAction<SelectedSearch>,
+            { payload: search }: PayloadAction<SelectedGeometrySearch>,
         ) {
             state.elementList.selectedSearch = search;
         },
         setSelectedVerticalGeometrySearch: function (
             state: DataProductsState,
-            { payload: search }: PayloadAction<SelectedSearch>,
+            { payload: search }: PayloadAction<SelectedGeometrySearch>,
         ) {
             state.verticalGeometry.selectedSearch = search;
         },

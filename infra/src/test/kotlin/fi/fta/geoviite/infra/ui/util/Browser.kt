@@ -162,7 +162,7 @@ private fun filter(logEntries: List<LogEntry>, regex: Regex): List<LogEntry> {
     return logEntries.filter { logEntry -> logEntry.message.matches(regex) }
 }
 
-private fun hasEntryLeve(logEntries: List<LogEntry>, level: Level): Boolean {
+private fun hasEntryLevel(logEntries: List<LogEntry>, level: Level): Boolean {
     val filtered = logEntries.filter { logEntry -> logEntry.level.equals(level) }
     return filtered.size > 0;
 }

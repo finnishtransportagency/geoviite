@@ -110,7 +110,6 @@ export const initialMapState: Map = {
         },
         resolution: 20,
     },
-    hoveredLocation: null,
     clickLocation: null,
     verticalGeometryDiagramVisible: false,
 };
@@ -184,9 +183,6 @@ export const mapReducers = {
         { payload: change }: PayloadAction<MapLayerSettingChange>,
     ) => {
         state.layerSettings[change.name] = change.settings;
-    },
-    onHoverLocation: (state: Map, { payload: hoverLocation }: PayloadAction<Point>) => {
-        state.hoveredLocation = hoverLocation;
     },
     onClickLocation: (state: Map, { payload: clickLocation }: PayloadAction<Point>) => {
         state.clickLocation = clickLocation;

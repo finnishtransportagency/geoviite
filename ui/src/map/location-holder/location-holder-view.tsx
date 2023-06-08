@@ -13,7 +13,7 @@ import { getTrackNumberById } from 'track-layout/layout-track-number-api';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 
 type LocationHolderProps = {
-    hoveredCoordinate: Point | null;
+    hoveredCoordinate: Point | undefined;
 };
 
 type HoverLocation = {

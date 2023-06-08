@@ -7,19 +7,17 @@ import { createDelegates } from 'store/store-utils';
 import PlanGeometryElementListingSearch from 'data-products/element-list/plan-geometry-element-listing-search';
 import { ElementTable } from 'data-products/element-list/element-table';
 import { useDataProductsAppSelector } from 'store/hooks';
-import { dataProductsActions } from 'data-products/data-products-slice';
+import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
+import { EntireRailNetworkElementListing } from 'data-products/element-list/entire-rail-network-element-listing';
 
 const ElementListView = () => {
     const { t } = useTranslation();
     const [loading, setLoading] = React.useState(false);
     const dataProductsDelegates = createDelegates(dataProductsActions);
     const state = useDataProductsAppSelector((state) => state.elementList);
-    const continuousGeometrySelected = state.selectedSearch === 'LOCATION_TRACK';
 
-    const handleRadioClick = () => {
-        dataProductsDelegates.setSelectedElementListSearch(
-            continuousGeometrySelected ? 'PLAN' : 'LOCATION_TRACK',
-        );
+    const handleRadioClick = (selected: SelectedGeometrySearch) => {
+        dataProductsDelegates.setSelectedElementListSearch(selected);
     };
 
     return (
@@ -28,15 +26,24 @@ const ElementListView = () => {
                 <h2>{t('data-products.element-list.element-list-title')}</h2>
                 <div>
                     <span className={styles['data-product-view__radio-layout']}>
-                        <Radio onChange={handleRadioClick} checked={continuousGeometrySelected}>
+                        <Radio
+                            onChange={() => handleRadioClick('LOCATION_TRACK')}
+                            checked={state.selectedSearch === 'LOCATION_TRACK'}>
                             {t('data-products.element-list.location-track-geometry')}
                         </Radio>
-                        <Radio onChange={handleRadioClick} checked={!continuousGeometrySelected}>
+                        <Radio
+                            onChange={() => handleRadioClick('PLAN')}
+                            checked={state.selectedSearch === 'PLAN'}>
                             {t('data-products.element-list.plan-geometry')}
+                        </Radio>
+                        <Radio
+                            onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
+                            checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}>
+                            {t('data-products.element-list.entire-rail-network-geometry')}
                         </Radio>
                     </span>
                 </div>
-                {continuousGeometrySelected ? (
+                {state.selectedSearch === 'LOCATION_TRACK' && (
                     <LocationTrackElementListingSearch
                         state={state.locationTrackSearch}
                         onUpdateProp={dataProductsDelegates.onUpdateLocationTrackSearchProp}
@@ -44,7 +51,8 @@ const ElementListView = () => {
                         setElements={dataProductsDelegates.onSetLocationTrackElements}
                         setLoading={setLoading}
                     />
-                ) : (
+                )}
+                {state.selectedSearch === 'PLAN' && (
                     <PlanGeometryElementListingSearch
                         state={state.planSearch}
                         onUpdateProp={dataProductsDelegates.onUpdatePlanSearchProp}
@@ -52,16 +60,21 @@ const ElementListView = () => {
                         setLoading={setLoading}
                     />
                 )}
+                {state.selectedSearch === 'ENTIRE_RAIL_NETWORK' && (
+                    <EntireRailNetworkElementListing />
+                )}
             </div>
-            <ElementTable
-                elements={
-                    continuousGeometrySelected
-                        ? state.locationTrackSearch.elements
-                        : state.planSearch.elements
-                }
-                showLocationTrackName={continuousGeometrySelected}
-                isLoading={loading}
-            />
+            {state.selectedSearch !== 'ENTIRE_RAIL_NETWORK' && (
+                <ElementTable
+                    elements={
+                        state.selectedSearch === 'LOCATION_TRACK'
+                            ? state.locationTrackSearch.elements
+                            : state.planSearch.elements
+                    }
+                    showLocationTrackName={state.selectedSearch === 'LOCATION_TRACK'}
+                    isLoading={loading}
+                />
+            )}
         </div>
     );
 };
