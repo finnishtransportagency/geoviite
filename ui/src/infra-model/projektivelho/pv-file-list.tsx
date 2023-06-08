@@ -21,6 +21,7 @@ import { TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { useState } from 'react';
+import { WriteAccessRequired } from 'user/write-access-required';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
 
@@ -98,7 +99,9 @@ export const PVFileList = ({
                         <Th>{t('projektivelho.file-list.header.document-name')}</Th>
                         <Th>{t('projektivelho.file-list.header.document-description')}</Th>
                         <Th>{t('projektivelho.file-list.header.document-modified')}</Th>
-                        <Th></Th>
+                        <WriteAccessRequired>
+                            <Th></Th>
+                        </WriteAccessRequired>
                     </tr>
                 </thead>
                 <tbody>
@@ -154,32 +157,34 @@ const PVFileListRow = ({
                 </td>
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>
-                <td>
-                    <div className={styles['projektivelho-file-list__buttons']}>
-                        {listMode === 'SUGGESTED' && (
+                <WriteAccessRequired>
+                    <td>
+                        <div className={styles['projektivelho-file-list__buttons']}>
+                            {listMode === 'SUGGESTED' && (
+                                <Button
+                                    title={t('projektivelho.file-list.reject-tooltip')}
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={onReject}>
+                                    {t('projektivelho.file-list.reject')}
+                                </Button>
+                            )}
+                            {listMode === 'REJECTED' && (
+                                <Button
+                                    title={t('projektivelho.file-list.restore-tooltip')}
+                                    variant={ButtonVariant.SECONDARY}
+                                    onClick={onRestore}>
+                                    {t('projektivelho.file-list.restore')}
+                                </Button>
+                            )}
                             <Button
-                                title={t('projektivelho.file-list.reject-tooltip')}
+                                title={t('projektivelho.file-list.upload-tooltip')}
                                 variant={ButtonVariant.SECONDARY}
-                                onClick={onReject}>
-                                {t('projektivelho.file-list.reject')}
+                                onClick={onImport}>
+                                {t('projektivelho.file-list.upload')}
                             </Button>
-                        )}
-                        {listMode === 'REJECTED' && (
-                            <Button
-                                title={t('projektivelho.file-list.restore-tooltip')}
-                                variant={ButtonVariant.SECONDARY}
-                                onClick={onRestore}>
-                                {t('projektivelho.file-list.restore')}
-                            </Button>
-                        )}
-                        <Button
-                            title={t('projektivelho.file-list.upload-tooltip')}
-                            variant={ButtonVariant.SECONDARY}
-                            onClick={onImport}>
-                            {t('projektivelho.file-list.upload')}
-                        </Button>
-                    </div>
-                </td>
+                        </div>
+                    </td>
+                </WriteAccessRequired>
             </tr>
             {isOpen ? (
                 <tr>
