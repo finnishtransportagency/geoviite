@@ -37,14 +37,9 @@ jobs:
         ./gradlew cleanTest test --tests "*Test"
 
     - name: run integration tests in infra (backend)
-      # env-muuttujat, toinen vaihtoehto: githubille oma application-yml? (tai käytä test-yml?)
-      # https://stackoverflow.com/questions/59741629/how-to-pass-environment-variables-to-the-gradle-wrapper-build-using-only-command
-      #unable to prepare context: unable to evaluate symlinks in Dockerfile path: lstat /home/runner/work/geoviite/geoviite/Dockerfile: no such file or directory
       run: |
         docker build -t gvt-postgres ./.github/workflows
         docker run -p 127.0.0.1:5436:5432 -e POSTGRES_DB=$POSTGRES_DB -e POSTGRES_USER=$POSTGRES_USER -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD --name geoviite-db gvt-postgres
-      #  docker create -p 127.0.0.1:5436:5432 --name geoviite-db gvt-postgres
-      #  docker start geoviite-db
         docker ps -a
         cd infra
         POSTGRES_DB=geoviite POSTGRES_USER=dev-geouser POSTGRES_PASSWORD=dev-geouser-password DB_NAME=geoviite DB_USER=dev-geouser DB_PASSWORD=dev-geouser-password ./gradlew cleanTest test --tests "*IT"
@@ -52,18 +47,3 @@ jobs:
         POSTGRES_PASSWORD: 'dev-geouser-password'
         POSTGRES_USER: 'dev-geouser'
         POSTGRES_DB: 'geoviite'
-
-#POSTGRES_DB=geoviite POSTGRES_USER=dev-geouser POSTGRES_PASSWORD=dev-geouser-password
-#--build-arg TEMURIN_IMAGE=eclipse-temurin:17-jdk
-#services:
-#  geoviite-postgres:
-#    image: 'postgis/postgis:15-3.3-alpine'
-#    env:
-#      POSTGRES_PASSWORD: 'dev-geouser-password'
-#      POSTGRES_USER: 'dev-geouser'
-#      POSTGRES_DB: 'geoviite'
-#      DB_NAME: 'geoviite'
-#      DB_USER: 'dev-geouser'
-#      DB_PASSWORD: 'dev-geouser-password'
-#    ports:
-#      - '127.0.0.1:5436:5432'
