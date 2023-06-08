@@ -61,6 +61,7 @@ import { createLocationTrackBadgeLayer } from 'map/layers/alignment/location-tra
 import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplicate-tracks-highlight-layer';
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
+import { createTrackNumberEndPointAddressesLayer } from 'map/layers/alignment/track-number-end-point-addresses-layer';
 import { Point } from 'model/geometry';
 
 declare global {
@@ -271,7 +272,16 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             publishType,
                             resolution,
-                            map.layerSettings[layerName],
+                            map.layerSettings['track-number-diagram-layer'],
+                        );
+                    case 'track-number-addresses-layer':
+                        return createTrackNumberEndPointAddressesLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            changeTimes,
+                            publishType,
+                            resolution,
+                            map.layerSettings['track-number-diagram-layer'],
                         );
                     case 'reference-line-alignment-layer':
                         return createReferenceLineAlignmentLayer(

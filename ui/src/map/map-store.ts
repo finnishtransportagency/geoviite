@@ -28,7 +28,7 @@ export type MapLayerMenuChange = {
 };
 
 const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
-    'track-number-diagram-layer': ['reference-line-badge-layer'],
+    'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
     'manual-switch-linking-layer': ['switch-layer'],
     'switch-linking-layer': ['switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],

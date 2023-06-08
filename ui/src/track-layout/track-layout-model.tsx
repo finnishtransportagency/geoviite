@@ -18,7 +18,7 @@ import {
     TrackMeter,
     TrackNumber,
 } from 'common/common-model';
-import { deduplicate } from 'utils/array-utils';
+import { deduplicateById } from 'utils/array-utils';
 import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
@@ -242,5 +242,5 @@ export type SwitchJointTrackMeter = {
 };
 
 export function combineLayoutPoints(points: LayoutPoint[][]): LayoutPoint[] {
-    return deduplicate(points.flat()).sort((p1, p2) => p1.m - p2.m);
+    return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }

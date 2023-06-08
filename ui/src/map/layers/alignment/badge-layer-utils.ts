@@ -40,68 +40,69 @@ function createBadgeFeatures(
         const fontSize = 12;
         const badgeNoseWidth = 7;
 
+        const renderer = ([x, y]: Coordinate, state: State) => {
+            const ctx = state.context;
+            ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
+                state.pixelRatio * fontSize
+            }px ${mapStyles['alignmentBadge-font-family']}`;
+
+            ctx.save();
+
+            const badgeWidth = ctx.measureText(name).width + badgePadding * state.pixelRatio;
+            const height = badgeHeight * state.pixelRatio;
+            const halfHeight = height / 2;
+
+            ctx.beginPath();
+
+            ctx.translate(x, y);
+            ctx.rotate(badgeRotation.rotation);
+            ctx.translate(-x, -y);
+
+            ctx.fillStyle = badgeStyle.background;
+
+            ctx.fillRect(
+                x - (badgeRotation.drawFromEnd ? badgeWidth : 0),
+                y - halfHeight,
+                badgeWidth,
+                height,
+            );
+
+            //Won't work with LIGHT badge color, but for now only reference lines have pointy badge
+            if (color === AlignmentBadgeColor.DARK) {
+                ctx.beginPath();
+
+                const offsetDirection = badgeRotation.drawFromEnd ? -1 : 1;
+
+                ctx.moveTo(x + (badgeWidth + badgeNoseWidth) * offsetDirection, y);
+                ctx.lineTo(x + badgeWidth * offsetDirection, y - halfHeight);
+                ctx.lineTo(x + badgeWidth * offsetDirection, y + halfHeight);
+            }
+
+            ctx.fill();
+
+            if (badgeStyle.backgroundBorder) {
+                ctx.strokeStyle = badgeStyle.backgroundBorder;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = badgeStyle.color;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(
+                name,
+                x + ((badgeRotation.drawFromEnd ? -1 : 1) * badgeWidth) / 2,
+                y + 1 * state.pixelRatio,
+            );
+
+            ctx.restore();
+        };
+
         badgeFeature.setStyle(
             () =>
                 new Style({
                     zIndex: contrast ? 1 : 0,
-                    renderer: ([x, y]: Coordinate, state: State) => {
-                        const ctx = state.context;
-                        ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
-                            state.pixelRatio * fontSize
-                        }px ${mapStyles['alignmentBadge-font-family']}`;
-                        const badgeWidth =
-                            ctx.measureText(name).width + badgePadding * state.pixelRatio;
-                        const height = badgeHeight * state.pixelRatio;
-                        const halfHeight = height / 2;
-
-                        ctx.save();
-                        ctx.beginPath();
-
-                        ctx.translate(x, y);
-                        ctx.rotate(badgeRotation.rotation);
-                        ctx.translate(-x, -y);
-
-                        ctx.fillStyle = badgeStyle.background;
-
-                        ctx.rect(
-                            x - (badgeRotation.drawFromEnd ? badgeWidth : 0),
-                            y - halfHeight,
-                            badgeWidth,
-                            height,
-                        );
-
-                        ctx.fill();
-
-                        //Won't work with LIGHT badge color, but for now only reference lines have pointy badge
-                        if (color === AlignmentBadgeColor.DARK) {
-                            ctx.beginPath();
-
-                            const offsetDirection = badgeRotation.drawFromEnd ? -1 : 1;
-
-                            ctx.moveTo(x + (badgeWidth + badgeNoseWidth) * offsetDirection, y);
-                            ctx.lineTo(x + badgeWidth * offsetDirection, y - halfHeight);
-                            ctx.lineTo(x + badgeWidth * offsetDirection, y + halfHeight);
-                        }
-
-                        ctx.fill();
-
-                        if (badgeStyle.backgroundBorder) {
-                            ctx.strokeStyle = badgeStyle.backgroundBorder;
-                            ctx.lineWidth = 1;
-                            ctx.stroke();
-                        }
-
-                        ctx.fillStyle = badgeStyle.color;
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(
-                            name,
-                            x + ((badgeRotation.drawFromEnd ? -1 : 1) * badgeWidth) / 2,
-                            y + 1 * state.pixelRatio,
-                        );
-
-                        ctx.restore();
-                    },
+                    renderer: renderer,
                 }),
         );
 
