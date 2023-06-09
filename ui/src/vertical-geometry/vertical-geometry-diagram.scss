@@ -23,7 +23,9 @@
 .vertical-geometry-diagram__close-icon {
     cursor: pointer;
     position: absolute;
-    background-color: white;
     margin: 5px 0;
     right: 0;
+    height: 16px;
+    padding: 2px;
+    background: rgba($color-white-default, 0.85);
 }

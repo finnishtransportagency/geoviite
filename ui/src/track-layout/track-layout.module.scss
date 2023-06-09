@@ -49,6 +49,7 @@
     grid-area: diagram;
     @include shadow-8dp;
     padding: 0 8px;
+    overflow: hidden;
 }
 
 .track-layout__tool-panel {
