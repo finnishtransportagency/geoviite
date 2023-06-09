@@ -30,7 +30,6 @@ export type MapLayerName =
     | 'geometry-switch-layer'
     | 'alignment-linking-layer'
     | 'switch-linking-layer'
-    | 'manual-switch-linking-layer'
     | 'plan-area-layer'
     | 'debug-1m-points-layer'
     | 'debug-layer';
@@ -85,7 +84,6 @@ export type MapLayerMenuItemName =
     | 'switch'
     | 'geometry-alignment'
     | 'geometry-switch'
-    | 'manual-switch-linking'
     | 'plan-area'
     | 'geometry-km-post'
     | 'debug-1m'

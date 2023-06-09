@@ -22,7 +22,6 @@ import Polygon from 'ol/geom/Polygon';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { createManualSwitchLinkingLayer } from 'map/layers/switch/manual-switch-linking-layer';
 import { LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { PublishType } from 'common/common-model';
 import Overlay from 'ol/Overlay';
@@ -421,13 +420,6 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             linkingState as LinkingSwitch,
-                        );
-                    case 'manual-switch-linking-layer':
-                        return createManualSwitchLinkingLayer(
-                            mapTiles,
-                            resolution,
-                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
-                            publishType,
                         );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(

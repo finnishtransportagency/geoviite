@@ -17,8 +17,7 @@
         "plan-area": "Suunnitelman alueet",
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
         "debug-1m": "Tasametripisteet",
-        "debug": "Debug",
-        "manual-switch-linking": "Manuaalinen vaihteiden linkitys"
+        "debug": "Debug"
     },
     "map-view": {
         "cluster-overlay-title": "Klusteripiste",
