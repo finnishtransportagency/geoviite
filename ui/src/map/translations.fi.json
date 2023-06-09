@@ -10,6 +10,7 @@
         "missing-vertical-geometry": "Korosta puuttuva pystygeometria",
         "missing-linking": "Korosta puuttuva linkitys",
         "duplicate-tracks": "Korosta duplikaattiraiteet",
+        "plan-section": "Korosta suunnitelman rataosoiteväli",
         "km-post": "Tasakilometripisteet",
         "switch": "Vaihteet",
         "geometry-alignment": "Suunnitelman raiteet",

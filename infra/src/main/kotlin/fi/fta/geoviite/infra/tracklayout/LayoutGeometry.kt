@@ -34,13 +34,18 @@ data class SegmentGeometryAndMetadata(
     val id: StringId<SegmentGeometryAndMetadata>,
 )
 
+data class PlanSectionPoint(
+    val address: TrackMeter,
+    val m: Double,
+)
+
 data class AlignmentPlanSection(
     val planId: IntId<GeometryPlan>?,
     val planName: FileName?,
     val alignmentName: AlignmentName?,
     val isLinked: Boolean,
-    val startAddress: TrackMeter?,
-    val endAddress: TrackMeter?,
+    val start: PlanSectionPoint,
+    val end: PlanSectionPoint,
     val id: StringId<SegmentGeometryAndMetadata>,
 )
 

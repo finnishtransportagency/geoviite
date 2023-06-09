@@ -11,6 +11,7 @@ export const mapLayerZIndexes = [
     'location-track-background-layer',
     'reference-line-background-layer',
     'track-number-diagram-layer',
+    'plan-section-highlight-layer',
     'missing-profile-highlight-layer',
     'missing-linking-highlight-layer',
     'duplicate-tracks-highlight-layer',

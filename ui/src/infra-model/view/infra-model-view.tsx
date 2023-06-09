@@ -363,6 +363,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                         onHighlightItems={props.onHighlightItems}
                         onClickLocation={props.onClickLocation}
                         onShownLayerItemsChange={props.onShownLayerItemsChange}
+                        hoveredOverPlanSection={undefined}
                     />
                 )}
                 {!showMap && <div className={styles['infra-model-upload__error-photo']} />}

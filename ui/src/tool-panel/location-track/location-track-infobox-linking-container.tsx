@@ -10,6 +10,7 @@ import {
 import { PublishType, TimeStamp } from 'common/common-model';
 import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { MapViewport } from 'map/map-model';
+import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type LocationTrackInfoboxLinkingContainerProps = {
     locationTrackId: LocationTrackId;
@@ -22,6 +23,7 @@ type LocationTrackInfoboxLinkingContainerProps = {
     visibilities: LocationTrackInfoboxVisibilities;
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
     verticalGeometryDiagramVisible: boolean;
+    onHoverOverPlanSection: (item: HoveredOverItem | undefined) => void;
 };
 
 const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinkingContainerProps> = ({
@@ -35,6 +37,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     visibilities,
     onVisibilityChange,
     verticalGeometryDiagramVisible,
+    onHoverOverPlanSection,
 }: LocationTrackInfoboxLinkingContainerProps) => {
     const delegates = createDelegates(TrackLayoutActions);
     const locationTrack = useLocationTrack(locationTrackId, publishType, locationTrackChangeTime);
@@ -66,6 +69,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                     delegates.onVerticalGeometryDiagramVisibilityChange
                 }
                 verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+                onHoverOverItem={onHoverOverPlanSection}
             />
         );
 };

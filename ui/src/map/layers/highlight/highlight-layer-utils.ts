@@ -4,7 +4,8 @@ import Feature from 'ol/Feature';
 import { LineString } from 'ol/geom';
 import { getPartialPolyLine } from 'utils/math-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { Style } from 'ol/style';
+import { Stroke, Style } from 'ol/style';
+import mapStyles from 'map/map.module.scss';
 
 export function createHighlightFeatures(
     alignments: AlignmentDataHolder[],
@@ -33,3 +34,10 @@ export function createHighlightFeatures(
             });
     });
 }
+
+export const blueHighlightStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.alignmentBlueHighlight,
+        width: 12,
+    }),
+});

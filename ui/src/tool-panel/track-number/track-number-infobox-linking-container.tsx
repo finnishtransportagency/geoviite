@@ -11,6 +11,7 @@ import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-uti
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';
 import { OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { MapViewport } from 'map/map-model';
+import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type TrackNumberInfoboxLinkingContainerProps = {
     trackNumber: LayoutTrackNumber;
@@ -21,6 +22,7 @@ type TrackNumberInfoboxLinkingContainerProps = {
     viewport: MapViewport;
     visibilities: TrackNumberInfoboxVisibilities;
     onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
+    onHoverOverPlanSection: (item: HoveredOverItem | undefined) => void;
 };
 
 const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingContainerProps> = ({
@@ -32,6 +34,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
     viewport,
     visibilities,
     onVisibilityChange,
+    onHoverOverPlanSection,
 }: TrackNumberInfoboxLinkingContainerProps) => {
     const delegates = createDelegates(TrackLayoutActions);
     const referenceLine = useTrackNumberReferenceLine(
@@ -65,6 +68,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
                     referenceLines: referenceLine ? [referenceLine.id] : [],
                 })
             }
+            onHoverOverItem={onHoverOverPlanSection}
         />
     );
 };

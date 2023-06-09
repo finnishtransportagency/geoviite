@@ -41,6 +41,7 @@ import {
 } from 'track-layout/track-layout-slice';
 import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
+import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -66,6 +67,7 @@ type ToolPanelProps = {
     onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
     stopSwitchLinking: () => void;
     verticalGeometryDiagramVisible: boolean;
+    onHoverOverPlanSection: (item: HoveredOverItem | undefined) => void;
 };
 
 type ToolPanelTab = {
@@ -102,6 +104,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     onInfoboxVisibilityChange,
     stopSwitchLinking,
     verticalGeometryDiagramVisible,
+    onHoverOverPlanSection,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -204,6 +207,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             onUnselect={onUnselect}
                             referenceLineChangeTime={changeTimes.layoutReferenceLine}
                             viewport={viewport}
+                            onHoverOverPlanSection={onHoverOverPlanSection}
                         />
                     ),
                 };
@@ -346,6 +350,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onUnselect={onUnSelectLocationTracks}
                         viewport={viewport}
                         verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+                        onHoverOverPlanSection={onHoverOverPlanSection}
                     />
                 ),
             };
