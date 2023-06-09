@@ -463,6 +463,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     onHighlightItems={props.onHighlightItems}
                     onClickLocation={props.onClickLocation}
                     onShownLayerItemsChange={props.onShownItemsChange}
+                    hoveredOverPlanSection={undefined}
                 />
 
                 <PreviewFooter

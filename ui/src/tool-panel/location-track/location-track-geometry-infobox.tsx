@@ -8,7 +8,10 @@ import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
 import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
-import { AlignmentPlanSectionInfoboxContent } from 'tool-panel/alignment-plan-section-infobox-content';
+import {
+    AlignmentPlanSectionInfoboxContent,
+    HoveredOverItem,
+} from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
 import {
     ProgressIndicatorType,
@@ -21,6 +24,7 @@ type LocationTrackGeometryInfoboxProps = {
     viewport: MapViewport;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
+    onHoverOverItem: (item: HoveredOverItem | undefined) => void;
 };
 
 export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
@@ -29,6 +33,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     viewport,
     contentVisible,
     onContentVisibilityChange,
+    onHoverOverItem,
 }) => {
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
@@ -68,7 +73,12 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                             )}
                         </p>
                     ) : (
-                        <AlignmentPlanSectionInfoboxContent sections={sections || []} />
+                        <AlignmentPlanSectionInfoboxContent
+                            id={locationTrackId}
+                            sections={sections || []}
+                            onHoverOverItem={onHoverOverItem}
+                            type={'LOCATION_TRACK'}
+                        />
                     )}
                 </ProgressIndicatorWrapper>
             </InfoboxContent>

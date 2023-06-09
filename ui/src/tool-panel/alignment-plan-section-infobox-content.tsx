@@ -9,14 +9,35 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
+import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+
+type HoveredOverItemBase = {
+    startM: number;
+    endM: number;
+};
+
+type HoveredOverLocationTrack = {
+    type: 'LOCATION_TRACK';
+    id: LocationTrackId;
+} & HoveredOverItemBase;
+
+type HoveredOverTrackNumber = {
+    type: 'REFERENCE_LINE';
+    id: LayoutTrackNumberId;
+} & HoveredOverItemBase;
+
+export type HoveredOverItem = HoveredOverLocationTrack | HoveredOverTrackNumber;
 
 type AlignmentPlanSectionInfoboxContentProps = {
     sections: AlignmentPlanSection[];
+    onHoverOverItem: (item: HoveredOverItem | undefined) => void;
+    id: LocationTrackId | LayoutTrackNumberId;
+    type: 'LOCATION_TRACK' | 'REFERENCE_LINE';
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
-> = ({ sections }) => {
+> = ({ sections, type, id, onHoverOverItem }) => {
     const { t } = useTranslation();
 
     const delegates = createDelegates(TrackLayoutActions);
@@ -35,7 +56,21 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                 <InfoboxField
                     key={section.id}
                     label={
-                        <span className={styles['alignment-plan-section-infobox__plan-name']}>
+                        <span
+                            className={styles['alignment-plan-section-infobox__plan-name']}
+                            onMouseOver={() => {
+                                section.start &&
+                                    section.end &&
+                                    onHoverOverItem({
+                                        id,
+                                        type,
+                                        startM: section.start?.m,
+                                        endM: section.end?.m,
+                                    });
+                            }}
+                            onMouseOut={() => {
+                                onHoverOverItem(undefined);
+                            }}>
                             {section.planName ? (
                                 section.planId ? (
                                     <React.Fragment>
@@ -68,15 +103,15 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                     value={
                         <div className={styles['alignment-plan-section-infobox__meters']}>
                             <span>
-                                {section.startAddress
-                                    ? formatTrackMeterWithoutMeters(section.startAddress)
+                                {section.start?.address
+                                    ? formatTrackMeterWithoutMeters(section.start.address)
                                     : errorFragment(
                                           t('tool-panel.alignment-plan-sections.geocoding-failed'),
                                       )}
                             </span>{' '}
                             <span>
-                                {section.endAddress
-                                    ? formatTrackMeterWithoutMeters(section.endAddress)
+                                {section.end?.address
+                                    ? formatTrackMeterWithoutMeters(section.end.address)
                                     : errorFragment(
                                           t('tool-panel.alignment-plan-sections.geocoding-failed'),
                                       )}

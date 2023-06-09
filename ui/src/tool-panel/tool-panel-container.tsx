@@ -7,8 +7,13 @@ import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { getSuggestedSwitchByPoint } from 'linking/linking-api';
+import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
 
-const ToolPanelContainer: React.FC = () => {
+type ToolPanelContainerProps = {
+    setHoveredOverItem: (item: HoveredOverItem | undefined) => void;
+};
+
+const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverItem }) => {
     const context = React.useContext(MapContext);
     const store = useAppSelector((state) => state[context]);
 
@@ -84,6 +89,7 @@ const ToolPanelContainer: React.FC = () => {
                 delegates.stopLinking();
             }}
             verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramVisible}
+            onHoverOverPlanSection={setHoveredOverItem}
         />
     );
 };

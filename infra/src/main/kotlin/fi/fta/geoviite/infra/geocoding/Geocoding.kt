@@ -183,6 +183,11 @@ data class GeocodingContext(
     fun getAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Pair<TrackMeter, IntersectType>? =
         getDistance(coordinate)?.let { (dist, type) -> getAddress(dist, decimals) to type }
 
+    fun getDistanceAndAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Triple<Double, TrackMeter, IntersectType>? =
+        getDistance(coordinate)?.let { (dist, type) ->
+            Triple(dist, getAddress(dist, decimals), type)
+        }
+
     fun getAddress(targetDistance: Double, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): TrackMeter {
         val addressPoint = findPreviousPoint(targetDistance)
         val meters = addressPoint.meters.toDouble() + targetDistance - addressPoint.distance

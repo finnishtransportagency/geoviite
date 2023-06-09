@@ -63,6 +63,8 @@ import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/alignment/track-number-end-point-addresses-layer';
 import { Point } from 'model/geometry';
+import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
+import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
 
 declare global {
     interface Window {
@@ -87,6 +89,7 @@ type MapViewProps = {
     onSetGeometryClusterLinkPoint?: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint?: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint?: (linkPoint: LinkPoint) => void;
+    hoveredOverPlanSection: HoveredOverItem | undefined;
 };
 
 const defaultScaleLine: ScaleLine = new ScaleLine({
@@ -131,6 +134,7 @@ const MapView: React.FC<MapViewProps> = ({
     changeTimes,
     onSelect,
     onViewportUpdate,
+    hoveredOverPlanSection,
     ...props
 }: MapViewProps) => {
     const { t } = useTranslation();
@@ -363,6 +367,15 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                         );
+                    case 'plan-section-highlight-layer':
+                        return createPlanSectionHighlightLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            publishType,
+                            changeTimes,
+                            resolution,
+                            hoveredOverPlanSection,
+                        );
                     case 'km-post-layer':
                         return createKmPostLayer(
                             mapTiles,
@@ -470,6 +483,7 @@ const MapView: React.FC<MapViewProps> = ({
         publishType,
         linkingState,
         map.layerSettings,
+        hoveredOverPlanSection,
     ]);
 
     React.useEffect(() => {

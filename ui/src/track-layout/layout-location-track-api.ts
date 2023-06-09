@@ -38,13 +38,18 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | null>();
 const locationTrackEndpointsCache = asyncCache<string, LocationTrackEndpoint[]>();
 
+type PlanSectionPoint = {
+    address: TrackMeter;
+    m: number;
+};
+
 export type AlignmentPlanSection = {
     planId: GeometryPlanId | undefined;
     planName: string | undefined;
     alignmentName: string | undefined;
     isLinked: boolean;
-    startAddress: TrackMeter | undefined;
-    endAddress: TrackMeter | undefined;
+    start: PlanSectionPoint | undefined;
+    end: PlanSectionPoint | undefined;
     id: string;
 };
 
