@@ -13,24 +13,24 @@ import { blueHighlightStyle } from 'map/layers/highlight/highlight-layer-utils';
 import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
 
 function createFeatures(
-    locationTracks: AlignmentDataHolder[],
+    alignments: AlignmentDataHolder[],
     hoveredOverItem: HoveredOverItem | undefined,
 ): Feature<LineString>[] {
-    return locationTracks
+    return alignments
         .filter(
-            (lt) =>
+            (alignment) =>
                 hoveredOverItem !== undefined &&
                 (hoveredOverItem.type === 'REFERENCE_LINE'
-                    ? lt.header.trackNumberId === hoveredOverItem.id
-                    : lt.header.id === hoveredOverItem.id),
+                    ? alignment.header.trackNumberId === hoveredOverItem.id
+                    : alignment.header.id === hoveredOverItem.id),
         )
         .flatMap(({ points }) => {
             points = points.filter(
-                (p) =>
+                (point) =>
                     hoveredOverItem?.startM !== undefined &&
                     hoveredOverItem?.endM !== undefined &&
-                    p.m >= hoveredOverItem?.startM &&
-                    p.m <= hoveredOverItem?.endM,
+                    point.m >= hoveredOverItem?.startM &&
+                    point.m <= hoveredOverItem?.endM,
             );
             const lineString = new LineString(points.map(pointToCoords));
             const feature = new Feature({ geometry: lineString });
@@ -58,10 +58,10 @@ export function createPlanSectionHighlightLayer(
 
     if (resolution <= HIGHLIGHTS_SHOW) {
         getMapAlignmentsByTiles(changeTimes, mapTiles, publishType, 'ALL')
-            .then((locationTracks) => {
+            .then((alignments) => {
                 if (layerId !== newestLayerId) return;
 
-                const features = createFeatures(locationTracks, hoveredOverItem);
+                const features = createFeatures(alignments, hoveredOverItem);
 
                 clearFeatures(vectorSource);
                 vectorSource.addFeatures(features);
@@ -72,7 +72,7 @@ export function createPlanSectionHighlightLayer(
     }
 
     return {
-        name: 'duplicate-tracks-highlight-layer',
+        name: 'plan-section-highlight-layer',
         layer: layer,
     };
 }
