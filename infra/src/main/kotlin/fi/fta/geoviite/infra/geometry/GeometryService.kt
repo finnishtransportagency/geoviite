@@ -578,8 +578,9 @@ class GeometryService @Autowired constructor(
             // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
             // hit a specific segment; but points on different sides of a segment boundary are often the exact same
             // point, but potentially have different heights (or more often null/not-null heights).
-            val allTicks = ((0..lastPoint step tickLength).map { distance -> distance.toBigDecimal() to null } +
-                    (planBoundaryAddressesByKm[kmNumber] ?: listOf())).sortedBy { (trackMeterInKm) -> trackMeterInKm }
+            val allTicks = ((planBoundaryAddressesByKm[kmNumber] ?: listOf()) +
+                    ((0..lastPoint step tickLength).map { distance -> distance.toBigDecimal() to null }))
+                .sortedBy { (trackMeterInKm) -> trackMeterInKm }
 
             val ticksToSend = (allTicks.filterIndexed { i, (trackMeterInKm, segmentIndex) ->
                 segmentIndex != null || i == 0 ||
