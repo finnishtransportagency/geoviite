@@ -80,8 +80,8 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             suggestedSwitches={store.selection.selectedItems.suggestedSwitches}
             onDataChange={typeChange}
             onUnselect={delegates.onUnselect}
-            setSelectedTabId={delegates.setToolPanelTab}
-            selectedTabId={store.selectedToolPanelTabId}
+            setSelectedAsset={delegates.setToolPanelTab}
+            selectedAsset={store.selectedToolPanelTab}
             startSwitchPlacing={startSwitchPlacing}
             viewport={store.map.viewport}
             stopSwitchLinking={() => {

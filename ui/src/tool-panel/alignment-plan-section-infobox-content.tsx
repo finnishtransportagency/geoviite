@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
-import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 
 type HoveredOverItemBase = {
@@ -81,9 +80,10 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                                     delegates.onSelect({
                                                         geometryPlans: [section.planId],
                                                     });
-                                                    delegates.setToolPanelTab(
-                                                        toolPanelPlanTabId(section.planId),
-                                                    );
+                                                    delegates.setToolPanelTab({
+                                                        id: section.planId,
+                                                        type: 'GEOMETRY_PLAN',
+                                                    });
                                                 }
                                             }}
                                             title={`${section.planName} (${section.alignmentName})`}>
