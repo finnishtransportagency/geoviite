@@ -138,6 +138,58 @@ class GeometryServiceIT @Autowired constructor(
         )
     }
 
+    @Test
+    fun getLocationTrackHeightsHandlesSegmentChangeAtRightBeforeKilometerStart() {
+        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
+        referenceLineService.saveDraft(
+            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400)),
+            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+        )
+        val sourceId = insertPlanWithGeometry("plan1.xml", trackNumberId).alignments[0].elements[0].id
+        val locationTrackId = locationTrackService.saveDraft(
+            locationTrack(trackNumberId),
+            alignment(
+                segment(yRangeToSegmentPoints(0..2)),
+                segment(yRangeToSegmentPoints(2..9), sourceId = sourceId, sourceStart = 0.0),
+                segment(yRangeToSegmentPoints(9..10)),
+                segment(yRangeToSegmentPoints(10..20), sourceId = sourceId, sourceStart = 0.0)
+            )
+        ).id
+        // geocoding rounds m-values to three decimals half-up, so placing the km post juuuuuuuust here in fact rounds
+        // its position back to exactly 10, causing the 9..10 connection segment's end address to also be in
+        // track km 0155
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 10.00001)))
+        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
+
+        val expected = listOf(
+            "0154" to listOf(
+                400.0 to null,
+                402.0 to null,
+                402.0 to 50.0,
+                405.0 to 50.0,
+                409.0 to 50.0,
+                409.0 to null,
+            ),
+            "0155" to listOf(
+                0.0 to null,
+                0.0 to 50.0,
+                5.0 to 50.0,
+                10.0 to 50.0
+            ),
+        )
+        assertEquals(expected.size, actual.size)
+        actual.forEachIndexed { kmIndex, actualKm ->
+            val expectedKm = expected[kmIndex]
+            assertEquals(expectedKm.second.size, actualKm.trackMeterHeights.size)
+            actualKm.trackMeterHeights.forEachIndexed { mIndex, actualM ->
+                val expectedM = expectedKm.second[mIndex]
+                assertEquals(expectedM.first, actualM.meter)
+                assertEquals(expectedM.second, actualM.height)
+            }
+        }
+    }
+
     fun yRangeToSegmentPoints(range: IntRange) =
         toTrackLayoutPoints(to3DMPoints(range.map { i -> Point(0.0, i.toDouble()) }))
 
