@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import browser
 import getElementWhenVisible
 import getElementsWhenVisible
+import getListElements
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.support.ui.WebDriverWait
@@ -36,7 +37,7 @@ class MapNavigationPanel {
 
     fun kmPosts(): List<TrackLayoutKmPost> {
         return try{
-            getElementsWhenVisible(By.xpath("//ol[@class='km-posts-panel__km-posts']"))
+            getListElements(By.xpath("//ol[@class='km-posts-panel__km-posts']"))
                 .map { TrackLayoutKmPost(it) }.also { logger.info("KM posts $it") }
         } catch (ex: TimeoutException) {
             emptyList()
@@ -55,7 +56,7 @@ class MapNavigationPanel {
     fun referenceLines(): List<TrackLayoutAlignment> {
         //Wait until alignment panel exists then check if it contains alignments
         return try {
-            getElementsWhenVisible(By.xpath("//ol[@qa-id='reference-lines-list']"))
+            getListElements(By.xpath("//ol[@qa-id='reference-lines-list']"))
                 .map { element -> TrackLayoutAlignment(element) }
                 .also { logger.info("Reference lines $it") }
         } catch (ex: TimeoutException) {
@@ -74,7 +75,7 @@ class MapNavigationPanel {
     fun locationTracks(): List<TrackLayoutAlignment> {
         logger.info("Get all location tracks")
         return try {
-            getElementsWhenVisible(By.xpath("//ol[@qa-id='location-tracks-list']"))
+            getListElements(By.xpath("//ol[@qa-id='location-tracks-list']"))
                 .map { element -> TrackLayoutAlignment(element) }
                 .also { logger.info("Location tracks $it") }
         } catch (ex: TimeoutException) {
@@ -87,7 +88,7 @@ class MapNavigationPanel {
         logger.info("Wait for location track names")
         WebDriverWait(browser(), Duration.ofSeconds(5))
             .until { _ -> namePredicate(
-                getElementsWhenVisible(By.xpath("//ol[@qa-id='location-tracks-list']"))
+                getListElements(By.xpath("//ol[@qa-id='location-tracks-list']"))
                     .map { element -> TrackLayoutAlignment(element) }.also { logger.info("Location tracks $it") }
                     .map { alignment -> alignment.name() }
             ) }
@@ -105,7 +106,7 @@ class MapNavigationPanel {
     fun switches(): List<TrackLayoutSwitch> {
         //Wait until switches panel exists then check if it contains alignments
         return try {
-            getElementsWhenVisible(By.xpath("//ol[@class='switch-panel__switches']"))
+            getListElements(By.xpath("//ol[@class='switch-panel__switches']"))
                 .map { element -> TrackLayoutSwitch(element) }.also { logger.info("Switches $it") }
         } catch (ex: TimeoutException) {
             emptyList()

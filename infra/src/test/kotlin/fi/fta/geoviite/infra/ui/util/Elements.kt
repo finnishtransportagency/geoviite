@@ -58,6 +58,12 @@ fun getChildElementIfExists(parentElement: WebElement, byCondition: By): WebElem
     null
 }
 
+fun getChildElements(parentElement: WebElement, byCondition: By): List<WebElement> = try {
+    parentElement.findElements(byCondition)
+} catch (ex: NoSuchElementException) {
+    listOf()
+}
+
 fun getElementIfExists(byCondition: By): WebElement? = try {
     browser().findElement(byCondition)
 } catch (ex: NoSuchElementException) {
@@ -97,6 +103,9 @@ fun getChildrenWhenVisible(parent: WebElement, byCondition: By, timeout: Duratio
     waitUntilChildVisible(parent, byCondition, timeout)
     return parent.findElements(byCondition)
 }
+
+fun getListElements(listBy: By, timeout: Duration = defaultWait) =
+    getChildrenWhenVisible(getElementWhenVisible(listBy, timeout), By.tagName("li"), timeout)
 
 fun waitUntilExists(byCondition: By, timeout: Duration = defaultWait) =
     tryWait(timeout, presenceOfElementLocated(byCondition)) {
@@ -157,6 +166,31 @@ fun waitUntilValueIsNot(element: WebElement, value: String, timeout: Duration = 
     tryWait(timeout, not(textToBePresentInElement(element, value))) {
         "Wait for element value 'to not be x' failed: element=${element.getAttribute("innerHTML")} value=$value"
     }
+
+fun waitUntilChildMatches(
+    parent: WebElement,
+    childBy: By,
+    check: (index: Int, child: WebElement) -> Boolean,
+    timeout: Duration = defaultWait,
+) = WebDriverWait(browser(), timeout)
+    .until { _ -> getChildElements(parent, childBy) }
+        .mapIndexed { index, webElement -> check(index, webElement) }
+        .any()
+
+fun <T: Any> getChildWithContentWhenMatches(
+    parent: WebElement,
+    childBy: By,
+    getContent: (index: Int, child: WebElement) -> T,
+    check: (content: T) -> Boolean,
+    timeout: Duration = defaultWait,
+): Pair<WebElement, T> {
+    waitUntilChildMatches(parent, childBy, { i, c -> check(getContent(i, c)) }, timeout)
+    return getChildElements(parent, childBy)
+        .mapIndexed { i, c -> c to getContent(i, c) }
+        .find { (_, c) -> check(c) }
+        ?: throw IllegalStateException("No child element found: parent=$parent childBy=$childBy timeout=$timeout")
+}
+
 
 fun tryWait(timeout: Duration, condition: ExpectedCondition<*>, lazyErrorMessage: () -> String) = try {
     WebDriverWait(browser(), timeout).until(condition)

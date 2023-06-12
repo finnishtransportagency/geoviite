@@ -56,6 +56,7 @@ class BasicMapTestUI @Autowired constructor(
     fun createTestData() {
         clearAllTestData()
 
+        // TODO: Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
         TRACK_NUMBER_WEST = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_1)
         val trackNumberEast = createTrackLayoutTrackNumber(HKI_TRACKNUMBER_2)
         val trackNumberWestId = trackNumberDao.insert(TRACK_NUMBER_WEST)
@@ -95,7 +96,7 @@ class BasicMapTestUI @Autowired constructor(
     }
 
     @Test
-    @Disabled
+//    @Disabled
     fun launchBrowserForDebug() {}
 
     @Test
@@ -143,7 +144,7 @@ class BasicMapTestUI @Autowired constructor(
         changedAligment.menu().click()
         previewChangesPage.hylkaaMuutos(nameColumnValue)
         previewChangesPage.palaaLuonnostilaan()
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
+        navigationPanel.selectLocationTrack(editedTunnus)
 
         val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.tunniste())

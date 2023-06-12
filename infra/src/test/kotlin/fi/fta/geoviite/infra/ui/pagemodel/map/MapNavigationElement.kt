@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
-import fi.fta.geoviite.infra.findMandatoryByXpath
 import fi.fta.geoviite.infra.ui.pagemodel.common.Accordion
+import getChildWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
@@ -34,24 +34,24 @@ abstract class TrackLayoutElement(val element: WebElement) {
 }
 
 // TODO: These elements don't hold a WebElement reference, so they work. However they should be refactored as data classes
-class TrackLayoutSwitch(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findMandatoryByXpath("./span/span", "name").text
+class TrackLayoutSwitch(liElement: WebElement): TrackLayoutElement(liElement) {
+    override fun name(): String = getChildWhenVisible(element, By.xpath("./div/span")).text
     override fun toString(): String = name()
 }
 
-class TrackLayoutKmPost(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findMandatoryByXpath("./div/span", "name").text
+class TrackLayoutKmPost(liElement: WebElement): TrackLayoutElement(liElement) {
+    override fun name(): String = getChildWhenVisible(element, By.xpath("./div/span")).text
     override fun toString(): String = name()
 }
 
-class TrackLayoutTrackNumber(element: WebElement): TrackLayoutElement(element) {
+class TrackLayoutTrackNumber(liElement: WebElement): TrackLayoutElement(liElement) {
     override fun name(): String = element.text
     override fun toString(): String = name()
 }
 
-class TrackLayoutAlignment(element: WebElement): TrackLayoutElement(element) {
-    override fun name(): String = element.findMandatoryByXpath("./div/span", "name").text
-    fun type(): String = element.findMandatoryByXpath("./span", "type").text
+class TrackLayoutAlignment(liElement: WebElement): TrackLayoutElement(liElement) {
+    override fun name(): String = getChildWhenVisible(element, By.xpath("./div/span")).text
+    fun type(): String = getChildWhenVisible(element, By.xpath("./span")).text
     override fun toString(): String = name()
 }
 
