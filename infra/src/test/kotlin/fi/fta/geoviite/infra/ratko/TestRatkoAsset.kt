@@ -14,7 +14,8 @@ data class InterfaceRatkoAssetGeometry(
 )
 
 data class InterfaceRatkoPoint(
-    val kmM: String,
+    val km: String,
+    val m: String,
     val geometry: InterfaceRatkoGeometry?,
     val state: RatkoPointState?,
     val rowMetadata: RatkoMetadata? = null,
@@ -59,7 +60,7 @@ data class InterfaceRatkoRouteNumber(
     val description: String,
     val state: RatkoRouteNumberState,
     val rowMetadata: RatkoMetadata = RatkoMetadata(),
-    val nodecollection: InterfaceRatkoNodes,
+    val nodecollection: InterfaceRatkoNodes?,
 )
 
 fun ratkoRouteNumber(
