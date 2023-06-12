@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.FrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.InfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.MapPage
-import getChildWhenVisible
 import org.openqa.selenium.By
 
 enum class NavBarLink(val text: String) {
@@ -15,7 +14,7 @@ enum class NavBarLink(val text: String) {
 class MainNavigationBar: PageModel(By.className("app-bar")) {
 
     // TODO: Change these to qa-id instead of localized link text
-    fun clickLink(to: NavBarLink) = getChildWhenVisible(webElement, By.ByLinkText(to.text)).click()
+    fun clickLink(to: NavBarLink) = childElement(By.ByLinkText(to.text)).click()
 
     fun goToMap(): MapPage {
         clickLink(NavBarLink.MAP)

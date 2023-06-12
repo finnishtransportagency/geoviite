@@ -15,7 +15,7 @@ abstract class FormGroup(rootBy: By) : PageModel(rootBy) {
     protected fun fieldValue(fieldLabel: String): String {
         logger.info("Get field [$fieldLabel]")
         val fieldValueElement = fieldValueElement(fieldLabel)
-        val fieldLayoutValueElement = getChildElementIfExists(fieldValueElement, By.className("field-layout__value"))
+        val fieldLayoutValueElement = fieldValueElement.getChildElementIfExists(By.className("field-layout__value"))
         return if (fieldLayoutValueElement != null) {
             logger.info("field [$fieldLabel]=[${fieldLayoutValueElement.text}]")
             fieldLayoutValueElement.text

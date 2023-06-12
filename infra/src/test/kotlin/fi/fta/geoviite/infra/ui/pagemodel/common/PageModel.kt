@@ -6,21 +6,23 @@ import defaultWait
 import fi.fta.geoviite.infra.ui.util.fetch
 import fi.fta.geoviite.infra.ui.util.qaId
 import fi.fta.geoviite.infra.ui.util.textContent
+import getChildWhenMatches
 import getChildWhenVisible
 import getChildrenWhenVisible
-import getOptionalChildWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import waitUntilChildMatches
+import waitUntilChildNotVisible
 import waitUntilChildVisible
 import java.time.Duration
 
 
 abstract class PageModel(protected val elementFetch: () -> WebElement) {
     constructor(by: By): this(fetch(by))
-    constructor(parent: WebElement, by: By): this(fetch(parent, by))
-    constructor(parent: PageModel, by: By): this(fetch(parent.webElement, by))
+    constructor(parentFetch: () -> WebElement, by: By): this(fetch(parentFetch, by))
+    constructor(parent: PageModel, by: By): this(parent.elementFetch, by)
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -45,16 +47,13 @@ abstract class PageModel(protected val elementFetch: () -> WebElement) {
         clickButton(qaId(id), timeout)
 
     protected fun childElement(by: By, timeout: Duration = defaultWait): WebElement =
-        getChildWhenVisible(webElement, by, timeout)
-
-    protected fun optionalChildElement(by: By, timeout: Duration = defaultWait): WebElement? =
-        getOptionalChildWhenVisible(webElement, by, timeout)
+        getChildWhenVisible(elementFetch, by, timeout)
 
     protected fun childElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
-        getChildrenWhenVisible(webElement, by, timeout)
+        getChildrenWhenVisible(elementFetch, by, timeout)
 
     protected fun clickChild(by: By, timeout: Duration = defaultWait) =
-        clickChildElement(webElement, by, timeout)
+        clickChildElement(elementFetch, by, timeout)
 
     protected fun childText(by: By, timeout: Duration = defaultWait): String =
         childElement(by, timeout).text
@@ -62,8 +61,23 @@ abstract class PageModel(protected val elementFetch: () -> WebElement) {
     protected fun childTexts(by: By, timeout: Duration = defaultWait): List<String> =
         childElements(by, timeout).map(WebElement::getText)
 
-    protected fun waitChildVisible(by: By, timeout: Duration = defaultWait) =
-        waitUntilChildVisible(webElement, by, timeout)
+    fun waitChildVisible(childBy: By, timeout: Duration = defaultWait) =
+        waitUntilChildVisible({ webElement }, childBy, timeout)
 
-    protected fun childExists(by: By) = childElementExists(webElement, by)
+    fun waitChildNotVisible(childBy: By, timeout: Duration = defaultWait) =
+        waitUntilChildNotVisible({ webElement }, childBy, timeout)
+
+    fun waitChildMatches(
+        childBy: By,
+        check: (index: Int, child: WebElement) -> Boolean,
+        timeout: Duration = defaultWait,
+    ) = waitUntilChildMatches(elementFetch, childBy, check, timeout)
+
+    fun childElementWhenMatches(
+        childBy: By,
+        check: (index: Int, child: WebElement) -> Boolean,
+        timeout: Duration = defaultWait,
+    ): Pair<Int, WebElement> = getChildWhenMatches(elementFetch, childBy, check, timeout)
+
+    protected fun childExists(by: By) = webElement.childElementExists(by)
 }

@@ -22,10 +22,10 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenc
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutSwitch
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
-import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
@@ -39,9 +39,7 @@ class BasicMapTestUI @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
-    private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
-    @Value("\${geoviite.e2e.url}") private val url: String,
 ) : SeleniumTest() {
     val navigationPanel: MapNavigationPanel = MapNavigationPanel()
     val toolPanel: MapToolPanel = MapToolPanel()
@@ -84,10 +82,6 @@ class BasicMapTestUI @Autowired constructor(
         GEOMETRY_PLAN = geometryDao.fetchPlan(
             (geometryDao.insertPlan(geometryPlan(trackNumberWestId.id), testFile(), null)))
 
-//    }
-//
-//    @BeforeEach
-//    fun goToMapPage() {
         // TODO: Remove this block: if the test needs to be somewhere in the beginning, it should go there itself
         startGeoviite()
         goToMap()
@@ -103,7 +97,7 @@ class BasicMapTestUI @Autowired constructor(
     fun `Edit and discard location track changes`() {
         val locationTrackToBeEdited = EAST_LT_NAME
 
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
+        navigationPanel.locationTracksList.selectByName(locationTrackToBeEdited)
         goToMap().luonnostila()
         val infobox = toolPanel.locationTrackGeneralInfo()
         val orgTunniste = infobox.tunniste()
@@ -123,6 +117,7 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.editTila(CreateEditLocationTrackDialog.TilaTyyppi.KAYTOSTA_POISTETTU)
         editDialog.tallenna()
 
+        navigationPanel.locationTracksList.waitUntilNameVisible(editedTunnus)
         val infoboxAfterFirstEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoboxAfterFirstEdit.tunniste())
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.sijainteraidetunnus())
@@ -144,7 +139,7 @@ class BasicMapTestUI @Autowired constructor(
         changedAligment.menu().click()
         previewChangesPage.hylkaaMuutos(nameColumnValue)
         previewChangesPage.palaaLuonnostilaan()
-        navigationPanel.selectLocationTrack(editedTunnus)
+        navigationPanel.locationTracksList.selectByName(locationTrackToBeEdited)
 
         val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.tunniste())
@@ -159,7 +154,7 @@ class BasicMapTestUI @Autowired constructor(
     fun `Edit and save location track changes`() {
         val locationTrackToBeEdited = WEST_LT_NAME
 
-        navigationPanel.selectLocationTrack(locationTrackToBeEdited)
+        navigationPanel.locationTracksList.selectByName(locationTrackToBeEdited)
         goToMap().luonnostila()
         val infobox = toolPanel.locationTrackGeneralInfo()
         val orgTunniste = infobox.tunniste()
@@ -179,6 +174,7 @@ class BasicMapTestUI @Autowired constructor(
         editDialog.editTila(CreateEditLocationTrackDialog.TilaTyyppi.KAYTOSTA_POISTETTU)
         editDialog.tallenna()
 
+        navigationPanel.locationTracksList.waitUntilNameVisible(editedTunnus)
         val infoboxAfterFirstEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoboxAfterFirstEdit.tunniste())
         assertNotEquals(orgSijaintiraidetunnus, infoboxAfterFirstEdit.sijainteraidetunnus())
@@ -214,9 +210,4 @@ class BasicMapTestUI @Autowired constructor(
         val alignmentVersion = alignmentDao.insert(lineAndAlignment.second)
         referenceLineDao.insert(lineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
     }
-
-//    fun insertLocationTrack(trackAndAlignment: Pair<LocationTrack, LayoutAlignment>) {
-//        val alignmentVersion = alignmentDao.insert(trackAndAlignment.second)
-//        locationTrackDao.insert(trackAndAlignment.first.copy(alignmentVersion = alignmentVersion))
-//    }
 }

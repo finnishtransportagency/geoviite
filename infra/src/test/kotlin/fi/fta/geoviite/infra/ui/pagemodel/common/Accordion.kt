@@ -29,9 +29,8 @@ open class Accordion(by: By) : PageModel(by) {
         clickChild(By.cssSelector("span.accordion__header-title"))
     }
 
-    // TODO: These list elements hold a reference to the WebElement, risking staleness
-    //  See PublicationList for an example on how to handle lists
-    //  In general: the list object should handle actions and row data can be given out as immutable data classes that don't know the WebElement
+    // TODO: These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+    @Deprecated("Element risks staleness")
     fun listItems() = childElements(By.cssSelector("li")).map { element -> AccordionListItem(element) }
 
     fun selectListItem(itemName: String) = this {

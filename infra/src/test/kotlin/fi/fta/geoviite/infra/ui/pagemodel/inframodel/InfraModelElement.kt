@@ -26,9 +26,9 @@ class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
         emptyList()
     }
 
-    // TODO: These list elements hold a reference to the WebElement, risking staleness
-    //  See PublicationList for an example on how to handle lists
-    //  In general: the list object should handle actions and row data can be given out as immutable data classes that don't know the WebElement
+    // TODO: These list elements hold a reference to the WebElement, risking staleness.
+    //  Use ListModel to replace this, or implement a similar structure for tables if the same doesn't apply.
+    @Deprecated("Element risks staleness")
     fun infraModelRows(): List<InfraModelRow> {
         logger.info("Get Infra Model rows")
         return rowElements().map { rowElement -> InfraModelRow(headerElement.findElements(By.tagName("th")).map {it.text}, rowElement) }

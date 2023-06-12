@@ -38,7 +38,7 @@ class InfraModelTestUI @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-//        openBrowser()
+        startGeoviite()
         infraModelPage = goToInfraModelPage()
     }
 

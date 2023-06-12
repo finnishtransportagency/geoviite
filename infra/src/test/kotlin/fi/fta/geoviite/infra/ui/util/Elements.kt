@@ -39,9 +39,7 @@ fun waitAndGetToasterElement(): Toaster {
 
 fun clearInput(inputElement: WebElement) {
     //CMD+A does nothing in non-mac systems and vice versa
-    waitUntilElementClickable(inputElement)
-
-    inputElement.click()
+    inputElement.waitAndClick()
     inputElement.sendKeys(Keys.chord(Keys.COMMAND, "a"))
     inputElement.sendKeys(Keys.BACK_SPACE)
     inputElement.sendKeys(Keys.chord(Keys.CONTROL, "a"))
@@ -49,20 +47,6 @@ fun clearInput(inputElement: WebElement) {
 }
 
 fun elementExists(byCondition: By) = getElementIfExists(byCondition) != null
-
-fun childElementExists(parent: WebElement, byCondition: By) = getChildElementIfExists(parent, byCondition) != null
-
-fun getChildElementIfExists(parentElement: WebElement, byCondition: By): WebElement? = try {
-    parentElement.findElement(byCondition)
-} catch (ex: NoSuchElementException) {
-    null
-}
-
-fun getChildElements(parentElement: WebElement, byCondition: By): List<WebElement> = try {
-    parentElement.findElements(byCondition)
-} catch (ex: NoSuchElementException) {
-    listOf()
-}
 
 fun getElementIfExists(byCondition: By): WebElement? = try {
     browser().findElement(byCondition)
@@ -90,36 +74,22 @@ fun getElementWhenClickable(byCondition: By, timeout: Duration = defaultWait): W
     return browser().findElement(byCondition)
 }
 
-fun getChildWhenVisible(parent: WebElement, byCondition: By, timeout: Duration = defaultWait): WebElement =
-    getOptionalChildWhenVisible(parent, byCondition, timeout)
-        ?: throw IllegalStateException("No child element found: parent=$parent by=$byCondition timeout=$timeout")
-
-fun getOptionalChildWhenVisible(parent: WebElement, byCondition: By, timeout: Duration = defaultWait): WebElement? {
-    waitUntilChildVisible(parent, byCondition, timeout)
-    return getChildElementIfExists(parent, byCondition)
+fun getChildWhenVisible(parentFetch: () -> WebElement, byCondition: By, timeout: Duration = defaultWait): WebElement {
+    waitUntilChildVisible(parentFetch, byCondition, timeout)
+    return parentFetch().let { parent ->
+        parent.getChildElementIfExists(byCondition)
+            ?: throw IllegalStateException("No child element found: parent=$parent by=$byCondition timeout=$timeout")
+    }
 }
 
-fun getChildrenWhenVisible(parent: WebElement, byCondition: By, timeout: Duration = defaultWait): List<WebElement> {
-    waitUntilChildVisible(parent, byCondition, timeout)
-    return parent.findElements(byCondition)
+fun getChildrenWhenVisible(parentFetch: () -> WebElement, byCondition: By, timeout: Duration = defaultWait): List<WebElement> {
+    waitUntilChildVisible(parentFetch, byCondition, timeout)
+    return parentFetch().findElements(byCondition)
 }
-
-fun getListElements(listBy: By, timeout: Duration = defaultWait) =
-    getChildrenWhenVisible(getElementWhenVisible(listBy, timeout), By.tagName("li"), timeout)
 
 fun waitUntilExists(byCondition: By, timeout: Duration = defaultWait) =
     tryWait(timeout, presenceOfElementLocated(byCondition)) {
         "Wait for element exists failed: seekBy=$byCondition"
-    }
-
-fun waitUntilChildExists(parent: WebElement, byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, presenceOfNestedElementLocatedBy(parent, byCondition)) {
-        "Wait for child exists failed: parent=${parent.getAttribute("innerHTML")} seekBy=$byCondition"
-    }
-
-fun waitUntilDoesNotExist(element: WebElement, timeout: Duration = defaultWait) =
-    tryWait(timeout, not(visibilityOf(element))) {
-        "Wait for element disappearing failed: element=${element.getAttribute("innerHTML")}"
     }
 
 fun waitUntilDoesNotExist(byCondition: By, timeout: Duration = defaultWait) =
@@ -127,24 +97,9 @@ fun waitUntilDoesNotExist(byCondition: By, timeout: Duration = defaultWait) =
         "Wait for element disappearing failed: seekBy=$byCondition"
     }
 
-fun waitUntilChildDoesNotExist(parent: WebElement, byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, not(visibilityOfNestedElementsLocatedBy(parent, byCondition))) {
-        "Wait for child disappearing failed: parent=${parent.getAttribute("innerHTML")} seekBy=$byCondition"
-    }
-
 fun waitUntilVisible(byCondition: By, timeout: Duration = defaultWait) =
     tryWait(timeout, visibilityOfElementLocated(byCondition)) {
         "Wait for element visible failed: seekBy=$byCondition"
-    }
-
-fun waitUntilChildVisible(parent: WebElement, byCondition: By, timeout: Duration = defaultWait) =
-    tryWait(timeout, visibilityOfNestedElementsLocatedBy(parent, byCondition)) {
-        "Wait for child visible failed: parent=${parent.getAttribute("innerHTML")} seekBy=$byCondition"
-    }
-
-fun waitUntilElementClickable(element: WebElement, timeout: Duration = defaultWait) =
-    tryWait(timeout, elementToBeClickable(element)) {
-        "Wait for element clickable failed: element=${element.getAttribute("innerHTML")}"
     }
 
 fun waitUntilElementClickable(byCondition: By, timeout: Duration = defaultWait) =
@@ -167,30 +122,46 @@ fun waitUntilValueIsNot(element: WebElement, value: String, timeout: Duration = 
         "Wait for element value 'to not be x' failed: element=${element.getAttribute("innerHTML")} value=$value"
     }
 
+fun waitUntilChildVisible(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) = tryWait(
+    timeout,
+    { parentFetch().childElementExists(childBy) },
+    { parentFetch().let { parent ->
+        "Child element never appeared: parent=$parent child=${parent.getChildElementIfExists(childBy)}"
+    } }
+)
+
+fun waitUntilChildNotVisible(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) = tryWait(
+    timeout,
+    { !parentFetch().childElementExists(childBy) },
+    { parentFetch().let { parent ->
+        "Child element never disappeared: parent=$parent child=${parent.getChildElementIfExists(childBy)}"
+    } }
+)
+
 fun waitUntilChildMatches(
-    parent: WebElement,
+    parentFetch: () -> WebElement,
     childBy: By,
     check: (index: Int, child: WebElement) -> Boolean,
     timeout: Duration = defaultWait,
-) = WebDriverWait(browser(), timeout)
-    .until { _ -> getChildElements(parent, childBy) }
-        .mapIndexed { index, webElement -> check(index, webElement) }
-        .any()
+) = tryWait(timeout,
+    { parentFetch().getChildElements(childBy).filterIndexed { index, webElement -> check(index, webElement) }.any() },
+    { "Wait for child content to match condition failed: parent=${parentFetch()} childBy=$childBy timeout=$timeout" }
+)
 
-fun <T: Any> getChildWithContentWhenMatches(
-    parent: WebElement,
+fun getChildWhenMatches(
+    parentFetch: () -> WebElement,
     childBy: By,
-    getContent: (index: Int, child: WebElement) -> T,
-    check: (content: T) -> Boolean,
+    check: (index: Int, child: WebElement) -> Boolean,
     timeout: Duration = defaultWait,
-): Pair<WebElement, T> {
-    waitUntilChildMatches(parent, childBy, { i, c -> check(getContent(i, c)) }, timeout)
-    return getChildElements(parent, childBy)
-        .mapIndexed { i, c -> c to getContent(i, c) }
-        .find { (_, c) -> check(c) }
+): Pair<Int, WebElement> {
+    waitUntilChildMatches(parentFetch, childBy, { i, c -> check(i, c) }, timeout)
+    return parentFetch().let { parent -> parent
+        .getChildElements(childBy)
+        .mapIndexedNotNull { i, e -> if(check(i, e)) i to e else null }
+        .singleOrNull()
         ?: throw IllegalStateException("No child element found: parent=$parent childBy=$childBy timeout=$timeout")
+    }
 }
-
 
 fun tryWait(timeout: Duration, condition: ExpectedCondition<*>, lazyErrorMessage: () -> String) = try {
     WebDriverWait(browser(), timeout).until(condition)
@@ -199,13 +170,15 @@ fun tryWait(timeout: Duration, condition: ExpectedCondition<*>, lazyErrorMessage
     throw e
 }
 
-fun clickElement(by: By, timeout: Duration = defaultWait) =
-    clickElement(getElementWhenVisible(by, timeout), timeout)
-
-fun clickChildElement(parent: WebElement, childBy: By, timeout: Duration = defaultWait) =
-    clickElement(getChildWhenVisible(parent, childBy, timeout), timeout)
-
-fun clickElement(element: WebElement, timeout: Duration = defaultWait) {
-    waitUntilElementClickable(element, timeout)
-    element.click()
+fun tryWait(timeout: Duration, condition: () -> Boolean, lazyErrorMessage: () -> String) = try {
+    WebDriverWait(browser(), timeout).until { _ -> condition() }
+} catch (e: Exception) {
+    logger.warn("${lazyErrorMessage()} cause=${e.message}")
+    throw e
 }
+
+fun clickElement(by: By, timeout: Duration = defaultWait) =
+    getElementWhenVisible(by, timeout).waitAndClick(timeout)
+
+fun clickChildElement(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) =
+    getChildWhenVisible(parentFetch, childBy, timeout).waitAndClick(timeout)

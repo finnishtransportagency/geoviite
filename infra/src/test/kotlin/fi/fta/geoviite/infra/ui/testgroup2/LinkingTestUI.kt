@@ -100,7 +100,8 @@ class LinkingTestUI @Autowired constructor(
         trackNumberDao.deleteDrafts()
     }
 
-    @BeforeAll
+//    @BeforeAll
+    @BeforeEach
     fun createTestData() {
         clearAllTestData()
 
@@ -155,12 +156,13 @@ class LinkingTestUI @Autowired constructor(
 
         GEOMETRY_PLAN = geometryDao.fetchPlan((geometryDao.insertPlan(EspooTestData.geometryPlan(trackNumber1Id), testFile(), boundinBox)))
 
-    }
-
-    @BeforeEach
-    fun goToMapPage() {
+//    }
+//
+//    @BeforeEach
+//    fun goToMapPage() {
         clearDrafts()
 //        openBrowser()
+    startGeoviite()
 
         mapPage = goToMap()
         mapPage.luonnostila()

@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
-import waitUntilChildDoesNotExist
 import waitUntilValueIs
 import waitUntilValueIsNot
 import java.time.Duration
@@ -54,5 +53,5 @@ abstract class InfoBox(rootBy: By) : PageModel(rootBy) {
         logger.info("Field $fieldName changed to $targetValue")
     }
 
-    fun waitUntilLoaded() = waitUntilChildDoesNotExist(webElement, By.className("spinner"), Duration.ofSeconds(20))
+    fun waitUntilLoaded() = waitChildNotVisible(By.className("spinner"))
 }

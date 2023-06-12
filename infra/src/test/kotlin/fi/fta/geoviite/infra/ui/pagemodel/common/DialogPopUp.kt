@@ -7,8 +7,8 @@ import waitUntilDoesNotExist
 
 open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(by) {
 
-    private val titleElement: WebElement get() = getChildWhenVisible(webElement, By.className("dialog__title"))
-    private val contentElement: WebElement get() = getChildWhenVisible(webElement, By.className("dialog__content"))
+    private val titleElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__title"))
+    private val contentElement: WebElement get() = getChildWhenVisible(elementFetch, By.className("dialog__content"))
 
     val title: String get() = titleElement.text
     val content: FormLayout get() = FormLayout { contentElement }
@@ -23,7 +23,7 @@ open class DialogPopUp(by: By = By.cssSelector("div.dialog__popup")): PageModel(
 
     fun clickSecondaryButton() = clickButton(By.cssSelector("button.button--secondary"))
 
-    fun waitUntilClosed() = waitUntilDoesNotExist(webElement)
+    fun waitUntilClosed() = webElement.waitUntilDoesNotExist()
 }
 
 class DialogPopUpWithTextField : DialogPopUp() {

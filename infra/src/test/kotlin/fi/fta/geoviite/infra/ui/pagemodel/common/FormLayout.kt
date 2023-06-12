@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import clearInput
-import getChildWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -27,11 +26,11 @@ open class FormLayout(getElement: () -> WebElement): PageModel(getElement){
     }
 
     // TODO: use qa-ids to find fields
-    protected fun fieldValueElement(fieldLabel: String): WebElement = getChildWhenVisible(webElement, By.xpath(
+    protected fun fieldValueElement(fieldLabel: String): WebElement = childElement(By.xpath(
         ".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']"
     ))
 
-    protected fun fieldValueInputElement(fieldLabel: String): WebElement = getChildWhenVisible(webElement, By.xpath(
+    protected fun fieldValueInputElement(fieldLabel: String): WebElement = childElement(By.xpath(
         ".//div[(@class='field-layout' or @class='field-layout field-layout--has-error') and div[contains(text(), '$fieldLabel')]]/div[@class='field-layout__value']//input"
     ))
 

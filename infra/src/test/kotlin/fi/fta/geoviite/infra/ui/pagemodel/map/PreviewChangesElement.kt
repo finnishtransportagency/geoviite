@@ -10,9 +10,8 @@ import org.slf4j.LoggerFactory
 class ChangePreviewTable(val table: WebElement) {
     private val logger: Logger = LoggerFactory.getLogger(ChangePreviewTable::class.java)
 
-    // TODO: These list elements hold a reference to the WebElement, risking staleness
-    //  See PublicationList for an example on how to handle lists
-    //  In general: the list object should handle actions and row data can be given out as immutable data classes that don't know the WebElement
+    // TODO: These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
+    @Deprecated("Element risks staleness")
     fun changeRows(): List<ChangePreviewRow> {
         val header = header()
         return rowElements().map { rowElement -> ChangePreviewRow(header, rowElement) }

@@ -1,18 +1,26 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import browser
+import fi.fta.geoviite.infra.ui.util.ListContentItem
+import fi.fta.geoviite.infra.ui.util.ListModel
+import fi.fta.geoviite.infra.ui.util.byLiTag
+import fi.fta.geoviite.infra.ui.util.fetch
+import getChildrenWhenVisible
 import getElementWhenVisible
 import getElementsWhenVisible
-import getListElements
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
+import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
+// TODO: The contents of these lists should be implemented as own components using ListModel (see ListModel.kt)
 class MapNavigationPanel {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    val locationTracksList = LocationTracksNavigationList()
 
     fun selectTrackNumber(name: String) {
         logger.info("Select trackNumber $name")
@@ -64,6 +72,8 @@ class MapNavigationPanel {
         }
     }
 
+    // TODO: Replace these uses with the locationTracksList. Make similar lists for other concepts
+    @Deprecated("Use mapNavigationPanel.locationTracksList instead")
     fun selectLocationTrack(locationTrackName: String) {
         logger.info("Select location track $locationTrackName")
         val locationTracks = locationTracks()
@@ -72,6 +82,7 @@ class MapNavigationPanel {
         locationTrack.select()
     }
 
+    @Deprecated("Use mapNavigationPanel.locationTracksList instead")
     fun locationTracks(): List<TrackLayoutAlignment> {
         logger.info("Get all location tracks")
         return try {
@@ -84,6 +95,7 @@ class MapNavigationPanel {
         }
     }
 
+    @Deprecated("Use mapNavigationPanel.locationTracksList instead")
     fun waitForLocationTrackNamesTo(namePredicate: (names: List<String>) -> Boolean) {
         logger.info("Wait for location track names")
         WebDriverWait(browser(), Duration.ofSeconds(5))
@@ -134,4 +146,34 @@ class MapNavigationPanel {
             emptyList()
         }
     }
+
+    @Deprecated("Implement lists through ListModel")
+    fun getListElements(listBy: By) = getChildrenWhenVisible(fetch(listBy), By.tagName("li"))
+}
+
+
+class LocationTracksNavigationList: ListModel<LocationTrackListItem>(
+    listBy = By.xpath("//ol[@qa-id='location-tracks-list']"),
+    itemsBy = byLiTag,
+    getContent = { i: Int, e: WebElement -> LocationTrackListItem(i, e) }
+) {
+    fun selectByName(name: String) = selectItemWhenMatches { lt -> lt.name == name }
+
+    fun waitUntilNameVisible(name: String) = waitUntilItemMatches { lt -> lt.name == name }
+
+    // TODO: This is now implemented for this list only, but there should be a generic qa-id-ish pattern to denote selections in all lists
+    override fun isSelected(element: WebElement): Boolean =
+        element.findElement(By.xpath("./*[1]")).getAttribute("class").contains("selected")
+}
+
+data class LocationTrackListItem(
+    val name: String,
+    val type: String,
+    override val index: Int,
+): ListContentItem {
+    constructor(index: Int, element: WebElement): this(
+        name = element.findElement(By.xpath("./div/span")).text,
+        type = element.findElement(By.xpath("./span")).text,
+        index = index,
+    )
 }

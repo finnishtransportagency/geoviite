@@ -10,4 +10,4 @@ fun qaId(qaId: String): By = By.cssSelector("[qa-id='$qaId']")
 fun textContent(content: String): By = By.xpath(".//span[text() = '$content']")
 
 fun fetch(by: By): () -> WebElement = { getElementWhenVisible(by) }
-fun fetch(parent: WebElement, by: By): () -> WebElement = { getChildWhenVisible(parent, by) }
+fun fetch(parentFetch: () -> WebElement, by: By): () -> WebElement = { getChildWhenVisible(parentFetch, by) }

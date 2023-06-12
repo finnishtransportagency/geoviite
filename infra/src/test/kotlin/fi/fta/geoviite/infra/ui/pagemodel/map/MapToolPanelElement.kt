@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.util.fetch
 import fi.fta.geoviite.infra.ui.util.qaId
 import fi.fta.geoviite.infra.ui.util.textContent
 import getElementWhenClickable
@@ -9,7 +10,7 @@ import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
 import waitAndGetToasterElement
-import waitUntilChildDoesNotExist
+import waitUntilChildNotVisible
 import waitUntilElementIsStale
 import waitUntilVisible
 import java.time.Duration
@@ -556,9 +557,7 @@ class SearchBox(val path: By): PageModel(path) {
     }
 
     fun searchResults(): List<SearchResult> {
-        // TODO: These list elements hold a reference to the WebElement, risking staleness
-        //  See PublicationList for an example on how to handle lists
-        //  In general: the list object should handle actions and row data can be given out as immutable data classes that don't know the WebElement
+        // TODO: These list elements hold a reference to the WebElement, risking staleness. Use ListModel to replace this.
         val searchResults = dropDown.listItems().map { SearchResult(it) }
         logger.info("Search results: ${searchResults.map { it.value() }}")
         return searchResults
@@ -580,8 +579,8 @@ class SearchBox(val path: By): PageModel(path) {
     }
 
     fun waitUntilOpenAndNotLoading() {
-        val resultList = getElementWhenVisible(By.className("dropdown__list"))
-        waitUntilChildDoesNotExist(resultList, qaId("$qaId-loading"))
+        waitUntilVisible(By.className("dropdown__list"))
+        waitUntilChildNotVisible(fetch(By.className("dropdown__list")), qaId("$qaId-loading"))
     }
 }
 

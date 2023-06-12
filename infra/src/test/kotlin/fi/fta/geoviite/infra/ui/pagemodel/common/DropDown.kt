@@ -22,6 +22,7 @@ class DropDown (elementFetch: () -> WebElement): PageModel(elementFetch) {
     }
 
     // TODO: This exposes elements directly to outside the class with a stale-risk
+    @Deprecated("Element risks staleness")
     fun listItems() = childElements(By.cssSelector("li.dropdown__list-item span.dropdown__list-item-text"))
 
 
