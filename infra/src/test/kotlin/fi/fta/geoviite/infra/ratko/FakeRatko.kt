@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.mockserver.client.ForwardChainExpectation
+import org.mockserver.configuration.Configuration
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
 import org.mockserver.matchers.Times
@@ -15,6 +16,7 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse
 import org.mockserver.model.JsonBody
 import org.mockserver.model.MediaType
+import org.slf4j.event.Level
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -27,7 +29,9 @@ class FakeRatkoService @Autowired constructor(@Value("\${geoviite.ratko.test-por
 }
 
 class FakeRatko (port: Int) {
-    private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
+    private val mockServer: ClientAndServer =
+        ClientAndServer.startClientAndServer(Configuration.configuration().logLevel(Level.ERROR), port)
+
     private val jsonMapper =
         jsonMapper { addModule(kotlinModule { configure(KotlinFeature.NullIsSameAsDefault, true) }) }
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
