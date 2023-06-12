@@ -449,7 +449,6 @@ class MapLayerSettingsPanel(by: By) : PageModel(by) {
         SUUNNITELMAN_VAIHEET("Suunnitelman vaiheet"),
         SUUNNITELMAN_TASAKILOMETRIPISTEET("Suunnitelman tasakilometripisteet"),
         SUUNNITELMAN_ALUEET("Suunnitelman alueet"),
-        MANUAALINEN_VAIHTEIDEN_LINKITYS("Manuaalinen vaihteiden linkitys")
     }
 
     fun close() = this {

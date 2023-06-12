@@ -13,7 +13,7 @@ import {
     MapAlignmentType,
     ReferenceLineId,
 } from './track-layout-model';
-import { API_URI, getWithDefault, queryParams } from 'api/api-fetch';
+import { API_URI, getIgnoreError, getWithDefault, queryParams } from 'api/api-fetch';
 import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'model/geometry';
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
@@ -70,6 +70,7 @@ const locationTrackEndsCache = asyncCache<string, LayoutPoint[]>();
 const referenceLineEndsCache = asyncCache<string, LayoutPoint[]>();
 const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
+const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | null>();
 
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
@@ -352,12 +353,18 @@ export function toMapAlignmentResolution(tileResolution: number): number {
 export async function getTrackMeter(
     trackNumberId: string,
     publishType: PublishType,
+    changeTime: TimeStamp,
     location: Point,
-): Promise<TrackMeter | undefined> {
+): Promise<TrackMeter | null> {
     const params = queryParams({ coordinate: pointString(location) });
 
-    return getWithDefault(
-        `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
-        undefined,
+    return trackNumberTrackMeterCache.get(
+        changeTime,
+        `${trackNumberId}_${publishType}_${pointString(location)}`,
+        () => {
+            return getIgnoreError<TrackMeter>(
+                `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
+            );
+        },
     );
 }

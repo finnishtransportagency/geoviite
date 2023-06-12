@@ -8,7 +8,7 @@ import {
     getTrackMeter,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { PublishType, TrackMeter } from 'common/common-model';
+import { PublishType, TimeStamp, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { Feature } from 'ol';
@@ -210,34 +210,9 @@ export function createTrackNumberEndPointAddressesLayer(
                         : false;
                 });
             })
-            .then((referenceLines) => {
-                const endPointAddresses = referenceLines
-                    .filter((referenceLine) => !!referenceLine.header.trackNumberId)
-                    .flatMap((referenceLine) => {
-                        const trackNumberId = referenceLine.header
-                            .trackNumberId as LayoutTrackNumberId;
-
-                        const firstPoint = referenceLine.points[0];
-                        const lastPoint = referenceLine.points[referenceLine.points.length - 1];
-
-                        return Promise.all([
-                            firstPoint?.m === 0
-                                ? getTrackMeter(trackNumberId, publishType, firstPoint)
-                                : undefined,
-                            lastPoint?.m === referenceLine.header.length
-                                ? getTrackMeter(trackNumberId, publishType, lastPoint)
-                                : undefined,
-                        ]).then(([startTrackMeter, endTrackMeter]) => {
-                            return {
-                                data: referenceLine,
-                                startAddress: startTrackMeter,
-                                endAddress: endTrackMeter,
-                            } as AlignmentDataHolderWithAddresses;
-                        });
-                    });
-
-                return Promise.all(endPointAddresses);
-            })
+            .then((referenceLines) =>
+                getEndPointAddresses(referenceLines, publishType, changeTimes.layoutTrackNumber),
+            )
             .then((alignments) => {
                 if (layerId !== newestLayerId) return;
 
@@ -256,3 +231,35 @@ export function createTrackNumberEndPointAddressesLayer(
         layer: layer,
     };
 }
+
+const getEndPointAddresses = (
+    referenceLines: AlignmentDataHolder[],
+    publishType: PublishType,
+    changeTime: TimeStamp,
+): Promise<AlignmentDataHolderWithAddresses[]> => {
+    return Promise.all(
+        referenceLines
+            .filter((referenceLine) => !!referenceLine.header.trackNumberId)
+            .flatMap((referenceLine) => {
+                const trackNumberId = referenceLine.header.trackNumberId as LayoutTrackNumberId;
+
+                const firstPoint = referenceLine.points[0];
+                const lastPoint = referenceLine.points[referenceLine.points.length - 1];
+
+                return Promise.all([
+                    firstPoint?.m === 0
+                        ? getTrackMeter(trackNumberId, publishType, changeTime, firstPoint)
+                        : undefined,
+                    lastPoint?.m === referenceLine.header.length
+                        ? getTrackMeter(trackNumberId, publishType, changeTime, lastPoint)
+                        : undefined,
+                ]).then(([startTrackMeter, endTrackMeter]) => {
+                    return {
+                        data: referenceLine,
+                        startAddress: startTrackMeter,
+                        endAddress: endTrackMeter,
+                    } as AlignmentDataHolderWithAddresses;
+                });
+            }),
+    );
+};

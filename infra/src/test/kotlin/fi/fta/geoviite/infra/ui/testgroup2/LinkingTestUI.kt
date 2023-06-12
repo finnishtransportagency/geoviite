@@ -29,7 +29,6 @@ import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.GEO_ALIGNMENT_I
 import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.GEO_SWITCH_1_ALIGNMENT_NAMES
 import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.GEO_SWITCH_1_NAME
 import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.GEO_SWITCH_1_STRUCTURE
-import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.GEO_SWITCH_2_ALIGNMENT_NAMES
 import fi.fta.geoviite.infra.ui.testdata.EspooTestData.Companion.REFERENCELINE_1_NAME
 import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.metersToDouble
@@ -677,67 +676,6 @@ class LinkingTestUI @Autowired constructor(
         publishChanges()
 
         assertThatLatestPublicationDetailsIncludeMuutoskohde("Sijaintiraide ${LOCATION_TRACK_F.first.name}")
-    }
-
-    @Test
-    fun `Link switch without geometry switch using geometry alignments`() {
-        val alignment152Name = GEO_SWITCH_2_ALIGNMENT_NAMES[0]
-        val alignment13Name = GEO_SWITCH_2_ALIGNMENT_NAMES[1]
-        val alignment152 = getGeometryAlignmentFromPlan(alignment152Name)
-        val alignment13 = getGeometryAlignmentFromPlan(alignment13Name)
-
-        //Since there is no 'zoom to'/'kohdidsta kartalta', we use double click to zoom towards aligments
-        mapPage.zoomOutToScale("50 m")
-        mapPage.clickAtCoordinates(alignment152.elements[0].start, doubleClick = true)
-        mapPage.clickAtCoordinates(alignment152.elements[0].start, doubleClick = true)
-        mapPage.zoomInToScale("10 m")
-
-        val geoPlan = navigationPanel.geometryPlanByName(GEOMETRY_PLAN_NAME)
-
-        geoPlan.selecAlignment(alignment152Name)
-        val locationTrack152Name = "1-5-2-lt"
-        createAndLinkLocationTrack(alignment152, locationTrack152Name)
-
-        geoPlan.selecAlignment(alignment13Name)
-        val locationTrack13Name = "1-3-lt"
-        createAndLinkLocationTrack(alignment13, locationTrack13Name)
-
-        mapPage.karttatasoasetukset()
-            .selectSetting(MapLayerSettingsPanel.Setting.MANUAALINEN_VAIHTEIDEN_LINKITYS, true)
-            .close()
-
-        mapPage.clickAtCoordinates(alignment152.elements.first().start)
-
-        mapPage.switchLinkingDialog()
-            .vaihdetyyppi(GEO_SWITCH_1_STRUCTURE.type.typeName)
-            .selectLocationTrack("1-5-2", locationTrack152Name)
-            .selectLocationTrack("1-3", locationTrack13Name)
-            .aloitaLinkitys()
-
-        val layoutSwitchName = "layout-switch-2"
-        val switchLinkingInfoBox = toolPanel.geometrySwitchLinking()
-        switchLinkingInfoBox.createNewTrackLayoutSwitch()
-            .editVaihdetunnus(layoutSwitchName)
-            .editTilakategoria(Tilakategoria.OLEMASSA_OLEVA_KOHDE)
-            .tallenna()
-        switchLinkingInfoBox.linkita()
-
-        toolPanel.selectToolPanelTab(layoutSwitchName)
-        val switchGeneralInfo = toolPanel.layoutSwitchGeneralInfo()
-        assertEquals(layoutSwitchName, switchGeneralInfo.vaihdetunnus())
-
-        val switchTypeInfo = toolPanel.layoutSwitchStructureGeneralInfo()
-        assertEquals(GEO_SWITCH_1_STRUCTURE.type.typeName, switchTypeInfo.tyyppi())
-
-        val switchLocationInfo = toolPanel.layoutSwitchLocation()
-        val alignment152StartPoint = pointToCoordinateString(alignment152.elements.first().start)
-        assertEquals(alignment152StartPoint, switchLocationInfo.koordinaatit())
-        assertEquals(switchLocationInfo.linjaJaRaide("1-5-2").switchTrack, locationTrack152Name)
-        assertEquals(switchLocationInfo.linjaJaRaide("1-3").switchTrack, locationTrack13Name)
-
-        publishChanges()
-
-        assertThatLatestPublicationDetailsIncludeMuutoskohde("Sijaintiraide 1-5-2-lt", "Sijaintiraide 1-3-lt", "Vaihde layout-switch-2")
     }
 
     @Test

@@ -124,7 +124,6 @@
                 "im-file": "IM-tiedosto",
                 "unknown": "Ei tiedossa",
                 "geometry-plan-title": "Infra model metatiedot",
-                "manual-linking-title": "Manuaalinen vaihteen linkitys",
                 "manual-linking-info": "Manuaalisesti linkitettävään vaihteeseen ei liity suunnitelman vaihdetta, vaan linkitys tehdään lähtötietojen perusteella.",
                 "no-linkable-switches": "Sopivia vaihteita ei löytynyt linkitettäväksi."
             }

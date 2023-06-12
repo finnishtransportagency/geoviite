@@ -29,7 +29,6 @@ export type MapLayerMenuChange = {
 
 const relatedMapLayers: { [key in MapLayerName]?: MapLayerName[] } = {
     'track-number-diagram-layer': ['reference-line-badge-layer', 'track-number-addresses-layer'],
-    'manual-switch-linking-layer': ['switch-layer'],
     'switch-linking-layer': ['switch-layer'],
     'alignment-linking-layer': ['location-track-alignment-layer', 'geometry-alignment-layer'],
     'location-track-alignment-layer': [
@@ -58,7 +57,6 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-km-post': ['geometry-km-post-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug': ['debug-layer'],
-    'manual-switch-linking': ['manual-switch-linking-layer'],
 };
 
 export const initialMapState: Map = {
@@ -94,7 +92,6 @@ export const initialMapState: Map = {
             { name: 'geometry-switch', visible: true },
             { name: 'geometry-km-post', visible: true },
             { name: 'plan-area', visible: false },
-            { name: 'manual-switch-linking', visible: false },
         ],
         debug: [
             { name: 'debug-1m', visible: false },
