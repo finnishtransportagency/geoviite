@@ -37,7 +37,7 @@ export const HeightTooltip: React.FC<HeightTooltipProps> = ({
             ref={ref}
             className="vertical-geometry-diagram__tooltip"
             style={{
-                position: 'absolute',
+                position: 'fixed',
                 left: Math.min(
                     parentElementRect.left + point.xPositionPx + 20,
                     parentElementRect.right - width,
