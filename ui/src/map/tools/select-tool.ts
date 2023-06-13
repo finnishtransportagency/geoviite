@@ -8,7 +8,18 @@ export const selectTool: MapTool = {
         const clickEvent = map.on('click', ({ coordinate }) => {
             const hitArea = getDefaultHitArea(map, coordinate);
             const items = searchItemsFromLayers(hitArea, layers, { limit: 1 });
-            options.onSelect(items);
+
+            options.onSelect({
+                ...items,
+                geometryKmPosts: items.geometryKmPosts ?? [],
+                kmPosts: items.kmPosts ?? [],
+                geometrySwitches: items.geometrySwitches ?? [],
+                switches: items.switches ?? [],
+                geometryAlignments: items.geometryAlignments ?? [],
+                locationTracks: items.locationTracks ?? [],
+                trackNumbers: items.trackNumbers ?? [],
+                geometryPlans: items.geometryPlans ?? [],
+            });
         });
 
         // Return function to clean up this tool
