@@ -38,7 +38,7 @@ function createBadgeFeatures(
         const badgePadding = 16;
         const badgeHeight = 14;
         const fontSize = 12;
-        const badgeNoseWidth = 7;
+        const badgeNoseWidth = 4;
 
         const renderer = ([x, y]: Coordinate, state: State) => {
             const ctx = state.context;
@@ -60,12 +60,20 @@ function createBadgeFeatures(
 
             ctx.fillStyle = badgeStyle.background;
 
-            ctx.fillRect(
+            ctx.rect(
                 x - (badgeRotation.drawFromEnd ? badgeWidth : 0),
                 y - halfHeight,
                 badgeWidth,
                 height,
             );
+
+            if (badgeStyle.backgroundBorder) {
+                ctx.strokeStyle = badgeStyle.backgroundBorder;
+                ctx.lineWidth = state.pixelRatio;
+                ctx.stroke();
+            }
+
+            ctx.fill();
 
             //Won't work with LIGHT badge color, but for now only reference lines have pointy badge
             if (color === AlignmentBadgeColor.DARK) {
@@ -73,18 +81,15 @@ function createBadgeFeatures(
 
                 const offsetDirection = badgeRotation.drawFromEnd ? -1 : 1;
 
-                ctx.moveTo(x + (badgeWidth + badgeNoseWidth) * offsetDirection, y);
+                ctx.moveTo(
+                    x + (badgeWidth + badgeNoseWidth * state.pixelRatio) * offsetDirection,
+                    y,
+                );
                 ctx.lineTo(x + badgeWidth * offsetDirection, y - halfHeight);
                 ctx.lineTo(x + badgeWidth * offsetDirection, y + halfHeight);
             }
 
             ctx.fill();
-
-            if (badgeStyle.backgroundBorder) {
-                ctx.strokeStyle = badgeStyle.backgroundBorder;
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
 
             ctx.fillStyle = badgeStyle.color;
             ctx.textAlign = 'center';
@@ -92,7 +97,7 @@ function createBadgeFeatures(
             ctx.fillText(
                 name,
                 x + ((badgeRotation.drawFromEnd ? -1 : 1) * badgeWidth) / 2,
-                y + 1 * state.pixelRatio,
+                y + state.pixelRatio,
             );
 
             ctx.restore();
