@@ -1,5 +1,6 @@
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
+import fi.fta.geoviite.infra.ui.pagemodel.common.defaultToasterBy
 import org.openqa.selenium.By
 import org.openqa.selenium.Keys
 import org.openqa.selenium.NoSuchElementException
@@ -30,11 +31,18 @@ fun clickElementAtPoint(element: WebElement, x: Int, y: Int, doubleClick: Boolea
     Thread.sleep(400) //Prevents double-clicking and zooming with map canvas
 }
 
+
 fun waitAndGetToasterElement(): Toaster {
     logger.info("Waiting toaster element to appear")
-    val toaster = Toaster(By.cssSelector("div.Toastify__toast"))
-    logger.info("Toaster appeared")
-    return toaster
+    return Toaster().also { logger.info("Toaster appeared") }
+}
+
+fun clearToasters() {
+    var toaster: WebElement?
+    do {
+        toaster = getElementIfExists(defaultToasterBy)
+        toaster?.waitAndClick()
+    } while (toaster != null)
 }
 
 fun clearInput(inputElement: WebElement) {
@@ -107,19 +115,20 @@ fun waitUntilElementClickable(byCondition: By, timeout: Duration = defaultWait) 
         "Wait for element clickable failed: seekBy=$byCondition"
     }
 
-fun waitUntilElementIsStale(element: WebElement, timeout: Duration = defaultWait) =
+fun waitUntilElementIsStale(element: WebElement, timeout: Duration = defaultWait) {
     tryWait(timeout, stalenessOf(element)) {
-        "Wait for element staleness failed: element=${element.getAttribute("innerHTML")}"
+        "Wait for element staleness failed: element=${element.getInnerHtml()}"
     }
+}
 
 fun waitUntilValueIs(element: WebElement, value: String, timeout: Duration = defaultWait) =
     tryWait(timeout, textToBePresentInElement(element, value)) {
-        "Wait for element value 'to be x' failed: element=${element.getAttribute("innerHTML")} value=$value"
+        "Wait for element value 'to be x' failed: element=${element.getInnerHtml()} value=$value"
     }
 
 fun waitUntilValueIsNot(element: WebElement, value: String, timeout: Duration = defaultWait) =
     tryWait(timeout, not(textToBePresentInElement(element, value))) {
-        "Wait for element value 'to not be x' failed: element=${element.getAttribute("innerHTML")} value=$value"
+        "Wait for element value 'to not be x' failed: element=${element.getInnerHtml()} value=$value"
     }
 
 fun waitUntilChildVisible(parentFetch: () -> WebElement, childBy: By, timeout: Duration = defaultWait) = tryWait(

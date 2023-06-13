@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import browser
+import defaultWait
 import fi.fta.geoviite.infra.ui.util.ListContentItem
 import fi.fta.geoviite.infra.ui.util.ListModel
 import fi.fta.geoviite.infra.ui.util.byLiTag
@@ -14,6 +15,7 @@ import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import tryWait
 import java.time.Duration
 
 // TODO: The contents of these lists should be implemented as own components using ListModel (see ListModel.kt)
@@ -149,6 +151,13 @@ class MapNavigationPanel {
 
     @Deprecated("Implement lists through ListModel")
     fun getListElements(listBy: By) = getChildrenWhenVisible(fetch(listBy), By.tagName("li"))
+    fun waitUntilSwitchNotVisible(switchName: String) {
+        tryWait(
+            defaultWait,
+            { switches().none { it.name() == switchName } },
+            { "Switch did not disappear from navigation: switch=$switchName visible=${switches().map { it.name() }}" },
+        )
+    }
 }
 
 

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import org.openqa.selenium.WebElement
+import waitAndClick
 import waitUntilClickable
 
 class Button(fetch: () -> WebElement): PageModel(fetch) {
@@ -9,6 +10,6 @@ class Button(fetch: () -> WebElement): PageModel(fetch) {
         webElement.waitUntilClickable()
         // TODO: Check if this is actually needed
         Thread.sleep(500) //Fixes problems where button cannot be clicked while enabled
-        webElement.click()
+        webElement.waitAndClick()
     }
 }

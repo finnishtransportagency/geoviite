@@ -193,8 +193,8 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(HKI_TRACKNUMBER_1, changedAligment.ratanumero())
         changedAligment.nuolinappi().click()
 
-        val notificationAfterSave = previewChangesPage.julkaise()
-        assertContains(notificationAfterSave.message, "Muutokset julkaistu")
+        val notificationAfterSave = previewChangesPage.julkaise().readAndClose()
+        assertContains(notificationAfterSave, "Muutokset julkaistu")
 
         val infoBoxAfterSecondEdit = toolPanel.locationTrackGeneralInfo()
         assertEquals(orgTunniste, infoBoxAfterSecondEdit.tunniste())

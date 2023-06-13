@@ -107,6 +107,7 @@ class LocationTrackGeneralInfoBox(by: By) : InfoBox(by) {
         // TODO: Change use places to lambdas: Component(webElement) becomes Component { webElement }
     }
 
+    // TODO: Sleep needed?
     fun kohdistaKartalla() = clickButtonByText("Kohdista kartalla").also { Thread.sleep(500) }
 }
 

@@ -43,13 +43,11 @@ class PublicationDetails: PageModel(By.cssSelector("div.publication-details")) {
 data class PublicationDetailRowContent(
     val muutoskohde: String,
     val ratanumero: String,
-    val muokattu: String,
     val vietyRatkoon: String,
 ) {
     constructor(row: WebElement, headers: List<String>) : this(
         muutoskohde = getColumnContent(headers, row, "Muutoskohde"),
         ratanumero = getColumnContent(headers, row, "Ratanro"),
-        muokattu = getColumnContent(headers, row, "Muokattu"),
-        vietyRatkoon = getColumnContent(headers, row, "Viety ratkoon"),
+        vietyRatkoon = getColumnContent(headers, row, "Viety Ratkoon"),
     )
 }

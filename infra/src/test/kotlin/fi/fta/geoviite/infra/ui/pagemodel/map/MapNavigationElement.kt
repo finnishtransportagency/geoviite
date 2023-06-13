@@ -31,7 +31,7 @@ abstract class TrackLayoutElement(val element: WebElement) {
 
 // TODO: These elements don't hold a WebElement reference, so they work. However they should be refactored as data classes
 class TrackLayoutSwitch(liElement: WebElement): TrackLayoutElement(liElement) {
-    override fun name(): String = element.findElement(By.xpath("./div/span")).text
+    override fun name(): String = element.findElement(By.xpath("./span/span")).text
     override fun toString(): String = name()
 }
 
