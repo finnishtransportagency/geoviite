@@ -19,36 +19,36 @@ import {
 } from 'geometry/geometry-model';
 import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { SerializableFile } from 'utils/file-utils';
-import { validateOid, ValidationError, ValidationErrorType } from 'utils/validation-utils';
-import {
-    MeasurementMethod,
-    Message,
-    Oid,
-    Srid,
-    VerticalCoordinateSystem,
-} from 'common/common-model';
+import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { MeasurementMethod, Message, Srid, VerticalCoordinateSystem } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
 
 export enum InfraModelViewType {
     UPLOAD,
+    IMPORT,
     EDIT,
+}
+
+export enum InfraModelTabType {
+    PLAN,
+    WAITING,
+    REJECTED,
 }
 
 export type InfraModelState = {
     map: Map;
     infraModelList: InfraModelListState;
     selection: Selection;
-    plan: GeometryPlan | null;
-    planLayout: GeometryPlanLayout | null;
+    validationResponse: ValidationResponse | null;
     file: SerializableFile | undefined;
     extraInfraModelParameters: ExtraInfraModelParameters;
     overrideInfraModelParameters: OverrideInfraModelParameters;
     validationErrors: ValidationError<InfraModelParameters>[];
     committedFields: InfraModelParametersProp[];
+    infraModelActiveTab: InfraModelTabType;
 };
 
 export type ExtraInfraModelParameters = {
-    oid: Oid | undefined;
     planPhase: PlanPhase | undefined;
     decisionPhase: DecisionPhase | undefined;
     measurementMethod: MeasurementMethod | undefined;
@@ -71,10 +71,30 @@ export type InfraModelParameters = ExtraInfraModelParameters & OverrideInfraMode
 
 export type InfraModelParametersProp = keyof InfraModelParameters;
 
-export type OnPlanFetchReady = {
+export type LocalizationKey = string;
+
+export type OnPlanValidated = {
     plan: GeometryPlan | null;
     planLayout: GeometryPlanLayout | null;
 };
+
+export type ErrorType =
+    | 'REQUEST_ERROR'
+    | 'PARSING_ERROR'
+    | 'TRANSFORMATION_ERROR'
+    | 'VALIDATION_ERROR'
+    | 'OBSERVATION_MAJOR'
+    | 'OBSERVATION_MINOR';
+export interface CustomValidationError {
+    localizationKey: LocalizationKey;
+    errorType: ErrorType;
+}
+
+export interface ValidationResponse {
+    validationErrors: CustomValidationError[];
+    geometryPlan: GeometryPlan | null;
+    planLayout: GeometryPlanLayout | null;
+}
 
 const visibleMapLayers: MapLayerName[] = [
     'background-map-layer',
@@ -98,11 +118,9 @@ export const initialInfraModelState: InfraModelState = {
         ...initialSelectionState,
         selectionModes: ['segment', 'switch'],
     },
-    plan: null,
-    planLayout: null,
+    validationResponse: null,
     file: undefined,
     extraInfraModelParameters: {
-        oid: undefined,
         planPhase: undefined,
         decisionPhase: undefined,
         measurementMethod: undefined,
@@ -116,29 +134,25 @@ export const initialInfraModelState: InfraModelState = {
     },
     validationErrors: [],
     committedFields: [],
-};
-
-export type GeometryPlanWithParameters = {
-    geometryPlan: GeometryPlan;
-    extraInfraModelParameters: ExtraInfraModelParameters;
+    infraModelActiveTab: InfraModelTabType.PLAN,
 };
 
 const infraModelSlice = createSlice({
     name: 'infraModel',
     initialState: initialInfraModelState,
     reducers: {
-        onPlanFetchReady: (
+        onPlanValidated: (
             state: InfraModelState,
-            { payload: { plan, planLayout } }: PayloadAction<OnPlanFetchReady>,
+            { payload: response }: PayloadAction<ValidationResponse>,
         ) => {
-            state.plan = plan;
-            state.planLayout = planLayout;
+            state.validationResponse = response;
 
-            if (planLayout) {
-                state.selection.planLayouts = [planLayout];
-                const bBox = planLayout && planLayout.boundingBox;
+            if (response.planLayout) {
+                state.selection.planLayouts = [response.planLayout];
+                const bBox = response.planLayout.boundingBox;
                 state.map.viewport = {
                     ...state.map.viewport,
+                    source: undefined,
                     center: {
                         x: (bBox.x.min + bBox.x.max) / 2.0,
                         y: (bBox.y.min + bBox.y.max) / 2.0,
@@ -153,7 +167,7 @@ const infraModelSlice = createSlice({
         ) {
             state.extraInfraModelParameters[propEdit.key] = propEdit.value;
             state.validationErrors = validateParams(
-                state.plan,
+                state.validationResponse?.geometryPlan || null,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
@@ -171,7 +185,7 @@ const infraModelSlice = createSlice({
         ) => {
             state.overrideInfraModelParameters = { ...payload };
             state.validationErrors = validateParams(
-                state.plan,
+                state.validationResponse?.geometryPlan || null,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
@@ -182,20 +196,13 @@ const infraModelSlice = createSlice({
         ) => {
             state.committedFields = [...state.committedFields, key];
         },
-        onPlanUpdate: (state: InfraModelState) => {
-            state.validationErrors = validateParams(
-                state.plan,
-                state.extraInfraModelParameters,
-                state.overrideInfraModelParameters,
-            );
-        },
         setInfraModelFile: (
             state: InfraModelState,
             { payload: file }: PayloadAction<SerializableFile>,
         ) => {
             state.file = file;
 
-            state.plan = initialInfraModelState.plan;
+            state.validationResponse = initialInfraModelState.validationResponse;
             state.selection = initialSelectionState;
             state.map.viewport = initialMapState.viewport;
             state.committedFields = [];
@@ -203,18 +210,21 @@ const infraModelSlice = createSlice({
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
             state.validationErrors = validateParams(
-                state.plan,
+                state.validationResponse?.geometryPlan || null,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
         },
         setExistingInfraModel: (
             state: InfraModelState,
-            { payload }: PayloadAction<GeometryPlanWithParameters>,
+            { payload: plan }: PayloadAction<GeometryPlan | null>,
         ) => {
-            state.plan = payload.geometryPlan;
-            state.extraInfraModelParameters = payload.extraInfraModelParameters;
-
+            state.extraInfraModelParameters = {
+                planPhase: plan?.planPhase ?? undefined,
+                decisionPhase: plan?.decisionPhase ?? undefined,
+                measurementMethod: plan?.measurementMethod ?? undefined,
+                message: plan?.message ?? undefined,
+            };
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
             state.file = initialInfraModelState.file;
@@ -224,8 +234,7 @@ const infraModelSlice = createSlice({
             state.validationErrors = initialInfraModelState.validationErrors;
         },
         clearInfraModelState: (state: InfraModelState) => {
-            state.plan = initialInfraModelState.plan;
-            state.planLayout = initialInfraModelState.planLayout;
+            state.validationResponse = initialInfraModelState.validationResponse;
             state.extraInfraModelParameters = initialInfraModelState.extraInfraModelParameters;
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
@@ -234,6 +243,12 @@ const infraModelSlice = createSlice({
             state.map.viewport = initialInfraModelState.map.viewport;
             state.committedFields = [];
             state.validationErrors = initialInfraModelState.validationErrors;
+        },
+        setInfraModelActiveTab: (
+            state: InfraModelState,
+            { payload: tab }: PayloadAction<InfraModelTabType>,
+        ): void => {
+            state.infraModelActiveTab = tab;
         },
         ...wrapReducers((state: InfraModelState) => state.map, mapReducers),
         ...wrapReducers((state: InfraModelState) => state.infraModelList, infraModelListReducers),
@@ -254,15 +269,8 @@ function validateParams(
     extraParams: ExtraInfraModelParameters,
     overrideParams: OverrideInfraModelParameters,
 ): ValidationError<InfraModelParameters>[] {
-    const oidValidationErrors = extraParams.oid ? validateOid(extraParams.oid) : null;
     const errors: ValidationError<InfraModelParameters>[] = [];
 
-    oidValidationErrors &&
-        oidValidationErrors.forEach((error) =>
-            errors.push(createError('oid', error, ValidationErrorType.ERROR)),
-        );
-    (extraParams.oid === undefined || oidValidationErrors?.length != 0) &&
-        errors.push(createError('oid', 'critical', ValidationErrorType.WARNING));
     extraParams.planPhase === undefined &&
         errors.push(createError('planPhase', 'critical', ValidationErrorType.WARNING));
     extraParams.measurementMethod === undefined &&

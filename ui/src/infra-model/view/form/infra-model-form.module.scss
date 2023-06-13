@@ -25,6 +25,7 @@
 
     padding: 0 16px;
     display: flex;
+    align-items: center;
     background: $color-white-dark;
     z-index: 1;
 
@@ -144,4 +145,8 @@
 .infra-model-upload-failed__errors {
     padding-left: 0;
     list-style: inside;
+}
+
+.infra-model-upload__project-field {
+    font-size: 80%;
 }

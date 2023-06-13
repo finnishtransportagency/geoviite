@@ -4,6 +4,7 @@ import commonFi from 'i18n/fi/fi.json';
 import commonEn from 'i18n/en/en.json';
 import appBarFi from 'app-bar/translations.fi.json';
 import infraModelFi from 'infra-model/translations.fi.json';
+import projektiVelhoFi from 'infra-model/projektivelho/translations.fi.json';
 import selectionPanelFi from 'selection-panel/translations.fi.json';
 import toolPanelFi from 'tool-panel/translations.fi.json';
 import toolBarFi from 'tool-bar/translations.fi.json';
@@ -28,6 +29,7 @@ export const resources = {
             ...commonFi,
             ...appBarFi,
             ...infraModelFi,
+            ...projektiVelhoFi,
             ...selectionPanelFi,
             ...toolPanelFi,
             ...toolBarFi,

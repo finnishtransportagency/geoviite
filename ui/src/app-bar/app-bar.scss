@@ -58,9 +58,22 @@ $appbar-height: 48px;
             color: $color-blue-light;
         }
 
+        &--infra-model {
+            padding: 0 20px;
+        }
+
         &--active {
             color: $color-blue-light;
             border-bottom-color: $color-blue-light;
+        }
+
+        &--container {
+            position: relative;
+        }
+        &--exclamation-point {
+            position: absolute;
+            right: -20px;
+            bottom: -9px;
         }
     }
 

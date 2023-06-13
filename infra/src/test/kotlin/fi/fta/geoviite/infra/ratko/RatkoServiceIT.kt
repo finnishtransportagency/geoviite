@@ -68,7 +68,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun startRatkoPublish() {
-        ratkoService.pushChangesToRatko(getCurrentUserName())
+        ratkoService.pushChangesToRatko()
     }
 
     @Test
@@ -600,6 +600,6 @@ class RatkoServiceIT @Autowired constructor(
             calculatedChanges,
             ""
         )
-        ratkoService.pushChangesToRatko(getCurrentUserName())
+        ratkoService.pushChangesToRatko()
     }
 }

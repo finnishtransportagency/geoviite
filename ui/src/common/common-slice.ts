@@ -12,6 +12,7 @@ export type ChangeTimes = {
     geometryPlan: TimeStamp;
     publication: TimeStamp;
     ratkoPush: TimeStamp;
+    pvDocument: TimeStamp;
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -24,6 +25,7 @@ export const initialChangeTimes: ChangeTimes = {
     geometryPlan: initialChangeTime,
     publication: initialChangeTime,
     ratkoPush: initialChangeTime,
+    pvDocument: initialChangeTime,
 };
 
 export type CommonState = {
@@ -38,6 +40,10 @@ export const initialCommonState = {
     userPrivileges: [],
 };
 
+const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time: TimeStamp) => {
+    if (toDate(changeTimes[key]) < toDate(time)) changeTimes[key] = time;
+};
+
 const commonSlice = createSlice({
     name: 'common',
     initialState: initialCommonState,
@@ -49,79 +55,57 @@ const commonSlice = createSlice({
             { changeTimes }: CommonState,
             { payload }: PayloadAction<ChangeTimes>,
         ) {
-            if (toDate(changeTimes.layoutTrackNumber) < toDate(payload.layoutTrackNumber)) {
-                changeTimes.layoutTrackNumber = payload.layoutTrackNumber;
-            }
-            if (toDate(changeTimes.layoutLocationTrack) < toDate(payload.layoutLocationTrack)) {
-                changeTimes.layoutLocationTrack = payload.layoutLocationTrack;
-            }
-            if (toDate(changeTimes.layoutReferenceLine) < toDate(payload.layoutReferenceLine)) {
-                changeTimes.layoutReferenceLine = payload.layoutReferenceLine;
-            }
-            if (toDate(changeTimes.layoutSwitch) < toDate(payload.layoutSwitch)) {
-                changeTimes.layoutSwitch = payload.layoutSwitch;
-            }
-            if (toDate(changeTimes.layoutKmPost) < toDate(payload.layoutKmPost)) {
-                changeTimes.layoutKmPost = payload.layoutKmPost;
-            }
-            if (toDate(changeTimes.geometryPlan) < toDate(payload.geometryPlan)) {
-                changeTimes.geometryPlan = payload.geometryPlan;
-            }
-            if (toDate(changeTimes.publication) < toDate(payload.publication)) {
-                changeTimes.publication = payload.publication;
-            }
-            if (toDate(changeTimes.ratkoPush) < toDate(payload.ratkoPush)) {
-                changeTimes.ratkoPush = payload.ratkoPush;
-            }
+            Object.keys(payload).forEach((key: keyof ChangeTimes) => {
+                updateChangeTime(changeTimes, key, payload[key]);
+            });
         },
         setLayoutTrackNumberChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            if (toDate(changeTimes.layoutTrackNumber) < toDate(payload))
-                changeTimes.layoutTrackNumber = payload;
+            updateChangeTime(changeTimes, 'layoutTrackNumber', payload);
         },
         setLayoutLocationTrackChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            if (toDate(changeTimes.layoutLocationTrack) < toDate(payload))
-                changeTimes.layoutLocationTrack = payload;
+            updateChangeTime(changeTimes, 'layoutLocationTrack', payload);
         },
         setLayoutReferenceLineChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            if (toDate(changeTimes.layoutReferenceLine) < toDate(payload))
-                changeTimes.layoutReferenceLine = payload;
+            updateChangeTime(changeTimes, 'layoutReferenceLine', payload);
         },
         setLayoutSwitchChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            if (toDate(changeTimes.layoutSwitch) < toDate(payload))
-                changeTimes.layoutSwitch = payload;
+            updateChangeTime(changeTimes, 'layoutSwitch', payload);
         },
         setLayoutKmPostChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            if (toDate(changeTimes.layoutKmPost) < toDate(payload))
-                changeTimes.layoutKmPost = payload;
+            updateChangeTime(changeTimes, 'layoutKmPost', payload);
         },
         setGeometryPlanChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            if (toDate(changeTimes.geometryPlan) < toDate(payload))
-                changeTimes.geometryPlan = payload;
+            updateChangeTime(changeTimes, 'geometryPlan', payload);
         },
         setPublicationChangeTime: function (
             { changeTimes }: CommonState,
             { payload }: PayloadAction<TimeStamp>,
         ) {
-            if (toDate(changeTimes.publication) < toDate(payload))
-                changeTimes.publication = payload;
+            updateChangeTime(changeTimes, 'publication', payload);
+        },
+        setPVDocumentChangeTime: function (
+            { changeTimes }: CommonState,
+            { payload }: PayloadAction<TimeStamp>,
+        ) {
+            updateChangeTime(changeTimes, 'pvDocument', payload);
         },
         setRatkoPushChangeTime: function (
             { changeTimes }: CommonState,

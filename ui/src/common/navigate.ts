@@ -1,10 +1,15 @@
 import { GeometryPlanId } from 'geometry/geometry-model';
+import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { useNavigate } from 'react-router-dom';
 
 const appPath = {
     'inframodel-list': '/infra-model',
     'inframodel-upload': '/infra-model/upload',
     'inframodel-edit': (id: GeometryPlanId) => `/infra-model/edit/${id}`,
+    'inframodel-import': (id: PVDocumentId) => `/infra-model/import/${id}`,
+    'inframodel-plans': '/infra-model/plans',
+    'inframodel-waiting': '/infra-model/waiting-for-approval',
+    'inframodel-rejected': '/infra-model/rejected',
 } as const;
 
 type AppNavigateFunction = <K extends keyof typeof appPath>(

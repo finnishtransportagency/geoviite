@@ -43,7 +43,7 @@ class InfraModelParsingIT @Autowired constructor(
         val trackNumber = getOrCreateTrackNumber(TrackNumber("001"))
 
         val xmlString = classpathResourceToString(TESTFILE_SIMPLE)
-        val infraModel = stringToInfraModel(xmlString)
+        val infraModel = toInfraModel(toInfraModelFile(FileName("tstfile.xml"), xmlString))
         assertEquals("finnish", infraModel.language)
         assertEquals("grads", infraModel.units?.metric?.angularUnit)
         assertEquals("grads", infraModel.units?.metric?.directionUnit)
@@ -67,9 +67,10 @@ class InfraModelParsingIT @Autowired constructor(
 
     @Test
     fun differentSpiralsCanBeParsed() {
-        val (parsed, _) = parseFromClasspath(
+        val imFile = classPathToInfraModelFile(TESTFILE_CLOTHOID_AND_PARABOLA)
+        val parsed = parseInfraModelFile(
             PlanSource.GEOMETRIAPALVELU,
-            TESTFILE_CLOTHOID_AND_PARABOLA,
+            imFile,
             coordinateSystemNameToSrid,
             switchStructuresByType,
             switchTypeNameAliases,

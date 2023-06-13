@@ -36,7 +36,9 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     GEOMETRY_ALIGNMENT("geometry", "alignment"),
     GEOMETRY_SWITCH("geometry", "switch"),
     GEOMETRY_KM_POST("geometry", "km_post", listOf("track_number_id", "km_number")),
-    GEOMETRY_TRACK_NUMBER("geometry", "track_number");
+    GEOMETRY_TRACK_NUMBER("geometry", "track_number"),
+
+    PROJEKTIVELHO_DOCUMENT("projektivelho", "document");
 
     val fullName: String = "$schema.$table"
     val versionTable = "$schema.${table}_version"
@@ -84,7 +86,7 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
         val sql = "select max(change_time) change_time from ${table.versionTable}"
         return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
             .firstOrNull()
-            ?: Instant.ofEpochSecond(0)
+            ?: Instant.EPOCH
     }
 
     protected fun <T> createListString(items: List<T>, mapping: (t: T) -> Double?) = when {

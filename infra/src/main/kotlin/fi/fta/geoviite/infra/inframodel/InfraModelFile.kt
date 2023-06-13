@@ -9,10 +9,14 @@ data class InfraModelFile(
     val name: FileName,
     val content: String,
 ) {
-    val hash by lazy { DigestUtils.md5Hex(content) }
+    val hash: String by lazy { DigestUtils.md5Hex(content) }
 
     init {
         require(!containsIdentifyingInfo(content)) { "Identifying info must be censored from IM before storing" }
+        if (content.isBlank()) throw InframodelParsingException(
+            message = "File \"${name}\" is empty",
+            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
+        )
     }
 }
 

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import PVDocument
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
@@ -67,7 +68,7 @@ data class GeometryPlan(
     val switches: List<GeometrySwitch>,
     val kmPosts: List<GeometryKmPost>,
     val fileName: FileName,
-    val oid: Oid<GeometryPlan>?,
+    val pvDocumentId: IntId<PVDocument>?,
     val planPhase: PlanPhase?,
     val decisionPhase: PlanDecisionPhase?,
     val measurementMethod: MeasurementMethod?,

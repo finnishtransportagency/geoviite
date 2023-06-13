@@ -27,10 +27,6 @@ sealed class ClientException(
         localizedMessageKey: String,
         localizedMessageParams: List<String> = listOf(),
     ) : this(status, message, cause, LocalizationKey(localizedMessageKey), localizedMessageParams)
-
-    init {
-        if (!status.is4xxClientError) throw ServerException("Not a client exception: $status")
-    }
 }
 
 
@@ -89,3 +85,11 @@ class NoSuchEntityException(
     constructor(type: String, id: DomainId<*>) : this(type, idToString(id))
     constructor(type: KClass<*>, id: String) : this(type.simpleName ?: type.toString(), id)
 }
+
+enum class Integration { RATKO, PROJEKTIVELHO }
+class IntegrationNotConfiguredException(type: Integration): ClientException(
+    status = SERVICE_UNAVAILABLE,
+    message = "Integration not configured: $type",
+    cause = null,
+    localizedMessageKey = "error.integration-not-configured.$type",
+)
