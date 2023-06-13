@@ -45,7 +45,7 @@ import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { LocationTrackVerticalGeometryInfobox } from 'tool-panel/location-track/location-track-vertical-geometry-infobox';
-import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -63,7 +63,7 @@ type LocationTrackInfoboxProps = {
     onVisibilityChange: (visibilities: LocationTrackInfoboxVisibilities) => void;
     onVerticalGeometryDiagramVisibilityChange: (visibility: boolean) => void;
     verticalGeometryDiagramVisible: boolean;
-    onHoverOverItem: (item: HoveredOverItem | undefined) => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
 };
 
 const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
@@ -81,7 +81,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onVisibilityChange,
     verticalGeometryDiagramVisible,
     onVerticalGeometryDiagramVisibilityChange,
-    onHoverOverItem,
+    onHighlightItem,
 }: LocationTrackInfoboxProps) => {
     const { t } = useTranslation();
     const trackNumber = useTrackNumber(publishType, locationTrack?.trackNumberId);
@@ -379,7 +379,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 publishType={publishType}
                 locationTrackId={locationTrack.id}
                 viewport={viewport}
-                onHoverOverItem={onHoverOverItem}
+                onHighlightItem={onHighlightItem}
             />
             <LocationTrackVerticalGeometryInfobox
                 contentVisible={visibilities.verticalGeometry}

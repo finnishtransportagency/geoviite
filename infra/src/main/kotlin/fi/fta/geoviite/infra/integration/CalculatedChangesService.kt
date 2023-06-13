@@ -593,7 +593,7 @@ private fun findMatchingJoints(
     }
 
     if (segmentPoint == null) null
-    else geocodingContext.getAddress(segmentPoint)?.first?.let { address ->
+    else geocodingContext.getAddress(segmentPoint)?.let { (address) ->
         SwitchJointDataHolder(
             address = address,
             point = segmentPoint,

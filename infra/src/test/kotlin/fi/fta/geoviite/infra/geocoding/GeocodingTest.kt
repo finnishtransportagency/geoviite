@@ -141,8 +141,8 @@ class GeocodingTest {
     @Test
     fun contextDistancesWorkForSegmentEnds() {
         for (segment in alignment.segments) {
-            val startResult = context.getDistance(segment.points.first())
-            val endResult = context.getDistance(segment.points.last())
+            val startResult = context.getM(segment.points.first())
+            val endResult = context.getM(segment.points.last())
             println("segment=${segment.id} start=${segment.startM} end=${segment.endM} startDist=$startResult endDist=$endResult")
             assertEquals(WITHIN, startResult?.second)
             assertEquals(segment.startM, startResult!!.first, DELTA)
@@ -158,16 +158,16 @@ class GeocodingTest {
             val midPlusOne = toPoint(segment.points[2])
             val midPoint = (midMinusOne + midPlusOne) / 2.0
 
-            val midDistance = context.getDistance(midPoint)!!.first
-            assertTrue(context.getDistance(midMinusOne)!!.first < midDistance)
-            assertTrue(context.getDistance(midPlusOne)!!.first > midDistance)
+            val midDistance = context.getM(midPoint)!!.first
+            assertTrue(context.getM(midMinusOne)!!.first < midDistance)
+            assertTrue(context.getM(midPlusOne)!!.first > midDistance)
 
             val lineAngle = directionBetweenPoints(midMinusOne, midPlusOne)
             val offsetPoint = pointInDirection(midPoint, 10.0, lineAngle - PI / 2)
-            assertEquals(midDistance, context.getDistance(offsetPoint)!!.first, DELTA)
+            assertEquals(midDistance, context.getM(offsetPoint)!!.first, DELTA)
 
             val offsetPoint2 = pointInDirection(midPoint, 20.0, lineAngle + PI / 2)
-            assertEquals(midDistance, context.getDistance(offsetPoint2)!!.first, DELTA)
+            assertEquals(midDistance, context.getM(offsetPoint2)!!.first, DELTA)
         }
     }
 
@@ -511,7 +511,7 @@ class GeocodingTest {
         )
 
         val diagonalCenter = start + Point(-50.0, 5.0)
-        assertEquals(5.0, verticalContext.getDistance(diagonalCenter)!!.first, 0.000001)
+        assertEquals(5.0, verticalContext.getM(diagonalCenter)!!.first, 0.000001)
         assertEquals(startAddress + 5.0, verticalContext.getAddress(5.0, startAddress.decimalCount()))
 
         println(verticalContext.startProjection)

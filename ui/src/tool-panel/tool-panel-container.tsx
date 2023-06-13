@@ -7,10 +7,10 @@ import { createDelegates } from 'store/store-utils';
 import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { getSuggestedSwitchByPoint } from 'linking/linking-api';
-import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type ToolPanelContainerProps = {
-    setHoveredOverItem: (item: HoveredOverItem | undefined) => void;
+    setHoveredOverItem: (item: HighlightedAlignment | undefined) => void;
 };
 
 const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverItem }) => {
