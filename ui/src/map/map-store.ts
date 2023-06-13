@@ -63,6 +63,7 @@ export const initialMapState: Map = {
     visibleLayers: [
         'background-map-layer',
         'location-track-alignment-layer',
+        'plan-section-highlight-layer',
         'reference-line-alignment-layer',
         'km-post-layer',
         'switch-layer',
@@ -81,7 +82,7 @@ export const initialMapState: Map = {
                     { name: 'missing-vertical-geometry', visible: false },
                     { name: 'missing-linking', visible: false },
                     { name: 'duplicate-tracks', visible: false },
-                    { name: 'plan-section', visible: false },
+                    { name: 'plan-section', visible: true },
                 ],
             },
             { name: 'switch', visible: true },

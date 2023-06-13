@@ -11,33 +11,33 @@ import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/tr
 import { toolPanelPlanTabId } from 'tool-panel/tool-panel';
 import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
 
-type HoveredOverItemBase = {
+type HighlightedItemBase = {
     startM: number;
     endM: number;
 };
 
-type HoveredOverLocationTrack = {
+type HighlightedLocationTrack = {
     type: 'LOCATION_TRACK';
     id: LocationTrackId;
-} & HoveredOverItemBase;
+} & HighlightedItemBase;
 
-type HoveredOverTrackNumber = {
+type HighlightedReferenceLine = {
     type: 'REFERENCE_LINE';
     id: LayoutTrackNumberId;
-} & HoveredOverItemBase;
+} & HighlightedItemBase;
 
-export type HoveredOverItem = HoveredOverLocationTrack | HoveredOverTrackNumber;
+export type HighlightedAlignment = HighlightedLocationTrack | HighlightedReferenceLine;
 
 type AlignmentPlanSectionInfoboxContentProps = {
     sections: AlignmentPlanSection[];
-    onHoverOverItem: (item: HoveredOverItem | undefined) => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
     id: LocationTrackId | LayoutTrackNumberId;
     type: 'LOCATION_TRACK' | 'REFERENCE_LINE';
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
-> = ({ sections, type, id, onHoverOverItem }) => {
+> = ({ sections, type, id, onHighlightItem }) => {
     const { t } = useTranslation();
 
     const delegates = createDelegates(TrackLayoutActions);
@@ -61,7 +61,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                             onMouseOver={() => {
                                 section.start &&
                                     section.end &&
-                                    onHoverOverItem({
+                                    onHighlightItem({
                                         id,
                                         type,
                                         startM: section.start?.m,
@@ -69,7 +69,7 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                                     });
                             }}
                             onMouseOut={() => {
-                                onHoverOverItem(undefined);
+                                onHighlightItem(undefined);
                             }}>
                             {section.planName ? (
                                 section.planId ? (

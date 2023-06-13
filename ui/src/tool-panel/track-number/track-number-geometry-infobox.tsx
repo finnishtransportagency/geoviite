@@ -9,7 +9,7 @@ import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import {
     AlignmentPlanSectionInfoboxContent,
-    HoveredOverItem,
+    HighlightedAlignment,
 } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,7 +24,7 @@ type TrackNumberGeometryInfoboxProps = {
     viewport: MapViewport;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
-    onHoverOverItem: (item: HoveredOverItem | undefined) => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
@@ -33,7 +33,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     viewport,
     contentVisible,
     onContentVisibilityChange,
-    onHoverOverItem,
+    onHighlightItem,
 }) => {
     const { t } = useTranslation();
     const [useBoundingBox, setUseBoundingBox] = React.useState(true);
@@ -76,7 +76,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                         <AlignmentPlanSectionInfoboxContent
                             id={trackNumberId}
                             sections={sections || []}
-                            onHoverOverItem={onHoverOverItem}
+                            onHighlightItem={onHighlightItem}
                             type={'REFERENCE_LINE'}
                         />
                     )}

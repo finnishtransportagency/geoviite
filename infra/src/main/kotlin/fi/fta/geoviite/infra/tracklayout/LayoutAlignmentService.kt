@@ -54,13 +54,13 @@ class LayoutAlignmentService(
         )
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
         return sections.mapNotNull { section ->
-            val start = if (section.startPoint != null) context.getDistanceAndAddress(section.startPoint)?.let { (distance, address, _) ->
+            val start = if (section.startPoint != null) context.getAddressAndM(section.startPoint)?.let { (address, distance, _) ->
                 PlanSectionPoint(
                     address = address,
                     m = distance,
                 )
             } else null
-            val end = if (section.endPoint != null) context.getDistanceAndAddress(section.endPoint)?.let { (distance, address) ->
+            val end = if (section.endPoint != null) context.getAddressAndM(section.endPoint)?.let { (address, distance,) ->
                 PlanSectionPoint(
                     address = address,
                     m = distance

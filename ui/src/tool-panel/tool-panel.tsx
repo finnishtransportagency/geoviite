@@ -41,7 +41,7 @@ import {
 } from 'track-layout/track-layout-slice';
 import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
-import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -67,7 +67,7 @@ type ToolPanelProps = {
     onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
     stopSwitchLinking: () => void;
     verticalGeometryDiagramVisible: boolean;
-    onHoverOverPlanSection: (item: HoveredOverItem | undefined) => void;
+    onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
 };
 
 type ToolPanelTab = {

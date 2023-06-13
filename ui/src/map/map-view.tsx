@@ -63,7 +63,7 @@ import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/alignment/track-number-end-point-addresses-layer';
 import { Point } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
-import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 declare global {
     interface Window {
@@ -88,7 +88,7 @@ type MapViewProps = {
     onSetGeometryClusterLinkPoint?: (linkPoint: LinkPoint) => void;
     onRemoveGeometryLinkPoint?: (linkPoint: LinkPoint) => void;
     onRemoveLayoutLinkPoint?: (linkPoint: LinkPoint) => void;
-    hoveredOverPlanSection: HoveredOverItem | undefined;
+    hoveredOverPlanSection: HighlightedAlignment | undefined;
 };
 
 const defaultScaleLine: ScaleLine = new ScaleLine({

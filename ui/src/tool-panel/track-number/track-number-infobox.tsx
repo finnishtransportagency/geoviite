@@ -36,7 +36,7 @@ import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-inf
 import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { WriteAccessRequired } from 'user/write-access-required';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
-import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -51,7 +51,7 @@ type TrackNumberInfoboxProps = {
     referenceLineChangeTime: TimeStamp;
     visibilities: TrackNumberInfoboxVisibilities;
     onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
-    onHoverOverItem: (item: HoveredOverItem | undefined) => void;
+    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
 };
 
 const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
@@ -66,7 +66,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     referenceLineChangeTime,
     visibilities,
     onVisibilityChange,
-    onHoverOverItem,
+    onHighlightItem,
 }: TrackNumberInfoboxProps) => {
     const { t } = useTranslation();
     const startAndEndPoints = useReferenceLineStartAndEnd(referenceLine?.id, publishType);
@@ -268,7 +268,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     trackNumberId={trackNumber.id}
                     publishType={publishType}
                     viewport={viewport}
-                    onHoverOverItem={onHoverOverItem}
+                    onHighlightItem={onHighlightItem}
                 />
             )}
             {trackNumber.draftType !== 'NEW_DRAFT' && (

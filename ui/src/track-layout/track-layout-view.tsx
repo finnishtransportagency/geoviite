@@ -20,7 +20,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import VerticalGeometryDiagram from 'vertical-geometry/vertical-geometry-diagram';
 import { createClassName } from 'vayla-design-lib/utils';
-import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 // For now use whole state and some extras as params
 export type TrackLayoutViewProps = {
@@ -81,7 +81,8 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = (props: TrackLayo
     );
 
     const [layerMenuVisible, setLayerMenuVisible] = React.useState(false);
-    const [hoveredOverPlanSection, setHoveredOverPlanSection] = React.useState<HoveredOverItem>();
+    const [hoveredOverPlanSection, setHoveredOverPlanSection] =
+        React.useState<HighlightedAlignment>();
 
     return (
         <div className={className} qa-id="track-layout-content">
