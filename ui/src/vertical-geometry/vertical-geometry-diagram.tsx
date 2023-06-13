@@ -39,6 +39,9 @@ import {
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { useAlignmentHeights } from 'vertical-geometry/km-heights-fetch';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 
 const chartHeightPx = 240;
 const topHeightPaddingPx = 120;
@@ -237,6 +240,7 @@ const VerticalGeometryDiagram: React.FC<{
     changeTimes,
     showArea,
 }) => {
+    const delegates = createDelegates(TrackLayoutActions);
     const ref = useRef<HTMLDivElement>(null);
     const alignmentIdChangeTime = useRef(Date.now());
     useEffect(() => {
@@ -385,9 +389,13 @@ const VerticalGeometryDiagram: React.FC<{
             drawTangentArrows,
         );
 
+    function closeDiagram() {
+        delegates.onVerticalGeometryDiagramVisibilityChange(false);
+    }
+
     return (
         <div
-            style={{ height: fullDiagramHeightPx }}
+            style={{ height: fullDiagramHeightPx, position: 'relative' }}
             ref={ref}
             onMouseDown={(e) => {
                 e.preventDefault();
@@ -408,6 +416,11 @@ const VerticalGeometryDiagram: React.FC<{
                     coordinates={coordinates}
                 />
             )}
+            <div
+                className={styles['vertical-geometry-diagram__close-icon']}
+                onClick={() => closeDiagram()}>
+                <Icons.Close color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
+            </div>
             <svg
                 className={`${styles['vertical-geometry-diagram']} ${
                     panning != null && styles['vertical-geometry-diagram__panning']

@@ -19,3 +19,13 @@
     border-radius: 2px;
     padding: 4px 8px;
 }
+
+.vertical-geometry-diagram__close-icon {
+    cursor: pointer;
+    position: absolute;
+    margin: 5px 0;
+    right: 0;
+    height: 16px;
+    padding: 2px;
+    background: rgba($color-white-default, 0.85);
+}
