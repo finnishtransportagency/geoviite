@@ -328,7 +328,7 @@ function createAlignmentFeatures(
     highlightedLinkPoint: LinkPoint,
     clusterPoints: LinkPoint[],
     linkInterval: LinkInterval,
-    showAllLinkingPoints: boolean,
+    showDots: boolean,
     isGeometryAlignment: boolean,
     pointUnselectedStyle: Style,
     lineUnselectedStyle: Style,
@@ -364,8 +364,10 @@ function createAlignmentFeatures(
             lineUnselectedStyle,
             (point, controlPoint) =>
                 nonEmptyArray(
-                    showAllLinkingPoints ? pointUnselectedStyle : undefined,
-                    getStyleForSegmentTicksIfNeeded(point, controlPoint, lineUnselectedStyle),
+                    showDots ? pointUnselectedStyle : undefined,
+                    showDots || point.isEndPoint
+                        ? getStyleForSegmentTicksIfNeeded(point, controlPoint, lineUnselectedStyle)
+                        : undefined,
                 ),
             isGeometryAlignment,
         ),
@@ -376,8 +378,10 @@ function createAlignmentFeatures(
             lineUnselectedStyle,
             (point, controlPoint) =>
                 nonEmptyArray(
-                    showAllLinkingPoints ? pointUnselectedStyle : undefined,
-                    getStyleForSegmentTicksIfNeeded(point, controlPoint, lineUnselectedStyle),
+                    showDots ? pointUnselectedStyle : undefined,
+                    showDots || point.isEndPoint
+                        ? getStyleForSegmentTicksIfNeeded(point, controlPoint, lineUnselectedStyle)
+                        : undefined,
                 ),
             isGeometryAlignment,
         ),
@@ -388,8 +392,14 @@ function createAlignmentFeatures(
             alignmentHighlightedStyle,
             (point, controlPoint) =>
                 nonEmptyArray(
-                    showAllLinkingPoints ? pointSelectedStyle : undefined,
-                    getStyleForSegmentTicksIfNeeded(point, controlPoint, alignmentHighlightedStyle),
+                    showDots ? pointSelectedStyle : undefined,
+                    showDots || point.isEndPoint
+                        ? getStyleForSegmentTicksIfNeeded(
+                              point,
+                              controlPoint,
+                              alignmentHighlightedStyle,
+                          )
+                        : undefined,
                 ),
             isGeometryAlignment,
         ),
@@ -401,8 +411,14 @@ function createAlignmentFeatures(
             (point, controlPoint, isEndPoint) => {
                 const pointStyle = isEndPoint ? pointSelectedLargeStyle : pointSelectedStyle;
                 return nonEmptyArray(
-                    showAllLinkingPoints ? pointStyle : undefined,
-                    getStyleForSegmentTicksIfNeeded(point, controlPoint, alignmentHighlightedStyle),
+                    showDots ? pointStyle : undefined,
+                    showDots || point.isEndPoint
+                        ? getStyleForSegmentTicksIfNeeded(
+                              point,
+                              controlPoint,
+                              alignmentHighlightedStyle,
+                          )
+                        : undefined,
                 );
             },
             isGeometryAlignment,
@@ -443,14 +459,14 @@ function createLinkingAlignmentFeatures(
     selection: Selection,
     points: LinkPoint[],
     alignmentInterval: LinkInterval,
-    resolution: number,
+    showDots: boolean,
 ): Feature<LineString | Point>[] {
     return createAlignmentFeatures(
         points,
         selection.highlightedItems.layoutLinkPoints[0],
         [],
         alignmentInterval,
-        resolution <= LINKING_DOTS,
+        showDots,
         false,
         layoutPointStyle,
         layoutAlignmentStyle,
@@ -487,15 +503,14 @@ function createLinkingGeometryWithAlignmentFeatures(
     selection: Selection,
     alignmentInterval: LinkInterval,
     geometryInterval: LinkInterval,
-    resolution: number,
+    showDots: boolean,
     layoutPoints: LinkPoint[],
     geometryPoints: LinkPoint[],
 ): Feature<Point | LineString>[] {
     const features: Feature<Point | LineString>[] = [];
     const [clusterPoints, overlappingPoints] = getClusterPoints(layoutPoints, geometryPoints);
-    const renderLinkingDots = resolution <= LINKING_DOTS;
 
-    if (renderLinkingDots) {
+    if (showDots) {
         features.push(
             ...createClusterPointFeatures(
                 clusterPoints,
@@ -512,7 +527,7 @@ function createLinkingGeometryWithAlignmentFeatures(
             selection.highlightedItems.layoutLinkPoints[0],
             overlappingPoints,
             alignmentInterval,
-            renderLinkingDots,
+            showDots,
             false,
             layoutPointStyle,
             layoutAlignmentStyle,
@@ -529,7 +544,7 @@ function createLinkingGeometryWithAlignmentFeatures(
             selection.highlightedItems.geometryLinkPoints[0],
             overlappingPoints,
             geometryInterval,
-            resolution <= LINKING_DOTS,
+            showDots,
             true,
             geometryPointStyle,
             geometryAlignmentStyle,
@@ -593,6 +608,7 @@ export function createAlignmentLinkingLayer(
 
     const vectorSource = existingOlLayer?.getSource() || new VectorSource();
     const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const drawLinkingDots = resolution <= LINKING_DOTS;
 
     if (linkingState?.state === 'setup' || linkingState?.state === 'allSet') {
         if (linkingState.type === LinkingType.LinkingAlignment) {
@@ -613,7 +629,7 @@ export function createAlignmentLinkingLayer(
                         selection,
                         points,
                         linkingState.layoutAlignmentInterval,
-                        resolution,
+                        drawLinkingDots,
                     );
 
                     clearFeatures(vectorSource);
@@ -638,7 +654,7 @@ export function createAlignmentLinkingLayer(
                         selection.highlightedItems.geometryLinkPoints[0],
                         [],
                         linkingState.geometryAlignmentInterval,
-                        resolution <= LINKING_DOTS,
+                        drawLinkingDots,
                         true,
                         geometryPointStyle,
                         geometryAlignmentStyle,
@@ -685,7 +701,7 @@ export function createAlignmentLinkingLayer(
                         selection,
                         linkingState.layoutAlignmentInterval,
                         linkingState.geometryAlignmentInterval,
-                        resolution,
+                        drawLinkingDots,
                         layoutPoints,
                         geometryPoints,
                     );
@@ -705,10 +721,20 @@ export function createAlignmentLinkingLayer(
         name: 'alignment-linking-layer',
         layer: layer,
         searchItems: (hitArea: Polygon, options: SearchItemsOptions): LayerItemSearchResult => {
+            //If dots are not drawn, do not select anything
+            if (!drawLinkingDots) {
+                return {
+                    layoutLinkPoints: [],
+                    geometryLinkPoints: [],
+                    clusterPoints: [],
+                };
+            }
+
             const matchOptions: MatchOptions = {
                 strategy: options.limit == 1 ? 'nearest' : 'limit',
                 limit: options.limit,
             };
+
             const features = vectorSource.getFeaturesInExtent(hitArea.getExtent());
             const clusterPoints = getMatchingEntities<ClusterPoint>(
                 hitArea,
@@ -716,6 +742,7 @@ export function createAlignmentLinkingLayer(
                 FEATURE_PROPERTY_CLUSTER_POINT,
                 matchOptions,
             );
+
             return {
                 layoutLinkPoints: getMatchingLinkPoints(hitArea, 'layout', features, matchOptions),
                 geometryLinkPoints: getMatchingLinkPoints(
