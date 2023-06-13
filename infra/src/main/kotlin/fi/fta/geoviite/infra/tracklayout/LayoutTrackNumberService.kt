@@ -176,7 +176,7 @@ class LayoutTrackNumberService(
 
     private fun getKmPostDistances(context: GeocodingContext) = context.kmPosts.map { kmPost ->
         val distance = kmPost.location?.let { loc ->
-            context.getDistance(loc)?.first
+            context.getM(loc)?.first
         }
         checkNotNull(distance) { "Couldn't calculated distance for km post, id=${kmPost.id} location=${kmPost.location}" }
 

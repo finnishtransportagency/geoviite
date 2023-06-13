@@ -45,6 +45,8 @@ data class GeocodingReferencePoint(
     val intersectType: IntersectType,
 )
 
+data class AddressAndM(val address: TrackMeter, val m: Double, val intersectType: IntersectType)
+
 /**
  * Don't generate a meter that is shorter than this.
  * Prevents an extra projection being generated when the KM changes on an exact meter.
@@ -177,16 +179,15 @@ data class GeocodingContext(
                 }
     }
 
-    fun getDistance(coordinate: IPoint): Pair<Double, IntersectType>? =
-        referenceLineGeometry.getClosestPointM(coordinate)
+    fun getM(coordinate: IPoint) = referenceLineGeometry.getClosestPointM(coordinate)
+
+    fun getAddressAndM(coordinate: IPoint, addressDecimals: Int = DEFAULT_TRACK_METER_DECIMALS): AddressAndM? =
+        referenceLineGeometry.getClosestPointM(coordinate)?.let { (dist, type) ->
+            AddressAndM(getAddress(dist, addressDecimals), dist, type)
+        }
 
     fun getAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Pair<TrackMeter, IntersectType>? =
-        getDistance(coordinate)?.let { (dist, type) -> getAddress(dist, decimals) to type }
-
-    fun getDistanceAndAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Triple<Double, TrackMeter, IntersectType>? =
-        getDistance(coordinate)?.let { (dist, type) ->
-            Triple(dist, getAddress(dist, decimals), type)
-        }
+        getAddressAndM(coordinate, decimals)?.let { (address, _, type) -> address to type }
 
     fun getAddress(targetDistance: Double, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): TrackMeter {
         val addressPoint = findPreviousPoint(targetDistance)
@@ -200,8 +201,8 @@ data class GeocodingContext(
     }
 
     private fun toAddressPoint(point: LayoutPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =
-        getDistance(point)?.let { (distance, intersectType) ->
-            AddressPoint(point, getAddress(distance, decimals)) to intersectType
+        getAddress(point, decimals)?.let { (address, intersectType) ->
+            AddressPoint(point, address) to intersectType
         }
 
     fun getAddressPoints(alignment: IAlignment): AlignmentAddresses? {
@@ -256,9 +257,9 @@ data class GeocodingContext(
             segment.endJointNumber?.let { segment.points.last() },
         ) }
         return locations.mapNotNull { location: LayoutPoint ->
-            getDistance(location)?.first?.let { distance -> AddressPoint(
+            getAddress(location, 3)?.let { (address) -> AddressPoint(
                 point = location,
-                address = getAddress(distance, 3),
+                address = address,
             ) }
         }.distinctBy { addressPoint -> addressPoint.address }
     }

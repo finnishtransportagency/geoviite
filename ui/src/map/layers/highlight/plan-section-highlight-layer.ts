@@ -3,36 +3,44 @@ import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import {
+    AlignmentDataHolder,
+    AlignmentHeader,
+    getMapAlignmentsByTiles,
+} from 'track-layout/layout-map-api';
+import { clearFeatures } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
 import { blueHighlightStyle } from 'map/layers/highlight/highlight-layer-utils';
-import { HoveredOverItem } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { getPartialPolyLine } from 'utils/math-utils';
+import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
+
+const isReferenceLine = (header: AlignmentHeader, referenceLineId: LayoutTrackNumberId) =>
+    header.trackNumberId === referenceLineId && header.alignmentType === 'REFERENCE_LINE';
 
 function createFeatures(
     alignments: AlignmentDataHolder[],
-    hoveredOverItem: HoveredOverItem | undefined,
+    hoveredOverItem: HighlightedAlignment | undefined,
 ): Feature<LineString>[] {
     return alignments
         .filter(
             (alignment) =>
                 hoveredOverItem !== undefined &&
                 (hoveredOverItem.type === 'REFERENCE_LINE'
-                    ? alignment.header.trackNumberId === hoveredOverItem.id
+                    ? isReferenceLine(alignment.header, hoveredOverItem.id)
                     : alignment.header.id === hoveredOverItem.id),
         )
         .flatMap(({ points }) => {
-            points = points.filter(
-                (point) =>
-                    hoveredOverItem?.startM !== undefined &&
-                    hoveredOverItem?.endM !== undefined &&
-                    point.m >= hoveredOverItem?.startM &&
-                    point.m <= hoveredOverItem?.endM,
-            );
-            const lineString = new LineString(points.map(pointToCoords));
+            const polyline =
+                hoveredOverItem &&
+                hoveredOverItem.startM !== undefined &&
+                hoveredOverItem.endM !== undefined
+                    ? getPartialPolyLine(points, hoveredOverItem?.startM, hoveredOverItem?.endM)
+                    : [];
+            const lineString = new LineString(polyline);
             const feature = new Feature({ geometry: lineString });
 
             feature.setStyle(blueHighlightStyle);
@@ -49,7 +57,7 @@ export function createPlanSectionHighlightLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
-    hoveredOverItem: HoveredOverItem | undefined,
+    hoveredOverItem: HighlightedAlignment | undefined,
 ): MapLayer {
     const layerId = ++newestLayerId;
 
