@@ -97,22 +97,26 @@ const geometryPointSelectedLargeStyle = pointStyle(
     12,
 );
 
-const layoutAlignmentStyle = strokeStyle(mapStyles.selectedLayoutAlignmentInterval, 3, 1);
+const layoutAlignmentStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 1);
 
-const layoutAlignmentSelectedStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 3, 3);
+const layoutAlignmentSelectedStyle = strokeStyle(mapStyles.selectedLayoutAlignmentInterval, 3, 3);
 
-const layoutAlignmentHighlightedStyle = strokeStyle(mapStyles.unselectedAlignmentInterval, 4, 5);
+const layoutAlignmentHighlightedStyle = strokeStyle(
+    mapStyles.selectedLayoutAlignmentInterval,
+    4,
+    5,
+);
 
 const layoutPointStyle = pointStyle(
     mapStyles.linkingPoint,
-    mapStyles.selectedLayoutAlignmentInterval,
+    mapStyles.unselectedAlignmentInterval,
     linkPointRadius,
     7,
 );
 
 const layoutPointSelectedStyle = pointStyle(
     mapStyles.linkingPoint,
-    mapStyles.unselectedAlignmentInterval,
+    mapStyles.selectedLayoutAlignmentInterval,
     linkPointRadius,
     9,
 );
@@ -448,7 +452,7 @@ function createLinkingAlignmentFeatures(
         alignmentInterval,
         resolution <= LINKING_DOTS,
         false,
-        layoutPointSelectedStyle,
+        layoutPointStyle,
         layoutAlignmentStyle,
         layoutPointSelectedStyle,
         layoutPointSelectedLargeStyle,
