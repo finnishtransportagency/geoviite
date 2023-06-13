@@ -431,7 +431,9 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             } else {
                 changeTab(tabs[0].asset);
             }
-        } else {
+        }
+
+        if (!tabs.length) {
             setSelectedAsset(undefined);
         }
         setPreviousTabs(tabs);
