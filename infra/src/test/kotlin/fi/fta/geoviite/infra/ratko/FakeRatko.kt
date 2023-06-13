@@ -119,13 +119,34 @@ class FakeRatko (port: Int) {
 
     fun getUpdatedLocationTrackPoints(oid: String) = getPointUpdates(oid, "infra/v1.0/points", "PATCH")
 
-    fun getPushedMetadata(): List<RatkoMetadataAsset> = mockServer.retrieveRecordedRequests(
-        request().withPath("/api/assets/v1.2/")
-            .withMethod("POST")
-            .withBody(JsonBody.json(mapOf("type" to RatkoAssetType.METADATA.value)))
-    ).map { req ->
-        jsonMapper.readValue(req.bodyAsString)
-    }
+    private fun metadataFilterOn(pointField: String, oid: String) =
+        mapOf(
+            "locations" to listOf(
+                mapOf(
+                    "nodecollection" to mapOf(
+                        "nodes" to listOf(
+                            mapOf("point" to mapOf(pointField to (mapOf("id" to oid)))),
+                            mapOf("point" to mapOf(pointField to (mapOf("id" to oid)))),
+                        )
+                    )
+                )
+            )
+        )
+
+    fun getPushedMetadata(locationTrackOid: String? = null, routeNumberOid: String? = null): List<RatkoMetadataAsset> =
+        mockServer.retrieveRecordedRequests(
+            request().withPath("/api/assets/v1.2/")
+                .withMethod("POST")
+                .withBody(
+                    JsonBody.json(
+                        mapOf("type" to RatkoAssetType.METADATA.value) +
+                                (locationTrackOid?.let { oid -> metadataFilterOn("locationtrack", oid) } ?: mapOf()) +
+                                (routeNumberOid?.let { oid -> metadataFilterOn("routenumber", oid) } ?: mapOf())
+                    )
+                )
+        ).map { req ->
+            jsonMapper.readValue(req.bodyAsString)
+        }
 
     private fun putKmMs(nodeCollection: JsonNode) = nodeCollection.get("nodes").forEach { node ->
         val point = node.get("point") as ObjectNode
@@ -164,6 +185,11 @@ class FakeRatko (port: Int) {
         ).map { request ->
             jsonMapper.readValue(request.bodyAsString)
         }
+
+    fun getPushedSwitchGeometries(oid: String): List<List<RatkoAssetGeometry>> =
+        mockServer.retrieveRecordedRequests(
+            request().withPath("/api/assets/v1.2/${oid}/geoms").withMethod("PUT")
+        ).map { request -> jsonMapper.readValue(request.bodyAsString) }
 
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer.retrieveRecordedRequests(

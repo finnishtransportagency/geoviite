@@ -13,14 +13,17 @@ import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublishRequestIds
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.time.Instant
 import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test")
@@ -36,6 +39,7 @@ class RatkoServiceIT @Autowired constructor(
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val publicationService: PublicationService,
     val switchService: LayoutSwitchService,
+    val switchDao: LayoutSwitchDao,
     val kmPostService: LayoutKmPostService,
     val kmPostDao: LayoutKmPostDao,
     val fakeRatkoService: FakeRatkoService,
@@ -177,6 +181,188 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
         val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
         assertEquals(RatkoLocationTrackState.DELETED.name, deletedPush.state.name)
+    }
+
+    @Test
+    fun modifyLocationTrackProperties() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId =
+            layoutTrackNumberDao.insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"))).id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+
+        val locationTrackOriginalVersion =
+            locationTrackService.saveDraft(
+                locationTrack(trackNumberId, name = "abcde", description = "cdefg", type = LocationTrackType.CHORD, externalId = null),
+                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+            ).rowVersion
+        fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
+        publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
+        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        locationTrackService.saveDraft(
+            draft(locationTrackDao.fetch(officialVersion).copy(
+                description = FreeText("aoeu"),
+                name = AlignmentName("uuba aaba"),
+                type = LocationTrackType.MAIN,
+            ))
+        )
+        publishAndPush(locationTracks = listOf(officialVersion))
+        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
+        val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
+        val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
+        assertEquals("aoeu", pushed.description)
+        assertEquals("uuba aaba", pushed.name)
+        assertEquals(RatkoLocationTrackType.MAIN, pushed.type)
+        assertEquals(1, createdPoints.size)
+        assertEquals(9, createdPoints[0].size)
+        assertEquals(listOf<List<RatkoPoint>>(), updatedPoints)
+        assertEquals(listOf<String>(), deletedPoints)
+    }
+
+    @Test
+    fun lengthenLocationTrack() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId =
+            layoutTrackNumberDao.insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"))).id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+
+        val locationTrackOriginalVersion =
+            locationTrackService.saveDraft(
+                locationTrack(trackNumberId, name = "abcde", description = "cdefg", type = LocationTrackType.CHORD, externalId = null),
+                alignment(segment(Point(4.0, 0.0), Point(6.0, 0.0)))
+            ).rowVersion
+        fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
+        publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
+        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        locationTrackService.saveDraft(
+            draft(locationTrackDao.fetch(officialVersion)),
+            alignment(segment(Point(2.0, 0.0), Point(8.0, 0.0)))
+        )
+        publishAndPush(locationTracks = listOf(officialVersion))
+        val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
+        val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
+        val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
+        assertEquals(1, createdPoints.size)
+        assertEquals(1, createdPoints[0].size)
+        assertEquals(5, createdPoints[0][0].kmM.meters.intValueExact())
+        assertEquals((3..7).toList(), updatedPoints[0].map { p -> p.kmM.meters.intValueExact() })
+        assertEquals(listOf("0000"), deletedPoints)
+    }
+
+    @Test
+    fun shortenLocationTrack() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId =
+            layoutTrackNumberDao.insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"))).id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+
+        val locationTrackOriginalVersion =
+            locationTrackService.saveDraft(
+                locationTrack(trackNumberId, name = "abcde", description = "cdefg", type = LocationTrackType.CHORD, externalId = null),
+                alignment(segment(Point(2.0, 0.0), Point(8.0, 0.0)))
+            ).rowVersion
+        fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
+        publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
+        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        locationTrackService.saveDraft(
+            draft(locationTrackDao.fetch(officialVersion)),
+            alignment(segment(Point(4.0, 0.0), Point(6.0, 0.0)))
+        )
+        publishAndPush(locationTracks = listOf(officialVersion))
+        val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
+        val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
+        val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
+        assertEquals(1, updatedPoints.size)
+        assertEquals(1, updatedPoints[0].size)
+        assertEquals(5, updatedPoints[0][0].kmM.meters.intValueExact())
+        assertEquals((3..7).toList(), createdPoints[0].map { p -> p.kmM.meters.intValueExact() })
+        assertEquals(listOf("0000"), deletedPoints)
+    }
+
+    @Test
+    fun alterLocationTrackGeometry() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId =
+            layoutTrackNumberDao.insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"))).id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+
+        val locationTrackOriginalVersion =
+            locationTrackService.saveDraft(
+                locationTrack(trackNumberId, name = "abcde", description = "cdefg", type = LocationTrackType.CHORD, externalId = null),
+                alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(5.0, 3.0), Point(9.0, 0.0), Point(10.0, 0.0)))
+            ).rowVersion
+        fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
+        publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
+        fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        locationTrackService.saveDraft(
+            draft(locationTrackDao.fetch(officialVersion)),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        )
+        publishAndPush(locationTracks = listOf(officialVersion))
+        val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
+        val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
+        val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
+        assertEquals(1, updatedPoints.size)
+        assertEquals(9, createdPoints[0].size)
+        assertEquals(9, updatedPoints[0].size)
+        (0..8).forEach { i ->
+            assertEquals(
+                createdPoints[0][i].geometry!!.coordinates[0],
+                updatedPoints[0][i].geometry!!.coordinates[0],
+                0.00001
+            )
+        }
+        assertTrue(createdPoints[0].subList(1, 8).all { p -> p.geometry!!.coordinates[1] > 0.0 })
+        assertEquals(List(9) { 0.0 }, updatedPoints[0].map { p -> p.geometry!!.coordinates[1] })
+        assertEquals(listOf("0000"), deletedPoints)
+    }
+
+    @Test
+    fun pushLocationTrackMetadata() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId =
+            layoutTrackNumberDao.insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"))).id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+
+        val planVersion = geometryDao.insertPlan(
+            plan(
+                trackNumberId,
+                srid = Srid(4009),
+                measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
+                planTime = Instant.parse("2018-11-30T18:35:24.00Z"),
+                alignments = listOf(
+                    geometryAlignment(
+                        trackNumberId,
+                        name = "geo name",
+                        elements = listOf(lineFromOrigin(1.0))
+                    )
+                ),
+            ),
+            InfraModelFile(FileName("foobar"), "<a></a>"),
+            null
+        )
+        val plan = geometryDao.fetchPlan(planVersion)
+
+        val locationTrack =
+            locationTrackService.saveDraft(
+                locationTrack(trackNumberId, name = "abcde", description = "cdefg", type = LocationTrackType.CHORD, externalId = null),
+                alignment(segment(Point(2.0, 0.0), Point(8.0, 0.0)).copy(sourceId = plan.alignments[0].elements[0].id))
+            ).rowVersion
+        fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
+        publishAndPush(locationTracks = listOf(locationTrack))
+        val metadata = fakeRatko.getPushedMetadata(locationTrackOid = "2.3.4.5.6")
+
+        val props = metadata[0].properties
+        fun prop(name: String) = props.find { p -> p.name == name }!!
+        assertEquals("foobar", prop("filename").stringValue)
+        assertEquals(RatkoMeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY.value, prop("measurement_method").enumValue)
+        assertEquals(2018, prop("created_year").integerValue)
+        assertEquals("EPSG:4009", prop("original_crs").stringValue)
+        assertEquals("geo name", prop("alignment").stringValue)
     }
 
     @Test
@@ -355,6 +541,83 @@ class RatkoServiceIT @Autowired constructor(
     }
 
     @Test
+    fun removeLocationTrackWithSwitch() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = layoutTrackNumberDao.insert(
+            trackNumber(trackNumber, description = "augh", externalId = Oid("1.1.1.1.1"))
+        ).rowVersion.id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0)))
+        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0)))
+
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
+        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
+        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.1.1.1.1"))
+
+        publishAndPush(
+            locationTracks = listOf(throughTrack.rowVersion, branchingTrack.rowVersion),
+            switches = listOf(switch.rowVersion),
+            kmPosts = listOf(kmPost1.rowVersion, kmPost2.rowVersion),
+        )
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+        val officialThroughTrackVersion = locationTrackDao.fetchVersion(throughTrack.id, PublishType.OFFICIAL)!!
+        locationTrackService.saveDraft(locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LayoutState.DELETED))
+        publishAndPush(locationTracks = listOf(officialThroughTrackVersion))
+        val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
+        assertEquals(2, pushedSwitchLocations.size)
+        val firstPush = pushedSwitchLocations[0]
+        assertEquals(2, firstPush.size)
+        assertEquals("JOINT_A", firstPush[0].nodecollection.nodes.toList()[0].nodeType.name)
+        assertEquals("JOINT_C", firstPush[0].nodecollection.nodes.toList()[1].nodeType.name)
+        assertEquals("JOINT_C", firstPush[1].nodecollection.nodes.toList()[0].nodeType.name)
+        val secondPush = pushedSwitchLocations[1]
+        assertEquals(1, secondPush.size)
+        assertEquals("JOINT_A", secondPush[0].nodecollection.nodes.toList()[0].nodeType.name)
+        assertEquals("JOINT_C", secondPush[0].nodecollection.nodes.toList()[1].nodeType.name)
+    }
+
+    @Test
+    fun modifySwitchJointPositionAccuracy() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = layoutTrackNumberDao.insert(
+            trackNumber(trackNumber, description = "augh", externalId = Oid("1.1.1.1.1"))
+        ).rowVersion.id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0)))
+        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0)))
+
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
+        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
+        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.1.1.1.1"))
+
+        publishAndPush(
+            locationTracks = listOf(throughTrack.rowVersion, branchingTrack.rowVersion),
+            switches = listOf(switch.rowVersion),
+            kmPosts = listOf(kmPost1.rowVersion, kmPost2.rowVersion),
+        )
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
+        fakeRatko.hostPushedSwitch("3.4.5.6.7")
+
+        val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublishType.OFFICIAL)!!
+        val officialSwitch = switchDao.fetch(officialSwitchVersion)
+        switchService.saveDraft(officialSwitch.copy(
+            joints = officialSwitch.joints.map { j -> j.copy(locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED) }
+        ))
+        publishAndPush(switches = listOf(officialSwitchVersion))
+        val pushedSwitchGeoms = fakeRatko.getPushedSwitchGeometries("3.4.5.6.7")
+        assertEquals(
+            listOf("OFFICIALLY MEASURED GEODETICALLY", "OFFICIALLY MEASURED GEODETICALLY"),
+            pushedSwitchGeoms[0].map { geom -> geom.assetGeomAccuracyType.value }
+        )
+        assertEquals(
+            listOf("GEOMETRY CALCULATED", "GEOMETRY CALCULATED"),
+            pushedSwitchGeoms[1].map { geom -> geom.assetGeomAccuracyType.value }
+        )
+    }
+
+    @Test
     fun pushSwitch() {
         val trackNumber = trackNumber(getUnusedTrackNumber())
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
@@ -383,6 +646,10 @@ class RatkoServiceIT @Autowired constructor(
                 .single()
         )
         assertEquals(listOf(1, 2), switchLocations.map { s -> s.priority })
+        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.4.5.6.7")
+        fun prop(name: String) = pushedSwitch.properties!!.find { p -> p.name == name }!!
+        assertEquals("TV123", prop("name").stringValue)
+        assertEquals("TV123", prop("turnout_id").stringValue)
     }
 
     @Test
@@ -442,13 +709,47 @@ class RatkoServiceIT @Autowired constructor(
 
     }
 
+    @Test
+    fun changeSwitchStateCategory() {
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = layoutTrackNumberDao.insert(
+            trackNumber(trackNumber, description = "augh", externalId = Oid("1.1.1.1.1"))
+        ).rowVersion.id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+        val kmPost1 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0)))
+        val kmPost2 = kmPostService.saveDraft(kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0)))
+
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumberId)
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
+        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
+        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.1.1.1.1"))
+
+        publishAndPush(
+            locationTracks = listOf(throughTrack.rowVersion, branchingTrack.rowVersion),
+            switches = listOf(switch.rowVersion),
+            kmPosts = listOf(kmPost1.rowVersion, kmPost2.rowVersion),
+        )
+        fakeRatko.hostPushedSwitch("3.4.5.6.7")
+        val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublishType.OFFICIAL)!!
+        switchService.saveDraft(
+            switchDao.fetch(officialSwitchVersion).copy(stateCategory = LayoutStateCategory.FUTURE_EXISTING)
+        )
+        publishAndPush(switches = listOf(officialSwitchVersion))
+        assertEquals(listOf<String>(), fakeRatko.getLocationTrackPointDeletions("1.2.3.4.5"))
+        assertEquals(listOf<String>(), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
+        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedLocationTrackPoints("1.2.3.4.5"))
+        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6"))
+        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.4.5.6.7")
+        assertEquals("FUTURE_EXISTING", pushedSwitch.state!!.category!!.name)
+    }
+
     private fun setupDraftSwitchAndLocationTracks(trackNumberId: IntId<TrackLayoutTrackNumber>): Triple<DaoResponse<TrackLayoutSwitch>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
         val switch = switchService.saveDraft(
             switch(
                 123,
                 joints = listOf(
-                    switchJoint(124).copy(number = JointNumber(1)),
-                    switchJoint(125).copy(number = JointNumber(3)),
+                    switchJoint(124).copy(number = JointNumber(1), locationAccuracy = LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY),
+                    switchJoint(125).copy(number = JointNumber(3), locationAccuracy = LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY),
                 )
             )
         )
@@ -544,7 +845,7 @@ class RatkoServiceIT @Autowired constructor(
 
         fakeRatko.acceptsNewLocationTrackGivingItOid("1.2.3.4.5")
         publishAndPush(locationTracks = listOf(locationTrack.rowVersion))
-        val pushedMetadata = fakeRatko.getPushedMetadata()
+        val pushedMetadata = fakeRatko.getPushedMetadata(locationTrackOid = "1.2.3.4.5")
         assertEquals(1, pushedMetadata.size)
         val pushedNodes = pushedMetadata[0].locations[0].nodecollection.nodes.toList()
         assertEquals("0000+0000", pushedNodes[0].point.kmM.toString())
