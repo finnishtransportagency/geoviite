@@ -124,7 +124,7 @@ function createFeature(
 
         ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
         ctx.fillRect(
-            xEndPosition - textWidth - textPadding * 2,
+            xEndPosition - (positiveXOffset ? textWidth + textPadding * 2 : 0),
             positiveYOffset === pointAtEnd ? y - textBackgroundHeight : y,
             textWidth + textPadding * 2,
             textBackgroundHeight,
@@ -142,7 +142,7 @@ function createFeature(
         ctx.fillStyle = color;
         ctx.textAlign = positiveXOffset ? 'right' : 'left';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(text, xEndPosition - textPadding, yEndPosition);
+        ctx.fillText(text, xEndPosition + textPadding * (positiveXOffset ? -1 : 1), yEndPosition);
 
         ctx.restore();
     };
