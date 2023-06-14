@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import childElementExists
 import clickChildElement
 import defaultWait
+import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.byText
 import fi.fta.geoviite.infra.ui.util.fetch
-import fi.fta.geoviite.infra.ui.util.qaId
-import fi.fta.geoviite.infra.ui.util.textContent
 import getChildWhenMatches
 import getChildWhenVisible
 import getChildrenWhenVisible
@@ -41,10 +41,10 @@ abstract class PageModel(protected val elementFetch: () -> WebElement) {
 
     @Deprecated("Relevant buttons should be marked with qa-id and used via that, rather than content")
     protected fun clickButtonByText(text: String, timeout: Duration = defaultWait) =
-        clickButton(textContent(text), timeout)
+        clickButton(byText(text), timeout)
 
     protected fun clickButtonByQaId(id: String, timeout: Duration = defaultWait) =
-        clickButton(qaId(id), timeout)
+        clickButton(byQaId(id), timeout)
 
     protected fun childElement(by: By, timeout: Duration = defaultWait): WebElement =
         getChildWhenVisible(elementFetch, by, timeout)

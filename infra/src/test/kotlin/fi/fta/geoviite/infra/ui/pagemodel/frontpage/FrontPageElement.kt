@@ -2,11 +2,11 @@ package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
-import fi.fta.geoviite.infra.ui.util.qaId
+import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-class PublicationList(by: By = qaId("publication-list")): PageModel(by) {
+class PublicationList(by: By = byQaId("publication-list")): PageModel(by) {
     private val listElements: List<WebElement> get() = childElements(By.cssSelector("div.publication-list-item"))
 
     val publications: List<PublicationListItem> get() = listElements.mapIndexed { i, e -> PublicationListItem(e, i) }

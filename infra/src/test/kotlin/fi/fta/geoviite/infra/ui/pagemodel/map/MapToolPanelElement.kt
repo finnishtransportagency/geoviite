@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
+import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.ui.util.byText
 import fi.fta.geoviite.infra.ui.util.fetch
-import fi.fta.geoviite.infra.ui.util.qaId
-import fi.fta.geoviite.infra.ui.util.textContent
 import getElementWhenClickable
 import getElementWhenVisible
 import org.openqa.selenium.By
@@ -82,7 +82,7 @@ class LocationTrackLocationInfobox(by: By) : InfoBox(by) {
     fun muokkaaAlkuLoppupistetta() {
         logger.info("Edit start/end point")
         clickButtonByText("Lyhennä alkua ja/tai loppua")
-        waitUntilVisible(textContent("Valmis")) // Ensures that the infobox has changed to edit mode
+        waitUntilVisible(byText("Valmis")) // Ensures that the infobox has changed to edit mode
     }
 
     fun valmis(): Toaster {
@@ -350,18 +350,18 @@ open class LinkingInfoBox(by: By): InfoBox(by) {
     fun aloitaLinkitys() {
         logger.info("Start linking")
         clickButtonByText("Aloita linkitys")
-        waitChildVisible(textContent("Peruuta")) //ensures that the infobox has changed
+        waitChildVisible(byText("Peruuta")) //ensures that the infobox has changed
     }
 
     fun lisaaLinkitettavia() {
         logger.info("Add more linked alignments")
         clickButtonByText("Lisää linkitettäviä")
-        waitChildVisible(textContent("Peruuta")) //ensures that the infobox has changed
+        waitChildVisible(byText("Peruuta")) //ensures that the infobox has changed
     }
 
     fun linkita(): Toaster {
         logger.info("Link")
-        childButton(textContent("Linkitä")).clickAndWaitToDisappear()
+        childButton(byText("Linkitä")).clickAndWaitToDisappear()
         return waitAndGetToasterElement()
     }
 
@@ -419,7 +419,7 @@ class GeometrySwitchLinkingInfoBox(by: By): LinkingInfoBox(by) {
     fun lukitseValinta() = this {
         logger.info("Lock selection")
         clickButtonByText("Lukitse valinta")
-        waitChildVisible(textContent("Poista valinta"))
+        waitChildVisible(byText("Poista valinta"))
     }
 
     fun createNewTrackLayoutSwitch(): CreateEditLayoutSwitchDialog {
@@ -492,7 +492,7 @@ class AddEndPointDialog : DialogPopUp() {
 
     private fun ok() = this  {
         clickButtonByText("OK")
-        waitUntilVisible(textContent("Jatka"))
+        waitUntilVisible(byText("Jatka"))
     }
 
     private fun selectRadioButton(buttonLabel: String) = this {
@@ -576,7 +576,7 @@ class SearchBox(val path: By): PageModel(path) {
 
     fun waitUntilOpenAndNotLoading() {
         waitUntilVisible(By.className("dropdown__list"))
-        waitUntilChildNotVisible(fetch(By.className("dropdown__list")), qaId("$qaId-loading"))
+        waitUntilChildNotVisible(fetch(By.className("dropdown__list")), byQaId("$qaId-loading"))
     }
 }
 

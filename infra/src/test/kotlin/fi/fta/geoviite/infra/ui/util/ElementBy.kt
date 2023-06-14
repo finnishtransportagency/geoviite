@@ -5,9 +5,9 @@ import getElementWhenVisible
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-fun qaId(qaId: String): By = By.cssSelector("[qa-id='$qaId']")
+fun byQaId(qaId: String): By = By.cssSelector("[qa-id='$qaId']")
 
-fun textContent(content: String): By = By.xpath(".//span[text() = '$content']")
+fun byText(content: String): By = By.xpath(".//span[text() = '$content']")
 
 fun fetch(by: By): () -> WebElement = { getElementWhenVisible(by) }
 fun fetch(parentFetch: () -> WebElement, by: By): () -> WebElement = { getChildWhenVisible(parentFetch, by) }
