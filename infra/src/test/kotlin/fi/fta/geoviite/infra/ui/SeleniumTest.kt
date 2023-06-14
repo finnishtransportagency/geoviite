@@ -48,13 +48,6 @@ open class SeleniumTest: ITTestBase(UI_TEST_USER) {
 
     fun goToInfraModelPage() = navigationBar.goToInfraModel()
 
-//    @BeforeEach
-//    fun openGeoviite() {
-//        logger.info("Navigate to Geoviite $startUrl")
-//        openBrowser()
-//        browser().navigate().to(startUrl);
-//    }
-
     protected fun clearAllTestData() {
         val truncateDbDao = TruncateDbDao(jdbcTemplate)
         truncateDbDao.truncateTables(

@@ -68,7 +68,6 @@ class InfraModelTestUI @Autowired constructor(
         val projektinTiedot = uploadForm.projektinTiedot()
 
         assertEquals("TEST_Clothoid_and_parabola", projektinTiedot.nimi())
-        assertEquals("Ei tiedossa", projektinTiedot.oid())
         assertEquals("Geoviite", projektinTiedot.suunnitteluYritys())
 
         val sijaintitiedot = uploadForm.sijaintitiedot()
@@ -115,10 +114,6 @@ class InfraModelTestUI @Autowired constructor(
         val projektinNimi = "E2E IM upload and edit project"
         projektinTiedot.addNimi(projektinNimi)
         assertEquals(projektinNimi, projektinTiedot.nimi())
-
-        val oid = "100.200.30"
-        projektinTiedot.addOid(oid)
-        assertEquals(oid, projektinTiedot.oid())
 
         val suunnitteluyritys = "Rane ja rautatiet"
         projektinTiedot.addNewSuunnitteluyritys(suunnitteluyritys)

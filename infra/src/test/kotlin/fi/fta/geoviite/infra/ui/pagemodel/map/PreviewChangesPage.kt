@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 import fi.fta.geoviite.infra.ui.pagemodel.common.DialogPopUp
 import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.Toaster
+import fi.fta.geoviite.infra.ui.util.textContent
 import getElementWhenClickable
 import getElementWhenVisible
 import org.openqa.selenium.By
@@ -81,7 +82,5 @@ class PreviewChangesSaveOrDiscardDialog: DialogPopUp() {
         clickButtonByQaId("publication-confirm")
     }
 
-    fun hylkaa() =
-        clickButtonByText("Hylkää")
-
+    fun hylkaa() = childButton(textContent("Hylkää")).clickAndWaitToDisappear()
 }

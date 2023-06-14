@@ -34,13 +34,9 @@ export async function getTrackNumberById(
     publishType: PublishType,
     changeTime?: TimeStamp,
 ): Promise<LayoutTrackNumber | undefined> {
-    console.log(
-        `Fetching tracknumbers: id=${trackNumberId} type=${publishType} changeTime=${changeTime}`,
+    return getTrackNumbers(publishType, changeTime).then((trackNumbers) =>
+        trackNumbers.find((trackNumber) => trackNumber.id == trackNumberId),
     );
-    return getTrackNumbers(publishType, changeTime).then((trackNumbers) => {
-        console.log(`Received tracknumbers: ${trackNumbers.map((tn) => tn.id).join(',')}`);
-        return trackNumbers.find((trackNumber) => trackNumber.id == trackNumberId);
-    });
 }
 
 export async function getTrackNumbers(

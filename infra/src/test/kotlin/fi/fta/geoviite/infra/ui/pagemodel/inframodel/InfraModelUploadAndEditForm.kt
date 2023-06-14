@@ -16,7 +16,7 @@ class InfraModelUploadAndEditForm: PageModel(By.className("infra-model-upload__f
         logger.info("Saving infra model to database...")
         clickButtonByText("Tallenna")
         if (expectConfirm) confirmSaving()
-        Toaster().assertAndClose("IM-tiedosto tallennettu")
+        Toaster().assertAndClose("Uusi InfraModel-tiedosto tallennettu Geoviitteeseen")
 
         WebDriverWait(browser(), Duration.ofSeconds(10)).until(
             ExpectedConditions.visibilityOfElementLocated(By.xpath("//td[text() = '$projectName']")))

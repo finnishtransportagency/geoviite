@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import browser
-import fi.fta.geoviite.infra.ui.util.ListContentItem
-import fi.fta.geoviite.infra.ui.util.ListModel
-import fi.fta.geoviite.infra.ui.util.byLiTag
+import fi.fta.geoviite.infra.ui.pagemodel.common.ListContentItem
+import fi.fta.geoviite.infra.ui.pagemodel.common.ListModel
+import fi.fta.geoviite.infra.ui.pagemodel.common.byLiTag
 import fi.fta.geoviite.infra.ui.util.fetch
 import getChildrenWhenVisible
 import getElementWhenVisible

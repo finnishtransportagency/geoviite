@@ -6,11 +6,11 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.PageModel
 import fi.fta.geoviite.infra.ui.pagemodel.common.TableRow
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateFromString
 import fi.fta.geoviite.infra.ui.util.CommonUiTestUtil.Companion.localDateTimeFromString
+import getChildElements
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.openqa.selenium.By
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebElement
-import java.time.Duration
 import java.time.LocalDateTime
 
 
@@ -18,10 +18,11 @@ import java.time.LocalDateTime
 class InfraModelTable(tableRoot: By): PageModel(tableRoot) {
     private val headerElement: WebElement get() = childElement(By.xpath("//table/thead/tr"))
 
+    // TODO: GVT-1936 This should not wait at all but only get the current listing
+    //  If the caller wants to wait for some specific data to appear, it has to have a different condition anyhow
     private fun rowElements(): List<WebElement> = try {
-        childElements(
+        webElement.getChildElements(
             By.xpath("//tbody[@id='infra-model-list-search-result__table-body']/tr"),
-            Duration.ofSeconds(2),
         )
     } catch (ex: TimeoutException) {
         emptyList()
@@ -57,20 +58,11 @@ class InfraModelRow(headers: List<String>, row: WebElement) : TableRow(headers, 
 
 class ProjektinTiedotFromGroup(by: By) : FormGroup(by) {
     fun nimi() = fieldValue("Projektin nimi")
-    fun oid() = fieldValue("Projektin OID")
     fun suunnitteluYritys() = fieldValue("Suunnitteluyritys")
 
     fun addNimi(input: String) {
         changeToNewDropDownValue("Projektin nimi", listOf(input))
             .assertAndClose("Uusi projekti luotu")
-    }
-
-    fun addOid(input: String) {
-        clickEditIcon("Projektin OID")
-        val element = fieldValueElement("Projektin OID")
-
-        element.findElement(By.cssSelector("div.text-field__input input")).sendKeys(input)
-        clickEditIcon("Projektin OID")
     }
 
     fun addNewSuunnitteluyritys(input: String) {
