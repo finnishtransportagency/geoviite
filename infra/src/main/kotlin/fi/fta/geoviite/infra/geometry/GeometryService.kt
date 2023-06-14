@@ -573,7 +573,7 @@ class GeometryService @Autowired constructor(
             val lastPoint = (referencePoint.meters.toDouble() + getKmLengthAtReferencePointIndex(
                 referencePointIndex,
                 geocodingContext
-            ) - minTickSpace.toDouble()).toInt()
+            ) - minTickSpace.toDouble()).toInt().coerceAtLeast(0)
 
             // Pairs of (track meter, segment index). Ordinary ticks don't need segment indices because they clearly
             // hit a specific segment; but points on different sides of a segment boundary are often the exact same
